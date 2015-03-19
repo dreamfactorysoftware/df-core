@@ -1,0 +1,43 @@
+{
+    "name":              "dreamfactory/rave-common",
+    "description":       "DreamFactory RAVE(tm) Common Components",
+    "config":            {
+        "discard-changes": true
+    },
+    "homepage":          "https://www.dreamfactory.com/",
+    "keywords":          ["dsp", "rave", "rest", "api", "mbaas", "baas", "paas"],
+    "license":           ["Apache-2.0"],
+    "authors":           [
+        {
+            "name":  "Arif Islam",
+            "email": "arifislam@dreamfactory.com"
+        },
+        {
+            "name":  "Lee Hicks",
+            "email": "leehicks@dreamfactory.com"
+        },
+        {
+            "name":  "Jerry Ablan",
+            "email": "jerryablan@dreamfactory.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable":     true,
+    "require":           {
+        "php":                    "~5.4",
+        "dreamfactory/php-utils": "dev-develop as dev-master"
+    },
+    "require-dev":       {
+        "phpunit/phpunit": "@stable"
+    },
+    "autoload":          {
+        "psr-4": {
+            "DreamFactory\\Rave\\": "src/"
+        }
+    },
+    "extra":             {
+        "branch-alias": {
+            "dev-develop": "0.0.x-dev"
+        }
+    }
+}

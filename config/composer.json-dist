@@ -33,7 +33,7 @@
   "repositories":      [
 	{
 	  "type": "vcs",
-	  "url":  "git@github.com:dreamfactorysoftware/rave-common.git"
+	  "url":  "git@github.com:dreamfactorysoftware/rave.git"
 	},
     {
       "type":"vcs",
@@ -63,7 +63,7 @@
 	"require": {
 		"laravel/framework": "5.0.*",
 	    "dreamfactory/php-utils": "dev-develop as dev-master",
-	    "dreamfactory/rave-common": "dev-develop as dev-master",
+	    "dreamfactory/rave": "dev-develop as dev-master",
         "dreamfactory/rave-aws": "dev-develop as dev-master",
         "dreamfactory/rave-azure": "dev-develop as dev-master",
         "dreamfactory/rave-rackspace": "dev-develop as dev-master",

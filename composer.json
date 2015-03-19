@@ -1,5 +1,5 @@
 {
-    "name":              "dreamfactory/rave-common",
+    "name":              "dreamfactory/rave",
     "description":       "DreamFactory RAVE(tm) Common Components",
     "config":            {
         "discard-changes": true

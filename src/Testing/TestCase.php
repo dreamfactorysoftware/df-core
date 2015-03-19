@@ -74,7 +74,7 @@ class TestCase extends LaravelTestCase
      */
     public function stage()
     {
-        Artisan::call( 'migrate', ['--path' => 'vendor/dreamfactory/rave-common/database/migrations/'] );
+        Artisan::call( 'migrate', ['--path' => 'vendor/dreamfactory/rave/database/migrations/'] );
         Artisan::call( 'db:seed', ['--class' => 'DreamFactory\\Rave\\Database\\Seeds\\DatabaseSeeder'] );
     }
 

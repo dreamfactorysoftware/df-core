@@ -2,7 +2,7 @@
 /**
  * This file is part of the DreamFactory Rave(tm) Common
  *
- * DreamFactory Rave(tm) Common <http://github.com/dreamfactorysoftware/rave-common>
+ * DreamFactory Rave(tm) Common <http://github.com/dreamfactorysoftware/rave>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");

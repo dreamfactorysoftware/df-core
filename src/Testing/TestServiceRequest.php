@@ -22,6 +22,7 @@ namespace DreamFactory\Rave\Testing;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Contracts\ServiceRequestInterface;
+use DreamFactory\Rave\Enums\ContentTypes;
 
 /**
  * Class TestServiceRequest

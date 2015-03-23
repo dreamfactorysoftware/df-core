@@ -171,11 +171,6 @@ abstract class RestHandler
 
     }
 
-    protected function setAutoDispatch($dispatch)
-    {
-        $this->autoDispatch = $dispatch;
-    }
-
     /**
      * @param ServiceRequestInterface $request
      * @param null                    $resource

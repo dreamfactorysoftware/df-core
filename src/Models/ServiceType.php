@@ -49,6 +49,8 @@ class ServiceType extends BaseModel
 
     public static function seed()
     {
+        $seeded = false;
+
         if ( !static::whereName( 'local_file' )->count() )
         {
             $records = [
@@ -67,7 +69,74 @@ class ServiceType extends BaseModel
             {
                 static::create( $record );
             }
+            $seeded = true;
         }
+
+        if ( !static::whereName( 'local_email' )->exists() )
+        {
+            static::create(
+                [
+                    'name'           => 'local_email',
+                    'class_name'     => 'DreamFactory\\Rave\\Services\\Email\\Local',
+                    'config_handler' => 'DreamFactory\\Rave\\Models\\EmailServiceConfig',
+                    'label'          => 'Email service',
+                    'description'    => 'Local Email service',
+                    'group'          => 'emails',
+                    'singleton'      => 1
+                ]
+            );
+            $seeded = true;
+        }
+
+        if ( !static::whereName( 'smtp_email' )->exists() )
+        {
+            static::create(
+                [
+                    'name'           => 'smtp_email',
+                    'class_name'     => 'DreamFactory\\Rave\\Services\\Email\\Smtp',
+                    'config_handler' => 'DreamFactory\\Rave\\Models\\EmailServiceConfig',
+                    'label'          => 'Email service',
+                    'description'    => 'Smtp Email service',
+                    'group'          => 'emails',
+                    'singleton'      => 1
+                ]
+            );
+            $seeded = true;
+        }
+
+        if ( !static::whereName( 'mailgun' )->exists() )
+        {
+            static::create(
+                [
+                    'name'           => 'mailgun',
+                    'class_name'     => 'DreamFactory\\Rave\\Services\\Email\\Mailgun',
+                    'config_handler' => 'DreamFactory\\Rave\\Models\\EmailServiceConfig',
+                    'label'          => 'Email service',
+                    'description'    => 'Mailgun Email service',
+                    'group'          => 'emails',
+                    'singleton'      => 1
+                ]
+            );
+            $seeded = true;
+        }
+
+        if ( !static::whereName( 'mandrill' )->exists() )
+        {
+            static::create(
+                [
+                    'name'           => 'mandrill',
+                    'class_name'     => 'DreamFactory\\Rave\\Services\\Email\\Mandrill',
+                    'config_handler' => 'DreamFactory\\Rave\\Models\\EmailServiceConfig',
+                    'label'          => 'Email service',
+                    'description'    => 'Mandrill Email service',
+                    'group'          => 'emails',
+                    'singleton'      => 1
+                ]
+            );
+            $seeded = true;
+        }
+
+        return $seeded;
     }
 
 }

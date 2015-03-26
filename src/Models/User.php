@@ -52,6 +52,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
     public static function seed()
     {
+        $seeded = false;
         if ( !static::exists() )
         {
             $_records = [
@@ -64,7 +65,10 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 ]
             ];
             static::insert( $_records );
+            $seeded = true;
         }
+
+        return $seeded;
     }
 
 }

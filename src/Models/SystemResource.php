@@ -48,6 +48,7 @@ class SystemResource extends BaseModel
 
     public static function seed()
     {
+        $seeded = false;
         if ( !static::exists() )
         {
             $records = [
@@ -62,14 +63,14 @@ class SystemResource extends BaseModel
                     'label'       => 'Configuration',
                     'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Config',
                     'description' => 'Global system configuration.',
-                    'singleton' => true,
+                    'singleton'   => true,
                 ],
                 [
                     'name'        => 'constant',
                     'label'       => 'Constants',
                     'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Constant',
                     'description' => 'Read-only listing of constants available for client use.',
-                    'read_only' => true,
+                    'read_only'   => true,
                 ],
                 [
                     'name'        => 'cors',
@@ -88,8 +89,8 @@ class SystemResource extends BaseModel
                     'label'       => 'Environment',
                     'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Environment',
                     'description' => 'Read-only system environment configuration.',
-                    'singleton' => true,
-                    'read_only' => true,
+                    'singleton'   => true,
+                    'read_only'   => true,
                 ],
                 [
                     'name'        => 'lookup',
@@ -117,9 +118,15 @@ class SystemResource extends BaseModel
                 ],
             ];
 
-            foreach( $records as $record)
+            foreach ( $records as $record )
+            {
                 static::create( $record );
+            }
+
+            $seeded = true;
         }
+
+        return $seeded;
     }
 
 }

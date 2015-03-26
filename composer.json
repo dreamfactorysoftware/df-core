@@ -26,7 +26,8 @@
     "require":           {
         "php": "~5.4",
         "ramsey/array_column": "~1.1",
-        "dreamfactory/php-utils": "dev-develop as dev-master"
+        "dreamfactory/php-utils": "dev-develop as dev-master",
+        "guzzlehttp/guzzle": "~5.0"
     },
     "require-dev":       {
         "phpunit/phpunit": "@stable"

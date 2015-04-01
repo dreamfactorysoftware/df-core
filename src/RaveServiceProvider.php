@@ -21,6 +21,7 @@
 namespace DreamFactory\Rave;
 
 use DreamFactory\Rave\Providers\BaseServiceProvider;
+use Barryvdh\Cors\CorsServiceProvider;
 
 class RaveServiceProvider extends BaseServiceProvider
 {
@@ -28,10 +29,17 @@ class RaveServiceProvider extends BaseServiceProvider
     {
         $this->publishes([
                              __DIR__.'/../config/rave.php' => config_path('rave.php'),
+                             __DIR__.'/../config/cors.php' => config_path('cors.php'),
                              __DIR__.'/../views/test_rest.html' => public_path('test_rest.html'),
                          ]);
         include __DIR__.'/Http/RaveRoutes.php';
+
+        $router = $this->app['router'];
+        $router->middleware('cors', 'Barryvdh\Cors\Middleware\HandleCors');
     }
 
-    public function register(){}
+    public function register(){
+        $cors = new CorsServiceProvider($this->app);
+        $cors->register();
+    }
 }

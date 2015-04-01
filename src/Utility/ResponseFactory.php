@@ -114,16 +114,6 @@ class ResponseFactory
 
         $ro = RaveResponse::create( $result, $code );
         $ro->headers->set( "Content-Type", $contentType );
-
-        if ( "testing" !== env( "APP_ENV" ) )
-        {
-            $ro->send();
-
-            //No returning;
-            return;
-        }
-
-        //In test environment, return response object.
         return $ro;
     }
 

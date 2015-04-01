@@ -32,7 +32,7 @@ $servicePattern = '[_0-9a-zA-Z-]+';
 Route::group(['namespace' => 'DreamFactory\Rave\Http\Controllers'], function() use($resourcePathPattern, $servicePattern)
 {
     Route::group(
-        [ 'prefix' => 'api', 'middleware' => 'cors' ],
+        [ 'prefix' => 'api' ],
         function () use ( $resourcePathPattern, $servicePattern )
         {
             Route::get( '{version}/', 'RestController@index' );
@@ -55,7 +55,7 @@ Route::group(['namespace' => 'DreamFactory\Rave\Http\Controllers'], function() u
     );
 
     Route::group(
-        [ 'prefix' => 'rest', 'middleware' => 'cors' ],
+        [ 'prefix' => 'rest' ],
         function () use ( $resourcePathPattern, $servicePattern )
         {
             Route::get( '/', 'RestController@index' );

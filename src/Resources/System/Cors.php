@@ -23,6 +23,13 @@ namespace DreamFactory\Rave\Resources\System;
 use DreamFactory\Rave\Models\CorsConfig;
 use DreamFactory\Rave\Resources\BaseRestSystemResource;
 
+/**
+ * Class Cors
+ *
+ * Configures the System's CORS settings.
+ *
+ * @package DreamFactory\Rave\Resources\System
+ */
 class Cors extends BaseRestSystemResource
 {
     public function __construct( $settings = array() )

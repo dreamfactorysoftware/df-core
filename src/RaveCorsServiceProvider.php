@@ -32,6 +32,9 @@ class RaveCorsServiceProvider extends CorsServiceProvider
     /**
      * Register the service provider.
      *
+     * Overriding this method only to use right cors.php config file
+     * from the rave package.
+     *
      * @return void
      */
     public function register()
@@ -85,6 +88,11 @@ class RaveCorsServiceProvider extends CorsServiceProvider
         return $defaults;
     }
 
+    /**
+     * Gets the CORS settings from database table.
+     *
+     * @return array
+     */
     protected function getPath()
     {
         $cors = CorsConfig::all()->toArray();

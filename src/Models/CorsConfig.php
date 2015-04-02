@@ -20,18 +20,34 @@
 
 namespace DreamFactory\Rave\Models;
 
-
 use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 
+/**
+ * Class CorsConfig
+ *
+ * @package DreamFactory\Rave\Models
+ */
 class CorsConfig extends BaseSystemModel
 {
+    /**
+     * @var string
+     */
     protected $table = 'cors_config';
 
+    /**
+     * @var array
+     */
     protected $fillable = ['path', 'origin', 'header', 'method', 'max_age'];
 
+    /**
+     * @var bool
+     */
     public $timestamps = false;
 
+    /**
+     * {@inheritdoc}
+     */
     public static function boot()
     {
         parent::boot();
@@ -55,6 +71,12 @@ class CorsConfig extends BaseSystemModel
         );
     }
 
+    /**
+     * Validates and cleans model attributes
+     *
+     * @throws BadRequestException
+     * @throws \DreamFactory\Rave\Exceptions\NotImplementedException
+     */
     public function validateAndClean()
     {
         $path = $this->getAttribute('path');
@@ -88,6 +110,13 @@ class CorsConfig extends BaseSystemModel
         $this->setAttribute('method', $method);
     }
 
+    /**
+     * Converts verb masks to array of verbs (string) as needed.
+     *
+     * @param $method
+     *
+     * @return string
+     */
     public function getMethodAttribute($method)
     {
         if(is_array($method))

@@ -33,8 +33,7 @@ class RaveServiceProvider extends BaseServiceProvider
                          ]);
         include __DIR__.'/Http/RaveRoutes.php';
 
-        //$router = $this->app['router'];
-        //$router->middleware('corsmiddleware', 'Barryvdh\Cors\Middleware\HandleCors');
+        $this->app['Illuminate\Contracts\Http\Kernel']->pushMiddleware('DreamFactory\Rave\Middleware\Cors');
     }
 
     public function register(){

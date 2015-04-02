@@ -33,6 +33,7 @@ class RaveServiceProvider extends BaseServiceProvider
                          ]);
         include __DIR__.'/Http/RaveRoutes.php';
 
+        //Adding cors middleware to Kernel as a global middleware
         $this->app['Illuminate\Contracts\Http\Kernel']->pushMiddleware('DreamFactory\Rave\Middleware\Cors');
     }
 

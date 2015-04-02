@@ -39,7 +39,7 @@ class RaveServiceProvider extends BaseServiceProvider
 
     public function register(){
         //Register CorsServiceProvider...
-        $cors = new CorsServiceProvider($this->app);
+        $cors = new RaveCorsServiceProvider($this->app);
         $cors->register();
     }
 }

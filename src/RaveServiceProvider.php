@@ -21,7 +21,6 @@
 namespace DreamFactory\Rave;
 
 use DreamFactory\Rave\Providers\BaseServiceProvider;
-use Barryvdh\Cors\CorsServiceProvider;
 
 class RaveServiceProvider extends BaseServiceProvider
 {

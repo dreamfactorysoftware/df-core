@@ -16,12 +16,12 @@ class CreateApiDocsManagement extends Migration {
 
 		// Service API Docs
 		Schema::create(
-			'service_docs',
+			'service_doc',
 			function ( Blueprint $t )
 			{
 				$t->increments( 'id' );
 				$t->integer( 'service_id' )->unsigned();
-				$t->foreign( 'service_id' )->references( 'id' )->on( 'services' )->onDelete( 'cascade' );
+				$t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
 				$t->integer( 'format' )->unsigned()->default( 0 );
 				$t->text( 'content' )->nullable();
 				$t->timestamp( 'created_date' );
@@ -42,7 +42,7 @@ class CreateApiDocsManagement extends Migration {
 		//
 
 		// Service Docs
-		Schema::dropIfExists( 'service_docs' );
+		Schema::dropIfExists( 'service_doc' );
 
 	}
 

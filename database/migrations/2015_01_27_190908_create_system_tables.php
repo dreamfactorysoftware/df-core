@@ -15,7 +15,7 @@ class CreateSystemTables extends Migration
     {
         // Service Types
         Schema::create(
-            'service_types',
+            'service_type',
             function ( Blueprint $t )
             {
                 $t->string( 'name', 40 )->primary();
@@ -28,28 +28,9 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // Services
-        Schema::create(
-            'services',
-            function ( Blueprint $t )
-            {
-                $t->increments( 'id' );
-                $t->string( 'name', 40 )->unique();
-                $t->string( 'label', 80 );
-                $t->string( 'description' )->nullable();
-                $t->boolean( 'is_active' )->default( 0 );
-                $t->string( 'type' );
-                $t->foreign( 'type' )->references( 'name' )->on( 'service_types' )->onDelete( 'cascade' );
-                $t->nullableTimestamps();
-                // TODO Override behavior later, currently Laravel blatantly sets default 0 for timestamp
-//                $t->timestamp( 'created_date' )->default('CURRENT_TIMESTAMP');
-//                $t->timestamp( 'last_modified_date' )->default('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
-            }
-        );
-
         // System Resources
         Schema::create(
-            'system_resources',
+            'system_resource',
             function ( Blueprint $t )
             {
                 $t->string( 'name', 40 )->primary();
@@ -61,9 +42,25 @@ class CreateSystemTables extends Migration
             }
         );
 
+        // Services
+        Schema::create(
+            'service',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->string( 'name', 40 )->unique();
+                $t->string( 'label', 80 );
+                $t->string( 'description' )->nullable();
+                $t->boolean( 'is_active' )->default( 0 );
+                $t->string( 'type' );
+                $t->foreign( 'type' )->references( 'name' )->on( 'service_type' )->onDelete( 'cascade' );
+                $t->nullableTimestamps();
+            }
+        );
+
         // Roles
         Schema::create(
-            'roles',
+            'role',
             function ( Blueprint $t )
             {
                 $t->increments( 'id' );
@@ -76,7 +73,7 @@ class CreateSystemTables extends Migration
 
         // Roles to Services Allowed Accesses
         Schema::create(
-            'role_service_accesses',
+            'role_service_access',
             function ( Blueprint $t )
             {
                 $t->increments( 'id' );
@@ -84,9 +81,9 @@ class CreateSystemTables extends Migration
                 $t->string( 'description' )->nullable();
                 $t->boolean( 'is_active' )->default( 0 );
                 $t->integer( 'role_id' )->unsigned();
-                $t->foreign( 'role_id' )->references( 'id' )->on( 'roles' )->onDelete( 'cascade' );
+                $t->foreign( 'role_id' )->references( 'id' )->on( 'role' )->onDelete( 'cascade' );
                 $t->integer( 'service_id' )->unsigned()->nullable();
-                $t->foreign( 'service_id' )->references( 'id' )->on( 'services' )->onDelete( 'cascade' );
+                $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
                 $t->string( 'component' )->nullable();
                 $t->integer( 'verb_mask' )->unsigned()->default( 0 );
                 $t->integer( 'requestor_mask' )->unsigned()->default( 0 );
@@ -98,7 +95,7 @@ class CreateSystemTables extends Migration
 
         // Roles to System Resources Allowed Accesses
         Schema::create(
-            'role_system_accesses',
+            'role_system_access',
             function ( Blueprint $t )
             {
                 $t->increments( 'id' );
@@ -106,7 +103,7 @@ class CreateSystemTables extends Migration
                 $t->string( 'description' )->nullable();
                 $t->boolean( 'is_active' )->default( 0 );
                 $t->integer( 'role_id' )->unsigned();
-                $t->foreign( 'role_id' )->references( 'id' )->on( 'roles' )->onDelete( 'cascade' );
+                $t->foreign( 'role_id' )->references( 'id' )->on( 'role' )->onDelete( 'cascade' );
                 $t->string( 'component' )->nullable();
                 $t->integer( 'verb_mask' )->unsigned()->default( 0 );
                 $t->integer( 'requestor_mask' )->unsigned()->default( 0 );
@@ -118,12 +115,12 @@ class CreateSystemTables extends Migration
 
         // Role Lookup Keys
         Schema::create(
-            'role_lookups',
+            'role_lookup',
             function ( Blueprint $t )
             {
                 $t->increments( 'id' );
                 $t->integer( 'role_id' )->unsigned();
-                $t->foreign( 'role_id' )->references( 'id' )->on( 'roles' )->onDelete( 'cascade' );
+                $t->foreign( 'role_id' )->references( 'id' )->on( 'role' )->onDelete( 'cascade' );
                 $t->string( 'name' )->index();
                 $t->text( 'value' )->nullable();
                 $t->boolean( 'private' )->default( 0 );
@@ -131,37 +128,9 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // Users - Admins for system
-        Schema::create(
-            'users',
-            function ( Blueprint $t )
-            {
-                $t->increments( 'id' );
-                $t->string( 'user_name', 40 )->unique();
-                $t->string( 'email' )->unique();
-                $t->string( 'password', 64 );
-                $t->string( 'name' );
-                $t->boolean( 'is_sys_admin' )->default( 0 );
-                $t->boolean( 'is_active' )->default( 0 );
-                $t->dateTime( 'last_login' )->nullable();
-                $t->rememberToken();
-                $t->nullableTimestamps();
-            }
-        );
-
-        Schema::create(
-            'password_resets',
-            function ( Blueprint $table )
-            {
-                $table->string( 'email' )->index();
-                $table->string( 'token' )->index();
-                $table->timestamp( 'created_at' );
-            }
-        );
-
         // System Settings
         Schema::create(
-            'settings',
+            'system_setting',
             function ( Blueprint $t )
             {
                 $t->increments( 'id' );
@@ -173,7 +142,7 @@ class CreateSystemTables extends Migration
 
         // System Lookups
         Schema::create(
-            'lookups',
+            'system_lookup',
             function ( Blueprint $t )
             {
                 $t->increments( 'id' );
@@ -187,7 +156,7 @@ class CreateSystemTables extends Migration
 
         // Email Templates
         Schema::create(
-            'email_templates',
+            'email_template',
             function ( Blueprint $t )
             {
                 $t->increments( 'id' );
@@ -208,9 +177,31 @@ class CreateSystemTables extends Migration
             }
         );
 
+        // Roles to Services Allowed Accesses
+        Schema::create(
+            'db_service_extras',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->integer( 'service_id' )->unsigned()->nullable();
+                $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
+                $t->string( 'table', 128 );
+                $t->string( 'field', 128 )->default( '' );
+                $t->string( 'label', 128 )->default( '' );
+                $t->string( 'plural', 128 )->default( '' );
+                $t->string( 'name_field', 128 )->default( '' );
+                $t->text( 'picklist' )->nullable();
+                $t->text( 'validation' )->nullable();
+                $t->boolean( 'user_id' )->default( 0 );
+                $t->boolean( 'user_id_on_update' )->nullable();
+                $t->boolean( 'timestamp_on_update' )->nullable();
+                $t->nullableTimestamps();
+            }
+        );
+
         // System Configuration
         Schema::create(
-            'config',
+            'system_config',
             function ( Blueprint $t )
             {
                 $t->string( 'db_version', 32 )->primary();
@@ -218,7 +209,7 @@ class CreateSystemTables extends Migration
                 $t->string( 'api_key' )->nullable();
                 $t->boolean( 'allow_guest_access' )->default( 0 );
                 $t->integer( 'guest_role_id' )->unsigned()->nullable();
-                $t->foreign( 'guest_role_id' )->references( 'id' )->on( 'roles' )->onDelete( 'set null' );
+                $t->foreign( 'guest_role_id' )->references( 'id' )->on( 'role' )->onDelete( 'set null' );
                 $t->nullableTimestamps();
             }
         );
@@ -234,29 +225,27 @@ class CreateSystemTables extends Migration
         // Drop created tables in reverse order
 
         // System Configuration
-        Schema::dropIfExists( 'config' );
+        Schema::dropIfExists( 'system_config' );
         // Role Lookup Keys
-        Schema::dropIfExists( 'role_lookups' );
+        Schema::dropIfExists( 'role_lookup' );
         // Role Service Accesses
-        Schema::dropIfExists( 'role_service_accesses' );
+        Schema::dropIfExists( 'role_service_access' );
         // Role System Accesses
-        Schema::dropIfExists( 'role_system_accesses' );
+        Schema::dropIfExists( 'role_system_access' );
         // Roles
-        Schema::dropIfExists( 'roles' );
+        Schema::dropIfExists( 'role' );
         // Email Templates
-        Schema::dropIfExists( 'email_templates' );
+        Schema::dropIfExists( 'email_template' );
         // System Custom Settings
-        Schema::dropIfExists( 'settings' );
+        Schema::dropIfExists( 'system_setting' );
         // System Lookup Keys
-        Schema::dropIfExists( 'lookups' );
+        Schema::dropIfExists( 'system_lookup' );
         // Services
-        Schema::dropIfExists( 'services' );
+        Schema::dropIfExists( 'service' );
+        // System Resources
+        Schema::dropIfExists( 'system_resource' );
         // Service Types
-        Schema::dropIfExists( 'service_types' );
-        // Password Resets for Users
-        Schema::drop( 'password_resets' );
-        // Users
-        Schema::dropIfExists( 'users' );
+        Schema::dropIfExists( 'service_type' );
     }
 
 }

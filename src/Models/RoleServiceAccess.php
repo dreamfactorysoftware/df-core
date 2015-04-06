@@ -41,6 +41,6 @@ namespace DreamFactory\Rave\Models;
  */
 class RoleServiceAccess extends BaseSystemModel
 {
-    protected $table = 'role_service_accesses';
+    protected $table = 'role_service_access';
 
 }

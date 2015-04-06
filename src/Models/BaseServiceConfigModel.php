@@ -132,7 +132,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
             $value = Crypt::encrypt( $value );
         }
 
-        return parent::setAttribute( $key, $value );
+        parent::setAttribute( $key, $value );
     }
 
     /**

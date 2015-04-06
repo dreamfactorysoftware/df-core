@@ -46,7 +46,7 @@ use DreamFactory\Rave\Contracts\ServiceConfigHandlerInterface;
  */
 class Service extends BaseSystemModel
 {
-    protected $table = 'services';
+    protected $table = 'service';
 
     protected $fillable = [ 'name', 'label', 'description', 'is_active', 'type', 'config' ];
 

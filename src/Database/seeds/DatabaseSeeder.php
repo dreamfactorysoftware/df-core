@@ -6,7 +6,6 @@ use Illuminate\Database\Seeder;
 use Illuminate\Database\Eloquent\Model;
 use DreamFactory\Rave\Models\ServiceType;
 use DreamFactory\Rave\Models\SystemResource;
-use DreamFactory\Rave\Models\User;
 
 class DatabaseSeeder extends Seeder
 {
@@ -30,14 +29,6 @@ class DatabaseSeeder extends Seeder
         {
             $this->command->info( 'System resources seeded!' );
         }
-
-
-        // add the initial admin
-        if(true===User::seed())
-        {
-            $this->command->info( 'Admin users seeded!' );
-        }
-
     }
 
 }

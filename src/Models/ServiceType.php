@@ -37,7 +37,7 @@ namespace DreamFactory\Rave\Models;
  */
 class ServiceType extends BaseModel
 {
-    protected $table = 'service_types';
+    protected $table = 'service_type';
 
     protected $primaryKey = 'name';
 

@@ -36,7 +36,7 @@ namespace DreamFactory\Rave\Models;
  */
 class SystemResource extends BaseModel
 {
-    protected $table = 'system_resources';
+    protected $table = 'system_resource';
 
     protected $primaryKey = 'name';
 

@@ -36,6 +36,6 @@ namespace DreamFactory\Rave\Models;
  */
 class Setting extends BaseSystemModel
 {
-    protected $table = 'settings';
+    protected $table = 'system_setting';
 
 }

@@ -21,7 +21,7 @@
 namespace DreamFactory\Rave\Resources\System;
 
 use DreamFactory\Rave\Resources\BaseRestSystemResource;
-use DreamFactory\Rave\Models\User;
+use App\User;
 
 class Admin extends BaseRestSystemResource
 {

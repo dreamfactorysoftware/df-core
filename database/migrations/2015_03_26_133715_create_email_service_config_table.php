@@ -18,7 +18,7 @@ class CreateEmailServiceConfigTable extends Migration {
             function ( Blueprint $t )
             {
                 $t->integer( 'service_id' )->unsigned()->primary();
-                $t->foreign( 'service_id' )->references( 'id' )->on( 'services' )->onDelete( 'cascade' );
+                $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
                 $t->string('driver');
                 $t->string('host')->nullable();
                 $t->string('port')->nullable();

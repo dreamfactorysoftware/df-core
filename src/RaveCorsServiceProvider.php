@@ -32,8 +32,8 @@ class RaveCorsServiceProvider extends CorsServiceProvider
     /**
      * Register the service provider.
      *
-     * Overriding this method only to use right cors.php config file
-     * from the rave package.
+     * Overriding this method only to NOT use the cors.php config file
+     * from the vendor's package. Instead using rave.php config (cors.defaults).
      *
      * @return void
      */
@@ -41,10 +41,6 @@ class RaveCorsServiceProvider extends CorsServiceProvider
     {
         /** @var \Illuminate\Http\Request $request */
         $request = $this->app['request'];
-
-        // Register the config publish path
-        $configPath = __DIR__ . '/../config/cors.php';
-        $this->publishes([$configPath => config_path('cors.php')]);
 
         $this->app->bind('Asm89\Stack\CorsService', function() use($request){
             return new CorsService($this->getOptions($request));
@@ -60,7 +56,7 @@ class RaveCorsServiceProvider extends CorsServiceProvider
      */
     protected function getOptions(Request $request)
     {
-        $defaults = $this->app['config']->get('cors.defaults', []);
+        $defaults = $this->app['config']->get('rave.cors.defaults', []);
         $paths = $this->getPath();
 
         $uri = $request->getPathInfo() ? : '/';

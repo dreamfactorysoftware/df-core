@@ -115,6 +115,6 @@ class TestCase extends LaravelTestCase
      */
     protected function serviceExists( $serviceName )
     {
-        return DB::table( 'services' )->where( 'name', $serviceName )->exists();
+        return DB::table( 'service' )->where( 'name', $serviceName )->exists();
     }
 }

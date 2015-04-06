@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Middleware;
+namespace DreamFactory\Rave\Http\Middleware;
 
 use Barryvdh\Cors\Middleware\HandleCors;
 

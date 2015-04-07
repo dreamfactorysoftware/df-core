@@ -205,6 +205,11 @@ class BaseRestSystemResource extends BaseRestResource
             throw new NotFoundException( "Record not found." );
         }
 
+        if(ArrayUtils::getBool($requestQuery, 'include_count')===true)
+        {
+            $data['meta']['count'] = count($data['record']);
+        }
+
         return $data;
     }
 

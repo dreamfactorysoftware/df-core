@@ -56,31 +56,27 @@ class VerbsMask extends Verbs
     /**
      * @var int
      */
-    const MERGE_MASK = 16;
+    const DELETE_MASK = 16;
     /**
      * @var int
      */
-    const DELETE_MASK = 32;
+    const OPTIONS_MASK = 32;
     /**
      * @var int
      */
-    const OPTIONS_MASK = 64;
+    const HEAD_MASK = 64;
     /**
      * @var int
      */
-    const HEAD_MASK = 128;
+    const COPY_MASK = 128;
     /**
      * @var int
      */
-    const COPY_MASK = 256;
+    const TRACE_MASK = 256;
     /**
      * @var int
      */
-    const TRACE_MASK = 512;
-    /**
-     * @var int
-     */
-    const CONNECT_MASK = 1024;
+    const CONNECT_MASK = 512;
 
     //*************************************************************************
     //* Members
@@ -94,7 +90,6 @@ class VerbsMask extends Verbs
         self::POST    => self::POST_MASK,
         self::PUT     => self::PUT_MASK,
         self::PATCH   => self::PATCH_MASK,
-        self::MERGE   => self::MERGE_MASK,
         self::DELETE  => self::DELETE_MASK,
         self::OPTIONS => self::OPTIONS_MASK,
         self::HEAD    => self::HEAD_MASK,
@@ -180,9 +175,6 @@ class VerbsMask extends Verbs
                 case self::PATCH:
                     $_mask |= self::PATCH_MASK;
                     break;
-                case self::MERGE:
-                    $_mask |= self::MERGE_MASK;
-                    break;
                 case self::DELETE:
                     $_mask |= self::DELETE_MASK;
                     break;
@@ -236,10 +228,6 @@ class VerbsMask extends Verbs
         if ( $mask & self::PATCH_MASK )
         {
             $_array[] = self::PATCH;
-        }
-        if ( $mask & self::MERGE_MASK )
-        {
-            $_array[] = self::MERGE;
         }
         if ( $mask & self::DELETE_MASK )
         {

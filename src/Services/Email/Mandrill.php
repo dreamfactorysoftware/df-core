@@ -18,24 +18,16 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Models;
+namespace DreamFactory\Rave\Services\Email;
 
-/**
- * Setting
- *
- * @property integer $id
- * @property string  $name
- * @property string  $value
- * @property string  $created_date
- * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|Setting whereId( $value )
- * @method static \Illuminate\Database\Query\Builder|Setting whereName( $value )
- * @method static \Illuminate\Database\Query\Builder|Setting whereValue( $value )
- * @method static \Illuminate\Database\Query\Builder|Setting whereCreatedDate( $value )
- * @method static \Illuminate\Database\Query\Builder|Setting whereLastModifiedDate( $value )
- */
-class Setting extends BaseSystemModel
+use DreamFactory\Library\Utility\ArrayUtils;
+use Illuminate\Mail\Transport\MandrillTransport;
+
+class Mandrill extends BaseService
 {
-    protected $table = 'system_setting';
-
+    protected function setTransport($config)
+    {
+        $key = ArrayUtils::get($config, 'key');
+        $this->transport = new MandrillTransport($key);
+    }
 }

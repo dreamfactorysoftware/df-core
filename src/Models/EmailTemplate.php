@@ -46,6 +46,6 @@ namespace DreamFactory\Rave\Models;
  */
 class EmailTemplate extends BaseSystemModel
 {
-    protected $table = 'email_templates';
+    protected $table = 'email_template';
 
 }

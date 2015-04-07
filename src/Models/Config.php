@@ -36,6 +36,6 @@ namespace DreamFactory\Rave\Models;
  */
 class Config extends BaseSingleRecordModel
 {
-    protected $table = 'config';
+    protected $table = 'system_config';
 
 }

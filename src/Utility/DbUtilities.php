@@ -20,6 +20,7 @@
 namespace DreamFactory\Rave\Utility;
 
 use Config;
+use DreamFactory\Rave\Models\DbServiceExtras;
 use Log;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Scalar;
@@ -138,55 +139,23 @@ class DbUtilities
      */
     public static function getSchemaExtrasForTables( $service_id, $table_names, $include_fields = true, $select = '*' )
     {
-        if ( empty( $table_names ) )
-        {
-            return array();
-        }
-
-        $_params = array();
-        $_where = array('and');
-
         if ( empty( $service_id ) )
         {
-            $_where[] = 'service_id IS NULL';
-        }
-        else
-        {
-            $_where[] = 'service_id = :id';
-            $_params[':id'] = $service_id;
+            throw new \InvalidArgumentException( 'Invalid service id.' );
         }
 
-        if ( false === $_values = static::validateAsArray( $table_names, ',', true ) )
+        if ( false === $values = static::validateAsArray( $table_names, ',', true ) )
         {
             throw new \InvalidArgumentException( 'Invalid table list provided.' );
         }
 
-        $_where[] = array('in', 'table', $_values);
-
+        $call = DbServiceExtras::where('service_id', $service_id)->whereIn('table', $values);
         if ( !$include_fields )
         {
-            $_where[] = "field = ''";
+            $call->where('field', '');
         }
 
-        $_results = static::_querySchemaExtras( $_where, $_params, $select );
-
-        if ( empty( $_results ) && ( 1 === $service_id ) )
-        {
-            // backwards compatible for native databases
-            $_params = array();
-            $_where = array('and');
-            $_where[] = 'service_id IS NULL';
-            $_where[] = array('in', 'table', $_values);
-
-            if ( !$include_fields )
-            {
-                $_where[] = "field = ''";
-            }
-
-            $_results = static::_querySchemaExtras( $_where, $_params, $select );
-        }
-
-        return $_results;
+        return $call->get()->toArray();
     }
 
     /**
@@ -200,65 +169,19 @@ class DbUtilities
      */
     public static function getSchemaExtrasForFields( $service_id, $table_name, $field_names, $select = '*' )
     {
-        $_params = array();
-        $_where = array('and');
-
         if ( empty( $service_id ) )
         {
-            $_where[] = 'service_id IS NULL';
+            throw new \InvalidArgumentException( 'Invalid service id.' );
         }
-        else
-        {
-            $_where[] = 'service_id = :id';
-            $_params[':id'] = $service_id;
-        }
-
-        $_where[] = 'table = :tn';
-        $_params[':tn'] = $table_name;
 
         if ( false === $_values = static::validateAsArray( $field_names, ',', true ) )
         {
             throw new \InvalidArgumentException( 'Invalid field list. ' . $field_names );
         }
 
-        $_where[] = array('in', 'field', $_values);
-
-        $_results = static::_querySchemaExtras( $_where, $_params, $select );
-
-        if ( empty( $_results ) && ( 1 === $service_id ) )
-        {
-            // backwards compatible for native databases
-            $_params = array();
-            $_where = array('and');
-            $_where[] = 'service_id IS NULL';
-            $_where[] = 'table = :tn';
-            $_params[':tn'] = $table_name;
-            $_where[] = array('in', 'field', $_values);
-
-            $_results = static::_querySchemaExtras( $_where, $_params, $select );
-        }
+        $_results = DbServiceExtras::where('service_id', $service_id)->where('table', $table_name)->whereIn('field', $_values)->get()->toArray();
 
         return $_results;
-    }
-
-    protected static function _querySchemaExtras( $where, $params, $select = '*' )
-    {
-        $_extras = array();
-//        try
-//        {
-//            $_db = Pii::db();
-//            $_cmd = $_db->createCommand();
-//            $_cmd->select( $select );
-//            $_cmd->from( 'df_sys_schema_extras' );
-//            $_cmd->where( $where, $params );
-//            $_extras = $_cmd->queryAll();
-//        }
-//        catch ( \Exception $_ex )
-//        {
-//            Log::error( 'Failed to query df_sys_schema_extras. ' . $_ex->getMessage() );
-//        }
-
-        return $_extras;
     }
 
     /**
@@ -554,7 +477,7 @@ class DbUtilities
             if ( !isset( $data[0] ) )
             {
                 // single record possibly passed in without wrapper array
-                $data = array($data);
+                $data = array( $data );
             }
         }
 
@@ -642,9 +565,9 @@ class DbUtilities
 
     public static function findRecordByNameValue( $data, $field, $value )
     {
-        foreach ($data as $_record)
+        foreach ( $data as $_record )
         {
-            if (ArrayUtils::get($_record, $field) === $value)
+            if ( ArrayUtils::get( $_record, $field ) === $value )
             {
                 return $_record;
             }
@@ -652,6 +575,7 @@ class DbUtilities
 
         return null;
     }
+
     /**
      * @param array        $record
      * @param string|array $include  List of keys to include in the output record
@@ -786,7 +710,7 @@ class DbUtilities
                 throw new BadRequestException( "Identifying field '$_field' can not be empty for record." );
             }
 
-            return ( $include_field ) ? array($_field => $_id) : $_id;
+            return ( $include_field ) ? array( $_field => $_id ) : $_id;
         }
     }
 

@@ -40,6 +40,6 @@ namespace DreamFactory\Rave\Models;
  */
 class RoleSystemAccess extends BaseSystemModel
 {
-    protected $table = 'role_system_accesses';
+    protected $table = 'role_system_access';
 
 }

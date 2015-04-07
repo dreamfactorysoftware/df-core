@@ -40,6 +40,6 @@ namespace DreamFactory\Rave\Models;
  */
 class Lookup extends BaseSystemModel
 {
-    protected $table = 'lookups';
+    protected $table = 'system_lookup';
 
 }

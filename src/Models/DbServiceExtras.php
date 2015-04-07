@@ -21,26 +21,25 @@
 namespace DreamFactory\Rave\Models;
 
 /**
- * RoleServiceAccess
+ * DbServiceExtras
  *
  * @property integer    $id
- * @property integer    $role_id
  * @property integer    $service_id
- * @property string     $component
- * @property integer    $verb_mask
- * @property integer    $requestor_mask
- * @property array      $filters
- * @property string     $filter_op
- * @property string     $created_date
- * @property string     $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|RoleServiceAccess whereId( $value )
- * @method static \Illuminate\Database\Query\Builder|RoleServiceAccess whereRoleId( $value )
- * @method static \Illuminate\Database\Query\Builder|RoleServiceAccess whereServiceId( $value )
- * @method static \Illuminate\Database\Query\Builder|RoleServiceAccess whereCreatedDate( $value )
- * @method static \Illuminate\Database\Query\Builder|RoleServiceAccess whereLastModifiedDate( $value )
+ * @property string     $table
+ * @property string     $field
+ * @property string     $name_field
+ * @property string     $label
+ * @property string     $plural
+ * @property string     $picklist
+ * @property array      $validation
+ * @property boolean    $user_id
+ * @property boolean    $user_id_on_update
+ * @property boolean    $timestamp_on_update
+ * @method static \Illuminate\Database\Query\Builder|DbServiceExtras whereId( $value )
+ * @method static \Illuminate\Database\Query\Builder|DbServiceExtras whereServiceId( $value )
  */
-class RoleServiceAccess extends BaseSystemModel
+class DbServiceExtras extends BaseSystemModel
 {
-    protected $table = 'role_service_access';
+    protected $table = 'db_service_extras';
 
 }

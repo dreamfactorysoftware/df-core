@@ -114,7 +114,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
      */
     public function getAttribute( $key )
     {
-        if ( in_array( $key, $this->encrypted ) )
+        if ( in_array( $key, $this->encrypted ) && !empty( $this->attributes[$key] ) )
         {
             return Crypt::decrypt( $this->attributes[$key] );
         }
@@ -132,7 +132,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
             $value = Crypt::encrypt( $value );
         }
 
-        return parent::setAttribute( $key, $value );
+        parent::setAttribute( $key, $value );
     }
 
     /**
@@ -144,7 +144,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
 
         foreach ( $attributes as $key => $value )
         {
-            if ( in_array( $key, $this->encrypted ) )
+            if ( in_array( $key, $this->encrypted ) && !empty( $this->attributes[$key] ) )
             {
                 $attributes[$key] = Crypt::decrypt( $value );
             }

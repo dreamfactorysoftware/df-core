@@ -88,13 +88,17 @@ class BaseRestSystemResource extends BaseRestResource
             $payload = array( static::RECORD_WRAPPER => $payload );
         }
 
+        if(empty($key))
+        {
+            $key = static::RECORD_WRAPPER;
+        }
         return ArrayUtils::get( $payload, $key );
     }
 
     /**
      * Handles GET action
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return array
      * @throws NotFoundException
      */
     protected function handleGET()

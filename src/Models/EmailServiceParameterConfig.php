@@ -20,22 +20,21 @@
 
 namespace DreamFactory\Rave\Models;
 
-/**
- * Setting
- *
- * @property integer $id
- * @property string  $name
- * @property string  $value
- * @property string  $created_date
- * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|Setting whereId( $value )
- * @method static \Illuminate\Database\Query\Builder|Setting whereName( $value )
- * @method static \Illuminate\Database\Query\Builder|Setting whereValue( $value )
- * @method static \Illuminate\Database\Query\Builder|Setting whereCreatedDate( $value )
- * @method static \Illuminate\Database\Query\Builder|Setting whereLastModifiedDate( $value )
- */
-class Setting extends BaseSystemModel
+class EmailServiceParameterConfig extends BaseModel
 {
-    protected $table = 'system_setting';
+    protected $table = 'email_parameters_config';
 
+    protected $primaryKey = 'id';
+
+    protected $fillable = [ 'service_id', 'name', 'value', 'active' ];
+
+    /**
+     * @var bool
+     */
+    public $timestamps = false;
+
+    /**
+     * @var bool
+     */
+    public $incrementing = true;
 }

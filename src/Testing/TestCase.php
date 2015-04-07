@@ -19,6 +19,7 @@
  */
 namespace DreamFactory\Rave\Testing;
 
+use DreamFactory\Rave\Models\Service;
 use Illuminate\Foundation\Testing\TestCase as LaravelTestCase;
 use Artisan;
 use DB;
@@ -115,6 +116,6 @@ class TestCase extends LaravelTestCase
      */
     protected function serviceExists( $serviceName )
     {
-        return DB::table( 'services' )->where( 'name', $serviceName )->exists();
+        return Service::whereName($serviceName)->exists();
     }
 }

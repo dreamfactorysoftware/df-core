@@ -34,7 +34,7 @@ use DreamFactory\Rave\Exceptions\NotImplementedException;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Exceptions\RestException;
 
-abstract class BaseDbTableResource extends BaseRestResource
+abstract class BaseDbTableResource extends BaseDbResource
 {
     //*************************************************************************
     //	Constants
@@ -57,10 +57,6 @@ abstract class BaseDbTableResource extends BaseRestResource
     //	Members
     //*************************************************************************
 
-    /**
-     * @var null|BaseDbService
-     */
-    protected $service = null;
     /**
      * @var array
      */
@@ -97,17 +93,6 @@ abstract class BaseDbTableResource extends BaseRestResource
     //*************************************************************************
     //	Methods
     //*************************************************************************
-
-    /**
-     * @param BaseDbService $service
-     * @param array         $settings
-     */
-    public function __construct( $service = null, $settings = array() )
-    {
-        parent::__construct( $settings );
-
-        $this->service = $service;
-    }
 
     /**
      * {@InheritDoc}

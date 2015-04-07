@@ -29,8 +29,7 @@ use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Exceptions\RestException;
 use DreamFactory\Rave\Services\BaseDbService;
 
-// Handle administrative options, table add, delete, etc
-abstract class BaseDbSchemaResource extends BaseRestResource
+abstract class BaseDbSchemaResource extends BaseDbResource
 {
     //*************************************************************************
     //	Constants
@@ -45,25 +44,9 @@ abstract class BaseDbSchemaResource extends BaseRestResource
     //	Members
     //*************************************************************************
 
-    /**
-     * @var null|BaseDbService
-     */
-    protected $service = null;
-
     //*************************************************************************
     //	Methods
     //*************************************************************************
-
-    /**
-     * @param BaseDbService $service
-     * @param array $settings
-     */
-    public function __construct( $service = null, $settings = array() )
-    {
-        parent::__construct( $settings );
-
-        $this->service = $service;
-    }
 
     /**
      * @param string $name
@@ -146,7 +129,7 @@ abstract class BaseDbSchemaResource extends BaseRestResource
                 throw new BadRequestException( 'No data in schema create request.' );
             }
 
-            $result = array( 'table' => $this->createTables( $this->resource, $checkExist, $returnSchema ) );
+            $result = array( 'table' => $this->createTables( $tables, $checkExist, $returnSchema ) );
         }
         elseif ( empty( $this->resourceId ) )
         {

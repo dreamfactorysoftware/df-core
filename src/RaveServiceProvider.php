@@ -31,10 +31,19 @@ class RaveServiceProvider extends BaseServiceProvider
                              __DIR__.'/../views/test_rest.html' => public_path('test_rest.html'),
                          ]);
 
+        // Adding api limit checking as route middleware
         $this->app['router']->middleware( 'api_limits', 'DreamFactory\\Rave\\Http\\Middleware\\Limits' );
 
-        include __DIR__ . '/Http/RaveRoutes.php';
+        include __DIR__.'/Http/RaveRoutes.php';
+
+        //Adding cors middleware to Kernel as a global middleware
+        $this->app['Illuminate\Contracts\Http\Kernel']->pushMiddleware('DreamFactory\Rave\Http\Middleware\Cors');
+
     }
 
-    public function register(){}
+    public function register(){
+        //Register CorsServiceProvider...
+        $cors = new RaveCorsServiceProvider($this->app);
+        $cors->register();
+    }
 }

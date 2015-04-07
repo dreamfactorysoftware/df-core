@@ -18,20 +18,34 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources\System;
+namespace DreamFactory\Rave\Services\Email;
 
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
-use App\User;
+use DreamFactory\Library\Utility\ArrayUtils;
+use Swift_MailTransport as MailTransport;
+use Swift_SendmailTransport as SendmailTransport;
 
-class Admin extends BaseRestSystemResource
+class Local extends BaseService
 {
     /**
-     * @param array $settings
+     * {@inheritdoc}
      */
-    public function __construct( $settings = array() )
+    protected function setTransport( $config )
     {
-        parent::__construct( $settings );
-        $this->model = new User();
-    }
+        $driver = strtolower( ArrayUtils::get( $config, 'driver', 'mail' ) );
+        $transport = null;
 
+        switch ( $driver )
+        {
+            case 'command':
+            case 'sendmail':
+                $command = ArrayUtils::get( $config, 'command' );
+                $transport = SendmailTransport::newInstance( $command );
+                break;
+            default:
+                $transport = MailTransport::newInstance();
+
+        }
+
+        $this->transport = $transport;
+    }
 }

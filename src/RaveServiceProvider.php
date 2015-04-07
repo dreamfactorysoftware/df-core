@@ -30,7 +30,10 @@ class RaveServiceProvider extends BaseServiceProvider
                              __DIR__.'/../config/rave.php' => config_path('rave.php'),
                              __DIR__.'/../views/test_rest.html' => public_path('test_rest.html'),
                          ]);
-        include __DIR__.'/Http/RaveRoutes.php';
+
+        $this->app['router']->middleware( 'api_limits', 'DreamFactory\\Rave\\Http\\Middleware\\Limits' );
+
+        include __DIR__ . '/Http/RaveRoutes.php';
     }
 
     public function register(){}

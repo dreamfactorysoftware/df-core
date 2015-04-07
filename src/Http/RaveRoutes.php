@@ -29,10 +29,10 @@ if ( \DreamFactory\Library\Utility\Enums\Verbs::MERGE === strtoupper( $method ) 
 $resourcePathPattern = '[0-9a-zA-Z-_@&\#\!=,:;\/\^\$\.\|\{\}\[\]\(\)\*\+\? ]+';
 $servicePattern = '[_0-9a-zA-Z-]+';
 
-Route::group(['namespace' => 'DreamFactory\Rave\Http\Controllers'], function() use($resourcePathPattern, $servicePattern)
+Route::group(['namespace' => 'DreamFactory\Rave\Http\Controllers', 'middleware' => 'api_limits'], function() use($resourcePathPattern, $servicePattern)
 {
     Route::group(
-        [ 'prefix' => 'api' ],
+        [ 'prefix' => 'api'],
         function () use ( $resourcePathPattern, $servicePattern )
         {
             Route::get( '{version}/', 'RestController@index' );
@@ -55,7 +55,7 @@ Route::group(['namespace' => 'DreamFactory\Rave\Http\Controllers'], function() u
     );
 
     Route::group(
-        [ 'prefix' => 'rest' ],
+        [ 'prefix' => 'rest'],
         function () use ( $resourcePathPattern, $servicePattern )
         {
             Route::get( '/', 'RestController@index' );

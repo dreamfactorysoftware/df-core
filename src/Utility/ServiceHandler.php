@@ -53,7 +53,7 @@ class ServiceHandler
             return new SystemManager( $settings );
         }
 
-        $service = Service::whereName( $apiName )->get()->first();
+        $service = Service::whereName( $apiName )->whereIsActive(1)->get()->first();
         if ( $service instanceof Service )
         {
             $serviceClass = $service->serviceType()->first()->class_name;
@@ -61,11 +61,16 @@ class ServiceHandler
 
             return new $serviceClass( $settings );
         }
+        elseif(Service::whereName( $apiName )->get()->first() instanceof Service)
+        {
+            $msg = $apiName." service is inactive.";
+        }
         else
         {
             $msg = "Could not find a service for " . $apiName;
-            throw new NotFoundException( $msg );
         }
+
+        throw new NotFoundException( $msg );
     }
 
     /**

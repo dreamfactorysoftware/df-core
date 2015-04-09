@@ -27,6 +27,7 @@
         "php": "~5.4",
         "ramsey/array_column": "~1.1",
         "dreamfactory/php-utils": "dev-develop as dev-master",
+        "dreamfactory/rave-sqldb-core": "dev-develop as dev-master",
         "guzzlehttp/guzzle": "~5.0",
         "barryvdh/laravel-cors": "0.4.x@dev"
     },

@@ -43,4 +43,6 @@ class RoleServiceAccess extends BaseSystemModel
 {
     protected $table = 'role_service_access';
 
+    protected $guarded = ['id', 'created_at', 'updated_at'];
+
 }

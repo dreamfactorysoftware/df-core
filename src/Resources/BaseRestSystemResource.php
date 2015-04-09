@@ -29,6 +29,7 @@ use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use Illuminate\Support\Facades\Config;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\BaseSystemModel;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Class BaseRestSystemResource
@@ -114,18 +115,40 @@ class BaseRestSystemResource extends BaseRestResource
 
         $data = null;
 
+        $related = ArrayUtils::get($requestQuery, 'related');
+        if(!empty($related))
+        {
+            $related = explode(',', $related);
+        }
+        else
+        {
+            $related = [];
+        }
+
         //	Single resource by ID
         if ( !empty( $this->resource ) )
         {
-            $dataCol = $modelClass::find( $this->resource );
-            if ($dataCol)
+            $foundModel = $modelClass::find( $this->resource );
+            if ($foundModel)
             {
-                $data = $dataCol->toArray();
+                if(!empty($related))
+                {
+                    $foundModel->enableRelated( $related );
+                }
+                $data = $foundModel->toArray();
             }
         }
         else if ( !empty( $ids ) )
         {
+            /** @var Collection $dataCol */
             $dataCol = $modelClass::whereIn( 'id', explode( ',', $ids ) )->get();
+            if(!empty($related))
+            {
+                $dataCol->each(function($item) use ($related)
+                {
+                    $item->enableRelated($related);
+                });
+            }
             $data = $dataCol->all();
             $data = array( self::RECORD_WRAPPER => $data );
         }
@@ -140,6 +163,13 @@ class BaseRestSystemResource extends BaseRestResource
             }
 
             $dataCol = $model->whereIn( 'id', $ids )->get();
+            if(!empty($related))
+            {
+                $dataCol->each(function($item) use ($related)
+                {
+                    $item->enableRelated($related);
+                });
+            }
             $data = $dataCol->all();
             $data = array( self::RECORD_WRAPPER => $data );
         }
@@ -197,7 +227,7 @@ class BaseRestSystemResource extends BaseRestResource
                 $criteria['order'] = $value;
             }
 
-            $data = $model->selectResponse( $criteria );
+            $data = $model->selectResponse( $criteria, $related );
         }
 
         if ( null === $data )
@@ -208,6 +238,11 @@ class BaseRestSystemResource extends BaseRestResource
         if(ArrayUtils::getBool($requestQuery, 'include_count')===true)
         {
             $data['meta']['count'] = count($data['record']);
+        }
+
+        if(ArrayUtils::getBool($requestQuery, 'include_schema')===true)
+        {
+            $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
 
         return $data;

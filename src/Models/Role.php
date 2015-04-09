@@ -20,6 +20,9 @@
 
 namespace DreamFactory\Rave\Models;
 
+use DreamFactory\Library\Utility\ArrayUtils;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 /**
  * Role
  *
@@ -46,54 +49,11 @@ class Role extends BaseSystemModel
 {
     protected $table = 'role';
 
-    protected $fillable = ['name', 'description', 'is_active'];
+    protected $fillable = [ 'name', 'description', 'is_active' ];
 
-    protected $appends = ['role_service_accesses', 'role_system_accesses'];
-
-    protected $role_service_accesses = [];
-
-    protected $role_system_accesses = [];
-
-    public static function boot()
-    {
-        parent::boot();
-
-        static::created(
-            function ( Role $role )
-            {
-                if ( !empty( $role->role_service_accesses ) )
-                {
-//                    $serviceAccess = [];
-//                    foreach($role->parameters as $param)
-//                    {
-//                        $params[] = new ParameterConfig($param);
-//                    }
-//                    $rwsConfig->parameter()->saveMany($params);
-                }
-
-                if ( !empty( $role->role_system_accesses ) )
-                {
-//                    $headers = [];
-//                    foreach($rwsConfig->headers as $header)
-//                    {
-//                        $headers[] = new HeaderConfig($header);
-//                    }
-//                    $rwsConfig->header()->saveMany($headers);
-                }
-
-                return true;
-            }
-        );
-    }
-
-    public function serviceAccess()
-    {
-        $this->hasMany('DreamFactory\Rave\Models\RoleServiceAccess');
-    }
-
-    public function systemAccess()
-    {
-        $this->hasMany('DreamFactory\Rave\Models\RoleSystemAccess');
-    }
-
+    protected static $relatedModels = [
+        'role_service_access' => 'DreamFactory\Rave\Models\RoleServiceAccess',
+        'role_system_access'  => 'DreamFactory\Rave\Models\RoleSystemAccess',
+        'role_lookup'         => 'DreamFactory\Rave\Models\RoleLookup'
+    ];
 }

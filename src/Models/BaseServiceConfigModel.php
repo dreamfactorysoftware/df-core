@@ -89,8 +89,16 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
      */
     public static function setConfig( $id, $config )
     {
-        $config['service_id'] = $id;
-        static::create( $config );
+        $model = static::find( $id );
+        if ( !empty( $model ) )
+        {
+            $model->update( $config );
+        }
+        else
+        {
+            $config['service_id'] = $id;
+            static::create( $config );
+        }
     }
 
     /**

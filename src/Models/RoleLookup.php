@@ -42,4 +42,6 @@ class RoleLookup extends BaseSystemModel
 {
     protected $table = 'role_lookup';
 
+    protected $guarded = ['id', 'created_at', 'updated_at'];
+
 }

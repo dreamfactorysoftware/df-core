@@ -20,6 +20,9 @@
 
 namespace DreamFactory\Rave\Models;
 
+use DreamFactory\Library\Utility\ArrayUtils;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+
 /**
  * Role
  *
@@ -46,4 +49,11 @@ class Role extends BaseSystemModel
 {
     protected $table = 'role';
 
+    protected $fillable = [ 'name', 'description', 'is_active' ];
+
+    protected static $relatedModels = [
+        'role_service_access' => 'DreamFactory\Rave\Models\RoleServiceAccess',
+        'role_system_access'  => 'DreamFactory\Rave\Models\RoleSystemAccess',
+        'role_lookup'         => 'DreamFactory\Rave\Models\RoleLookup'
+    ];
 }

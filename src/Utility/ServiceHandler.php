@@ -21,6 +21,7 @@
 namespace DreamFactory\Rave\Utility;
 
 use DreamFactory\Rave\Enums\ContentTypes;
+use DreamFactory\Rave\Exceptions\ForbiddenException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Models\Service;
 use DreamFactory\Rave\Services\SystemManager;
@@ -45,16 +46,18 @@ class ServiceHandler
         $service = Service::whereName( $apiName )->get()->first();
         if ( $service instanceof Service )
         {
-            $serviceClass = $service->serviceType()->first()->class_name;
-            $settings = $service->toArray();
+            if ($service->is_active)
+            {
+                $serviceClass = $service->serviceType()->first()->class_name;
+                $settings = $service->toArray();
 
-            return new $serviceClass( $settings );
+                return new $serviceClass( $settings );
+            }
+            
+            throw new ForbiddenException( "Service $apiName is inactive.");
         }
-        else
-        {
-            $msg = "Could not find a service for " . $apiName;
-            throw new NotFoundException( $msg );
-        }
+        
+        throw new NotFoundException( "Could not find a service for $apiName." );
     }
 
     /**
@@ -81,7 +84,7 @@ class ServiceHandler
     {
         $services = Service::available($include_properties);
 
-        return array( 'service' => $services );
+        return [ 'service' => $services ];
 
     }
 }

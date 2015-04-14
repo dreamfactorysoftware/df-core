@@ -128,5 +128,4 @@ class SystemResource extends BaseModel
 
         return $seeded;
     }
-
 }

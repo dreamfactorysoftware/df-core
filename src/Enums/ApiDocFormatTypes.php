@@ -46,7 +46,7 @@ class ApiDocFormatTypes extends FactoryEnum
      */
     const API_BLUEPRINT = 2;
     /**
-     * @var int Pipe-separated values
+     * @var int IO Docs format
      */
     const IO_DOCS = 3;
 

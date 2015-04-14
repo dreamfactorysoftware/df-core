@@ -42,17 +42,6 @@ class ServiceHandler
     {
         $apiName = strtolower( trim( $apiName ) );
 
-        if ( 'system' == $apiName )
-        {
-            $settings = [
-                'name'        => 'system',
-                'label'       => 'System Manager',
-                'description' => 'Handles all system resources and configuration'
-            ];
-
-            return new SystemManager( $settings );
-        }
-
         $service = Service::whereName( $apiName )->get()->first();
         if ( $service instanceof Service )
         {
@@ -88,14 +77,9 @@ class ServiceHandler
     /**
      * @return array
      */
-    public static function listServices()
+    public static function listServices($include_properties = false)
     {
-        $system = [[
-            'name'        => 'system',
-            'label'       => 'System Manager'
-        ]];
-
-        $services = array_merge( $system, Service::available());
+        $services = Service::available($include_properties);
 
         return array( 'service' => $services );
 

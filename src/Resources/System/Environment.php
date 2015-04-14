@@ -40,4 +40,115 @@ class Environment extends BaseRestSystemResource
         return false;
     }
 
+    public function getApiDocInfo()
+    {
+        return array(
+
+            //-------------------------------------------------------------------------
+            //	APIs
+            //-------------------------------------------------------------------------
+
+            'apis'   => array(
+                array(
+                    'path'        => '/{api_name}/environment',
+                    'operations'  => array(
+                        array(
+                            'method'     => 'GET',
+                            'summary'    => 'getEnvironment() - Retrieve environment information.',
+                            'nickname'   => 'getEnvironment',
+                            'type'       => 'EnvironmentResponse',
+                            'event_name' => '{api_name}.environment.read',
+                            'notes'      => 'The retrieved information describes the container/machine on which the DSP resides.',
+                        ),
+                    ),
+                    'description' => 'Operations for system configuration options.',
+                ),
+            ),
+            //-------------------------------------------------------------------------
+            //	Models
+            //-------------------------------------------------------------------------
+
+            'models' => array(
+                'ServerSection'       => array(
+                    'id'         => 'ServerSection',
+                    'properties' => array(
+                        'server_os' => array(
+                            'type' => 'string',
+                        ),
+                        'uname'     => array(
+                            'type' => 'string',
+                        ),
+                    ),
+                ),
+                'ReleaseSection'      => array(
+                    'id'         => 'ReleaseSection',
+                    'properties' => array(
+                        'id'          => array(
+                            'type' => 'string',
+                        ),
+                        'release'     => array(
+                            'type' => 'string',
+                        ),
+                        'codename'    => array(
+                            'type' => 'string',
+                        ),
+                        'description' => array(
+                            'type' => 'string',
+                        ),
+                    ),
+                ),
+                'PlatformSection'     => array(
+                    'id'         => 'PlatformSection',
+                    'properties' => array(
+                        'is_hosted'           => array(
+                            'type' => 'boolean',
+                        ),
+                        'is_private'          => array(
+                            'type' => 'boolean',
+                        ),
+                        'dsp_version_current' => array(
+                            'type' => 'string',
+                        ),
+                        'dsp_version_latest'  => array(
+                            'type' => 'string',
+                        ),
+                        'upgrade_available'   => array(
+                            'type' => 'boolean',
+                        ),
+                    ),
+                ),
+                'PhpInfoSection'      => array(
+                    'id'         => 'PhpInfoSection',
+                    'properties' => array(
+                        'name' => array(
+                            'type'  => 'array',
+                            'items' => array(
+                                'type' => 'string',
+                            ),
+                        ),
+                    ),
+                ),
+                'EnvironmentResponse' => array(
+                    'id'         => 'EnvironmentResponse',
+                    'properties' => array(
+                        'server'   => array(
+                            'type' => 'ServerSection',
+                        ),
+                        'release'  => array(
+                            'type' => 'ReleaseSection',
+                        ),
+                        'platform' => array(
+                            'type' => 'PlatformSection',
+                        ),
+                        'php_info' => array(
+                            'type'  => 'array',
+                            'items' => array(
+                                '$ref' => 'PhpInfoSection',
+                            ),
+                        ),
+                    ),
+                ),
+            )
+        );
+    }
 }

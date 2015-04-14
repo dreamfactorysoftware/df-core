@@ -29,4 +29,19 @@ use DreamFactory\Rave\Components\RestHandler;
  */
 class BaseRestResource extends RestHandler
 {
+    public function getApiDocInfo()
+    {
+        /**
+         * Some basic apis and models used in DSP REST interfaces
+         */
+        return [
+            'apis'         => [
+                [
+                    'path'        => '/{api_name}/' . $this->name,
+                    'operations'  => [],
+                    'description' => 'No operations currently defined for this resource.',
+                ],
+            ],
+        ];
+    }
 }

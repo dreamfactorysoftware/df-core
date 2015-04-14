@@ -5,7 +5,6 @@ use Illuminate\Database\Migrations\Migration;
 
 class CreateSystemTables extends Migration
 {
-
     /**
      * Run the migrations.
      *
@@ -54,7 +53,22 @@ class CreateSystemTables extends Migration
                 $t->boolean( 'is_active' )->default( 0 );
                 $t->string( 'type' );
                 $t->foreign( 'type' )->references( 'name' )->on( 'service_type' )->onDelete( 'cascade' );
-                $t->nullableTimestamps();
+                $t->boolean( 'mutable' )->default( 1 );
+                $t->boolean( 'deletable' )->default( 1 );
+                $t->timestamps();
+            }
+        );
+
+        // Service API Docs
+        Schema::create(
+            'service_doc',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->integer( 'service_id' )->unsigned();
+                $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
+                $t->integer( 'format' )->unsigned()->default( 0 );
+                $t->text( 'content' )->nullable();
             }
         );
 
@@ -67,7 +81,7 @@ class CreateSystemTables extends Migration
                 $t->string( 'name', 64 )->unique();
                 $t->string( 'description' )->nullable();
                 $t->boolean( 'is_active' )->default( 0 );
-                $t->nullableTimestamps();
+                $t->timestamps();
             }
         );
 
@@ -77,9 +91,6 @@ class CreateSystemTables extends Migration
             function ( Blueprint $t )
             {
                 $t->increments( 'id' );
-                $t->string( 'name', 64 )->unique();
-                $t->string( 'description' )->nullable();
-                $t->boolean( 'is_active' )->default( 0 );
                 $t->integer( 'role_id' )->unsigned();
                 $t->foreign( 'role_id' )->references( 'id' )->on( 'role' )->onDelete( 'cascade' );
                 $t->integer( 'service_id' )->unsigned()->nullable();
@@ -89,27 +100,6 @@ class CreateSystemTables extends Migration
                 $t->integer( 'requestor_mask' )->unsigned()->default( 0 );
                 $t->text( 'filters' )->nullable();
                 $t->string( 'filter_op', 32 )->default( 'and' );
-                $t->nullableTimestamps();
-            }
-        );
-
-        // Roles to System Resources Allowed Accesses
-        Schema::create(
-            'role_system_access',
-            function ( Blueprint $t )
-            {
-                $t->increments( 'id' );
-                $t->string( 'name', 64 )->unique();
-                $t->string( 'description' )->nullable();
-                $t->boolean( 'is_active' )->default( 0 );
-                $t->integer( 'role_id' )->unsigned();
-                $t->foreign( 'role_id' )->references( 'id' )->on( 'role' )->onDelete( 'cascade' );
-                $t->string( 'component' )->nullable();
-                $t->integer( 'verb_mask' )->unsigned()->default( 0 );
-                $t->integer( 'requestor_mask' )->unsigned()->default( 0 );
-                $t->text( 'filters' )->nullable();
-                $t->string( 'filter_op', 32 )->default( 'and' );
-                $t->nullableTimestamps();
             }
         );
 
@@ -124,7 +114,8 @@ class CreateSystemTables extends Migration
                 $t->string( 'name' )->index();
                 $t->text( 'value' )->nullable();
                 $t->boolean( 'private' )->default( 0 );
-                $t->nullableTimestamps();
+                $t->text( 'description' )->nullable();
+                $t->timestamps();
             }
         );
 
@@ -136,7 +127,7 @@ class CreateSystemTables extends Migration
                 $t->increments( 'id' );
                 $t->string( 'name' )->unique();
                 $t->text( 'value' )->nullable();
-                $t->nullableTimestamps();
+                $t->timestamps();
             }
         );
 
@@ -149,8 +140,8 @@ class CreateSystemTables extends Migration
                 $t->string( 'name' )->unique();
                 $t->text( 'value' )->nullable();
                 $t->boolean( 'private' )->default( 0 );
-                $t->string( 'description' )->nullable();
-                $t->nullableTimestamps();
+                $t->text( 'description' )->nullable();
+                $t->timestamps();
             }
         );
 
@@ -173,11 +164,11 @@ class CreateSystemTables extends Migration
                 $t->string( 'reply_to_name', 80 )->nullable();
                 $t->string( 'reply_to_email' )->nullable();
                 $t->text( 'defaults' )->nullable();
-                $t->nullableTimestamps();
+                $t->timestamps();
             }
         );
 
-        // Roles to Services Allowed Accesses
+        // Database Services Extras
         Schema::create(
             'db_service_extras',
             function ( Blueprint $t )
@@ -195,7 +186,6 @@ class CreateSystemTables extends Migration
                 $t->boolean( 'user_id' )->default( 0 );
                 $t->boolean( 'user_id_on_update' )->nullable();
                 $t->boolean( 'timestamp_on_update' )->nullable();
-                $t->nullableTimestamps();
             }
         );
 
@@ -210,7 +200,7 @@ class CreateSystemTables extends Migration
                 $t->boolean( 'allow_guest_access' )->default( 0 );
                 $t->integer( 'guest_role_id' )->unsigned()->nullable();
                 $t->foreign( 'guest_role_id' )->references( 'id' )->on( 'role' )->onDelete( 'set null' );
-                $t->nullableTimestamps();
+                $t->timestamps();
             }
         );
     }
@@ -224,14 +214,14 @@ class CreateSystemTables extends Migration
     {
         // Drop created tables in reverse order
 
+        // Service Docs
+        Schema::dropIfExists( 'service_doc' );
         // System Configuration
         Schema::dropIfExists( 'system_config' );
         // Role Lookup Keys
         Schema::dropIfExists( 'role_lookup' );
         // Role Service Accesses
         Schema::dropIfExists( 'role_service_access' );
-        // Role System Accesses
-        Schema::dropIfExists( 'role_system_access' );
         // Roles
         Schema::dropIfExists( 'role' );
         // Email Templates
@@ -247,5 +237,4 @@ class CreateSystemTables extends Migration
         // Service Types
         Schema::dropIfExists( 'service_type' );
     }
-
 }

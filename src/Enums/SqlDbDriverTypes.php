@@ -71,7 +71,7 @@ class SqlDbDriverTypes extends FactoryEnum
     /**
      * @var string
      */
-    const SYBASE = 'dblib';
+    const DBLIB = 'dblib';
     /**
      * @var string
      */
@@ -120,7 +120,7 @@ class SqlDbDriverTypes extends FactoryEnum
             case static::SQL_SERVER:
                 return static::DRV_SQLSRV;
 
-            case static::SYBASE:
+            case static::DBLIB:
                 return static::DRV_DBLIB;
 
             case static::MYSQL:

@@ -21,6 +21,7 @@
 namespace DreamFactory\Rave\Utility;
 
 use DreamFactory\Rave\Enums\ContentTypes;
+use DreamFactory\Rave\Exceptions\ForbiddenException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Models\Service;
 use DreamFactory\Rave\Services\SystemManager;
@@ -42,35 +43,21 @@ class ServiceHandler
     {
         $apiName = strtolower( trim( $apiName ) );
 
-        if ( 'system' == $apiName )
-        {
-            $settings = [
-                'name'        => 'system',
-                'label'       => 'System Manager',
-                'description' => 'Handles all system resources and configuration'
-            ];
-
-            return new SystemManager( $settings );
-        }
-
-        $service = Service::whereName( $apiName )->whereIsActive(1)->get()->first();
+        $service = Service::whereName( $apiName )->get()->first();
         if ( $service instanceof Service )
         {
-            $serviceClass = $service->serviceType()->first()->class_name;
-            $settings = $service->toArray();
+            if ($service->is_active)
+            {
+                $serviceClass = $service->serviceType()->first()->class_name;
+                $settings = $service->toArray();
 
-            return new $serviceClass( $settings );
+                return new $serviceClass( $settings );
+            }
+            
+            throw new ForbiddenException( "Service $apiName is inactive.");
         }
-        elseif(Service::whereName( $apiName )->get()->first() instanceof Service)
-        {
-            $msg = $apiName." service is inactive.";
-        }
-        else
-        {
-            $msg = "Could not find a service for " . $apiName;
-        }
-
-        throw new NotFoundException( $msg );
+        
+        throw new NotFoundException( "Could not find a service for $apiName." );
     }
 
     /**
@@ -93,16 +80,11 @@ class ServiceHandler
     /**
      * @return array
      */
-    public static function listServices()
+    public static function listServices($include_properties = false)
     {
-        $system = [[
-            'name'        => 'system',
-            'label'       => 'System Manager'
-        ]];
+        $services = Service::available($include_properties);
 
-        $services = array_merge( $system, Service::available());
-
-        return array( 'service' => $services );
+        return [ 'service' => $services ];
 
     }
 }

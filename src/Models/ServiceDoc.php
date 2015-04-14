@@ -18,24 +18,23 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources\System;
-
-use DreamFactory\Rave\Models\CorsConfig;
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
+namespace DreamFactory\Rave\Models;
 
 /**
- * Class Cors
+ * ServiceDoc
  *
- * Configures the System's CORS settings.
- *
- * @package DreamFactory\Rave\Resources\System
+ * @property integer    $id
+ * @property integer    $service_id
+ * @property integer    $format_id
+ * @property string     $content
+ * @method static \Illuminate\Database\Query\Builder|ServiceDoc whereId( $value )
+ * @method static \Illuminate\Database\Query\Builder|ServiceDoc whereServiceId( $value )
+ * @method static \Illuminate\Database\Query\Builder|ServiceDoc whereFormatId( $value )
  */
-class Cors extends BaseRestSystemResource
+class ServiceDoc extends BaseModel
 {
-    public function __construct( $settings = array() )
-    {
-        parent::__construct( $settings );
-        $this->model = new CorsConfig();
-    }
+    protected $table = 'service_doc';
+
+    protected $guarded = false;
 
 }

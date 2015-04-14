@@ -68,4 +68,67 @@ class BaseRestService extends RestHandler
 
         return ResponseFactory::create( $this->response, $this->outputFormat, ServiceResponseInterface::HTTP_OK );
     }
+
+    public function getApiDocInfo()
+    {
+        /**
+         * Some basic apis and models used in DSP REST interfaces
+         */
+        return [
+            'resourcePath' => '/' . $this->name,
+            'produces'     => [ 'application/json', 'application/xml' ],
+            'consumes'     => [ 'application/json', 'application/xml' ],
+            'apis'         => [
+                [
+                    'path'        => '/' . $this->name,
+                    'operations'  => [],
+                    'description' => 'No operations currently defined for this service.',
+                ],
+            ],
+            'models'       => [
+                'ComponentList' => [
+                    'id'         => 'ComponentList',
+                    'properties' => [
+                        'resource' => [
+                            'type'        => 'Array',
+                            'description' => 'Array of accessible components available by this service.',
+                            'items'       => [
+                                'type' => 'string',
+                            ],
+                        ],
+                    ],
+                ],
+                'Resource'      => [
+                    'id'         => 'Resource',
+                    'properties' => [
+                        'name' => [
+                            'type'        => 'string',
+                            'description' => 'Name of the resource.',
+                        ],
+                    ],
+                ],
+                'Resources'     => [
+                    'id'         => 'Resources',
+                    'properties' => [
+                        'resource' => [
+                            'type'        => 'Array',
+                            'description' => 'Array of resources available by this service.',
+                            'items'       => [
+                                '$ref' => 'Resource',
+                            ],
+                        ],
+                    ],
+                ],
+                'Success'       => [
+                    'id'         => 'Success',
+                    'properties' => [
+                        'success' => [
+                            'type'        => 'boolean',
+                            'description' => 'True when API call was successful, false or error otherwise.',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
 }

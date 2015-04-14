@@ -249,7 +249,7 @@ class DbUtilities
 //
 //            try
 //            {
-//                $_command = new \CDbCommand( $_db );
+//                $_command = new \Command( $_db );
 //
 //                if ( !empty( $_inserts ) )
 //                {

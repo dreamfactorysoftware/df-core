@@ -19,11 +19,13 @@
  */
 
 return array(
-    'db_max_records_returned' => 1000,
+    /** General API version number, 1.x was earlier product and may be supported by most services */
+    'api_version' => '2.0',
+    /** Local File Storage setup, see also local config/filesystems.php */
     'local_file_service_root' => storage_path()."/app",
     'local_file_service_root_test' => storage_path()."/test",
     /** The default number of records to return at once for database queries */
-    'dsp.db_max_records_returned'   => 1000,
+    'db_max_records_returned'   => 1000,
     //-------------------------------------------------------------------------
     //	Date and Time Format Options
     //  The default date and time formats used for in and out requests for

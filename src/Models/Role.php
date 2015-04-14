@@ -53,7 +53,8 @@ class Role extends BaseSystemModel
 
     protected static $relatedModels = [
         'role_service_access' => 'DreamFactory\Rave\Models\RoleServiceAccess',
-        'role_system_access'  => 'DreamFactory\Rave\Models\RoleSystemAccess',
-        'role_lookup'         => 'DreamFactory\Rave\Models\RoleLookup'
+        'role_lookup'         => 'DreamFactory\Rave\Models\RoleLookup',
+        'app'                 => 'DreamFactory\Rave\Models\App',
+        'system_config'       => 'DreamFactory\Rave\Models\Config'
     ];
 }

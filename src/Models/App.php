@@ -20,24 +20,26 @@
 
 namespace DreamFactory\Rave\Models;
 
-/**
- * Config
- *
- * @property integer $id
- * @property string  $name
- * @property string  $value
- * @property string  $created_date
- * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|Config whereId( $value )
- * @method static \Illuminate\Database\Query\Builder|Config whereName( $value )
- * @method static \Illuminate\Database\Query\Builder|Config whereValue( $value )
- * @method static \Illuminate\Database\Query\Builder|Config whereCreatedDate( $value )
- * @method static \Illuminate\Database\Query\Builder|Config whereLastModifiedDate( $value )
- */
-class Config extends BaseSingleRecordModel
+
+class App extends BaseSystemModel
 {
-    protected $table = 'system_config';
+    protected $table = 'app';
 
-    protected $fillable = ['db_version', 'login_with_user_name', 'api_key', 'allow_guest_access', 'guest_role_id'];
+    protected $fillable = [
+        'name',
+        'api_key',
+        'description',
+        'is_active',
+        'type',
+        'url',
+        'storage_service_id',
+        'storage_container',
+        'import_url',
+        'requires_fullscreen',
+        'allow_fullscreen_toggle',
+        'toggle_location',
+        'role_id'
+    ];
 
+    public $timestamps = false;
 }

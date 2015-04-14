@@ -20,6 +20,8 @@
 
 namespace DreamFactory\Rave\Models;
 
+use Illuminate\Support\Facades\Crypt;
+
 /**
  * RoleLookup
  *
@@ -44,4 +46,20 @@ class RoleLookup extends BaseSystemModel
 
     protected $guarded = ['id', 'created_at', 'updated_at'];
 
+    protected function setValueAttribute($value)
+    {
+        $value = Crypt::encrypt($value);
+        $this->attributes['value'] = $value;
+    }
+
+    protected function getValueAttribute($value)
+    {
+        if(1 == $this->getAttribute('private'))
+        {
+            return '**********';
+        }
+        else{
+            return Crypt::decrypt($value);
+        }
+    }
 }

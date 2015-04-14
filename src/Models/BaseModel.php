@@ -29,24 +29,59 @@ use DreamFactory\Rave\SqlDbCore\TableSchema;
 
 class BaseModel extends Model
 {
-    /** @var Schema  */
+    /**
+     * SqlDbCore Schema object.
+     *
+     * @var Schema
+     */
     protected $schema = null;
 
-    /** @var TableSchema  */
+    /**
+     * SqlDbCore TableSchema
+     *
+     * @var TableSchema
+     */
     protected $tableSchema = null;
 
-    /** @var array  */
+    /**
+     * Array of table references from TableSchema
+     *
+     * @var array
+     */
     protected $references = [];
 
-    /** @var array  */
+    /**
+     * Appended fields that are disabled are
+     * stored into this array. This is used
+     * to only show related table data on demand.
+     *
+     * @var array
+     */
     protected $disabledAppends = [];
 
-    /** @var array  */
+    /**
+     * An array map of table names and their models
+     * that are related to this model.
+     *
+     * array(
+     *  'table_name' => 'ModelClass'
+     * )
+     *
+     * @var array
+     */
     protected static $relatedModels = [];
 
-    /** @var array  */
+    /**
+     * Stores the field that holds related tables' data.
+     * Typically the relation name.
+     *
+     * @var array
+     */
     protected $dynamicFields = [];
 
+    /**
+     * {@inheritdoc}
+     */
     public function __construct(array $attributes = array())
     {
         if(!empty(static::$relatedModels))
@@ -57,12 +92,17 @@ class BaseModel extends Model
         $this->disableRelated();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public static function boot()
     {
         parent::boot();
 
         if(!empty(static::$relatedModels))
         {
+            // Storing the related table data after the parent record is created.
+            // Todo: Implement ways to delete the newly created parent record when failed to save child record.
             static::created(
                 function ( $myModel )
                 {
@@ -90,6 +130,12 @@ class BaseModel extends Model
         }
     }
 
+    /**
+     * Gets the SqlDbCore Schema object.
+     *
+     * @return Schema
+     * @throws \Exception
+     */
     public function getSchema()
     {
         if(empty($this->schema))
@@ -101,6 +147,7 @@ class BaseModel extends Model
             $password = $connection->getConfig( 'password' );
             $driver = $connection->getConfig( 'driver' );
 
+            //Todo: This will only work for Mysql and Postgres. If we use other db for system this needs to account for that.
             $dsn = $driver . ":host=" . $host . ";dbname=" . $database;
 
             $adaptedConnection = new ConnectionAdapter( $dsn, $username, $password );
@@ -110,6 +157,11 @@ class BaseModel extends Model
         return $this->schema;
     }
 
+    /**
+     * Gets table references from table schema.
+     *
+     * @return array
+     */
     public function getReferences()
     {
         if(empty($this->references))
@@ -129,6 +181,11 @@ class BaseModel extends Model
         return $this->references;
     }
 
+    /**
+     * Gets the TableSchema for this model.
+     *
+     * @return TableSchema
+     */
     public function getTableSchema()
     {
         if(empty($this->tableSchema))
@@ -143,9 +200,17 @@ class BaseModel extends Model
         return $this->tableSchema;
     }
 
+    /**
+     * Performs a SELECT query based on
+     * query criteria supplied from api request.
+     *
+     * @param null  $criteria
+     * @param array $related
+     *
+     * @return array
+     */
     public function selectResponse( $criteria = null, $related = [])
     {
-        $result = [];
         if ( empty( $criteria ) )
         {
             $collections = $this->all();
@@ -171,12 +236,24 @@ class BaseModel extends Model
             );
         }
 
-        $result = ['record' => $collections->all()];
+        $result = $collections->all();
 
         return $result;
     }
 
-    protected function saveHasManyData($relatedModel, HasMany $hasMany, $data)
+    /**
+     * Saves the HasMany relational data. If id exists
+     * then it updates the record otherwise it will
+     * create the record.
+     *
+     * @param Model   $relatedModel Model class
+     * @param HasMany $hasMany
+     * @param         $data
+     * @param         $relationName
+     *
+     * @throws \Exception
+     */
+    protected function saveHasManyData($relatedModel, HasMany $hasMany, $data, $relationName)
     {
         if($this->exists)
         {
@@ -185,10 +262,31 @@ class BaseModel extends Model
 
             foreach ( $data as $d )
             {
+                /** @var Model $model */
                 $model = $relatedModel::find( ArrayUtils::get( $d, $pk ) );
                 if ( !empty( $model ) )
                 {
-                    $model->setRawAttributes( $d );
+                    $fk = $hasMany->getPlainForeignKey();
+                    $fkId = ArrayUtils::get($d, $fk);
+                    if(null === $fkId)
+                    {
+                        //Foreign key field is null therefore delete the child record.
+                        $model->delete();
+                        continue;
+                    }
+                    elseif(!empty($fkId) && $fkId !== $this->id && (null !== $parent = static::find($fkId)))
+                    {
+                        //Foreign key field is set but the id belongs to a different parent than this parent.
+                        //There the child is adopted by the supplied parent id (foreign key).
+                        $relatedData = [$relationName => [$d]];
+                        $parent->update($relatedData);
+                        continue;
+                    }
+                    else
+                    {
+                        $model->update($d);
+                        continue;
+                    }
                 }
                 else
                 {
@@ -201,12 +299,24 @@ class BaseModel extends Model
         }
     }
 
+    /**
+     * Disables reads on all related tables by
+     * removing the appended relation name from
+     * $this->appended array to $this->disabledAppends.
+     */
     public function disableRelated()
     {
         $this->disabledAppends = $this->appends;
         $this->appends = [];
     }
 
+    /**
+     * Enables reads on related tables by re-adding appended
+     * relation name from $this->disabledAppends array to
+     * $this->appends.
+     *
+     * @param array $relations
+     */
     public function enableRelated(Array $relations = [])
     {
         if(empty($relations))
@@ -228,6 +338,11 @@ class BaseModel extends Model
         }
     }
 
+    /**
+     * Sets up models relations to other referencing tables
+     * using the table-model map in static::$relatedModels and
+     * table reference info in $this->references array.
+     */
     protected function setupRelations()
     {
         $references = $this->getReferences();
@@ -235,7 +350,7 @@ class BaseModel extends Model
         foreach($references as $ref)
         {
             $relationName = $ref['name'];
-            if(ArrayUtils::get($ref, 'type')==='has_many' && $this->isRelationMapped($relationName))
+            if('has_many'===ArrayUtils::get($ref, 'type') && $this->isRelationMapped($relationName))
             {
                 $this->dynamicFields[$relationName] = [];
                 $this->appends[] = $relationName;
@@ -244,6 +359,13 @@ class BaseModel extends Model
         }
     }
 
+    /**
+     * Gets the HasMany model of the referencing table.
+     *
+     * @param string $table
+     *
+     * @return HasMany
+     */
     protected function getHasMany($table)
     {
         $model = ArrayUtils::get(static::$relatedModels, $table);
@@ -252,13 +374,20 @@ class BaseModel extends Model
         return $this->hasMany($model, $refField);
     }
 
+    /**
+     * Gets the foreign key of the referenced table
+     *
+     * @param string $table
+     *
+     * @return mixed|null
+     */
     protected function getReferencingField($table)
     {
         $references = $this->getReferences();
 
         foreach($references as $ref)
         {
-            if(ArrayUtils::get($ref, 'ref_table')===$table)
+            if($table===ArrayUtils::get($ref, 'ref_table'))
             {
                 return ArrayUtils::get($ref, 'ref_field');
             }
@@ -266,6 +395,14 @@ class BaseModel extends Model
         return null;
     }
 
+    /**
+     * Gets the referenced table name by it's relation name
+     * to this model.
+     *
+     * @param string $name
+     *
+     * @return mixed|null
+     */
     protected function getReferencingTable($name)
     {
         $references = $this->getReferences();
@@ -282,6 +419,9 @@ class BaseModel extends Model
 
     /**
      * Get the value of an attribute using its mutator.
+     *
+     * Note: Overriding this method to perform the action
+     * equivalent of having a getRelationNameAttribute method.
      *
      * @param  string  $key
      * @param  mixed   $value
@@ -305,6 +445,14 @@ class BaseModel extends Model
         }
     }
 
+    /**
+     * Checks to see if a relation is mapped in the
+     * static::$relatedModels array by the relation name
+     *
+     * @param $name
+     *
+     * @return bool
+     */
     protected function isRelationMapped($name)
     {
         $table = $this->getReferencingTable($name);
@@ -315,6 +463,9 @@ class BaseModel extends Model
 
     /**
      * Set a given attribute on the model.
+     *
+     * Note: Overriding this method to perform the action
+     * equivalent of having a setRelationNameAttribute method.
      *
      * @param  string  $key
      * @param  mixed   $value
@@ -327,7 +478,7 @@ class BaseModel extends Model
             $table = $this->getReferencingTable($key);
             $model = ArrayUtils::get(static::$relatedModels, $table);
             $this->dynamicFields[$key] = $value;
-            $this->saveHasManyData($model, $this->getHasMany($table), $value);
+            $this->saveHasManyData($model, $this->getHasMany($table), $value, $key);
         }
         else
         {
@@ -336,6 +487,8 @@ class BaseModel extends Model
     }
 
     /**
+     * Gets the primary key field.
+     *
      * @return string
      */
     public function getPrimaryKey()

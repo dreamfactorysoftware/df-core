@@ -150,7 +150,7 @@ class BaseRestSystemResource extends BaseRestResource
                 });
             }
             $data = $dataCol->all();
-            $data = array( self::RECORD_WRAPPER => $data );
+            $data = array( self::RECORD_WRAPPER => static::modelToArray($data) );
         }
         else if ( !empty( $records ) )
         {
@@ -171,7 +171,7 @@ class BaseRestSystemResource extends BaseRestResource
                 });
             }
             $data = $dataCol->all();
-            $data = array( self::RECORD_WRAPPER => $data );
+            $data = array( self::RECORD_WRAPPER => static::modelToArray($data) );
         }
         else
         {
@@ -227,7 +227,8 @@ class BaseRestSystemResource extends BaseRestResource
                 $criteria['order'] = $value;
             }
 
-            $data = $model->selectResponse( $criteria, $related );
+            $models = $model->selectResponse( $criteria, $related );
+            $data = [static::RECORD_WRAPPER => static::modelToArray($models)];
         }
 
         if ( null === $data )
@@ -246,6 +247,18 @@ class BaseRestSystemResource extends BaseRestResource
         }
 
         return $data;
+    }
+
+    protected static function modelToArray(Array $models)
+    {
+        $array = [];
+
+        foreach($models as $m)
+        {
+            $array[] = $m->toArray();
+        }
+
+        return $array;
     }
 
     /**

@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use DreamFactory\Rave\SqlDbCore\Schema;
 use DreamFactory\Rave\SqlDbCore\TableSchema;
+use DreamFactory\Rave\Components\Builder as RaveBuilder;
 
 class BaseModel extends Model
 {
@@ -51,15 +52,6 @@ class BaseModel extends Model
     protected $references = [];
 
     /**
-     * Appended fields that are disabled are
-     * stored into this array. This is used
-     * to only show related table data on demand.
-     *
-     * @var array
-     */
-    protected $disabledAppends = [];
-
-    /**
      * An array map of table names and their models
      * that are related to this model.
      *
@@ -78,19 +70,6 @@ class BaseModel extends Model
      * @var array
      */
     protected $dynamicFields = [];
-
-    /**
-     * {@inheritdoc}
-     */
-    public function __construct(array $attributes = array())
-    {
-        if(!empty(static::$relatedModels))
-        {
-            $this->setupRelations();
-        }
-        parent::__construct($attributes);
-        $this->disableRelated();
-    }
 
     /**
      * {@inheritdoc}
@@ -222,21 +201,11 @@ class BaseModel extends Model
             {
                 $_fields = explode( ',', $criteria['select'] );
 
-                $collections = $this->get($_fields);
+                $collections = $this->with($related)->get($_fields);
             }
         }
 
-        if(!empty($related))
-        {
-            $collections->each(
-                function ( $item ) use ( $related )
-                {
-                    $item->enableRelated( $related );
-                }
-            );
-        }
-
-        $result = $collections->all();
+        $result = $collections->toArray();
 
         return $result;
     }
@@ -311,34 +280,6 @@ class BaseModel extends Model
     }
 
     /**
-     * Enables reads on related tables by re-adding appended
-     * relation name from $this->disabledAppends array to
-     * $this->appends.
-     *
-     * @param array $relations
-     */
-    public function enableRelated(Array $relations = [])
-    {
-        if(empty($relations))
-        {
-            $this->appends = $this->disabledAppends;
-            $this->disabledAppends = [ ];
-        }
-        else
-        {
-            foreach($relations as $relation)
-            {
-                if(in_array($relation, $this->disabledAppends))
-                {
-                    $this->appends[] = $relation;
-                    $key = array_search($relation, $this->disabledAppends);
-                    array_splice($this->disabledAppends, $key, 1);
-                }
-            }
-        }
-    }
-
-    /**
      * Sets up models relations to other referencing tables
      * using the table-model map in static::$relatedModels and
      * table reference info in $this->references array.
@@ -372,6 +313,19 @@ class BaseModel extends Model
         $refField = $this->getReferencingField($table);
 
         return $this->hasMany($model, $refField);
+    }
+
+    /**
+     * @param $name
+     *
+     * @return HasMany|null
+     */
+    public function getHasManyByRelationName($name)
+    {
+        $table = $this->getReferencingTable($name);
+        $mappedTables = array_keys(static::$relatedModels);
+
+        return (!empty($table) && in_array($table, $mappedTables))? $this->getHasMany($table) : null;
     }
 
     /**
@@ -494,5 +448,16 @@ class BaseModel extends Model
     public function getPrimaryKey()
     {
         return $this->primaryKey;
+    }
+
+    /**
+     * Create a new Eloquent query builder for the model.
+     *
+     * @param  \Illuminate\Database\Query\Builder $query
+     * @return \Illuminate\Database\Eloquent\Builder|static
+     */
+    public function newEloquentBuilder($query)
+    {
+        return new RaveBuilder($query);
     }
 }

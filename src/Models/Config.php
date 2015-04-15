@@ -34,10 +34,11 @@ namespace DreamFactory\Rave\Models;
  * @method static \Illuminate\Database\Query\Builder|Config whereCreatedDate( $value )
  * @method static \Illuminate\Database\Query\Builder|Config whereLastModifiedDate( $value )
  */
-class Config extends BaseSingleRecordModel
+class Config extends BaseSystemModel
 {
+    use SingleRecordModel;
+
     protected $table = 'system_config';
 
     protected $fillable = ['db_version', 'login_with_user_name', 'api_key', 'allow_guest_access', 'guest_role_id'];
-
 }

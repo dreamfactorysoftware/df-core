@@ -304,4 +304,16 @@ HTML
 
         return $_config;
     }
+
+    protected function handlePOST()
+    {
+        if('api_key'===$this->resource)
+        {
+            $string = gethostname().time();
+            $key = hash('sha256', $string);
+            return ['key'=>$key];
+        }
+
+        return parent::handlePOST();
+    }
 }

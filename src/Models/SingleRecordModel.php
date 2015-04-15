@@ -20,6 +20,12 @@
 
 namespace DreamFactory\Rave\Models;
 
-class BaseSingleRecordModel extends BaseModel
+trait SingleRecordModel
 {
+    public static function create(array $attributes)
+    {
+        $model = static::firstOrNew($attributes);
+        $model->save();
+        return $model;
+    }
 }

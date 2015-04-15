@@ -110,11 +110,6 @@ class BaseRestSystemResource extends BaseRestResource
         $ids = ArrayUtils::get( $requestQuery, 'ids' );
         $records = $this->getPayloadData( self::RECORD_WRAPPER );
 
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = $this->getModel();
-        /** @var BaseSystemModel $model */
-        $model = new $modelClass;
-
         $data = null;
 
         $related = ArrayUtils::get($requestQuery, 'related');
@@ -127,32 +122,28 @@ class BaseRestSystemResource extends BaseRestResource
             $related = [];
         }
 
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->getModel();
+        /** @var BaseSystemModel $model */
+        $model = new $modelClass;
+
         //	Single resource by ID
         if ( !empty( $this->resource ) )
         {
-            $foundModel = $modelClass::find( $this->resource );
+            $foundModel = $modelClass::with($related)->find( $this->resource );
             if ($foundModel)
             {
-                if(!empty($related))
-                {
-                    $foundModel->enableRelated( $related );
-                }
                 $data = $foundModel->toArray();
             }
+
+            return $data;
         }
         else if ( !empty( $ids ) )
         {
             /** @var Collection $dataCol */
-            $dataCol = $modelClass::whereIn( 'id', explode( ',', $ids ) )->get();
-            if(!empty($related))
-            {
-                $dataCol->each(function($item) use ($related)
-                {
-                    $item->enableRelated($related);
-                });
-            }
-            $data = $dataCol->all();
-            $data = [ self::RECORD_WRAPPER => static::modelToArray($data) ];
+            $dataCol = $modelClass::with($related)->whereIn( 'id', explode( ',', $ids ) )->get();
+            $data = $dataCol->toArray();
+            $data = [ self::RECORD_WRAPPER => $data ];
         }
         else if ( !empty( $records ) )
         {
@@ -164,16 +155,10 @@ class BaseRestSystemResource extends BaseRestResource
                 $ids[] = ArrayUtils::get( $record, $pk );
             }
 
-            $dataCol = $model->whereIn( 'id', $ids )->get();
-            if(!empty($related))
-            {
-                $dataCol->each(function($item) use ($related)
-                {
-                    $item->enableRelated($related);
-                });
-            }
-            $data = $dataCol->all();
-            $data = [ self::RECORD_WRAPPER => static::modelToArray($data) ];
+            /** @var Collection $dataCol */
+            $dataCol = $modelClass::with($related)->whereIn( 'id', $ids )->get();
+            $data = $dataCol->toArray();
+            $data = [ self::RECORD_WRAPPER => $data ];
         }
         else
         {
@@ -229,8 +214,8 @@ class BaseRestSystemResource extends BaseRestResource
                 $criteria['order'] = $value;
             }
 
-            $models = $model->selectResponse( $criteria, $related );
-            $data = [static::RECORD_WRAPPER => static::modelToArray($models)];
+            $data = $model->selectResponse( $criteria, $related );
+            $data = [static::RECORD_WRAPPER => $data];
         }
 
         if ( null === $data )
@@ -251,18 +236,6 @@ class BaseRestSystemResource extends BaseRestResource
         return $data;
     }
 
-    protected static function modelToArray(Array $models)
-    {
-        $array = [];
-
-        foreach($models as $m)
-        {
-            $array[] = $m->toArray();
-        }
-
-        return $array;
-    }
-
     /**
      * Handles POST action
      *
@@ -270,7 +243,7 @@ class BaseRestSystemResource extends BaseRestResource
      * @throws BadRequestException
      * @throws \Exception
      */
-    protected function handlePost()
+    protected function handlePOST()
     {
         if ( !empty( $this->resource ) )
         {

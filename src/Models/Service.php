@@ -61,7 +61,10 @@ class Service extends BaseSystemModel
      */
     protected $config = [ ];
 
-    public $timestamps = false;
+    public function disableRelated()
+    {
+        // allow config
+    }
 
     public static function boot()
     {

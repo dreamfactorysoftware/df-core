@@ -36,9 +36,6 @@ class RoleResourceTest extends \DreamFactory\Rave\Testing\TestCase
         'is_active' => 1,
         'role_service_access_by_role_id' => [
             [
-                'name' => 'test-service 1',
-                'description' => 'Role - Service relation test',
-                'is_active' => 1,
                 'service_id' => 2,
                 'component' => '*',
                 'verb_mask' => 31,
@@ -66,9 +63,6 @@ class RoleResourceTest extends \DreamFactory\Rave\Testing\TestCase
         'is_active' => 1,
         'role_service_access_by_role_id' => [
             [
-                'name' => 'test-service 2',
-                'description' => 'Role - Service relation test',
-                'is_active' => 1,
                 'service_id' => 2,
                 'component' => '*',
                 'verb_mask' => 31,
@@ -95,9 +89,6 @@ class RoleResourceTest extends \DreamFactory\Rave\Testing\TestCase
         'is_active' => 1,
         'role_service_access_by_role_id' => [
             [
-                'name' => 'test-service 3',
-                'description' => 'Role - Service relation test',
-                'is_active' => 1,
                 'service_id' => 2,
                 'component' => '*',
                 'verb_mask' => 31,
@@ -265,6 +256,7 @@ class RoleResourceTest extends \DreamFactory\Rave\Testing\TestCase
         {
             $this->assertEquals(static::$roleIds[$key], ArrayUtils::get($record, 'id'));
         }
+
     }
 
     public function testDELETERoles()

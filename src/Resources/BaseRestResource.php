@@ -35,13 +35,14 @@ class BaseRestResource extends RestHandler
          * Some basic apis and models used in DSP REST interfaces
          */
         return [
-            'apis'         => [
+            'apis'   => [
                 [
                     'path'        => '/{api_name}/' . $this->name,
-                    'operations'  => [],
+                    'operations'  => [ ],
                     'description' => 'No operations currently defined for this resource.',
                 ],
             ],
+            'models' => [ ]
         ];
     }
 }

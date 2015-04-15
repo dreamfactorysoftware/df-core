@@ -2947,7 +2947,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
             ],
             [
-                'path'        => '/{api_name}/{table_name}',
+                'path'        => '/{api_name}/' . static::RESOURCE_NAME . '/{table_name}',
                 'description' => 'Operations for table records administration.',
                 'operations'  =>
                     [
@@ -4063,7 +4063,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                     ],
             ],
             [
-                'path'        => '/{api_name}/{table_name}/{id}',
+                'path'        => '/{api_name}/' . static::RESOURCE_NAME . '/{table_name}/{id}',
                 'description' => 'Operations for single record administration.',
                 'operations'  =>
                     [

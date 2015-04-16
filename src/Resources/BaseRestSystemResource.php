@@ -135,8 +135,6 @@ class BaseRestSystemResource extends BaseRestResource
             {
                 $data = $foundModel->toArray();
             }
-
-            return $data;
         }
         else if ( !empty( $ids ) )
         {
@@ -225,15 +223,26 @@ class BaseRestSystemResource extends BaseRestResource
 
         if(ArrayUtils::getBool($requestQuery, 'include_count')===true)
         {
-            $data['meta']['count'] = count($data['record']);
+            if(isset($data['record']))
+            {
+                $data['meta']['count'] = count( $data['record'] );
+            }
+            elseif(!empty($data))
+            {
+                $data['meta']['count'] = 1;
+            }
         }
 
-        if(ArrayUtils::getBool($requestQuery, 'include_schema')===true)
+        if(!empty($data) && ArrayUtils::getBool($requestQuery, 'include_schema')===true)
         {
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
 
-        return $data;
+        if(empty($data))
+        {
+            return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_NOT_FOUND );
+        }
+        return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_OK );
     }
 
     /**

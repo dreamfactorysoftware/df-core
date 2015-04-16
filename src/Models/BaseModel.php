@@ -22,12 +22,19 @@ namespace DreamFactory\Rave\Models;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Components\ConnectionAdapter;
+use DreamFactory\Rave\Exceptions\BadRequestException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use DreamFactory\Rave\SqlDbCore\Schema;
 use DreamFactory\Rave\SqlDbCore\TableSchema;
 use DreamFactory\Rave\Components\Builder as RaveBuilder;
+use DB;
 
+/**
+ * Class BaseModel
+ *
+ * @package DreamFactory\Rave\Models
+ */
 class BaseModel extends Model
 {
     /**
@@ -64,49 +71,122 @@ class BaseModel extends Model
     protected static $relatedModels = [];
 
     /**
-     * Stores the field that holds related tables' data.
-     * Typically the relation name.
+     * Save a new model and return the instance.
      *
-     * @var array
+     * @param array $attributes
+     *
+     * @return BaseModel
+     * @throws \Exception
      */
-    protected $dynamicFields = [];
+    public static function create(array $attributes)
+    {
+        $m = new static;
+        $relations = [];
+        $transaction = false;
+
+        foreach($attributes as $key => $value)
+        {
+            if($m->isRelationMapped($key))
+            {
+                $relations[$key] = $value;
+                unset($attributes[$key]);
+            }
+        }
+
+        if(count($relations)>0)
+        {
+            DB::beginTransaction();
+            $transaction = true;
+        }
+
+        try
+        {
+            /** @var BaseModel $model */
+            $model = parent::create($attributes);
+
+            foreach($relations as $name => $value)
+            {
+                $relatedModel = $model->getReferencingModel($name);
+                $newModels = [];
+
+                if(!is_array($value))
+                {
+                    throw new BadRequestException('Bad data supplied for '.$name.'. Related data must be supplied as array.');
+                }
+
+                foreach($value as $record)
+                {
+                    $newModels[] = new $relatedModel($record);
+                }
+
+                $model->getHasManyByRelationName($name)->saveMany($newModels);
+            }
+
+            if($transaction) DB::commit();
+        }
+        catch(\Exception $e)
+        {
+            if($transaction) DB::rollBack();
+
+            throw $e;
+        }
+
+
+        return $model;
+    }
 
     /**
-     * {@inheritdoc}
+     * Update the model in the database.
+     *
+     * @param array $attributes
+     *
+     * @return bool|int
+     * @throws \Exception
      */
-    public static function boot()
+    public function update(array $attributes = array())
     {
-        parent::boot();
+        $relations = [];
+        $transaction = false;
 
-        if(!empty(static::$relatedModels))
+        foreach($attributes as $key => $value)
         {
-            // Storing the related table data after the parent record is created.
-            // Todo: Implement ways to delete the newly created parent record when failed to save child record.
-            static::created(
-                function ( $myModel )
-                {
-                    foreach ( $myModel->dynamicFields as $key => $value )
-                    {
-                        if ( !empty( $value ) )
-                        {
-                            $table = $myModel->getReferencingTable( $key );
-                            $model = ArrayUtils::get( static::$relatedModels, $table );
-                            if ( !empty( $model ) )
-                            {
-                                $newModels = [ ];
-                                foreach ( $value as $v )
-                                {
-                                    $newModels[] = new $model( $v );
-                                }
-                            }
-                            $myModel->getHasMany( $table )->saveMany( $newModels );
-                        }
-                    }
-
-                    return true;
-                }
-            );
+            if($this->isRelationMapped($key))
+            {
+                $relations[$key] = $value;
+                unset($attributes[$key]);
+            }
         }
+
+        if(count($relations)>0)
+        {
+            DB::beginTransaction();
+            $transaction = true;
+        }
+
+        try
+        {
+            $updated = parent::update($attributes);
+
+            if($updated && $this->exists && count($relations) > 0)
+            {
+                foreach($relations as $name => $value)
+                {
+                    $relatedModel = $this->getReferencingModel($name);
+                    $hasMany = $this->getHasManyByRelationName($name);
+                    $this->saveHasManyData($relatedModel, $hasMany, $value, $name);
+                }
+            }
+
+            if($transaction) DB::commit();
+        }
+        catch(\Exception $e)
+        {
+            if($transaction) DB::rollBack();
+
+            throw $e;
+        }
+
+        return $updated;
     }
 
     /**
@@ -269,38 +349,6 @@ class BaseModel extends Model
     }
 
     /**
-     * Disables reads on all related tables by
-     * removing the appended relation name from
-     * $this->appended array to $this->disabledAppends.
-     */
-    public function disableRelated()
-    {
-        $this->disabledAppends = $this->appends;
-        $this->appends = [];
-    }
-
-    /**
-     * Sets up models relations to other referencing tables
-     * using the table-model map in static::$relatedModels and
-     * table reference info in $this->references array.
-     */
-    protected function setupRelations()
-    {
-        $references = $this->getReferences();
-
-        foreach($references as $ref)
-        {
-            $relationName = $ref['name'];
-            if('has_many'===ArrayUtils::get($ref, 'type') && $this->isRelationMapped($relationName))
-            {
-                $this->dynamicFields[$relationName] = [];
-                $this->appends[] = $relationName;
-                $this->fillable[] = $relationName;
-            }
-        }
-    }
-
-    /**
      * Gets the HasMany model of the referencing table.
      *
      * @param string $table
@@ -372,31 +420,23 @@ class BaseModel extends Model
     }
 
     /**
-     * Get the value of an attribute using its mutator.
+     * Gets the referenced model via its table using relation name.
      *
-     * Note: Overriding this method to perform the action
-     * equivalent of having a getRelationNameAttribute method.
+     * @param $name
      *
-     * @param  string  $key
-     * @param  mixed   $value
-     * @return mixed
+     * @return BaseModel
      */
-    protected function mutateAttribute($key, $value)
+    protected function getReferencingModel($name)
     {
-        $method = 'get'.studly_case($key).'Attribute';
-
-        if(method_exists($this, $method))
+        if(!$this->isRelationMapped($name))
         {
-            return $this->{'get' . studly_case( $key ) . 'Attribute'}( $value );
+            return null;
         }
-        elseif(in_array($key, $this->appends) && empty($value))
-        {
-            $table = $this->getReferencingTable($key);
-            $value = $this->getHasMany($table)->get()->toArray();
-            $this->dynamicFields[$key] = $value;
 
-            return $value;
-        }
+        $table = $this->getReferencingTable($name);
+        $model = static::$relatedModels[$table];
+
+        return $model;
     }
 
     /**
@@ -409,35 +449,17 @@ class BaseModel extends Model
      */
     protected function isRelationMapped($name)
     {
+        //If no related models are setup then return false
+        //and don't bother checking schema.
+        if(count(static::$relatedModels)===0)
+        {
+            return false;
+        }
+
         $table = $this->getReferencingTable($name);
         $mappedTables = array_keys(static::$relatedModels);
 
         return in_array($table, $mappedTables);
-    }
-
-    /**
-     * Set a given attribute on the model.
-     *
-     * Note: Overriding this method to perform the action
-     * equivalent of having a setRelationNameAttribute method.
-     *
-     * @param  string  $key
-     * @param  mixed   $value
-     * @return void
-     */
-    public function setAttribute($key, $value)
-    {
-        if ( !$this->hasSetMutator( $key ) && $this->isRelationMapped($key) )
-        {
-            $table = $this->getReferencingTable($key);
-            $model = ArrayUtils::get(static::$relatedModels, $table);
-            $this->dynamicFields[$key] = $value;
-            $this->saveHasManyData($model, $this->getHasMany($table), $value, $key);
-        }
-        else
-        {
-            parent::setAttribute( $key, $value );
-        }
     }
 
     /**

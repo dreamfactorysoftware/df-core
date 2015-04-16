@@ -477,7 +477,6 @@ class BaseSystemModel extends BaseModel
     {
         $pk = $model->primaryKey;
         $fields = ArrayUtils::get( $params, 'fields', $pk );
-        $related = ArrayUtils::get( $params, 'related' );
 
         $fieldsArray = explode( ",", $fields );
 
@@ -485,11 +484,6 @@ class BaseSystemModel extends BaseModel
         foreach ( $fieldsArray as $f )
         {
             $result[$f] = $model->{$f};
-        }
-
-        if ( !empty( $related ) )
-        {
-            //Todo: implement this.
         }
 
         $extras = static::buildExtras($model, $params );

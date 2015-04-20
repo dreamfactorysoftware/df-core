@@ -22,13 +22,10 @@ namespace DreamFactory\Rave\Resources;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Services\Swagger;
+use DreamFactory\Rave\Utility\ApiDocUtilities;
 use DreamFactory\Rave\Utility\DbUtilities;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Exceptions\RestException;
-use DreamFactory\Rave\Services\BaseDbService;
 
 abstract class BaseDbSchemaResource extends BaseDbResource
 {
@@ -509,7 +506,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     {
         $_base = parent::getApiDocInfo();
 
-        $_commonResponses = Swagger::getCommonResponses();
+        $_commonResponses = ApiDocUtilities::getCommonResponses();
 
         $_apis = [
             [

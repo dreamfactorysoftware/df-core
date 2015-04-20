@@ -21,7 +21,7 @@
 namespace DreamFactory\Rave\Services\Email;
 
 use App;
-use GuzzleHttp\Message\Response;
+use DreamFactory\Rave\Utility\ApiDocUtilities;
 use Illuminate\Mail\Message;
 use Swift_Transport as SwiftTransport;
 use Swift_Mailer as SwiftMailer;
@@ -58,7 +58,7 @@ abstract class BaseService extends BaseRestService
     {
         parent::__construct( $settings );
 
-        $config = ArrayUtils::get( $settings, 'config', array() );
+        $config = ArrayUtils::get( $settings, 'config', [] );
         $this->setParameters($config);
         $this->setTransport($config);
         $this->setMailer();
@@ -83,7 +83,7 @@ abstract class BaseService extends BaseRestService
 
     protected function setParameters($config)
     {
-        $parameters = ArrayUtils::clean( ArrayUtils::get( $config, 'parameters', array() ) );
+        $parameters = ArrayUtils::clean( ArrayUtils::get( $config, 'parameters', [] ) );
 
         foreach($parameters as $params)
         {
@@ -122,7 +122,7 @@ abstract class BaseService extends BaseRestService
             throw new BadRequestException( 'No valid data in request.' );
         }
 
-        $data = array_merge( ArrayUtils::clean( ArrayUtils::get( $templateData, 'defaults', array(), true ) ), $data );
+        $data = array_merge( ArrayUtils::clean( ArrayUtils::get( $templateData, 'defaults', [], true ) ), $data );
         $data = array_merge( $this->parameters, $templateData, $data );
 
         $text = ArrayUtils::get( $data, 'body_text' );
@@ -247,5 +247,150 @@ abstract class BaseService extends BaseRestService
         }
 
         return $template->toArray();
+    }
+
+    public function getApiDocInfo()
+    {
+        $base = parent::getApiDocInfo();
+
+        $base['apis'] = [
+            [
+                'path'        => '/{api_name}',
+                'operations'  => [
+                    [
+                        'method'           => 'POST',
+                        'summary'          => 'sendEmail() - Send an email created from posted data and/or a template.',
+                        'nickname'         => 'sendEmail',
+                        'type'             => 'EmailResponse',
+                        'event_name'       => 'email.sent',
+                        'parameters'       => [
+                            [
+                                'name'          => 'template',
+                                'description'   => 'Optional template name to base email on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'query',
+                                'required'      => false,
+                            ],
+                            [
+                                'name'          => 'template_id',
+                                'description'   => 'Optional template id to base email on.',
+                                'allowMultiple' => false,
+                                'type'          => 'integer',
+                                'format'        => 'int32',
+                                'paramType'     => 'query',
+                                'required'      => false,
+                            ],
+                            [
+                                'name'          => 'data',
+                                'description'   => 'Data containing name-value pairs used for provisioning emails.',
+                                'allowMultiple' => false,
+                                'type'          => 'EmailRequest',
+                                'paramType'     => 'body',
+                                'required'      => false,
+                            ],
+                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses(),
+                        'notes'            =>
+                            'If a template is not used with all required fields, then they must be included in the request. ' .
+                            'If the \'from\' address is not provisioned in the service, then it must be included in the request.',
+                    ],
+                ],
+                'description' => 'Operations on a email service.',
+            ],
+        ];
+
+        $models = [
+            'EmailResponse' => [
+                'id'         => 'EmailResponse',
+                'properties' => [
+                    'count' => [
+                        'type'        => 'integer',
+                        'format'      => 'int32',
+                        'description' => 'Number of emails successfully sent.',
+                    ],
+                ],
+            ],
+            'EmailRequest'  => [
+                'id'         => 'EmailRequest',
+                'properties' => [
+                    'template'       => [
+                        'type'        => 'string',
+                        'description' => 'Email Template name to base email on.',
+                    ],
+                    'template_id'    => [
+                        'type'        => 'integer',
+                        'format'      => 'int32',
+                        'description' => 'Email Template id to base email on.',
+                    ],
+                    'to'             => [
+                        'type'        => 'Array',
+                        'description' => 'Required single or multiple receiver addresses.',
+                        'items'       => [
+                            '$ref' => 'EmailAddress',
+                        ],
+                    ],
+                    'cc'             => [
+                        'type'        => 'Array',
+                        'description' => 'Optional CC receiver addresses.',
+                        'items'       => [
+                            '$ref' => 'EmailAddress',
+                        ],
+                    ],
+                    'bcc'            => [
+                        'type'        => 'Array',
+                        'description' => 'Optional BCC receiver addresses.',
+                        'items'       => [
+                            '$ref' => 'EmailAddress',
+                        ],
+                    ],
+                    'subject'        => [
+                        'type'        => 'string',
+                        'description' => 'Text only subject line.',
+                    ],
+                    'body_text'      => [
+                        'type'        => 'string',
+                        'description' => 'Text only version of the body.',
+                    ],
+                    'body_html'      => [
+                        'type'        => 'string',
+                        'description' => 'Escaped HTML version of the body.',
+                    ],
+                    'from_name'      => [
+                        'type'        => 'string',
+                        'description' => 'Required sender name.',
+                    ],
+                    'from_email'     => [
+                        'type'        => 'string',
+                        'description' => 'Required sender email.',
+                    ],
+                    'reply_to_name'  => [
+                        'type'        => 'string',
+                        'description' => 'Optional reply to name.',
+                    ],
+                    'reply_to_email' => [
+                        'type'        => 'string',
+                        'description' => 'Optional reply to email.',
+                    ],
+                ],
+            ],
+            'EmailAddress'  => [
+                'id'         => 'EmailAddress',
+                'properties' => [
+                    'name'  => [
+                        'type'        => 'string',
+                        'description' => 'Optional name displayed along with the email address.',
+                    ],
+                    'email' => [
+                        'type'        => 'string',
+                        'description' => 'Required email address.',
+                    ],
+                ],
+            ],
+        ];
+
+        $base['models'] = array_merge( $base['models'], $models );
+
+        return $base;
     }
 }

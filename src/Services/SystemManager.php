@@ -24,6 +24,7 @@ use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Resources\BaseRestResource;
 use DreamFactory\Rave\Models\SystemResource;
+use DreamFactory\Rave\Utility\ApiDocUtilities;
 
 class SystemManager extends BaseRestService
 {
@@ -73,7 +74,7 @@ class SystemManager extends BaseRestService
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => Swagger::getCommonResponses( [ 400, 401, 500 ] ),
+                        'responseMessages' => ApiDocUtilities::getCommonResponses( [ 400, 401, 500 ] ),
                     ],
                     [
                         'method'           => 'GET',
@@ -101,7 +102,7 @@ class SystemManager extends BaseRestService
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => Swagger::getCommonResponses( [ 400, 401, 500 ] ),
+                        'responseMessages' => ApiDocUtilities::getCommonResponses( [ 400, 401, 500 ] ),
                     ],
                     [
                         'method'           => 'GET',
@@ -129,7 +130,7 @@ class SystemManager extends BaseRestService
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => Swagger::getCommonResponses( [ 400, 401, 500 ] ),
+                        'responseMessages' => ApiDocUtilities::getCommonResponses( [ 400, 401, 500 ] ),
                     ],
                 ],
             ],

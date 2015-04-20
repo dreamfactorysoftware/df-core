@@ -26,6 +26,7 @@ use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Exceptions\RestException;
 use DreamFactory\Rave\Resources\BaseDbSchemaResource;
+use DreamFactory\Rave\Utility\ApiDocUtilities;
 
 abstract class BaseDbService extends BaseRestService
 {
@@ -158,7 +159,7 @@ abstract class BaseDbService extends BaseRestService
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => Swagger::getCommonResponses( [ 400, 401, 500 ] ),
+                        'responseMessages' => ApiDocUtilities::getCommonResponses( [ 400, 401, 500 ] ),
                     ],
                     [
                         'method'           => 'GET',
@@ -186,7 +187,7 @@ abstract class BaseDbService extends BaseRestService
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => Swagger::getCommonResponses( [ 400, 401, 500 ] ),
+                        'responseMessages' => ApiDocUtilities::getCommonResponses( [ 400, 401, 500 ] ),
                     ],
                     [
                         'method'           => 'GET',
@@ -214,7 +215,7 @@ abstract class BaseDbService extends BaseRestService
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => Swagger::getCommonResponses( [ 400, 401, 500 ] ),
+                        'responseMessages' => ApiDocUtilities::getCommonResponses( [ 400, 401, 500 ] ),
                     ],
                 ],
             ],

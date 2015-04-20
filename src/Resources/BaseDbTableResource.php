@@ -23,9 +23,7 @@ namespace DreamFactory\Rave\Resources;
 use Config;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Contracts\ServiceRequestInterface;
-use DreamFactory\Rave\Services\BaseDbService;
-use DreamFactory\Rave\Services\Swagger;
+use DreamFactory\Rave\Utility\ApiDocUtilities;
 use DreamFactory\Rave\Utility\DbUtilities;
 use DreamFactory\Rave\Enums\DbFilterOperators;
 use DreamFactory\Rave\Exceptions\BadRequestException;
@@ -2918,7 +2916,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $_base = parent::getApiDocInfo();
 
-        $_commonResponses = Swagger::getCommonResponses();
+        $_commonResponses = ApiDocUtilities::getCommonResponses();
 
         $_apis = [
             [

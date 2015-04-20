@@ -54,14 +54,6 @@ class Swagger extends BaseRestService
      */
     const SWAGGER_EVENT_CACHE_FILE = '_events.json';
     /**
-     * @const string Our base API swagger file
-     */
-    const SWAGGER_BASE_API_FILE = '/Swagger.swagger.php';
-    /**
-     * @const string When a swagger file is not found for a route, this will be used.
-     */
-    const SWAGGER_DEFAULT_BASE_FILE = '/BasePlatformRestSvc.swagger.php';
-    /**
      * @const integer How long a swagger cache will live, 1440 = 24 minutes (default session timeout).
      */
     const SWAGGER_CACHE_TTL = 1440;
@@ -783,85 +775,5 @@ HTML;
 
         // rebuild swagger cache
         static::buildSwagger();
-    }
-
-    /**
-     * Returns an array of common responses for merging into Swagger files.
-     *
-     * @param array $codes Array of response codes to return only. If empty, all are returned.
-     *
-     * @return array
-     */
-    public static function getCommonResponses( array $codes = [ ] )
-    {
-        static $_commonResponses = [
-            [
-                'code'    => 400,
-                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-            ],
-            [
-                'code'    => 401,
-                'message' => 'Unauthorized Access - No currently valid session available.',
-            ],
-            [
-                'code'    => 404,
-                'message' => 'Not Found - Resource not found',
-            ],
-            [
-                'code'    => 500,
-                'message' => 'System Error - Specific reason is included in the error message',
-            ],
-        ];
-
-        $_response = $_commonResponses;
-
-        if ( !empty( $codes ) )
-        {
-            foreach ( $codes as $_code )
-            {
-                foreach ( $_commonResponses as $_commonResponse )
-                {
-                    if ( !isset( $_commonResponse['code'] ) || $_code != $_commonResponse['code'] )
-                    {
-                        unset( $_response[$_commonResponse['code']] );
-                    }
-                }
-            }
-        }
-
-        return $_response;
-    }
-
-    /**
-     * Returns a common set of properties for all system resources
-     *
-     * @return array
-     */
-    public static function getCommonProperties()
-    {
-        return [
-            'created_date'        => [
-                'type'        => 'string',
-                'description' => 'The date the resource was created.',
-                'readOnly'    => true,
-            ],
-            'created_by_id'       => [
-                'type'        => 'integer',
-                'format'      => 'int32',
-                'description' => 'The ID of the user that created this resource.',
-                'readOnly'    => true,
-            ],
-            'last_modified_date'  => [
-                'type'        => 'string',
-                'description' => 'The date the resource was last modified.',
-                'readOnly'    => true,
-            ],
-            'last_modified_by_id' => [
-                'type'        => 'integer',
-                'format'      => 'int32',
-                'description' => 'The ID of the user that last modified this resource.',
-                'readOnly'    => true,
-            ],
-        ];
     }
 }

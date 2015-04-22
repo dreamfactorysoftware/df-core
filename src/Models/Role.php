@@ -20,8 +20,8 @@
 
 namespace DreamFactory\Rave\Models;
 
+use \Cache;
 use DreamFactory\Library\Utility\ArrayUtils;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Role
@@ -55,6 +55,39 @@ class Role extends BaseSystemModel
         'role_service_access' => 'DreamFactory\Rave\Models\RoleServiceAccess',
         'role_lookup'         => 'DreamFactory\Rave\Models\RoleLookup',
         'app'                 => 'DreamFactory\Rave\Models\App',
-        'system_config'       => 'DreamFactory\Rave\Models\Config'
+        'system_config'       => 'DreamFactory\Rave\Models\Config',
+        'service'             => 'DreamFactory\Rave\Models\Service'
     ];
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::saved(
+            function ( Role $role )
+            {
+                if ( Cache::has( 'role_' . $role->id ) )
+                {
+                    Cache::forget( 'role_' . $role->id );
+                }
+            }
+        );
+    }
+
+    /**
+     * @return array
+     */
+    public function getRoleServiceAccess()
+    {
+        $rsa = $this->getRelation( 'role_service_access_by_role_id' )->toArray();
+        $services = $this->getRelation( 'service_by_role_service_access' )->toArray();
+
+        foreach ( $rsa as $key => $s )
+        {
+            $serviceName = ArrayUtils::findByKeyValue( $services, 'id', ArrayUtils::get( $s, 'service_id' ), 'name' );
+            ArrayUtils::set( $rsa[$key], 'service_name', $serviceName );
+        }
+
+        return $rsa;
+    }
 }

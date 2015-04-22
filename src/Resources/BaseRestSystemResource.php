@@ -112,26 +112,27 @@ class BaseRestSystemResource extends BaseRestResource
 
         $data = null;
 
-        $related = ArrayUtils::get($requestQuery, 'related');
-        if(!empty($related))
+        $related = ArrayUtils::get( $requestQuery, 'related' );
+        if ( !empty( $related ) )
         {
-            $related = explode(',', $related);
+            $related = explode( ',', $related );
         }
         else
         {
-            $related = [];
+            $related = [ ];
         }
 
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->getModel();
         /** @var BaseSystemModel $model */
         $model = new $modelClass;
+        $pk = $model->getPrimaryKey();
 
         //	Single resource by ID
         if ( !empty( $this->resource ) )
         {
-            $foundModel = $modelClass::with($related)->find( $this->resource );
-            if ($foundModel)
+            $foundModel = $modelClass::with( $related )->find( $this->resource );
+            if ( $foundModel )
             {
                 $data = $foundModel->toArray();
             }
@@ -139,7 +140,7 @@ class BaseRestSystemResource extends BaseRestResource
         else if ( !empty( $ids ) )
         {
             /** @var Collection $dataCol */
-            $dataCol = $modelClass::with($related)->whereIn( 'id', explode( ',', $ids ) )->get();
+            $dataCol = $modelClass::with( $related )->whereIn( $pk, explode( ',', $ids ) )->get();
             $data = $dataCol->toArray();
             $data = [ self::RECORD_WRAPPER => $data ];
         }
@@ -154,7 +155,7 @@ class BaseRestSystemResource extends BaseRestResource
             }
 
             /** @var Collection $dataCol */
-            $dataCol = $modelClass::with($related)->whereIn( 'id', $ids )->get();
+            $dataCol = $modelClass::with( $related )->whereIn( $pk, $ids )->get();
             $data = $dataCol->toArray();
             $data = [ self::RECORD_WRAPPER => $data ];
         }
@@ -213,7 +214,7 @@ class BaseRestSystemResource extends BaseRestResource
             }
 
             $data = $model->selectResponse( $criteria, $related );
-            $data = [static::RECORD_WRAPPER => $data];
+            $data = [ static::RECORD_WRAPPER => $data ];
         }
 
         if ( null === $data )
@@ -221,27 +222,28 @@ class BaseRestSystemResource extends BaseRestResource
             throw new NotFoundException( "Record not found." );
         }
 
-        if(ArrayUtils::getBool($requestQuery, 'include_count')===true)
+        if ( ArrayUtils::getBool( $requestQuery, 'include_count' ) === true )
         {
-            if(isset($data['record']))
+            if ( isset( $data['record'] ) )
             {
                 $data['meta']['count'] = count( $data['record'] );
             }
-            elseif(!empty($data))
+            elseif ( !empty( $data ) )
             {
                 $data['meta']['count'] = 1;
             }
         }
 
-        if(!empty($data) && ArrayUtils::getBool($requestQuery, 'include_schema')===true)
+        if ( !empty( $data ) && ArrayUtils::getBool( $requestQuery, 'include_schema' ) === true )
         {
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
 
-        if(empty($data))
+        if ( empty( $data ) )
         {
             return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_NOT_FOUND );
         }
+
         return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_OK );
     }
 

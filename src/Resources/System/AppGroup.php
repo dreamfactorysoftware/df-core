@@ -18,25 +18,15 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Models;
+namespace DreamFactory\Rave\Resources\System;
 
-use Illuminate\Database\Eloquent\Collection;
+use DreamFactory\Rave\Resources\BaseRestSystemResource;
 
-trait SingleRecordModel
+class AppGroup extends BaseRestSystemResource
 {
-    public static function create( array $attributes )
+    public function __construct( $settings = array() )
     {
-        /** @var Collection $models */
-        $models = static::all();
-        $model = $models->first();
-
-        if ( !empty( $model ) )
-        {
-            $model->update( $attributes );
-
-            return $model;
-        }
-
-        return parent::create( $attributes );
+        parent::__construct( $settings );
+        $this->model = new \DreamFactory\Rave\Models\AppGroup();
     }
 }

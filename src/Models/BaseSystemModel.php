@@ -34,8 +34,6 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
  */
 class BaseSystemModel extends BaseModel
 {
-    protected static $pk = 'id';
-
     /**
      * @param       $records
      * @param array $params
@@ -125,7 +123,9 @@ class BaseSystemModel extends BaseModel
 
     public static function updateById( $id, $record, $params = [ ] )
     {
-        ArrayUtils::set( $record, static::$pk, $id );
+        $m = new static;
+        $pk = $m->getPrimaryKey();
+        ArrayUtils::set( $record, $pk, $id );
 
         return static::bulkUpdate( array( $record ), $params );
     }
@@ -139,9 +139,11 @@ class BaseSystemModel extends BaseModel
 
         $records = [ ];
 
+        $m = new static;
+        $pk = $m->getPrimaryKey();
         foreach ( $ids as $id )
         {
-            ArrayUtils::set( $record, static::$pk, $id );
+            ArrayUtils::set( $record, $pk, $id );
             $records[] = $record;
         }
 
@@ -183,7 +185,9 @@ class BaseSystemModel extends BaseModel
             {
                 try
                 {
-                    $id = ArrayUtils::get( $record, static::$pk );
+                    $m = new static;
+                    $pk = $m->getPrimaryKey();
+                    $id = ArrayUtils::get( $record, $pk );
                     $response[$key] = static::updateInternal( $id, $record, $params );
                 }
                 catch ( \Exception $ex )
@@ -240,9 +244,11 @@ class BaseSystemModel extends BaseModel
     {
         $records = array( array() );
 
+        $m = new static;
+        $pk = $m->getPrimaryKey();
         foreach ( $records as $key => $record )
         {
-            ArrayUtils::set( $records[$key], static::$pk, $id );
+            ArrayUtils::set( $records[$key], $pk, $id );
         }
 
         return static::bulkDelete( $records, $params );
@@ -257,10 +263,12 @@ class BaseSystemModel extends BaseModel
 
         $records = [ ];
 
+        $m = new static;
+        $pk = $m->getPrimaryKey();
         foreach ( $ids as $id )
         {
             $record = [ ];
-            ArrayUtils::set( $record, static::$pk, $id );
+            ArrayUtils::set( $record, $pk, $id );
             $records[] = $record;
         }
 
@@ -302,7 +310,9 @@ class BaseSystemModel extends BaseModel
             {
                 try
                 {
-                    $id = ArrayUtils::get( $record, static::$pk );
+                    $m = new static;
+                    $pk = $m->getPrimaryKey();
+                    $id = ArrayUtils::get( $record, $pk );
                     $response[$key] = static::deleteInternal( $id, $record, $params );
                 }
                 catch ( \Exception $ex )
@@ -366,7 +376,7 @@ class BaseSystemModel extends BaseModel
         try
         {
             $model = static::create( $record );
-            static::createExtras($model, $record );
+            static::createExtras( $model, $record );
         }
         catch ( \PDOException $e )
         {
@@ -413,7 +423,7 @@ class BaseSystemModel extends BaseModel
         try
         {
             $model->update( $record );
-            static::updateExtras($model, $record );
+            static::updateExtras( $model, $record );
 
             return static::buildResult( $model, $params );
         }
@@ -455,7 +465,7 @@ class BaseSystemModel extends BaseModel
 
         try
         {
-            static::deleteExtras($model, $record );
+            static::deleteExtras( $model, $record );
             $model->delete();
             $result = static::buildResult( $model, $params );
 
@@ -486,9 +496,8 @@ class BaseSystemModel extends BaseModel
             $result[$f] = $model->{$f};
         }
 
-        $extras = static::buildExtras($model, $params );
-        $result = array_merge($result, $extras);
-
+        $extras = static::buildExtras( $model, $params );
+        $result = array_merge( $result, $extras );
 
         return $result;
     }
@@ -503,13 +512,13 @@ class BaseSystemModel extends BaseModel
 
     }
 
-    protected static function deleteExtras( Model $model, $record = [] )
+    protected static function deleteExtras( Model $model, $record = [ ] )
     {
 
     }
 
-    protected static function buildExtras( Model $model, $params = [] )
+    protected static function buildExtras( Model $model, $params = [ ] )
     {
-        return [];
+        return [ ];
     }
 }

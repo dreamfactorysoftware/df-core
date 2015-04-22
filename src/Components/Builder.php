@@ -23,28 +23,41 @@ namespace DreamFactory\Rave\Components;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
-
 class Builder extends EloquentBuilder
 {
     /**
      * Get the relation instance for the given relation name.
      *
-     * @param  string  $relation
+     * @param  string $relation
+     *
      * @return \Illuminate\Database\Eloquent\Relations\Relation
      */
-    public function getRelation($relation)
+    public function getRelation( $relation )
     {
-        $query = Relation::noConstraints(function() use ($relation)
-        {
-            return $this->getModel()->getHasManyByRelationName($relation);
-        });
+        $query = Relation::noConstraints(
+            function () use ( $relation )
+            {
+                $model = $this->getModel();
+                $relationType = $model->getReferencingType( $relation );
 
-        if(!empty($query))
+                if ( 'has_many' === $relationType )
+                {
+                    return $model->getHasManyByRelationName( $relation );
+                }
+                elseif ( 'many_many' === $relationType )
+                {
+                    return $model->getBelongsToManyByRelationName( $relation );
+                }
+            }
+        );
+
+        if ( !empty( $query ) )
         {
             return $query;
         }
-        else{
-            return parent::getRelation($relation);
+        else
+        {
+            return parent::getRelation( $relation );
         }
     }
 }

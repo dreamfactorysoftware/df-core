@@ -116,6 +116,12 @@ class SystemResource extends BaseModel
                     'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Setting',
                     'description' => 'Allows configuration of system-wide custom settings.',
                 ],
+                [
+                    'name'        => 'app',
+                    'label'       => 'Application Management',
+                    'class_name'  => "DreamFactory\\Rave\\Resources\\System\\App",
+                    'description' => 'Allows managemnt of user application(s)'
+                ]
             ];
 
             foreach ( $records as $record )

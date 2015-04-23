@@ -346,7 +346,7 @@ class CreateSystemTables extends Migration
             {
                 $t->increments( 'id' );
                 $t->integer( 'user_id' )->unsigned();
-                $t->foreign( 'user_id' )->references( 'id' )->on( 'user' )->onDelete( 'cascade' );
+                $t->foreign( 'user_id' )->references( 'id' )->on( 'users' )->onDelete( 'cascade' );
                 $t->integer( 'app_id' )->unsigned()->nullable();
                 $t->foreign( 'app_id' )->references( 'id' )->on( 'app' )->onDelete( 'cascade' );
                 $t->integer( 'role_id' )->unsigned()->nullable();

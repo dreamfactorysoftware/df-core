@@ -21,6 +21,9 @@
 namespace DreamFactory\Rave\Resources\System;
 
 use DreamFactory\Rave\Resources\BaseRestSystemResource;
+use DreamFactory\Rave\Utility\ResponseFactory;
+use DreamFactory\Rave\Exceptions\BadRequestException;
+use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 
 class App extends BaseRestSystemResource
 {
@@ -28,5 +31,41 @@ class App extends BaseRestSystemResource
     {
         parent::__construct( $settings );
         $this->model = new \DreamFactory\Rave\Models\App();
+    }
+
+    /**
+     * Handles POST action
+     *
+     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @throws BadRequestException
+     * @throws \Exception
+     */
+    protected function handlePOST()
+    {
+        if ( !empty( $this->resource ) )
+        {
+            throw new BadRequestException( 'Create record by identifier not currently supported.' );
+        }
+
+        $records = $this->getPayloadData( self::RECORD_WRAPPER );
+
+        foreach($records as $key => $record)
+        {
+            $records[$key]['api_key'] = \DreamFactory\Rave\Models\App::generateApiKey($record['name']);
+        }
+
+        if ( empty( $records ) )
+        {
+            throw new BadRequestException( 'No record(s) detected in request.' );
+        }
+
+        $this->triggerActionEvent( $this->response );
+
+        $model = $this->getModel();
+        $result = $model::bulkCreate( $records, $this->getQueryData() );
+
+        $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
+
+        return $response;
     }
 }

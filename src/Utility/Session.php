@@ -27,12 +27,15 @@ use DreamFactory\Rave\Models\Role;
 use DreamFactory\Rave\Exceptions\UnauthorizedException;
 use DreamFactory\Rave\Exceptions\ForbiddenException;
 use DreamFactory\Rave\Enums\ServiceRequestorTypes;
+use DreamFactory\Rave\Enums\VerbsMask;
+use DreamFactory\Library\Utility\ArrayUtils;
+use Illuminate\Routing\Router;
 
 class Session
 {
     public static function isAccessAllowed($requestor = ServiceRequestorTypes::API)
     {
-        if(session('is_sys_admin'))
+        if(session('rsa.is_sys_admin'))
         {
             return true;
         }
@@ -42,20 +45,23 @@ class Session
         $service = $router->input('service');
         $resource = $router->input('resource');
         $action = VerbsMask::toNumeric(Request::getMethod());
-        $roleServiceAccess = session('role.services');
+        $roleServiceAccess = session('rsa.role.services');
 
-        foreach($roleServiceAccess as $rsa)
+        if(!empty($roleServiceAccess))
         {
-            $allowedResource = ArrayUtils::get($rsa, 'component');
-            $allowedService = ArrayUtils::get($rsa, 'service_name');
-            $allowedAction = ArrayUtils::get($rsa, 'verb_mask');
-            $allowedRequestor = ArrayUtils::get($rsa, 'requestor_mask');
-
-            if(($action & $allowedAction) && ($requestor & $allowedRequestor) && $service === $allowedService)
+            foreach ( $roleServiceAccess as $rsa )
             {
-                if ( '*' === $allowedResource || empty($resource) || ($resource === $allowedResource))
+                $allowedResource = ArrayUtils::get( $rsa, 'component' );
+                $allowedService = ArrayUtils::get( $rsa, 'service_name' );
+                $allowedAction = ArrayUtils::get( $rsa, 'verb_mask' );
+                $allowedRequestor = ArrayUtils::get( $rsa, 'requestor_mask' );
+
+                if ( ( $action & $allowedAction ) && ( $requestor & $allowedRequestor ) && $service === $allowedService )
                 {
-                    return true;
+                    if ( '*' === $allowedResource || empty( $resource ) || ( $resource === $allowedResource ) )
+                    {
+                        return true;
+                    }
                 }
             }
         }
@@ -65,7 +71,10 @@ class Session
 
     public static function checkPermission()
     {
-
+        if(!static::isAccessAllowed())
+        {
+            throw new ForbiddenException('Forbidden. You do not have permission to access the requested service/resource.');
+        }
     }
 
     /**

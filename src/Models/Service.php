@@ -205,6 +205,7 @@ class Service extends BaseSystemModel
         {
             static::create(
                 [
+                    'id'          => '1',
                     'name'        => 'system',
                     'label'       => 'System Management',
                     'description' => 'Service for managing system resources.',

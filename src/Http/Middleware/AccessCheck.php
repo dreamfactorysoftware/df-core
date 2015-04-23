@@ -25,33 +25,14 @@ use \Cache;
 use \Config;
 use \Closure;
 use \Session;
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Enums\ServiceRequestorTypes;
-use DreamFactory\Rave\Enums\VerbsMask;
+use DreamFactory\Rave\Models\App;
 use DreamFactory\Rave\Models\Role;
-use DreamFactory\Rave\Models\Config as SystemConfig;
 use DreamFactory\Rave\Enums\HttpStatusCodes;
-use DreamFactory\Rave\Contracts\ServiceRequestInterface;
-use Illuminate\Routing\Router;
-use Illuminate\Http\Request;
 use DreamFactory\Rave\Utility\Session as SessionUtil;
+use DreamFactory\Rave\User\Resources\System\User as UserManagement;
 
 class AccessCheck
 {
-    protected $config;
-
-    public function __construct()
-    {
-        $this->config = Cache::remember(
-            'system_config',
-            Config::get( 'rave.default_cache_ttl' ),
-            function ()
-            {
-                return SystemConfig::instance();
-            }
-        );
-    }
-
     /**
      * Handle an incoming request.
      *
@@ -62,81 +43,129 @@ class AccessCheck
      */
     public function handle( $request, Closure $next )
     {
-        return $next( $request );
+        //return $next($request);
 
-//        $pass = false;
-//        $this->initSessionValues();
-//        $apiKey = $request->query('api_key');
-//
-//        if(Auth::check())
-//        {
-//            $authenticatedUser = Auth::user();
-//            $roleId = $authenticatedUser->role_id;
-//
-//            if(!$authenticatedUser->is_active)
-//            {
-//                return response('User '.$authenticatedUser->email.' is not active.', HttpStatusCodes::HTTP_FORBIDDEN);
-//            }
-//
-//            if($authenticatedUser->is_sys_admin)
-//            {
-//                $pass = true;
-//                Session::put('is_sys_admin', 1);
-//            }
-//            else if(!empty($roleId))
-//            {
-//                /** @var Role $role */
-//                $role = Role::with(['app_by_role_id', 'role_lookup_by_role_id', 'role_service_access_by_role_id', 'service_by_role_service_access'])->find($roleId);
-////                $role = Cache::remember('role_'.$roleId, Config::get('rave.default_cache_ttl'), function() use ($roleId)
-////                    {
-////                        return Role::with(['app_by_role_id', 'role_lookup_by_role_id', 'role_service_access_by_role_id', 'service_by_role_service_access'])->find($roleId);
-////                    }
-////                );
-//                $roleApps = $role->getRelation('app_by_role_id')->toArray();
-//                $roleServiceAccesses = $role->getRoleServiceAccess();
-//
-//                $roleData = array(
-//                    'name' => $role->name,
-//                    'id' => $role->id,
-//                    'apps' => $roleApps,
-//                    'services' => $roleServiceAccesses
-//                );
-//
-//                $pass = static::hasAccess($request, $roleServiceAccesses);
-//
-//                Session::put('role', $roleData);
-//            }
-//        }
-//        elseif(!empty($apiKey))
-//        {
-//            if($apiKey === $this->config->api_key)
-//            {
-//                if(!empty($this->config->global_role_id))
-//                {
-//                    $pass = true;
-//                }
-//            }
-//        }
-//        else{
-//            if(!empty($this->config->guest_role_id))
-//            {
-//                $pass = true;
-//            }
-//        }
-//
-//        if(SessionUtil::isAccessAllowed())
-//        {
-//            return $next($request);
-//        }
-//        else
-//        {
-//            return response( 'Unauthorized.', HttpStatusCodes::HTTP_UNAUTHORIZED );
-//        }
+        static::initSessionValues();
+        $apiKey = $request->query('api_key');
+        $authenticated = Auth::check();
+
+        if($authenticated)
+        {
+            $authenticatedUser = Auth::user();
+
+            if ( !$authenticatedUser->is_active )
+            {
+                return response( 'User ' . $authenticatedUser->email . ' is not active.', HttpStatusCodes::HTTP_FORBIDDEN );
+            }
+        }
+
+        if($authenticated && $authenticatedUser->is_sys_admin)
+        {
+            Session::put( 'rsa.is_sys_admin', 1 );
+        }
+        else if(!empty($apiKey) && $authenticated && class_exists(UserManagement::class))
+        {
+            $cacheKey = static::getCacheKey($apiKey, $authenticatedUser->id);
+
+            $roleData = Cache::get($cacheKey);
+
+            if(empty($roleData))
+            {
+                /** @var App $app */
+                $app = App::with(
+                    [
+                        'role_by_user_to_app_role' => function ( $q ) use ( $authenticatedUser )
+                        {
+                            $q->whereUserId( $authenticatedUser->id );
+                        }
+                    ]
+                )->whereApiKey( $apiKey )->first();
+
+                /** @var Role $role */
+                $role = $app->getRelation( 'role_by_user_to_app_role' )->first();
+
+                if(empty($role))
+                {
+                    return response('Unauthorized request. Access denied.', HttpStatusCodes::HTTP_UNAUTHORIZED);
+                }
+
+                $roleData = static::getRoleData( $role );
+                Cache::put( $cacheKey, $roleData, Config::get( 'rave.default_cache_ttl' ) );
+            }
+
+            Session::put('rsa.role', $roleData);
+        }
+        elseif(!empty($apiKey))
+        {
+            $cacheKey = static::getCacheKey($apiKey);
+
+            $roleData = Cache::get($cacheKey);
+
+            if(empty($roleData))
+            {
+                /** @var App $app */
+                $app = App::with( 'role_by_role_id' )->whereApiKey( $apiKey )->first();
+
+                /** @var Role $role */
+                $role = $app->getRelation( 'role_by_role_id' );
+
+                if(empty($role))
+                {
+                    return response('Unauthorized request. Access denied.', HttpStatusCodes::HTTP_UNAUTHORIZED);
+                }
+
+                $roleData = static::getRoleData( $role );
+                Cache::put($cacheKey, $roleData, Config::get('rave.default_cache_ttl'));
+            }
+
+            Session::put('rsa.role', $roleData);
+        }
+        else{
+            return response( 'Bad request. Missing api key.', HttpStatusCodes::HTTP_BAD_REQUEST );
+        }
+
+        if(SessionUtil::isAccessAllowed())
+        {
+            return $next($request);
+        }
+        else
+        {
+            return response( 'Access Forbidden.', HttpStatusCodes::HTTP_FORBIDDEN );
+        }
     }
 
-    protected function initSessionValues()
+    protected static function initSessionValues()
     {
-        Session::put( 'is_sys_admin', 0 );
-        Session::put( 'role', array() );
+        Session::put( 'rsa', array() );
+    }
+
+    /**
+     * @param Role $role
+     *
+     * @return array
+     */
+    protected static function getRoleData(Role $role)
+    {
+        $role->load('role_service_access_by_role_id', 'service_by_role_service_access');
+        $rsa = $role->getRoleServiceAccess();
+
+        $roleData = array(
+            'name' => $role->name,
+            'id' => $role->id,
+            'services' => $rsa
+        );
+
+        return $roleData;
+    }
+
+    /**
+     * @param      $apiKey
+     * @param null $userId
+     *
+     * @return string
+     */
+    protected static function getCacheKey($apiKey, $userId=null)
+    {
+        return $apiKey.$userId;
     }
 }

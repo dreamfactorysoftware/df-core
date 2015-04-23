@@ -48,6 +48,10 @@ class Builder extends EloquentBuilder
                 {
                     return $model->getBelongsToManyByRelationName( $relation );
                 }
+                elseif( 'belongs_to' === $relationType )
+                {
+                    return $model->getBelongsToByRelationName( $relation );
+                }
             }
         );
 

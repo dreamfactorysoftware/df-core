@@ -90,4 +90,24 @@ class Role extends BaseSystemModel
 
         return $rsa;
     }
+
+    public static function seed()
+    {
+        $seeded = false;
+
+        if ( !static::whereId( 1 )->exists() )
+        {
+            static::create(
+                [
+                    'id'                      => 1,
+                    'name'                    => 'default',
+                    'description'             => 'A default system role.',
+                    'is_active'               => 1
+                ]
+            );
+            $seeded = true;
+        }
+
+        return $seeded;
+    }
 }

@@ -397,6 +397,17 @@ class BaseModel extends Model
         return $this->belongsToMany($model, $pivotTable, $fk, $rk);
     }
 
+    public function getBelongsToByRelationName($name)
+    {
+        $table = $this->getReferencingTable($name);
+        $model = ArrayUtils::get(static::$relatedModels, $table);
+
+        $references = $this->getReferences();
+        $lf = ArrayUtils::findByKeyValue($references, 'ref_table', $table, 'field');
+
+        return $this->belongsTo($model, $lf);
+    }
+
     /**
      * Gets the foreign key of the referenced table
      *

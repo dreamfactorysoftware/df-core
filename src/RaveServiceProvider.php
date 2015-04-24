@@ -27,8 +27,9 @@ class RaveServiceProvider extends BaseServiceProvider
     public function boot()
     {
         $this->publishes([
-                             __DIR__.'/../config/rave.php' => config_path('rave.php'),
-                             __DIR__.'/../views/test_rest.html' => public_path('test_rest.html'),
+                             __DIR__.'/../config/' => config_path(),
+                             __DIR__.'/../views/' => public_path(),
+                             __DIR__.'/../storage/' => storage_path(),
                          ]);
         include __DIR__.'/Http/RaveRoutes.php';
 

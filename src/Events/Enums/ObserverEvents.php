@@ -1,9 +1,9 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory Services Platform(tm) (DSP)
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2013 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,44 +17,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Enums;
-
-use DreamFactory\Library\Utility\Enums\FactoryEnum;
+namespace DreamFactory\Rave\Events\Enums;
 
 /**
- * ScriptLanguages
- * Supported and future DSP scripting languages
+ * Events triggered by an event observer
+ *
+ * @see DreamFactory\Rave\Events\Interfaces\EventObserverLike
  */
-class ScriptLanguages extends FactoryEnum
+class ObserverEvents
 {
     //*************************************************************************
-    //* Constants
+    //	Constants
     //*************************************************************************
 
-    const __default = self::V8JS;
-
     /**
-     * @var string
+     * @var string An observer has been enabled
      */
-    const V8JS = 'v8js';
+    const ENABLED = 'observer.enabled';
     /**
-     * @var string
+     * @var string An observer has been disabled
      */
-    const NODEJS = 'nodejs';
+    const DISABLED = 'observer.disabled';
     /**
-     * @var string
+     * @var string An observer is ready for prime time
      */
-    const LUA = 'lua';
-    /**
-     * @var string
-     */
-    const PYTHON = 'py';
-    /**
-     * @var string
-     */
-    const PHP = 'php';
-    /**
-     * @var string
-     */
-    const RUBY = 'rb';
+    const READY = 'observer.ready';
 }

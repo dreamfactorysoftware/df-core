@@ -20,9 +20,10 @@
 
 namespace DreamFactory\Rave\Contracts;
 
+use DreamFactory\Rave\Enums\ServiceRequestorTypes;
+
 interface ServiceRequestInterface
 {
-    const API_VERSION = '2.0';
     /**
      * @return string Http Verbs
      */
@@ -82,9 +83,9 @@ interface ServiceRequestInterface
     public function getApiVersion();
 
     /**
-     * @param string|null $version
+     * Retrieve requestor type, see ServiceRequestorTypes
      *
-     * @return mixed
+     * @return integer
      */
-    public function setApiVersion($version=null);
+    public function getRequestorType();
 }

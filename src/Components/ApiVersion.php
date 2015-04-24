@@ -17,46 +17,46 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Testing;
 
-use DreamFactory\Rave\Components\InternalServiceRequest;
-use DreamFactory\Rave\Contracts\ServiceRequestInterface;
-use DreamFactory\Rave\Enums\ServiceRequestorTypes;
-use \Exception;
+namespace DreamFactory\Rave\Components;
 
-/**
- * Class TestServiceRequest
- *
- */
-class TestServiceRequest implements ServiceRequestInterface
+trait ApiVersion
 {
-    use InternalServiceRequest;
-
-    /**
-     * @var int, see ServiceRequestorTypes
-     */
-    protected $requestorType = ServiceRequestorTypes::API;
+    protected $apiVersion = null;
 
     /**
      * {@inheritdoc}
      */
-    public function getRequestorType()
+    public function getApiVersion()
     {
-        return $this->requestorType;
+        if ( empty( $this->apiVersion ) )
+        {
+            $this->setApiVersion();
+        }
+
+        return $this->apiVersion;
     }
 
     /**
-     * @param integer $type, see ServiceRequestorTypes
-     *
-     * @throws Exception
+     * {@inheritdoc}
      */
-    public function setRequestorType( $type )
+    public function setApiVersion( $version = null )
     {
-        if ( ServiceRequestorTypes::contains( $type ) )
+        if ( empty( $version ) )
         {
-            $this->requestorType = $type;
+            $version = \Config::get( 'rave.api_version' );
         }
 
-        throw new Exception( 'Invalid service requestor type provided.');
+        $version = strval( $version ); // if numbers are passed in
+        if ( substr( strtolower( $version ), 0, 1 ) === 'v' )
+        {
+            $version = substr( $version, 1 );
+        }
+        if ( strpos( $version, '.' ) === false )
+        {
+            $version = $version . '.0';
+        }
+
+        $this->apiVersion = $version;
     }
 }

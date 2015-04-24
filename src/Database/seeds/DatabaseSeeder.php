@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Rave\Database\Seeds;
 
+use DreamFactory\Rave\Models\ScriptType;
 use Illuminate\Database\Seeder;
 use Illuminate\Database\Eloquent\Model;
 use DreamFactory\Rave\Models\Service;
@@ -35,6 +36,12 @@ class DatabaseSeeder extends Seeder
         if ( true === Service::seed() )
         {
             $this->command->info( 'Services seeded!' );
+        }
+
+        //  Add native script types
+        if ( true === ScriptType::seed() )
+        {
+            $this->command->info( 'Script types seeded!' );
         }
     }
 

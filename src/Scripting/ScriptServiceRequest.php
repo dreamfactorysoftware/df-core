@@ -17,44 +17,36 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Enums;
+namespace DreamFactory\Rave\Scripting;
 
-use DreamFactory\Library\Utility\Enums\FactoryEnum;
+use DreamFactory\Rave\Components\InternalServiceRequest;
+use DreamFactory\Rave\Contracts\ServiceRequestInterface;
+use DreamFactory\Rave\Enums\ServiceRequestorTypes;
 
 /**
- * ScriptLanguages
- * Supported and future DSP scripting languages
+ * Class ScriptServiceRequest
+ *
  */
-class ScriptLanguages extends FactoryEnum
+class ScriptServiceRequest implements ServiceRequestInterface
 {
-    //*************************************************************************
-    //* Constants
-    //*************************************************************************
-
-    const __default = self::V8JS;
+    use InternalServiceRequest;
 
     /**
-     * @var string
+     * @param array $settings
      */
-    const V8JS = 'v8js';
+    public function __construct( $settings = [ ] )
+    {
+        foreach ( $settings as $key => $value )
+        {
+            $this->{$key} = $value;
+        }
+    }
+
     /**
-     * @var string
+     * {@inheritdoc}
      */
-    const NODEJS = 'nodejs';
-    /**
-     * @var string
-     */
-    const LUA = 'lua';
-    /**
-     * @var string
-     */
-    const PYTHON = 'py';
-    /**
-     * @var string
-     */
-    const PHP = 'php';
-    /**
-     * @var string
-     */
-    const RUBY = 'rb';
+    public function getRequestorType()
+    {
+        return ServiceRequestorTypes::SCRIPT;
+    }
 }

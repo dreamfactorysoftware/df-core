@@ -24,7 +24,6 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Enums\ApiDocFormatTypes;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Models\Service;
-use DreamFactory\Rave\Resources\System\Script;
 
 /**
  * Swagger

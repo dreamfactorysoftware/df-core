@@ -1,8 +1,7 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory Services Platform(tm) SDK For PHP
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,44 +16,31 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Enums;
+namespace DreamFactory\Rave\Events\Interfaces;
 
-use DreamFactory\Library\Utility\Enums\FactoryEnum;
+use Doctrine\Common\Cache\Cache;
 
 /**
- * ScriptLanguages
- * Supported and future DSP scripting languages
+ * EventStoreLike
+ * Something that acts like an event store
  */
-class ScriptLanguages extends FactoryEnum
+interface EventStoreLike extends Cache
 {
     //*************************************************************************
-    //* Constants
+    //	Methods
     //*************************************************************************
 
-    const __default = self::V8JS;
+    /**
+     * Loads current $dispatcher state
+     *
+     * @return bool|void
+     */
+    public function loadAll();
 
     /**
-     * @var string
+     * Saves current $dispatcher state
+     *
+     * @return bool|void
      */
-    const V8JS = 'v8js';
-    /**
-     * @var string
-     */
-    const NODEJS = 'nodejs';
-    /**
-     * @var string
-     */
-    const LUA = 'lua';
-    /**
-     * @var string
-     */
-    const PYTHON = 'py';
-    /**
-     * @var string
-     */
-    const PHP = 'php';
-    /**
-     * @var string
-     */
-    const RUBY = 'rb';
+    public function saveAll();
 }

@@ -83,6 +83,22 @@ class ServiceType extends BaseModel
             $seeded = true;
         }
 
+        if ( !static::whereName( 'script' )->count() )
+        {
+            static::create(
+                [
+                    'name'           => 'script',
+                    'class_name'     => 'DreamFactory\\Rave\\Services\\Script',
+                    'config_handler' => 'DreamFactory\\Rave\\Models\\ScriptConfig',
+                    'label'          => 'Custom Scripting Service',
+                    'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
+                    'group'          => 'scripting',
+                    'singleton'      => 0
+                ]
+            );
+            $seeded = true;
+        }
+
         if ( !static::whereName( 'local_file' )->count() )
         {
             static::create(

@@ -30,9 +30,21 @@ $resourcePathPattern = '[0-9a-zA-Z-_@&\#\!=,:;\/\^\$\.\|\{\}\[\]\(\)\*\+\? ]+';
 $servicePattern = '[_0-9a-zA-Z-]+';
 
 Route::group(
-    [ 'namespace' => 'DreamFactory\Rave\Http\Controllers', 'middleware' => 'accessCheckMiddleware' ],
+    [ 'namespace' => 'DreamFactory\Rave\Http\Controllers' ],
     function () use ( $resourcePathPattern, $servicePattern )
     {
+        Route::get('rave', 'SplashController@index');
+
+        Route::get('rave/launchpad', 'LaunchpadController@index');
+
+        Route::get('rave/admin', 'AdminController@index');
+
+        Route::controllers([
+                               'rave/auth' => 'Auth\AuthController',
+                               'rave/password' => 'Auth\PasswordController',
+                           ]);
+
+
         Route::group(
             [ 'prefix' => 'api' ],
             function () use ( $resourcePathPattern, $servicePattern )

@@ -56,9 +56,12 @@ class Session
                 $allowedAction = ArrayUtils::get( $rsa, 'verb_mask' );
                 $allowedRequestor = ArrayUtils::get( $rsa, 'requestor_mask' );
 
-                if ( ( $action & $allowedAction ) && ( $requestor & $allowedRequestor ) && $service === $allowedService )
+                if (
+                    ( $action & $allowedAction ) &&
+                    ( $requestor & $allowedRequestor ) &&
+                    ($service === $allowedService || '*' === $allowedService || 'all' === strtolower($allowedService)) )
                 {
-                    if ( '*' === $allowedResource || empty( $resource ) || ( $resource === $allowedResource ) )
+                    if ( '*' === $allowedResource || ( $resource === $allowedResource ) )
                     {
                         return true;
                     }

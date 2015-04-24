@@ -18,25 +18,23 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Models;
+namespace DreamFactory\Rave\Http\Controllers;
 
-use Illuminate\Database\Eloquent\Collection;
 
-trait SingleRecordModel
+class SplashController extends Controller
 {
-    public static function create( array $attributes )
+    public function __construct()
     {
-        /** @var Collection $models */
-        $models = static::all();
-        $model = $models->first();
+        $this->middleware('rave_guest');
+    }
 
-        if ( !empty( $model ) )
-        {
-            $model->update( $attributes );
-
-            return $model;
-        }
-
-        return parent::create( $attributes );
+    /**
+     * Show the application welcome screen to the user.
+     *
+     * @return Response
+     */
+    public function index()
+    {
+        return view('rave.splash');
     }
 }

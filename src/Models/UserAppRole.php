@@ -20,23 +20,12 @@
 
 namespace DreamFactory\Rave\Models;
 
-use Illuminate\Database\Eloquent\Collection;
 
-trait SingleRecordModel
+class UserAppRole extends BaseModel
 {
-    public static function create( array $attributes )
-    {
-        /** @var Collection $models */
-        $models = static::all();
-        $model = $models->first();
+    protected $table = 'user_to_app_role';
 
-        if ( !empty( $model ) )
-        {
-            $model->update( $attributes );
+    protected $fillable = ['user_id', 'app_id', 'role_id'];
 
-            return $model;
-        }
-
-        return parent::create( $attributes );
-    }
+    public $timestamps = false;
 }

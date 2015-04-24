@@ -43,8 +43,28 @@ class RoleServiceAccess extends BaseSystemModel
 {
     protected $table = 'role_service_access';
 
-    protected $guarded = ['id'];
+    protected $guarded = [ 'id' ];
 
     public $timestamps = false;
 
+    public static function seed()
+    {
+        $seeded = false;
+
+        if ( !static::whereRoleId( 1 )->exists() )
+        {
+            static::create(
+                [
+                    'role_id'        => 1,
+                    'service_id'     => 1,
+                    'component'      => '*',
+                    'verb_mask'      => 31,
+                    'requestor_mask' => 2
+                ]
+            );
+            $seeded = true;
+        }
+
+        return $seeded;
+    }
 }

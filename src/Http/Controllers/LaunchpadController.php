@@ -18,25 +18,18 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Models;
+namespace DreamFactory\Rave\Http\Controllers;
 
-use Illuminate\Database\Eloquent\Collection;
 
-trait SingleRecordModel
+class LaunchpadController extends Controller
 {
-    public static function create( array $attributes )
+    public function __construct()
     {
-        /** @var Collection $models */
-        $models = static::all();
-        $model = $models->first();
+        $this->middleware('rave_auth');
+    }
 
-        if ( !empty( $model ) )
-        {
-            $model->update( $attributes );
-
-            return $model;
-        }
-
-        return parent::create( $attributes );
+    public function index()
+    {
+        return view('rave.launchpad');
     }
 }

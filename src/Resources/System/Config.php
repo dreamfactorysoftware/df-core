@@ -20,7 +20,11 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Resources\BaseRestSystemResource;
+use DreamFactory\Rave\Utility\ResponseFactory;
+use DreamFactory\Rave\Contracts\ServiceResponseInterface;
+use DreamFactory\Library\Utility\Enums\Verbs;
 
 class Config extends BaseRestSystemResource
 {
@@ -28,6 +32,11 @@ class Config extends BaseRestSystemResource
     public function __construct( $settings = [ ] )
     {
         parent::__construct( $settings );
+        $this->verbAliases = [
+            Verbs::PUT   => Verbs::POST,
+            Verbs::MERGE => Verbs::POST,
+            Verbs::PATCH => Verbs::POST
+        ];
         $this->model = new \DreamFactory\Rave\Models\Config();
     }
 
@@ -307,13 +316,35 @@ HTML
 
     protected function handlePOST()
     {
-        if('api_key'===$this->resource)
+        if ( 'api_key' === $this->resource )
         {
-            $string = gethostname().time();
-            $key = hash('sha256', $string);
-            return ['key'=>$key];
+            $string = gethostname() . time();
+            $key = hash( 'sha256', $string );
+            $this->model->create( [ 'api_key' => $key ] );
+
+            return ResponseFactory::create( [ 'api_key' => $key ], $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
         }
 
-        return parent::handlePOST();
+        if ( !empty( $this->resource ) )
+        {
+            throw new BadRequestException( 'Create record by identifier not currently supported.' );
+        }
+
+        $records = $this->getPayloadData( self::RECORD_WRAPPER );
+        unset( $records[0]['api_key'] );
+
+        if ( empty( $records ) )
+        {
+            throw new BadRequestException( 'No record(s) detected in request.' );
+        }
+
+        $this->triggerActionEvent( $this->response );
+
+        $model = $this->getModel();
+        $result = $model::bulkCreate( $records, $this->getQueryData() );
+
+        $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
+
+        return $response;
     }
 }

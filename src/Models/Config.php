@@ -20,6 +20,8 @@
 
 namespace DreamFactory\Rave\Models;
 
+use \Cache;
+
 /**
  * Config
  *
@@ -38,7 +40,32 @@ class Config extends BaseSystemModel
 {
     use SingleRecordModel;
 
+    protected $primaryKey = 'db_version';
+
     protected $table = 'system_config';
 
-    protected $fillable = ['db_version', 'login_with_user_name', 'api_key', 'allow_guest_access', 'guest_role_id'];
+    protected $fillable = [ 'db_version', 'login_with_user_name', 'api_key', 'allow_guest_access', 'guest_role_id' ];
+
+    public static function instance()
+    {
+        $models = static::all();
+        $model = $models->first();
+
+        return $model;
+    }
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::saved(
+            function ( Config $config )
+            {
+                if ( Cache::has( 'system_config' ) )
+                {
+                    Cache::forget( 'system_config' );
+                }
+            }
+        );
+    }
 }

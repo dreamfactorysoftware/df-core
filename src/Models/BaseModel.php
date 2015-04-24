@@ -56,7 +56,7 @@ class BaseModel extends Model
      *
      * @var array
      */
-    protected $references = [];
+    protected $references = [ ];
 
     /**
      * An array map of table names and their models
@@ -68,7 +68,7 @@ class BaseModel extends Model
      *
      * @var array
      */
-    protected static $relatedModels = [];
+    protected static $relatedModels = [ ];
 
     /**
      * Save a new model and return the instance.
@@ -78,22 +78,22 @@ class BaseModel extends Model
      * @return BaseModel
      * @throws \Exception
      */
-    public static function create(array $attributes)
+    public static function create( array $attributes )
     {
         $m = new static;
-        $relations = [];
+        $relations = [ ];
         $transaction = false;
 
-        foreach($attributes as $key => $value)
+        foreach ( $attributes as $key => $value )
         {
-            if($m->isRelationMapped($key))
+            if ( $m->isRelationMapped( $key ) )
             {
                 $relations[$key] = $value;
-                unset($attributes[$key]);
+                unset( $attributes[$key] );
             }
         }
 
-        if(count($relations)>0)
+        if ( count( $relations ) > 0 )
         {
             DB::beginTransaction();
             $transaction = true;
@@ -102,35 +102,40 @@ class BaseModel extends Model
         try
         {
             /** @var BaseModel $model */
-            $model = parent::create($attributes);
+            $model = parent::create( $attributes );
 
-            foreach($relations as $name => $value)
+            foreach ( $relations as $name => $value )
             {
-                $relatedModel = $model->getReferencingModel($name);
-                $newModels = [];
+                $relatedModel = $model->getReferencingModel( $name );
+                $newModels = [ ];
 
-                if(!is_array($value))
+                if ( !is_array( $value ) )
                 {
-                    throw new BadRequestException('Bad data supplied for '.$name.'. Related data must be supplied as array.');
+                    throw new BadRequestException( 'Bad data supplied for ' . $name . '. Related data must be supplied as array.' );
                 }
 
-                foreach($value as $record)
+                foreach ( $value as $record )
                 {
-                    $newModels[] = new $relatedModel($record);
+                    $newModels[] = new $relatedModel( $record );
                 }
 
-                $model->getHasManyByRelationName($name)->saveMany($newModels);
+                $model->getHasManyByRelationName( $name )->saveMany( $newModels );
             }
 
-            if($transaction) DB::commit();
+            if ( $transaction )
+            {
+                DB::commit();
+            }
         }
-        catch(\Exception $e)
+        catch ( \Exception $e )
         {
-            if($transaction) DB::rollBack();
+            if ( $transaction )
+            {
+                DB::rollBack();
+            }
 
             throw $e;
         }
-
 
         return $model;
     }
@@ -143,21 +148,21 @@ class BaseModel extends Model
      * @return bool|int
      * @throws \Exception
      */
-    public function update(array $attributes = array())
+    public function update( array $attributes = array() )
     {
-        $relations = [];
+        $relations = [ ];
         $transaction = false;
 
-        foreach($attributes as $key => $value)
+        foreach ( $attributes as $key => $value )
         {
-            if($this->isRelationMapped($key))
+            if ( $this->isRelationMapped( $key ) )
             {
                 $relations[$key] = $value;
-                unset($attributes[$key]);
+                unset( $attributes[$key] );
             }
         }
 
-        if(count($relations)>0)
+        if ( count( $relations ) > 0 )
         {
             DB::beginTransaction();
             $transaction = true;
@@ -165,23 +170,29 @@ class BaseModel extends Model
 
         try
         {
-            $updated = parent::update($attributes);
+            $updated = parent::update( $attributes );
 
-            if($updated && $this->exists && count($relations) > 0)
+            if ( $updated && $this->exists && count( $relations ) > 0 )
             {
-                foreach($relations as $name => $value)
+                foreach ( $relations as $name => $value )
                 {
-                    $relatedModel = $this->getReferencingModel($name);
-                    $hasMany = $this->getHasManyByRelationName($name);
-                    $this->saveHasManyData($relatedModel, $hasMany, $value, $name);
+                    $relatedModel = $this->getReferencingModel( $name );
+                    $hasMany = $this->getHasManyByRelationName( $name );
+                    $this->saveHasManyData( $relatedModel, $hasMany, $value, $name );
                 }
             }
 
-            if($transaction) DB::commit();
+            if ( $transaction )
+            {
+                DB::commit();
+            }
         }
-        catch(\Exception $e)
+        catch ( \Exception $e )
         {
-            if($transaction) DB::rollBack();
+            if ( $transaction )
+            {
+                DB::rollBack();
+            }
 
             throw $e;
         }
@@ -197,7 +208,7 @@ class BaseModel extends Model
      */
     public function getSchema()
     {
-        if(empty($this->schema))
+        if ( empty( $this->schema ) )
         {
             $connection = $this->getConnection();
             $database = $connection->getDatabaseName();
@@ -223,7 +234,7 @@ class BaseModel extends Model
      */
     public function getReferences()
     {
-        if(empty($this->references))
+        if ( empty( $this->references ) )
         {
             if ( empty( $this->schema ) )
             {
@@ -247,13 +258,13 @@ class BaseModel extends Model
      */
     public function getTableSchema()
     {
-        if(empty($this->tableSchema))
+        if ( empty( $this->tableSchema ) )
         {
             if ( empty( $this->schema ) )
             {
                 $this->getSchema();
             }
-            $this->tableSchema = $this->schema->getTable($this->table);
+            $this->tableSchema = $this->schema->getTable( $this->table );
         }
 
         return $this->tableSchema;
@@ -268,7 +279,7 @@ class BaseModel extends Model
      *
      * @return array
      */
-    public function selectResponse( $criteria = null, $related = [])
+    public function selectResponse( $criteria = null, $related = [ ] )
     {
         if ( empty( $criteria ) )
         {
@@ -281,7 +292,7 @@ class BaseModel extends Model
             {
                 $_fields = explode( ',', $criteria['select'] );
 
-                $collections = $this->with($related)->get($_fields);
+                $collections = $this->with( $related )->get( $_fields );
             }
         }
 
@@ -302,9 +313,9 @@ class BaseModel extends Model
      *
      * @throws \Exception
      */
-    protected function saveHasManyData($relatedModel, HasMany $hasMany, $data, $relationName)
+    protected function saveHasManyData( $relatedModel, HasMany $hasMany, $data, $relationName )
     {
-        if($this->exists)
+        if ( $this->exists )
         {
             $models = [ ];
             $pk = $hasMany->getRelated()->primaryKey;
@@ -316,24 +327,24 @@ class BaseModel extends Model
                 if ( !empty( $model ) )
                 {
                     $fk = $hasMany->getPlainForeignKey();
-                    $fkId = ArrayUtils::get($d, $fk);
-                    if(null === $fkId)
+                    $fkId = ArrayUtils::get( $d, $fk );
+                    if ( null === $fkId )
                     {
                         //Foreign key field is null therefore delete the child record.
                         $model->delete();
                         continue;
                     }
-                    elseif(!empty($fkId) && $fkId !== $this->id && (null !== $parent = static::find($fkId)))
+                    elseif ( !empty( $fkId ) && $fkId !== $this->id && ( null !== $parent = static::find( $fkId ) ) )
                     {
                         //Foreign key field is set but the id belongs to a different parent than this parent.
                         //There the child is adopted by the supplied parent id (foreign key).
-                        $relatedData = [$relationName => [$d]];
-                        $parent->update($relatedData);
+                        $relatedData = [ $relationName => [ $d ] ];
+                        $parent->update( $relatedData );
                         continue;
                     }
                     else
                     {
-                        $model->update($d);
+                        $model->update( $d );
                         continue;
                     }
                 }
@@ -355,12 +366,12 @@ class BaseModel extends Model
      *
      * @return HasMany
      */
-    protected function getHasMany($table)
+    protected function getHasMany( $table )
     {
-        $model = ArrayUtils::get(static::$relatedModels, $table);
-        $refField = $this->getReferencingField($table);
+        $model = ArrayUtils::get( static::$relatedModels, $table );
+        $refField = $this->getReferencingField( $table );
 
-        return $this->hasMany($model, $refField);
+        return $this->hasMany( $model, $refField );
     }
 
     /**
@@ -368,12 +379,33 @@ class BaseModel extends Model
      *
      * @return HasMany|null
      */
-    public function getHasManyByRelationName($name)
+    public function getHasManyByRelationName( $name )
+    {
+        $table = $this->getReferencingTable( $name );
+        $mappedTables = array_keys( static::$relatedModels );
+
+        return ( !empty( $table ) && in_array( $table, $mappedTables ) ) ? $this->getHasMany( $table ) : null;
+    }
+
+    public function getBelongsToManyByRelationName($name)
     {
         $table = $this->getReferencingTable($name);
-        $mappedTables = array_keys(static::$relatedModels);
+        $model = ArrayUtils::get(static::$relatedModels, $table);
 
-        return (!empty($table) && in_array($table, $mappedTables))? $this->getHasMany($table) : null;
+        list($pivotTable, $fk, $rk) = $this->getReferencingJoin($name);
+
+        return $this->belongsToMany($model, $pivotTable, $fk, $rk);
+    }
+
+    public function getBelongsToByRelationName($name)
+    {
+        $table = $this->getReferencingTable($name);
+        $model = ArrayUtils::get(static::$relatedModels, $table);
+
+        $references = $this->getReferences();
+        $lf = ArrayUtils::findByKeyValue($references, 'ref_table', $table, 'field');
+
+        return $this->belongsTo($model, $lf);
     }
 
     /**
@@ -383,18 +415,11 @@ class BaseModel extends Model
      *
      * @return mixed|null
      */
-    protected function getReferencingField($table)
+    protected function getReferencingField( $table )
     {
         $references = $this->getReferences();
 
-        foreach($references as $ref)
-        {
-            if($table===ArrayUtils::get($ref, 'ref_table'))
-            {
-                return ArrayUtils::get($ref, 'ref_field');
-            }
-        }
-        return null;
+        return ArrayUtils::findByKeyValue($references, 'ref_table', $table, 'ref_field');
     }
 
     /**
@@ -405,17 +430,36 @@ class BaseModel extends Model
      *
      * @return mixed|null
      */
-    protected function getReferencingTable($name)
+    protected function getReferencingTable( $name )
     {
         $references = $this->getReferences();
 
-        foreach($references as $ref)
+        return ArrayUtils::findByKeyValue($references, 'name', $name, 'ref_table');
+    }
+
+    public function getReferencingType( $name )
+    {
+        $references = $this->getReferences();
+
+        return ArrayUtils::findByKeyValue($references, 'name', $name, 'type');
+    }
+
+    protected function getReferencingJoin( $name )
+    {
+        $references = $this->getReferences();
+
+        $join = ArrayUtils::findByKeyValue($references, 'name', $name, 'join');
+
+        if(!empty($join))
         {
-            if(ArrayUtils::get($ref, 'name')===$name)
-            {
-                return ArrayUtils::get($ref, 'ref_table');
-            }
+            $pivotTable = substr($join, 0, strpos($join, '('));
+            $fields = substr($join, (strpos($join, '(')+1));
+            $fields = substr($fields, 0, strlen($fields)-1);
+            list($fk, $rk) = explode(',', $fields);
+
+            return [$pivotTable, $fk, $rk];
         }
+
         return null;
     }
 
@@ -426,14 +470,14 @@ class BaseModel extends Model
      *
      * @return BaseModel
      */
-    protected function getReferencingModel($name)
+    protected function getReferencingModel( $name )
     {
-        if(!$this->isRelationMapped($name))
+        if ( !$this->isRelationMapped( $name ) )
         {
             return null;
         }
 
-        $table = $this->getReferencingTable($name);
+        $table = $this->getReferencingTable( $name );
         $model = static::$relatedModels[$table];
 
         return $model;
@@ -447,19 +491,19 @@ class BaseModel extends Model
      *
      * @return bool
      */
-    protected function isRelationMapped($name)
+    protected function isRelationMapped( $name )
     {
         //If no related models are setup then return false
         //and don't bother checking schema.
-        if(count(static::$relatedModels)===0)
+        if ( count( static::$relatedModels ) === 0 )
         {
             return false;
         }
 
-        $table = $this->getReferencingTable($name);
-        $mappedTables = array_keys(static::$relatedModels);
+        $table = $this->getReferencingTable( $name );
+        $mappedTables = array_keys( static::$relatedModels );
 
-        return in_array($table, $mappedTables);
+        return in_array( $table, $mappedTables );
     }
 
     /**
@@ -476,10 +520,11 @@ class BaseModel extends Model
      * Create a new Eloquent query builder for the model.
      *
      * @param  \Illuminate\Database\Query\Builder $query
+     *
      * @return \Illuminate\Database\Eloquent\Builder|static
      */
-    public function newEloquentBuilder($query)
+    public function newEloquentBuilder( $query )
     {
-        return new RaveBuilder($query);
+        return new RaveBuilder( $query );
     }
 }

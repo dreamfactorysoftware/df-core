@@ -236,11 +236,161 @@ class CreateSystemTables extends Migration
             {
                 $t->string( 'db_version', 32 )->primary();
                 $t->boolean( 'login_with_user_name' )->default( 0 );
-                $t->string( 'api_key' )->nullable();
-                $t->boolean( 'allow_guest_access' )->default( 0 );
-                $t->integer( 'guest_role_id' )->unsigned()->nullable();
-                $t->foreign( 'guest_role_id' )->references( 'id' )->on( 'role' )->onDelete( 'set null' );
                 $t->timestamps();
+            }
+        );
+
+        // Users table
+        Schema::create('users', function(Blueprint $table)
+        {
+            $table->increments('id');
+            $table->string('name');
+            $table->string('email')->unique();
+            $table->string('password', 60);
+            $table->boolean('is_sys_admin')->default(0);
+            $table->boolean('is_active')->default(1);
+            $table->rememberToken();
+            $table->timestamps();
+        });
+
+        //Password reset table
+        Schema::create('password_resets', function(Blueprint $table)
+        {
+            $table->string('email')->index();
+            $table->string('token')->index();
+            $table->timestamp('created_at');
+        });
+
+        //Cors config table
+        Schema::create(
+            'cors_config',
+            function(Blueprint $t)
+            {
+                $t->increments('id');
+                $t->string('path');
+                $t->unique('path');
+                $t->string('origin');
+                $t->longText('header');
+                $t->integer('method')->default(0);
+                $t->integer('max_age')->default(3600);
+                $t->timestamps();
+            }
+        );
+
+        //Email service config table
+        Schema::create(
+            'email_config',
+            function ( Blueprint $t )
+            {
+                $t->integer( 'service_id' )->unsigned()->primary();
+                $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
+                $t->string('driver');
+                $t->string('host')->nullable();
+                $t->string('port')->nullable();
+                $t->string('encryption')->default('tls');
+                $t->longText('username')->nullable(); //encrypted
+                $t->longText('password')->nullable(); //encrypted
+                $t->string('command')->default('/usr/sbin/sendmail -bs');
+                $t->longText('key')->nullable(); //encrypted
+                $t->longText('secret')->nullable(); //encrypted
+                $t->string('domain')->nullable();
+                $t->timestamps();
+            }
+        );
+
+        //Email service parameters config table
+        Schema::create(
+            'email_parameters_config',
+            function( Blueprint $t)
+            {
+                $t->increments('id');
+                $t->integer('service_id')->unsigned();
+                $t->foreign('service_id')->references('service_id')->on('email_config')->onDelete('cascade');
+                $t->string('name');
+                $t->mediumText('value')->nullable();
+                $t->boolean('active')->default(1);
+                $t->timestamps();
+            }
+        );
+
+        // Applications
+        Schema::create(
+            'app',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->string( 'name', 64 )->unique();
+                $t->string( 'api_key' )->nullable();
+                $t->string( 'description' )->nullable();
+                $t->boolean( 'is_active' )->default( 0 );
+                $t->integer( 'type' )->unsigned()->default( 0 );
+                $t->text( 'path' )->nullable();
+                $t->text( 'url' )->nullable();
+                $t->integer( 'storage_service_id' )->unsigned()->nullable();
+                $t->foreign( 'storage_service_id' )->references( 'id' )->on( 'service' )->onDelete( 'set null' );
+                $t->string( 'storage_container', 255 )->nullable();
+                $t->text( 'import_url' )->nullable();
+                $t->boolean( 'requires_fullscreen' )->default( 0 );
+                $t->boolean( 'allow_fullscreen_toggle' )->default( 1 );
+                $t->string( 'toggle_location', 64 )->default( 'top' );
+                $t->integer( 'role_id' )->unsigned()->nullable();
+                $t->foreign( 'role_id' )->references( 'id' )->on( 'role' )->onDelete( 'set null' );
+                $t->timestamps();
+            }
+        );
+
+        // App Lookup Keys
+        Schema::create(
+            'app_lookup',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->integer( 'app_id' )->unsigned();
+                $t->foreign( 'app_id' )->references( 'id' )->on( 'app' )->onDelete( 'cascade' );
+                $t->string( 'name' )->index();
+                $t->text( 'value' )->nullable();
+                $t->boolean( 'private' )->default( 0 );
+                $t->timestamps();
+            }
+        );
+
+        // Application Groups - visual aid for Launchpad only
+        Schema::create(
+            'app_group',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->string( 'name', 64 )->unique();
+                $t->string( 'description' )->nullable();
+                $t->timestamps();
+            }
+        );
+
+        // Apps to App Groups Relationships - visual aid for Launchpad only
+        Schema::create(
+            'app_to_app_group',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->integer( 'app_id' )->unsigned()->nullable();
+                $t->foreign( 'app_id' )->references( 'id' )->on( 'app' )->onDelete( 'cascade' );
+                $t->integer( 'group_id' )->unsigned()->nullable();
+                $t->foreign( 'group_id' )->references( 'id' )->on( 'app_group' )->onDelete( 'cascade' );
+            }
+        );
+
+        // App relationship for user
+        Schema::create(
+            'user_to_app_role',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->integer( 'user_id' )->unsigned();
+                $t->foreign( 'user_id' )->references( 'id' )->on( 'users' )->onDelete( 'cascade' );
+                $t->integer( 'app_id' )->unsigned()->nullable();
+                $t->foreign( 'app_id' )->references( 'id' )->on( 'app' )->onDelete( 'cascade' );
+                $t->integer( 'role_id' )->unsigned()->nullable();
+                $t->foreign( 'role_id' )->references( 'id' )->on( 'role' )->onDelete( 'set null' );
             }
         );
     }
@@ -278,5 +428,25 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists( 'system_resource' );
         // Service Types
         Schema::dropIfExists( 'service_type' );
+        // Users table
+        Schema::dropIfExists( 'users' );
+        //Password reset
+        Schema::dropIfExists( 'password_resets' );
+        //Cors config table
+        Schema::dropIfExists('cors_config');
+        //Email service config table
+        Schema::dropIfExists('email_config');
+        //Email service parameters config table
+        Schema::dropIfExists('email_parameters_config');
+        // App relationship for user
+        Schema::dropIfExists( 'user_to_app_role' );
+        // App Lookup Keys
+        Schema::dropIfExists( 'app_lookup' );
+        //Apps to App Groups Relationships
+        Schema::dropIfExists( 'app_to_app_group' );
+        // Application Groups
+        Schema::dropIfExists( 'app_group' );
+        // Applications
+        Schema::dropIfExists( 'app' );
     }
 }

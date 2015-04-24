@@ -20,23 +20,35 @@
 
 namespace DreamFactory\Rave\Models;
 
-use Illuminate\Database\Eloquent\Collection;
 
-trait SingleRecordModel
-{
-    public static function create( array $attributes )
-    {
-        /** @var Collection $models */
-        $models = static::all();
-        $model = $models->first();
+use Illuminate\Auth\Authenticatable;
+use Illuminate\Auth\Passwords\CanResetPassword;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
+use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 
-        if ( !empty( $model ) )
-        {
-            $model->update( $attributes );
+class User extends BaseSystemModel implements AuthenticatableContract, CanResetPasswordContract {
 
-            return $model;
-        }
+    use Authenticatable, CanResetPassword;
 
-        return parent::create( $attributes );
-    }
+    /**
+     * The database table used by the model.
+     *
+     * @var string
+     */
+    protected $table = 'users';
+
+    /**
+     * The attributes that are mass assignable.
+     *
+     * @var array
+     */
+    protected $fillable = ['name', 'email', 'password'];
+
+    /**
+     * The attributes excluded from the model's JSON form.
+     *
+     * @var array
+     */
+    protected $hidden = ['password', 'remember_token'];
+
 }

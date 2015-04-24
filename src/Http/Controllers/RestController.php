@@ -17,6 +17,11 @@ use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 class RestController extends Controller
 {
 
+    public function __construct()
+    {
+        $this->middleware('access_check');
+    }
+
     /**
      * Handles the root (/) path
      *

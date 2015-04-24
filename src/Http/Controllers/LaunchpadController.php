@@ -23,11 +23,19 @@ namespace DreamFactory\Rave\Http\Controllers;
 
 class LaunchpadController extends Controller
 {
+    /**
+     * Create new launchpad controller.
+     */
     public function __construct()
     {
         $this->middleware('rave_auth');
     }
 
+    /**
+     * View for launchpad.
+     *
+     * @return \Illuminate\View\View
+     */
     public function index()
     {
         return view('rave.launchpad');

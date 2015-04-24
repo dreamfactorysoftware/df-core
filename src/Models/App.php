@@ -53,29 +53,29 @@ class App extends BaseSystemModel
         return $key;
     }
 
-    public static function seed()
-    {
-        $seeded = false;
-
-        if ( !static::whereId( 1 )->exists() )
-        {
-            $name = 'default';
-            $apiKey = static::generateApiKey( $name );
-            static::create(
-                [
-                    'id'                      => 1,
-                    'name'                    => $name,
-                    'api_key'                 => $apiKey,
-                    'description'             => 'This "App" is primarily used for allowing access to the system using api key.',
-                    'is_active'               => 1,
-                    'type'                    => 1,
-                    'allow_fullscreen_toggle' => 0,
-                    'role_id'                 => 1
-                ]
-            );
-            $seeded = true;
-        }
-
-        return $seeded;
-    }
+//    public static function seed()
+//    {
+//        $seeded = false;
+//
+//        if ( !static::whereId( 1 )->exists() )
+//        {
+//            $name = 'default';
+//            $apiKey = static::generateApiKey( $name );
+//            static::create(
+//                [
+//                    'id'                      => 1,
+//                    'name'                    => $name,
+//                    'api_key'                 => $apiKey,
+//                    'description'             => 'This "App" is primarily used for allowing access to the system using api key.',
+//                    'is_active'               => 1,
+//                    'type'                    => 1,
+//                    'allow_fullscreen_toggle' => 0,
+//                    'role_id'                 => 1
+//                ]
+//            );
+//            $seeded = true;
+//        }
+//
+//        return $seeded;
+//    }
 }

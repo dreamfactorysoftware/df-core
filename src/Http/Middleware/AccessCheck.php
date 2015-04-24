@@ -134,12 +134,17 @@ class AccessCheck
         }
     }
 
+    /**
+     * Initiates the session variable.
+     */
     protected static function initSessionValues()
     {
         Session::put( 'rsa', array() );
     }
 
     /**
+     * Generates the role data array using the role model.
+     *
      * @param Role $role
      *
      * @return array
@@ -159,6 +164,8 @@ class AccessCheck
     }
 
     /**
+     * Generates the cache key.
+     *
      * @param      $apiKey
      * @param null $userId
      *

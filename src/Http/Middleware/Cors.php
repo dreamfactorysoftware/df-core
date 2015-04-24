@@ -22,6 +22,7 @@ namespace DreamFactory\Rave\Http\Middleware;
 
 use Barryvdh\Cors\Middleware\HandleCors;
 
-class Cors extends HandleCors{
+class Cors extends HandleCors
+{
 
 }

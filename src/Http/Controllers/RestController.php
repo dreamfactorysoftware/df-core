@@ -17,6 +17,9 @@ use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 class RestController extends Controller
 {
 
+    /**
+     * Create new Rest Controller.
+     */
     public function __construct()
     {
         $this->middleware('access_check');

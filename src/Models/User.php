@@ -20,13 +20,13 @@
 
 namespace DreamFactory\Rave\Models;
 
-
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 
-class User extends BaseSystemModel implements AuthenticatableContract, CanResetPasswordContract {
+class User extends BaseSystemModel implements AuthenticatableContract, CanResetPasswordContract
+{
 
     use Authenticatable, CanResetPassword;
 
@@ -35,20 +35,41 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      *
      * @var string
      */
-    protected $table = 'users';
+    protected $table = 'user';
 
     /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
-    protected $fillable = ['name', 'email', 'password'];
+    protected $fillable = [ 'name', 'email', 'password', 'is_sys_admin', 'is_active' ];
 
     /**
      * The attributes excluded from the model's JSON form.
      *
      * @var array
      */
-    protected $hidden = ['password', 'remember_token'];
+    protected $hidden = [ 'password', 'remember_token' ];
 
+    public static function seed()
+    {
+        $seeded = false;
+
+        if ( !static::whereId( 1 )->exists() )
+        {
+            static::create(
+                [
+                    'id'           => 1,
+                    'name'         => 'Rave Admin',
+                    'email'        => 'admin@rave.' . gethostname() . '.com',
+                    'password'     => bcrypt( 'rave_user' ),
+                    'is_sys_admin' => 1,
+                    'is_active'    => 1
+                ]
+            );
+            $seeded = true;
+        }
+
+        return $seeded;
+    }
 }

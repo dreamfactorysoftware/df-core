@@ -2,15 +2,14 @@
 
 namespace DreamFactory\Rave\Database\Seeds;
 
-use DreamFactory\Rave\Models\App;
-use DreamFactory\Rave\Models\RoleServiceAccess;
-use DreamFactory\Rave\Models\User;
+
 use Illuminate\Database\Seeder;
 use Illuminate\Database\Eloquent\Model;
+use DreamFactory\Rave\Models\User;
+use DreamFactory\Rave\Models\ScriptType;
 use DreamFactory\Rave\Models\Service;
 use DreamFactory\Rave\Models\ServiceType;
 use DreamFactory\Rave\Models\SystemResource;
-use DreamFactory\Rave\Models\Role;
 
 class DatabaseSeeder extends Seeder
 {
@@ -41,9 +40,16 @@ class DatabaseSeeder extends Seeder
             $this->command->info( 'Services seeded!' );
         }
 
+        // Add default admin user
         if ( true === User::seed() )
         {
             $this->command->info( 'Admin user seeded!' );
+        }
+
+        //  Add native script types
+        if ( true === ScriptType::seed() )
+        {
+            $this->command->info( 'Script types seeded!' );
         }
     }
 

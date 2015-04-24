@@ -72,6 +72,46 @@ class CreateSystemTables extends Migration
             }
         );
 
+        // Script Types
+        Schema::create(
+            'script_type',
+            function ( Blueprint $t )
+            {
+                $t->string( 'name', 40 )->primary();
+                $t->string( 'class_name' );
+                $t->string( 'label', 80 );
+                $t->string( 'description' )->nullable();
+                $t->boolean( 'sandboxed' )->default( 0 );
+            }
+        );
+
+        // Script Service Config
+        Schema::create(
+            'v8js_script_config',
+            function ( Blueprint $t )
+            {
+                $t->integer( 'service_id' )->unsigned()->primary();
+                $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
+                $t->string( 'type' );
+                $t->foreign( 'type' )->references( 'name' )->on( 'script_type' )->onDelete( 'cascade' );
+                $t->text( 'content' )->nullable();
+                $t->text( 'config' )->nullable();
+            }
+        );
+
+        // Event Scripts
+        Schema::create(
+            'event_script',
+            function ( Blueprint $t )
+            {
+                $t->string( 'name', 80 )->primary();
+                $t->string( 'type' );
+                $t->foreign( 'type' )->references( 'name' )->on( 'script_type' )->onDelete( 'cascade' );
+                $t->text( 'content' )->nullable();
+                $t->text( 'config' )->nullable();
+            }
+        );
+
         // Roles
         Schema::create(
             'role',
@@ -366,6 +406,8 @@ class CreateSystemTables extends Migration
 
         // Service Docs
         Schema::dropIfExists( 'service_doc' );
+        // Scripts
+        Schema::dropIfExists( 'script' );
         // System Configuration
         Schema::dropIfExists( 'system_config' );
         // Role Lookup Keys

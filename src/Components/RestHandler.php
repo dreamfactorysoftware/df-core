@@ -134,7 +134,7 @@ abstract class RestHandler
      *
      *    The result will be that processRequest() will dispatch a PUT, PATCH, or MERGE request to the POST handler.
      */
-    protected $verbAliases = array();
+    protected $verbAliases = [];
     /**
      * @var ServiceResponseInterface Response object implementing the ServiceResponseInterface.
      */
@@ -147,7 +147,7 @@ abstract class RestHandler
     /**
      * @param array $settings
      */
-    public function __construct( $settings = array() )
+    public function __construct( $settings = [ ] )
     {
         foreach ( $settings as $key => $value )
         {
@@ -289,7 +289,7 @@ abstract class RestHandler
 
             if ( $this->autoDispatch && method_exists( $this, $method ) )
             {
-                $methodToCall = array( $this, $method );
+                $methodToCall = [ $this, $method ];
             }
         }
 
@@ -404,7 +404,7 @@ abstract class RestHandler
     protected function setResourceMembers( $resourcePath = null )
     {
         $this->resourcePath = $resourcePath;
-        $this->resourceArray = ( !empty( $this->resourcePath ) ) ? explode( '/', $this->resourcePath ) : array();
+        $this->resourceArray = ( !empty( $this->resourcePath ) ) ? explode( '/', $this->resourcePath ) : [];
 
         if ( empty( $this->resource ) )
         {
@@ -438,7 +438,7 @@ abstract class RestHandler
      */
     protected static function makeResourceList( array $resources, $properties = null, $wrap = true )
     {
-        $resourceList = array();
+        $resourceList = [];
 
         if ( empty( $properties ) || ( is_string( $properties ) && ( 0 === strcasecmp( 'false', $properties ) ) ) )
         {
@@ -461,7 +461,7 @@ abstract class RestHandler
             }
         }
 
-        return ( $wrap ) ? array( "resource" => $resourceList ) : $resourceList;
+        return ( $wrap ) ? [ "resource" => $resourceList ] : $resourceList;
     }
 
     /**

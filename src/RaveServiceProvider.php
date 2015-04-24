@@ -28,9 +28,9 @@ class RaveServiceProvider extends BaseServiceProvider
     {
         $this->publishes(
             [
-                __DIR__ . '/../config/rave.php'      => config_path( 'rave.php' ),
-                __DIR__ . '/../views/test_rest.html' => public_path( 'test_rest.html' ),
-                __DIR__ . '/../views/rave'           => public_path( '../resources/views/' )
+                __DIR__ . '/../config/'  => config_path(),
+                __DIR__ . '/../views/'   => public_path(),
+                __DIR__ . '/../storage/' => storage_path(),
             ]
         );
 
@@ -43,7 +43,7 @@ class RaveServiceProvider extends BaseServiceProvider
         $router->middleware( 'access_check', 'DreamFactory\Rave\Http\Middleware\AccessCheck' );
         $router->middleware( 'admin_check', 'DreamFactory\Rave\Http\Middleware\AdminCheck' );
         $router->middleware( 'rave_auth', 'DreamFactory\Rave\Http\Middleware\Authenticate' );
-        $router->middleware( 'rave_guest', 'DreamFactory\Rave\Http\Middleware\RedirectIfAuthenticated');
+        $router->middleware( 'rave_guest', 'DreamFactory\Rave\Http\Middleware\RedirectIfAuthenticated' );
     }
 
     public function register()

@@ -21,6 +21,8 @@
 namespace DreamFactory\Rave\Utility;
 
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Rave\Components\ApiVersion;
+use DreamFactory\Rave\Enums\ServiceRequestorTypes;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use Request;
 use DreamFactory\Rave\Contracts\ServiceRequestInterface;
@@ -32,7 +34,15 @@ use DreamFactory\Rave\Contracts\ServiceRequestInterface;
  */
 class ServiceRequest implements ServiceRequestInterface
 {
-    protected $apiVersion = null;
+    use ApiVersion;
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getRequestorType()
+    {
+        return ServiceRequestorTypes::API;
+    }
 
     /**
      * {@inheritdoc}
@@ -53,9 +63,7 @@ class ServiceRequest implements ServiceRequestInterface
 
     public function queryBool( $key, $default = false )
     {
-        $query = $this->query();
-
-        return ArrayUtils::getBool( $query, $key, $default );
+        return ArrayUtils::getBool( $this->query(), $key, $default );
     }
 
     /**
@@ -131,8 +139,6 @@ class ServiceRequest implements ServiceRequestInterface
         else{
             return Request::header($key, $default);
         }
-
-        Request::file();
     }
 
     /**
@@ -148,40 +154,6 @@ class ServiceRequest implements ServiceRequestInterface
         else
         {
             return ArrayUtils::get($_FILES, $key, $default);
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getApiVersion()
-    {
-        if(empty($this->apiVersion))
-        {
-            $this->setApiVersion();
-        }
-        return $this->apiVersion;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function setApiVersion($version=null)
-    {
-        if(empty($version))
-        {
-            $this->apiVersion = static::API_VERSION;
-        }
-        else
-        {
-            if(substr(strtolower($version), 0, 1)==='v'){
-                $version = substr($version, 1);
-            }
-            if(strpos($version, '.')===false)
-            {
-                $version = $version.'.0';
-            }
-            $this->apiVersion = $version;
         }
     }
 }

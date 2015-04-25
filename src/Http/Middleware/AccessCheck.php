@@ -25,9 +25,13 @@ use \Cache;
 use \Config;
 use \Closure;
 use \Session;
+use DreamFactory\Rave\Enums\ContentTypes;
+use DreamFactory\Rave\Exceptions\BadRequestException;
+use DreamFactory\Rave\Exceptions\ForbiddenException;
+use DreamFactory\Rave\Exceptions\UnauthorizedException;
+use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\App;
 use DreamFactory\Rave\Models\Role;
-use DreamFactory\Rave\Enums\HttpStatusCodes;
 use DreamFactory\Rave\Utility\Session as SessionUtil;
 use DreamFactory\Rave\User\Resources\System\User as UserManagement;
 
@@ -55,7 +59,7 @@ class AccessCheck
 
             if ( !$authenticatedUser->is_active )
             {
-                return response( 'User ' . $authenticatedUser->email . ' is not active.', HttpStatusCodes::HTTP_FORBIDDEN );
+                return static::getException(new ForbiddenException('User ' . $authenticatedUser->email . ' is not active.'), $request);
             }
         }
 
@@ -81,12 +85,17 @@ class AccessCheck
                     ]
                 )->whereApiKey( $apiKey )->first();
 
+                if(empty($app))
+                {
+                    return static::getException(new UnauthorizedException('Unauthorized request. Invalid API Key.'), $request);
+                }
+
                 /** @var Role $role */
                 $role = $app->getRelation( 'role_by_user_to_app_role' )->first();
 
                 if(empty($role))
                 {
-                    return response('Unauthorized request. Access denied.', HttpStatusCodes::HTTP_UNAUTHORIZED);
+                    return static::getException(new UnauthorizedException('Unauthorized request. User to App-Role not found.'), $request);
                 }
 
                 $roleData = static::getRoleData( $role );
@@ -106,12 +115,17 @@ class AccessCheck
                 /** @var App $app */
                 $app = App::with( 'role_by_role_id' )->whereApiKey( $apiKey )->first();
 
+                if(empty($app))
+                {
+                    return static::getException(new UnauthorizedException('Unauthorized request. Invalid API Key.'), $request);
+                }
+
                 /** @var Role $role */
                 $role = $app->getRelation( 'role_by_role_id' );
 
                 if(empty($role))
                 {
-                    return response('Unauthorized request. Access denied.', HttpStatusCodes::HTTP_UNAUTHORIZED);
+                    return static::getException(new UnauthorizedException('Unauthorized request. Role not found.'), $request);
                 }
 
                 $roleData = static::getRoleData( $role );
@@ -121,7 +135,7 @@ class AccessCheck
             Session::put('rsa.role', $roleData);
         }
         else{
-            return response( 'Bad request. Missing api key.', HttpStatusCodes::HTTP_BAD_REQUEST );
+            return static::getException(new BadRequestException('Bad request. Missing api key.'), $request);
         }
 
         if(SessionUtil::isAccessAllowed())
@@ -130,7 +144,7 @@ class AccessCheck
         }
         else
         {
-            return response( 'Access Forbidden.', HttpStatusCodes::HTTP_FORBIDDEN );
+            return static::getException(new ForbiddenException('Access Forbidden.'), $request);
         }
     }
 
@@ -175,4 +189,20 @@ class AccessCheck
     {
         return $apiKey.$userId;
     }
+
+    /**
+     * @param \Exception $e
+     * @param \Illuminate\Http\Request $request
+     *
+     * @return array|mixed|string
+     */
+    protected static function getException($e, $request)
+    {
+        $response =  ResponseFactory::create( $e, ContentTypes::PHP_OBJECT, $e->getCode() );
+
+        $accept = explode(',', $request->header('ACCEPT'));
+
+        return ResponseFactory::sendResponse($response, $accept);
+    }
+
 }

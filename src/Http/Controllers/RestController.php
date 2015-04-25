@@ -45,7 +45,9 @@ class RestController extends Controller
             $response = ResponseFactory::create( $e, ContentTypes::PHP_OBJECT, ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR );
         }
 
-        return ResponseFactory::sendResponse( $response );
+        $accept = explode(',', \Request::header('ACCEPT'));
+
+        return ResponseFactory::sendResponse( $response, $accept );
     }
 
     /**
@@ -227,6 +229,8 @@ class RestController extends Controller
             $response = ResponseFactory::create( $e, ContentTypes::PHP_OBJECT, $e->getCode() );
         }
 
-        return ResponseFactory::sendResponse( $response );
+        $accept = explode(',', \Request::header('ACCEPT'));
+
+        return ResponseFactory::sendResponse( $response, $accept );
     }
 }

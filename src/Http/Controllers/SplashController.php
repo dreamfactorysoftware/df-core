@@ -23,13 +23,16 @@ namespace DreamFactory\Rave\Http\Controllers;
 
 class SplashController extends Controller
 {
+    /**
+     * Create new splash screen controller.
+     */
     public function __construct()
     {
         $this->middleware('rave_guest');
     }
 
     /**
-     * Show the application welcome screen to the user.
+     * Show the application splash screen to the user.
      *
      * @return Response
      */

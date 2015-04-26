@@ -261,7 +261,7 @@ class ContentTypes extends FactoryEnum
             throw new NotImplementedException( 'The MIME type "' . $mime_type . '" is not supported.' );
         }
 
-        return static::$_contentTypeMap[$_pos];
+        return $_pos;
     }
 
     /**

@@ -20,6 +20,8 @@
 
 namespace DreamFactory\Rave\Utility;
 
+use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Rave\Resources\System\Config;
 use Illuminate\Http\Response;
 use DreamFactory\Rave\Components\RaveResponse;
 use DreamFactory\Rave\Contracts\HttpStatusCodeInterface;
@@ -49,7 +51,7 @@ class ResponseFactory
 
     /**
      * @param ServiceResponseInterface $response
-     * @param int                      $format
+     * @param int|array                $format
      *
      * @return array|mixed|string
      */
@@ -58,6 +60,20 @@ class ResponseFactory
         $result = $response->getContent();
         $code = $response->getStatusCode();
         $responseType = $response->getContentType();
+
+        if ( is_array( $format ) )
+        {
+            $json = ContentTypes::toMimeType( ContentTypes::JSON );
+            if ( in_array( $json, $format ) )
+            {
+                $format = ContentTypes::JSON;
+            }
+            else
+            {
+                $mimeType = ArrayUtils::get( $format, 0 );
+                $format = ContentTypes::fromMimeType( $mimeType );
+            }
+        }
 
         if ( empty( $result ) && empty( $responseType ) )
         {
@@ -80,6 +96,11 @@ class ResponseFactory
                     //$result = DataFormatter::arrayToJson($result);
                     //Symfony Response object automatically converts this.
                 }
+                elseif(ContentTypes::TEXT === $responseType)
+                {
+                    $result = json_encode(['response'=>$result]);
+                }
+
                 $contentType = 'application/json; charset=utf-8';
                 break;
 
@@ -114,6 +135,7 @@ class ResponseFactory
 
         $ro = RaveResponse::create( $result, $code );
         $ro->headers->set( "Content-Type", $contentType );
+
         return $ro;
     }
 
@@ -133,11 +155,11 @@ class ResponseFactory
         if ( "local" === env( "APP_ENV" ) )
         {
             $trace = $exception->getTraceAsString();
-            $trace = str_replace(array("\n", "#", "):"), array("", "<br><br>|#", "):<br>|---->"), $trace);
-            $traceArray = explode("<br>", $trace);
-            foreach($traceArray as $k=>$v)
+            $trace = str_replace( array( "\n", "#", "):" ), array( "", "<br><br>|#", "):<br>|---->" ), $trace );
+            $traceArray = explode( "<br>", $trace );
+            foreach ( $traceArray as $k => $v )
             {
-                if(empty($v))
+                if ( empty( $v ) )
                 {
                     $traceArray[$k] = '|';
                 }

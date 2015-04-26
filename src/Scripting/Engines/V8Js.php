@@ -55,10 +55,6 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      */
     protected static $_moduleLoaderAvailable = false;
     /**
-     * @var bool True if system version of V8Js supports module loading
-     */
-    protected static $_logScriptMemoryUsage = false;
-    /**
      * @var \ReflectionClass
      */
     protected static $_mirror;
@@ -72,9 +68,9 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      *
      * @throws ServiceUnavailableException
      */
-    public function __construct( $settings = null )
+    public function __construct( array $settings = [] )
     {
-        parent::__construct();
+        parent::__construct($settings);
 
         if ( !extension_loaded( 'v8js' ) )
         {
@@ -149,47 +145,6 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
         {
             static::_registerExtensions( ArrayUtils::clean( $extensions ) );
         }
-    }
-
-    /**
-     * Called before script is executed so you can wrap the script and add injections
-     *
-     * @param string $script
-     * @param array  $normalizedEvent
-     *
-     * @return string
-     */
-    protected function _wrapScript( $script, array $normalizedEvent = [ ] )
-    {
-        $_wrappedScript = <<<JS
-
-_result = (function() {
-	//	The event information
-	//noinspection JSUnresolvedVariable
-	var _event = DSP.event;
-
-	return (function(event) {
-		var _scriptResult = (function(event) {
-			//noinspection BadExpressionStatementJS,JSUnresolvedVariable
-			{$script};
-		})(_event);
-
-		if ( _event ) {
-			_event.script_result = _scriptResult;
-		}
-
-		return _event;
-	})(_event);
-})();
-
-JS;
-
-        if ( !static::$_moduleLoaderAvailable )
-        {
-            $_wrappedScript = \Cache::get( 'scripting.module.lodash', static::loadScriptingModule( 'lodash', false ), false, 3600 ) . ';' . $_wrappedScript;
-        }
-
-        return $_wrappedScript;
     }
 
     /**
@@ -350,8 +305,6 @@ JS;
             throw new ServiceUnavailableException( 'This service is not available. Storage path and/or required libraries not available.' );
         }
 
-//        static::$_logScriptMemoryUsage = \Config::get( 'dsp.log_script_memory_usage', false );
-
         //  Merge in user libraries...
         static::$_userLibraries = array_merge( static::$_userLibraries, \Config::get( 'dsp.scripting.user_libraries', [ ] ) );
 
@@ -413,7 +366,7 @@ JS;
      * @throws \DreamFactory\Rave\Exceptions\InternalServerErrorException
      * @return string
      */
-    public function enrobeScript( $script, array $data = [ ], array $platform = [ ] )
+    protected function enrobeScript( $script, array $data = [ ], array $platform = [ ] )
     {
         $data['__tag__'] = 'exposed_event';
         $platform['api'] = static::_getExposedApi();

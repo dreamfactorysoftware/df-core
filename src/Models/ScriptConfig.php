@@ -35,7 +35,7 @@ class ScriptConfig extends BaseServiceConfigModel
     /**
      * @const string The private cache file
      */
-    const CACHE_PREFIX = 'script/';
+    const CACHE_PREFIX = 'script.';
     /**
      * @const integer How long a ScriptConfig cache will live, 1440 = 24 minutes (default session timeout).
      */

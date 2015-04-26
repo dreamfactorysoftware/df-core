@@ -20,8 +20,6 @@
 namespace DreamFactory\Rave\Services;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Enums\ScriptLanguages;
-use DreamFactory\Rave\Exceptions\ServiceUnavailableException;
 use DreamFactory\Rave\Scripting\ScriptEngine;
 
 /**

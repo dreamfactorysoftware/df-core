@@ -87,7 +87,7 @@ class CreateSystemTables extends Migration
 
         // Script Service Config
         Schema::create(
-            'v8js_script_config',
+            'script_config',
             function ( Blueprint $t )
             {
                 $t->integer( 'service_id' )->unsigned()->primary();

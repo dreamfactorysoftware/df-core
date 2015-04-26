@@ -39,10 +39,6 @@ abstract class BaseEngineAdapter
     //*************************************************************************
 
     /**
-     * @type string The name of the object which exposes PHP
-     */
-    const EXPOSED_OBJECT_NAME = 'DSP';
-    /**
      * @type int The default cache ttl, 5m = 300s
      */
     const DEFAULT_CACHE_TTL = 300;
@@ -77,23 +73,15 @@ abstract class BaseEngineAdapter
     //*************************************************************************
 
     /**
-     * @param array $options
+     * @param array $settings
+     *
+     * @throws ServiceUnavailableException
      */
-    public function __construct( array $options = [] )
+    public function __construct( array $settings = [] )
     {
         //  Save off the engine
-        $this->_engine = ArrayUtils::get( $options, 'engine', $this->_engine );
+        $this->_engine = ArrayUtils::get( $settings, 'engine', $this->_engine );
     }
-
-    /**
-     * Called before script is executed so you can wrap the script and add injections
-     *
-     * @param string $script
-     * @param array  $normalizedEvent
-     *
-     * @return string
-     */
-    abstract protected function _wrapScript( $script, array $normalizedEvent = [] );
 
     /**
      * Handle setup for global/all instances of engine
@@ -166,7 +154,7 @@ abstract class BaseEngineAdapter
         $vendorPath = dirname( dirname( __DIR__ ) ) . '/config/scripts';
 
         //  Get our library's script path
-        $_libraryPath = storage_path( '/scripts' );
+        $_libraryPath = storage_path( DIRECTORY_SEPARATOR . 'scripts' );
 
         if ( empty( $_libraryPath ) || !is_dir( $_libraryPath ) || !is_readable( $_libraryPath ) )
         {
@@ -187,10 +175,10 @@ abstract class BaseEngineAdapter
 
         //  All the paths that we will check for scripts
         static::$_libraryPaths = [
-            //  This is ONLY the root of the app store
-            'app'      => Platform::getApplicationsPath(),
-            //  This is the user's private scripting area used by the admin console
-            'storage'  => Platform::getPrivatePath( '/scripts' ),
+//            //  This is ONLY the root of the app store
+//            'app'      => Platform::getApplicationsPath(),
+//            //  This is the user's private scripting area used by the admin console
+//            'storage'  => Platform::getPrivatePath( '/scripts' ),
             //  Scripts here override library scripts
             'platform' => $vendorPath,
             //  Now check library distribution

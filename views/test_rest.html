@@ -49,7 +49,7 @@
 							   xhr.setRequestHeader("X-Folder-Name", folder);
 						   }
 						   if(app != '') {
-							   xhr.setRequestHeader("X-DreamFactory-Application-Name", app);
+							   xhr.setRequestHeader("X-DreamFactory-Api-Key", app);
 						   }
 						   if(token != '') {
 							   xhr.setRequestHeader("X-DreamFactory-Session-Token", token);
@@ -117,8 +117,8 @@
 			<input type="text" id="folder" value="" size="40"/>
 		</div>
 		<div>
-			X-DreamFactory-Application-Name:
-			<input type="text" id="app" value="admin" size="40"/>
+			X-DreamFactory-Api-Key:
+			<input type="text" id="app" value="" size="80"/>
 		</div>
 		<div>
 			X-DreamFactory-Session-Token:

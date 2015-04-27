@@ -1,11 +1,11 @@
 <?php namespace DreamFactory\Rave\Http\Controllers\Auth;
 
+use Carbon\Carbon;
 use DreamFactory\Rave\Http\Controllers\Controller;
 use Illuminate\Contracts\Auth\Guard;
 use Illuminate\Contracts\Auth\Registrar;
 use Illuminate\Foundation\Auth\AuthenticatesAndRegistersUsers;
 use Illuminate\Http\Request;
-use DreamFactory\Rave\User\Resources\System\User as UserManagement;
 
 class AuthController extends Controller
 {
@@ -77,13 +77,15 @@ class AuthController extends Controller
         $credentials = $request->only('email', 'password');
 
         //if user management not available then only system admins can login.
-        if(!class_exists(UserManagement::class))
+        if(!class_exists('\DreamFactory\Rave\User\Resources\System\User'))
         {
             $credentials['is_sys_admin'] = 1;
         }
 
         if ($this->auth->attempt($credentials, $request->has('remember')))
         {
+            $user = \Auth::getUser();
+            $user->update(['last_login_date' => Carbon::now()->toDateTimeString()]);
             return redirect()->intended($this->redirectPath());
         }
 

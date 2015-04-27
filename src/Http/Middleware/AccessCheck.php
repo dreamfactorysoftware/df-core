@@ -33,7 +33,6 @@ use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\App;
 use DreamFactory\Rave\Models\Role;
 use DreamFactory\Rave\Utility\Session as SessionUtil;
-use DreamFactory\Rave\User\Resources\System\User as UserManagement;
 
 class AccessCheck
 {
@@ -51,7 +50,19 @@ class AccessCheck
 
         static::initSessionValues();
         $apiKey = $request->query('api_key');
+        if(empty($apiKey))
+        {
+            $apiKey = $request->header('X_DREAMFACTORY_API_KEY');
+        }
+
         $authenticated = Auth::check();
+
+        //If not authenticated then check for HTTP Basic Auth request.
+        if(!$authenticated)
+        {
+            Auth::onceBasic();
+            $authenticated = Auth::check();
+        }
 
         if($authenticated)
         {
@@ -67,7 +78,7 @@ class AccessCheck
         {
             Session::put( 'rsa.is_sys_admin', 1 );
         }
-        else if(!empty($apiKey) && $authenticated && class_exists(UserManagement::class))
+        else if(!empty($apiKey) && $authenticated && class_exists('\DreamFactory\Rave\User\Resources\System\User'))
         {
             $cacheKey = static::getCacheKey($apiKey, $authenticatedUser->id);
 
@@ -135,6 +146,12 @@ class AccessCheck
             Session::put('rsa.role', $roleData);
         }
         else{
+            $basicAuthUser = $request->getUser();
+            if(!empty($basicAuthUser))
+            {
+                return static::getException(new UnauthorizedException('Unauthorized. User credential did not match.'), $request);
+            }
+
             return static::getException(new BadRequestException('Bad request. Missing api key.'), $request);
         }
 

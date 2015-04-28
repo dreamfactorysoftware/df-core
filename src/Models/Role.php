@@ -22,6 +22,7 @@ namespace DreamFactory\Rave\Models;
 
 use \Cache;
 use DreamFactory\Library\Utility\ArrayUtils;
+use Illuminate\Support\Arr;
 
 /**
  * Role
@@ -56,7 +57,8 @@ class Role extends BaseSystemModel
         'role_lookup'         => 'DreamFactory\Rave\Models\RoleLookup',
         'app'                 => 'DreamFactory\Rave\Models\App',
         'system_config'       => 'DreamFactory\Rave\Models\Config',
-        'service'             => 'DreamFactory\Rave\Models\Service'
+        'service'             => 'DreamFactory\Rave\Models\Service',
+        'user_to_app_role'    => 'DreamFactory\Rave\Models\UserAppRole'
     ];
 
     public static function boot()
@@ -66,9 +68,43 @@ class Role extends BaseSystemModel
         static::saved(
             function ( Role $role )
             {
-                if ( Cache::has( 'role_' . $role->id ) )
+                $role->load('app_by_role_id', 'app_by_user_to_app_role', 'user_to_app_role_by_role_id');
+
+                $apps = $role->getRelation('app_by_role_id')->toArray();
+
+                foreach($apps as $app)
                 {
-                    Cache::forget( 'role_' . $role->id );
+                    $apiKey = ArrayUtils::get($app, 'api_key');
+
+                    if(Cache::has($apiKey))
+                    {
+                        Cache::forget($apiKey);
+                    }
+                }
+
+                $appUsers = $role->getRelation('app_by_user_to_app_role')->toArray();
+
+                $userRoles = $role->getRelation('user_to_app_role_by_role_id')->toArray();
+
+                foreach($appUsers as $au)
+                {
+                    $apiKey = ArrayUtils::get($au, 'api_key');
+                    $roleId = ArrayUtils::getDeep($au, 'pivot', 'role_id');
+                    $appId = ArrayUtils::getDeep($au, 'pivot', 'app_id');
+
+                    foreach($userRoles as $ur)
+                    {
+                        if($appId === ArrayUtils::get($ur, 'app_id') && $roleId === ArrayUtils::get($ur, 'role_id'))
+                        {
+                            $userId = ArrayUtils::get($ur, 'user_id');
+                            $cacheKey = $apiKey.$userId;
+
+                            if(Cache::has($cacheKey))
+                            {
+                                Cache::forget($cacheKey);
+                            }
+                        }
+                    }
                 }
             }
         );
@@ -90,24 +126,4 @@ class Role extends BaseSystemModel
 
         return $rsa;
     }
-
-//    public static function seed()
-//    {
-//        $seeded = false;
-//
-//        if ( !static::whereId( 1 )->exists() )
-//        {
-//            static::create(
-//                [
-//                    'id'                      => 1,
-//                    'name'                    => 'default',
-//                    'description'             => 'A default system role.',
-//                    'is_active'               => 1
-//                ]
-//            );
-//            $seeded = true;
-//        }
-//
-//        return $seeded;
-//    }
 }

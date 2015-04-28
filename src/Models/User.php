@@ -42,7 +42,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      *
      * @var array
      */
-    protected $fillable = [ 'name', 'email', 'password', 'is_sys_admin', 'is_active' ];
+    protected $fillable = [ 'name', 'first_name', 'last_name', 'last_login_date', 'email', 'password', 'is_sys_admin', 'is_active' ];
 
     /**
      * The attributes excluded from the model's JSON form.

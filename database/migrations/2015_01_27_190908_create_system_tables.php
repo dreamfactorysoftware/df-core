@@ -258,10 +258,17 @@ class CreateSystemTables extends Migration
         {
             $table->increments('id');
             $table->string('name');
+            $table->string('first_name');
+            $table->string('last_name');
+            $table->dateTime('last_login_date');
             $table->string('email')->unique();
             $table->string('password', 60);
             $table->boolean('is_sys_admin')->default(0);
             $table->boolean('is_active')->default(1);
+            $table->string('phone', 32);
+            $table->string('security_question');
+            $table->string('security_answer', 64);
+            $table->string('confirm_code');
             $table->rememberToken();
             $table->timestamps();
         });

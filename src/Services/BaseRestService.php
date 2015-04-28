@@ -22,6 +22,8 @@ namespace DreamFactory\Rave\Services;
 
 use DreamFactory\Rave\Components\RestHandler;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
+use DreamFactory\Rave\Events\ServicePostProcess;
+use DreamFactory\Rave\Events\ServicePreProcess;
 use DreamFactory\Rave\Utility\ResponseFactory;
 
 /**
@@ -54,6 +56,22 @@ class BaseRestService extends RestHandler
     public function getServiceId()
     {
         return $this->id;
+    }
+
+    /**
+     * Runs pre process tasks/scripts
+     */
+    protected function preProcess()
+    {
+        $preResults = \Event::fire( new ServicePreProcess( $this->name, $this->action, $this->request, $this->resourcePath ) );
+    }
+
+    /**
+     * Runs post process tasks/scripts
+     */
+    protected function postProcess()
+    {
+        $postResults = \Event::fire( new ServicePostProcess( $this->name, $this->action, $this->request, $this->response, $this->resourcePath ) );
     }
 
     /**

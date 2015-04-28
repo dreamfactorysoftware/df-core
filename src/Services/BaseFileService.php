@@ -122,12 +122,13 @@ abstract class BaseFileService extends BaseRestService
     }
 
     /**
+     * @param array $resources
+     *
      * @return bool|mixed
      * @throws BadRequestException
-     * @throws InternalServerErrorException
      * @throws NotFoundException
      */
-    protected function handleResource()
+    protected function handleResource( array $resources)
     {
         //  Fall through is to process just like a no-resource request
         $resources = $this->getResources();

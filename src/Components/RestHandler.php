@@ -27,6 +27,7 @@ use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
+use DreamFactory\Rave\Contracts\ResourceHandlerInterface;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Contracts\ServiceRequestInterface;
 
@@ -134,7 +135,7 @@ abstract class RestHandler
      *
      *    The result will be that processRequest() will dispatch a PUT, PATCH, or MERGE request to the POST handler.
      */
-    protected $verbAliases = [];
+    protected $verbAliases = [ ];
     /**
      * @var ServiceResponseInterface Response object implementing the ServiceResponseInterface.
      */
@@ -160,7 +161,6 @@ abstract class RestHandler
      */
     protected function preProcess()
     {
-
     }
 
     /**
@@ -168,7 +168,6 @@ abstract class RestHandler
      */
     protected function postProcess()
     {
-
     }
 
     /**
@@ -187,68 +186,70 @@ abstract class RestHandler
         $this->setResourceMembers( $resource );
         $this->setResponseFormat( $outputFormat );
 
-        //  Perform any pre-request processing
-        $this->preProcess();
+        $resources = $this->getResources();
+        if ( !empty( $resources ) && !empty( $this->resource ) )
+        {
+            $this->response = $this->handleResource( $resources );
+        }
+        else
+        {
+            //  Perform any pre-request processing
+            $this->preProcess();
 
-        $this->response = ( empty( $this->resource ) ) ? $this->processRequest() : $this->handleResource();
+            $this->response = $this->processRequest();
+
+            if ( false !== $this->response )
+            {
+                //  Perform any post-request processing
+                $this->postProcess();
+            }
+        }
 
         //	Inherent failure?
         if ( false === $this->response )
         {
-            $message =
-                $this->action .
-                ' requests' .
-                ( !empty( $this->resourcePath ) ? ' for resource "' . $this->resourcePath . '"' : ' without a resource' ) .
-                ' are not currently supported by the "' .
-                $this->name .
-                '" service.';
+            $what = ( !empty( $this->resourcePath ) ? " for resource '{$this->resourcePath}'" : ' without a resource' );
+            $message = ucfirst( $this->action ) . " requests $what are not currently supported by the '{$this->name}' service.";
 
             throw new BadRequestException( $message );
         }
-
-        //  Perform any post-request processing
-        $this->postProcess();
 
         //  Perform any response processing
         return $this->respond();
     }
 
     /**
+     * @param array $resources
+     *
      * @return bool|mixed
      * @throws BadRequestException
      * @throws InternalServerErrorException
      * @throws NotFoundException
      */
-    protected function handleResource()
+    protected function handleResource( array $resources )
     {
-        //  Fall through is to process just like a no-resource request
-        $resources = $this->getResources();
-        if ( !empty( $resources ) && !empty( $this->resource ) )
+        $found = ArrayUtils::findByKeyValue( $resources, 'name', $this->resource );
+        if ( isset( $found, $found['class_name'] ) )
         {
-            $found = ArrayUtils::findByKeyValue( $resources, 'name', $this->resource );
-            if ( isset( $found, $found['class_name'] ) )
+            $className = $found['class_name'];
+
+            if ( !class_exists( $className ) )
             {
-                $className = $found['class_name'];
-
-                if ( !class_exists( $className ) )
-                {
-                    throw new InternalServerErrorException( 'Service configuration class name lookup failed for resource ' . $this->resourcePath );
-                }
-
-                /** @var RestHandler $resource */
-                $resource = $this->instantiateResource( $className, $found );
-
-                $newPath = $this->resourceArray;
-                array_shift( $newPath );
-                $newPath = implode( '/', $newPath );
-
-                return $resource->handleRequest( $this->request, $newPath, $this->outputFormat );
+                throw new InternalServerErrorException( 'Service configuration class name lookup failed for resource ' . $this->resourcePath );
             }
 
-            throw new NotFoundException( "Resource '{$this->resource}' not found for service '{$this->name}'." );
+            /** @var ResourceHandlerInterface $resource */
+            $resource = $this->instantiateResource( $className, $found );
+            $resource->setParent( $this );
+
+            $newPath = $this->resourceArray;
+            array_shift( $newPath );
+            $newPath = implode( '/', $newPath );
+
+            return $resource->handleRequest( $this->request, $newPath, $this->outputFormat );
         }
 
-        return $this->processRequest();
+        throw new NotFoundException( "Resource '{$this->resource}' not found for service '{$this->name}'." );
     }
 
     protected function instantiateResource( $class, $info = [ ] )
@@ -271,8 +272,7 @@ abstract class RestHandler
         $methodToCall = false;
 
         //	Check verb aliases as closures
-        if ( true === $this->autoDispatch && null !== ( $alias = ArrayUtils::get( $this->verbAliases, $this->action ) )
-        )
+        if ( true === $this->autoDispatch && null !== ( $alias = ArrayUtils::get( $this->verbAliases, $this->action ) ) )
         {
             //	A closure?
             if ( !in_array( $alias, Verbs::getDefinedConstants() ) && is_callable( $alias ) )
@@ -404,7 +404,7 @@ abstract class RestHandler
     protected function setResourceMembers( $resourcePath = null )
     {
         $this->resourcePath = $resourcePath;
-        $this->resourceArray = ( !empty( $this->resourcePath ) ) ? explode( '/', $this->resourcePath ) : [];
+        $this->resourceArray = ( !empty( $this->resourcePath ) ) ? explode( '/', $this->resourcePath ) : [ ];
 
         if ( empty( $this->resource ) )
         {
@@ -438,7 +438,7 @@ abstract class RestHandler
      */
     protected static function makeResourceList( array $resources, $properties = null, $wrap = true )
     {
-        $resourceList = [];
+        $resourceList = [ ];
 
         if ( empty( $properties ) || ( is_string( $properties ) && ( 0 === strcasecmp( 'false', $properties ) ) ) )
         {

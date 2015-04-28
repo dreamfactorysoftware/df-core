@@ -2,6 +2,7 @@
 /**
  * This file is part of the DreamFactory Services Platform(tm) SDK For PHP
  *
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,31 +17,32 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Events\Interfaces;
+namespace DreamFactory\Rave\Contracts;
 
-use Doctrine\Common\Cache\Cache;
+use DreamFactory\Rave\Components\RestHandler;
+use DreamFactory\Rave\Enums\ContentTypes;
 
 /**
- * EventStoreLike
- * Something that acts like an event store
+ * Something that can handle resource requests
  */
-interface EventStoreLike extends Cache
+interface ResourceHandlerInterface
 {
-    //*************************************************************************
-    //	Methods
-    //*************************************************************************
+    /**
+     * @return RestHandler
+     */
+    public function getParent();
 
     /**
-     * Loads current $dispatcher state
-     *
-     * @return bool|void
+     * @param RestHandler $parent
      */
-    public function loadAll();
+    public function setParent( RestHandler $parent );
 
     /**
-     * Saves current $dispatcher state
+     * @param ServiceRequestInterface $request
+     * @param null                    $resource
+     * @param int                     $outputFormat
      *
-     * @return bool|void
+     * @return ServiceResponseInterface
      */
-    public function saveAll();
+    public function handleRequest( ServiceRequestInterface $request, $resource = null, $outputFormat = ContentTypes::JSON );
 }

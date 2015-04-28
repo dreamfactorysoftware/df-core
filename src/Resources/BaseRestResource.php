@@ -21,14 +21,83 @@
 namespace DreamFactory\Rave\Resources;
 
 use DreamFactory\Rave\Components\RestHandler;
+use DreamFactory\Rave\Contracts\ResourceHandlerInterface;
+use DreamFactory\Rave\Events\ResourcePostProcess;
+use DreamFactory\Rave\Events\ResourcePreProcess;
+use DreamFactory\Rave\Services\BaseRestService;
 
 /**
  * Class BaseRestResource
  *
  * @package DreamFactory\Rave\Resources
  */
-class BaseRestResource extends RestHandler
+class BaseRestResource extends RestHandler implements ResourceHandlerInterface
 {
+    /**
+     * @var RestHandler Object that requested this handler, null if this is the Service.
+     */
+    protected $parent = null;
+
+    /**
+     * @return RestHandler
+     */
+    public function getParent()
+    {
+        return $this->parent;
+    }
+
+    /**
+     * @param RestHandler $parent
+     */
+    public function setParent( RestHandler $parent )
+    {
+        $this->parent = $parent;
+    }
+
+    public function getFullPathName( $separator = '.' )
+    {
+        if ( $this->parent instanceof BaseRestResource )
+        {
+            return $this->parent->getFullPathName( $separator ) . $separator . $this->name;
+        }
+        else
+        {
+            // name of self
+            return $this->name;
+        }
+    }
+
+    public function getServiceName()
+    {
+        if ( $this->parent instanceof BaseRestService )
+        {
+            return $this->parent->name;
+        }
+        elseif ( $this->parent instanceof BaseRestResource )
+        {
+            return $this->parent->getServiceName();
+        }
+
+        return '';
+    }
+
+    /**
+     * Runs pre process tasks/scripts
+     */
+    protected function preProcess()
+    {
+        $preResults = \Event::fire( new ResourcePreProcess( $this->getServiceName(), $this->getFullPathName(), $this->action, $this->request, $this->resourcePath ) );
+    }
+
+    /**
+     * Runs post process tasks/scripts
+     */
+    protected function postProcess()
+    {
+        $postResults =
+            \Event::fire( new ResourcePostProcess( $this->getServiceName(), $this->getFullPathName(), $this->action, $this->request, $this->response, $this->resourcePath ) );
+    }
+
     public function getApiDocInfo()
     {
         /**

@@ -20,8 +20,6 @@
 
 namespace DreamFactory\Rave\Contracts;
 
-use DreamFactory\Rave\Enums\ServiceRequestorTypes;
-
 interface ServiceRequestInterface
 {
     /**

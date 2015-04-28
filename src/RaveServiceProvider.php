@@ -20,6 +20,7 @@
 
 namespace DreamFactory\Rave;
 
+use DreamFactory\Rave\Handlers\Events\ServiceEventHandler;
 use DreamFactory\Rave\Providers\BaseServiceProvider;
 
 class RaveServiceProvider extends BaseServiceProvider
@@ -51,5 +52,8 @@ class RaveServiceProvider extends BaseServiceProvider
         //Register CorsServiceProvider...
         $cors = new RaveCorsServiceProvider( $this->app );
         $cors->register();
+
+        $subscriber = new ServiceEventHandler();
+        \Event::subscribe($subscriber);
     }
 }

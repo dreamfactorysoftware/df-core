@@ -99,12 +99,25 @@ class CreateSystemTables extends Migration
             }
         );
 
+        // Event Subscriber
+        Schema::create(
+            'event_subscriber',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->string( 'name', 80 )->unique();
+                $t->string( 'type' );
+                $t->text( 'config' )->nullable();
+            }
+        );
+
         // Event Scripts
         Schema::create(
             'event_script',
             function ( Blueprint $t )
             {
-                $t->string( 'name', 80 )->primary();
+                $t->increments( 'id' );
+                $t->string( 'name', 80 )->unique();
                 $t->string( 'type' );
                 $t->foreign( 'type' )->references( 'name' )->on( 'script_type' )->onDelete( 'cascade' );
                 $t->text( 'content' )->nullable();
@@ -406,8 +419,12 @@ class CreateSystemTables extends Migration
 
         // Service Docs
         Schema::dropIfExists( 'service_doc' );
-        // Scripts
-        Schema::dropIfExists( 'script' );
+        // Script Service Configs
+        Schema::dropIfExists( 'script_config' );
+        // Event Scripts
+        Schema::dropIfExists( 'event_script' );
+        // Event Subscribers
+        Schema::dropIfExists( 'event_subscriber' );
         // System Configuration
         Schema::dropIfExists( 'system_config' );
         // Role Lookup Keys

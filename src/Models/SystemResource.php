@@ -93,6 +93,12 @@ class SystemResource extends BaseModel
                     'read_only'   => true,
                 ],
                 [
+                    'name'        => 'event',
+                    'label'       => 'Events',
+                    'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Event',
+                    'description' => 'Allows registering external listeners to system generated events.',
+                ],
+                [
                     'name'        => 'lookup',
                     'label'       => 'Lookup Keys',
                     'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Lookup',
@@ -103,6 +109,12 @@ class SystemResource extends BaseModel
                     'label'       => 'Roles',
                     'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Role',
                     'description' => 'Allows role configuration.',
+                ],
+                [
+                    'name'        => 'script',
+                    'label'       => 'Scripts',
+                    'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Script',
+                    'description' => 'Allows scripting of internal system events.',
                 ],
                 [
                     'name'        => 'service',
@@ -120,7 +132,7 @@ class SystemResource extends BaseModel
                     'name'        => 'app',
                     'label'       => 'Application Management',
                     'class_name'  => "DreamFactory\\Rave\\Resources\\System\\App",
-                    'description' => 'Allows managemnt of user application(s)'
+                    'description' => 'Allows management of user application(s)'
                 ]
             ];
 

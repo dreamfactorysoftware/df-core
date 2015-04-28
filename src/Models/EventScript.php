@@ -21,29 +21,29 @@
 namespace DreamFactory\Rave\Models;
 
 /**
- * ScriptConfig
+ * EventScript
  *
- * @property integer    $service_id
+ * @property string     $name
  * @property string     $type
  * @property string     $content
  * @property string     $config
- * @method static \Illuminate\Database\Query\Builder|ScriptConfig whereServiceId( $value )
- * @method static \Illuminate\Database\Query\Builder|ScriptConfig whereType( $value )
+ * @method static \Illuminate\Database\Query\Builder|EventScript whereName( $value )
+ * @method static \Illuminate\Database\Query\Builder|EventScript whereType( $value )
  */
-class ScriptConfig extends BaseServiceConfigModel
+class EventScript extends BaseSystemModel
 {
     /**
      * @const string The private cache file
      */
     const CACHE_PREFIX = 'script.';
     /**
-     * @const integer How long a ScriptConfig cache will live, 1440 = 24 minutes (default session timeout).
+     * @const integer How long a EventScript cache will live, 1440 = 24 minutes (default session timeout).
      */
     const CACHE_TTL = 1440;
 
-    protected $table = 'script_config';
+    protected $table = 'event_script';
 
-    protected $fillable = [ 'service_id', 'type', 'engine', 'content', 'config' ];
+    protected $fillable = [ 'name', 'type', 'engine', 'content', 'config' ];
 
     protected $appends = [ 'engine' ];
 

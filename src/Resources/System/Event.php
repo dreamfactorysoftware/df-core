@@ -67,7 +67,7 @@ class Event extends BaseRestResource
      */
     public function listResources( $include_properties = null )
     {
-        if ( !$this->request->queryBool( 'as_access_components' ) )
+        if ( !$this->request->getParameterAsBool( 'as_access_components' ) )
         {
             return parent::listResources( $include_properties );
         }

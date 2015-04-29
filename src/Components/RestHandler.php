@@ -478,30 +478,6 @@ abstract class RestHandler
     }
 
     /**
-     * @param null $key
-     * @param null $default
-     *
-     * @return mixed
-     */
-    protected function getQueryData( $key = null, $default = null )
-    {
-        $data = $this->request->query( $key, $default );
-
-        return $data;
-    }
-
-    /**
-     * @param      $key
-     * @param bool $default
-     *
-     * @return bool
-     */
-    protected function getQueryBool( $key, $default = false )
-    {
-        return $this->request->queryBool( $key, $default );
-    }
-
-    /**
      * Implement to return the resource configuration for this REST handling object
      *
      * @return array Empty when not implemented, otherwise the array of resource information
@@ -534,7 +510,7 @@ abstract class RestHandler
      */
     protected function handleGET()
     {
-        $includeProperties = $this->request->query( 'include_properties' );
+        $includeProperties = $this->request->getParameter( 'include_properties' );
 
         return $this->listResources( $includeProperties );
     }

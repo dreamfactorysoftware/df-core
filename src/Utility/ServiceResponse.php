@@ -20,6 +20,7 @@
 
 namespace DreamFactory\Rave\Utility;
 
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 
 class ServiceResponse implements ServiceResponseInterface
@@ -97,5 +98,30 @@ class ServiceResponse implements ServiceResponseInterface
     public function getContentType()
     {
         return $this->contentType;
+    }
+
+    /**
+     * @return array All attributes as an array
+     */
+    public function toArray()
+    {
+        return [
+            'status_code'  => $this->getStatusCode(),
+            'content_type' => $this->getContentType(),
+            'content'      => $this->getContent(),
+        ];
+    }
+
+    /**
+     * @param array $data Merge some attributes from an array
+     */
+    public function mergeFromArray( array $data )
+    {
+        $this->setStatusCode(ArrayUtils::get($data, 'status_code'));
+        if (ArrayUtils::getBool( $data, 'payload_changed' ))
+        {
+            $this->setContentType(ArrayUtils::get($data, 'content_type'));
+            $this->setContent(ArrayUtils::get($data, 'content'));
+        }
     }
 }

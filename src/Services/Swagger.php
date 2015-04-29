@@ -94,7 +94,7 @@ class Swagger extends BaseRestService
         // lock down access to valid apps only, can't check session permissions
         // here due to sdk access
 //        Session::checkAppPermission( null, false );
-        if ( $this->request->queryBool( 'refresh' ) )
+        if ( $this->request->getParameterAsBool( 'refresh' ) )
         {
             static::clearCache();
         }

@@ -20,20 +20,33 @@
 
 namespace DreamFactory\Rave\Contracts;
 
+use DreamFactory\Rave\Enums\ContentTypes;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+
 interface ServiceRequestInterface
 {
     /**
-     * @return string Http Verbs
+     * @return string HTTP Verb
      */
     public function getMethod();
 
     /**
+     * @param string $method HTTP Verb
+     */
+    public function setMethod( $method );
+
+    /**
+     * @return array
+     */
+    public function getParameters();
+
+    /**
      * @param mixed $key
-     * @param mixed  $default
+     * @param mixed $default
      *
      * @return mixed
      */
-    public function query( $key = null, $default = null );
+    public function getParameter( $key = null, $default = null );
 
     /**
      * @param mixed $key
@@ -41,7 +54,18 @@ interface ServiceRequestInterface
      *
      * @return boolean
      */
-    public function queryBool( $key, $default = false );
+    public function getParameterAsBool( $key, $default = false );
+
+    /**
+     * @param array $parameters
+     */
+    public function setParameters( array $parameters );
+
+    /**
+     * @param mixed $key
+     * @param mixed $value
+     */
+    public function setParameter( $key, $value );
 
     /**
      * @param null|string $key
@@ -52,9 +76,36 @@ interface ServiceRequestInterface
     public function getPayloadData( $key = null, $default = null );
 
     /**
+     * @param array $data
+     */
+    public function setPayloadData( array $data );
+
+    /**
+     * @param mixed $key
+     * @param mixed $value
+     */
+    public function setPayloadKeyValue( $key, $value );
+
+    /**
      * @return mixed
      */
     public function getContent();
+
+    /**
+     * @return string
+     */
+    public function getContentType();
+
+    /**
+     * @param mixed $content
+     * @param int   $type
+     */
+    public function setContent( $content, $type = ContentTypes::PHP_ARRAY );
+
+    /**
+     * @return array
+     */
+    public function getHeaders();
 
     /**
      * @param null|string $key
@@ -62,19 +113,31 @@ interface ServiceRequestInterface
      *
      * @return mixed
      */
-    public function getHeader($key=null, $default = null);
+    public function getHeader( $key = null, $default = null );
+
+    /**
+     * @param array $headers
+     */
+    public function setHeaders( array $headers );
+
+    /**
+     * @param mixed $key
+     * @param mixed $value
+     */
+    public function setHeader( $key, $value );
 
     /**
      * Retrieve a file from the request.
      *
-     * @param  string  $key
-     * @param  mixed   $default
+     * @param  string $key
+     * @param  mixed  $default
+     *
      * @return UploadedFile|array
      */
-    public function getFile($key=null, $default = null);
+    public function getFile( $key = null, $default = null );
 
     /**
-     * Retrieve api version
+     * Retrieve API version
      *
      * @return string
      */
@@ -86,4 +149,14 @@ interface ServiceRequestInterface
      * @return integer
      */
     public function getRequestorType();
+
+    /**
+     * @return array All attributes as an array
+     */
+    public function toArray();
+
+    /**
+     * @param array $data Merge some attributes from an array
+     */
+    public function mergeFromArray( array $data );
 }

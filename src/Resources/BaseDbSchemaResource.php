@@ -75,16 +75,13 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handleGET()
     {
-        $options = $this->request->query();
-        $payload = $this->request->getPayloadData();
-
-        $refresh = ArrayUtils::getBool( $options, 'refresh' );
+        $refresh = $this->request->getParameterAsBool( 'refresh' );
         if ( empty( $this->resource ) )
         {
-            $tables = ArrayUtils::get( $options, 'names' );
+            $tables = $this->request->getParameter( 'names' );
             if ( empty( $tables ) )
             {
-                $tables = ArrayUtils::get( $payload, 'table' );
+                $tables = $this->request->getPayloadData( 'table' );
             }
 
             if ( !empty( $tables ) )
@@ -114,11 +111,9 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handlePOST()
     {
-        $options = $this->request->query();
         $payload = $this->request->getPayloadData();
-
-        $checkExist = ArrayUtils::getBool( $options, 'check_exist' );
-        $returnSchema = ArrayUtils::getBool( $options, 'return_schema' );
+        $checkExist = $this->request->getParameterAsBool('check_exist' );
+        $returnSchema = $this->request->getParameterAsBool( 'return_schema' );
         if ( empty( $this->resource ) )
         {
             $tables = ArrayUtils::get( $payload, 'table', $payload );
@@ -151,10 +146,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handlePUT()
     {
-        $options = $this->request->query();
         $payload = $this->request->getPayloadData();
-
-        $returnSchema = ArrayUtils::getBool( $options, 'return_schema' );
+        $returnSchema = $this->request->getParameterAsBool( 'return_schema' );
         if ( empty( $this->resource ) )
         {
             $tables = ArrayUtils::get( $payload, 'table', $payload );
@@ -187,10 +180,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handlePATCH()
     {
-        $options = $this->request->query();
         $payload = $this->request->getPayloadData();
-
-        $returnSchema = ArrayUtils::getBool( $options, 'return_schema' );
+        $returnSchema = $this->request->getParameterAsBool( 'return_schema' );
         if ( empty( $this->resource ) )
         {
             $tables = ArrayUtils::get( $payload, 'table', $payload );
@@ -203,7 +194,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         }
         elseif ( empty( $this->resourceId ) )
         {
-            $result = $this->updateTable( $this->resource, $options, false, $returnSchema );
+            $result = $this->updateTable( $this->resource, $payload, false, $returnSchema );
         }
         elseif ( empty( $payload ) )
         {
@@ -223,12 +214,11 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handleDELETE()
     {
-        $options = $this->request->query();
         $payload = $this->request->getPayloadData();
 
         if ( empty( $this->resource ) )
         {
-            $tables = ArrayUtils::get( $options, 'names' );
+            $tables = $this->request->getParameter( 'names' );
             if ( empty( $tables ) )
             {
                 $tables = ArrayUtils::get( $payload, 'table' );

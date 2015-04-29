@@ -34,11 +34,11 @@ trait InternalServiceRequest
     /**
      * @var string
      */
-    protected $method = Verbs::GET;
+    protected $method = null;
     /**
      * @var array
      */
-    protected $query = [ ];
+    protected $parameters = [ ];
     /**
      * @var array
      */
@@ -50,18 +50,11 @@ trait InternalServiceRequest
     /**
      * @var null|string
      */
-    protected $contentType = ContentTypes::PHP_ARRAY;
+    protected $contentType = null;
     /**
      * @var array
      */
     protected $contentAsArray = [ ];
-
-    public function __construct( $method = Verbs::GET, $query = [ ], $headers = [ ] )
-    {
-        $this->setMethod( $method );
-        $this->setQuery( $query );
-        $this->setHeaders( $headers );
-    }
 
     /**
      * @param $verb
@@ -94,9 +87,9 @@ trait InternalServiceRequest
      *
      * @return $this
      */
-    public function setQuery( array $parameters )
+    public function setParameters( array $parameters )
     {
-        $this->query = $parameters;
+        $this->parameters = $parameters;
 
         return $this;
     }
@@ -104,16 +97,32 @@ trait InternalServiceRequest
     /**
      * {@inheritdoc}
      */
-    public function query( $key = null, $default = null )
+    public function setParameter( $key, $value )
+    {
+        $this->parameters[$key] = $value;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getParameters()
+    {
+        return $this->parameters;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getParameter( $key = null, $default = null )
     {
         if ( null === $key )
         {
-            return $this->query;
+            return $this->parameters;
         }
         else
         {
-        return ArrayUtils::get( $this->query, $key, $default );
-    }
+            return ArrayUtils::get( $this->parameters, $key, $default );
+        }
     }
 
     /**
@@ -122,9 +131,9 @@ trait InternalServiceRequest
      *
      * @return mixed
      */
-    public function queryBool( $key, $default = false )
+    public function getParameterAsBool( $key, $default = false )
     {
-        return ArrayUtils::getBool( $this->query, $key, $default );
+        return ArrayUtils::getBool( $this->parameters, $key, $default );
     }
 
     /**
@@ -152,10 +161,23 @@ trait InternalServiceRequest
     }
 
     /**
-     * @param null $key
-     * @param null $default
-     *
-     * @return array|mixed
+     * {@inheritdoc}
+     */
+    public function setPayloadData( array $data )
+    {
+        $this->contentAsArray = $data;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setPayloadKeyValue( $key, $value )
+    {
+        $this->contentAsArray[$key] = $value;
+    }
+
+    /**
+     * {@inheritdoc}
      */
     public function getPayloadData( $key = null, $default = null )
     {
@@ -178,15 +200,29 @@ trait InternalServiceRequest
     }
 
     /**
-     * @param array $headers
-     *
-     * @return $this
+     * {@inheritdoc}
+     */
+    public function getContentType()
+    {
+        return $this->contentType;
+    }
+
+    /**
+     * {@inheritdoc}
      */
     public function setHeaders( array $headers )
     {
         $this->headers = $headers;
 
         return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setHeader( $key, $data )
+    {
+        $this->headers[$key] = $data;
     }
 
     /**
@@ -207,9 +243,48 @@ trait InternalServiceRequest
     /**
      * {@inheritdoc}
      */
+    public function getHeaders()
+    {
+        return $this->headers;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getFile( $key = null, $default = null )
     {
         //Todo:Experiment Request::file()...
         return null;
+    }
+
+    /**
+     * @return array All attributes as an array
+     */
+    public function toArray()
+    {
+        return [
+            'api_version'  => $this->getApiVersion(),
+            'method'       => $this->getMethod(),
+            'parameters'   => $this->getParameters(),
+            'headers'      => $this->getHeaders(),
+            'payload'      => $this->getPayloadData(),
+            'content'      => $this->getContent(),
+            'content_type' => $this->getContentType(),
+        ];
+    }
+
+    /**
+     * @param array $data Merge some attributes from an array
+     */
+    public function mergeFromArray( array $data )
+    {
+        $this->setMethod( ArrayUtils::get( $data, 'method' ) );
+        $this->setParameters( ArrayUtils::get( $data, 'parameters' ) );
+        $this->setHeaders( ArrayUtils::get( $data, 'headers' ) );
+        $this->setPayloadData( ArrayUtils::get( $data, 'payload' ) );
+        if (ArrayUtils::getBool( $data, 'content_changed' ))
+        {
+            $this->setContent( ArrayUtils::get( $data, 'content' ), ArrayUtils::get( $data, 'content_type' ) );
+        }
     }
 }

@@ -61,7 +61,7 @@ class EventScript extends BaseRestSystemResource
      */
     protected function handleGET()
     {
-        if ($this->getQueryBool('all_events'))
+        if ($this->request->getParameterAsBool('all_events'))
         {
             $results = Swagger::getScriptedEventMap();
             $allEvents = [];

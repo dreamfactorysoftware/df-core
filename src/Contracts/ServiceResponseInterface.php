@@ -58,4 +58,14 @@ interface ServiceResponseInterface extends HttpStatusCodeInterface
      * @return int ContentTypes
      */
     public function getContentType();
+
+    /**
+     * @return array All attributes as an array
+     */
+    public function toArray();
+
+    /**
+     * @param array $data Merge some attributes from an array
+     */
+    public function mergeFromArray(array $data);
 }

@@ -62,7 +62,7 @@ class App extends BaseRestSystemResource
         $this->triggerActionEvent( $this->response );
 
         $model = $this->getModel();
-        $result = $model::bulkCreate( $records, $this->getQueryData() );
+        $result = $model::bulkCreate( $records, $this->request->getParameters() );
 
         $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
 

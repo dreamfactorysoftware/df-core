@@ -188,7 +188,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                 }
             }
 
-            $this->options = $this->getQueryData();
+            $this->options = $this->request->getParameters();
 
             // merge in possible payload options
             $optionNames = [ 'limit', 'offset', 'order', 'fields', 'ids', 'filter', 'params', 'continue', 'rollback' ];

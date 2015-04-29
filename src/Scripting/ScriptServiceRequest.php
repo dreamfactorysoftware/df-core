@@ -19,6 +19,7 @@
  */
 namespace DreamFactory\Rave\Scripting;
 
+use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Components\InternalServiceRequest;
 use DreamFactory\Rave\Contracts\ServiceRequestInterface;
 use DreamFactory\Rave\Enums\ServiceRequestorTypes;
@@ -31,15 +32,11 @@ class ScriptServiceRequest implements ServiceRequestInterface
 {
     use InternalServiceRequest;
 
-    /**
-     * @param array $settings
-     */
-    public function __construct( $settings = [ ] )
+    public function __construct( $method = Verbs::GET, $parameters = [ ], $headers = [ ] )
     {
-        foreach ( $settings as $key => $value )
-        {
-            $this->{$key} = $value;
-        }
+        $this->setMethod( $method );
+        $this->setParameters( $parameters );
+        $this->setHeaders( $headers );
     }
 
     /**

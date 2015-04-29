@@ -21,7 +21,8 @@
 namespace DreamFactory\Rave\Utility;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Components\ApiVersion;
+use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Rave\Components\InternalServiceRequest;
 use DreamFactory\Rave\Enums\ServiceRequestorTypes;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use Request;
@@ -34,7 +35,7 @@ use DreamFactory\Rave\Contracts\ServiceRequestInterface;
  */
 class ServiceRequest implements ServiceRequestInterface
 {
-    use ApiVersion;
+    use InternalServiceRequest;
 
     /**
      * {@inheritdoc}
@@ -49,21 +50,55 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getMethod()
     {
+        if ( !empty( $this->method ) )
+        {
+            return $this->method;
+        }
+
         return Request::getMethod();
     }
 
     /**
      * {@inheritdoc}
      */
-    public function query( $key = null, $default = null )
+    public function getParameter( $key = null, $default = null )
     {
-        //query is cached internally using parameterBag.
+        if ( !empty( $this->parameters ) )
+        {
+            if ( null === $key )
+            {
+                return $this->parameters;
+            }
+            else
+            {
+                return ArrayUtils::get( $this->parameters, $key, $default );
+            }
+        }
+
         return Request::query( $key, $default );
     }
 
-    public function queryBool( $key, $default = false )
+    /**
+     * {@inheritdoc}
+     */
+    public function getParameters()
     {
-        return ArrayUtils::getBool( $this->query(), $key, $default );
+        if ( !empty( $this->parameters ) )
+        {
+            return $this->parameters;
+        }
+
+        return Request::query();
+    }
+
+    public function getParameterAsBool( $key, $default = false )
+    {
+        if ( !empty( $this->parameters ) )
+        {
+            return ArrayUtils::getBool( $this->parameters, $key, $default );
+        }
+
+        return Scalar::boolval( $this->getParameter( $key, $default ) );
     }
 
     /**
@@ -75,6 +110,18 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getPayloadData( $key = null, $default = null )
     {
+        if ( !empty( $this->contentAsArray ) )
+        {
+            if ( null === $key )
+            {
+                return $this->contentAsArray;
+            }
+            else
+            {
+                return ArrayUtils::get( $this->contentAsArray, $key, $default );
+            }
+        }
+
         //This just checks the Request Header Content-Type.
         if ( Request::isJson() )
         {
@@ -124,36 +171,80 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getContent()
     {
+        if ( !empty( $this->content ) )
+        {
+            return $this->content;
+        }
+
         return Request::getContent();
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getHeader($key=null, $default=null)
+    public function getContentType()
     {
-        if(null===$key)
+        if ( !empty( $this->contentType ) )
+        {
+            return $this->contentType;
+        }
+
+        return Request::getContentType();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getHeader( $key = null, $default = null )
+    {
+        if ( !empty( $this->headers ) )
+        {
+            if ( null === $key )
+            {
+                return $this->headers;
+            }
+            else
+            {
+                return ArrayUtils::get( $this->headers, $key, $default );
+            }
+        }
+
+        if ( null === $key )
         {
             return Request::header();
         }
-        else{
-            return Request::header($key, $default);
+        else
+        {
+            return Request::header( $key, $default );
         }
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getFile($key=null, $default=null)
+    public function getHeaders()
+    {
+        if ( !empty( $this->headers ) )
+        {
+            return $this->headers;
+        }
+
+        return Request::header();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getFile( $key = null, $default = null )
     {
         //Todo:Experiment Request::file()...
-        if(null===$key)
+        if ( null === $key )
         {
             return $_FILES;
         }
         else
         {
-            return ArrayUtils::get($_FILES, $key, $default);
+            return ArrayUtils::get( $_FILES, $key, $default );
         }
     }
 }

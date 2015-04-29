@@ -106,13 +106,12 @@ class BaseRestSystemResource extends BaseRestResource
      */
     protected function handleGET()
     {
-        $requestQuery = $this->getQueryData();
-        $ids = ArrayUtils::get( $requestQuery, 'ids' );
+        $ids = $this->request->getParameter( 'ids' );
         $records = $this->getPayloadData( self::RECORD_WRAPPER );
 
         $data = null;
 
-        $related = ArrayUtils::get( $requestQuery, 'related' );
+        $related = $this->request->getParameter( 'related' );
         if ( !empty( $related ) )
         {
             $related = explode( ',', $related );
@@ -166,7 +165,7 @@ class BaseRestSystemResource extends BaseRestResource
                 'params' => [ ],
             ];
 
-            if ( null !== ( $value = ArrayUtils::get( $requestQuery, 'fields' ) ) )
+            if ( null !== ( $value = $this->request->getParameter( 'fields' ) ) )
             {
                 $criteria['select'] = $value;
             }
@@ -175,12 +174,12 @@ class BaseRestSystemResource extends BaseRestResource
                 $criteria['select'] = "*";
             }
 
-            if ( null !== ( $value = $this->getPayloadData( 'params' ) ) )
+            if ( null !== ( $value = $this->request->getPayloadData( 'params' ) ) )
             {
                 $criteria['params'] = $value;
             }
 
-            if ( null !== ( $value = ArrayUtils::get( $requestQuery, 'filter' ) ) )
+            if ( null !== ( $value = $this->request->getParameter( 'filter' ) ) )
             {
                 $criteria['condition'] = $value;
 
@@ -194,7 +193,7 @@ class BaseRestSystemResource extends BaseRestResource
                 }
             }
 
-            $value = intval( ArrayUtils::get( $requestQuery, 'limit' ) );
+            $value = intval( $this->request->getParameter( 'limit' ) );
             $maxAllowed = intval( Config::get( 'rave.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
             if ( ( $value < 1 ) || ( $value > $maxAllowed ) )
             {
@@ -203,12 +202,12 @@ class BaseRestSystemResource extends BaseRestResource
             }
             $criteria['limit'] = $value;
 
-            if ( null !== ( $value = ArrayUtils::get( $requestQuery, 'offset' ) ) )
+            if ( null !== ( $value = $this->request->getParameter( 'offset' ) ) )
             {
                 $criteria['offset'] = $value;
             }
 
-            if ( null !== ( $value = ArrayUtils::get( $requestQuery, 'order' ) ) )
+            if ( null !== ( $value = $this->request->getParameter( 'order' ) ) )
             {
                 $criteria['order'] = $value;
             }
@@ -222,7 +221,7 @@ class BaseRestSystemResource extends BaseRestResource
             throw new NotFoundException( "Record not found." );
         }
 
-        if ( ArrayUtils::getBool( $requestQuery, 'include_count' ) === true )
+        if ( $this->request->getParameterAsBool( 'include_count' ) === true )
         {
             if ( isset( $data['record'] ) )
             {
@@ -234,7 +233,7 @@ class BaseRestSystemResource extends BaseRestResource
             }
         }
 
-        if ( !empty( $data ) && ArrayUtils::getBool( $requestQuery, 'include_schema' ) === true )
+        if ( !empty( $data ) && $this->request->getParameterAsBool( 'include_schema' ) === true )
         {
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
@@ -271,7 +270,7 @@ class BaseRestSystemResource extends BaseRestResource
         $this->triggerActionEvent( $this->response );
 
         $model = $this->getModel();
-        $result = $model::bulkCreate( $records, $this->getQueryData() );
+        $result = $model::bulkCreate( $records, $this->request->getParameters() );
 
         $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
 
@@ -296,7 +295,7 @@ class BaseRestSystemResource extends BaseRestResource
     protected function handlePATCH()
     {
         $records = $this->getPayloadData( static::RECORD_WRAPPER );
-        $ids = $this->getQueryData( 'ids' );
+        $ids = $this->request->getParameter( 'ids' );
         $modelClass = $this->getModel();
 
         if ( empty( $records ) )
@@ -308,15 +307,15 @@ class BaseRestSystemResource extends BaseRestResource
 
         if ( !empty( $this->resource ) )
         {
-            $result = $modelClass::updateById( $this->resource, $records[0], $this->getQueryData() );
+            $result = $modelClass::updateById( $this->resource, $records[0], $this->request->getParameters() );
         }
         elseif ( !empty( $ids ) )
         {
-            $result = $modelClass::updateByIds( $ids, $records[0], $this->getQueryData() );
+            $result = $modelClass::updateByIds( $ids, $records[0], $this->request->getParameters() );
         }
         else
         {
-            $result = $modelClass::bulkUpdate( $records, $this->getQueryData() );
+            $result = $modelClass::bulkUpdate( $records, $this->request->getParameters() );
         }
 
         return $result;
@@ -332,16 +331,16 @@ class BaseRestSystemResource extends BaseRestResource
     protected function handleDELETE()
     {
         $this->triggerActionEvent( $this->response );
-        $ids = $this->getQueryData( 'ids' );
+        $ids = $this->request->getParameter( 'ids' );
         $modelClass = $this->getModel();
 
         if ( !empty( $this->resource ) )
         {
-            $result = $modelClass::deleteById( $this->resource, $this->getQueryData() );
+            $result = $modelClass::deleteById( $this->resource, $this->request->getParameters() );
         }
         elseif ( !empty( $ids ) )
         {
-            $result = $modelClass::deleteByIds( $ids, $this->getQueryData() );
+            $result = $modelClass::deleteByIds( $ids, $this->request->getParameters() );
         }
         else
         {
@@ -351,7 +350,7 @@ class BaseRestSystemResource extends BaseRestResource
             {
                 throw new BadRequestException( 'No record(s) detected in request.' );
             }
-            $result = $modelClass::bulkDelete( $records, $this->getQueryData() );
+            $result = $modelClass::bulkDelete( $records, $this->request->getParameters() );
         }
 
         return $result;

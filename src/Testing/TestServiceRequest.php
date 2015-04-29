@@ -19,6 +19,7 @@
  */
 namespace DreamFactory\Rave\Testing;
 
+use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Components\InternalServiceRequest;
 use DreamFactory\Rave\Contracts\ServiceRequestInterface;
 use DreamFactory\Rave\Enums\ServiceRequestorTypes;
@@ -36,6 +37,13 @@ class TestServiceRequest implements ServiceRequestInterface
      * @var int, see ServiceRequestorTypes
      */
     protected $requestorType = ServiceRequestorTypes::API;
+
+    public function __construct( $method = Verbs::GET, $parameters = [ ], $headers = [ ] )
+    {
+        $this->setMethod( $method );
+        $this->setParameters( $parameters );
+        $this->setHeaders( $headers );
+    }
 
     /**
      * {@inheritdoc}

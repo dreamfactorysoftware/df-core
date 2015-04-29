@@ -20,7 +20,9 @@
 namespace DreamFactory\Rave\Services;
 
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Scripting\ScriptEngine;
+use \Log;
 
 /**
  * Script
@@ -78,7 +80,7 @@ class Script extends BaseRestService
             throw new \InvalidArgumentException( 'Script engine configuration can not be empty.' );
         }
 
-        $this->scriptConfig = ArrayUtils::clean(ArrayUtils::get( $config, 'config', [], true ));
+        $this->scriptConfig = ArrayUtils::clean( ArrayUtils::get( $config, 'config', [ ], true ) );
     }
 
     /**
@@ -99,19 +101,20 @@ class Script extends BaseRestService
 
     /**
      * @return mixed
+     * @throws InternalServerErrorException
      * @throws \DreamFactory\Rave\Events\Exceptions\ScriptException
      */
     protected function runScript()
     {
-        $logOutput = $this->request->queryBool( 'log_output', true );
-        $payload = $this->request->getPayloadData();
+        $logOutput = $this->request->getParameterAsBool( 'log_output', true );
+        $data = ['request' => $this->request->toArray()];
         $output = null;
         $result = ScriptEngine::runScript(
             $this->content,
             'script.' . $this->name,
             $this->engineConfig,
             $this->scriptConfig,
-            $payload,
+            $data,
             $output
         );
 
@@ -120,6 +123,23 @@ class Script extends BaseRestService
             \Log::info( "Script '{$this->name}' output:" . PHP_EOL . $output . PHP_EOL );
         }
 
-        return $result;
+        //  The script runner should return an array
+        if ( is_array( $result ) && isset( $result['__tag__'] ) )
+        {
+            $scriptResult = ArrayUtils::get( $result, 'script_result', [ ] );
+            //  Bail on errors...
+            if ( is_array( $scriptResult ) && ( isset( $scriptResult['error'] ) || isset( $scriptResult['exception'] ) ) )
+            {
+                throw new InternalServerErrorException( ArrayUtils::get( $scriptResult, 'exception', ArrayUtils::get( $scriptResult, 'error' ) ) );
+            }
+
+            return $scriptResult;
+        }
+        else
+        {
+            Log::error( '  * Script did not return an array: ' . print_r( $result, true ) );
+        }
+
+        return $output;
     }
 }

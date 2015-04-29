@@ -104,8 +104,8 @@ abstract class BaseService extends BaseRestService
     public function handlePOST()
     {
         $data = $this->getPayloadData();
-        $templateName = $this->getQueryData( 'template', null );
-        $templateId = $this->getQueryData( 'template_id', null );
+        $templateName = $this->request->getParameter( 'template', null );
+        $templateId = $this->request->getParameter( 'template_id', null );
         $templateData = [];
 
         if ( !empty( $templateName ) )

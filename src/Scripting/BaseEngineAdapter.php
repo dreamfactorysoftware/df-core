@@ -58,7 +58,7 @@ abstract class BaseEngineAdapter
     /**
      * @var array The list of registered/known libraries
      */
-    protected static $_libraries = [];
+    protected static $_libraries = [ ];
     /**
      * @type array Any user-defined libraries to load
      */
@@ -77,7 +77,7 @@ abstract class BaseEngineAdapter
      *
      * @throws ServiceUnavailableException
      */
-    public function __construct( array $settings = [] )
+    public function __construct( array $settings = [ ] )
     {
         //  Save off the engine
         $this->_engine = ArrayUtils::get( $settings, 'engine', $this->_engine );
@@ -92,7 +92,7 @@ abstract class BaseEngineAdapter
      */
     public static function startup( $options = null )
     {
-        static::_initializeLibraryPaths( ArrayUtils::get( $options, 'library_paths', [] ) );
+        static::_initializeLibraryPaths( ArrayUtils::get( $options, 'library_paths', [ ] ) );
     }
 
     /**
@@ -148,8 +148,8 @@ abstract class BaseEngineAdapter
      */
     protected static function _initializeLibraryPaths( $libraryPaths = null )
     {
-        static::$_libraryPaths = \Cache::get( 'scripting.library_paths', [] );
-        static::$_libraries = \Cache::get( 'scripting.libraries', [] );
+        static::$_libraryPaths = \Cache::get( 'scripting.library_paths', [ ] );
+        static::$_libraries = \Cache::get( 'scripting.libraries', [ ] );
 
         $vendorPath = dirname( dirname( __DIR__ ) ) . '/config/scripts';
 
@@ -179,10 +179,10 @@ abstract class BaseEngineAdapter
 //            'app'      => Platform::getApplicationsPath(),
 //            //  This is the user's private scripting area used by the admin console
 //            'storage'  => Platform::getPrivatePath( '/scripts' ),
-            //  Scripts here override library scripts
-            'platform' => $vendorPath,
-            //  Now check library distribution
-            'library'  => $_libraryPath,
+//  Scripts here override library scripts
+'platform' => $vendorPath,
+//  Now check library distribution
+'library'  => $_libraryPath,
         ];
 
         \Cache::add( 'scripting.library_paths', static::$_libraryPaths, static::DEFAULT_CACHE_TTL );
@@ -353,12 +353,7 @@ abstract class BaseEngineAdapter
 
         try
         {
-            $request = new ScriptServiceRequest(
-                [
-                    'method' => $method,
-                    'query'  => $params
-                ]
-            );
+            $request = new ScriptServiceRequest( $method, $params );
             $request->setContent( $content, $contentType );
 
             //  Now set the request object and go...

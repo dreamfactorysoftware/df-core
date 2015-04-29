@@ -186,8 +186,8 @@ abstract class BaseFileService extends BaseRestService
         if ( empty( $this->container ) )
         {
             // create one or more containers
-            $checkExist = $this->getQueryBool( 'check_exist', false );
-            $data = $this->getPayloadData();
+            $checkExist = $this->request->getParameterAsBool( 'check_exist', false );
+            $data = $this->request->getPayloadData();
             $containers = ArrayUtils::get( $data, 'container' );
 
             if ( empty( $containers ) )
@@ -209,18 +209,18 @@ abstract class BaseFileService extends BaseRestService
         {
             // create folders and files
             // possible file handling parameters
-            $extract = $this->getQueryBool( 'extract', false );;
-            $clean = $this->getQueryBool( 'clean', false );
-            $checkExist = $this->getQueryBool( 'check_exist', false );
+            $extract = $this->request->getParameterAsBool( 'extract', false );;
+            $clean = $this->request->getParameterAsBool( 'clean', false );
+            $checkExist = $this->request->getParameterAsBool( 'check_exist', false );
 
             $fileNameHeader = $this->request->getHeader( 'HTTP_X_FILE_NAME' );
             $folderNameHeader = $this->request->getHeader( 'HTTP_X_FOLDER_NAME' );
-            $fileUrl = filter_var( $this->getQueryData( 'url', '' ), FILTER_SANITIZE_URL );
+            $fileUrl = filter_var( $this->request->getParameter( 'url', '' ), FILTER_SANITIZE_URL );
 
             if ( !empty( $fileNameHeader ) )
             {
                 // html5 single posting for file create
-                $content = $this->getPayloadData();
+                $content = $this->request->getPayloadData();
                 $contentType = $this->request->getHeader( 'CONTENT_TYPE', '' );
                 $result = $this->handleFileContent(
                     $this->folderPath,
@@ -236,7 +236,7 @@ abstract class BaseFileService extends BaseRestService
             {
                 // html5 single posting for folder create
                 $fullPathName = $this->folderPath . $folderNameHeader;
-                $content = $this->getPayloadData();
+                $content = $this->request->getPayloadData();
                 $this->driver->createFolder( $this->container, $fullPathName, $content );
                 $result = [
                     'folder' => [
@@ -300,9 +300,9 @@ abstract class BaseFileService extends BaseRestService
         {
             // create the file
             // possible file handling parameters
-            $extract = $this->getQueryBool( 'extract', false );
-            $clean = $this->getQueryBool( 'clean', false );
-            $checkExist = $this->getQueryBool( 'check_exist', false );
+            $extract = $this->request->getParameterAsBool( 'extract', false );
+            $clean = $this->request->getParameterAsBool( 'clean', false );
+            $checkExist = $this->request->getParameterAsBool( 'check_exist', false );
             $name = basename( $this->filePath );
             $path = dirname( $this->filePath );
             $files = $this->request->getFile( 'files' );
@@ -415,8 +415,8 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handleDELETE()
     {
-        $force = $this->getQueryBool( 'force', false );
-        $content = $this->getPayloadData();
+        $force = $this->request->getParameterAsBool( 'force', false );
+        $content = $this->request->getPayloadData();
 
         if ( empty( $this->container ) )
         {
@@ -428,7 +428,7 @@ abstract class BaseFileService extends BaseRestService
 
             if ( empty( $containers ) )
             {
-                $namesStr = $this->getQueryData( 'names', '' );
+                $namesStr = $this->request->getParameter( 'names', '' );
 
                 if ( !empty( $namesStr ) )
                 {
@@ -503,8 +503,8 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handleGetResource()
     {
-        $includeProperties = $this->getQueryBool( 'include_properties', false );
-        $asAccessComp = $this->getQueryBool( 'as_access_components' );
+        $includeProperties = $this->request->getParameterAsBool( 'include_properties', false );
+        $asAccessComp = $this->request->getParameterAsBool( 'as_access_components' );
 
         if ( $asAccessComp )
         {
@@ -534,11 +534,11 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handleGetContainer()
     {
-        $includeProperties = $this->getQueryBool( 'include_properties', false );
-        $includeFolders = $this->getQueryBool( 'include_folders', true );
-        $includeFiles = $this->getQueryBool( 'include_files', true );
-        $fullTree = $this->getQueryBool( 'full_tree', false );
-        $asZip = $this->getQueryBool( 'zip' );
+        $includeProperties = $this->request->getParameterAsBool( 'include_properties', false );
+        $includeFolders = $this->request->getParameterAsBool( 'include_folders', true );
+        $includeFiles = $this->request->getParameterAsBool( 'include_files', true );
+        $fullTree = $this->request->getParameterAsBool( 'full_tree', false );
+        $asZip = $this->request->getParameterAsBool( 'zip' );
 
         if ( $asZip )
         {
@@ -571,11 +571,11 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handleGetFolder()
     {
-        $includeProperties = $this->getQueryBool( 'include_properties', false );
-        $includeFolders = $this->getQueryBool( 'include_folders', true );
-        $includeFiles = $this->getQueryBool( 'include_files', true );
-        $fullTree = $this->getQueryBool( 'full_tree', false );
-        $asZip = $this->getQueryBool( 'zip' );
+        $includeProperties = $this->request->getParameterAsBool( 'include_properties', false );
+        $includeFolders = $this->request->getParameterAsBool( 'include_folders', true );
+        $includeFiles = $this->request->getParameterAsBool( 'include_files', true );
+        $fullTree = $this->request->getParameterAsBool( 'full_tree', false );
+        $asZip = $this->request->getParameterAsBool( 'zip' );
 
         if ( $asZip )
         {
@@ -609,17 +609,17 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handleGetFile()
     {
-        $includeProperties = $this->getQueryBool( 'include_properties', false );
+        $includeProperties = $this->request->getParameterAsBool( 'include_properties', false );
 
         if ( $includeProperties )
         {
             // just properties of the file itself
-            $content = $this->getQueryBool( 'content', false );
+            $content = $this->request->getParameterAsBool( 'content', false );
             $result = $this->driver->getFileProperties( $this->container, $this->filePath, $content );
         }
         else
         {
-            $download = $this->getQueryBool( 'download', false );
+            $download = $this->request->getParameterAsBool( 'download', false );
             // stream the file, exits processing
             $this->driver->streamFile( $this->container, $this->filePath, $download );
 

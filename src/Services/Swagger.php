@@ -49,9 +49,13 @@ class Swagger extends BaseRestService
      */
     const SWAGGER_CACHE_FILE = '_.json';
     /**
-     * @const string A cached events list derived from Swagger
+     * @const string A cached script-able events list derived from Swagger
      */
-    const SWAGGER_EVENT_CACHE_FILE = '_events.json';
+    const SWAGGER_SCRIPT_EVENT_CACHE_FILE = '_script_events.json';
+    /**
+     * @const string A cached subscribe-able events list derived from Swagger
+     */
+    const SWAGGER_SUBSCRIBE_EVENT_CACHE_FILE = '_subscribe_events.json';
     /**
      * @const integer How long a swagger cache will live, 1440 = 24 minutes (default session timeout).
      */
@@ -70,16 +74,13 @@ class Swagger extends BaseRestService
     //*************************************************************************
 
     /**
-     * @var array The event map
+     * @var array The script-able event map
      */
-    protected static $_eventMap = false;
+    protected static $scriptEventMap = false;
     /**
-     * @var array The core DSP services that are built-in
+     * @var array The subscribe-able event map
      */
-    protected static $_builtInServices = [
-        [ 'api_name' => 'user', 'type_id' => 0, 'description' => 'User session and profile' ],
-        [ 'api_name' => 'system', 'type_id' => 0, 'description' => 'System configuration' ]
-    ];
+    protected static $subscribeEventMap = false;
 
     //*************************************************************************
     //	Methods
@@ -93,7 +94,7 @@ class Swagger extends BaseRestService
         // lock down access to valid apps only, can't check session permissions
         // here due to sdk access
 //        Session::checkAppPermission( null, false );
-        if ($this->request->queryBool('refresh'))
+        if ( $this->request->queryBool( 'refresh' ) )
         {
             static::clearCache();
         }
@@ -140,7 +141,8 @@ class Swagger extends BaseRestService
         $_services = [ ];
 
         //	Initialize the event map
-        static::$_eventMap = static::$_eventMap ?: [ ];
+        static::$scriptEventMap = static::$scriptEventMap ?: [ ];
+        static::$subscribeEventMap = static::$subscribeEventMap ?: [ ];
 
         //	Spin through services and pull the configs
         foreach ( $_result as $_service )
@@ -154,13 +156,21 @@ class Swagger extends BaseRestService
                 continue;
             }
 
-            if ( !isset( static::$_eventMap[$_apiName] ) || !is_array( static::$_eventMap[$_apiName] ) || empty( static::$_eventMap[$_apiName] )
+            if ( !isset( static::$scriptEventMap[$_apiName] ) || !is_array( static::$scriptEventMap[$_apiName] ) || empty( static::$scriptEventMap[$_apiName] )
             )
             {
-                static::$_eventMap[$_apiName] = [ ];
+                static::$scriptEventMap[$_apiName] = [ ];
             }
 
-            $_serviceEvents = [];//static::_parseSwaggerEvents( $_apiName, $_content );
+            if ( !isset( static::$subscribeEventMap[$_apiName] ) ||
+                 !is_array( static::$subscribeEventMap[$_apiName] ) ||
+                 empty( static::$subscribeEventMap[$_apiName] )
+            )
+            {
+                static::$subscribeEventMap[$_apiName] = [ ];
+            }
+
+            $_serviceEvents = static::_parseSwaggerEvents( $_apiName, $_content );
 
             $_content = array_merge( $_baseSwagger, $_content );
             $_content = json_encode( $_content, JSON_UNESCAPED_SLASHES );
@@ -182,9 +192,13 @@ class Swagger extends BaseRestService
             ];
 
             //	Parse the events while we get the chance...
-            static::$_eventMap[$_apiName] = array_merge(
-                ArrayUtils::clean( static::$_eventMap[$_apiName] ),
-                $_serviceEvents
+            static::$scriptEventMap[$_apiName] = array_merge(
+                ArrayUtils::clean( static::$scriptEventMap[$_apiName] ),
+                $_serviceEvents['script']
+            );
+            static::$subscribeEventMap[$_apiName] = array_merge(
+                ArrayUtils::clean( static::$subscribeEventMap[$_apiName] ),
+                $_serviceEvents['subscribe']
             );
 
             unset( $_content, $_filePath, $_service, $_serviceEvents );
@@ -228,13 +242,23 @@ HTML;
 
         //	Write event cache file
         if ( false === \Cache::add(
-                static::SWAGGER_EVENT_CACHE_FILE,
-                json_encode( static::$_eventMap, JSON_UNESCAPED_SLASHES ),
+                static::SWAGGER_SCRIPT_EVENT_CACHE_FILE,
+                json_encode( static::$scriptEventMap, JSON_UNESCAPED_SLASHES ),
                 static::SWAGGER_CACHE_TTL
             )
         )
         {
-            \Log::error( '  * System error creating swagger cache file: ' . static::SWAGGER_EVENT_CACHE_FILE );
+            \Log::error( '  * System error creating swagger script-able event cache file: ' . static::SWAGGER_SCRIPT_EVENT_CACHE_FILE );
+        }
+
+        if ( false === \Cache::add(
+                static::SWAGGER_SUBSCRIBE_EVENT_CACHE_FILE,
+                json_encode( static::$subscribeEventMap, JSON_UNESCAPED_SLASHES ),
+                static::SWAGGER_CACHE_TTL
+            )
+        )
+        {
+            \Log::error( '  * System error creating swagger subscribe-able event cache file: ' . static::SWAGGER_SUBSCRIBE_EVENT_CACHE_FILE );
         }
 
         \Log::info( 'Swagger cache build process complete' );
@@ -248,7 +272,7 @@ HTML;
     {
         // check the database records for custom doc in swagger, raml, etc.
         $info = $service->serviceDocs()->first();
-        $content = (isset( $info)) ? $info->content : null;
+        $content = ( isset( $info ) ) ? $info->content : null;
         if ( is_string( $content ) )
         {
             $content = json_decode( $content, true );
@@ -274,40 +298,39 @@ HTML;
      */
     protected static function _parseSwaggerEvents( $apiName, &$data )
     {
-        $_eventMap = [ ];
-        $_eventCount = 0;
+        $scriptEvents = [ ];
+        $subscribeEvents = [ ];
+        $eventCount = 0;
 
-        foreach ( ArrayUtils::get( $data, 'apis', [ ] ) as $_ixApi => $_api )
+        foreach ( ArrayUtils::get( $data, 'apis', [ ] ) as $_ixApi => $api )
         {
-            //  Trim slashes for use as a file name
-            $_scripts = $_events = [ ];
+            $apiScriptEvents = $apiSubscribeEvents = [ ];
 
-            if ( null === ( $_path = ArrayUtils::get( $_api, 'path' ) ) )
+            if ( null === ( $path = ArrayUtils::get( $api, 'path' ) ) )
             {
                 \Log::notice( '  * Missing "path" in Swagger definition: ' . $apiName );
                 continue;
             }
 
-            $_path = str_replace(
+            $path = str_replace(
                 [ '{api_name}', '/' ],
                 [ $apiName, '.' ],
-                trim( $_path, '/' )
+                trim( $path, '/' )
             );
 
-            foreach ( ArrayUtils::get( $_api, 'operations', [ ] ) as $_ixOps => $_operation )
+            foreach ( ArrayUtils::get( $api, 'operations', [ ] ) as $_ixOps => $_operation )
             {
                 if ( null !== ( $_eventNames = ArrayUtils::get( $_operation, 'event_name' ) ) )
                 {
                     $_method = strtolower( ArrayUtils::get( $_operation, 'method', Verbs::GET ) );
-                    $_scripts = [ ];
                     $_eventsThrown = [ ];
 
                     if ( is_string( $_eventNames ) && false !== strpos( $_eventNames, ',' ) )
                     {
-                        $_events = explode( ',', $_eventNames );
+                        $_eventNames = explode( ',', $_eventNames );
 
                         //  Clean up any spaces...
-                        foreach ( $_events as &$_tempEvent )
+                        foreach ( $_eventNames as &$_tempEvent )
                         {
                             $_tempEvent = trim( $_tempEvent );
                         }
@@ -343,333 +366,30 @@ HTML;
                             $_templateEventName
                         );
 
-                        $_scripts += static::_findScripts( $_path, $_method, $_eventName );
-
                         $_eventsThrown[] = $_eventName;
 
                         //  Set actual name in swagger file
                         $data['apis'][$_ixApi]['operations'][$_ixOps]['event_name'][$_ixEventNames] = $_eventName;
 
-                        $_eventCount++;
+                        $eventCount++;
                     }
 
-                    $_events[$_method] = [
-                        'event'   => $_eventsThrown,
-                        'scripts' => $_scripts,
-                    ];
+                    $apiSubscribeEvents[$_method] = $_eventsThrown;
+                    $apiScriptEvents[$_method] = [ "$path.$_method.pre_process", "$path.$_method.post_process" ];
                 }
 
-                unset( $_operation, $_scripts, $_eventsThrown );
+                unset( $_operation, $_eventsThrown );
             }
 
-            $_eventMap[str_ireplace( '{api_name}', $apiName, $_path )] = $_events;
+            $scriptEvents[str_ireplace( '{api_name}', $apiName, $path )] = $apiScriptEvents;
+            $subscribeEvents[str_ireplace( '{api_name}', $apiName, $path )] = $apiSubscribeEvents;
 
-            unset( $_scripts, $_events, $_api );
+            unset( $apiScriptEvents, $apiSubscribeEvents, $api );
         }
 
-        \Log::debug( '  * Discovered ' . $_eventCount . ' event(s).' );
+        \Log::debug( '  * Discovered ' . $eventCount . ' event(s).' );
 
-        return $_eventMap;
-    }
-
-    /**
-     * Returns a list of scripts that can response to specified events
-     *
-     * @param string $apiName
-     * @param string $method
-     * @param string $eventName Optional event name to try
-     *
-     * @return array|bool
-     */
-    protected static function _findScripts( $apiName, $method = Verbs::GET, $eventName = null )
-    {
-        static $_scriptPath;
-
-        if ( empty( $_scriptPath ) )
-        {
-            $_scriptPath = Platform::getPrivatePath( Script::DEFAULT_SCRIPT_PATH );
-        }
-
-        //  Find standard pattern scripts: [api_name].[method].*.js
-        $_scriptPattern = strtolower( $apiName ) . '.' . strtolower( $method ) . '.*.js';
-
-        //  Check for false return...
-        if ( false === ( $_scripts = FileSystem::glob( $_scriptPath . DIRECTORY_SEPARATOR . $_scriptPattern ) ) )
-        {
-            $_scripts = [ ];
-        }
-
-        if ( !empty( $eventName ) )
-        {
-            //  If an event name is given, look for the specific script [event_name].js
-            $_namedScripts = FileSystem::glob( $_scriptPath . DIRECTORY_SEPARATOR . $eventName . '.js' );
-
-            //  Finally, glob any placeholders that are left in the event name...
-            $_globbed = preg_replace( '/({.*})/', '*', $eventName );
-            $_globbedScripts = FileSystem::glob( $_scriptPath . DIRECTORY_SEPARATOR . $_globbed . '.js' );
-
-            $_scripts = array_merge( $_scripts, $_globbedScripts, $_namedScripts );
-        }
-
-        if ( empty( $_scripts ) )
-        {
-            if ( !empty( $eventName ) )
-            {
-                $_scripts = FileSystem::glob( $_scriptPath . DIRECTORY_SEPARATOR . $eventName . '.js' );
-            }
-
-            if ( empty( $_scripts ) )
-            {
-                return [ ];
-            }
-        }
-
-        $_response = [ ];
-        $_eventPattern = '/^' . str_replace( [ '.*.js', '.' ], [ null, '\\.' ], $_scriptPattern ) . '\\.(\w)\\.js$/i';
-
-        foreach ( $_scripts as $_script )
-        {
-            if ( 0 === preg_match( $_eventPattern, $_script ) )
-            {
-                $_response[] = $_script;
-            }
-        }
-
-        return $_response;
-    }
-
-    /**
-     * @param BaseRestService $service
-     * @param string          $method
-     * @param string          $eventName                 Global search for event name
-     * @param array           $replacementValues         An optional array of replacements to consider in event name
-     *                                                   matching
-     *
-     * @return string
-     */
-    public static function findEvent( BaseRestService $service, $method, $eventName = null, array $replacementValues = [ ] )
-    {
-        $_cache = \Cache::get( 'swagger.event_map_cache', [ ] );
-
-        $_map = static::getEventMap();
-        $_aliases = $service->getVerbAliases();
-        $_methods = [ $method ];
-
-        foreach ( ArrayUtils::clean( $_aliases ) as $_action => $_alias )
-        {
-            if ( $method == $_alias )
-            {
-                $_methods[] = $_action;
-            }
-        }
-
-        //  Change the request uri for inline calls
-        $_requestUri = ArrayUtils::server( 'INLINE_REQUEST_URI', Pii::request( false )->getRequestUri() );
-
-        $_hash = sha1( $method . '.' . $_requestUri );
-
-        if ( isset( $_cache[$_hash] ) )
-        {
-            return $_cache[$_hash];
-        }
-
-        //  Global search by name
-        if ( null !== $eventName )
-        {
-            foreach ( $_map as $_path )
-            {
-                foreach ( $_path as $_method => $_info )
-                {
-                    if ( 0 !== strcasecmp( $_method, $method ) )
-                    {
-                        continue;
-                    }
-
-                    if ( 0 == strcasecmp( $eventName, $_eventName = ArrayUtils::get( $_info, 'event' ) ) )
-                    {
-                        $_cache[$_hash] = $_eventName;
-
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        $_apiName = strtolower( $service->getApiName() );
-        $_savedResource = $_resource = $service->getResource();
-
-        /** @noinspection PhpUndefinedMethodInspection */
-        $_resourceId = method_exists( $service, 'getResourceId' ) ? @$service->getResourceId() : null;
-
-        $_pathParts = explode(
-            '/',
-            ltrim(
-                str_ireplace(
-                    'rest',
-                    null,
-                    trim( !Pii::cli() ? Pii::request( true )->getPathInfo() : $service->getResourcePath(), '/' )
-                ),
-                '/'
-            )
-        );
-
-        if ( empty( $_resource ) )
-        {
-            $_resource = $_apiName;
-        }
-        else
-        {
-            switch ( $_apiName )
-            {
-                case 'db':
-                    $_resource = 'db';
-                    break;
-
-                default:
-                    if ( $_resource != ( $_requested = ArrayUtils::get( $_pathParts, 0 ) ) )
-                    {
-                        $_resource = $_requested;
-                    }
-                    break;
-            }
-        }
-
-        if ( null === ( $_resources = ArrayUtils::get( $_map, $_resource ) ) )
-        {
-            if ( !method_exists( $service, 'getServiceName' ) || null === ( $_resources = ArrayUtils::get( $_map, $service->getServiceName() ) )
-            )
-            {
-                if ( null === ( $_resources = ArrayUtils::get( $_map, 'system' ) ) )
-                {
-                    return null;
-                }
-            }
-        }
-
-        $_path = !Pii::cli() ? Pii::request( true )->getPathInfo() : $service->getResourcePath();
-
-        if ( 'rest' == substr( $_path, 0, 4 ) )
-        {
-            $_path = substr( $_path, 4 );
-        }
-
-        $_path = trim( $_path, '/' );
-
-        //  Strip off the resource ID if any...
-        if ( $_resourceId && false !== ( $_pos = stripos( $_path, '/' . $_resourceId ) ) )
-        {
-            $_path = substr( $_path, 0, $_pos );
-        }
-
-        $_swaps = [ [ ], [ ] ];
-
-        switch ( $service->getTypeId() )
-        {
-            case PlatformServiceTypes::LOCAL_SQL_DB:
-            case PlatformServiceTypes::LOCAL_SQL_DB_SCHEMA:
-            case PlatformServiceTypes::REMOTE_SQL_DB:
-            case PlatformServiceTypes::REMOTE_SQL_DB_SCHEMA:
-            case PlatformServiceTypes::NOSQL_DB:
-                $_swaps = [
-                    [
-                        $_savedResource,
-                    ],
-                    [
-                        '{table_name}',
-                    ],
-                ];
-
-                $_path = str_ireplace( $_swaps[0], $_swaps[1], $_path );
-                break;
-
-            case PlatformServiceTypes::LOCAL_FILE_STORAGE:
-            case PlatformServiceTypes::REMOTE_FILE_STORAGE:
-                if ( $service instanceof BaseFileSvc )
-                {
-                    $_swaps = [
-                        [
-                            ArrayUtils::get( $replacementValues, 'container', $service->getContainerId() ),
-                            $_folderPath = ArrayUtils::get( $replacementValues, 'folder_path', $service->getFolderPath() ),
-                            $_filePath = ArrayUtils::get( $replacementValues, 'file_path', $service->getFilePath() ),
-                        ],
-                        [
-                            '{container}',
-                            '{folder_path}',
-                            '{file_path}',
-                        ],
-                    ];
-
-                    //  Add in optional trailing slashes
-                    if ( $_folderPath )
-                    {
-                        $_swaps[0][] = $_folderPath[strlen( $_folderPath ) - 1] != '/'
-                            ? $_folderPath . '/'
-                            : substr(
-                                $_folderPath,
-                                0,
-                                strlen( $_folderPath ) - 1
-                            );
-                        $_swaps[1][] = '{folder_path}';
-                    }
-
-                    if ( $_filePath )
-                    {
-                        $_swaps[0][] = $_filePath[strlen( $_filePath ) - 1] != '/'
-                            ? $_filePath . '/'
-                            : substr(
-                                $_filePath,
-                                0,
-                                strlen( $_filePath ) - 1
-                            );
-                        $_swaps[1][] = '{file_path}';
-                    }
-                }
-
-                $_path = str_ireplace( $_swaps[0], $_swaps[1], $_path );
-                break;
-        }
-
-        if ( empty( $_path ) )
-        {
-            return null;
-        }
-
-        $_path = implode( '.', explode( '/', ltrim( $_path, '/' ) ) );
-        $_pattern = '#^' . preg_replace( '/\\\:[a-zA-Z0-9\_\-]+/', '([a-zA-Z0-9\-\_]+)', preg_quote( $_path ) ) . '/?$#';
-        $_matches = preg_grep( $_pattern, array_keys( $_resources ) );
-
-        if ( empty( $_matches ) )
-        {
-            return null;
-        }
-
-        foreach ( $_matches as $_match )
-        {
-            foreach ( $_methods as $_method )
-            {
-                if ( null === ( $_methodInfo = ArrayUtils::getDeep( $_resources, $_match, $_method ) ) )
-                {
-                    continue;
-                }
-
-                if ( null !== ( $_eventName = ArrayUtils::get( $_methodInfo, 'event' ) ) )
-                {
-                    //  Restore the original path...
-                    $_eventName = str_ireplace( $_swaps[1], $_swaps[0], $_eventName );
-
-                    $_cache[$_hash] = $_eventName;
-
-                    //  Cache for one minute...
-                    \Cache::add( 'swagger.event_map_cache', $_cache, 60 );
-
-                    return $_eventName;
-                }
-            }
-        }
-
-        return null;
+        return [ 'script' => $scriptEvents, 'subscribe' => $subscribeEvents ];
     }
 
     /**
@@ -677,30 +397,61 @@ HTML;
      *
      * @return array
      */
-    public static function getEventMap()
+    public static function getScriptedEventMap()
     {
-        if ( !empty( static::$_eventMap ) )
+        if ( !empty( static::$scriptEventMap ) )
         {
-            return static::$_eventMap;
+            return static::$scriptEventMap;
         }
 
-        $_encoded = \Cache::get( static::SWAGGER_EVENT_CACHE_FILE );
+        $_encoded = \Cache::get( static::SWAGGER_SCRIPT_EVENT_CACHE_FILE );
 
         if ( !empty( $_encoded ) )
         {
-            if ( false === ( static::$_eventMap = json_decode( $_encoded, true ) ) )
+            if ( false === ( static::$scriptEventMap = json_decode( $_encoded, true ) ) )
             {
                 \Log::error( '  * Event cache appears corrupt, or cannot be read.' );
             }
         }
 
         //	If we still have no event map, build it.
-        if ( empty( static::$_eventMap ) )
+        if ( empty( static::$scriptEventMap ) )
         {
             static::buildSwagger();
         }
 
-        return static::$_eventMap;
+        return static::$scriptEventMap;
+    }
+
+    /**
+     * Retrieves the cached event map or triggers a rebuild
+     *
+     * @return array
+     */
+    public static function getSubscribedEventMap()
+    {
+        if ( !empty( static::$subscribeEventMap ) )
+        {
+            return static::$subscribeEventMap;
+        }
+
+        $_encoded = \Cache::get( static::SWAGGER_SUBSCRIBE_EVENT_CACHE_FILE );
+
+        if ( !empty( $_encoded ) )
+        {
+            if ( false === ( static::$subscribeEventMap = json_decode( $_encoded, true ) ) )
+            {
+                \Log::error( '  * Event cache appears corrupt, or cannot be read.' );
+            }
+        }
+
+        //	If we still have no event map, build it.
+        if ( empty( static::$subscribeEventMap ) )
+        {
+            static::buildSwagger();
+        }
+
+        return static::$subscribeEventMap;
     }
 
     /**
@@ -756,11 +507,12 @@ HTML;
     public static function clearCache()
     {
         \Cache::forget( static::SWAGGER_CACHE_FILE );
-        \Cache::forget( static::SWAGGER_EVENT_CACHE_FILE );
+        \Cache::forget( static::SWAGGER_SCRIPT_EVENT_CACHE_FILE );
+        \Cache::forget( static::SWAGGER_SUBSCRIBE_EVENT_CACHE_FILE );
 
         //  Clear the rest of the swagger cache for each service api name
         //	Spin through services and clear the cache file
-        foreach ( Service::lists('name') as $service )
+        foreach ( Service::lists( 'name' ) as $service )
         {
             if ( false === \Cache::forget( $service . '.json' ) )
             {

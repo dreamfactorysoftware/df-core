@@ -18,295 +18,68 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources;
+namespace DreamFactory\Rave\Resources\System;
 
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Models\EventScript;
-use DreamFactory\Rave\Scripting\ScriptEvent;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use Illuminate\Support\Facades\Config;
-use DreamFactory\Rave\Utility\ResponseFactory;
-use DreamFactory\Rave\Models\BaseSystemModel;
-use Illuminate\Database\Eloquent\Collection;
+use DreamFactory\Rave\Models\EventSubscriber as EventSubscriberModel;
+use DreamFactory\Rave\Resources\BaseRestSystemResource;
+use DreamFactory\Rave\Services\Swagger;
 
 /**
- * Class Script
+ * Class EventSubscriber
  *
  * @package DreamFactory\Rave\Resources
  */
-class Script extends BaseRestSystemResource
+class EventSubscriber extends BaseRestSystemResource
 {
+    //*************************************************************************
+    //	Constants
+    //*************************************************************************
+
+    /**
+     * Resource tag for dealing with event subscribers
+     */
+    const RESOURCE_NAME = '_subscriber';
+
+    //*************************************************************************
+    //	Members
+    //*************************************************************************
+
     /**
      * @param array $settings
      */
     public function __construct( $settings = [ ] )
     {
         parent::__construct( $settings );
-        $this->model = new EventScript();
+        $this->model = new EventSubscriberModel();
     }
 
     /**
      * Handles GET action
      *
      * @return array
-     * @throws NotFoundException
      */
     protected function handleGET()
     {
-        $requestQuery = $this->getQueryData();
-        $ids = ArrayUtils::get( $requestQuery, 'ids' );
-        $records = $this->getPayloadData( self::RECORD_WRAPPER );
-
-        $data = null;
-
-        $related = ArrayUtils::get( $requestQuery, 'related' );
-        if ( !empty( $related ) )
+        if ( $this->getQueryBool( 'all_events' ) )
         {
-            $related = explode( ',', $related );
-        }
-        else
-        {
-            $related = [ ];
-        }
-
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = $this->getModel();
-        /** @var BaseSystemModel $model */
-        $model = new $modelClass;
-        $pk = $model->getPrimaryKey();
-
-        //	Single resource by ID
-        if ( !empty( $this->resource ) )
-        {
-            $foundModel = $modelClass::with( $related )->find( $this->resource );
-            if ( $foundModel )
+            $results = Swagger::getSubscribedEventMap();
+            $allEvents = [ ];
+            foreach ( $results as $service => $apis )
             {
-                $data = $foundModel->toArray();
-            }
-        }
-        else if ( !empty( $ids ) )
-        {
-            /** @var Collection $dataCol */
-            $dataCol = $modelClass::with( $related )->whereIn( $pk, explode( ',', $ids ) )->get();
-            $data = $dataCol->toArray();
-            $data = [ self::RECORD_WRAPPER => $data ];
-        }
-        else if ( !empty( $records ) )
-        {
-            $pk = $model->getPrimaryKey();
-            $ids = [ ];
-
-            foreach ( $records as $record )
-            {
-                $ids[] = ArrayUtils::get( $record, $pk );
-            }
-
-            /** @var Collection $dataCol */
-            $dataCol = $modelClass::with( $related )->whereIn( $pk, $ids )->get();
-            $data = $dataCol->toArray();
-            $data = [ self::RECORD_WRAPPER => $data ];
-        }
-        else
-        {
-            //	Build our criteria
-            $criteria = [
-                'params' => [ ],
-            ];
-
-            if ( null !== ( $value = ArrayUtils::get( $requestQuery, 'fields' ) ) )
-            {
-                $criteria['select'] = $value;
-            }
-            else
-            {
-                $criteria['select'] = "*";
-            }
-
-            if ( null !== ( $value = $this->getPayloadData( 'params' ) ) )
-            {
-                $criteria['params'] = $value;
-            }
-
-            if ( null !== ( $value = ArrayUtils::get( $requestQuery, 'filter' ) ) )
-            {
-                $criteria['condition'] = $value;
-
-                //	Add current user ID into parameter array if in condition, but not specified.
-                if ( false !== stripos( $value, ':user_id' ) )
+                foreach ( $apis as $path => $operations )
                 {
-                    if ( !isset( $criteria['params'][':user_id'] ) )
+                    foreach ( $operations as $method => $events )
                     {
-                        //$criteria['params'][':user_id'] = Session::getCurrentUserId();
+                        $allEvents = array_merge( $allEvents, $events );
                     }
                 }
             }
 
-            $value = intval( ArrayUtils::get( $requestQuery, 'limit' ) );
-            $maxAllowed = intval( Config::get( 'rave.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
-            if ( ( $value < 1 ) || ( $value > $maxAllowed ) )
-            {
-                // impose a limit to protect server
-                $value = $maxAllowed;
-            }
-            $criteria['limit'] = $value;
-
-            if ( null !== ( $value = ArrayUtils::get( $requestQuery, 'offset' ) ) )
-            {
-                $criteria['offset'] = $value;
-            }
-
-            if ( null !== ( $value = ArrayUtils::get( $requestQuery, 'order' ) ) )
-            {
-                $criteria['order'] = $value;
-            }
-
-            $data = $model->selectResponse( $criteria, $related );
-            $data = [ static::RECORD_WRAPPER => $data ];
+            return $allEvents;
         }
 
-        if ( null === $data )
-        {
-            throw new NotFoundException( "Record not found." );
-        }
-
-        if ( ArrayUtils::getBool( $requestQuery, 'include_count' ) === true )
-        {
-            if ( isset( $data['record'] ) )
-            {
-                $data['meta']['count'] = count( $data['record'] );
-            }
-            elseif ( !empty( $data ) )
-            {
-                $data['meta']['count'] = 1;
-            }
-        }
-
-        if ( !empty( $data ) && ArrayUtils::getBool( $requestQuery, 'include_schema' ) === true )
-        {
-            $data['meta']['schema'] = $model->getTableSchema()->toArray();
-        }
-
-        if ( empty( $data ) )
-        {
-            return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_NOT_FOUND );
-        }
-
-        return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_OK );
-    }
-
-    /**
-     * Handles POST action
-     *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
-     * @throws BadRequestException
-     * @throws \Exception
-     */
-    protected function handlePOST()
-    {
-        if ( !empty( $this->resource ) )
-        {
-            throw new BadRequestException( 'Create record by identifier not currently supported.' );
-        }
-
-        $records = $this->getPayloadData( self::RECORD_WRAPPER );
-
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'No record(s) detected in request.' );
-        }
-
-        $this->triggerActionEvent( $this->response );
-
-        $model = $this->getModel();
-        $result = $model::bulkCreate( $records, $this->getQueryData() );
-
-        $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
-
-        return $response;
-    }
-
-    /**
-     * @throws BadRequestException
-     */
-    protected function handlePUT()
-    {
-        throw new BadRequestException( 'PUT is not supported on System Resource. Use PATCH' );
-    }
-
-    /**
-     * Handles PATCH action
-     *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
-     * @throws BadRequestException
-     * @throws \Exception
-     */
-    protected function handlePATCH()
-    {
-        $records = $this->getPayloadData( static::RECORD_WRAPPER );
-        $ids = $this->getQueryData( 'ids' );
-        $modelClass = $this->getModel();
-
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'No record(s) detected in request.' );
-        }
-
-        $this->triggerActionEvent( $this->response );
-
-        if ( !empty( $this->resource ) )
-        {
-            $result = $modelClass::updateById( $this->resource, $records[0], $this->getQueryData() );
-        }
-        elseif ( !empty( $ids ) )
-        {
-            $result = $modelClass::updateByIds( $ids, $records[0], $this->getQueryData() );
-        }
-        else
-        {
-            $result = $modelClass::bulkUpdate( $records, $this->getQueryData() );
-        }
-
-        return $result;
-    }
-
-    /**
-     * Handles DELETE action
-     *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
-     * @throws BadRequestException
-     * @throws \Exception
-     */
-    protected function handleDELETE()
-    {
-        $this->triggerActionEvent( $this->response );
-        $ids = $this->getQueryData( 'ids' );
-        $modelClass = $this->getModel();
-
-        if ( !empty( $this->resource ) )
-        {
-            $result = $modelClass::deleteById( $this->resource, $this->getQueryData() );
-        }
-        elseif ( !empty( $ids ) )
-        {
-            $result = $modelClass::deleteByIds( $ids, $this->getQueryData() );
-        }
-        else
-        {
-            $records = $this->getPayloadData( static::RECORD_WRAPPER );
-
-            if ( empty( $records ) )
-            {
-                throw new BadRequestException( 'No record(s) detected in request.' );
-            }
-            $result = $modelClass::bulkDelete( $records, $this->getQueryData() );
-        }
-
-        return $result;
+        return parent::handleGET();
     }
 
     public function getApiDocInfo()

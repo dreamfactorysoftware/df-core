@@ -108,6 +108,7 @@ class CreateSystemTables extends Migration
                 $t->string( 'name', 80 )->unique();
                 $t->string( 'type' );
                 $t->text( 'config' )->nullable();
+                $t->timestamps();
             }
         );
 
@@ -122,6 +123,7 @@ class CreateSystemTables extends Migration
                 $t->foreign( 'type' )->references( 'name' )->on( 'script_type' )->onDelete( 'cascade' );
                 $t->text( 'content' )->nullable();
                 $t->text( 'config' )->nullable();
+                $t->timestamps();
             }
         );
 

@@ -96,7 +96,7 @@ class SystemResource extends BaseModel
                     'name'        => 'event',
                     'label'       => 'Events',
                     'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Event',
-                    'description' => 'Allows registering external listeners to system generated events.',
+                    'description' => 'Allows registering internal scripts or external listeners to system generated events.',
                 ],
                 [
                     'name'        => 'lookup',
@@ -109,12 +109,6 @@ class SystemResource extends BaseModel
                     'label'       => 'Roles',
                     'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Role',
                     'description' => 'Allows role configuration.',
-                ],
-                [
-                    'name'        => 'script',
-                    'label'       => 'Scripts',
-                    'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Script',
-                    'description' => 'Allows scripting of internal system events.',
                 ],
                 [
                     'name'        => 'service',

@@ -82,7 +82,7 @@ class ServiceRequest implements ServiceRequestInterface
             return $this->json( $key, $default );
         }
 
-        //Check the actual content. It is it blank return blank array.
+        //Check the actual content. If it is blank return blank array.
         $content = $this->getContent();
         if ( empty( $content ) )
         {

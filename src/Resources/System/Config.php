@@ -31,12 +31,15 @@ class Config extends BaseRestSystemResource
 
     public function __construct( $settings = [ ] )
     {
-        parent::__construct( $settings );
-        $this->verbAliases = [
+        $verbAliases = [
             Verbs::PUT   => Verbs::POST,
             Verbs::MERGE => Verbs::POST,
             Verbs::PATCH => Verbs::POST
         ];
+        ArrayUtils::set( $settings, "verbAliases", $verbAliases );
+
+        parent::__construct( $settings );
+
         $this->model = new \DreamFactory\Rave\Models\Config();
     }
 

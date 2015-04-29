@@ -3,9 +3,9 @@
 use Carbon\Carbon;
 use DreamFactory\Rave\Http\Controllers\Controller;
 use Illuminate\Contracts\Auth\Guard;
-use Illuminate\Contracts\Auth\Registrar;
 use Illuminate\Foundation\Auth\AuthenticatesAndRegistersUsers;
 use Illuminate\Http\Request;
+use DreamFactory\Rave\Components\Registrar;
 
 class AuthController extends Controller
 {
@@ -32,12 +32,11 @@ class AuthController extends Controller
 	 * Create a new authentication controller instance.
 	 *
 	 * @param  \Illuminate\Contracts\Auth\Guard  $auth
-	 * @param  \Illuminate\Contracts\Auth\Registrar  $registrar
 	 */
-	public function __construct(Guard $auth, Registrar $registrar)
+	public function __construct(Guard $auth)
 	{
 		$this->auth = $auth;
-		$this->registrar = $registrar;
+		$this->registrar = new Registrar();
 
 		$this->middleware('guest', ['except' => 'getLogout']);
 	}

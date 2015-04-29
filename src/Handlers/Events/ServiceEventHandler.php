@@ -85,9 +85,9 @@ class ServiceEventHandler
      */
     public function subscribe( $events )
     {
-        $events->listen( 'DreamFactory\Rave\Events\ServicePostProcess', 'DreamFactory\Rave\Handlers\Events\ServiceEventHandler@onServicePreProcess' );
+        $events->listen( 'DreamFactory\Rave\Events\ServicePreProcess', 'DreamFactory\Rave\Handlers\Events\ServiceEventHandler@onServicePreProcess' );
         $events->listen( 'DreamFactory\Rave\Events\ServicePostProcess', 'DreamFactory\Rave\Handlers\Events\ServiceEventHandler@onServicePostProcess' );
-        $events->listen( 'DreamFactory\Rave\Events\ResourcePostProcess', 'DreamFactory\Rave\Handlers\Events\ServiceEventHandler@onResourcePreProcess' );
+        $events->listen( 'DreamFactory\Rave\Events\ResourcePreProcess', 'DreamFactory\Rave\Handlers\Events\ServiceEventHandler@onResourcePreProcess' );
         $events->listen( 'DreamFactory\Rave\Events\ResourcePostProcess', 'DreamFactory\Rave\Handlers\Events\ServiceEventHandler@onResourcePostProcess' );
     }
 

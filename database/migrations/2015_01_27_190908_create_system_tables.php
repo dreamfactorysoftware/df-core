@@ -69,6 +69,7 @@ class CreateSystemTables extends Migration
                 $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
                 $t->integer( 'format' )->unsigned()->default( 0 );
                 $t->text( 'content' )->nullable();
+                $t->timestamps();
             }
         );
 
@@ -289,8 +290,7 @@ class CreateSystemTables extends Migration
             function(Blueprint $t)
             {
                 $t->increments('id');
-                $t->string('path');
-                $t->unique('path');
+                $t->string('path')->unique();
                 $t->string('origin');
                 $t->longText('header');
                 $t->integer('method')->default(0);
@@ -316,7 +316,6 @@ class CreateSystemTables extends Migration
                 $t->longText('key')->nullable(); //encrypted
                 $t->longText('secret')->nullable(); //encrypted
                 $t->string('domain')->nullable();
-                $t->timestamps();
             }
         );
 
@@ -331,7 +330,6 @@ class CreateSystemTables extends Migration
                 $t->string('name');
                 $t->mediumText('value')->nullable();
                 $t->boolean('active')->default(1);
-                $t->timestamps();
             }
         );
 

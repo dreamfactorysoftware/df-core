@@ -22,7 +22,6 @@ namespace DreamFactory\Rave\Resources\System;
 
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Rave\Resources\BaseRestSystemResource;
-use App\User;
 
 class Admin extends BaseRestSystemResource
 {
@@ -32,7 +31,7 @@ class Admin extends BaseRestSystemResource
     public function __construct( $settings = [ ] )
     {
         parent::__construct( $settings );
-        $this->model = new User();
+        $this->model = new \DreamFactory\Rave\Models\User();
     }
 
     public function getApiDocInfo()

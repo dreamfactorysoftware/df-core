@@ -33,6 +33,7 @@ use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\App;
 use DreamFactory\Rave\Models\Role;
 use DreamFactory\Rave\Utility\Session as SessionUtil;
+use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 
 class AccessCheck
 {
@@ -106,7 +107,14 @@ class AccessCheck
 
                 if(empty($role))
                 {
-                    return static::getException(new UnauthorizedException('Unauthorized request. User to App-Role not found.'), $request);
+                    $app->load('role_by_role_id');
+                    /** @var Role $role */
+                    $role = $app->getRelation( 'role_by_role_id' );
+                }
+
+                if(empty($role))
+                {
+                    return static::getException(new InternalServerErrorException('Unexpected error occurred. Role not found for Application.'), $request);
                 }
 
                 $roleData = static::getRoleData( $role );
@@ -136,7 +144,7 @@ class AccessCheck
 
                 if(empty($role))
                 {
-                    return static::getException(new UnauthorizedException('Unauthorized request. Role not found.'), $request);
+                    return static::getException(new InternalServerErrorException('Unexpected error occurred. Role not found for Application.'), $request);
                 }
 
                 $roleData = static::getRoleData( $role );

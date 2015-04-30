@@ -29,30 +29,20 @@ class RaveServiceProvider extends BaseServiceProvider
     {
         $this->publishes(
             [
-                __DIR__ . '/../config/'  => config_path(),
-                __DIR__ . '/../views/'   => public_path(),
+                __DIR__ . '/../config/rave.php'  => config_path(),
+                __DIR__ . '/../views/test_rest.html'   => public_path(),
                 __DIR__ . '/../storage/' => storage_path(),
             ]
         );
 
         include __DIR__ . '/Http/RaveRoutes.php';
 
-        //Adding cors middleware to Kernel as a global middleware
-        $this->app['Illuminate\Contracts\Http\Kernel']->prependMiddleware( 'DreamFactory\Rave\Http\Middleware\Cors' );
-
         $router = $this->app['router'];
         $router->middleware( 'access_check', 'DreamFactory\Rave\Http\Middleware\AccessCheck' );
-        $router->middleware( 'admin_check', 'DreamFactory\Rave\Http\Middleware\AdminCheck' );
-        $router->middleware( 'rave_auth', 'DreamFactory\Rave\Http\Middleware\Authenticate' );
-        $router->middleware( 'rave_guest', 'DreamFactory\Rave\Http\Middleware\RedirectIfAuthenticated' );
     }
 
     public function register()
     {
-        //Register CorsServiceProvider...
-        $cors = new RaveCorsServiceProvider( $this->app );
-        $cors->register();
-
         $subscriber = new ServiceEventHandler();
         \Event::subscribe($subscriber);
     }

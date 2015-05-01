@@ -119,7 +119,10 @@ class BaseModel extends Model
                     $newModels[] = new $relatedModel( $record );
                 }
 
-                $model->getHasManyByRelationName( $name )->saveMany( $newModels );
+                if('has_many' === $model->getReferencingType($name))
+                {
+                    $model->getHasManyByRelationName( $name )->saveMany( $newModels );
+                }
             }
 
             if ( $transaction )
@@ -177,8 +180,12 @@ class BaseModel extends Model
                 foreach ( $relations as $name => $value )
                 {
                     $relatedModel = $this->getReferencingModel( $name );
-                    $hasMany = $this->getHasManyByRelationName( $name );
-                    $this->saveHasManyData( $relatedModel, $hasMany, $value, $name );
+
+                    if('has_many' === $this->getReferencingType($name))
+                    {
+                        $hasMany = $this->getHasManyByRelationName( $name );
+                        $this->saveHasManyData( $relatedModel, $hasMany, $value, $name );
+                    }
                 }
             }
 

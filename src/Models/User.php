@@ -64,6 +64,10 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      */
     protected $hidden = [ 'password', 'remember_token' ];
 
+    protected static $relatedModels = [
+        'user_to_app_role' => 'DreamFactory\Rave\Models\UserAppRole'
+    ];
+
     public static function seed()
     {
         $seeded = false;

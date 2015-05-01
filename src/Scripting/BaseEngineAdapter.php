@@ -153,7 +153,7 @@ abstract class BaseEngineAdapter
         $libraryPath[] = storage_path( DIRECTORY_SEPARATOR . 'scripts' );
 
         //  Merge in config libraries...
-        $libraryPaths = array_merge( $libraryPaths, ArrayUtils::clean(\Config::get( 'dsp.scripting.paths', [ ] )));
+        $libraryPaths = array_merge( $libraryPaths, ArrayUtils::clean( \Config::get( 'dsp.scripting.paths', [ ] ) ) );
 
         //  Add them to collection if valid
         if ( is_array( $libraryPaths ) )
@@ -176,7 +176,7 @@ abstract class BaseEngineAdapter
 
         \Cache::add( 'scripting.library_paths', static::$libraryPaths, static::DEFAULT_CACHE_TTL );
 
-        if (empty( static::$libraryPaths ))
+        if ( empty( static::$libraryPaths ) )
         {
             Log::debug( 'No scripting library paths found.' );
         }
@@ -442,18 +442,28 @@ abstract class BaseEngineAdapter
             return static::inlineRequest( Verbs::PATCH, $path, $payload, $curlOptions );
         };
 
-        $_api->includeUserScript = function ( $fileName )
+        $_api->includeScript = function ( $fileName )
         {
-            $_fileName = storage_path( DIRECTORY_SEPARATOR . 'scripts.user' ) . DIRECTORY_SEPARATOR . $fileName;
+            $_fileName = storage_path( DIRECTORY_SEPARATOR . 'scripts' ) . DIRECTORY_SEPARATOR . $fileName;
 
             if ( !file_exists( $_fileName ) )
             {
                 return false;
             }
 
-            return file_get_contents( storage_path( DIRECTORY_SEPARATOR . 'scripts.user' ) . DIRECTORY_SEPARATOR . $fileName );
+            return file_get_contents( storage_path( DIRECTORY_SEPARATOR . 'scripts' ) . DIRECTORY_SEPARATOR . $fileName );
         };
 
         return $_api;
+    }
+
+    public static function buildPlatformAccess( $identifier )
+    {
+        return [
+            'api'     => static::getExposedApi(),
+            'config'  => \Config::all(),
+            'session' => \Session::all(),
+            'store'   => new ScriptSession( \Config::get( "script.$identifier.store" ), app( 'cache' ) )
+        ];
     }
 }

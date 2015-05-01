@@ -195,9 +195,9 @@ class ServiceEventHandler
                 Log::error( '  * Script did not return an array: ' . print_r( $result, true ) );
             }
 
-            if ( !empty( $_output ) )
+            if ( !empty( $output ) )
             {
-                Log::info( '  * Script "' . $name . '" output:' . PHP_EOL . $_output . PHP_EOL );
+                Log::info( '  * Script "' . $name . '" output:' . PHP_EOL . $output . PHP_EOL );
             }
 
             return $result;

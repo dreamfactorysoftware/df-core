@@ -22,11 +22,8 @@ namespace DreamFactory\Rave\Scripting\Engines;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Contracts\ScriptingEngineInterface;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Exceptions\RestException;
 use DreamFactory\Rave\Exceptions\ServiceUnavailableException;
 use DreamFactory\Rave\Scripting\BaseEngineAdapter;
-use DreamFactory\Rave\Scripting\ScriptServiceRequest;
-use DreamFactory\Rave\Scripting\ScriptSession;
 use \Log;
 
 /**
@@ -160,14 +157,11 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      */
     public function executeString( $script, $identifier, array &$data = [ ], array $engineArguments = [ ] )
     {
-        $exposedPlatform = [
-            //            'config'  => Config::getCurrentConfig(),
-            //            'session' => Session::getSessionData()
-        ];
+        $data['__tag__'] = 'exposed_event';
 
         try
         {
-            $_runnerShell = $this->enrobeScript( $script, $data, $exposedPlatform );
+            $_runnerShell = $this->enrobeScript( $script, $data, static::buildPlatformAccess( $identifier ) );
 
             /** @noinspection PhpUndefinedMethodInspection */
             /** @noinspection PhpUndefinedClassInspection */
@@ -233,6 +227,8 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
                 }
             }
         }
+
+        return null;
     }
 
     /**
@@ -332,11 +328,6 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      */
     protected function enrobeScript( $script, array &$data = [ ], array $platform = [ ] )
     {
-        $data['__tag__'] = 'exposed_event';
-        $platform['api'] = static::getExposedApi();
-        // todo what is app.run_id?
-        $platform['store'] = new ScriptSession( \Config::get( 'app.run_id' ), app( 'cache' ) );
-
 //        $this->_engine->event = $data;
         $this->_engine->platform = $platform;
 

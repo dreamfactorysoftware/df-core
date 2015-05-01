@@ -47,7 +47,7 @@ interface ScriptingEngineInterface
      *
      * @return mixed
      */
-    public function executeString( $script, $identifier, array $data = [ ], array $engineArguments = [ ] );
+    public function executeString( $script, $identifier, array &$data = [ ], array $engineArguments = [ ] );
 
     /**
      * Process a single script from a file path
@@ -59,7 +59,7 @@ interface ScriptingEngineInterface
      *
      * @return mixed
      */
-    public function executeScript( $path, $identifier, array $data = [ ], array $engineArguments = [ ] );
+    public function executeScript( $path, $identifier, array &$data = [ ], array $engineArguments = [ ] );
 
     /**
      * Handle cleanup for global/all instances of engine

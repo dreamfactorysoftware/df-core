@@ -137,13 +137,13 @@ abstract class RestHandler
      */
     protected $verbAliases = [ ];
     /**
-     * @var ServiceResponseInterface Response object implementing the ServiceResponseInterface.
-     */
-    protected $response = null;
-    /**
      * @var ServiceRequestInterface Request object implementing the ServiceRequestInterface.
      */
     protected $request = null;
+    /**
+     * @var ServiceResponseInterface Response object implementing the ServiceResponseInterface.
+     */
+    protected $response = null;
 
     /**
      * @param array $settings

@@ -21,7 +21,7 @@ namespace DreamFactory\Rave\Services;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Scripting\ScriptEngine;
+use DreamFactory\Rave\Scripting\ScriptEngineManager;
 use \Log;
 
 /**
@@ -109,7 +109,7 @@ class Script extends BaseRestService
         $logOutput = $this->request->getParameterAsBool( 'log_output', true );
         $data = ['request' => $this->request->toArray()];
         $output = null;
-        $result = ScriptEngine::runScript(
+        $result = ScriptEngineManager::runScript(
             $this->content,
             'script.' . $this->name,
             $this->engineConfig,

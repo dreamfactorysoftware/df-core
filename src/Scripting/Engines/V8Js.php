@@ -22,10 +22,8 @@ namespace DreamFactory\Rave\Scripting\Engines;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Contracts\ScriptingEngineInterface;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Exceptions\RestException;
 use DreamFactory\Rave\Exceptions\ServiceUnavailableException;
 use DreamFactory\Rave\Scripting\BaseEngineAdapter;
-use DreamFactory\Rave\Scripting\ScriptSession;
 use \Log;
 
 /**
@@ -68,9 +66,9 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      *
      * @throws ServiceUnavailableException
      */
-    public function __construct( array $settings = [] )
+    public function __construct( array $settings = [ ] )
     {
-        parent::__construct($settings);
+        parent::__construct( $settings );
 
         if ( !extension_loaded( 'v8js' ) )
         {
@@ -157,23 +155,19 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      *
      * @return mixed
      */
-    public function executeString( $script, $identifier, array $data = [ ], array $engineArguments = [ ] )
+    public function executeString( $script, $identifier, array &$data = [ ], array $engineArguments = [ ] )
     {
-        $exposedPlatform = [
-            //            'config'  => Config::getCurrentConfig(),
-            //            'session' => Session::getSessionData()
-        ];
+        $data['__tag__'] = 'exposed_event';
 
         try
         {
-            $_runnerShell = $this->enrobeScript( $script, $data, $exposedPlatform );
-
-            //  Don't show output
-            ob_start();
+            $_runnerShell = $this->enrobeScript( $script, $data, static::buildPlatformAccess( $identifier ) );
 
             /** @noinspection PhpUndefinedMethodInspection */
             /** @noinspection PhpUndefinedClassInspection */
-            return $this->_engine->executeString( $_runnerShell, $identifier, \V8Js::FLAG_FORCE_ARRAY );
+            $result = $this->_engine->executeString( $_runnerShell, $identifier, \V8Js::FLAG_FORCE_ARRAY );
+
+            return $result;
         }
             /** @noinspection PhpUndefinedClassInspection */
         catch ( \V8JsException $_ex )
@@ -233,6 +227,8 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
                 }
             }
         }
+
+        return null;
     }
 
     /**
@@ -245,13 +241,13 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      *
      * @return mixed
      */
-    public function executeScript( $path, $identifier, array $data = [ ], array $engineArguments = [ ] )
+    public function executeScript( $path, $identifier, array &$data = [ ], array $engineArguments = [ ] )
     {
         return $this->executeString( static::loadScript( $identifier, $path, true ), $identifier, $data, $engineArguments );
     }
 
     /**
-     * @param string $module      The name of the module to load
+     * @param string $module The name of the module to load
      *
      * @throws \DreamFactory\Rave\Exceptions\InternalServerErrorException
      * @return mixed
@@ -264,12 +260,12 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
         $module = trim( str_replace( [ "'", '"' ], null, $module ), ' /' );
 
         //  Check the configured script paths
-        if ( null === ( $_script = ArrayUtils::get( static::$_libraries, $module ) ) )
+        if ( null === ( $_script = ArrayUtils::get( static::$libraries, $module ) ) )
         {
             $_script = $module;
         }
 
-        foreach ( static::$_libraryPaths as $_key => $_path )
+        foreach ( static::$libraryPaths as $_key => $_path )
         {
             $_checkScriptPath = $_path . DIRECTORY_SEPARATOR . $_script;
 
@@ -288,42 +284,6 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
         }
 
         return file_get_contents( $_fullScriptPath );
-    }
-
-    /**
-     * @param array $libraryPaths
-     *
-     * @throws RestException
-     */
-    protected static function _initializeLibraryPaths( $libraryPaths = null )
-    {
-        //  Get our script path
-        static::$_libraryScriptPath = storage_path( DIRECTORY_SEPARATOR . 'scripting/v8js/scripts/' );
-
-        if ( empty( static::$_libraryScriptPath ) || !is_dir( static::$_libraryScriptPath ) )
-        {
-            throw new ServiceUnavailableException( 'This service is not available. Storage path and/or required libraries not available.' );
-        }
-
-        //  Merge in user libraries...
-        static::$_userLibraries = array_merge( static::$_userLibraries, \Config::get( 'dsp.scripting.user_libraries', [ ] ) );
-
-        //  All the paths that we will check for scripts in order
-        static::$_libraryPaths = [
-            'library' => static::$_libraryScriptPath,
-            //            //  This is ONLY the root of the app store (storage/applications)
-            //            'app'      => Platform::getApplicationsPath(),
-            //            //  Now check library distribution (vendor/dreamfactory/lib-php-common-platform/config/scripts)
-            //            'library'  => static::$_libraryScriptPath,
-            //            //  This is the private event scripting area used by the admin console (storage/.private/scripts)
-            //            'storage'  => Platform::getPrivatePath( DIRECTORY_SEPARATOR . 'scripts' ),
-            //            //  This is the private user scripting area used by the admin console (storage/.private/scripts.user)
-            //            'user'     => Platform::getPrivatePath( DIRECTORY_SEPARATOR . 'scripts.user' ),
-            //            //  Scripts here override library scripts (config/scripts)
-            //            'platform' => Platform::getPlatformConfigPath(DIRECTORY_SEPARATOR . 'scripts'),
-            //            //  Static libraries included with the distribution (web/static)
-            //            'static'   => dirname( Platform::getPlatformConfigPath() ) . DIRECTORY_SEPARATOR . 'web' . DIRECTORY_SEPARATOR . 'static',
-        ];
     }
 
     /**
@@ -366,25 +326,20 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      * @throws \DreamFactory\Rave\Exceptions\InternalServerErrorException
      * @return string
      */
-    protected function enrobeScript( $script, array $data = [ ], array $platform = [ ] )
+    protected function enrobeScript( $script, array &$data = [ ], array $platform = [ ] )
     {
-        $data['__tag__'] = 'exposed_event';
-        $platform['api'] = static::_getExposedApi();
-        // todo what is app.run_id?
-        $platform['store'] = new ScriptSession( \Config::get( 'app.run_id' ), app( 'cache' ) );
-
-        $this->_engine->event = $data;
+//        $this->_engine->event = $data;
         $this->_engine->platform = $platform;
 
         $_jsonEvent = json_encode( $data, JSON_UNESCAPED_SLASHES );
 
         //  Load user libraries
-        $_userLibraries = \Cache::get( 'scripting.libraries.user', static::_loadUserLibraries(), false, 3600 );
+        $requiredLibraries = \Cache::get( 'scripting.libraries.v8js.required', null );
 
         $_enrobedScript = <<<JS
 
 //noinspection BadExpressionStatementJS
-{$_userLibraries};
+{$requiredLibraries};
 
 _wrapperResult = (function() {
 
@@ -400,8 +355,8 @@ _wrapperResult = (function() {
                 var _contents;
 
                 //noinspection JSUnresolvedFunction
-            if ( false === ( _contents = platform.api.includeUserScript(fileName) ) ) {
-                    throw 'User script "' + fileName + '" not found.';
+                if ( false === ( _contents = platform.api.includeScript(fileName) ) ) {
+                    throw 'Included script "' + fileName + '" not found.';
                 }
 
                 return _contents;
@@ -424,7 +379,7 @@ JS;
 
         if ( !static::$_moduleLoaderAvailable )
         {
-            $_enrobedScript = \Cache::get( 'scripting.modules.lodash', static::loadScriptingModule( 'lodash', false ), false, 3600 ) . ';' . $_enrobedScript;
+            $_enrobedScript = \Cache::get( 'scripting.v8.extensions', static::loadScriptingModule( 'lodash' ) ) . ';' . $_enrobedScript;
         }
 
         return $_enrobedScript;

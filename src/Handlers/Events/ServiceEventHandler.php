@@ -6,7 +6,7 @@ use DreamFactory\Rave\Contracts\ServiceRequestInterface;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Models\EventScript;
-use DreamFactory\Rave\Scripting\ScriptEngine;
+use DreamFactory\Rave\Scripting\ScriptEngineManager;
 use Illuminate\Contracts\Events\Dispatcher;
 use DreamFactory\Rave\Events\ResourcePreProcess;
 use DreamFactory\Rave\Events\ResourcePostProcess;
@@ -16,66 +16,6 @@ use \Log;
 
 class ServiceEventHandler
 {
-    /**
-     * Handle service pre-process events.
-     *
-     * @param  ServicePreProcess $event
-     *
-     * @return bool
-     */
-    public function onServicePreProcess( $event )
-    {
-        $name = $event->service . '.' . strtolower( $event->verb ) . '.pre_process';
-        Log::debug( 'Service event: ' . $name );
-
-        return $this->handleEventScript( $name, $event->request, null, $event->resource );
-    }
-
-    /**
-     * Handle service post-process events.
-     *
-     * @param  ServicePostProcess $event
-     *
-     * @return bool
-     */
-    public function onServicePostProcess( $event )
-    {
-        $name = $event->service . '.' . strtolower( $event->verb ) . '.post_process';
-        Log::debug( 'Service event: ' . $name );
-
-        return $this->handleEventScript( $name, $event->request, $event->response, $event->resource );
-    }
-
-    /**
-     * Handle resource pre-process events.
-     *
-     * @param  ResourcePreProcess $event
-     *
-     * @return bool
-     */
-    public function onResourcePreProcess( $event )
-    {
-        $name = $event->service . '.' . $event->resourcePath . '.' . strtolower( $event->verb ) . '.pre_process';
-        Log::debug( 'Resource event: ' . $name );
-
-        return $this->handleEventScript( $name, $event->request, null, $event->resource );
-    }
-
-    /**
-     * Handle resource post-process events.
-     *
-     * @param  ResourcePostProcess $event
-     *
-     * @return bool
-     */
-    public function onResourcePostProcess( $event )
-    {
-        $name = $event->service . '.' . $event->resourcePath . '.' . strtolower( $event->verb ) . '.post_process';
-        Log::debug( 'Resource event: ' . $name );
-
-        return $this->handleEventScript( $name, $event->request, $event->response, $event->resource );
-    }
-
     /**
      * Register the listeners for the subscriber.
      *
@@ -92,28 +32,156 @@ class ServiceEventHandler
     }
 
     /**
-     * @param string                   $name
-     * @param ServiceRequestInterface  $request
-     * @param ServiceResponseInterface $response
-     * @param mixed                    $resource
+     * Handle service pre-process events.
+     *
+     * @param  ServicePreProcess $event
+     *
+     * @return bool
+     */
+    public function onServicePreProcess( $event )
+    {
+        $name = $event->service . '.' . strtolower( $event->request->getMethod() ) . '.pre_process';
+        Log::debug( 'Service event: ' . $name );
+
+        return $this->onPreProcess( $name, $event );
+    }
+
+    /**
+     * Handle service post-process events.
+     *
+     * @param  ServicePostProcess $event
+     *
+     * @return bool
+     */
+    public function onServicePostProcess( $event )
+    {
+        $name = $event->service . '.' . strtolower( $event->request->getMethod() ) . '.post_process';
+        Log::debug( 'Service event: ' . $name );
+
+        return $this->onPostProcess( $name, $event );
+    }
+
+    /**
+     * Handle resource pre-process events.
+     *
+     * @param  ResourcePreProcess $event
+     *
+     * @return bool
+     */
+    public function onResourcePreProcess( $event )
+    {
+        $name = $event->service . '.' . $event->resourcePath . '.' . strtolower( $event->request->getMethod() ) . '.pre_process';
+        Log::debug( 'Resource event: ' . $name );
+
+        return $this->onPreProcess( $name, $event );
+    }
+
+    /**
+     * Handle resource post-process events.
+     *
+     * @param  ResourcePostProcess $event
+     *
+     * @return bool
+     */
+    public function onResourcePostProcess( $event )
+    {
+        $name = $event->service . '.' . $event->resourcePath . '.' . strtolower( $event->request->getMethod() ) . '.post_process';
+        Log::debug( 'Resource event: ' . $name );
+
+        return $this->onPostProcess( $name, $event );
+    }
+
+    /**
+     * Handle pre-process events.
+     *
+     * @param string                               $name
+     * @param ServicePreProcess|ResourcePreProcess $event
+     *
+     * @return bool
+     */
+    public function onPreProcess( $name, $event )
+    {
+        $data = [
+            'request'  => $event->request->toArray(),
+            'resource' => $event->resource
+        ];
+
+        if ( null !== $result = $this->handleEventScript( $name, $data ) )
+        {
+            // request only
+            $event->request->mergeFromArray( ArrayUtils::get( $result, 'request', [ ] ) );
+            if ( ArrayUtils::get( $result, 'stop_propagation', false ) )
+            {
+                Log::info( '  * Propagation stopped by script.' );
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Handle post-process events.
+     *
+     * @param string                                 $name
+     * @param ServicePostProcess|ResourcePostProcess $event
+     *
+     * @return bool
+     */
+    public function onPostProcess( $name, $event )
+    {
+        $data = [
+            'request'  => $event->request->toArray(),
+            'resource' => $event->resource,
+            'response' => $event->response
+        ];
+
+        if ( null !== $result = $this->handleEventScript( $name, $data ) )
+        {
+            // response only
+            if ( $event->response instanceof ServiceResponseInterface )
+            {
+                $event->response->mergeFromArray( ArrayUtils::get( $result, 'response', [ ] ) );
+            }
+            else
+            {
+                $event->response = ArrayUtils::get( $result, 'response', [ ] );
+            }
+            if ( ArrayUtils::get( $result, 'stop_propagation', false ) )
+            {
+                Log::info( '  * Propagation stopped by script.' );
+
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $event
      *
      * @return bool|null
      * @throws InternalServerErrorException
      * @throws \DreamFactory\Rave\Events\Exceptions\ScriptException
      */
-    protected function handleEventScript( $name, $request, $response = null, $resource = null )
+    protected function handleEventScript( $name, &$event )
     {
         $model = EventScript::whereName( $name )->first();
         if ( !empty( $model ) )
         {
             $output = null;
-            $data = [ 'request' => $request->toArray(), 'resource' => $resource ];
-            if ( !is_null( $response ) )
-            {
-                $data['response'] = $response->toArray();
-            }
 
-            $result = ScriptEngine::runScript( $model->content, $name, $model->getEngineAttribute(), ArrayUtils::clean( $model->config ), $data, $output );
+            $result = ScriptEngineManager::runScript(
+                $model->content,
+                $name,
+                $model->getEngineAttribute(),
+                ArrayUtils::clean( $model->config ),
+                $event,
+                $output
+            );
 
             //  Bail on errors...
             if ( is_array( $result ) && ( isset( $result['error'] ) || isset( $result['exception'] ) ) )
@@ -122,38 +190,17 @@ class ServiceEventHandler
             }
 
             //  The script runner should return an array
-            if ( is_array( $result ) && isset( $result['__tag__'] ) )
-            {
-                // feed back the request and response
-                if ( is_null( $response ) )
-                {
-                    // request only
-                    $request->mergeFromArray(ArrayUtils::get($result, 'request', []));
-                }
-                else
-                {
-                    // response only
-                    $response->mergeFromArray(ArrayUtils::get($result, 'response', []));
-                }
-            }
-            else
+            if ( !is_array( $result ) || !isset( $result['__tag__'] ) )
             {
                 Log::error( '  * Script did not return an array: ' . print_r( $result, true ) );
             }
 
-            if ( !empty( $_output ) )
+            if ( !empty( $output ) )
             {
-                Log::info( '  * Script "' . $name . '" output:' . PHP_EOL . $_output . PHP_EOL );
+                Log::info( '  * Script "' . $name . '" output:' . PHP_EOL . $output . PHP_EOL );
             }
 
-            if ( ArrayUtils::get( $result, 'stop_propagation', false ) )
-            {
-                Log::info( '  * Propagation stopped by script.' );
-
-                return false;
-            }
-
-            return $output;
+            return $result;
         }
 
         return null;

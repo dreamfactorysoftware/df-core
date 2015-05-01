@@ -30,7 +30,7 @@ use \Log;
 /**
  * Scripting engine
  */
-class ScriptEngine
+class ScriptEngineManager
 {
     //*************************************************************************
     //	Constants

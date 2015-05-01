@@ -48,21 +48,13 @@ abstract class BaseEngineAdapter
     //*************************************************************************
 
     /**
-     * @var string One path to rule them all
-     */
-    protected static $_libraryScriptPath;
-    /**
      * @var array A list of paths where our scripts might live
      */
-    protected static $_libraryPaths;
+    protected static $libraryPaths;
     /**
      * @var array The list of registered/known libraries
      */
-    protected static $_libraries = [ ];
-    /**
-     * @type array Any user-defined libraries to load
-     */
-    protected static $_userLibraries = [ ];
+    protected static $libraries = [ ];
     /**
      * @var ScriptingEngineInterface The engine
      */
@@ -102,8 +94,8 @@ abstract class BaseEngineAdapter
      */
     public static function shutdown()
     {
-        \Cache::add( 'scripting.library_paths', static::$_libraryPaths, static::DEFAULT_CACHE_TTL );
-        \Cache::add( 'scripting.libraries', static::$_libraries, static::DEFAULT_CACHE_TTL );
+        \Cache::add( 'scripting.library_paths', static::$libraryPaths, static::DEFAULT_CACHE_TTL );
+        \Cache::add( 'scripting.libraries', static::$libraries, static::DEFAULT_CACHE_TTL );
     }
 
     /**
@@ -118,7 +110,7 @@ abstract class BaseEngineAdapter
     public static function loadScript( $name, $script, $returnContents = true )
     {
         //  Already read, return script
-        if ( null !== ( $_script = ArrayUtils::get( static::$_libraries, $name ) ) )
+        if ( null !== ( $_script = ArrayUtils::get( static::$libraries, $name ) ) )
         {
             return $returnContents ? file_get_contents( $_script ) : $_script;
         }
@@ -126,13 +118,13 @@ abstract class BaseEngineAdapter
         $_script = ltrim( $script, ' /' );
 
         //  Spin through paths and look for the script
-        foreach ( static::$_libraryPaths as $_path )
+        foreach ( static::$libraryPaths as $_path )
         {
             $_check = $_path . '/' . $_script;
 
             if ( is_file( $_check ) && is_readable( $_check ) )
             {
-                ArrayUtils::set( static::$_libraries, $name, $_check );
+                ArrayUtils::set( static::$libraries, $name, $_check );
 
                 return $returnContents ? file_get_contents( $_check ) : $_check;
             }
@@ -148,44 +140,46 @@ abstract class BaseEngineAdapter
      */
     protected static function _initializeLibraryPaths( $libraryPaths = null )
     {
-        static::$_libraryPaths = \Cache::get( 'scripting.library_paths', [ ] );
-        static::$_libraries = \Cache::get( 'scripting.libraries', [ ] );
-
-        $vendorPath = dirname( dirname( __DIR__ ) ) . '/config/scripts';
-
-        //  Get our library's script path
-        $_libraryPath = storage_path( DIRECTORY_SEPARATOR . 'scripts' );
-
-        if ( empty( $_libraryPath ) || !is_dir( $_libraryPath ) || !is_readable( $_libraryPath ) )
-        {
-            throw new ServiceUnavailableException( 'This service is not available . Storage path and/or required libraries not available . ' );
-        }
+        static::$libraryPaths = \Cache::get( 'scripting.library_paths', [ ] );
+        static::$libraries = \Cache::get( 'scripting.libraries', [ ] );
 
         //  Add ones from constructor
+        $libraryPaths = ArrayUtils::clean( $libraryPaths );
+
+        //  Local vendor repo directory
+        $libraryPaths[] = dirname( dirname( __DIR__ ) ) . '/config/scripts';
+
+        //  Application storage script path
+        $libraryPath[] = storage_path( DIRECTORY_SEPARATOR . 'scripts' );
+
+        //  Merge in config libraries...
+        $libraryPaths = array_merge( $libraryPaths, ArrayUtils::clean( \Config::get( 'dsp.scripting.paths', [ ] ) ) );
+
+        //  Add them to collection if valid
         if ( is_array( $libraryPaths ) )
         {
-            foreach ( $libraryPaths as $_path )
+            foreach ( $libraryPaths as $path )
             {
-                if ( !in_array( $_path, static::$_libraryPaths ) )
+                if ( !in_array( $path, static::$libraryPaths ) )
                 {
-                    static::$_libraryPaths[] = $_path;
+                    if ( !empty( $path ) || is_dir( $path ) || is_readable( $path ) )
+                    {
+                        static::$libraryPaths[] = $path;
+                    }
+                    else
+                    {
+                        Log::debug( "Invalid scripting library path given $path." );
+                    }
                 }
             }
         }
 
-        //  All the paths that we will check for scripts
-        static::$_libraryPaths = [
-//            //  This is ONLY the root of the app store
-//            'app'      => Platform::getApplicationsPath(),
-//            //  This is the user's private scripting area used by the admin console
-//            'storage'  => Platform::getPrivatePath( '/scripts' ),
-//  Scripts here override library scripts
-'platform' => $vendorPath,
-//  Now check library distribution
-'library'  => $_libraryPath,
-        ];
+        \Cache::add( 'scripting.library_paths', static::$libraryPaths, static::DEFAULT_CACHE_TTL );
 
-        \Cache::add( 'scripting.library_paths', static::$_libraryPaths, static::DEFAULT_CACHE_TTL );
+        if ( empty( static::$libraryPaths ) )
+        {
+            Log::debug( 'No scripting library paths found.' );
+        }
     }
 
     /**
@@ -193,7 +187,7 @@ abstract class BaseEngineAdapter
      */
     public static function getLibraries()
     {
-        return static::$_libraries;
+        return static::$libraries;
     }
 
     /**
@@ -201,7 +195,7 @@ abstract class BaseEngineAdapter
      */
     public static function getLibraryPaths()
     {
-        return static::$_libraryPaths;
+        return static::$libraryPaths;
     }
 
     /**
@@ -214,9 +208,9 @@ abstract class BaseEngineAdapter
             throw new \InvalidArgumentException( 'The path "' . $libraryPath . '" is invalid.' );
         }
 
-        if ( !in_array( $libraryPath, static::$_libraryPaths ) )
+        if ( !in_array( $libraryPath, static::$libraryPaths ) )
         {
-            static::$_libraryPaths[] = $libraryPath;
+            static::$libraryPaths[] = $libraryPath;
         }
     }
 
@@ -378,14 +372,14 @@ abstract class BaseEngineAdapter
      *
      * @return string
      */
-    protected static function _getLibrary( $id, $file = null )
+    protected static function getLibrary( $id, $file = null )
     {
-        if ( null !== $file || array_key_exists( $id, static::$_userLibraries ) )
+        if ( null !== $file || array_key_exists( $id, static::$libraries ) )
         {
-            $_file = $file ?: static::$_userLibraries[$id];
+            $_file = $file ?: static::$libraries[$id];
 
             //  Find the library
-            foreach ( static::$_libraryPaths as $_name => $_path )
+            foreach ( static::$libraryPaths as $_name => $_path )
             {
                 $_filePath = $_path . DIRECTORY_SEPARATOR . $_file;
 
@@ -400,26 +394,9 @@ abstract class BaseEngineAdapter
     }
 
     /**
-     * Retrieves any user-defined libraries
-     *
-     * @return null|string
-     */
-    protected static function _loadUserLibraries()
-    {
-        $_code = null;
-
-        foreach ( static::$_userLibraries as $_id => $_library )
-        {
-            $_code .= static::_getLibrary( $_id, $_library ) . ';' . PHP_EOL;
-        }
-
-        return $_code;
-    }
-
-    /**
      * @return \stdClass
      */
-    protected static function _getExposedApi()
+    protected static function getExposedApi()
     {
         static $_api;
 
@@ -465,18 +442,28 @@ abstract class BaseEngineAdapter
             return static::inlineRequest( Verbs::PATCH, $path, $payload, $curlOptions );
         };
 
-        $_api->includeUserScript = function ( $fileName )
+        $_api->includeScript = function ( $fileName )
         {
-            $_fileName = storage_path( DIRECTORY_SEPARATOR . 'scripts.user' ) . DIRECTORY_SEPARATOR . $fileName;
+            $_fileName = storage_path( DIRECTORY_SEPARATOR . 'scripts' ) . DIRECTORY_SEPARATOR . $fileName;
 
             if ( !file_exists( $_fileName ) )
             {
                 return false;
             }
 
-            return file_get_contents( storage_path( DIRECTORY_SEPARATOR . 'scripts.user' ) . DIRECTORY_SEPARATOR . $fileName );
+            return file_get_contents( storage_path( DIRECTORY_SEPARATOR . 'scripts' ) . DIRECTORY_SEPARATOR . $fileName );
         };
 
         return $_api;
+    }
+
+    public static function buildPlatformAccess( $identifier )
+    {
+        return [
+            'api'     => static::getExposedApi(),
+            'config'  => \Config::all(),
+            'session' => \Session::all(),
+            'store'   => new ScriptSession( \Config::get( "script.$identifier.store" ), app( 'cache' ) )
+        ];
     }
 }

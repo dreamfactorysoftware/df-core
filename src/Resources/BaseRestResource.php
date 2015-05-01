@@ -86,7 +86,12 @@ class BaseRestResource extends RestHandler implements ResourceHandlerInterface
      */
     protected function preProcess()
     {
-        $preResults = \Event::fire( new ResourcePreProcess( $this->getServiceName(), $this->getFullPathName(), $this->action, $this->request, $this->resourcePath ) );
+        /** @noinspection PhpUnusedLocalVariableInspection */
+        $results = \Event::fire(
+            new ResourcePreProcess(
+                $this->getServiceName(), $this->getFullPathName(), $this->request, $this->resourcePath
+            )
+        );
     }
 
     /**
@@ -94,8 +99,14 @@ class BaseRestResource extends RestHandler implements ResourceHandlerInterface
      */
     protected function postProcess()
     {
-        $postResults =
-            \Event::fire( new ResourcePostProcess( $this->getServiceName(), $this->getFullPathName(), $this->action, $this->request, $this->response, $this->resourcePath ) );
+        $event = new ResourcePostProcess(
+            $this->getServiceName(), $this->getFullPathName(), $this->request, $this->response, $this->resourcePath
+        );
+        /** @noinspection PhpUnusedLocalVariableInspection */
+        $results = \Event::fire( $event );
+
+        // todo doing something wrong that I have to copy this array back over
+        $this->response = $event->response;
     }
 
     public function getApiDocInfo()

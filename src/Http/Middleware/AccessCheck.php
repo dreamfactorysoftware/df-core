@@ -47,9 +47,16 @@ class AccessCheck
      */
     public function handle( $request, Closure $next )
     {
-        //return $next($request);
-
         static::initSessionValues();
+
+        $sessionId = $request->header('X_DREAMFACTORY_SESSION_TOKEN');
+
+        if(!empty($sessionId) && !Auth::check())
+        {
+            Session::setId( $sessionId );
+            Session::start();
+        }
+
         $apiKey = $request->query('api_key');
         if(empty($apiKey))
         {

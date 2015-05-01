@@ -11,8 +11,6 @@ class ServicePreProcess extends Event
 
     public $service;
 
-    public $verb;
-
     public $request;
 
     public $resource;
@@ -21,14 +19,12 @@ class ServicePreProcess extends Event
      * Create a new event instance.
      *
      * @param string                  $service
-     * @param string                  $verb
      * @param ServiceRequestInterface $request
      * @param mixed                   $resource
      */
-    public function __construct( $service, $verb, $request, $resource = null )
+    public function __construct( $service, &$request, $resource = null )
     {
         $this->service = $service;
-        $this->verb = $verb;
         $this->request = $request;
         $this->resource = $resource;
     }

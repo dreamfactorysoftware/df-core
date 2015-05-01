@@ -63,7 +63,8 @@ class BaseRestService extends RestHandler
      */
     protected function preProcess()
     {
-        $preResults = \Event::fire( new ServicePreProcess( $this->name, $this->action, $this->request, $this->resourcePath ) );
+        /** @noinspection PhpUnusedLocalVariableInspection */
+        $results = \Event::fire( new ServicePreProcess( $this->name, $this->request, $this->resourcePath ) );
     }
 
     /**
@@ -71,7 +72,12 @@ class BaseRestService extends RestHandler
      */
     protected function postProcess()
     {
-        $postResults = \Event::fire( new ServicePostProcess( $this->name, $this->action, $this->request, $this->response, $this->resourcePath ) );
+        $event = new ServicePostProcess( $this->name, $this->request, $this->response, $this->resourcePath );
+        /** @noinspection PhpUnusedLocalVariableInspection */
+        $results = \Event::fire( $event );
+
+        // todo doing something wrong that I have to copy this array back over
+        $this->response = $event->response;
     }
 
     /**

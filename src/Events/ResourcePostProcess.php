@@ -14,8 +14,6 @@ class ResourcePostProcess extends Event
 
     public $resourcePath;
 
-    public $verb;
-
     public $request;
 
     public $response;
@@ -25,18 +23,16 @@ class ResourcePostProcess extends Event
     /**
      * Create a new event instance.
      *
-     * @param string                   $service
-     * @param string                   $resource_path
-     * @param string                   $verb
-     * @param ServiceRequestInterface  $request
-     * @param ServiceResponseInterface $response
-     * @param mixed                    $resource
+     * @param string                         $service
+     * @param string                         $resource_path
+     * @param ServiceRequestInterface        $request
+     * @param array|ServiceResponseInterface $response
+     * @param mixed                          $resource
      */
-    public function __construct( $service, $resource_path, $verb, $request, $response, $resource = null )
+    public function __construct( $service, $resource_path, $request, &$response, $resource = null )
     {
         $this->service = $service;
         $this->resourcePath = $resource_path;
-        $this->verb = $verb;
         $this->request = $request;
         $this->response = $response;
         $this->resource = $resource;

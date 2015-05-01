@@ -13,8 +13,6 @@ class ResourcePreProcess extends Event
 
     public $resourcePath;
 
-    public $verb;
-
     public $request;
 
     public $resource;
@@ -24,15 +22,13 @@ class ResourcePreProcess extends Event
      *
      * @param string                  $service
      * @param string                  $resource_path
-     * @param string                  $verb
      * @param ServiceRequestInterface $request
      * @param mixed                   $resource
      */
-    public function __construct( $service, $resource_path, $verb, $request, $resource = null )
+    public function __construct( $service, $resource_path, &$request, $resource = null )
     {
         $this->service = $service;
         $this->resourcePath = $resource_path;
-        $this->verb = $verb;
         $this->request = $request;
         $this->resource = $resource;
     }

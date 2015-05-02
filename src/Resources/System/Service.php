@@ -29,7 +29,7 @@ class Service extends BaseRestSystemResource
     public function __construct( $settings = [ ] )
     {
         parent::__construct( $settings );
-        $this->model = "\\DreamFactory\\Rave\\Models\\Service";
+        $this->model = new \DreamFactory\Rave\Models\Service();
     }
 
     public function getApiDocInfo()

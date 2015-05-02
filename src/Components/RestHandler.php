@@ -240,7 +240,6 @@ abstract class RestHandler
 
             /** @var ResourceHandlerInterface $resource */
             $resource = $this->instantiateResource( $className, $found );
-            $resource->setParent( $this );
 
             $newPath = $this->resourceArray;
             array_shift( $newPath );
@@ -254,7 +253,11 @@ abstract class RestHandler
 
     protected function instantiateResource( $class, $info = [ ] )
     {
-        return new $class( $info );
+        /** @var ResourceHandlerInterface $obj */
+        $obj = new $class( $info );
+        $obj->setParent($this);
+
+        return $obj;
     }
 
     /**

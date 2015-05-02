@@ -255,7 +255,7 @@ abstract class BaseService extends BaseRestService
 
         $base['apis'] = [
             [
-                'path'        => '/{api_name}',
+                'path'        => '/'. $this->name,
                 'operations'  => [
                     [
                         'method'           => 'POST',

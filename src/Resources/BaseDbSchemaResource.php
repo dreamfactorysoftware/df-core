@@ -494,13 +494,15 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
     public function getApiDocInfo()
     {
+        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $_base = parent::getApiDocInfo();
 
         $_commonResponses = ApiDocUtilities::getCommonResponses();
 
         $_apis = [
             [
-                'path'        => '/{api_name}/' . static::RESOURCE_NAME,
+                'path'        => $path,
                 'description' => 'Operations available for SQL DB Schemas.',
                 'operations'  => [
                     [
@@ -508,7 +510,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'summary'          => 'getSchemas() - List resources available for database schema.',
                         'nickname'         => 'getSchemas',
                         'type'             => 'Resources',
-                        'event_name'       => '{api_name}._schema.list',
+                        'event_name'       => $eventPath . '.list',
                         'parameters'       => [
                             [
                                 'name'          => 'refresh',
@@ -527,7 +529,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'summary'          => 'createTables() - Create one or more tables.',
                         'nickname'         => 'createTables',
                         'type'             => 'Resources',
-                        'event_name'       => '{api_name}._schema.create',
+                        'event_name'       => $eventPath . '.create',
                         'parameters'       => [
                             [
                                 'name'          => 'tables',
@@ -545,7 +547,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'method'           => 'PUT',
                         'summary'          => 'replaceTables() - Update (replace) one or more tables.',
                         'nickname'         => 'replaceTables',
-                        'event_name'       => '{api_name}._schema.alter',
+                        'event_name'       => $eventPath . '.alter',
                         'type'             => 'Resources',
                         'parameters'       => [
                             [
@@ -564,7 +566,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'method'           => 'PATCH',
                         'summary'          => 'updateTables() - Update (patch) one or more tables.',
                         'nickname'         => 'updateTables',
-                        'event_name'       => '{api_name}._schema.alter',
+                        'event_name'       => $eventPath . '.alter',
                         'type'             => 'Resources',
                         'parameters'       => [
                             [
@@ -582,7 +584,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 ],
             ],
             [
-                'path'        => '/{api_name}/' . static::RESOURCE_NAME . '/{table_name}',
+                'path'        => $path . '/{table_name}',
                 'description' => 'Operations for per table administration.',
                 'operations'  => [
                     [
@@ -590,8 +592,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'summary'          => 'describeTable() - Retrieve table definition for the given table.',
                         'nickname'         => 'describeTable',
                         'event_name'       => [
-                            '{api_name}._schema.{table_name}.describe',
-                            '{api_name}._schema.table_described'
+                            $eventPath . '.{table_name}.describe',
+                            $eventPath . '.table_described'
                         ],
                         'type'             => 'TableSchema',
                         'parameters'       => [
@@ -621,8 +623,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'nickname'         => 'createTable',
                         'type'             => 'Success',
                         'event_name'       => [
-                            '{api_name}._schema.{table_name}.create',
-                            '{api_name}._schema.table_created'
+                            $eventPath . '.{table_name}.create',
+                            $eventPath . '.table_created'
                         ],
                         'parameters'       => [
                             [
@@ -651,8 +653,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'nickname'         => 'replaceTable',
                         'type'             => 'Success',
                         'event_name'       => [
-                            '{api_name}._schema.{table_name}.alter',
-                            '{api_name}._schema.table_altered'
+                            $eventPath . '.{table_name}.alter',
+                            $eventPath . '.table_altered'
                         ],
                         'parameters'       => [
                             [
@@ -681,8 +683,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'nickname'         => 'updateTable',
                         'type'             => 'Success',
                         'event_name'       => [
-                            '{api_name}._schema.{table_name}.alter',
-                            '{api_name}._schema.table_altered'
+                            $eventPath . '.{table_name}.alter',
+                            $eventPath . '.table_altered'
                         ],
                         'parameters'       => [
                             [
@@ -710,7 +712,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'summary'          => 'deleteTable() - Delete (aka drop) the given table.',
                         'nickname'         => 'deleteTable',
                         'type'             => 'Success',
-                        'event_name'       => [ '{api_name}._schema.{table_name}.drop', '{api_name}._schema.table_dropped' ],
+                        'event_name'       => [ $eventPath . '.{table_name}.drop', $eventPath . '.table_dropped' ],
                         'parameters'       => [
                             [
                                 'name'          => 'table_name',
@@ -727,7 +729,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 ],
             ],
             [
-                'path'        => '/{api_name}/' . static::RESOURCE_NAME . '/{table_name}/{field_name}',
+                'path'        => $path . '/{table_name}/{field_name}',
                 'description' => 'Operations for single field administration.',
                 'operations'  => [
                     [
@@ -736,8 +738,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'nickname'         => 'describeField',
                         'type'             => 'FieldSchema',
                         'event_name'       => [
-                            '{api_name}._schema.{table_name}.{field_name}.describe',
-                            '{api_name}._schema.{table_name}.field_described'
+                            $eventPath . '.{table_name}.{field_name}.describe',
+                            $eventPath . '.{table_name}.field_described'
                         ],
                         'parameters'       => [
                             [
@@ -774,8 +776,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'nickname'         => 'replaceField',
                         'type'             => 'Success',
                         'event_name'       => [
-                            '{api_name}._schema.{table_name}.{field_name}.alter',
-                            '{api_name}._schema.{table_name}.field_altered'
+                            $eventPath . '.{table_name}.{field_name}.alter',
+                            $eventPath . '.{table_name}.field_altered'
                         ],
                         'parameters'       => [
                             [
@@ -812,8 +814,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'nickname'         => 'updateField',
                         'type'             => 'Success',
                         'event_name'       => [
-                            '{api_name}._schema.{table_name}.{field_name}.alter',
-                            '{api_name}._schema.{table_name}.field_altered'
+                            $eventPath . '.{table_name}.{field_name}.alter',
+                            $eventPath . '.{table_name}.field_altered'
                         ],
                         'parameters'       => [
                             [
@@ -850,8 +852,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'nickname'         => 'deleteField',
                         'type'             => 'Success',
                         'event_name'       => [
-                            '{api_name}._schema.{table_name}.{field_name}.drop',
-                            '{api_name}._schema.{table_name}.field_dropped'
+                            $eventPath . '.{table_name}.{field_name}.drop',
+                            $eventPath . '.{table_name}.field_dropped'
                         ],
                         'parameters'       => [
                             [

@@ -54,7 +54,7 @@ class BaseRestResource extends RestHandler implements ResourceHandlerInterface
         $this->parent = $parent;
     }
 
-    public function getFullPathName( $separator = '.' )
+    public function getFullPathName( $separator = '/' )
     {
         if ( $this->parent instanceof BaseRestResource )
         {
@@ -89,7 +89,7 @@ class BaseRestResource extends RestHandler implements ResourceHandlerInterface
         /** @noinspection PhpUnusedLocalVariableInspection */
         $results = \Event::fire(
             new ResourcePreProcess(
-                $this->getServiceName(), $this->getFullPathName(), $this->request, $this->resourcePath
+                $this->getServiceName(), $this->getFullPathName('.'), $this->request, $this->resourcePath
             )
         );
     }
@@ -100,7 +100,7 @@ class BaseRestResource extends RestHandler implements ResourceHandlerInterface
     protected function postProcess()
     {
         $event = new ResourcePostProcess(
-            $this->getServiceName(), $this->getFullPathName(), $this->request, $this->response, $this->resourcePath
+            $this->getServiceName(), $this->getFullPathName('.'), $this->request, $this->response, $this->resourcePath
         );
         /** @noinspection PhpUnusedLocalVariableInspection */
         $results = \Event::fire( $event );
@@ -111,13 +111,16 @@ class BaseRestResource extends RestHandler implements ResourceHandlerInterface
 
     public function getApiDocInfo()
     {
+        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
+
         /**
          * Some basic apis and models used in DSP REST interfaces
          */
+
         return [
             'apis'   => [
                 [
-                    'path'        => '/{api_name}/' . $this->name,
+                    'path'        => $path,
                     'operations'  => [ ],
                     'description' => 'No operations currently defined for this resource.',
                 ],

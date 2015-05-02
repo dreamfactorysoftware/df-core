@@ -49,13 +49,13 @@ class Swagger extends BaseRestService
      */
     const SWAGGER_CACHE_FILE = '_.json';
     /**
-     * @const string A cached script-able events list derived from Swagger
+     * @const string A cached process-handling events list derived from Swagger
      */
-    const SWAGGER_SCRIPT_EVENT_CACHE_FILE = '_script_events.json';
+    const SWAGGER_PROCESS_EVENT_CACHE_FILE = '_process_events.json';
     /**
-     * @const string A cached subscribe-able events list derived from Swagger
+     * @const string A cached broadcast events list derived from Swagger
      */
-    const SWAGGER_SUBSCRIBE_EVENT_CACHE_FILE = '_subscribe_events.json';
+    const SWAGGER_BROADCAST_EVENT_CACHE_FILE = '_broadcast_events.json';
     /**
      * @const integer How long a swagger cache will live, 1440 = 24 minutes (default session timeout).
      */
@@ -74,13 +74,13 @@ class Swagger extends BaseRestService
     //*************************************************************************
 
     /**
-     * @var array The script-able event map
+     * @var array The process-handling event map
      */
-    protected static $scriptEventMap = false;
+    protected static $processEventMap = false;
     /**
-     * @var array The subscribe-able event map
+     * @var array The broadcast event map
      */
-    protected static $subscribeEventMap = false;
+    protected static $broadcastEventMap = false;
 
     //*************************************************************************
     //	Methods
@@ -141,8 +141,8 @@ class Swagger extends BaseRestService
         $_services = [ ];
 
         //	Initialize the event map
-        static::$scriptEventMap = static::$scriptEventMap ?: [ ];
-        static::$subscribeEventMap = static::$subscribeEventMap ?: [ ];
+        static::$processEventMap = static::$processEventMap ?: [ ];
+        static::$broadcastEventMap = static::$broadcastEventMap ?: [ ];
 
         //	Spin through services and pull the configs
         foreach ( $_result as $_service )
@@ -156,18 +156,18 @@ class Swagger extends BaseRestService
                 continue;
             }
 
-            if ( !isset( static::$scriptEventMap[$_apiName] ) || !is_array( static::$scriptEventMap[$_apiName] ) || empty( static::$scriptEventMap[$_apiName] )
+            if ( !isset( static::$processEventMap[$_apiName] ) || !is_array( static::$processEventMap[$_apiName] ) || empty( static::$processEventMap[$_apiName] )
             )
             {
-                static::$scriptEventMap[$_apiName] = [ ];
+                static::$processEventMap[$_apiName] = [ ];
             }
 
-            if ( !isset( static::$subscribeEventMap[$_apiName] ) ||
-                 !is_array( static::$subscribeEventMap[$_apiName] ) ||
-                 empty( static::$subscribeEventMap[$_apiName] )
+            if ( !isset( static::$broadcastEventMap[$_apiName] ) ||
+                 !is_array( static::$broadcastEventMap[$_apiName] ) ||
+                 empty( static::$broadcastEventMap[$_apiName] )
             )
             {
-                static::$subscribeEventMap[$_apiName] = [ ];
+                static::$broadcastEventMap[$_apiName] = [ ];
             }
 
             $_serviceEvents = static::_parseSwaggerEvents( $_apiName, $_content );
@@ -192,12 +192,12 @@ class Swagger extends BaseRestService
             ];
 
             //	Parse the events while we get the chance...
-            static::$scriptEventMap[$_apiName] = array_merge(
-                ArrayUtils::clean( static::$scriptEventMap[$_apiName] ),
+            static::$processEventMap[$_apiName] = array_merge(
+                ArrayUtils::clean( static::$processEventMap[$_apiName] ),
                 $_serviceEvents['script']
             );
-            static::$subscribeEventMap[$_apiName] = array_merge(
-                ArrayUtils::clean( static::$subscribeEventMap[$_apiName] ),
+            static::$broadcastEventMap[$_apiName] = array_merge(
+                ArrayUtils::clean( static::$broadcastEventMap[$_apiName] ),
                 $_serviceEvents['subscribe']
             );
 
@@ -242,23 +242,23 @@ HTML;
 
         //	Write event cache file
         if ( false === \Cache::add(
-                static::SWAGGER_SCRIPT_EVENT_CACHE_FILE,
-                json_encode( static::$scriptEventMap, JSON_UNESCAPED_SLASHES ),
+                static::SWAGGER_PROCESS_EVENT_CACHE_FILE,
+                json_encode( static::$processEventMap, JSON_UNESCAPED_SLASHES ),
                 static::SWAGGER_CACHE_TTL
             )
         )
         {
-            \Log::error( '  * System error creating swagger script-able event cache file: ' . static::SWAGGER_SCRIPT_EVENT_CACHE_FILE );
+            \Log::error( '  * System error creating swagger script-able event cache file: ' . static::SWAGGER_PROCESS_EVENT_CACHE_FILE );
         }
 
         if ( false === \Cache::add(
-                static::SWAGGER_SUBSCRIBE_EVENT_CACHE_FILE,
-                json_encode( static::$subscribeEventMap, JSON_UNESCAPED_SLASHES ),
+                static::SWAGGER_BROADCAST_EVENT_CACHE_FILE,
+                json_encode( static::$broadcastEventMap, JSON_UNESCAPED_SLASHES ),
                 static::SWAGGER_CACHE_TTL
             )
         )
         {
-            \Log::error( '  * System error creating swagger subscribe-able event cache file: ' . static::SWAGGER_SUBSCRIBE_EVENT_CACHE_FILE );
+            \Log::error( '  * System error creating swagger subscribe-able event cache file: ' . static::SWAGGER_BROADCAST_EVENT_CACHE_FILE );
         }
 
         \Log::info( 'Swagger cache build process complete' );
@@ -298,13 +298,13 @@ HTML;
      */
     protected static function _parseSwaggerEvents( $apiName, &$data )
     {
-        $scriptEvents = [ ];
-        $subscribeEvents = [ ];
+        $processEvents = [ ];
+        $broadcastEvents = [ ];
         $eventCount = 0;
 
         foreach ( ArrayUtils::get( $data, 'apis', [ ] ) as $_ixApi => $api )
         {
-            $apiScriptEvents = $apiSubscribeEvents = [ ];
+            $apiProcessEvents = $apiBroadcastEvents = [ ];
 
             if ( null === ( $path = ArrayUtils::get( $api, 'path' ) ) )
             {
@@ -374,22 +374,22 @@ HTML;
                         $eventCount++;
                     }
 
-                    $apiSubscribeEvents[$_method] = $_eventsThrown;
-                    $apiScriptEvents[$_method] = [ "$path.$_method.pre_process", "$path.$_method.post_process" ];
+                    $apiBroadcastEvents[$_method] = $_eventsThrown;
+                    $apiProcessEvents[$_method] = [ "$path.$_method.pre_process", "$path.$_method.post_process" ];
                 }
 
                 unset( $_operation, $_eventsThrown );
             }
 
-            $scriptEvents[str_ireplace( '{api_name}', $apiName, $path )] = $apiScriptEvents;
-            $subscribeEvents[str_ireplace( '{api_name}', $apiName, $path )] = $apiSubscribeEvents;
+            $processEvents[str_ireplace( '{api_name}', $apiName, $path )] = $apiProcessEvents;
+            $broadcastEvents[str_ireplace( '{api_name}', $apiName, $path )] = $apiBroadcastEvents;
 
-            unset( $apiScriptEvents, $apiSubscribeEvents, $api );
+            unset( $apiProcessEvents, $apiBroadcastEvents, $api );
         }
 
         \Log::debug( '  * Discovered ' . $eventCount . ' event(s).' );
 
-        return [ 'script' => $scriptEvents, 'subscribe' => $subscribeEvents ];
+        return [ 'script' => $processEvents, 'subscribe' => $broadcastEvents ];
     }
 
     /**
@@ -397,30 +397,30 @@ HTML;
      *
      * @return array
      */
-    public static function getScriptedEventMap()
+    public static function getProcessEventMap()
     {
-        if ( !empty( static::$scriptEventMap ) )
+        if ( !empty( static::$processEventMap ) )
         {
-            return static::$scriptEventMap;
+            return static::$processEventMap;
         }
 
-        $_encoded = \Cache::get( static::SWAGGER_SCRIPT_EVENT_CACHE_FILE );
+        $_encoded = \Cache::get( static::SWAGGER_PROCESS_EVENT_CACHE_FILE );
 
         if ( !empty( $_encoded ) )
         {
-            if ( false === ( static::$scriptEventMap = json_decode( $_encoded, true ) ) )
+            if ( false === ( static::$processEventMap = json_decode( $_encoded, true ) ) )
             {
                 \Log::error( '  * Event cache appears corrupt, or cannot be read.' );
             }
         }
 
         //	If we still have no event map, build it.
-        if ( empty( static::$scriptEventMap ) )
+        if ( empty( static::$processEventMap ) )
         {
             static::buildSwagger();
         }
 
-        return static::$scriptEventMap;
+        return static::$processEventMap;
     }
 
     /**
@@ -428,30 +428,30 @@ HTML;
      *
      * @return array
      */
-    public static function getSubscribedEventMap()
+    public static function getBroadcastEventMap()
     {
-        if ( !empty( static::$subscribeEventMap ) )
+        if ( !empty( static::$broadcastEventMap ) )
         {
-            return static::$subscribeEventMap;
+            return static::$broadcastEventMap;
         }
 
-        $_encoded = \Cache::get( static::SWAGGER_SUBSCRIBE_EVENT_CACHE_FILE );
+        $_encoded = \Cache::get( static::SWAGGER_BROADCAST_EVENT_CACHE_FILE );
 
         if ( !empty( $_encoded ) )
         {
-            if ( false === ( static::$subscribeEventMap = json_decode( $_encoded, true ) ) )
+            if ( false === ( static::$broadcastEventMap = json_decode( $_encoded, true ) ) )
             {
-                \Log::error( '  * Event cache appears corrupt, or cannot be read.' );
+                \Log::error( '  * Broadcast event cache appears corrupt, or cannot be read.' );
             }
         }
 
         //	If we still have no event map, build it.
-        if ( empty( static::$subscribeEventMap ) )
+        if ( empty( static::$broadcastEventMap ) )
         {
             static::buildSwagger();
         }
 
-        return static::$subscribeEventMap;
+        return static::$broadcastEventMap;
     }
 
     /**
@@ -507,8 +507,8 @@ HTML;
     public static function clearCache()
     {
         \Cache::forget( static::SWAGGER_CACHE_FILE );
-        \Cache::forget( static::SWAGGER_SCRIPT_EVENT_CACHE_FILE );
-        \Cache::forget( static::SWAGGER_SUBSCRIBE_EVENT_CACHE_FILE );
+        \Cache::forget( static::SWAGGER_PROCESS_EVENT_CACHE_FILE );
+        \Cache::forget( static::SWAGGER_BROADCAST_EVENT_CACHE_FILE );
 
         //  Clear the rest of the swagger cache for each service api name
         //	Spin through services and clear the cache file

@@ -42,6 +42,9 @@ class Environment extends BaseRestSystemResource
 
     public function getApiDocInfo()
     {
+        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
+        $eventPath = $this->getServiceName() . '.';
+
         return array(
 
             //-------------------------------------------------------------------------
@@ -50,14 +53,14 @@ class Environment extends BaseRestSystemResource
 
             'apis'   => array(
                 array(
-                    'path'        => '/{api_name}/environment',
+                    'path'        => $path,
                     'operations'  => array(
                         array(
                             'method'     => 'GET',
                             'summary'    => 'getEnvironment() - Retrieve environment information.',
                             'nickname'   => 'getEnvironment',
                             'type'       => 'EnvironmentResponse',
-                            'event_name' => '{api_name}.environment.read',
+                            'event_name' => $eventPath . '.environment.read',
                             'notes'      => 'The retrieved information describes the container/machine on which the DSP resides.',
                         ),
                     ),

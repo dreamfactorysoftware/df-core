@@ -20,9 +20,7 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Resources\BaseRestResource;
 
 /**
@@ -41,10 +39,15 @@ class Event extends BaseRestResource
             'class_name' => 'DreamFactory\\Rave\\Resources\\System\\EventScript',
             'label'      => 'Scripts',
         ],
-        EventSubscriber::RESOURCE_NAME          => [
-            'name'       => EventSubscriber::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Rave\\Resources\\System\\EventSubscriber',
-            'label'      => 'Subscribers',
+        ProcessEvent::RESOURCE_NAME           => [
+            'name'       => ProcessEvent::RESOURCE_NAME,
+            'class_name' => 'DreamFactory\\Rave\\Resources\\System\\ProcessEvent',
+            'label'      => 'Process Events',
+        ],
+        BroadcastEvent::RESOURCE_NAME           => [
+            'name'       => BroadcastEvent::RESOURCE_NAME,
+            'class_name' => 'DreamFactory\\Rave\\Resources\\System\\BroadcastEvent',
+            'label'      => 'Broadcast Events',
         ],
     ];
 
@@ -59,76 +62,6 @@ class Event extends BaseRestResource
     {
         return $this->resources;
     }
-
-    // REST service implementation
-
-    /**
-     * {@inheritdoc}
-     */
-    public function listResources( $include_properties = null )
-    {
-        if ( !$this->request->getParameterAsBool( 'as_access_components' ) )
-        {
-            return parent::listResources( $include_properties );
-        }
-
-        $output = [ ];
-        foreach ($this->resources as $resourceInfo)
-        {
-            $className = $resourceInfo['class_name'];
-
-            if ( !class_exists( $className ) )
-            {
-                throw new InternalServerErrorException( 'Service configuration class name lookup failed for resource ' . $this->resourcePath );
-            }
-
-            /** @var BaseRestResource $resource */
-            $resource = $this->instantiateResource( $className, $resourceInfo );
-
-            $name = $className::RESOURCE_NAME . '/';
-            $_access = $this->getPermissions( $name );
-            if ( !empty( $_access ) )
-            {
-                $output[] = $name;
-                $output[] = $name . '*';
-            }
-
-            $results = $resource->listResources(false);
-            foreach ( $results as $name )
-            {
-                $name = $className::RESOURCE_NAME . '/' . $name;
-                $_access = $this->getPermissions( $name );
-                if ( !empty( $_access ) )
-                {
-                    $output[] = $name;
-                }
-            }
-        }
-
-        return [ 'resource' => $output ];
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-//    protected function respond()
-//    {
-//        if ( Verbs::POST === $this->getRequestedAction() )
-//        {
-//            switch ( $this->resource )
-//            {
-//                case Table::RESOURCE_NAME:
-//                case Schema::RESOURCE_NAME:
-//                    if ( !( $this->response instanceof ServiceResponseInterface ) )
-//                    {
-//                        $this->response = ResponseFactory::create( $this->response, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
-//                    }
-//                    break;
-//            }
-//        }
-//
-//        parent::respond();
-//    }
 
     /**
      * {@inheritdoc}

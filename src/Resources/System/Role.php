@@ -31,7 +31,7 @@ class Role extends BaseRestSystemResource
         $this->model = new \DreamFactory\Rave\Models\Role();
     }
 
-    public function getApiDocInfo()
+    public function getApiDocInfoz()
     {
         $base = parent::getApiDocInfo();
 

@@ -33,16 +33,18 @@ class Setting extends BaseRestSystemResource
 
     public function getApiDocInfo()
     {
+        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
+        $eventPath = $this->getServiceName() . '.';
         $apis = [
             [
-                'path'        => '/{api_name}/setting',
+                'path'        => $path,
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'getSettings() - Retrieve all custom system settings.',
                         'nickname'         => 'getSettings',
                         'type'             => 'Settings',
-                        'event_name'       => '{api_name}.settings.read',
+                        'event_name'       => $eventPath . '.settings.read',
                         'responseMessages' => [
                             [
                                 'message' => 'System Error - Specific reason is included in the error message.',
@@ -56,7 +58,7 @@ class Setting extends BaseRestSystemResource
                         'summary'          => 'setSettings() - Update one or more custom system settings.',
                         'nickname'         => 'setSettings',
                         'type'             => 'Success',
-                        'event_name'       => '{api_name}.settings.update',
+                        'event_name'       => $eventPath . '.settings.update',
                         'parameters'       => [
                             [
                                 'name'          => 'body',
@@ -89,14 +91,14 @@ class Setting extends BaseRestSystemResource
                 'description' => 'Operations for managing custom system settings.',
             ],
             [
-                'path'        => '/{api_name}/setting/{setting_name}',
+                'path'        => $path . '/{setting_name}',
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'getSetting() - Retrieve one custom system setting.',
                         'nickname'         => 'getSetting',
                         'type'             => 'Setting',
-                        'event_name'       => '{api_name}.setting.read',
+                        'event_name'       => $eventPath . '.setting.read',
                         'parameters'       => [
                             [
                                 'name'          => 'setting_name',
@@ -120,7 +122,7 @@ class Setting extends BaseRestSystemResource
                         'summary'          => 'deleteSetting() - Delete one custom setting.',
                         'nickname'         => 'deleteSetting',
                         'type'             => 'Success',
-                        'event_name'       => '{api_name}.setting.delete',
+                        'event_name'       => $eventPath . '.setting.delete',
                         'parameters'       => [
                             [
                                 'name'          => 'setting',

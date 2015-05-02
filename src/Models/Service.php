@@ -234,6 +234,22 @@ class Service extends BaseSystemModel
             $seeded = true;
         }
 
+        if ( !static::whereType( 'event' )->count() )
+        {
+            static::create(
+                [
+                    'name'        => 'event',
+                    'label'       => 'Events',
+                    'description' => 'Service for displaying and subscribing to broadcast system events.',
+                    'is_active'   => 1,
+                    'type'        => 'event',
+                    'mutable'     => 0,
+                    'deletable'   => 0
+                ]
+            );
+            $seeded = true;
+        }
+
         return $seeded;
     }
 }

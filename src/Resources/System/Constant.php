@@ -63,18 +63,20 @@ class Constant extends BaseRestSystemResource
 
     public function getApiDocInfo()
     {
+        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
+        $eventPath = $this->getServiceName() . '.';
         $_constant = [ ];
 
         $_constant['apis'] = [
             [
-                'path'        => '/{api_name}/constant',
+                'path'        => $path,
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'getConstants() - Retrieve all platform enumerated constants.',
                         'nickname'         => 'getConstants',
                         'type'             => 'Constants',
-                        'event_name'       => '{api_name}.constants.list',
+                        'event_name'       => $eventPath . '.constants.list',
                         'responseMessages' => [
                             [
                                 'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
@@ -95,14 +97,14 @@ class Constant extends BaseRestSystemResource
                 'description' => 'Operations for retrieving platform constants.',
             ],
             [
-                'path'        => '/{api_name}/constant/{type}',
+                'path'        => $path . '/{type}',
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'getConstant() - Retrieve one constant type enumeration.',
                         'nickname'         => 'getConstant',
                         'type'             => 'Constant',
-                        'event_name'       => '{api_name}.constant.read',
+                        'event_name'       => $eventPath . '.constant.read',
                         'parameters'       => [
                             [
                                 'name'          => 'type',

@@ -1,9 +1,9 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory Services Platform(tm) SDK For PHP
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
+ * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
+ * Copyright 2012-2014 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,32 +17,48 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+namespace DreamFactory\Rave\Services;
 
-namespace DreamFactory\Rave\Resources\System;
-
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Rave\Models\EventSubscriber as EventSubscriberModel;
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
-use DreamFactory\Rave\Services\Swagger;
+use DreamFactory\Rave\Contracts\ServiceResponseInterface;
+use DreamFactory\Rave\Exceptions\BadRequestException;
+use DreamFactory\Rave\Exceptions\NotFoundException;
+use DreamFactory\Rave\Models\BaseSystemModel;
+use DreamFactory\Rave\Models\EventSubscriber;
+use DreamFactory\Rave\Utility\ResponseFactory;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Class EventSubscriber
- *
- * @package DreamFactory\Rave\Resources
+ * Event Service
  */
-class EventSubscriber extends BaseRestSystemResource
+class Event extends BaseRestService
 {
     //*************************************************************************
     //	Constants
     //*************************************************************************
 
     /**
-     * Resource tag for dealing with event subscribers
+     *
      */
-    const RESOURCE_NAME = '_subscriber';
+    const RECORD_WRAPPER = 'record';
+    /**
+     * Default maximum records returned on filter request
+     */
+    const MAX_RECORDS_RETURNED = 1000;
 
     //*************************************************************************
     //	Members
+    //*************************************************************************
+
+    /**
+     * @var \DreamFactory\Rave\Models\BaseSystemModel Model Class name.
+     */
+    protected $model = null;
+
+    //*************************************************************************
+    //	Methods
     //*************************************************************************
 
     /**
@@ -51,35 +67,312 @@ class EventSubscriber extends BaseRestSystemResource
     public function __construct( $settings = [ ] )
     {
         parent::__construct( $settings );
-        $this->model = new EventSubscriberModel();
+        $this->model = new EventSubscriber();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getPayloadData( $key = null, $default = null )
+    {
+        $payload = parent::getPayloadData();
+
+        if ( null !== $key && !empty( $payload[$key] ) )
+        {
+            return $payload[$key];
+        }
+
+        if ( !empty( $this->resource ) && !empty( $payload ) )
+        {
+            // single records passed in which don't use the record wrapper, so wrap it
+            $payload = [ static::RECORD_WRAPPER => [ $payload ] ];
+        }
+        elseif ( ArrayUtils::isArrayNumeric( $payload ) )
+        {
+            // import from csv, etc doesn't include a wrapper, so wrap it
+            $payload = [ static::RECORD_WRAPPER => $payload ];
+        }
+
+        if ( empty( $key ) )
+        {
+            $key = static::RECORD_WRAPPER;
+        }
+
+        return ArrayUtils::get( $payload, $key );
     }
 
     /**
      * Handles GET action
      *
      * @return array
+     * @throws NotFoundException
      */
     protected function handleGET()
     {
-        if ( $this->request->getParameterAsBool( 'all_events' ) )
+        $ids = $this->request->getParameter( 'ids' );
+        $records = $this->getPayloadData( self::RECORD_WRAPPER );
+
+        $data = null;
+
+        $related = $this->request->getParameter( 'related' );
+        if ( !empty( $related ) )
         {
-            $results = Swagger::getSubscribedEventMap();
-            $allEvents = [ ];
-            foreach ( $results as $service => $apis )
+            $related = explode( ',', $related );
+        }
+        else
+        {
+            $related = [ ];
+        }
+
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->getModel();
+        /** @var BaseSystemModel $model */
+        $model = new $modelClass;
+        $pk = $model->getPrimaryKey();
+
+        //	Single resource by ID
+        if ( !empty( $this->resource ) )
+        {
+            $foundModel = $modelClass::with( $related )->find( $this->resource );
+            if ( $foundModel )
             {
-                foreach ( $apis as $path => $operations )
+                $data = $foundModel->toArray();
+            }
+        }
+        else if ( !empty( $ids ) )
+        {
+            /** @var Collection $dataCol */
+            $dataCol = $modelClass::with( $related )->whereIn( $pk, explode( ',', $ids ) )->get();
+            $data = $dataCol->toArray();
+            $data = [ self::RECORD_WRAPPER => $data ];
+        }
+        else if ( !empty( $records ) )
+        {
+            $pk = $model->getPrimaryKey();
+            $ids = [ ];
+
+            foreach ( $records as $record )
+            {
+                $ids[] = ArrayUtils::get( $record, $pk );
+            }
+
+            /** @var Collection $dataCol */
+            $dataCol = $modelClass::with( $related )->whereIn( $pk, $ids )->get();
+            $data = $dataCol->toArray();
+            $data = [ self::RECORD_WRAPPER => $data ];
+        }
+        else
+        {
+            //	Build our criteria
+            $criteria = [
+                'params' => [ ],
+            ];
+
+            if ( null !== ( $value = $this->request->getParameter( 'fields' ) ) )
+            {
+                $criteria['select'] = $value;
+            }
+            else
+            {
+                $criteria['select'] = "*";
+            }
+
+            if ( null !== ( $value = $this->request->getPayloadData( 'params' ) ) )
+            {
+                $criteria['params'] = $value;
+            }
+
+            if ( null !== ( $value = $this->request->getParameter( 'filter' ) ) )
+            {
+                $criteria['condition'] = $value;
+
+                //	Add current user ID into parameter array if in condition, but not specified.
+                if ( false !== stripos( $value, ':user_id' ) )
                 {
-                    foreach ( $operations as $method => $events )
+                    if ( !isset( $criteria['params'][':user_id'] ) )
                     {
-                        $allEvents = array_merge( $allEvents, $events );
+                        //$criteria['params'][':user_id'] = Session::getCurrentUserId();
                     }
                 }
             }
 
-            return $allEvents;
+            $value = intval( $this->request->getParameter( 'limit' ) );
+            $maxAllowed = intval( \Config::get( 'rave.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
+            if ( ( $value < 1 ) || ( $value > $maxAllowed ) )
+            {
+                // impose a limit to protect server
+                $value = $maxAllowed;
+            }
+            $criteria['limit'] = $value;
+
+            if ( null !== ( $value = $this->request->getParameter( 'offset' ) ) )
+            {
+                $criteria['offset'] = $value;
+            }
+
+            if ( null !== ( $value = $this->request->getParameter( 'order' ) ) )
+            {
+                $criteria['order'] = $value;
+            }
+
+            $data = $model->selectResponse( $criteria, $related );
+            $data = [ static::RECORD_WRAPPER => $data ];
         }
 
-        return parent::handleGET();
+        if ( null === $data )
+        {
+            throw new NotFoundException( "Record not found." );
+        }
+
+        if ( $this->request->getParameterAsBool( 'include_count' ) === true )
+        {
+            if ( isset( $data['record'] ) )
+            {
+                $data['meta']['count'] = count( $data['record'] );
+            }
+            elseif ( !empty( $data ) )
+            {
+                $data['meta']['count'] = 1;
+            }
+        }
+
+        if ( !empty( $data ) && $this->request->getParameterAsBool( 'include_schema' ) === true )
+        {
+            $data['meta']['schema'] = $model->getTableSchema()->toArray();
+        }
+
+        if ( empty( $data ) )
+        {
+            return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_NOT_FOUND );
+        }
+
+        return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_OK );
+    }
+
+    /**
+     * Handles POST action
+     *
+     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @throws BadRequestException
+     * @throws \Exception
+     */
+    protected function handlePOST()
+    {
+        if ( !empty( $this->resource ) )
+        {
+            throw new BadRequestException( 'Create record by identifier not currently supported.' );
+        }
+
+        $records = $this->getPayloadData( self::RECORD_WRAPPER );
+
+        if ( empty( $records ) )
+        {
+            throw new BadRequestException( 'No record(s) detected in request.' );
+        }
+
+        $this->triggerActionEvent( $this->response );
+
+        $model = $this->getModel();
+        $result = $model::bulkCreate( $records, $this->request->getParameters() );
+
+        $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
+
+        return $response;
+    }
+
+    /**
+     * @throws BadRequestException
+     */
+    protected function handlePUT()
+    {
+        throw new BadRequestException( 'PUT is not supported on System Resource. Use PATCH' );
+    }
+
+    /**
+     * Handles PATCH action
+     *
+     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @throws BadRequestException
+     * @throws \Exception
+     */
+    protected function handlePATCH()
+    {
+        $records = $this->getPayloadData( static::RECORD_WRAPPER );
+        $ids = $this->request->getParameter( 'ids' );
+        $modelClass = $this->getModel();
+
+        if ( empty( $records ) )
+        {
+            throw new BadRequestException( 'No record(s) detected in request.' );
+        }
+
+        $this->triggerActionEvent( $this->response );
+
+        if ( !empty( $this->resource ) )
+        {
+            $result = $modelClass::updateById( $this->resource, $records[0], $this->request->getParameters() );
+        }
+        elseif ( !empty( $ids ) )
+        {
+            $result = $modelClass::updateByIds( $ids, $records[0], $this->request->getParameters() );
+        }
+        else
+        {
+            $result = $modelClass::bulkUpdate( $records, $this->request->getParameters() );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Handles DELETE action
+     *
+     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @throws BadRequestException
+     * @throws \Exception
+     */
+    protected function handleDELETE()
+    {
+        $this->triggerActionEvent( $this->response );
+        $ids = $this->request->getParameter( 'ids' );
+        $modelClass = $this->getModel();
+
+        if ( !empty( $this->resource ) )
+        {
+            $result = $modelClass::deleteById( $this->resource, $this->request->getParameters() );
+        }
+        elseif ( !empty( $ids ) )
+        {
+            $result = $modelClass::deleteByIds( $ids, $this->request->getParameters() );
+        }
+        else
+        {
+            $records = $this->getPayloadData( static::RECORD_WRAPPER );
+
+            if ( empty( $records ) )
+            {
+                throw new BadRequestException( 'No record(s) detected in request.' );
+            }
+            $result = $modelClass::bulkDelete( $records, $this->request->getParameters() );
+        }
+
+        return $result;
+    }
+
+    /**
+     * Returns associated model with the service/resource.
+     *
+     * @return \DreamFactory\Rave\Models\BaseSystemModel
+     * @throws ModelNotFoundException
+     */
+    protected function getModel()
+    {
+        if ( empty( $this->model ) )
+        {
+            throw new ModelNotFoundException();
+        }
+
+        return $this->model;
     }
 
     public function getApiDocInfo()
@@ -90,14 +383,14 @@ class EventSubscriber extends BaseRestSystemResource
         $pluralLower = Inflector::pluralize( $lower );
         $apis = [
             [
-                'path'        => '/{api_name}/' . $this->name,
+                'path'        => $this->name,
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralLower . '.',
                         'nickname'         => 'get' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => '{api_name}.' . $pluralLower . '.list',
+                        'event_name'       => $pluralLower . '.list',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -211,7 +504,7 @@ class EventSubscriber extends BaseRestSystemResource
                         'summary'          => 'create' . $plural . '() - Create one or more ' . $pluralLower . '.',
                         'nickname'         => 'create' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => '{api_name}.' . $pluralLower . '.create',
+                        'event_name'       => $pluralLower . '.create',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -273,7 +566,7 @@ class EventSubscriber extends BaseRestSystemResource
                         'summary'          => 'update' . $plural . '() - Update one or more ' . $pluralLower . '.',
                         'nickname'         => 'update' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => '{api_name}.' . $pluralLower . '.update',
+                        'event_name'       => $pluralLower . '.update',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -326,7 +619,7 @@ class EventSubscriber extends BaseRestSystemResource
                         'summary'          => 'delete' . $plural . '() - Delete one or more ' . $pluralLower . '.',
                         'nickname'         => 'delete' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => '{api_name}.' . $pluralLower . '.delete',
+                        'event_name'       => $pluralLower . '.delete',
                         'parameters'       => [
                             [
                                 'name'          => 'ids',
@@ -386,14 +679,14 @@ class EventSubscriber extends BaseRestSystemResource
                 'description' => 'Operations for user administration.',
             ],
             [
-                'path'        => '/{api_name}/' . $lower . '/{id}',
+                'path'        => $this->name . '/{id}',
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'get' . $name . '() - Retrieve one ' . $lower . '.',
                         'nickname'         => 'get' . $name,
                         'type'             => $name . 'Response',
-                        'event_name'       => '{api_name}.' . $lower . '.read',
+                        'event_name'       => $lower . '.read',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -441,7 +734,7 @@ class EventSubscriber extends BaseRestSystemResource
                         'summary'          => 'update' . $name . '() - Update one ' . $lower . '.',
                         'nickname'         => 'update' . $name,
                         'type'             => $name . 'Response',
-                        'event_name'       => '{api_name}.' . $lower . '.update',
+                        'event_name'       => $lower . '.update',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -499,7 +792,7 @@ class EventSubscriber extends BaseRestSystemResource
                         'summary'          => 'delete' . $name . '() - Delete one ' . $lower . '.',
                         'nickname'         => 'delete' . $name,
                         'type'             => $name . 'Response',
-                        'event_name'       => '{api_name}.' . $lower . '.delete',
+                        'event_name'       => $lower . '.delete',
                         'parameters'       => [
                             [
                                 'name'          => 'id',

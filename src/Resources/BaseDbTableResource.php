@@ -2914,13 +2914,15 @@ abstract class BaseDbTableResource extends BaseDbResource
 
     public function getApiDocInfo()
     {
+        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $_base = parent::getApiDocInfo();
 
         $_commonResponses = ApiDocUtilities::getCommonResponses();
 
         $_apis = [
             [
-                'path'        => '/{api_name}/' . static::RESOURCE_NAME,
+                'path'        => $path,
                 'description' => 'Operations available for SQL DB Tables.',
                 'operations'  => [
                     [
@@ -2928,7 +2930,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'summary'          => 'getTables() - List resources available for database tables.',
                         'nickname'         => 'getTables',
                         'type'             => 'Resources',
-                        'event_name'       => '{api_name}.' . static::RESOURCE_NAME . '.list',
+                        'event_name'       => $eventPath . '.list',
                         'parameters'       => [
                             [
                                 'name'          => 'refresh',
@@ -2945,7 +2947,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
             ],
             [
-                'path'        => '/{api_name}/' . static::RESOURCE_NAME . '/{table_name}',
+                'path'        => $path . '/{table_name}',
                 'description' => 'Operations for table records administration.',
                 'operations'  =>
                     [
@@ -2964,7 +2966,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'Use the <b>fields</b> parameter to limit properties returned for each record. ' .
                                 'By default, all fields are returned for all records. ',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.select', '{api_name}.table_selected', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.select', $eventPath . '.table_selected', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3047,7 +3049,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'Use the <b>fields</b> parameter to limit properties returned for each record. ' .
                                 'By default, all fields are returned for identified records. ',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.select', '{api_name}.table_selected', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.select', $eventPath . '.table_selected', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3118,7 +3120,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'Use the <b>fields</b> parameter to limit properties returned for each record. ' .
                                 'By default, all fields are returned for identified records. ',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.select', '{api_name}.table_selected', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.select', $eventPath . '.table_selected', ],
                             'parameters'       => [
                                 [
                                     'name'          => 'table_name',
@@ -3192,7 +3194,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                             'nickname'         => 'getRecords',
                             'notes'            => 'Here for SDK backwards compatibility, see getRecordsByFilter(), getRecordsByIds(), and getRecordsByPost()',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.select', '{api_name}.table_selected', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.select', $eventPath . '.table_selected', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3311,7 +3313,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'By default, only the id property of the record is returned on success. ' .
                                 'Use <b>fields</b> parameter to return more info.',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.insert', '{api_name}.table_inserted', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.insert', $eventPath . '.table_inserted', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3400,7 +3402,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'By default, only the id property of the record is returned on success. ' .
                                 'Use <b>fields</b> parameter to return more info.',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.update', '{api_name}.table_updated', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.update', $eventPath . '.table_updated', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3488,7 +3490,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'By default, only the id property of the record is returned on success. ' .
                                 'Use <b>fields</b> parameter to return more info.',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.update', '{api_name}.table_updated', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.update', $eventPath . '.table_updated', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3535,7 +3537,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'By default, only the id property of the record is returned on success. ' .
                                 'Use <b>fields</b> parameter to return more info.',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.update', '{api_name}.table_updated', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.update', $eventPath . '.table_updated', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3615,7 +3617,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'By default, only the id property of the record is returned on success. ' .
                                 'Use <b>fields</b> parameter to return more info.',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.update', '{api_name}.table_updated', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.update', $eventPath . '.table_updated', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3703,7 +3705,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'By default, only the id property of the record is returned on success. ' .
                                 'Use <b>fields</b> parameter to return more info.',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.update', '{api_name}.table_updated', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.update', $eventPath . '.table_updated', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3750,7 +3752,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'By default, only the id property of the record is returned on success. ' .
                                 'Use <b>fields</b> parameter to return more info.',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.update', '{api_name}.table_updated', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.update', $eventPath . '.table_updated', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3829,7 +3831,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'Alternatively, to delete records by a large list of ids, pass the ids in the <b>body</b>.<br/> ' .
                                 'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.delete', '{api_name}.table_deleted', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.delete', $eventPath . '.table_deleted', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3917,7 +3919,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'Alternatively, to delete by a complicated filter or to use parameter replacement, pass the filter with or without params as the <b>body</b>.<br/> ' .
                                 'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.delete', '{api_name}.table_deleted', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.delete', $eventPath . '.table_deleted', ],
                             'parameters'       =>
                                 [
                                     [
@@ -3972,7 +3974,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'Set the <b>body</b> to an array of records, minimally including the identifying fields, to delete specific records.<br/> ' .
                                 'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ',
                             'type'             => 'RecordsResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.delete', '{api_name}.table_deleted', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.delete', $eventPath . '.table_deleted', ],
                             'parameters'       =>
                                 [
                                     [
@@ -4061,7 +4063,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                     ],
             ],
             [
-                'path'        => '/{api_name}/' . static::RESOURCE_NAME . '/{table_name}/{id}',
+                'path'        => $path . '/{table_name}/{id}',
                 'description' => 'Operations for single record administration.',
                 'operations'  =>
                     [
@@ -4073,7 +4075,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'Use the <b>fields</b> parameter to limit properties that are returned. ' .
                                 'By default, all fields are returned.',
                             'type'             => 'RecordResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.select', '{api_name}.table_selected', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.select', $eventPath . '.table_selected', ],
                             'parameters'       => [
                                 [
                                     'name'          => 'table_name',
@@ -4130,7 +4132,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'Post data should be an array of fields for a single record.<br/> ' .
                                 'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
                             'type'             => 'RecordResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.create', '{api_name}.table_created', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.create', $eventPath . '.table_created', ],
                             'parameters'       => [
                                 [
                                     'name'          => 'table_name',
@@ -4195,7 +4197,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'Post data should be an array of fields for a single record.<br/> ' .
                                 'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
                             'type'             => 'RecordResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.update', '{api_name}.table_updated', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.update', $eventPath . '.table_updated', ],
                             'parameters'       => [
                                 [
                                     'name'          => 'table_name',
@@ -4260,7 +4262,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'Post data should be an array of fields for a single record.<br/> ' .
                                 'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
                             'type'             => 'RecordResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.update', '{api_name}.table_updated', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.update', $eventPath . '.table_updated', ],
                             'parameters'       => [
                                 [
                                     'name'          => 'table_name',
@@ -4323,7 +4325,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                             'nickname'         => 'deleteRecord',
                             'notes'            => 'Use the <b>fields</b> parameter to return more deleted properties. By default, the id is returned.',
                             'type'             => 'RecordResponse',
-                            'event_name'       => [ '{api_name}.{table_name}.delete', '{api_name}.table_deleted', ],
+                            'event_name'       => [ $eventPath . '.{table_name}.delete', $eventPath . '.table_deleted', ],
                             'parameters'       => [
                                 [
                                     'name'          => 'table_name',

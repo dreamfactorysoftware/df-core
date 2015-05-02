@@ -21,8 +21,11 @@
 namespace DreamFactory\Rave\Models;
 
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Rave\Components\ConnectionAdapter;
 use DreamFactory\Rave\Exceptions\BadRequestException;
+use DreamFactory\Rave\SqlDbCore\ColumnSchema;
+use DreamFactory\Rave\SqlDbCore\RelationSchema;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use DreamFactory\Rave\SqlDbCore\Schema;
@@ -119,7 +122,7 @@ class BaseModel extends Model
                     $newModels[] = new $relatedModel( $record );
                 }
 
-                if('has_many' === $model->getReferencingType($name))
+                if ( RelationSchema::HAS_MANY === $model->getReferencingType( $name ) )
                 {
                     $model->getHasManyByRelationName( $name )->saveMany( $newModels );
                 }
@@ -151,7 +154,7 @@ class BaseModel extends Model
      * @return bool|int
      * @throws \Exception
      */
-    public function update( array $attributes = array() )
+    public function update( array $attributes = [ ] )
     {
         $relations = [ ];
         $transaction = false;
@@ -181,7 +184,7 @@ class BaseModel extends Model
                 {
                     $relatedModel = $this->getReferencingModel( $name );
 
-                    if('has_many' === $this->getReferencingType($name))
+                    if ( RelationSchema::HAS_MANY === $this->getReferencingType( $name ) )
                     {
                         $hasMany = $this->getHasManyByRelationName( $name );
                         $this->saveHasManyData( $relatedModel, $hasMany, $value, $name );
@@ -252,7 +255,7 @@ class BaseModel extends Model
                 $this->getTableSchema();
             }
 
-            $this->references = $this->tableSchema->references;
+            $this->references = $this->tableSchema->relations;
         }
 
         return $this->references;
@@ -291,7 +294,6 @@ class BaseModel extends Model
         if ( empty( $criteria ) )
         {
             $collections = $this->all();
-
         }
         else
         {
@@ -300,6 +302,11 @@ class BaseModel extends Model
                 $_fields = explode( ',', $criteria['select'] );
 
                 $collections = $this->with( $related )->get( $_fields );
+            }
+            else
+            {
+                // todo fix this
+                $collections = $this->all();
             }
         }
 
@@ -394,25 +401,32 @@ class BaseModel extends Model
         return ( !empty( $table ) && in_array( $table, $mappedTables ) ) ? $this->getHasMany( $table ) : null;
     }
 
-    public function getBelongsToManyByRelationName($name)
+    public function getBelongsToManyByRelationName( $name )
     {
-        $table = $this->getReferencingTable($name);
-        $model = ArrayUtils::get(static::$relatedModels, $table);
+        $table = $this->getReferencingTable( $name );
+        $model = ArrayUtils::get( static::$relatedModels, $table );
 
-        list($pivotTable, $fk, $rk) = $this->getReferencingJoin($name);
+        list( $pivotTable, $fk, $rk ) = $this->getReferencingJoin( $name );
 
-        return $this->belongsToMany($model, $pivotTable, $fk, $rk);
+        return $this->belongsToMany( $model, $pivotTable, $fk, $rk );
     }
 
-    public function getBelongsToByRelationName($name)
+    public function getBelongsToByRelationName( $name )
     {
-        $table = $this->getReferencingTable($name);
-        $model = ArrayUtils::get(static::$relatedModels, $table);
+        $table = $this->getReferencingTable( $name );
+        $model = ArrayUtils::get( static::$relatedModels, $table );
 
         $references = $this->getReferences();
-        $lf = ArrayUtils::findByKeyValue($references, 'ref_table', $table, 'field');
+        $lf = null;
+        foreach ( $references as $item )
+        {
+            if ( $item->refTable === $table )
+            {
+                $lf = $item->field;
+            }
+        }
 
-        return $this->belongsTo($model, $lf);
+        return $this->belongsTo( $model, $lf );
     }
 
     /**
@@ -425,8 +439,16 @@ class BaseModel extends Model
     protected function getReferencingField( $table )
     {
         $references = $this->getReferences();
+        $rf = null;
+        foreach ( $references as $item )
+        {
+            if ( $item->refTable === $table )
+            {
+                $rf = $item->refFields;
+            }
+        }
 
-        return ArrayUtils::findByKeyValue($references, 'ref_table', $table, 'ref_field');
+        return $rf;
     }
 
     /**
@@ -441,30 +463,42 @@ class BaseModel extends Model
     {
         $references = $this->getReferences();
 
-        return ArrayUtils::findByKeyValue($references, 'name', $name, 'ref_table');
+        if ( array_key_exists( $name, $references ) )
+        {
+            return $references[$name]->refTable;
+        }
+
+        return null;
     }
 
     public function getReferencingType( $name )
     {
         $references = $this->getReferences();
 
-        return ArrayUtils::findByKeyValue($references, 'name', $name, 'type');
+        if ( array_key_exists( $name, $references ) )
+        {
+            return $references[$name]->type;
+        }
+
+        return null;
     }
 
     protected function getReferencingJoin( $name )
     {
         $references = $this->getReferences();
 
-        $join = ArrayUtils::findByKeyValue($references, 'name', $name, 'join');
-
-        if(!empty($join))
+        if ( array_key_exists( $name, $references ) )
         {
-            $pivotTable = substr($join, 0, strpos($join, '('));
-            $fields = substr($join, (strpos($join, '(')+1));
-            $fields = substr($fields, 0, strlen($fields)-1);
-            list($fk, $rk) = explode(',', $fields);
+            $join = $references[$name]->join;
+            if ( !empty( $join ) )
+            {
+                $pivotTable = substr( $join, 0, strpos( $join, '(' ) );
+                $fields = substr( $join, ( strpos( $join, '(' ) + 1 ) );
+                $fields = substr( $fields, 0, strlen( $fields ) - 1 );
+                list( $fk, $rk ) = explode( ',', $fields );
 
-            return [$pivotTable, $fk, $rk];
+                return [ $pivotTable, $fk, $rk ];
+            }
         }
 
         return null;
@@ -533,5 +567,84 @@ class BaseModel extends Model
     public function newEloquentBuilder( $query )
     {
         return new RaveBuilder( $query );
+    }
+
+    public function toApiDocsModel( $name = null )
+    {
+        $schema = $this->getTableSchema();
+        if ( $schema )
+        {
+            $properties = [ ];
+            /** @var ColumnSchema $field */
+            foreach ( $schema->columns as $field )
+            {
+                $properties[$field->name] = [
+                    'type'        => $field->type,
+                    'description' => $field->comment,
+                    'required'    => $field->determineRequired()
+                ];
+            }
+
+            /** @var RelationSchema $relation */
+            foreach ( $schema->relations as $relation )
+            {
+                $refModel = $this->getReferencingModel($relation->refTable);
+                if ( !empty( $refModel ) )
+                {
+                    if ( preg_match( '@\\\\([\w]+)$@', $refModel, $matches ) )
+                    {
+                        $refModel = $matches[1];
+                    }
+                }
+                else
+                {
+                    // just try to guess by table name
+                    $refModel = Inflector::camelize($relation->refTable);
+                }
+
+                switch ( $relation->type )
+                {
+                    case RelationSchema::BELONGS_TO:
+                        $properties[$relation->name] = [
+                            'type'        => $refModel,
+                            'description' => '',
+                            'required'    => false
+                        ];
+                        break;
+                    case RelationSchema::HAS_MANY:
+                        $properties[$relation->name] = [
+                            'type'        => 'array',
+                            'items'       => [ '$ref' => $refModel ],
+                            'description' => '',
+                            'required'    => false
+                        ];
+                        break;
+                    case RelationSchema::MANY_MANY:
+                        $properties[$relation->name] = [
+                            'type'        => 'array',
+                            'items'       => [ '$ref' => $refModel ],
+                            'description' => '',
+                            'required'    => false
+                        ];
+                        break;
+                }
+            }
+
+            if ( empty( $name ) )
+            {
+                $name = basename( get_class( $this ) );
+                if ( preg_match( '@\\\\([\w]+)$@', $name, $matches ) )
+                {
+                    $name = $matches[1];
+                }
+            }
+
+            return [
+                'id'         => $name,
+                'properties' => $properties
+            ];
+        }
+
+        return null;
     }
 }

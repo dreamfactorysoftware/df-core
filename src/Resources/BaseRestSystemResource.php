@@ -25,9 +25,10 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
+use DreamFactory\Rave\SqlDbCore\ColumnSchema;
+use DreamFactory\Rave\SqlDbCore\RelationSchema;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use Illuminate\Support\Facades\Config;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\BaseSystemModel;
 use Illuminate\Database\Eloquent\Collection;
@@ -194,7 +195,7 @@ class BaseRestSystemResource extends BaseRestResource
             }
 
             $value = intval( $this->request->getParameter( 'limit' ) );
-            $maxAllowed = intval( Config::get( 'rave.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
+            $maxAllowed = intval( \Config::get( 'rave.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
             if ( ( $value < 1 ) || ( $value > $maxAllowed ) )
             {
                 // impose a limit to protect server
@@ -374,20 +375,22 @@ class BaseRestSystemResource extends BaseRestResource
 
     public function getApiDocInfo()
     {
+        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
+        $eventPath = $this->getServiceName() . '.';
         $name = Inflector::camelize( $this->name );
         $lower = Inflector::camelize( $this->name, null, false, true );
         $plural = Inflector::pluralize( $name );
         $pluralLower = Inflector::pluralize( $lower );
         $apis = [
             [
-                'path'        => '/{api_name}/' . $this->name,
+                'path'        => $path,
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralLower . '.',
                         'nickname'         => 'get' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => '{api_name}.' . $pluralLower . '.list',
+                        'event_name'       => $eventPath . $pluralLower . '.list',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -501,7 +504,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'summary'          => 'create' . $plural . '() - Create one or more ' . $pluralLower . '.',
                         'nickname'         => 'create' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => '{api_name}.' . $pluralLower . '.create',
+                        'event_name'       => $eventPath . $pluralLower . '.create',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -509,7 +512,7 @@ class BaseRestSystemResource extends BaseRestResource
                                 'name'          => 'body',
                                 'description'   => 'Data containing name-value pairs of records to create.',
                                 'allowMultiple' => false,
-                                'type'          => 'UsersRequest',
+                                'type'          => $plural . 'Request',
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
@@ -563,7 +566,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'summary'          => 'update' . $plural . '() - Update one or more ' . $pluralLower . '.',
                         'nickname'         => 'update' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => '{api_name}.' . $pluralLower . '.update',
+                        'event_name'       => $eventPath . $pluralLower . '.update',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -571,7 +574,7 @@ class BaseRestSystemResource extends BaseRestResource
                                 'name'          => 'body',
                                 'description'   => 'Data containing name-value pairs of records to update.',
                                 'allowMultiple' => false,
-                                'type'          => 'UsersRequest',
+                                'type'          => $plural . 'Request',
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
@@ -616,7 +619,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'summary'          => 'delete' . $plural . '() - Delete one or more ' . $pluralLower . '.',
                         'nickname'         => 'delete' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => '{api_name}.' . $pluralLower . '.delete',
+                        'event_name'       => $eventPath . $pluralLower . '.delete',
                         'parameters'       => [
                             [
                                 'name'          => 'ids',
@@ -673,17 +676,17 @@ class BaseRestSystemResource extends BaseRestResource
                             'use the POST request with X-HTTP-METHOD = DELETE header and post records or ids.',
                     ],
                 ],
-                'description' => 'Operations for user administration.',
+                'description' => "Operations for $lower administration.",
             ],
             [
-                'path'        => '/{api_name}/' . $lower . '/{id}',
+                'path'        => $path . '/{id}',
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'get' . $name . '() - Retrieve one ' . $lower . '.',
                         'nickname'         => 'get' . $name,
-                        'type'             => $name . 'Response',
-                        'event_name'       => '{api_name}.' . $lower . '.read',
+                        'type'             => $name,
+                        'event_name'       => $eventPath . $lower . '.read',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -730,8 +733,8 @@ class BaseRestSystemResource extends BaseRestResource
                         'method'           => 'PATCH',
                         'summary'          => 'update' . $name . '() - Update one ' . $lower . '.',
                         'nickname'         => 'update' . $name,
-                        'type'             => $name . 'Response',
-                        'event_name'       => '{api_name}.' . $lower . '.update',
+                        'type'             => $name,
+                        'event_name'       => $eventPath . $lower . '.update',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -745,7 +748,7 @@ class BaseRestSystemResource extends BaseRestResource
                                 'name'          => 'body',
                                 'description'   => 'Data containing name-value pairs of fields to update.',
                                 'allowMultiple' => false,
-                                'type'          => 'UserRequest',
+                                'type'          => $name,
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
@@ -788,8 +791,8 @@ class BaseRestSystemResource extends BaseRestResource
                         'method'           => 'DELETE',
                         'summary'          => 'delete' . $name . '() - Delete one ' . $lower . '.',
                         'nickname'         => 'delete' . $name,
-                        'type'             => $name . 'Response',
-                        'event_name'       => '{api_name}.' . $lower . '.delete',
+                        'type'             => $name,
+                        'event_name'       => $eventPath . $lower . '.delete',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -833,7 +836,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'notes'            => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
                     ],
                 ],
-                'description' => 'Operations for individual user administration.',
+                'description' => "Operations for individual $lower administration.",
             ],
         ];
 
@@ -845,7 +848,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Request',
+                            '$ref' => $name,
                         ],
                     ],
                     'ids'    => [
@@ -865,23 +868,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
-                        ],
-                    ],
-                    'meta'   => [
-                        'type'        => 'Metadata',
-                        'description' => 'Array of metadata returned for GET requests.',
-                    ],
-                ],
-            ],
-            'Related' . $plural  => [
-                'id'         => 'Related' . $plural,
-                'properties' => [
-                    'record' => [
-                        'type'        => 'array',
-                        'description' => 'Array of system records.',
-                        'items'       => [
-                            '$ref' => 'Related' . $name,
+                            '$ref' => $name,
                         ],
                     ],
                     'meta'   => [
@@ -891,6 +878,15 @@ class BaseRestSystemResource extends BaseRestResource
                 ],
             ],
         ];
+
+        if ( $this->model )
+        {
+            $temp = $this->model->toApiDocsModel($name);
+            if ($temp)
+            {
+                $models[$name] = $temp;
+            }
+        }
 
         return [ 'apis' => $apis, 'models' => $models ];
     }

@@ -1020,19 +1020,21 @@ abstract class BaseFileService extends BaseRestService
 
     public function getApiDocInfo()
     {
+        $path = '/' . $this->name;
+        $eventPath = $this->getServiceName() . '.';
         $commonResponses = ApiDocUtilities::getCommonResponses();
         $base = parent::getApiDocInfo();
 
         $base['apis'] = [
             [
-                'path'        => '/{api_name}',
+                'path'        => $path,
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'getResources() - List all resources.',
                         'nickname'         => 'getResources',
                         'type'             => 'Resources',
-                        'event_name'       => [ '{api_name}.containers.list', ],
+                        'event_name'       => [ $eventPath . '.containers.list', ],
                         'responseMessages' => ApiDocUtilities::getCommonResponses( [ 400, 401, 500 ] ),
                         'notes'            => 'List the names of the available containers in this storage. ',
                     ],
@@ -1042,7 +1044,7 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'getAccessComponents',
                         'notes'            => 'List the names of all the role accessible components.',
                         'type'             => 'ComponentList',
-                        'event_name'       => [ '{api_name}.list' ],
+                        'event_name'       => [ $eventPath . '.list' ],
                         'parameters'       => [
                             [
                                 'name'          => 'as_access_components',
@@ -1061,7 +1063,7 @@ abstract class BaseFileService extends BaseRestService
                         'summary'          => 'getContainers() - List all containers, optionally with properties.',
                         'nickname'         => 'getContainers',
                         'type'             => 'ContainersResponse',
-                        'event_name'       => [ '{api_name}.containers.describe', ],
+                        'event_name'       => [ $eventPath . '.containers.describe', ],
                         'parameters'       => [
                             [
                                 'name'          => 'include_properties',
@@ -1081,7 +1083,7 @@ abstract class BaseFileService extends BaseRestService
                         'summary'          => 'createContainers() - Create one or more containers.',
                         'nickname'         => 'createContainers',
                         'type'             => 'ContainersResponse',
-                        'event_name'       => [ '{api_name}.containers.create', ],
+                        'event_name'       => [ $eventPath . '.containers.create', ],
                         'parameters'       => [
                             [
                                 'name'          => 'body',
@@ -1120,7 +1122,7 @@ abstract class BaseFileService extends BaseRestService
                         'summary'          => 'deleteContainers() - Delete one or more containers.',
                         'nickname'         => 'deleteContainers',
                         'type'             => 'ContainersResponse',
-                        'event_name'       => [ '{api_name}.containers.delete', ],
+                        'event_name'       => [ $eventPath . '.containers.delete', ],
                         'parameters'       => [
                             [
                                 'name'          => 'names',
@@ -1151,14 +1153,14 @@ abstract class BaseFileService extends BaseRestService
                 'description' => 'Operations available for File Storage Service.',
             ],
             [
-                'path'        => '/{api_name}/{container}/',
+                'path'        => $path . '/{container}/',
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'getContainer() - List the container\'s content, including properties.',
                         'nickname'         => 'getContainer',
                         'type'             => 'ContainerResponse',
-                        'event_name'       => [ '{api_name}.{container}.describe', '{api_name}.container_described' ],
+                        'event_name'       => [ $eventPath . '.{container}.describe', $eventPath . '.container_described' ],
                         'parameters'       => [
                             [
                                 'name'          => 'container',
@@ -1224,7 +1226,7 @@ abstract class BaseFileService extends BaseRestService
                         'summary'          => 'createContainer() - Create container and/or add content.',
                         'nickname'         => 'createContainer',
                         'type'             => 'ContainerResponse',
-                        'event_name'       => [ '{api_name}.{container}.create', '{api_name}.container_created' ],
+                        'event_name'       => [ $eventPath . '.{container}.create', $eventPath . '.container_created' ],
                         'parameters'       => [
                             [
                                 'name'          => 'container',
@@ -1295,7 +1297,7 @@ abstract class BaseFileService extends BaseRestService
                         'summary'          => 'updateContainerProperties() - Update properties of the container.',
                         'nickname'         => 'updateContainerProperties',
                         'type'             => 'Container',
-                        'event_name'       => [ '{api_name}.{container}.update', '{api_name}.container_updated' ],
+                        'event_name'       => [ $eventPath . '.{container}.update', $eventPath . '.container_updated' ],
                         'parameters'       => [
                             [
                                 'name'          => 'container',
@@ -1322,7 +1324,7 @@ abstract class BaseFileService extends BaseRestService
                         'summary'          => 'deleteContainer() - Delete one container and/or its contents.',
                         'nickname'         => 'deleteContainer',
                         'type'             => 'ContainerResponse',
-                        'event_name'       => [ '{api_name}.{container}.delete', '{api_name}.container_deleted' ],
+                        'event_name'       => [ $eventPath . '.{container}.delete', $eventPath . '.container_deleted' ],
                         'parameters'       => [
                             [
                                 'name'          => 'container',
@@ -1360,14 +1362,14 @@ abstract class BaseFileService extends BaseRestService
                 'description' => 'Operations on containers.',
             ],
             [
-                'path'        => '/{api_name}/{container}/{folder_path}/',
+                'path'        => $path . '/{container}/{folder_path}/',
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'getFolder() - List the folder\'s content, including properties.',
                         'nickname'         => 'getFolder',
                         'type'             => 'FolderResponse',
-                        'event_name'       => [ '{api_name}.{container}.{folder_path}.describe' ],
+                        'event_name'       => [ $eventPath . '.{container}.{folder_path}.describe' ],
                         'parameters'       => [
                             [
                                 'name'          => 'container',
@@ -1442,8 +1444,8 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'createFolder',
                         'type'             => 'FolderResponse',
                         'event_name'       => [
-                            '{api_name}.{container}.{folder_path}.create',
-                            '{api_name}.{container}.folder_created'
+                            $eventPath . '.{container}.{folder_path}.create',
+                            $eventPath . '.{container}.folder_created'
                         ],
                         'parameters'       => [
                             [
@@ -1524,8 +1526,8 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'updateFolderProperties',
                         'type'             => 'Folder',
                         'event_name'       => [
-                            '{api_name}.{container}.{folder_path}.update',
-                            '{api_name}.{container}.folder_updated'
+                            $eventPath . '.{container}.{folder_path}.update',
+                            $eventPath . '.{container}.folder_updated'
                         ],
                         'parameters'       => [
                             [
@@ -1562,8 +1564,8 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'deleteFolder',
                         'type'             => 'FolderResponse',
                         'event_name'       => [
-                            '{api_name}.{container}.{folder_path}.delete',
-                            '{api_name}.{container}.folder_deleted'
+                            $eventPath . '.{container}.{folder_path}.delete',
+                            $eventPath . '.{container}.folder_deleted'
                         ],
                         'parameters'       => [
                             [
@@ -1610,7 +1612,7 @@ abstract class BaseFileService extends BaseRestService
                 'description' => 'Operations on folders.',
             ],
             [
-                'path'        => '/{api_name}/{container}/{file_path}',
+                'path'        => $path . '/{container}/{file_path}',
                 'operations'  => [
                     [
                         'method'           => 'GET',
@@ -1618,8 +1620,8 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'getFile',
                         'type'             => 'FileResponse',
                         'event_name'       => [
-                            '{api_name}.{container}.{file_path}.download',
-                            '{api_name}.{container}.file_downloaded'
+                            $eventPath . '.{container}.{file_path}.download',
+                            $eventPath . '.{container}.file_downloaded'
                         ],
                         'parameters'       => [
                             [
@@ -1678,8 +1680,8 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'createFile',
                         'type'             => 'FileResponse',
                         'event_name'       => [
-                            '{api_name}.{container}.{file_path}.create',
-                            '{api_name}.{container}.file_created'
+                            $eventPath . '.{container}.{file_path}.create',
+                            $eventPath . '.{container}.file_created'
                         ],
                         'parameters'       => [
                             [
@@ -1724,8 +1726,8 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'replaceFile',
                         'type'             => 'FileResponse',
                         'event_name'       => [
-                            '{api_name}.{container}.{file_path}.update',
-                            '{api_name}.{container}.file_updated'
+                            $eventPath . '.{container}.{file_path}.update',
+                            $eventPath . '.{container}.file_updated'
                         ],
                         'parameters'       => [
                             [
@@ -1762,8 +1764,8 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'updateFileProperties',
                         'type'             => 'File',
                         'event_name'       => [
-                            '{api_name}.{container}.{file_path}.update',
-                            '{api_name}.{container}.file_updated'
+                            $eventPath . '.{container}.{file_path}.update',
+                            $eventPath . '.{container}.file_updated'
                         ],
                         'parameters'       => [
                             [
@@ -1800,8 +1802,8 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'deleteFile',
                         'type'             => 'FileResponse',
                         'event_name'       => [
-                            '{api_name}.{container}.{file_path}.delete',
-                            '{api_name}.{container}.file_deleted'
+                            $eventPath . '.{container}.{file_path}.delete',
+                            $eventPath . '.{container}.file_deleted'
                         ],
                         'parameters'       => [
                             [

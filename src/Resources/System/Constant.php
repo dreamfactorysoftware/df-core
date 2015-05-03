@@ -25,7 +25,6 @@ use DreamFactory\Rave\Resources\BaseRestSystemResource;
 
 class Constant extends BaseRestSystemResource
 {
-
     public function __construct( $settings = [ ] )
     {
         parent::__construct( $settings );
@@ -64,7 +63,7 @@ class Constant extends BaseRestSystemResource
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.';
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $_constant = [ ];
 
         $_constant['apis'] = [
@@ -76,7 +75,7 @@ class Constant extends BaseRestSystemResource
                         'summary'          => 'getConstants() - Retrieve all platform enumerated constants.',
                         'nickname'         => 'getConstants',
                         'type'             => 'Constants',
-                        'event_name'       => $eventPath . '.constants.list',
+                        'event_name'       => $eventPath . '.list',
                         'responseMessages' => [
                             [
                                 'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
@@ -104,7 +103,7 @@ class Constant extends BaseRestSystemResource
                         'summary'          => 'getConstant() - Retrieve one constant type enumeration.',
                         'nickname'         => 'getConstant',
                         'type'             => 'Constant',
-                        'event_name'       => $eventPath . '.constant.read',
+                        'event_name'       => $eventPath . '.read',
                         'parameters'       => [
                             [
                                 'name'          => 'type',

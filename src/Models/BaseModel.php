@@ -588,45 +588,40 @@ class BaseModel extends Model
             /** @var RelationSchema $relation */
             foreach ( $schema->relations as $relation )
             {
-                $refModel = $this->getReferencingModel($relation->refTable);
+                $refModel = $this->getReferencingModel( $relation->refTable );
                 if ( !empty( $refModel ) )
                 {
                     if ( preg_match( '@\\\\([\w]+)$@', $refModel, $matches ) )
                     {
                         $refModel = $matches[1];
                     }
-                }
-                else
-                {
-                    // just try to guess by table name
-                    $refModel = Inflector::camelize($relation->refTable);
-                }
 
-                switch ( $relation->type )
-                {
-                    case RelationSchema::BELONGS_TO:
-                        $properties[$relation->name] = [
-                            'type'        => $refModel,
-                            'description' => '',
-                            'required'    => false
-                        ];
-                        break;
-                    case RelationSchema::HAS_MANY:
-                        $properties[$relation->name] = [
-                            'type'        => 'array',
-                            'items'       => [ '$ref' => $refModel ],
-                            'description' => '',
-                            'required'    => false
-                        ];
-                        break;
-                    case RelationSchema::MANY_MANY:
-                        $properties[$relation->name] = [
-                            'type'        => 'array',
-                            'items'       => [ '$ref' => $refModel ],
-                            'description' => '',
-                            'required'    => false
-                        ];
-                        break;
+                    switch ( $relation->type )
+                    {
+                        case RelationSchema::BELONGS_TO:
+                            $properties[$relation->name] = [
+                                'type'        => $refModel,
+                                'description' => '',
+                                'required'    => false
+                            ];
+                            break;
+                        case RelationSchema::HAS_MANY:
+                            $properties[$relation->name] = [
+                                'type'        => 'array',
+                                'items'       => [ '$ref' => $refModel ],
+                                'description' => '',
+                                'required'    => false
+                            ];
+                            break;
+                        case RelationSchema::MANY_MANY:
+                            $properties[$relation->name] = [
+                                'type'        => 'array',
+                                'items'       => [ '$ref' => $refModel ],
+                                'description' => '',
+                                'required'    => false
+                            ];
+                            break;
+                    }
                 }
             }
 

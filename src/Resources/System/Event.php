@@ -34,17 +34,17 @@ class Event extends BaseRestResource
      * @var array
      */
     protected $resources = [
-        EventScript::RESOURCE_NAME           => [
+        EventScript::RESOURCE_NAME    => [
             'name'       => EventScript::RESOURCE_NAME,
             'class_name' => 'DreamFactory\\Rave\\Resources\\System\\EventScript',
             'label'      => 'Scripts',
         ],
-        ProcessEvent::RESOURCE_NAME           => [
+        ProcessEvent::RESOURCE_NAME   => [
             'name'       => ProcessEvent::RESOURCE_NAME,
             'class_name' => 'DreamFactory\\Rave\\Resources\\System\\ProcessEvent',
             'label'      => 'Process Events',
         ],
-        BroadcastEvent::RESOURCE_NAME           => [
+        BroadcastEvent::RESOURCE_NAME => [
             'name'       => BroadcastEvent::RESOURCE_NAME,
             'class_name' => 'DreamFactory\\Rave\\Resources\\System\\BroadcastEvent',
             'label'      => 'Broadcast Events',
@@ -68,11 +68,28 @@ class Event extends BaseRestResource
      */
     public function getApiDocInfo()
     {
+        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $base = parent::getApiDocInfo();
 
-        $apis = [ ];
+        $apis = [
+            [
+                'path'        => $path,
+                'operations'  => [
+                    [
+                        'method'     => 'GET',
+                        'summary'    => 'getEventResources() - Retrieve event resources.',
+                        'nickname'   => 'getEventResources',
+                        'type'       => 'ComponentList',
+                        'event_name' => [ ],
+                        'notes'      => 'The retrieved information describes the resources available for this service.',
+                    ],
+                ],
+                'description' => 'Operations for event service options.',
+            ]
+        ];
+
         $models = [ ];
-        foreach ($this->resources as $resourceInfo)
+        foreach ( $this->resources as $resourceInfo )
         {
             $className = $resourceInfo['class_name'];
 
@@ -89,11 +106,11 @@ class Event extends BaseRestResource
             if ( !empty( $_access ) )
             {
                 $results = $resource->getApiDocInfo();
-                if (isset($results, $results['apis']))
+                if ( isset( $results, $results['apis'] ) )
                 {
                     $apis = array_merge( $apis, $results['apis'] );
                 }
-                if (isset($results, $results['models']))
+                if ( isset( $results, $results['models'] ) )
                 {
                     $models = array_merge( $models, $results['models'] );
                 }

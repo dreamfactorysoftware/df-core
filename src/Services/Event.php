@@ -20,7 +20,6 @@
 namespace DreamFactory\Rave\Services;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
@@ -377,20 +376,16 @@ class Event extends BaseRestService
 
     public function getApiDocInfo()
     {
-        $name = Inflector::camelize( $this->name );
-        $lower = Inflector::camelize( $this->name, null, false, true );
-        $plural = Inflector::pluralize( $name );
-        $pluralLower = Inflector::pluralize( $lower );
         $apis = [
             [
-                'path'        => $this->name,
+                'path'        => '/' . $this->name,
                 'operations'  => [
                     [
                         'method'           => 'GET',
-                        'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralLower . '.',
-                        'nickname'         => 'get' . $plural,
-                        'type'             => $plural . 'Response',
-                        'event_name'       => $pluralLower . '.list',
+                        'summary'          => 'getEventSubscribers() - Retrieve one or more subscribers.',
+                        'nickname'         => 'getEventSubscribers',
+                        'type'             => 'SubscribersResponse',
+                        'event_name'       => $this->name . '.subscriber.list',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -501,10 +496,10 @@ class Event extends BaseRestService
                     ],
                     [
                         'method'           => 'POST',
-                        'summary'          => 'create' . $plural . '() - Create one or more ' . $pluralLower . '.',
-                        'nickname'         => 'create' . $plural,
-                        'type'             => $plural . 'Response',
-                        'event_name'       => $pluralLower . '.create',
+                        'summary'          => 'createEventSubscribers() - Create one or more subscribers.',
+                        'nickname'         => 'createEventSubscribers',
+                        'type'             => 'SubscribersResponse',
+                        'event_name'       => $this->name . '.subscriber.create',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -563,10 +558,10 @@ class Event extends BaseRestService
                     ],
                     [
                         'method'           => 'PATCH',
-                        'summary'          => 'update' . $plural . '() - Update one or more ' . $pluralLower . '.',
-                        'nickname'         => 'update' . $plural,
-                        'type'             => $plural . 'Response',
-                        'event_name'       => $pluralLower . '.update',
+                        'summary'          => 'updateEventSubscribers() - Update one or more subscribers.',
+                        'nickname'         => 'updateEventSubscribers',
+                        'type'             => 'SubscribersResponse',
+                        'event_name'       => $this->name . '.subscriber.update',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -616,10 +611,10 @@ class Event extends BaseRestService
                     ],
                     [
                         'method'           => 'DELETE',
-                        'summary'          => 'delete' . $plural . '() - Delete one or more ' . $pluralLower . '.',
-                        'nickname'         => 'delete' . $plural,
-                        'type'             => $plural . 'Response',
-                        'event_name'       => $pluralLower . '.delete',
+                        'summary'          => 'deleteEventSubscribers() - Delete one or more subscribers.',
+                        'nickname'         => 'deleteEventSubscribers',
+                        'type'             => 'SubscribersResponse',
+                        'event_name'       => $this->name . '.subscriber.delete',
                         'parameters'       => [
                             [
                                 'name'          => 'ids',
@@ -679,14 +674,14 @@ class Event extends BaseRestService
                 'description' => 'Operations for user administration.',
             ],
             [
-                'path'        => $this->name . '/{id}',
+                'path'        => '/' . $this->name . '/{id}',
                 'operations'  => [
                     [
                         'method'           => 'GET',
-                        'summary'          => 'get' . $name . '() - Retrieve one ' . $lower . '.',
-                        'nickname'         => 'get' . $name,
-                        'type'             => $name . 'Response',
-                        'event_name'       => $lower . '.read',
+                        'summary'          => 'getEventSubscriber() - Retrieve one subscriber.',
+                        'nickname'         => 'getEventSubscriber',
+                        'type'             => 'Subscriber',
+                        'event_name'       => $this->name . '.subscriber.read',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -731,10 +726,10 @@ class Event extends BaseRestService
                     ],
                     [
                         'method'           => 'PATCH',
-                        'summary'          => 'update' . $name . '() - Update one ' . $lower . '.',
-                        'nickname'         => 'update' . $name,
-                        'type'             => $name . 'Response',
-                        'event_name'       => $lower . '.update',
+                        'summary'          => 'updateEventSubscriber() - Update one subscriber.',
+                        'nickname'         => 'updateEventSubscriber',
+                        'type'             => 'Subscriber',
+                        'event_name'       => $this->name . '.subscriber.update',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -789,10 +784,10 @@ class Event extends BaseRestService
                     ],
                     [
                         'method'           => 'DELETE',
-                        'summary'          => 'delete' . $name . '() - Delete one ' . $lower . '.',
-                        'nickname'         => 'delete' . $name,
-                        'type'             => $name . 'Response',
-                        'event_name'       => $lower . '.delete',
+                        'summary'          => 'deleteEventSubscriber() - Delete one subscriber.',
+                        'nickname'         => 'deleteEventSubscriber',
+                        'type'             => 'Subscriber',
+                        'event_name'       => $this->name . '.subscriber.delete',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -841,14 +836,14 @@ class Event extends BaseRestService
         ];
 
         $models = [
-            $plural . 'Request'  => [
-                'id'         => $plural . 'Request',
+            'SubscribersRequest'  => [
+                'id'         => 'SubscribersRequest',
                 'properties' => [
                     'record' => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Request',
+                            '$ref' => 'Subscriber',
                         ],
                     ],
                     'ids'    => [
@@ -861,30 +856,14 @@ class Event extends BaseRestService
                     ],
                 ],
             ],
-            $plural . 'Response' => [
-                'id'         => $plural . 'Response',
+            'SubscribersResponse' => [
+                'id'         => 'SubscribersResponse',
                 'properties' => [
                     'record' => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
-                        ],
-                    ],
-                    'meta'   => [
-                        'type'        => 'Metadata',
-                        'description' => 'Array of metadata returned for GET requests.',
-                    ],
-                ],
-            ],
-            'Related' . $plural  => [
-                'id'         => 'Related' . $plural,
-                'properties' => [
-                    'record' => [
-                        'type'        => 'array',
-                        'description' => 'Array of system records.',
-                        'items'       => [
-                            '$ref' => 'Related' . $name,
+                            '$ref' => 'Subscriber',
                         ],
                     ],
                     'meta'   => [

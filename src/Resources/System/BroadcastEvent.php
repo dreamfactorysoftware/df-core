@@ -70,7 +70,7 @@ class BroadcastEvent extends BaseRestResource
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.';
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $name = Inflector::camelize( $this->name );
         $lower = Inflector::camelize( $this->name, null, false, true );
         $plural = Inflector::pluralize( $name );
@@ -84,7 +84,7 @@ class BroadcastEvent extends BaseRestResource
                         'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralLower . '.',
                         'nickname'         => 'get' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => $eventPath . $pluralLower . '.list',
+                        'event_name'       => $eventPath . '.list',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -134,7 +134,7 @@ class BroadcastEvent extends BaseRestResource
                         'summary'          => 'get' . $name . '() - Retrieve one ' . $lower . '.',
                         'nickname'         => 'get' . $name,
                         'type'             => $name . 'Response',
-                        'event_name'       => $eventPath . $lower . '.read',
+                        'event_name'       => $eventPath . '.read',
                         'parameters'       => [
                             [
                                 'name'          => 'id',

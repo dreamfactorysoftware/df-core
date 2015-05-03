@@ -117,6 +117,13 @@ class SystemResource extends BaseModel
                     'description' => 'Allows configuration of services.',
                 ],
                 [
+                    'name'        => 'service_type',
+                    'label'       => 'Service Types',
+                    'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\ServiceType',
+                    'description' => 'Read-only system service types.',
+                    'read_only'   => true,
+                ],
+                [
                     'name'        => 'setting',
                     'label'       => 'Custom Settings',
                     'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Setting',

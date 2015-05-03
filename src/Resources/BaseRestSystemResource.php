@@ -25,8 +25,6 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\SqlDbCore\ColumnSchema;
-use DreamFactory\Rave\SqlDbCore\RelationSchema;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Utility\ResponseFactory;
@@ -376,7 +374,7 @@ class BaseRestSystemResource extends BaseRestResource
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.';
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName( '.' );
         $name = Inflector::camelize( $this->name );
         $lower = Inflector::camelize( $this->name, null, false, true );
         $plural = Inflector::pluralize( $name );
@@ -390,7 +388,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralLower . '.',
                         'nickname'         => 'get' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => $eventPath . $pluralLower . '.list',
+                        'event_name'       => $eventPath . '.list',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -504,7 +502,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'summary'          => 'create' . $plural . '() - Create one or more ' . $pluralLower . '.',
                         'nickname'         => 'create' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => $eventPath . $pluralLower . '.create',
+                        'event_name'       => $eventPath . '.create',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -566,7 +564,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'summary'          => 'update' . $plural . '() - Update one or more ' . $pluralLower . '.',
                         'nickname'         => 'update' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => $eventPath . $pluralLower . '.update',
+                        'event_name'       => $eventPath . '.update',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -619,7 +617,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'summary'          => 'delete' . $plural . '() - Delete one or more ' . $pluralLower . '.',
                         'nickname'         => 'delete' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => $eventPath . $pluralLower . '.delete',
+                        'event_name'       => $eventPath . '.delete',
                         'parameters'       => [
                             [
                                 'name'          => 'ids',
@@ -686,7 +684,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'summary'          => 'get' . $name . '() - Retrieve one ' . $lower . '.',
                         'nickname'         => 'get' . $name,
                         'type'             => $name,
-                        'event_name'       => $eventPath . $lower . '.read',
+                        'event_name'       => $eventPath . '.read',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -734,7 +732,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'summary'          => 'update' . $name . '() - Update one ' . $lower . '.',
                         'nickname'         => 'update' . $name,
                         'type'             => $name,
-                        'event_name'       => $eventPath . $lower . '.update',
+                        'event_name'       => $eventPath . '.update',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -792,7 +790,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'summary'          => 'delete' . $name . '() - Delete one ' . $lower . '.',
                         'nickname'         => 'delete' . $name,
                         'type'             => $name,
-                        'event_name'       => $eventPath . $lower . '.delete',
+                        'event_name'       => $eventPath . '.delete',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -877,12 +875,29 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                 ],
             ],
+            'Metadata'           => [
+                'id'         => 'Metadata',
+                'properties' => [
+                    'schema' => [
+                        'type'        => 'Array',
+                        'description' => 'Array of table schema.',
+                        'items'       => [
+                            'type' => 'string',
+                        ],
+                    ],
+                    'count'  => [
+                        'type'        => 'integer',
+                        'format'      => 'int32',
+                        'description' => 'Record count returned for GET requests.',
+                    ],
+                ],
+            ],
         ];
 
         if ( $this->model )
         {
-            $temp = $this->model->toApiDocsModel($name);
-            if ($temp)
+            $temp = $this->model->toApiDocsModel( $name );
+            if ( $temp )
             {
                 $models[$name] = $temp;
             }

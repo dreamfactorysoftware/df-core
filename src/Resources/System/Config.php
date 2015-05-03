@@ -47,7 +47,7 @@ class Config extends BaseRestSystemResource
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.';
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $_config = [ ];
 
         $_config['apis'] = [
@@ -59,7 +59,7 @@ class Config extends BaseRestSystemResource
                         'summary'    => 'getConfig() - Retrieve system configuration properties.',
                         'nickname'   => 'getConfig',
                         'type'       => 'ConfigResponse',
-                        'event_name' => $eventPath . '.config.read',
+                        'event_name' => $eventPath . '.read',
                         'notes'      => 'The retrieved properties control how the system behaves.',
                     ],
                     [
@@ -67,7 +67,7 @@ class Config extends BaseRestSystemResource
                         'summary'          => 'setConfig() - Update one or more system configuration properties.',
                         'nickname'         => 'setConfig',
                         'type'             => 'ConfigResponse',
-                        'event_name'       => $eventPath . '.config.update',
+                        'event_name'       => $eventPath . '.update',
                         'parameters'       => [
                             [
                                 'name'          => 'body',

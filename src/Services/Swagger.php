@@ -21,6 +21,7 @@ namespace DreamFactory\Rave\Services;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Rave\Enums\ApiDocFormatTypes;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Models\Service;
@@ -526,5 +527,172 @@ HTML;
 
         // rebuild swagger cache
         static::buildSwagger();
+    }
+
+    public function getApiDocInfo()
+    {
+        $path = '/' . $this->name;
+        $eventPath = $this->name;
+        $name = Inflector::camelize( $this->name );
+        $plural = Inflector::pluralize( $name );
+        $apis = [
+            [
+                'path'        => $path,
+                'operations'  => [
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'getApiDocs() - Retrieve the base Swagger document.',
+                        'nickname'         => 'getApiDocs',
+                        'type'             => 'ApiDocsResponse',
+                        'event_name'       => $eventPath . '.list',
+                        'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
+                        'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
+                        'parameters'       => [
+                            [
+                                'name'          => 'file',
+                                'description'   => 'Download the results of the request as a file.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'query',
+                                'required'      => false,
+                            ],
+                        ],
+                        'responseMessages' => [
+                            [
+                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
+                                'code'    => 400,
+                            ],
+                            [
+                                'message' => 'Unauthorized Access - No currently valid session available.',
+                                'code'    => 401,
+                            ],
+                            [
+                                'message' => 'System Error - Specific reason is included in the error message.',
+                                'code'    => 500,
+                            ],
+                        ],
+                        'notes'            =>
+                            'This returns the base Swagger file containing all API services.',
+                    ],
+                ],
+                'description' => 'Operations for retrieving API documents.',
+            ],
+            [
+                'path'        => $path . '/{id}',
+                'operations'  => [
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'getApiDoc() - Retrieve one API document.',
+                        'nickname'         => 'getApiDoc',
+                        'type'             => 'ApiDocResponse',
+                        'event_name'       => $eventPath . '.read',
+                        'parameters'       => [
+                            [
+                                'name'          => 'id',
+                                'description'   => 'Identifier of the API document to retrieve.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => [
+                            [
+                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
+                                'code'    => 400,
+                            ],
+                            [
+                                'message' => 'Unauthorized Access - No currently valid session available.',
+                                'code'    => 401,
+                            ],
+                            [
+                                'message' => 'System Error - Specific reason is included in the error message.',
+                                'code'    => 500,
+                            ],
+                        ],
+                        'notes'            => '',
+                    ],
+                ],
+                'description' => 'Operations for individual API documents.',
+            ],
+        ];
+
+        $models = [
+            'ApiDocsResponse'  => [
+                'id'         => 'ApiDocsResponse',
+                'properties' => [
+                    'apiVersion' => [
+                        'type'        => 'string',
+                        'description' => 'Version of the API.',
+                    ],
+                    'swaggerVersion' => [
+                        'type'        => 'string',
+                        'description' => 'Version of the Swagger API.',
+                    ],
+                    'apis' => [
+                        'type'        => 'array',
+                        'description' => 'Array of APIs.',
+                        'items'       => [
+                            '$ref' => 'Api',
+                        ],
+                    ],
+                ],
+            ],
+            'ApiDocResponse' => [
+                'id'         => 'ApiDocResponse',
+                'properties' => [
+                    'apiVersion' => [
+                        'type'        => 'string',
+                        'description' => 'Version of the API.',
+                    ],
+                    'swaggerVersion' => [
+                        'type'        => 'string',
+                        'description' => 'Version of the Swagger API.',
+                    ],
+                    'basePath' => [
+                        'type'        => 'string',
+                        'description' => 'Base path of the API.',
+                    ],
+                    'apis' => [
+                        'type'        => 'array',
+                        'description' => 'Array of APIs.',
+                        'items'       => [
+                            '$ref' => 'Api',
+                        ],
+                    ],
+                    'models' => [
+                        'type'        => 'array',
+                        'description' => 'Array of API models.',
+                        'items'       => [
+                            '$ref' => 'Model',
+                        ],
+                    ],
+                ],
+            ],
+            'Api'  => [
+                'id'         => 'Api',
+                'properties' => [
+                    'path' => [
+                        'type'        => 'string',
+                        'description' => 'Path to access the API.',
+                    ],
+                    'description' => [
+                        'type'        => 'string',
+                        'description' => 'Description of the API.',
+                    ],
+                ],
+            ],
+            'Model'  => [
+                'id'         => 'Model',
+                'properties' => [
+                    '__name__' => [
+                        'type'        => 'string',
+                        'description' => 'Model Definition.',
+                    ],
+                ],
+            ],
+        ];
+
+        return [ 'apis' => $apis, 'models' => $models ];
     }
 }

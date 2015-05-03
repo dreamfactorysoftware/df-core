@@ -265,7 +265,7 @@ class CreateSystemTables extends Migration
             $table->string('last_name')->nullable();
             $table->dateTime('last_login_date')->nullable();
             $table->string('email')->unique();
-            $table->string('password', 60);
+            $table->longText('password');
             $table->boolean('is_sys_admin')->default(0);
             $table->boolean('is_active')->default(1);
             $table->string('phone', 32)->nullable();

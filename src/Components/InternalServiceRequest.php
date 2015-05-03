@@ -287,4 +287,12 @@ trait InternalServiceRequest
             $this->setContent( ArrayUtils::get( $data, 'content' ), ArrayUtils::get( $data, 'content_type' ) );
         }
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getDriver()
+    {
+        return null;
+    }
 }

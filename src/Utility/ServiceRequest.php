@@ -247,4 +247,12 @@ class ServiceRequest implements ServiceRequestInterface
             return ArrayUtils::get( $_FILES, $key, $default );
         }
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getDriver()
+    {
+        return Request::instance();
+    }
 }

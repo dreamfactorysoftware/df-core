@@ -71,7 +71,14 @@ class ResponseFactory
             else
             {
                 $mimeType = ArrayUtils::get( $format, 0 );
-                $format = ContentTypes::fromMimeType( $mimeType );
+                if('*/*' === $mimeType)
+                {
+                    $format = ContentTypes::JSON;
+                }
+                else
+                {
+                    $format = ContentTypes::fromMimeType( $mimeType );
+                }
             }
         }
 

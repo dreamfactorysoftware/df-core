@@ -159,4 +159,12 @@ interface ServiceRequestInterface
      * @param array $data Merge some attributes from an array
      */
     public function mergeFromArray( array $data );
+
+    /**
+     * Returns the underlying Request object if any that handles the
+     * HTTP requests.
+     *
+     * @return mixed
+     */
+    public function getDriver();
 }

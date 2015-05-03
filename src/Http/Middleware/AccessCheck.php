@@ -55,6 +55,7 @@ class AccessCheck
         {
             Session::setId( $sessionId );
             Session::start();
+            \Request::setSession(Session::driver());
         }
 
         $apiKey = $request->query('api_key');

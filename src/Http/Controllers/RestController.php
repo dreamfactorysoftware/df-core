@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Rave\Http\Controllers;
 
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Request;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Utility\ResponseFactory;
@@ -227,6 +228,11 @@ class RestController extends Controller
         catch ( \Exception $e )
         {
             $response = ResponseFactory::create( $e, ContentTypes::PHP_OBJECT, $e->getCode() );
+        }
+
+        if($response instanceof RedirectResponse)
+        {
+            return $response;
         }
 
         $accept = explode(',', \Request::header('ACCEPT'));

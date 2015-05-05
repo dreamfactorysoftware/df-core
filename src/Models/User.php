@@ -26,6 +26,8 @@ use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Laravel\Socialite\Contracts\User as OAuthUserContract;
 use DreamFactory\DSP\OAuth\Services\BaseOAuthService;
+use DreamFactory\DSP\ADLdap\Contracts\User as LdapUserContract;
+use DreamFactory\DSP\ADLdap\Services\LDAP as LdapService;
 
 class User extends BaseSystemModel implements AuthenticatableContract, CanResetPasswordContract
 {
@@ -57,6 +59,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         'security_question',
         'security_answer',
         'confirm_code',
+        'adldap',
         'oauth_provider'
     ];
 
@@ -93,25 +96,26 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         return $seeded;
     }
 
-    public static function createShadowOAuthUser( OAuthUserContract $user, BaseOAuthService $service )
+    public static function createShadowOAuthUser( OAuthUserContract $OAuthUser, BaseOAuthService $service )
     {
-        $fullName = $user->getName();
+        $fullName = $OAuthUser->getName();
         list( $firstName, $lastName ) = explode( ' ', $fullName );
 
-        $email = $user->getEmail();
+        $email = $OAuthUser->getEmail();
         $serviceName = $service->getName();
         $providerName = $service->getProviderName();
-        $accessToken = $user->token;
+        $accessToken = $OAuthUser->token;
 
         if(empty($email))
         {
-            $email = $user->getId().'+'.$serviceName.'@'.$serviceName.'.com';
+            $email = $OAuthUser->getId().'+'.$serviceName.'@'.$serviceName.'.com';
         }
         else
         {
             list( $emailId, $domain ) = explode( '@', $email );
             $email = $emailId . '+' . $serviceName . '@' . $domain;
         }
+
         $user = static::whereEmail($email)->first();
 
         if(empty($user))
@@ -132,6 +136,58 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
         $defaultRole = $service->getDefaultRole();
 
+        static::applyDefaultUserAppRole($user, $defaultRole);
+
+        return $user;
+    }
+
+    public static function createShadowLdapUser(LdapUserContract $ldapUser, LdapService $service)
+    {
+        $email = $ldapUser->getEmail();
+        $serviceName = $service->getName();
+
+        if(empty($email))
+        {
+            $uid = $ldapUser->getUid();
+            if(empty($uid))
+            {
+                $uid = str_replace(' ', '', $ldapUser->getName());
+            }
+            $domain = $ldapUser->getDomain();
+            $email = $uid.'+'.$serviceName.'@'.$domain;
+        }
+        else
+        {
+            list($emailId, $domain) = explode('@', $email);
+            $email = $emailId.'+'.$serviceName.'@'.$domain;
+        }
+
+        $user = static::whereEmail($email)->first();
+
+        if(empty($user))
+        {
+            $data = [
+                'name'           => $ldapUser->getName(),
+                'first_name'     => $ldapUser->getFirstName(),
+                'last_name'      => $ldapUser->getLastName(),
+                'email'          => $email,
+                'is_active'      => 1,
+                'adldap'         => $service->getProviderName(),
+                'password'       => $ldapUser->getPassword()
+            ];
+
+            $user = static::create( $data );
+        }
+
+        $defaultRole = $service->getDefaultRole();
+
+        static::applyDefaultUserAppRole($user, $defaultRole);
+
+        return $user;
+    }
+
+    protected static function applyDefaultUserAppRole($user, $defaultRole)
+    {
         $apps = App::all();
 
         foreach($apps as $app)
@@ -148,6 +204,6 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             }
         }
 
-        return $user;
+        return true;
     }
 }

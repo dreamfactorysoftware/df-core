@@ -111,7 +111,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     public static function createShadowOAuthUser( OAuthUserContract $OAuthUser, BaseOAuthService $service )
     {
         $fullName = $OAuthUser->getName();
-        list( $firstName, $lastName ) = explode( ' ', $fullName );
+        @list( $firstName, $lastName ) = explode( ' ', $fullName );
 
         $email = $OAuthUser->getEmail();
         $serviceName = $service->getName();

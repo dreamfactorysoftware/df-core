@@ -96,7 +96,13 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
         }
         else
         {
+            //Making sure service_id is the first item in the config.
+            //This way service_id will be set first and is available
+            //for use right away. This helps setting an auto-generated
+            //field that may depend on parent data. See OAuthConfig->setAttribute.
+            $config = array_reverse($config, true);
             $config['service_id'] = $id;
+            $config = array_reverse($config, true);
             static::create( $config );
         }
     }

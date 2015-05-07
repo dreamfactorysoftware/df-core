@@ -93,10 +93,22 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         return $seeded;
     }
 
+    /**
+     * If does not exists, creates a shadow OAuth user using user info provided
+     * by the OAuth service provider and assigns default role to this user
+     * for all apps in the system. If user already exists then updates user's
+     * role for all apps and returns it.
+     *
+     * @param OAuthUserContract $OAuthUser
+     * @param BaseOAuthService  $service
+     *
+     * @return User
+     * @throws \Exception
+     */
     public static function createShadowOAuthUser( OAuthUserContract $OAuthUser, BaseOAuthService $service )
     {
         $fullName = $OAuthUser->getName();
-        list( $firstName, $lastName ) = explode( ' ', $fullName );
+        @list( $firstName, $lastName ) = explode( ' ', $fullName );
 
         $email = $OAuthUser->getEmail();
         $serviceName = $service->getName();
@@ -138,6 +150,18 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         return $user;
     }
 
+    /**
+     * If does not exists, creates a shadow LDap user using user info provided
+     * by the Ldap service provider and assigns default role to this user
+     * for all apps in the system. If user already exists then updates user's
+     * role for all apps and returns it.
+     *
+     * @param LdapUserContract $ldapUser
+     * @param LdapService      $service
+     *
+     * @return User
+     * @throws \Exception
+     */
     public static function createShadowLdapUser(LdapUserContract $ldapUser, LdapService $service)
     {
         $email = $ldapUser->getEmail();
@@ -183,9 +207,23 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         return $user;
     }
 
+    /**
+     * Assigns a role to a user for all apps in the system.
+     *
+     * @param $user
+     * @param $defaultRole
+     *
+     * @return bool
+     * @throws \Exception
+     */
     protected static function applyDefaultUserAppRole($user, $defaultRole)
     {
         $apps = App::all();
+
+        if(count($apps) === 0)
+        {
+            return false;
+        }
 
         foreach($apps as $app)
         {

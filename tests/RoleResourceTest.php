@@ -20,7 +20,7 @@
 
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Testing\TestServiceRequest;
-use DreamFactory\Rave\Services\SystemManager;
+use DreamFactory\Rave\Services\System;
 use DreamFactory\Rave\Enums\ContentTypes;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Enums\HttpStatusCodes;
@@ -113,7 +113,7 @@ class RoleResourceTest extends \DreamFactory\Rave\Testing\TestCase
 
     protected static $staged = false;
 
-    /** @var SystemManager null  */
+    /** @var System null  */
     protected static $service = null;
 
     public function stage()
@@ -126,7 +126,7 @@ class RoleResourceTest extends \DreamFactory\Rave\Testing\TestCase
             'description' => 'Handles all system resources and configuration'
         ];
 
-        static::$service = new SystemManager($settings);
+        static::$service = new System($settings);
     }
 
     public function testPOSTCreateRoles()

@@ -20,10 +20,7 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
-use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Rave\Models\EventScript as EventScriptModel;
 use DreamFactory\Rave\Resources\BaseRestSystemResource;
-use DreamFactory\Rave\Services\Swagger;
 
 /**
  * Class EventScript
@@ -51,6 +48,6 @@ class EventScript extends BaseRestSystemResource
     public function __construct( $settings = [ ] )
     {
         parent::__construct( $settings );
-        $this->model = new EventScriptModel();
+        $this->model = 'DreamFactory\Rave\Models\EventScript';
     }
 }

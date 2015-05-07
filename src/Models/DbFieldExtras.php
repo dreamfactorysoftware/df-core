@@ -21,25 +21,21 @@
 namespace DreamFactory\Rave\Models;
 
 /**
- * DbServiceExtras
+ * DbFieldExtras
  *
  * @property integer    $id
  * @property integer    $service_id
  * @property string     $table
  * @property string     $field
- * @property string     $name_field
  * @property string     $label
- * @property string     $plural
+ * @property string     $description
  * @property string     $picklist
  * @property array      $validation
- * @property boolean    $user_id
- * @property boolean    $user_id_on_update
- * @property boolean    $timestamp_on_update
- * @method static \Illuminate\Database\Query\Builder|DbServiceExtras whereId( $value )
- * @method static \Illuminate\Database\Query\Builder|DbServiceExtras whereServiceId( $value )
+ * @property string     $extra_type
+ * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereId( $value )
+ * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereServiceId( $value )
  */
-class DbServiceExtras extends BaseSystemModel
+class DbFieldExtras extends BaseSystemModel
 {
-    protected $table = 'db_service_extras';
-
+    protected $table = 'db_field_extras';
 }

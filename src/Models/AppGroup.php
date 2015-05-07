@@ -24,21 +24,13 @@ namespace DreamFactory\Rave\Models;
  * AppGroup
  *
  * @property integer $id
- * @property string  $api_name
  * @property string  $name
  * @property string  $description
- * @property boolean $is_active
- * @property integer $type_id
- * @property integer $native_format_id
  * @property string  $created_date
  * @property string  $last_modified_date
  * @method static \Illuminate\Database\Query\Builder|AppGroup whereId( $value )
- * @method static \Illuminate\Database\Query\Builder|AppGroup whereApiName( $value )
  * @method static \Illuminate\Database\Query\Builder|AppGroup whereName( $value )
  * @method static \Illuminate\Database\Query\Builder|AppGroup whereDescription( $value )
- * @method static \Illuminate\Database\Query\Builder|AppGroup whereIsActive( $value )
- * @method static \Illuminate\Database\Query\Builder|AppGroup whereTypeId( $value )
- * @method static \Illuminate\Database\Query\Builder|AppGroup whereNativeFormatId( $value )
  * @method static \Illuminate\Database\Query\Builder|AppGroup whereCreatedDate( $value )
  * @method static \Illuminate\Database\Query\Builder|AppGroup whereLastModifiedDate( $value )
  */

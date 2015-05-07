@@ -24,9 +24,4 @@ use DreamFactory\Rave\Resources\BaseRestSystemResource;
 
 class Lookup extends BaseRestSystemResource
 {
-    public function __construct( $settings = array() )
-    {
-        parent::__construct( $settings );
-        $this->model = new \DreamFactory\Rave\Models\Lookup();
-    }
 }

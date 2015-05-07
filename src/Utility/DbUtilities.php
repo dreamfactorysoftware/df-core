@@ -20,7 +20,7 @@
 namespace DreamFactory\Rave\Utility;
 
 use Config;
-use DreamFactory\Rave\Models\DbServiceExtras;
+use DreamFactory\Rave\Models\DbTableExtras;
 use Log;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Scalar;
@@ -43,7 +43,7 @@ class DbUtilities
      */
     public static function listAllFieldsFromDescribe( $avail_fields )
     {
-        $out = array();
+        $out = [];
         foreach ( $avail_fields as $field_info )
         {
             $out[] = $field_info['name'];
@@ -116,7 +116,7 @@ class DbUtilities
      */
     public static function getPrimaryKeys( $avail_fields, $names_only = false )
     {
-        $_keys = array();
+        $_keys = [];
         foreach ( $avail_fields as $_info )
         {
             if ( $_info['is_primary_key'] )
@@ -149,7 +149,7 @@ class DbUtilities
             throw new \InvalidArgumentException( 'Invalid table list provided.' );
         }
 
-        $call = DbServiceExtras::where('service_id', $service_id)->whereIn('table', $values);
+        $call = DbTableExtras::where( 'service_id', $service_id)->whereIn('table', $values);
         if ( !$include_fields )
         {
             $call->where('field', '');
@@ -179,7 +179,7 @@ class DbUtilities
             throw new \InvalidArgumentException( 'Invalid field list. ' . $field_names );
         }
 
-        $_results = DbServiceExtras::where('service_id', $service_id)->where('table', $table_name)->whereIn('field', $_values)->get()->toArray();
+        $_results = DbTableExtras::where( 'service_id', $service_id)->where('table', $table_name)->whereIn('field', $_values)->get()->toArray();
 
         return $_results;
     }
@@ -385,10 +385,10 @@ class DbUtilities
     {
         if ( empty( $original ) )
         {
-            return array();
+            return [];
         }
 
-        $_new = array();
+        $_new = [];
         foreach ( $original as $_label )
         {
             $_new[ArrayUtils::get( $_label, 'field' )] = $_label;
@@ -477,7 +477,7 @@ class DbUtilities
             if ( !isset( $data[0] ) )
             {
                 // single record possibly passed in without wrapper array
-                $data = array( $data );
+                $data = [ $data ];
             }
         }
 
@@ -583,7 +583,7 @@ class DbUtilities
      *
      * @return array
      */
-    protected static function cleanRecord( $record = array(), $include = '*', $id_field = null )
+    protected static function cleanRecord( $record = [], $include = '*', $id_field = null )
     {
         if ( '*' !== $include )
         {
@@ -609,7 +609,7 @@ class DbUtilities
             }
 
             // glean desired fields from record
-            $_out = array();
+            $_out = [];
             foreach ( $include as $_key )
             {
                 $_out[$_key] = ArrayUtils::get( $record, $_key );
@@ -630,7 +630,7 @@ class DbUtilities
      */
     protected static function cleanRecords( $records, $include = '*', $id_field = null )
     {
-        $_out = array();
+        $_out = [];
         foreach ( $records as $_record )
         {
             $_out[] = static::cleanRecord( $_record, $include, $id_field );
@@ -653,7 +653,7 @@ class DbUtilities
      */
     protected static function recordsAsIds( $records, $ids_info, $extras = null, $on_create = false, $remove = false )
     {
-        $_out = array();
+        $_out = [];
         if ( !empty( $records ) )
         {
             foreach ( $records as $_record )
@@ -678,7 +678,7 @@ class DbUtilities
     {
         if ( empty( $id_field ) )
         {
-            return array();
+            return [];
         }
 
         if ( !is_array( $id_field ) )
@@ -688,7 +688,7 @@ class DbUtilities
 
         if ( count( $id_field ) > 1 )
         {
-            $_ids = array();
+            $_ids = [];
             foreach ( $id_field as $_field )
             {
                 $_id = ArrayUtils::get( $record, $_field, null, $remove );
@@ -710,7 +710,7 @@ class DbUtilities
                 throw new BadRequestException( "Identifying field '$_field' can not be empty for record." );
             }
 
-            return ( $include_field ) ? array( $_field => $_id ) : $_id;
+            return ( $include_field ) ? [ $_field => $_id ] : $_id;
         }
     }
 
@@ -725,7 +725,7 @@ class DbUtilities
     {
         if ( empty( $id_field ) )
         {
-            return array();
+            return [];
         }
 
         if ( !is_array( $id_field ) )
@@ -733,10 +733,10 @@ class DbUtilities
             $id_field = array_map( 'trim', explode( ',', trim( $id_field, ',' ) ) );
         }
 
-        $_out = array();
+        $_out = [];
         foreach ( $ids as $_id )
         {
-            $_ids = array();
+            $_ids = [];
             if ( ( count( $id_field ) > 1 ) && ( count( $_id ) > 1 ) )
             {
                 foreach ( $id_field as $_index => $_field )
@@ -853,7 +853,7 @@ class DbUtilities
     {
         if ( empty( $id_field ) )
         {
-            return array();
+            return [];
         }
 
         foreach ( $first_array as $_key => $_first )

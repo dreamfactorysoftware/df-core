@@ -25,10 +25,6 @@ use DreamFactory\Rave\Resources\BaseRestSystemResource;
 
 class Constant extends BaseRestSystemResource
 {
-    public function __construct( $settings = [ ] )
-    {
-        parent::__construct( $settings );
-    }
 
     protected function handleGET()
     {

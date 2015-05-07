@@ -26,7 +26,7 @@ use DreamFactory\Rave\Resources\BaseRestResource;
 use DreamFactory\Rave\Models\SystemResource;
 use DreamFactory\Rave\Utility\ApiDocUtilities;
 
-class SystemManager extends BaseRestService
+class System extends BaseRestService
 {
     /**
      * @return array
@@ -56,15 +56,6 @@ class SystemManager extends BaseRestService
                         'type'             => 'ComponentList',
                         'event_name'       => [ $this->name . '.list' ],
                         'parameters'       => [
-                            [
-                                'name'          => 'include_properties',
-                                'description'   => 'Return other properties available for each resource.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => true,
-                                'default'       => true,
-                            ],
                             [
                                 'name'          => 'refresh',
                                 'description'   => 'Refresh any cached copy of the resource list.',

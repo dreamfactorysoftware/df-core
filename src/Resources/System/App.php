@@ -27,12 +27,6 @@ use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 
 class App extends BaseRestSystemResource
 {
-    public function __construct( $settings = array() )
-    {
-        parent::__construct( $settings );
-        $this->model = new \DreamFactory\Rave\Models\App();
-    }
-
     /**
      * Handles POST action
      *
@@ -61,8 +55,8 @@ class App extends BaseRestSystemResource
 
         $this->triggerActionEvent( $this->response );
 
-        $model = $this->getModel();
-        $result = $model::bulkCreate( $records, $this->request->getParameters() );
+        $modelClass = $this->model;
+        $result = $modelClass::bulkCreate( $records, $this->request->getParameters() );
 
         $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
 

@@ -40,7 +40,7 @@ class App extends BaseSystemModel
         'role_id'
     ];
 
-    protected static $relatedModels = [
+    protected static $tableToModelMap = [
         'role'             => 'DreamFactory\Rave\Models\Role',
         'user_to_app_role' => 'DreamFactory\Rave\Models\UserAppRole'
     ];

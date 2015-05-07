@@ -18,86 +18,38 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources;
+namespace DreamFactory\Rave\Resources\System;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
+use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Utility\ResponseFactory;
+use DreamFactory\Rave\Models\EventScript as EventScriptModel;
 use DreamFactory\Rave\Models\BaseSystemModel;
+use DreamFactory\Rave\Resources\BaseRestSystemResource;
+use DreamFactory\Rave\Services\Swagger;
+use DreamFactory\Rave\Utility\ResponseFactory;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Class BaseRestSystemResource
+ * Class BaseEvent
  *
  * @package DreamFactory\Rave\Resources
  */
-class BaseRestSystemResource extends BaseRestResource
+abstract class BaseEvent extends BaseRestSystemResource
 {
-    /**
-     *
-     */
-    const RECORD_WRAPPER = 'record';
-    /**
-     * Default maximum records returned on filter request
-     */
-    const MAX_RECORDS_RETURNED = 1000;
+    //*************************************************************************
+    //	Members
+    //*************************************************************************
 
-    /**
-     * @var string DreamFactory\Rave\Models\BaseSystemModel Model Class name.
-     */
-    protected $model = null;
+    protected $model = 'DreamFactory\Rave\Models\EventScript';
 
-    /**
-     * @param array $settings
-     */
-    public function __construct( $settings = [ ] )
-    {
-        $verbAliases = [
-            Verbs::PUT   => Verbs::PATCH,
-            Verbs::MERGE => Verbs::PATCH
-        ];
-        ArrayUtils::set( $settings, "verbAliases", $verbAliases );
+    //*************************************************************************
+    //	Methods
+    //*************************************************************************
 
-        parent::__construct( $settings );
-
-        $this->model = ArrayUtils::get( $settings, "model_name", $this->model ); // could be statically set
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function getPayloadData( $key = null, $default = null )
-    {
-        $payload = parent::getPayloadData();
-
-        if ( null !== $key && !empty( $payload[$key] ) )
-        {
-            return $payload[$key];
-        }
-
-        if ( !empty( $this->resource ) && !empty( $payload ) )
-        {
-            // single records passed in which don't use the record wrapper, so wrap it
-            $payload = [ static::RECORD_WRAPPER => [ $payload ] ];
-        }
-        elseif ( ArrayUtils::isArrayNumeric( $payload ) )
-        {
-            // import from csv, etc doesn't include a wrapper, so wrap it
-            $payload = [ static::RECORD_WRAPPER => $payload ];
-        }
-
-        if ( empty( $key ) )
-        {
-            $key = static::RECORD_WRAPPER;
-        }
-
-        return ArrayUtils::get( $payload, $key );
-    }
+    abstract protected function getEventMap();
 
     /**
      * Handles GET action
@@ -107,6 +59,55 @@ class BaseRestSystemResource extends BaseRestResource
      */
     protected function handleGET()
     {
+        $results = $this->getEventMap();
+
+        if ( empty( $this->resource ) )
+        {
+            $scripts = EventScriptModel::where( 'affects_process', 1 )->lists( 'name' );
+
+            $allEvents = [ ];
+            foreach ( $results as $service => &$apis )
+            {
+                foreach ( $apis as $path => &$operations )
+                {
+                    foreach ( $operations as $method => &$events )
+                    {
+                        $temp = [ ];
+                        foreach ( $events as $event )
+                        {
+                            $temp[$event] = count( array_keys( $scripts, $event ) );
+                            $allEvents[] = $event;
+                        }
+                        $events = $temp;
+                    }
+                }
+            }
+
+            if ( $this->request->getParameterAsBool( 'full_map', false ) )
+            {
+                return $results;
+            }
+
+            return [ 'resource' => $allEvents ];
+        }
+
+//        if ( empty( $this->resourceId ) )
+//        {
+//            $scripts = EventScriptModel::where( 'name', $this->resource )->get();
+//            if ( empty( $scripts ) )
+//            {
+//                throw new NotFoundException( "Event {$this->resource} not found in the system." );
+//            }
+//
+//            return [ 'record' => $scripts ];
+//        }
+//
+//        $script = EventScriptModel::where( 'id', $this->resourceId )->first();
+//        if ( empty( $script ) )
+//        {
+//            throw new NotFoundException( "Event {$this->resource} not found in the system." );
+//        }
+
         $ids = $this->request->getParameter( 'ids' );
         $records = $this->getPayloadData( self::RECORD_WRAPPER );
 
@@ -129,9 +130,9 @@ class BaseRestSystemResource extends BaseRestResource
         $pk = $model->getPrimaryKey();
 
         //	Single resource by ID
-        if ( !empty( $this->resource ) )
+        if ( !empty( $this->resourceId ) )
         {
-            $foundModel = $modelClass::with( $related )->find( $this->resource );
+            $foundModel = $modelClass::with( $related )->find( $this->resourceId );
             if ( $foundModel )
             {
                 $data = $foundModel->toArray();
@@ -140,7 +141,7 @@ class BaseRestSystemResource extends BaseRestResource
         else if ( !empty( $ids ) )
         {
             /** @var Collection $dataCol */
-            $dataCol = $modelClass::with( $related )->whereIn( $pk, explode( ',', $ids ) )->get();
+            $dataCol = $modelClass::with( $related )->where( 'name', $this->resource )->whereIn( $pk, explode( ',', $ids ) )->get();
             $data = $dataCol->toArray();
             $data = [ self::RECORD_WRAPPER => $data ];
         }
@@ -155,7 +156,7 @@ class BaseRestSystemResource extends BaseRestResource
             }
 
             /** @var Collection $dataCol */
-            $dataCol = $modelClass::with( $related )->whereIn( $pk, $ids )->get();
+            $dataCol = $modelClass::with( $related )->where( 'name', $this->resource )->whereIn( $pk, $ids )->get();
             $data = $dataCol->toArray();
             $data = [ self::RECORD_WRAPPER => $data ];
         }
@@ -213,7 +214,23 @@ class BaseRestSystemResource extends BaseRestResource
                 $criteria['order'] = $value;
             }
 
-            $data = $model->selectResponse( $criteria, $related );
+            $_fields = [ '*' ];
+            if ( !empty( $criteria['select'] ) )
+            {
+                $_fields = explode( ',', $criteria['select'] );
+            }
+
+            if ( empty( $criteria ) )
+            {
+                $collections = $modelClass::where( 'name', $this->resource )->get( $_fields );
+            }
+            else
+            {
+                $collections = $modelClass::with( $related )->where( 'name', $this->resource )->get( $_fields );
+            }
+
+            $data = $collections->toArray();
+
             $data = [ static::RECORD_WRAPPER => $data ];
         }
 
@@ -256,7 +273,12 @@ class BaseRestSystemResource extends BaseRestResource
      */
     protected function handlePOST()
     {
-        if ( !empty( $this->resource ) )
+        if ( empty( $this->resource ) )
+        {
+            return false;
+        }
+
+        if ( !empty( $this->resourceId ) )
         {
             throw new BadRequestException( 'Create record by identifier not currently supported.' );
         }
@@ -279,14 +301,6 @@ class BaseRestSystemResource extends BaseRestResource
     }
 
     /**
-     * @throws BadRequestException
-     */
-    protected function handlePUT()
-    {
-        throw new BadRequestException( 'PUT is not supported on System Resource. Use PATCH' );
-    }
-
-    /**
      * Handles PATCH action
      *
      * @return \DreamFactory\Rave\Utility\ServiceResponse
@@ -295,6 +309,11 @@ class BaseRestSystemResource extends BaseRestResource
      */
     protected function handlePATCH()
     {
+        if ( empty( $this->resource ) )
+        {
+            return false;
+        }
+
         $records = $this->getPayloadData( static::RECORD_WRAPPER );
         $ids = $this->request->getParameter( 'ids' );
         $modelClass = $this->model;
@@ -306,9 +325,9 @@ class BaseRestSystemResource extends BaseRestResource
 
         $this->triggerActionEvent( $this->response );
 
-        if ( !empty( $this->resource ) )
+        if ( !empty( $this->resourceId ) )
         {
-            $result = $modelClass::updateById( $this->resource, $records[0], $this->request->getParameters() );
+            $result = $modelClass::updateById( $this->resourceId, $records[0], $this->request->getParameters() );
         }
         elseif ( !empty( $ids ) )
         {
@@ -331,11 +350,16 @@ class BaseRestSystemResource extends BaseRestResource
      */
     protected function handleDELETE()
     {
+        if ( empty( $this->resource ) )
+        {
+            return false;
+        }
+
         $this->triggerActionEvent( $this->response );
         $ids = $this->request->getParameter( 'ids' );
         $modelClass = $this->model;
 
-        if ( !empty( $this->resource ) )
+        if ( !empty( $this->resourceId ) )
         {
             $result = $modelClass::deleteById( $this->resource, $this->request->getParameters() );
         }
@@ -357,22 +381,6 @@ class BaseRestSystemResource extends BaseRestResource
         return $result;
     }
 
-    /**
-     * Returns associated model with the service/resource.
-     *
-     * @return \DreamFactory\Rave\Models\BaseSystemModel
-     * @throws ModelNotFoundException
-     */
-    protected function getModel()
-    {
-        if ( empty( $this->model ) || !class_exists($this->model) )
-        {
-            throw new ModelNotFoundException();
-        }
-
-        return new $this->model;
-    }
-
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
@@ -387,13 +395,85 @@ class BaseRestSystemResource extends BaseRestResource
                 'operations'  => [
                     [
                         'method'           => 'GET',
-                        'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralLower . '.',
-                        'nickname'         => 'get' . $plural,
-                        'type'             => $plural . 'Response',
+                        'summary'          => 'get' . $name . 'Events() - Retrieve list of events.',
+                        'nickname'         => 'get' . $name . 'Events',
+                        'type'             => 'ComponentList',
+                        'event_name'       => $eventPath . '.list',
+                        'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
+                        'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
+                        'parameters'       => [ ],
+                        'responseMessages' => [
+                            [
+                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
+                                'code'    => 400,
+                            ],
+                            [
+                                'message' => 'Unauthorized Access - No currently valid session available.',
+                                'code'    => 401,
+                            ],
+                            [
+                                'message' => 'System Error - Specific reason is included in the error message.',
+                                'code'    => 500,
+                            ],
+                        ],
+                        'notes'            => 'A list of event names are returned. <br>',
+                    ],
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'get' . $name . 'EventMap() - Retrieve full map of events.',
+                        'nickname'         => 'get' . $name . 'EventMap',
+                        'type'             => 'EventMap',
                         'event_name'       => $eventPath . '.list',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
+                            [
+                                'name'          => 'full_map',
+                                'description'   => 'Get the full mapping of events.',
+                                'allowMultiple' => false,
+                                'type'          => 'boolean',
+                                'paramType'     => 'query',
+                                'required'      => true,
+                                'default'       => true,
+                            ]
+                        ],
+                        'responseMessages' => [
+                            [
+                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
+                                'code'    => 400,
+                            ],
+                            [
+                                'message' => 'Unauthorized Access - No currently valid session available.',
+                                'code'    => 401,
+                            ],
+                            [
+                                'message' => 'System Error - Specific reason is included in the error message.',
+                                'code'    => 500,
+                            ],
+                        ],
+                        'notes'            => 'This returns a service to verb to event mapping. <br>',
+                    ],
+                ],
+                'description' => 'Operations for retrieving events.',
+            ],
+            [
+                'path'        => $path . '/{event_name}',
+                'operations'  => [
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'get' . $name . 'EventScripts() - Retrieve scripts for one event.',
+                        'nickname'         => 'get' . $name . 'EventScripts',
+                        'type'             => 'EventScriptsResponse',
+                        'event_name'       => $eventPath . '.{event_name}.read',
+                        'parameters'       => [
+                            [
+                                'name'          => 'event_name',
+                                'description'   => 'Identifier of the event to retrieve.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
                             [
                                 'name'          => 'ids',
                                 'description'   => 'Comma-delimited list of the identifiers of the records to retrieve.',
@@ -501,10 +581,10 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                     [
                         'method'           => 'POST',
-                        'summary'          => 'create' . $plural . '() - Create one or more ' . $pluralLower . '.',
-                        'nickname'         => 'create' . $plural,
-                        'type'             => $plural . 'Response',
-                        'event_name'       => $eventPath . '.create',
+                        'summary'          => 'create' . $name . 'EventScripts() - Create one or more event scripts.',
+                        'nickname'         => 'create' . $name . 'EventScripts',
+                        'type'             => 'EventScriptsResponse',
+                        'event_name'       => $eventPath . '.{event_name}.create',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -512,7 +592,7 @@ class BaseRestSystemResource extends BaseRestResource
                                 'name'          => 'body',
                                 'description'   => 'Data containing name-value pairs of records to create.',
                                 'allowMultiple' => false,
-                                'type'          => $plural . 'Request',
+                                'type'          => 'ScriptsRequest',
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
@@ -563,10 +643,10 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                     [
                         'method'           => 'PATCH',
-                        'summary'          => 'update' . $plural . '() - Update one or more ' . $pluralLower . '.',
-                        'nickname'         => 'update' . $plural,
-                        'type'             => $plural . 'Response',
-                        'event_name'       => $eventPath . '.update',
+                        'summary'          => 'update' . $name . 'EventScripts() - Update one or more event scripts.',
+                        'nickname'         => 'update' . $name . 'EventScripts',
+                        'type'             => 'EventScriptsResponse',
+                        'event_name'       => $eventPath . '.{event_name}.update',
                         'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
@@ -616,10 +696,10 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                     [
                         'method'           => 'DELETE',
-                        'summary'          => 'delete' . $plural . '() - Delete one or more ' . $pluralLower . '.',
-                        'nickname'         => 'delete' . $plural,
-                        'type'             => $plural . 'Response',
-                        'event_name'       => $eventPath . '.delete',
+                        'summary'          => 'delete' . $name . 'EventScripts() - Delete one or more event scripts.',
+                        'nickname'         => 'delete' . $name. 'EventScripts',
+                        'type'             => 'EventScriptsResponse',
+                        'event_name'       => $eventPath . '.{event_name}.delete',
                         'parameters'       => [
                             [
                                 'name'          => 'ids',
@@ -676,17 +756,57 @@ class BaseRestSystemResource extends BaseRestResource
                             'use the POST request with X-HTTP-METHOD = DELETE header and post records or ids.',
                     ],
                 ],
-                'description' => "Operations for $lower administration.",
+                'description' => 'Operations for scripts on individual events.',
             ],
             [
-                'path'        => $path . '/{id}',
+                'path'        => $path . '/{event_name}/{id}',
                 'operations'  => [
                     [
                         'method'           => 'GET',
-                        'summary'          => 'get' . $name . '() - Retrieve one ' . $lower . '.',
-                        'nickname'         => 'get' . $name,
-                        'type'             => $name . 'Response',
-                        'event_name'       => $eventPath . '.read',
+                        'summary'          => 'get' . $name . 'EventScript() - Retrieve one script.',
+                        'nickname'         => 'get' . $name . 'EventScript',
+                        'type'             => 'EventScriptResponse',
+                        'event_name'       => $eventPath . '.{event_name}.{id}.read',
+                        'parameters'       => [
+                            [
+                                'name'          => 'event_name',
+                                'description'   => 'Identifier of the event to retrieve.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'id',
+                                'description'   => 'Identifier of the script to retrieve.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => [
+                            [
+                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
+                                'code'    => 400,
+                            ],
+                            [
+                                'message' => 'Unauthorized Access - No currently valid session available.',
+                                'code'    => 401,
+                            ],
+                            [
+                                'message' => 'System Error - Specific reason is included in the error message.',
+                                'code'    => 500,
+                            ],
+                        ],
+                        'notes'            => '',
+                    ],
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'get' . $name . 'EventScript() - Retrieve one event script.',
+                        'nickname'         => 'get' . $name . 'EventScript',
+                        'type'             => 'EventScriptResponse',
+                        'event_name'       => $eventPath . '.{event_name}.{id}.read',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -731,10 +851,10 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                     [
                         'method'           => 'PATCH',
-                        'summary'          => 'update' . $name . '() - Update one ' . $lower . '.',
-                        'nickname'         => 'update' . $name,
-                        'type'             => $name . 'Response',
-                        'event_name'       => $eventPath . '.update',
+                        'summary'          => 'update' . $name . 'EventScript() - Update one event script.',
+                        'nickname'         => 'update' . $name . 'EventScript',
+                        'type'             => 'EventScriptResponse',
+                        'event_name'       => $eventPath . '.{event_name}.{id}.update',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -789,10 +909,10 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                     [
                         'method'           => 'DELETE',
-                        'summary'          => 'delete' . $name . '() - Delete one ' . $lower . '.',
-                        'nickname'         => 'delete' . $name,
-                        'type'             => $name . 'Response',
-                        'event_name'       => $eventPath . '.delete',
+                        'summary'          => 'delete' . $name . 'EventScript() - Delete one event script.',
+                        'nickname'         => 'delete' . $name . 'EventScript',
+                        'type'             => 'EventScriptResponse',
+                        'event_name'       => $eventPath . '.{event_name}.{id}.delete',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
@@ -836,24 +956,24 @@ class BaseRestSystemResource extends BaseRestResource
                         'notes'            => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
                     ],
                 ],
-                'description' => "Operations for individual $lower administration.",
+                'description' => 'Operations for individual event scripts.',
             ],
         ];
 
         $models = [
-            $plural . 'Request'  => [
-                'id'         => $plural . 'Request',
+            'EventScriptsRequest'  => [
+                'id'         => 'EventScriptsRequest',
                 'properties' => [
                     'record' => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Request',
+                            '$ref' => 'EventScriptRequest',
                         ],
                     ],
                     'ids'    => [
                         'type'        => 'array',
-                        'description' => 'Array of system record identifiers, used for batch GET, PUT, PATCH, and DELETE.',
+                        'description' => 'Array of event identifiers, used for batch GET.',
                         'items'       => [
                             'type'   => 'integer',
                             'format' => 'int32',
@@ -861,14 +981,14 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                 ],
             ],
-            $plural . 'Response' => [
-                'id'         => $plural . 'Response',
+            'EventScriptsResponse' => [
+                'id'         => 'EventScriptsResponse',
                 'properties' => [
                     'record' => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
+                            '$ref' => 'EventScriptResponse',
                         ],
                     ],
                     'meta'   => [
@@ -877,29 +997,12 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                 ],
             ],
-            'Metadata'           => [
-                'id'         => 'Metadata',
-                'properties' => [
-                    'schema' => [
-                        'type'        => 'Array',
-                        'description' => 'Array of table schema.',
-                        'items'       => [
-                            'type' => 'string',
-                        ],
-                    ],
-                    'count'  => [
-                        'type'        => 'integer',
-                        'format'      => 'int32',
-                        'description' => 'Record count returned for GET requests.',
-                    ],
-                ],
-            ],
         ];
 
         $model = $this->getModel();
         if ( $model )
         {
-            $temp = $model->toApiDocsModel( $name );
+            $temp = $model->toApiDocsModel( 'EventScript' );
             if ( $temp )
             {
                 $models = array_merge( $models, $temp );

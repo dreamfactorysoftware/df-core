@@ -50,9 +50,9 @@ class Service extends BaseSystemModel
 {
     protected $table = 'service';
 
-    protected $fillable = [ 'name', 'label', 'description', 'is_active', 'type', 'config', 'mutable', 'deletable' ];
+    protected $fillable = [ 'name', 'label', 'description', 'is_active', 'type', 'config' ];
 
-    protected $guarded = [ 'id', 'created_date', 'last_modified_date' ];
+    protected $guarded = [ 'id', 'mutable', 'deletable', 'created_date', 'last_modified_date', 'created_by_id', 'last_modified_by_id' ];
 
     protected $appends = [ 'config' ];
 
@@ -205,7 +205,6 @@ class Service extends BaseSystemModel
         {
             static::create(
                 [
-                    'id'          => '1',
                     'name'        => 'system',
                     'label'       => 'System Management',
                     'description' => 'Service for managing system resources.',

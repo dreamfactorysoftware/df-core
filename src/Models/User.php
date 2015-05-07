@@ -50,15 +50,12 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         'name',
         'first_name',
         'last_name',
-        'last_login_date',
         'email',
         'password',
-        'is_sys_admin',
         'is_active',
         'phone',
         'security_question',
         'security_answer',
-        'confirm_code',
         'adldap',
         'oauth_provider'
     ];
@@ -70,7 +67,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      */
     protected $hidden = [ 'password', 'remember_token' ];
 
-    protected static $relatedModels = [
+    protected static $tableToModelMap = [
         'user_to_app_role' => 'DreamFactory\Rave\Models\UserAppRole'
     ];
 

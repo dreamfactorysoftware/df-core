@@ -24,9 +24,4 @@ use DreamFactory\Rave\Resources\BaseRestSystemResource;
 
 class Role extends BaseRestSystemResource
 {
-    public function __construct( $settings = [ ] )
-    {
-        parent::__construct( $settings );
-        $this->model = new \DreamFactory\Rave\Models\Role();
-    }
 }

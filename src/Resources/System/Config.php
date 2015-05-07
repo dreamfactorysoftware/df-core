@@ -41,7 +41,7 @@ class Config extends BaseRestSystemResource
 
         parent::__construct( $settings );
 
-        $this->model = new \DreamFactory\Rave\Models\Config();
+        $this->model = 'DreamFactory\Rave\Models\Config';
     }
 
     public function getApiDocInfo()
@@ -322,15 +322,6 @@ HTML
 
     protected function handlePOST()
     {
-        if ( 'api_key' === $this->resource )
-        {
-            $string = gethostname() . time();
-            $key = hash( 'sha256', $string );
-            $this->model->create( [ 'api_key' => $key ] );
-
-            return ResponseFactory::create( [ 'api_key' => $key ], $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
-        }
-
         if ( !empty( $this->resource ) )
         {
             throw new BadRequestException( 'Create record by identifier not currently supported.' );
@@ -346,8 +337,8 @@ HTML
 
         $this->triggerActionEvent( $this->response );
 
-        $model = $this->getModel();
-        $result = $model::bulkCreate( $records, $this->request->getParameters() );
+        $modelClass = $this->model;
+        $result = $modelClass::bulkCreate( $records, $this->request->getParameters() );
 
         $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
 

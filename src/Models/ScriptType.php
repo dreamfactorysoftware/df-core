@@ -33,13 +33,25 @@ namespace DreamFactory\Rave\Models;
  */
 class ScriptType extends BaseModel
 {
+    /**
+     * The name of the "created at" column.
+     *
+     * @var string
+     */
+    const CREATED_AT = 'created_date';
+
+    /**
+     * The name of the "updated at" column.
+     *
+     * @var string
+     */
+    const UPDATED_AT = 'last_modified_date';
+
     protected $table = 'script_type';
 
     protected $primaryKey = 'name';
 
     protected $fillable = [ 'name', 'class_name', 'label', 'description', 'sandboxed' ];
-
-    public $timestamps = false;
 
     public $incrementing = false;
 

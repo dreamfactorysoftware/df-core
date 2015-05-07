@@ -28,12 +28,9 @@ use Illuminate\Support\Arr;
  * Role
  *
  * @property integer $id
- * @property string  $api_name
  * @property string  $name
  * @property string  $description
  * @property boolean $is_active
- * @property integer $type_id
- * @property integer $native_format_id
  * @property string  $created_date
  * @property string  $last_modified_date
  * @method static \Illuminate\Database\Query\Builder|Role whereId( $value )
@@ -50,9 +47,11 @@ class Role extends BaseSystemModel
 {
     protected $table = 'role';
 
-    protected $fillable = [ 'name', 'description', 'is_active' ];
+    protected $fillable = [ 'name', 'description', 'is_active', 'role_service_access_by_role_id', 'role_lookup_by_role_id' ];
 
-    protected static $relatedModels = [
+    protected $hidden = [ 'user_to_app_to_role_by_role_id', 'app_by_user_to_app_to_role', 'user_by_user_to_app_to_role', 'user_by_role_lookup'];
+
+    protected static $tableToModelMap = [
         'role_service_access' => 'DreamFactory\Rave\Models\RoleServiceAccess',
         'role_lookup'         => 'DreamFactory\Rave\Models\RoleLookup',
         'app'                 => 'DreamFactory\Rave\Models\App',
@@ -68,40 +67,40 @@ class Role extends BaseSystemModel
         static::saved(
             function ( Role $role )
             {
-                $role->load('app_by_role_id', 'app_by_user_to_app_role', 'user_to_app_role_by_role_id');
+                $role->load( 'app_by_role_id', 'app_by_user_to_app_role', 'user_to_app_role_by_role_id' );
 
-                $apps = $role->getRelation('app_by_role_id')->toArray();
+                $apps = $role->getRelation( 'app_by_role_id' )->toArray();
 
-                foreach($apps as $app)
+                foreach ( $apps as $app )
                 {
-                    $apiKey = ArrayUtils::get($app, 'api_key');
+                    $apiKey = ArrayUtils::get( $app, 'api_key' );
 
-                    if(Cache::has($apiKey))
+                    if ( Cache::has( $apiKey ) )
                     {
-                        Cache::forget($apiKey);
+                        Cache::forget( $apiKey );
                     }
                 }
 
-                $appUsers = $role->getRelation('app_by_user_to_app_role')->toArray();
+                $appUsers = $role->getRelation( 'app_by_user_to_app_role' )->toArray();
 
-                $userRoles = $role->getRelation('user_to_app_role_by_role_id')->toArray();
+                $userRoles = $role->getRelation( 'user_to_app_role_by_role_id' )->toArray();
 
-                foreach($appUsers as $au)
+                foreach ( $appUsers as $au )
                 {
-                    $apiKey = ArrayUtils::get($au, 'api_key');
-                    $roleId = ArrayUtils::getDeep($au, 'pivot', 'role_id');
-                    $appId = ArrayUtils::getDeep($au, 'pivot', 'app_id');
+                    $apiKey = ArrayUtils::get( $au, 'api_key' );
+                    $roleId = ArrayUtils::getDeep( $au, 'pivot', 'role_id' );
+                    $appId = ArrayUtils::getDeep( $au, 'pivot', 'app_id' );
 
-                    foreach($userRoles as $ur)
+                    foreach ( $userRoles as $ur )
                     {
-                        if($appId === ArrayUtils::get($ur, 'app_id') && $roleId === ArrayUtils::get($ur, 'role_id'))
+                        if ( $appId === ArrayUtils::get( $ur, 'app_id' ) && $roleId === ArrayUtils::get( $ur, 'role_id' ) )
                         {
-                            $userId = ArrayUtils::get($ur, 'user_id');
-                            $cacheKey = $apiKey.$userId;
+                            $userId = ArrayUtils::get( $ur, 'user_id' );
+                            $cacheKey = $apiKey . $userId;
 
-                            if(Cache::has($cacheKey))
+                            if ( Cache::has( $cacheKey ) )
                             {
-                                Cache::forget($cacheKey);
+                                Cache::forget( $cacheKey );
                             }
                         }
                     }

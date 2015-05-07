@@ -45,8 +45,6 @@ class RoleServiceAccess extends BaseSystemModel
 
     protected $guarded = [ 'id' ];
 
-    public $timestamps = false;
-
 //    public static function seed()
 //    {
 //        $seeded = false;

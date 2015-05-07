@@ -43,7 +43,7 @@ class EventScript extends BaseSystemModel
 
     protected $table = 'event_script';
 
-    protected $fillable = [ 'name', 'type', 'engine', 'content', 'config' ];
+    protected $fillable = [ 'name', 'type', 'engine', 'content', 'config', 'is_active', 'affects_process' ];
 
     protected $appends = [ 'engine' ];
 

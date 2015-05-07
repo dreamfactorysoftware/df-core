@@ -21,7 +21,6 @@
 namespace DreamFactory\Rave\Models;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Rave\Components\ConnectionAdapter;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\SqlDbCore\ColumnSchema;
@@ -40,6 +39,10 @@ use DB;
  */
 class BaseModel extends Model
 {
+    const TABLE_TO_MODEL_MAP_CACHE_KEY = 'system.table_model_map';
+
+    const TABLE_TO_MODEL_MAP_CACHE_TTL = 60;
+
     /**
      * SqlDbCore Schema object.
      *
@@ -71,7 +74,7 @@ class BaseModel extends Model
      *
      * @var array
      */
-    protected static $relatedModels = [ ];
+    protected static $tableToModelMap = [ ];
 
     /**
      * Save a new model and return the instance.
@@ -382,7 +385,7 @@ class BaseModel extends Model
      */
     protected function getHasMany( $table )
     {
-        $model = ArrayUtils::get( static::$relatedModels, $table );
+        $model = $this->tableNameToModel( $table );
         $refField = $this->getReferencingField( $table );
 
         return $this->hasMany( $model, $refField );
@@ -396,7 +399,7 @@ class BaseModel extends Model
     public function getHasManyByRelationName( $name )
     {
         $table = $this->getReferencingTable( $name );
-        $mappedTables = array_keys( static::$relatedModels );
+        $mappedTables = array_keys( static::getTableToModelMap() );
 
         return ( !empty( $table ) && in_array( $table, $mappedTables ) ) ? $this->getHasMany( $table ) : null;
     }
@@ -404,7 +407,7 @@ class BaseModel extends Model
     public function getBelongsToManyByRelationName( $name )
     {
         $table = $this->getReferencingTable( $name );
-        $model = ArrayUtils::get( static::$relatedModels, $table );
+        $model = $this->tableNameToModel( $table );
 
         list( $pivotTable, $fk, $rk ) = $this->getReferencingJoin( $name );
 
@@ -414,7 +417,7 @@ class BaseModel extends Model
     public function getBelongsToByRelationName( $name )
     {
         $table = $this->getReferencingTable( $name );
-        $model = ArrayUtils::get( static::$relatedModels, $table );
+        $model = $this->tableNameToModel( $table );
 
         $references = $this->getReferences();
         $lf = null;
@@ -519,14 +522,14 @@ class BaseModel extends Model
         }
 
         $table = $this->getReferencingTable( $name );
-        $model = static::$relatedModels[$table];
+        $model = static::tableNameToModel( $table );
 
         return $model;
     }
 
     /**
      * Checks to see if a relation is mapped in the
-     * static::$relatedModels array by the relation name
+     * tableToModelMap array by the relation name
      *
      * @param $name
      *
@@ -534,17 +537,9 @@ class BaseModel extends Model
      */
     protected function isRelationMapped( $name )
     {
-        //If no related models are setup then return false
-        //and don't bother checking schema.
-        if ( count( static::$relatedModels ) === 0 )
-        {
-            return false;
-        }
-
         $table = $this->getReferencingTable( $name );
-        $mappedTables = array_keys( static::$relatedModels );
 
-        return in_array( $table, $mappedTables );
+        return array_key_exists( $table, static::getTableToModelMap() );
     }
 
     /**
@@ -569,57 +564,145 @@ class BaseModel extends Model
         return new RaveBuilder( $query );
     }
 
+    public static function getTableToModelMap()
+    {
+        if ( empty( static::$tableToModelMap ) )
+        {
+            static::$tableToModelMap = \Cache::get( static::TABLE_TO_MODEL_MAP_CACHE_KEY, [ ] );
+            if ( empty( static::$tableToModelMap ) )
+            {
+                static::$tableToModelMap = DB::table( 'db_table_extras' )->where( 'service_id', 1 )->lists( 'model', 'table' );
+                \Cache::add( static::TABLE_TO_MODEL_MAP_CACHE_KEY, static::$tableToModelMap, static::TABLE_TO_MODEL_MAP_CACHE_TTL );
+            }
+        }
+
+        return static::$tableToModelMap;
+    }
+
+    public static function tableNameToModel( $table )
+    {
+        $map = static::getTableToModelMap();
+
+        return isset( $map[$table] ) ? $map[$table] : null;
+    }
+
+    public static function getModelBaseName( $fqcn )
+    {
+        if ( preg_match( '@\\\\([\w]+)$@', $fqcn, $matches ) )
+        {
+            $fqcn = $matches[1];
+        }
+
+        return $fqcn;
+    }
+
     public function toApiDocsModel( $name = null )
     {
         $schema = $this->getTableSchema();
         if ( $schema )
         {
-            $properties = [ ];
+            $requestFields = [ ];
+            $responseFields = array_flip( $this->getArrayableItems( array_keys( $schema->columns ) ) );
             /** @var ColumnSchema $field */
             foreach ( $schema->columns as $field )
             {
-                $properties[$field->name] = [
-                    'type'        => $field->type,
-                    'description' => $field->comment,
-                    'required'    => $field->determineRequired()
-                ];
+                if ( $this->isFillable( $field->name ) )
+                {
+                    $requestFields[$field->name] = [
+                        'type'        => $field->type,
+                        'description' => $field->comment,
+                        'required'    => $field->determineRequired()
+                    ];
+                }
+
+                if ( array_key_exists( $field->name, $responseFields ) )
+                {
+                    $responseFields[$field->name] = [
+                        'type'        => $field->type,
+                        'description' => $field->comment,
+                        'required'    => $field->determineRequired()
+                    ];
+                }
             }
 
+            $requestRelatives = [ ];
+            $responseRelatives = array_flip( $this->getArrayableItems( array_keys( $schema->relations ) ) );
             /** @var RelationSchema $relation */
             foreach ( $schema->relations as $relation )
             {
-                $refModel = $this->getReferencingModel( $relation->refTable );
+                $refModel = static::tableNameToModel( $relation->refTable );
+
                 if ( !empty( $refModel ) )
                 {
-                    if ( preg_match( '@\\\\([\w]+)$@', $refModel, $matches ) )
-                    {
-                        $refModel = $matches[1];
-                    }
+                    $refModel = static::getModelBaseName( $refModel );
 
                     switch ( $relation->type )
                     {
                         case RelationSchema::BELONGS_TO:
-                            $properties[$relation->name] = [
-                                'type'        => $refModel,
-                                'description' => '',
-                                'required'    => false
-                            ];
+                            if ( $this->isFillable( $relation->name ) )
+                            {
+                                $requestRelatives[$relation->name] = [
+                                    'type'        => 'Related' . $refModel . 'Request',
+                                    'description' => "A single $refModel record that this record potentially belongs to.",
+                                    'required'    => false
+                                ];
+                            }
+
+                            if ( array_key_exists( $relation->name, $responseRelatives ) )
+                            {
+                                $responseRelatives[$relation->name] = [
+                                    'type'        => 'Related' . $refModel . 'Response',
+                                    'description' => "A single $refModel record that this record potentially belongs to.",
+                                    'required'    => false
+                                ];
+                            }
                             break;
                         case RelationSchema::HAS_MANY:
-                            $properties[$relation->name] = [
-                                'type'        => 'array',
-                                'items'       => [ '$ref' => $refModel ],
-                                'description' => '',
-                                'required'    => false
-                            ];
+                            if ( $this->isFillable( $relation->name ) )
+                            {
+                                $requestRelatives[$relation->name] = [
+                                    'type'        => 'array',
+                                    'items'       => [ '$ref' => 'Related' . $refModel . 'Response' ],
+                                    'description' => "Zero or more $refModel records that are potentially linked to this record directly",
+                                    'required'    => false
+                                ];
+                            }
+
+                            if ( array_key_exists( $relation->name, $responseRelatives ) )
+                            {
+                                $responseRelatives[$relation->name] = [
+                                    'type'        => 'array',
+                                    'items'       => [ '$ref' => 'Related' . $refModel . 'Response' ],
+                                    'description' => "Zero or more $refModel records that are potentially linked to this record directly",
+                                    'required'    => false
+                                ];
+                            }
                             break;
                         case RelationSchema::MANY_MANY:
-                            $properties[$relation->name] = [
-                                'type'        => 'array',
-                                'items'       => [ '$ref' => $refModel ],
-                                'description' => '',
-                                'required'    => false
-                            ];
+                            $pivot = substr( $relation->join, 0, strpos( $relation->join, '(' ) );
+                            $pivotModel = static::tableNameToModel( $pivot );
+                            $pivotModel = static::getModelBaseName($pivotModel);
+                            $pivotModel = empty( $pivotModel ) ? $pivot : $pivotModel;
+
+                            if ( $this->isFillable( $relation->name ) )
+                            {
+                                $requestRelatives[$relation->name] = [
+                                    'type'        => 'array',
+                                    'items'       => [ '$ref' => 'Related' . $refModel . 'Request' ],
+                                    'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
+                                    'required'    => false
+                                ];
+                            }
+
+                            if ( array_key_exists( $relation->name, $responseRelatives ) )
+                            {
+                                $responseRelatives[$relation->name] = [
+                                    'type'        => 'array',
+                                    'items'       => [ '$ref' => 'Related' . $refModel . 'Response' ],
+                                    'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
+                                    'required'    => false
+                                ];
+                            }
                             break;
                     }
                 }
@@ -627,16 +710,26 @@ class BaseModel extends Model
 
             if ( empty( $name ) )
             {
-                $name = basename( get_class( $this ) );
-                if ( preg_match( '@\\\\([\w]+)$@', $name, $matches ) )
-                {
-                    $name = $matches[1];
-                }
+                $name = static::getModelBaseName(basename( get_class( $this ) ));
             }
 
             return [
-                'id'         => $name,
-                'properties' => $properties
+                $name . 'Request'              => [
+                    'id'         => $name . 'Request',
+                    'properties' => $requestFields + $requestRelatives
+                ],
+                $name . 'Response'             => [
+                    'id'         => $name . 'Response',
+                    'properties' => $responseFields + $responseRelatives
+                ],
+                'Related' . $name . 'Request'  => [
+                    'id'         => 'Related' . $name . 'Request',
+                    'properties' => $requestFields
+                ],
+                'Related' . $name . 'Response' => [
+                    'id'         => 'Related' . $name . 'Response',
+                    'properties' => $responseFields
+                ]
             ];
         }
 

@@ -12,6 +12,45 @@ class CreateSystemTables extends Migration
      */
     public function up()
     {
+        // User table
+        Schema::create(
+            'user',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->string( 'name' );
+                $t->string( 'first_name' )->nullable();
+                $t->string( 'last_name' )->nullable();
+                $t->dateTime( 'last_login_date' )->nullable();
+                $t->string( 'email' )->unique();
+                $t->longText( 'password' );
+                $t->boolean( 'is_sys_admin' )->default( 0 );
+                $t->boolean( 'is_active' )->default( 1 );
+                $t->string( 'phone', 32 )->nullable();
+                $t->string( 'security_question' )->nullable();
+                $t->longText( 'security_answer' )->nullable();
+                $t->string( 'confirm_code' )->nullable();
+                $t->rememberToken();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+            }
+        );
+
+        //Password reset table
+        Schema::create(
+            'password_resets',
+            function ( Blueprint $t )
+            {
+                $t->string( 'email' )->index();
+                $t->string( 'token' )->index();
+                $t->timestamp( 'created_date' );
+            }
+        );
+
         // Service Types
         Schema::create(
             'service_type',
@@ -24,6 +63,8 @@ class CreateSystemTables extends Migration
                 $t->string( 'description' )->nullable();
                 $t->string( 'group' )->nullable();
                 $t->boolean( 'singleton' )->default( 0 );
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
             }
         );
 
@@ -36,8 +77,11 @@ class CreateSystemTables extends Migration
                 $t->string( 'class_name' );
                 $t->string( 'label', 80 );
                 $t->string( 'description' )->nullable();
+                $t->string( 'model_name' )->nullable();
                 $t->boolean( 'singleton' )->default( 0 );
                 $t->boolean( 'read_only' )->default( 0 );
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
             }
         );
 
@@ -55,7 +99,12 @@ class CreateSystemTables extends Migration
                 $t->foreign( 'type' )->references( 'name' )->on( 'service_type' )->onDelete( 'cascade' );
                 $t->boolean( 'mutable' )->default( 1 );
                 $t->boolean( 'deletable' )->default( 1 );
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -69,7 +118,8 @@ class CreateSystemTables extends Migration
                 $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
                 $t->integer( 'format' )->unsigned()->default( 0 );
                 $t->text( 'content' )->nullable();
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
             }
         );
 
@@ -83,6 +133,8 @@ class CreateSystemTables extends Migration
                 $t->string( 'label', 80 );
                 $t->string( 'description' )->nullable();
                 $t->boolean( 'sandboxed' )->default( 0 );
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
             }
         );
 
@@ -109,7 +161,12 @@ class CreateSystemTables extends Migration
                 $t->string( 'name', 80 )->unique();
                 $t->string( 'type' );
                 $t->text( 'config' )->nullable();
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -120,11 +177,19 @@ class CreateSystemTables extends Migration
             {
                 $t->increments( 'id' );
                 $t->string( 'name', 80 )->unique();
+                $t->string( 'label' )->nullable();
                 $t->string( 'type' );
                 $t->foreign( 'type' )->references( 'name' )->on( 'script_type' )->onDelete( 'cascade' );
+                $t->boolean( 'is_active' )->default( 0 );
+                $t->boolean( 'affects_process' )->default( 0 );
                 $t->text( 'content' )->nullable();
                 $t->text( 'config' )->nullable();
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -137,7 +202,12 @@ class CreateSystemTables extends Migration
                 $t->string( 'name', 64 )->unique();
                 $t->string( 'description' )->nullable();
                 $t->boolean( 'is_active' )->default( 0 );
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -156,6 +226,12 @@ class CreateSystemTables extends Migration
                 $t->integer( 'requestor_mask' )->unsigned()->default( 0 );
                 $t->text( 'filters' )->nullable();
                 $t->string( 'filter_op', 32 )->default( 'and' );
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -171,7 +247,12 @@ class CreateSystemTables extends Migration
                 $t->text( 'value' )->nullable();
                 $t->boolean( 'private' )->default( 0 );
                 $t->text( 'description' )->nullable();
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -183,7 +264,12 @@ class CreateSystemTables extends Migration
                 $t->increments( 'id' );
                 $t->string( 'name' )->unique();
                 $t->text( 'value' )->nullable();
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -197,7 +283,12 @@ class CreateSystemTables extends Migration
                 $t->text( 'value' )->nullable();
                 $t->boolean( 'private' )->default( 0 );
                 $t->text( 'description' )->nullable();
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -220,28 +311,59 @@ class CreateSystemTables extends Migration
                 $t->string( 'reply_to_name', 80 )->nullable();
                 $t->string( 'reply_to_email' )->nullable();
                 $t->text( 'defaults' )->nullable();
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
-        // Database Services Extras
+        // Database Table Extras
         Schema::create(
-            'db_service_extras',
+            'db_table_extras',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->integer( 'service_id' )->unsigned();
+                $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
+                $t->string( 'table' );
+                $t->string( 'label' )->nullable();
+                $t->string( 'plural' )->nullable();
+                $t->string( 'name_field', 128 )->nullable();
+                $t->string( 'model' )->nullable();
+                $t->text( 'description' )->nullable();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+            }
+        );
+
+        // Database Field Extras
+        Schema::create(
+            'db_field_extras',
             function ( Blueprint $t )
             {
                 $t->increments( 'id' );
                 $t->integer( 'service_id' )->unsigned()->nullable();
                 $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
-                $t->string( 'table', 128 );
-                $t->string( 'field', 128 )->default( '' );
-                $t->string( 'label', 128 )->default( '' );
-                $t->string( 'plural', 128 )->default( '' );
-                $t->string( 'name_field', 128 )->default( '' );
+                $t->string( 'table' );
+                $t->string( 'field' );
+                $t->string( 'label' )->nullable();
+                $t->text( 'description' )->nullable();
                 $t->text( 'picklist' )->nullable();
                 $t->text( 'validation' )->nullable();
-                $t->boolean( 'user_id' )->default( 0 );
-                $t->boolean( 'user_id_on_update' )->nullable();
-                $t->boolean( 'timestamp_on_update' )->nullable();
+                $t->boolean( 'extra_type' )->nullable();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -252,50 +374,32 @@ class CreateSystemTables extends Migration
             {
                 $t->string( 'db_version', 32 )->primary();
                 $t->boolean( 'login_with_user_name' )->default( 0 );
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
-
-        // User table
-        Schema::create('user', function(Blueprint $table)
-        {
-            $table->increments('id');
-            $table->string('name');
-            $table->string('first_name')->nullable();
-            $table->string('last_name')->nullable();
-            $table->dateTime('last_login_date')->nullable();
-            $table->string('email')->unique();
-            $table->longText('password');
-            $table->boolean('is_sys_admin')->default(0);
-            $table->boolean('is_active')->default(1);
-            $table->string('phone', 32)->nullable();
-            $table->string('security_question')->nullable();
-            $table->string('security_answer', 64)->nullable();
-            $table->string('confirm_code')->nullable();
-            $table->rememberToken();
-            $table->timestamps();
-        });
-
-        //Password reset table
-        Schema::create('password_resets', function(Blueprint $table)
-        {
-            $table->string('email')->index();
-            $table->string('token')->index();
-            $table->timestamp('created_at');
-        });
 
         //Cors config table
         Schema::create(
             'cors_config',
-            function(Blueprint $t)
+            function ( Blueprint $t )
             {
-                $t->increments('id');
-                $t->string('path')->unique();
-                $t->string('origin');
-                $t->longText('header');
-                $t->integer('method')->default(0);
-                $t->integer('max_age')->default(3600);
-                $t->timestamps();
+                $t->increments( 'id' );
+                $t->string( 'path' )->unique();
+                $t->string( 'origin' );
+                $t->longText( 'header' );
+                $t->integer( 'method' )->default( 0 );
+                $t->integer( 'max_age' )->default( 3600 );
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -306,30 +410,30 @@ class CreateSystemTables extends Migration
             {
                 $t->integer( 'service_id' )->unsigned()->primary();
                 $t->foreign( 'service_id' )->references( 'id' )->on( 'service' )->onDelete( 'cascade' );
-                $t->string('driver');
-                $t->string('host')->nullable();
-                $t->string('port')->nullable();
-                $t->string('encryption')->default('tls');
-                $t->longText('username')->nullable(); //encrypted
-                $t->longText('password')->nullable(); //encrypted
-                $t->string('command')->default('/usr/sbin/sendmail -bs');
-                $t->longText('key')->nullable(); //encrypted
-                $t->longText('secret')->nullable(); //encrypted
-                $t->string('domain')->nullable();
+                $t->string( 'driver' );
+                $t->string( 'host' )->nullable();
+                $t->string( 'port' )->nullable();
+                $t->string( 'encryption' )->default( 'tls' );
+                $t->longText( 'username' )->nullable(); //encrypted
+                $t->longText( 'password' )->nullable(); //encrypted
+                $t->string( 'command' )->default( '/usr/sbin/sendmail -bs' );
+                $t->longText( 'key' )->nullable(); //encrypted
+                $t->longText( 'secret' )->nullable(); //encrypted
+                $t->string( 'domain' )->nullable();
             }
         );
 
         //Email service parameters config table
         Schema::create(
             'email_parameters_config',
-            function( Blueprint $t)
+            function ( Blueprint $t )
             {
-                $t->increments('id');
-                $t->integer('service_id')->unsigned();
-                $t->foreign('service_id')->references('service_id')->on('email_config')->onDelete('cascade');
-                $t->string('name');
-                $t->mediumText('value')->nullable();
-                $t->boolean('active')->default(1);
+                $t->increments( 'id' );
+                $t->integer( 'service_id' )->unsigned();
+                $t->foreign( 'service_id' )->references( 'service_id' )->on( 'email_config' )->onDelete( 'cascade' );
+                $t->string( 'name' );
+                $t->mediumText( 'value' )->nullable();
+                $t->boolean( 'active' )->default( 1 );
             }
         );
 
@@ -355,7 +459,12 @@ class CreateSystemTables extends Migration
                 $t->string( 'toggle_location', 64 )->default( 'top' );
                 $t->integer( 'role_id' )->unsigned()->nullable();
                 $t->foreign( 'role_id' )->references( 'id' )->on( 'role' )->onDelete( 'set null' );
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -370,7 +479,12 @@ class CreateSystemTables extends Migration
                 $t->string( 'name' )->index();
                 $t->text( 'value' )->nullable();
                 $t->boolean( 'private' )->default( 0 );
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -382,7 +496,12 @@ class CreateSystemTables extends Migration
                 $t->increments( 'id' );
                 $t->string( 'name', 64 )->unique();
                 $t->string( 'description' )->nullable();
-                $t->timestamps();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
             }
         );
 
@@ -392,25 +511,25 @@ class CreateSystemTables extends Migration
             function ( Blueprint $t )
             {
                 $t->increments( 'id' );
-                $t->integer( 'app_id' )->unsigned()->nullable();
+                $t->integer( 'app_id' )->unsigned();
                 $t->foreign( 'app_id' )->references( 'id' )->on( 'app' )->onDelete( 'cascade' );
-                $t->integer( 'group_id' )->unsigned()->nullable();
+                $t->integer( 'group_id' )->unsigned();
                 $t->foreign( 'group_id' )->references( 'id' )->on( 'app_group' )->onDelete( 'cascade' );
             }
         );
 
         // App relationship for user
         Schema::create(
-            'user_to_app_role',
+            'user_to_app_to_role',
             function ( Blueprint $t )
             {
                 $t->increments( 'id' );
                 $t->integer( 'user_id' )->unsigned();
                 $t->foreign( 'user_id' )->references( 'id' )->on( 'user' )->onDelete( 'cascade' );
-                $t->integer( 'app_id' )->unsigned()->nullable();
+                $t->integer( 'app_id' )->unsigned();
                 $t->foreign( 'app_id' )->references( 'id' )->on( 'app' )->onDelete( 'cascade' );
-                $t->integer( 'role_id' )->unsigned()->nullable();
-                $t->foreign( 'role_id' )->references( 'id' )->on( 'role' )->onDelete( 'set null' );
+                $t->integer( 'role_id' )->unsigned();
+                $t->foreign( 'role_id' )->references( 'id' )->on( 'role' )->onDelete( 'cascade' );
             }
         );
     }
@@ -448,20 +567,20 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists( 'system_lookup' );
         // Services
         Schema::dropIfExists( 'service' );
+        // Database Extras
+        Schema::dropIfExists( 'db_table_extras' );
+        // Database Extras
+        Schema::dropIfExists( 'db_field_extras' );
         // System Resources
         Schema::dropIfExists( 'system_resource' );
         // Service Types
         Schema::dropIfExists( 'service_type' );
-        // User table
-        Schema::dropIfExists( 'user' );
-        //Password reset
-        Schema::dropIfExists( 'password_resets' );
         //Cors config table
-        Schema::dropIfExists('cors_config');
+        Schema::dropIfExists( 'cors_config' );
         //Email service config table
-        Schema::dropIfExists('email_config');
+        Schema::dropIfExists( 'email_config' );
         //Email service parameters config table
-        Schema::dropIfExists('email_parameters_config');
+        Schema::dropIfExists( 'email_parameters_config' );
         // App relationship for user
         Schema::dropIfExists( 'user_to_app_role' );
         // App Lookup Keys
@@ -472,5 +591,9 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists( 'app_group' );
         // Applications
         Schema::dropIfExists( 'app' );
+        //Password reset
+        Schema::dropIfExists( 'password_resets' );
+        // User table
+        Schema::dropIfExists( 'user' );
     }
 }

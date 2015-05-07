@@ -23,7 +23,7 @@ namespace DreamFactory\Rave\Models;
 
 class UserAppRole extends BaseModel
 {
-    protected $table = 'user_to_app_role';
+    protected $table = 'user_to_app_to_role';
 
     protected $fillable = ['user_id', 'app_id', 'role_id'];
 

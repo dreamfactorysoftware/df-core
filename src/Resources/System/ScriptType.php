@@ -31,7 +31,7 @@ use DreamFactory\Rave\Utility\ResponseFactory;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
-class ServiceType extends BaseRestResource
+class ScriptType extends BaseRestResource
 {
     /**
      *
@@ -59,7 +59,7 @@ class ServiceType extends BaseRestResource
         ArrayUtils::set( $settings, "verbAliases", $verbAliases );
 
         parent::__construct( $settings );
-        $this->model = new \DreamFactory\Rave\Models\ServiceType();
+        $this->model = new \DreamFactory\Rave\Models\ScriptType();
     }
 
     /**

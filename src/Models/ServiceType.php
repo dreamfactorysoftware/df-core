@@ -37,13 +37,25 @@ namespace DreamFactory\Rave\Models;
  */
 class ServiceType extends BaseModel
 {
+    /**
+     * The name of the "created at" column.
+     *
+     * @var string
+     */
+    const CREATED_AT = 'created_date';
+
+    /**
+     * The name of the "updated at" column.
+     *
+     * @var string
+     */
+    const UPDATED_AT = 'last_modified_date';
+
     protected $table = 'service_type';
 
     protected $primaryKey = 'name';
 
     protected $fillable = [ 'name', 'class_name', 'config_handler', 'label', 'description', 'group', 'singleton' ];
-
-    public $timestamps = false;
 
     public $incrementing = false;
 
@@ -56,7 +68,7 @@ class ServiceType extends BaseModel
             static::create(
                 [
                     'name'           => 'system',
-                    'class_name'     => 'DreamFactory\\Rave\\Services\\SystemManager',
+                    'class_name'     => 'DreamFactory\\Rave\\Services\\System',
                     'config_handler' => null,
                     'label'          => 'System Management Service',
                     'description'    => 'Service supporting management of the RAVE system.',

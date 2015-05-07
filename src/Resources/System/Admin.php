@@ -25,12 +25,4 @@ use DreamFactory\Rave\Resources\BaseRestSystemResource;
 
 class Admin extends BaseRestSystemResource
 {
-    /**
-     * @param array $settings
-     */
-    public function __construct( $settings = [ ] )
-    {
-        parent::__construct( $settings );
-        $this->model = new \DreamFactory\Rave\Models\User();
-    }
 }

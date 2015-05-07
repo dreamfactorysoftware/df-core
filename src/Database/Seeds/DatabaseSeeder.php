@@ -3,6 +3,7 @@
 namespace DreamFactory\Rave\Database\Seeds;
 
 
+use DreamFactory\Rave\Models\DbTableExtras;
 use Illuminate\Database\Seeder;
 use Illuminate\Database\Eloquent\Model;
 use DreamFactory\Rave\Models\User;
@@ -34,6 +35,12 @@ class DatabaseSeeder extends Seeder
             $this->command->info( 'System resources seeded!' );
         }
 
+        //  Add native script types
+        if ( true === ScriptType::seed() )
+        {
+            $this->command->info( 'Script types seeded!' );
+        }
+
         //  Add the default services
         if ( true === Service::seed() )
         {
@@ -46,10 +53,10 @@ class DatabaseSeeder extends Seeder
             $this->command->info( 'Admin user seeded!' );
         }
 
-        //  Add native script types
-        if ( true === ScriptType::seed() )
+        //  Add system schema extras
+        if ( true === DbTableExtras::seed() )
         {
-            $this->command->info( 'Script types seeded!' );
+            $this->command->info( 'System schema extras seeded!' );
         }
     }
 }

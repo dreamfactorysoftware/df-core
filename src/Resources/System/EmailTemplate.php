@@ -25,13 +25,6 @@ use DreamFactory\Rave\Resources\BaseRestSystemResource;
 
 class EmailTemplate extends BaseRestSystemResource
 {
-
-    public function __construct( $settings = [ ] )
-    {
-        parent::__construct( $settings );
-        $this->model = new \DreamFactory\Rave\Models\EmailTemplate();
-    }
-
     public function getApiDocInfo()
     {
         $base = parent::getApiDocInfo();

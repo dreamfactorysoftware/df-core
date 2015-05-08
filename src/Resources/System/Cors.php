@@ -20,8 +20,6 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
-
 /**
  * Class Cors
  *
@@ -29,6 +27,6 @@ use DreamFactory\Rave\Resources\BaseRestSystemResource;
  *
  * @package DreamFactory\Rave\Resources\System
  */
-class Cors extends BaseRestSystemResource
+class Cors extends BaseSystemResource
 {
 }

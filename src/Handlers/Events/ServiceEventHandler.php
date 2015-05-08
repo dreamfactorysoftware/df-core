@@ -169,7 +169,7 @@ class ServiceEventHandler
      */
     protected function handleEventScript( $name, &$event )
     {
-        $model = EventScript::whereName( $name )->first();
+        $model = EventScript::with( 'script_type_by_type' )->whereName( $name )->first();
         if ( !empty( $model ) )
         {
             $output = null;
@@ -177,7 +177,7 @@ class ServiceEventHandler
             $result = ScriptEngineManager::runScript(
                 $model->content,
                 $name,
-                $model->getEngineAttribute(),
+                $model->script_type_by_type->toArray(),
                 ArrayUtils::clean( $model->config ),
                 $event,
                 $output

@@ -43,14 +43,7 @@ class EventScript extends BaseSystemModel
 
     protected $table = 'event_script';
 
-    protected $fillable = [ 'name', 'type', 'engine', 'content', 'config', 'is_active', 'affects_process' ];
-
-    protected $appends = [ 'engine' ];
-
-    /**
-     * @var array Extra config to pass to any config handler
-     */
-    protected $engine = [ ];
+    protected $fillable = [ 'name', 'type', 'content', 'config', 'is_active', 'affects_process' ];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -74,19 +67,5 @@ class EventScript extends BaseSystemModel
         }
 
         return null;
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getEngineAttribute()
-    {
-        $engine = $this->scriptType()->first();
-        if ( !empty( $engine ) )
-        {
-            $this->engine = $engine->toArray();
-        }
-
-        return $this->engine;
     }
 }

@@ -20,8 +20,6 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
-
-class Lookup extends BaseRestSystemResource
+class Lookup extends BaseSystemResource
 {
 }

@@ -18,13 +18,14 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources;
+namespace DreamFactory\Rave\Resources\System;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
+use DreamFactory\Rave\Resources\BaseRestResource;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Utility\ResponseFactory;
@@ -32,11 +33,11 @@ use DreamFactory\Rave\Models\BaseSystemModel;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
- * Class BaseRestSystemResource
+ * Class BaseSystemResource
  *
  * @package DreamFactory\Rave\Resources
  */
-class BaseRestSystemResource extends BaseRestResource
+class BaseSystemResource extends BaseRestResource
 {
     /**
      *
@@ -365,7 +366,7 @@ class BaseRestSystemResource extends BaseRestResource
      */
     protected function getModel()
     {
-        if ( empty( $this->model ) || !class_exists($this->model) )
+        if ( empty( $this->model ) || !class_exists( $this->model ) )
         {
             throw new ModelNotFoundException();
         }
@@ -378,16 +379,16 @@ class BaseRestSystemResource extends BaseRestResource
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName( '.' );
         $name = Inflector::camelize( $this->name );
-        $lower = Inflector::camelize( $this->name, null, false, true );
         $plural = Inflector::pluralize( $name );
-        $pluralLower = Inflector::pluralize( $lower );
+        $words = str_replace( '_', ' ', $this->name );
+        $pluralWords = Inflector::pluralize( $words );
         $apis = [
             [
                 'path'        => $path,
                 'operations'  => [
                     [
                         'method'           => 'GET',
-                        'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralLower . '.',
+                        'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralWords . '.',
                         'nickname'         => 'get' . $plural,
                         'type'             => $plural . 'Response',
                         'event_name'       => $eventPath . '.list',
@@ -501,7 +502,7 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                     [
                         'method'           => 'POST',
-                        'summary'          => 'create' . $plural . '() - Create one or more ' . $pluralLower . '.',
+                        'summary'          => 'create' . $plural . '() - Create one or more ' . $pluralWords . '.',
                         'nickname'         => 'create' . $plural,
                         'type'             => $plural . 'Response',
                         'event_name'       => $eventPath . '.create',
@@ -563,7 +564,7 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                     [
                         'method'           => 'PATCH',
-                        'summary'          => 'update' . $plural . '() - Update one or more ' . $pluralLower . '.',
+                        'summary'          => 'update' . $plural . '() - Update one or more ' . $pluralWords . '.',
                         'nickname'         => 'update' . $plural,
                         'type'             => $plural . 'Response',
                         'event_name'       => $eventPath . '.update',
@@ -616,7 +617,7 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                     [
                         'method'           => 'DELETE',
-                        'summary'          => 'delete' . $plural . '() - Delete one or more ' . $pluralLower . '.',
+                        'summary'          => 'delete' . $plural . '() - Delete one or more ' . $pluralWords . '.',
                         'nickname'         => 'delete' . $plural,
                         'type'             => $plural . 'Response',
                         'event_name'       => $eventPath . '.delete',
@@ -676,14 +677,14 @@ class BaseRestSystemResource extends BaseRestResource
                             'use the POST request with X-HTTP-METHOD = DELETE header and post records or ids.',
                     ],
                 ],
-                'description' => "Operations for $lower administration.",
+                'description' => "Operations for $words administration.",
             ],
             [
                 'path'        => $path . '/{id}',
                 'operations'  => [
                     [
                         'method'           => 'GET',
-                        'summary'          => 'get' . $name . '() - Retrieve one ' . $lower . '.',
+                        'summary'          => 'get' . $name . '() - Retrieve one ' . $words . '.',
                         'nickname'         => 'get' . $name,
                         'type'             => $name . 'Response',
                         'event_name'       => $eventPath . '.read',
@@ -731,7 +732,7 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                     [
                         'method'           => 'PATCH',
-                        'summary'          => 'update' . $name . '() - Update one ' . $lower . '.',
+                        'summary'          => 'update' . $name . '() - Update one ' . $words . '.',
                         'nickname'         => 'update' . $name,
                         'type'             => $name . 'Response',
                         'event_name'       => $eventPath . '.update',
@@ -789,7 +790,7 @@ class BaseRestSystemResource extends BaseRestResource
                     ],
                     [
                         'method'           => 'DELETE',
-                        'summary'          => 'delete' . $name . '() - Delete one ' . $lower . '.',
+                        'summary'          => 'delete' . $name . '() - Delete one ' . $words . '.',
                         'nickname'         => 'delete' . $name,
                         'type'             => $name . 'Response',
                         'event_name'       => $eventPath . '.delete',
@@ -836,7 +837,7 @@ class BaseRestSystemResource extends BaseRestResource
                         'notes'            => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
                     ],
                 ],
-                'description' => "Operations for individual $lower administration.",
+                'description' => "Operations for individual $words administration.",
             ],
         ];
 

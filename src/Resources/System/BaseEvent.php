@@ -27,8 +27,6 @@ use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Models\EventScript as EventScriptModel;
 use DreamFactory\Rave\Models\BaseSystemModel;
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
-use DreamFactory\Rave\Services\Swagger;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -37,12 +35,15 @@ use Illuminate\Database\Eloquent\Collection;
  *
  * @package DreamFactory\Rave\Resources
  */
-abstract class BaseEvent extends BaseRestSystemResource
+abstract class BaseEvent extends BaseSystemResource
 {
     //*************************************************************************
     //	Members
     //*************************************************************************
 
+    /**
+     * @var BaseSystemModel $modelClass
+     */
     protected $model = 'DreamFactory\Rave\Models\EventScript';
 
     //*************************************************************************
@@ -123,9 +124,7 @@ abstract class BaseEvent extends BaseRestSystemResource
             $related = [ ];
         }
 
-        /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
-        /** @var BaseSystemModel $model */
         $model = $this->getModel();
         $pk = $model->getPrimaryKey();
 
@@ -386,9 +385,7 @@ abstract class BaseEvent extends BaseRestSystemResource
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName( '.' );
         $name = Inflector::camelize( $this->name );
-        $lower = Inflector::camelize( $this->name, null, false, true );
         $plural = Inflector::pluralize( $name );
-        $pluralLower = Inflector::pluralize( $lower );
         $apis = [
             [
                 'path'        => $path,
@@ -589,10 +586,18 @@ abstract class BaseEvent extends BaseRestSystemResource
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
                             [
+                                'name'          => 'event_name',
+                                'description'   => 'Identifier of the event to retrieve.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
                                 'name'          => 'body',
                                 'description'   => 'Data containing name-value pairs of records to create.',
                                 'allowMultiple' => false,
-                                'type'          => 'ScriptsRequest',
+                                'type'          => 'EventScriptsRequest',
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
@@ -651,10 +656,18 @@ abstract class BaseEvent extends BaseRestSystemResource
                         'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
                         'parameters'       => [
                             [
+                                'name'          => 'event_name',
+                                'description'   => 'Identifier of the event to retrieve.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
                                 'name'          => 'body',
                                 'description'   => 'Data containing name-value pairs of records to update.',
                                 'allowMultiple' => false,
-                                'type'          => $plural . 'Request',
+                                'type'          => 'EventScriptsRequest',
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
@@ -697,10 +710,18 @@ abstract class BaseEvent extends BaseRestSystemResource
                     [
                         'method'           => 'DELETE',
                         'summary'          => 'delete' . $name . 'EventScripts() - Delete one or more event scripts.',
-                        'nickname'         => 'delete' . $name. 'EventScripts',
+                        'nickname'         => 'delete' . $name . 'EventScripts',
                         'type'             => 'EventScriptsResponse',
                         'event_name'       => $eventPath . '.{event_name}.delete',
                         'parameters'       => [
+                            [
+                                'name'          => 'event_name',
+                                'description'   => 'Identifier of the event to retrieve.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
                             [
                                 'name'          => 'ids',
                                 'description'   => 'Comma-delimited list of the identifiers of the records to delete.',
@@ -778,38 +799,6 @@ abstract class BaseEvent extends BaseRestSystemResource
                             ],
                             [
                                 'name'          => 'id',
-                                'description'   => 'Identifier of the script to retrieve.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
-                        ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
-                        'notes'            => '',
-                    ],
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'get' . $name . 'EventScript() - Retrieve one event script.',
-                        'nickname'         => 'get' . $name . 'EventScript',
-                        'type'             => 'EventScriptResponse',
-                        'event_name'       => $eventPath . '.{event_name}.{id}.read',
-                        'parameters'       => [
-                            [
-                                'name'          => 'id',
                                 'description'   => 'Identifier of the record to retrieve.',
                                 'allowMultiple' => false,
                                 'type'          => 'string',
@@ -851,11 +840,19 @@ abstract class BaseEvent extends BaseRestSystemResource
                     ],
                     [
                         'method'           => 'PATCH',
-                        'summary'          => 'update' . $name . 'EventScript() - Update one event script.',
+                        'summary'          => 'update' . $name . 'EventScript() - Update one script.',
                         'nickname'         => 'update' . $name . 'EventScript',
                         'type'             => 'EventScriptResponse',
                         'event_name'       => $eventPath . '.{event_name}.{id}.update',
                         'parameters'       => [
+                            [
+                                'name'          => 'event_name',
+                                'description'   => 'Identifier of the event to retrieve.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
                             [
                                 'name'          => 'id',
                                 'description'   => 'Identifier of the record to update.',
@@ -868,7 +865,7 @@ abstract class BaseEvent extends BaseRestSystemResource
                                 'name'          => 'body',
                                 'description'   => 'Data containing name-value pairs of fields to update.',
                                 'allowMultiple' => false,
-                                'type'          => $name . 'Request',
+                                'type'          => 'EventScriptRequest',
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
@@ -909,11 +906,19 @@ abstract class BaseEvent extends BaseRestSystemResource
                     ],
                     [
                         'method'           => 'DELETE',
-                        'summary'          => 'delete' . $name . 'EventScript() - Delete one event script.',
+                        'summary'          => 'delete' . $name . 'EventScript() - Delete one script.',
                         'nickname'         => 'delete' . $name . 'EventScript',
                         'type'             => 'EventScriptResponse',
                         'event_name'       => $eventPath . '.{event_name}.{id}.delete',
                         'parameters'       => [
+                            [
+                                'name'          => 'event_name',
+                                'description'   => 'Identifier of the event to retrieve.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
                             [
                                 'name'          => 'id',
                                 'description'   => 'Identifier of the record to delete.',

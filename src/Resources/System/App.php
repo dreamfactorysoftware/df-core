@@ -20,12 +20,11 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 
-class App extends BaseRestSystemResource
+class App extends BaseSystemResource
 {
     /**
      * Handles POST action

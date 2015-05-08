@@ -20,22 +20,9 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
-
-class Environment extends BaseRestSystemResource
+class Environment extends ReadOnlySystemResource
 {
-
-    public function __construct( $settings = array() )
-    {
-        parent::__construct( $settings );
-    }
-
     protected function handleGET()
-    {
-        return false;
-    }
-
-    protected function handlePOST()
     {
         return false;
     }

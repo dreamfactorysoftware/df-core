@@ -20,9 +20,6 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
-use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
-
-class Admin extends BaseRestSystemResource
+class Admin extends BaseSystemResource
 {
 }

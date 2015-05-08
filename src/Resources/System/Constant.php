@@ -20,40 +20,26 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
-use DreamFactory\Rave\Models\ServiceType;
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
-
-class Constant extends BaseRestSystemResource
+class Constant extends ReadOnlySystemResource
 {
-
     protected function handleGET()
     {
+        // todo need some fancy reflection of enum classes in the system we want to expose
         $resources = [ ];
-        if ( empty( $this->_resourceId ) )
+        if ( empty( $this->_resource ) )
         {
-            $resources = [
-                [ 'name' => 'service_type', 'label' => 'Service Type' ],
-            ];
+            $resources = [];
         }
         else
         {
-            switch ( $this->_resourceId )
+            switch ( $this->_resource )
             {
-                case 'service_type':
-                    $services = ServiceType::all()->toArray();
-                    $resources = $this->makeResourceList( $services, null, false );
-                    break;
                 default;
                     break;
             }
         }
 
         return [ 'resource' => $resources ];
-    }
-
-    protected function handlePOST()
-    {
-        return false;
     }
 
     public function getApiDocInfo()

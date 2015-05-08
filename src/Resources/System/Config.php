@@ -22,12 +22,11 @@ namespace DreamFactory\Rave\Resources\System;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Library\Utility\Enums\Verbs;
 
-class Config extends BaseRestSystemResource
+class Config extends BaseSystemResource
 {
 
     public function __construct( $settings = [ ] )

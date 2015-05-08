@@ -20,14 +20,12 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
-use DreamFactory\Rave\Resources\BaseRestSystemResource;
-
 /**
  * Class EventScript
  *
  * @package DreamFactory\Rave\Resources
  */
-class EventScript extends BaseRestSystemResource
+class EventScript extends BaseSystemResource
 {
     //*************************************************************************
     //	Constants

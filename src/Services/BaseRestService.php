@@ -21,6 +21,7 @@
 namespace DreamFactory\Rave\Services;
 
 use DreamFactory\Rave\Components\RestHandler;
+use DreamFactory\Rave\Contracts\ServiceInterface;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Events\ServicePostProcess;
 use DreamFactory\Rave\Events\ServicePreProcess;
@@ -31,7 +32,7 @@ use DreamFactory\Rave\Utility\ResponseFactory;
  *
  * @package DreamFactory\Rave\Services
  */
-class BaseRestService extends RestHandler
+class BaseRestService extends RestHandler implements ServiceInterface
 {
     //*************************************************************************
     //	Members

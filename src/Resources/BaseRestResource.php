@@ -21,7 +21,8 @@
 namespace DreamFactory\Rave\Resources;
 
 use DreamFactory\Rave\Components\RestHandler;
-use DreamFactory\Rave\Contracts\ResourceHandlerInterface;
+use DreamFactory\Rave\Contracts\RequestHandlerInterface;
+use DreamFactory\Rave\Contracts\ResourceInterface;
 use DreamFactory\Rave\Events\ResourcePostProcess;
 use DreamFactory\Rave\Events\ResourcePreProcess;
 use DreamFactory\Rave\Services\BaseRestService;
@@ -31,7 +32,7 @@ use DreamFactory\Rave\Services\BaseRestService;
  *
  * @package DreamFactory\Rave\Resources
  */
-class BaseRestResource extends RestHandler implements ResourceHandlerInterface
+class BaseRestResource extends RestHandler implements ResourceInterface
 {
     /**
      * @var RestHandler Object that requested this handler, null if this is the Service.
@@ -39,7 +40,7 @@ class BaseRestResource extends RestHandler implements ResourceHandlerInterface
     protected $parent = null;
 
     /**
-     * @return RestHandler
+     * @return RequestHandlerInterface
      */
     public function getParent()
     {
@@ -47,9 +48,9 @@ class BaseRestResource extends RestHandler implements ResourceHandlerInterface
     }
 
     /**
-     * @param RestHandler $parent
+     * @param RequestHandlerInterface $parent
      */
-    public function setParent( RestHandler $parent )
+    public function setParent( RequestHandlerInterface $parent )
     {
         $this->parent = $parent;
     }

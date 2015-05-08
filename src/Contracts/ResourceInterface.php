@@ -19,30 +19,18 @@
  */
 namespace DreamFactory\Rave\Contracts;
 
-use DreamFactory\Rave\Components\RestHandler;
-use DreamFactory\Rave\Enums\ContentTypes;
-
 /**
  * Something that can handle resource requests
  */
-interface ResourceHandlerInterface
+interface ResourceInterface extends RequestHandlerInterface
 {
     /**
-     * @return RestHandler
+     * @return RequestHandlerInterface
      */
     public function getParent();
 
     /**
-     * @param RestHandler $parent
+     * @param RequestHandlerInterface $parent
      */
-    public function setParent( RestHandler $parent );
-
-    /**
-     * @param ServiceRequestInterface $request
-     * @param null                    $resource
-     * @param int                     $outputFormat
-     *
-     * @return ServiceResponseInterface
-     */
-    public function handleRequest( ServiceRequestInterface $request, $resource = null, $outputFormat = ContentTypes::JSON );
+    public function setParent( RequestHandlerInterface $parent );
 }

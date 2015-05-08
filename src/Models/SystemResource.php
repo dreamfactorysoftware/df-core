@@ -110,7 +110,7 @@ class SystemResource extends BaseModel
                 [
                     'name'        => 'event',
                     'label'       => 'Events',
-                    'description' => 'Allows registering internal scripts or external listeners to system generated events.',
+                    'description' => 'Allows registering server-side scripts to system generated events.',
                     'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Event',
                 ],
                 [

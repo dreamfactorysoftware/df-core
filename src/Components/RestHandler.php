@@ -22,12 +22,13 @@ namespace DreamFactory\Rave\Components;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Rave\Contracts\RequestHandlerInterface;
 use DreamFactory\Rave\Enums\ContentTypes;
 use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Contracts\ResourceHandlerInterface;
+use DreamFactory\Rave\Contracts\ResourceInterface;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Contracts\ServiceRequestInterface;
 
@@ -36,7 +37,7 @@ use DreamFactory\Rave\Contracts\ServiceRequestInterface;
  *
  * @package DreamFactory\Rave\Components
  */
-abstract class RestHandler
+abstract class RestHandler implements RequestHandlerInterface
 {
     //*************************************************************************
     //	Constants
@@ -238,7 +239,7 @@ abstract class RestHandler
                 throw new InternalServerErrorException( 'Service configuration class name lookup failed for resource ' . $this->resourcePath );
             }
 
-            /** @var ResourceHandlerInterface $resource */
+            /** @var ResourceInterface $resource */
             $resource = $this->instantiateResource( $className, $found );
 
             $newPath = $this->resourceArray;
@@ -253,7 +254,7 @@ abstract class RestHandler
 
     protected function instantiateResource( $class, $info = [ ] )
     {
-        /** @var ResourceHandlerInterface $obj */
+        /** @var ResourceInterface $obj */
         $obj = new $class( $info );
         $obj->setParent($this);
 

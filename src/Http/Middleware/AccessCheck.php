@@ -25,7 +25,6 @@ use \Cache;
 use \Config;
 use \Closure;
 use DreamFactory\Library\Utility\ArrayUtils;
-use Illuminate\Support\Arr;
 use \Session;
 use DreamFactory\Rave\Enums\ContentTypes;
 use DreamFactory\Rave\Exceptions\BadRequestException;
@@ -50,6 +49,8 @@ class AccessCheck
      */
     public function handle( $request, Closure $next )
     {
+        Session::put( 'is_sys_admin', 0 );
+
         //Check to see if session ID is supplied for using an existing session.
         $sessionId = $request->header('X_DREAMFACTORY_SESSION_TOKEN');
 
@@ -91,23 +92,24 @@ class AccessCheck
                 $app = App::whereApiKey($apiKey)->first();
                 $appId = $app->id;
             }
-            Session::put( 'rsa.is_sys_admin', 1 );
+            Session::put( 'is_sys_admin', 1 );
             SessionUtil::setLookupKeys(null, $authenticatedUser->id);
             SessionUtil::setAppLookupKeys($appId);
         }
         else if(!empty($apiKey) && $authenticated && class_exists('\DreamFactory\Rave\User\Resources\System\User'))
         {
-            $cacheKey = CacheUtil::getCacheKey($apiKey, $authenticatedUser->id);
+            $cacheKey = CacheUtil::getApiKeyUserCacheKey($apiKey, $authenticatedUser->id);
 
             $cacheData = Cache::get($cacheKey);
-            $roleData = ArrayUtils::get($cacheData, 'role_data');
+
+            $roleData = (!empty($cacheData))? ArrayUtils::get($cacheData, 'role_data') : [];
 
             if(empty($roleData))
             {
                 /** @var App $app */
                 $app = App::with(
                     [
-                        'role_by_user_to_app_role' => function ( $q ) use ( $authenticatedUser )
+                        'role_by_user_to_app_to_role' => function ( $q ) use ( $authenticatedUser )
                         {
                             $q->whereUserId( $authenticatedUser->id );
                         }
@@ -120,7 +122,7 @@ class AccessCheck
                 }
 
                 /** @var Role $role */
-                $role = $app->getRelation( 'role_by_user_to_app_role' )->first();
+                $role = $app->getRelation( 'role_by_user_to_app_to_role' )->first();
 
                 if(empty($role))
                 {
@@ -150,10 +152,11 @@ class AccessCheck
         }
         elseif(!empty($apiKey))
         {
-            $cacheKey = CacheUtil::getCacheKey($apiKey);
+            $cacheKey = CacheUtil::getApiKeyUserCacheKey($apiKey);
 
             $cacheData = Cache::get($cacheKey);
-            $roleData = ArrayUtils::get($cacheData, 'role_data');
+
+            $roleData = (!empty($cacheData))? ArrayUtils::get($cacheData, 'role_data') : [];
 
             if(empty($roleData))
             {

@@ -40,7 +40,7 @@ class Session
      */
     public static function isAccessAllowed($requestor = ServiceRequestorTypes::API)
     {
-        if(session('rsa.is_sys_admin'))
+        if(session('is_sys_admin'))
         {
             return true;
         }

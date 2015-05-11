@@ -256,6 +256,7 @@ class ContentTypes extends FactoryEnum
             throw new \InvalidArgumentException( 'The MIME type "' . $mime_type . '" is not a string.' );
         }
 
+        $mime_type = strstr($mime_type, ';', true);
         if ( false === $_pos = array_search( strtolower( $mime_type ), static::$_contentTypeMap ) )
         {
             throw new NotImplementedException( 'The MIME type "' . $mime_type . '" is not supported.' );

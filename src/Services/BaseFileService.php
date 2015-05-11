@@ -1021,7 +1021,7 @@ abstract class BaseFileService extends BaseRestService
     public function getApiDocInfo()
     {
         $path = '/' . $this->name;
-        $eventPath = $this->getServiceName() . '.';
+        $eventPath = $this->name . '.';
         $commonResponses = ApiDocUtilities::getCommonResponses();
         $base = parent::getApiDocInfo();
 

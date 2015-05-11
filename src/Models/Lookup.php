@@ -20,6 +20,8 @@
 
 namespace DreamFactory\Rave\Models;
 
+use DreamFactory\Rave\Utility\Cache as CacheUtil;
+
 /**
  * Lookup
  *
@@ -40,6 +42,31 @@ namespace DreamFactory\Rave\Models;
  */
 class Lookup extends BaseSystemModel
 {
+    use LookupTrait;
+
     protected $table = 'system_lookup';
 
+    protected $fillable = ['name', 'value', 'private', 'description'];
+
+    /**
+     * @var array
+     */
+    protected $encrypted = ['value'];
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::saved(
+            function ( Lookup $sl )
+            {
+                $cacheKey = CacheUtil::getSystemLookupCacheKey();
+
+                if(\Cache::has($cacheKey))
+                {
+                    \Cache::forget($cacheKey);
+                }
+            }
+        );
+    }
 }

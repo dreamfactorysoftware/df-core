@@ -30,6 +30,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use DreamFactory\Rave\SqlDbCore\Schema;
 use DreamFactory\Rave\SqlDbCore\TableSchema;
 use DreamFactory\Rave\Components\Builder as RaveBuilder;
+use Crypt;
 use DB;
 
 /**
@@ -39,6 +40,20 @@ use DB;
  */
 class BaseModel extends Model
 {
+    /**
+     * The name of the "created at" column.
+     *
+     * @var string
+     */
+    const CREATED_AT = 'created_date';
+
+    /**
+     * The name of the "updated at" column.
+     *
+     * @var string
+     */
+    const UPDATED_AT = 'last_modified_date';
+
     const TABLE_TO_MODEL_MAP_CACHE_KEY = 'system.table_model_map';
 
     const TABLE_TO_MODEL_MAP_CACHE_TTL = 60;
@@ -63,6 +78,13 @@ class BaseModel extends Model
      * @var array
      */
     protected $references = [ ];
+
+    /**
+     * Lists the config params (fields) that need to be encrypted
+     *
+     * @var array
+     */
+    protected $encrypted = [ ];
 
     /**
      * An array map of table names and their models
@@ -380,13 +402,14 @@ class BaseModel extends Model
      * Gets the HasMany model of the referencing table.
      *
      * @param string $table
+     * @param string $relationName
      *
      * @return HasMany
      */
-    protected function getHasMany( $table )
+    protected function getHasMany( $table, $relationName )
     {
         $model = $this->tableNameToModel( $table );
-        $refField = $this->getReferencingField( $table );
+        $refField = $this->getReferencingField( $table, $relationName );
 
         return $this->hasMany( $model, $refField );
     }
@@ -401,7 +424,7 @@ class BaseModel extends Model
         $table = $this->getReferencingTable( $name );
         $mappedTables = array_keys( static::getTableToModelMap() );
 
-        return ( !empty( $table ) && in_array( $table, $mappedTables ) ) ? $this->getHasMany( $table ) : null;
+        return ( !empty( $table ) && in_array( $table, $mappedTables ) ) ? $this->getHasMany( $table, $name ) : null;
     }
 
     public function getBelongsToManyByRelationName( $name )
@@ -436,18 +459,20 @@ class BaseModel extends Model
      * Gets the foreign key of the referenced table
      *
      * @param string $table
+     * @param string $name
      *
      * @return mixed|null
      */
-    protected function getReferencingField( $table )
+    protected function getReferencingField( $table, $name )
     {
         $references = $this->getReferences();
         $rf = null;
         foreach ( $references as $item )
         {
-            if ( $item->refTable === $table )
+            if ( $item->refTable === $table && $table.'_by_'.$item->refFields === $name )
             {
                 $rf = $item->refFields;
+                break;
             }
         }
 
@@ -594,6 +619,50 @@ class BaseModel extends Model
         }
 
         return $fqcn;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getAttribute( $key )
+    {
+        if ( in_array( $key, $this->encrypted ) && !empty( $this->attributes[$key] ) )
+        {
+            return Crypt::decrypt( $this->attributes[$key] );
+        }
+
+        return parent::getAttribute( $key );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setAttribute( $key, $value )
+    {
+        if ( in_array( $key, $this->encrypted ) )
+        {
+            $value = Crypt::encrypt( $value );
+        }
+
+        parent::setAttribute( $key, $value );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function attributesToArray()
+    {
+        $attributes = parent::attributesToArray();
+
+        foreach ( $attributes as $key => $value )
+        {
+            if ( in_array( $key, $this->encrypted ) && !empty( $this->attributes[$key] ) )
+            {
+                $attributes[$key] = Crypt::decrypt( $value );
+            }
+        }
+
+        return $attributes;
     }
 
     public function toApiDocsModel( $name = null )

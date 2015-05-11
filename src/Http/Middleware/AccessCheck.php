@@ -24,6 +24,8 @@ use \Auth;
 use \Cache;
 use \Config;
 use \Closure;
+use DreamFactory\Library\Utility\ArrayUtils;
+use Illuminate\Support\Arr;
 use \Session;
 use DreamFactory\Rave\Enums\ContentTypes;
 use DreamFactory\Rave\Exceptions\BadRequestException;
@@ -34,6 +36,7 @@ use DreamFactory\Rave\Models\App;
 use DreamFactory\Rave\Models\Role;
 use DreamFactory\Rave\Utility\Session as SessionUtil;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
+use DreamFactory\Rave\Utility\Cache as CacheUtil;
 
 class AccessCheck
 {
@@ -47,15 +50,17 @@ class AccessCheck
      */
     public function handle( $request, Closure $next )
     {
-        static::initSessionValues();
-
+        //Check to see if session ID is supplied for using an existing session.
         $sessionId = $request->header('X_DREAMFACTORY_SESSION_TOKEN');
 
         if(!empty($sessionId) && !Auth::check())
         {
-            Session::setId( $sessionId );
-            Session::start();
-            \Request::setSession(Session::driver());
+            if(Session::isValidId($sessionId))
+            {
+                Session::setId( $sessionId );
+                Session::start();
+                \Request::setSession( Session::driver() );
+            }
         }
 
         $apiKey = $request->query('api_key');
@@ -76,22 +81,26 @@ class AccessCheck
         if($authenticated)
         {
             $authenticatedUser = Auth::user();
-
-            if ( !$authenticatedUser->is_active )
-            {
-                return static::getException(new ForbiddenException('User ' . $authenticatedUser->email . ' is not active.'), $request);
-            }
         }
 
         if($authenticated && $authenticatedUser->is_sys_admin)
         {
+            $appId = null;
+            if($apiKey)
+            {
+                $app = App::whereApiKey($apiKey)->first();
+                $appId = $app->id;
+            }
             Session::put( 'rsa.is_sys_admin', 1 );
+            SessionUtil::setLookupKeys(null, $authenticatedUser->id);
+            SessionUtil::setAppLookupKeys($appId);
         }
         else if(!empty($apiKey) && $authenticated && class_exists('\DreamFactory\Rave\User\Resources\System\User'))
         {
-            $cacheKey = static::getCacheKey($apiKey, $authenticatedUser->id);
+            $cacheKey = CacheUtil::getCacheKey($apiKey, $authenticatedUser->id);
 
-            $roleData = Cache::get($cacheKey);
+            $cacheData = Cache::get($cacheKey);
+            $roleData = ArrayUtils::get($cacheData, 'role_data');
 
             if(empty($roleData))
             {
@@ -126,16 +135,25 @@ class AccessCheck
                 }
 
                 $roleData = static::getRoleData( $role );
-                Cache::put( $cacheKey, $roleData, Config::get( 'rave.default_cache_ttl' ) );
+                $cacheData = [
+                    'role_data' => $roleData,
+                    'user_id' => $authenticatedUser->id,
+                    'app_id' => $app->id
+                ];
+                Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
             }
 
             Session::put('rsa.role', $roleData);
+            SessionUtil::setLookupKeys(ArrayUtils::get($roleData, 'id'), ArrayUtils::get($cacheData, 'user_id'));
+            SessionUtil::setAppLookupKeys(ArrayUtils::get($cacheData, 'app_id'));
+
         }
         elseif(!empty($apiKey))
         {
-            $cacheKey = static::getCacheKey($apiKey);
+            $cacheKey = CacheUtil::getCacheKey($apiKey);
 
-            $roleData = Cache::get($cacheKey);
+            $cacheData = Cache::get($cacheKey);
+            $roleData = ArrayUtils::get($cacheData, 'role_data');
 
             if(empty($roleData))
             {
@@ -156,10 +174,16 @@ class AccessCheck
                 }
 
                 $roleData = static::getRoleData( $role );
-                Cache::put($cacheKey, $roleData, Config::get('rave.default_cache_ttl'));
+                $cacheData = [
+                    'role_data' => $roleData,
+                    'app_id' => $app->id
+                ];
+                Cache::put($cacheKey, $cacheData, Config::get('rave.default_cache_ttl'));
             }
 
             Session::put('rsa.role', $roleData);
+            SessionUtil::setLookupKeys(ArrayUtils::get($roleData, 'id'));
+            SessionUtil::setAppLookupKeys(ArrayUtils::get($cacheData, 'app_id'));
         }
         else{
             $basicAuthUser = $request->getUser();
@@ -182,14 +206,6 @@ class AccessCheck
     }
 
     /**
-     * Initiates the session variable.
-     */
-    protected static function initSessionValues()
-    {
-        Session::put( 'rsa', array() );
-    }
-
-    /**
      * Generates the role data array using the role model.
      *
      * @param Role $role
@@ -208,19 +224,6 @@ class AccessCheck
         );
 
         return $roleData;
-    }
-
-    /**
-     * Generates the cache key.
-     *
-     * @param      $apiKey
-     * @param null $userId
-     *
-     * @return string
-     */
-    protected static function getCacheKey($apiKey, $userId=null)
-    {
-        return $apiKey.$userId;
     }
 
     /**

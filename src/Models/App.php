@@ -42,7 +42,9 @@ class App extends BaseSystemModel
 
     protected static $tableToModelMap = [
         'role'             => 'DreamFactory\Rave\Models\Role',
-        'user_to_app_role' => 'DreamFactory\Rave\Models\UserAppRole'
+        'user_to_app_role' => 'DreamFactory\Rave\Models\UserAppRole',
+        'app_to_app_group' => 'DreamFactory\Rave\Models\AppToAppGroup',
+        'app_lookup'       => 'DreamFactory\Rave\Models\AppLookup'
     ];
 
     public static function generateApiKey( $name )

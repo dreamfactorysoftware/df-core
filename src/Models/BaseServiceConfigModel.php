@@ -20,7 +20,6 @@
 
 namespace DreamFactory\Rave\Models;
 
-use Crypt;
 use DreamFactory\Rave\Contracts\ServiceConfigHandlerInterface;
 
 /**
@@ -30,13 +29,6 @@ use DreamFactory\Rave\Contracts\ServiceConfigHandlerInterface;
  */
 abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfigHandlerInterface
 {
-    /**
-     * Lists the config params (fields) that need to be encrypted
-     *
-     * @var array
-     */
-    protected $encrypted = [ ];
-
     /**
      * @var string
      */
@@ -121,49 +113,5 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     public static function getAvailableConfigs()
     {
         return null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getAttribute( $key )
-    {
-        if ( in_array( $key, $this->encrypted ) && !empty( $this->attributes[$key] ) )
-        {
-            return Crypt::decrypt( $this->attributes[$key] );
-        }
-
-        return parent::getAttribute( $key );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function setAttribute( $key, $value )
-    {
-        if ( in_array( $key, $this->encrypted ) )
-        {
-            $value = Crypt::encrypt( $value );
-        }
-
-        parent::setAttribute( $key, $value );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function attributesToArray()
-    {
-        $attributes = parent::attributesToArray();
-
-        foreach ( $attributes as $key => $value )
-        {
-            if ( in_array( $key, $this->encrypted ) && !empty( $this->attributes[$key] ) )
-            {
-                $attributes[$key] = Crypt::decrypt( $value );
-            }
-        }
-
-        return $attributes;
     }
 }

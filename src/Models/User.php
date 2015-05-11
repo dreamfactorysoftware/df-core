@@ -57,7 +57,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         'security_question',
         'security_answer',
         'adldap',
-        'oauth_provider'
+        'oauth_provider',
+        'last_login_date'
     ];
 
     /**
@@ -68,7 +69,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     protected $hidden = [ 'password', 'remember_token' ];
 
     protected static $tableToModelMap = [
-        'user_to_app_role' => 'DreamFactory\Rave\Models\UserAppRole'
+        'user_to_app_role' => 'DreamFactory\Rave\Models\UserAppRole',
+        'user_lookup' => 'DreamFactory\Rave\Models\UserLookup'
     ];
 
     public static function seed()
@@ -240,5 +242,18 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
 
         return true;
+    }
+
+    public function getEmailAttribute($value)
+    {
+        if(false !== strpos($value, '+'))
+        {
+            list($emailId, $domain) = explode('@', $value);
+            list($emailId, $provider) = explode('+', $emailId);
+
+            $value = $emailId.'@'.$domain;
+        }
+
+        return $value;
     }
 }

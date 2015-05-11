@@ -40,6 +40,27 @@ class CreateSystemTables extends Migration
             }
         );
 
+        // User Lookup Keys
+        Schema::create(
+            'user_lookup',
+            function ( Blueprint $t )
+            {
+                $t->increments( 'id' );
+                $t->integer( 'user_id' )->unsigned();
+                $t->foreign( 'user_id' )->references( 'id' )->on( 'user' )->onDelete( 'cascade' );
+                $t->string( 'name' )->index();
+                $t->text( 'value' )->nullable();
+                $t->boolean( 'private' )->default( 0 );
+                $t->text( 'description' )->nullable();
+                $t->timestamp( 'created_date' );
+                $t->timestamp( 'last_modified_date' );
+                $t->integer( 'created_by_id' )->unsigned()->nullable();
+                $t->foreign( 'created_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+                $t->integer( 'last_modified_by_id' )->unsigned()->nullable();
+                $t->foreign( 'last_modified_by_id' )->references( 'id' )->on( 'user' )->onDelete( 'set null' );
+            }
+        );
+
         //Password reset table
         Schema::create(
             'password_resets',
@@ -479,6 +500,7 @@ class CreateSystemTables extends Migration
                 $t->string( 'name' )->index();
                 $t->text( 'value' )->nullable();
                 $t->boolean( 'private' )->default( 0 );
+                $t->text( 'description' )->nullable();
                 $t->timestamp( 'created_date' );
                 $t->timestamp( 'last_modified_date' );
                 $t->integer( 'created_by_id' )->unsigned()->nullable();

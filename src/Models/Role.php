@@ -23,6 +23,7 @@ namespace DreamFactory\Rave\Models;
 use \Cache;
 use DreamFactory\Library\Utility\ArrayUtils;
 use Illuminate\Support\Arr;
+use DreamFactory\Rave\Utility\Cache as CacheUtil;
 
 /**
  * Role
@@ -57,7 +58,7 @@ class Role extends BaseSystemModel
         'app'                 => 'DreamFactory\Rave\Models\App',
         'system_config'       => 'DreamFactory\Rave\Models\Config',
         'service'             => 'DreamFactory\Rave\Models\Service',
-        'user_to_app_role'    => 'DreamFactory\Rave\Models\UserAppRole'
+        'user_to_app_to_role'    => 'DreamFactory\Rave\Models\UserAppRole'
     ];
 
     public static function boot()
@@ -67,7 +68,7 @@ class Role extends BaseSystemModel
         static::saved(
             function ( Role $role )
             {
-                $role->load( 'app_by_role_id', 'app_by_user_to_app_role', 'user_to_app_role_by_role_id' );
+                $role->load( 'app_by_role_id', 'app_by_user_to_app_to_role', 'user_to_app_to_role_by_role_id' );
 
                 $apps = $role->getRelation( 'app_by_role_id' )->toArray();
 
@@ -75,15 +76,17 @@ class Role extends BaseSystemModel
                 {
                     $apiKey = ArrayUtils::get( $app, 'api_key' );
 
-                    if ( Cache::has( $apiKey ) )
+                    $cacheKey = CacheUtil::getApiKeyUserCacheKey($apiKey);
+
+                    if ( Cache::has( $cacheKey ) )
                     {
-                        Cache::forget( $apiKey );
+                        Cache::forget( $cacheKey );
                     }
                 }
 
-                $appUsers = $role->getRelation( 'app_by_user_to_app_role' )->toArray();
+                $appUsers = $role->getRelation( 'app_by_user_to_app_to_role' )->toArray();
 
-                $userRoles = $role->getRelation( 'user_to_app_role_by_role_id' )->toArray();
+                $userRoles = $role->getRelation( 'user_to_app_to_role_by_role_id' )->toArray();
 
                 foreach ( $appUsers as $au )
                 {
@@ -96,7 +99,7 @@ class Role extends BaseSystemModel
                         if ( $appId === ArrayUtils::get( $ur, 'app_id' ) && $roleId === ArrayUtils::get( $ur, 'role_id' ) )
                         {
                             $userId = ArrayUtils::get( $ur, 'user_id' );
-                            $cacheKey = $apiKey . $userId;
+                            $cacheKey = CacheUtil::getApiKeyUserCacheKey($apiKey, $userId);
 
                             if ( Cache::has( $cacheKey ) )
                             {

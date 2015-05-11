@@ -55,6 +55,13 @@ class DbTableExtras extends BaseSystemModel
             static::create(
                 [
                     'service_id'  => $systemServiceId,
+                    'table'       => 'user_lookup',
+                    'model'       => '\\DreamFactory\\Rave\\Models\\UserLookup',
+                ]
+            );
+            static::create(
+                [
+                    'service_id'  => $systemServiceId,
                     'table'       => 'service',
                     'model'       => '\\DreamFactory\\Rave\\Models\\Service',
                 ]

@@ -20,23 +20,25 @@
 
 namespace DreamFactory\Rave\Models;
 
-/**
- * AppGroup
- *
- * @property integer $id
- * @property string  $name
- * @property string  $description
- * @property string  $created_date
- * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|AppGroup whereId( $value )
- * @method static \Illuminate\Database\Query\Builder|AppGroup whereName( $value )
- * @method static \Illuminate\Database\Query\Builder|AppGroup whereDescription( $value )
- * @method static \Illuminate\Database\Query\Builder|AppGroup whereCreatedDate( $value )
- * @method static \Illuminate\Database\Query\Builder|AppGroup whereLastModifiedDate( $value )
- */
-class AppGroup extends BaseSystemModel
-{
-    protected $table = 'app_group';
 
-    protected $fillable = ['name', 'description'];
+use DreamFactory\Library\Utility\ArrayUtils;
+
+trait LookupTrait
+{
+    /**
+     * Convert the model instance to an array.
+     *
+     * @return array
+     */
+    public function toArray()
+    {
+        $attributes = $this->attributesToArray();
+
+        if(true === ArrayUtils::getBool($attributes, 'private'))
+        {
+            ArrayUtils::set($attributes, 'value', '**********');
+        }
+
+        return array_merge($attributes, $this->relationsToArray());
+    }
 }

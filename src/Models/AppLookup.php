@@ -20,34 +20,15 @@
 
 namespace DreamFactory\Rave\Models;
 
-use Illuminate\Support\Facades\Crypt;
 use DreamFactory\Rave\Utility\Cache as CacheUtil;
 
-/**
- * RoleLookup
- *
- * @property integer $id
- * @property string  $name
- * @property string  $value
- * @property string  $description
- * @property boolean $is_private
- * @property string  $created_date
- * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereId( $value )
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereName( $value )
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereValue( $value )
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereDescription( $value )
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereIsPrivate( $value )
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereCreatedDate( $value )
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereLastModifiedDate( $value )
- */
-class RoleLookup extends BaseModel
+class AppLookup extends BaseModel
 {
     use LookupTrait;
 
-    protected $table = 'role_lookup';
+    protected $table = 'app_lookup';
 
-    protected $fillable = ['id', 'role_id', 'name', 'value', 'private', 'description'];
+    protected $fillable = ['app_id', 'name', 'value', 'private', 'description'];
 
     /**
      * @var array
@@ -59,9 +40,9 @@ class RoleLookup extends BaseModel
         parent::boot();
 
         static::saved(
-            function ( RoleLookup $rl )
+            function ( AppLookup $al )
             {
-                $cacheKey = CacheUtil::getRoleLookupCacheKey($rl->role_id);
+                $cacheKey = CacheUtil::getAppLookupCacheKey($al->app_id);
 
                 if(\Cache::has($cacheKey))
                 {

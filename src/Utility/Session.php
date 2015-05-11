@@ -20,19 +20,24 @@
 
 namespace DreamFactory\Rave\Utility;
 
-use \Cache;
-use \Config;
 use \Request;
-use DreamFactory\Rave\Models\Role;
-use DreamFactory\Rave\Exceptions\UnauthorizedException;
 use DreamFactory\Rave\Exceptions\ForbiddenException;
 use DreamFactory\Rave\Enums\ServiceRequestorTypes;
 use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Rave\Models\User as DspUser;
 use Illuminate\Routing\Router;
 
 class Session
 {
+    /**
+     * Checks to see if Access is Allowed based on Role-Service-Access.
+     *
+     * @param int $requestor
+     *
+     * @return bool
+     * @throws \DreamFactory\Rave\Exceptions\NotImplementedException
+     */
     public static function isAccessAllowed($requestor = ServiceRequestorTypes::API)
     {
         if(session('rsa.is_sys_admin'))
@@ -72,6 +77,11 @@ class Session
         return false;
     }
 
+    /**
+     * Checks for permission based on Role-Service-Access.
+     *
+     * @throws ForbiddenException
+     */
     public static function checkPermission()
     {
         if(!static::isAccessAllowed())
@@ -81,69 +91,55 @@ class Session
     }
 
     /**
-     * @param int  $roleId
+     * Sets basic info of the user in session when authenticated.
      *
-     * @throws UnauthorizedException
-     * @throws ForbiddenException
-     * @return array
+     * @param DspUser $user
+     *
+     * @return bool
      */
-    public static function generateSessionDataFromRole( $roleId )
+    public static function setUserInfo(DspUser $user)
     {
-        static $appFields = array('id', 'name', 'api_key', 'is_active');
-
-        /** @var Role $_role */
-        $role = Cache::remember('role_'.$roleId, Config::get('rave.default_cache_ttl'), function() use ($roleId)
-            {
-                return Role::with(['app_by_role_id', 'role_lookup_by_role_id', 'role_service_access_by_role_id'])->find($roleId);
-            }
-        );
-
-        if ( empty( $role ) )
+        if(\Auth::check())
         {
-            throw new UnauthorizedException( "The role id '$roleId' does not exist in the system." );
+            \Session::put( 'user_id', $user->id );
+            \Session::put( 'display_name', $user->name );
+            \Session::put( 'first_name', $user->first_name );
+            \Session::put( 'last_name', $user->last_name );
+            \Session::put( 'email', $user->email );
+            \Session::put( 'is_sys_admin', $user->is_sys_admin );
+            \Session::put( 'last_login_date', $user->last_login_date );
+
+            return true;
         }
 
-        if ( !$role->is_active )
-        {
-            throw new ForbiddenException( "The role '$role->name' is not currently active." );
-        }
+        return false;
+    }
 
-        $cached = array();
-        $public = array();
-        $allowedApps = array();
-        $defaultAppId = $role->default_app_id;
-        $roleData = array('name' => $role->name, 'id' => $role->id);
+    /**
+     * Sets System-Role-User lookup keys in session.
+     *
+     * @param integer|null $roleId
+     * @param integer|null $userId
+     */
+    public static function setLookupKeys($roleId=null, $userId=null)
+    {
+        $lookup = LookupKey::getSystemRoleUserLookup( $roleId, $userId );
 
-        $roleApps = $role->getRelation('app_by_role_id')->toArray();
+        \Session::put('lookup', ArrayUtils::get($lookup, 'lookup', []));
+        \Session::put('lookup_secret', ArrayUtils::get($lookup, 'lookup_secret', []));
+    }
 
-        if (count($roleApps)>0)
-        {
-            foreach ( $roleApps as $k => $v )
-            {
-                if ( 'is_active' === $k && $v == 1 )
-                {
-                    $allowedApps[$k] = $v;
-                }
+    /**
+     * Sets app lookup keys in session.
+     *
+     * @param integer|null $appId
+     */
+    public static function setAppLookupKeys($appId=null)
+    {
 
-                if(!in_array($k, $appFields))
-                {
-                    unset($roleApps[$k]);
-                }
-            }
+        $lookupApp = LookupKey::getAppLookup( $appId );
 
-            $roleData['app_by_role_id'] = $roleApps;
-        }
-
-        $roleData['role_service_access_by_role_id'] = $role->getRelation('role_service_access_by_role_id')->toArray();
-
-        $cached['role'] = $roleData;
-        //$cached = array_merge( $cached, LookupKey::getForSession( $_role->id ) );
-
-        return array(
-            'cached'         => $cached,
-            'public'         => $public,
-            'allowed_apps'   => $allowedApps,
-            'default_app_id' => $defaultAppId
-        );
+        \Session::put('lookup_app', ArrayUtils::get($lookupApp, 'lookup', []));
+        \Session::put('lookup_app_secret', ArrayUtils::get($lookupApp, 'lookup_secret', []));
     }
 }

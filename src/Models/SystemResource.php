@@ -72,6 +72,12 @@ class SystemResource extends BaseModel
                     'model_name'  => 'DreamFactory\\Rave\\Models\\User',
                 ],
                 [
+                    'name'        => 'cache',
+                    'label'       => 'Cache Administration',
+                    'description' => 'Allows administration of system-wide and service cache.',
+                    'class_name'  => 'DreamFactory\\Rave\\Resources\\System\\Cache'
+                ],
+                [
                     'name'        => 'config',
                     'label'       => 'Configuration',
                     'description' => 'Global system configuration.',

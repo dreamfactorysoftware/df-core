@@ -254,18 +254,15 @@ abstract class BaseDbTableResource extends BaseDbResource
      *
      * @throws BadRequestException
      */
-    protected function validateTableAccess( $table = null, $action = null )
+    protected function validateTableAccess( $table, $action = null )
     {
         if ( empty( $table ) )
         {
             throw new BadRequestException( 'Table name can not be empty.' );
         }
 
-        $resource = static::RESOURCE_NAME;
         $this->correctTableName( $table );
-
-        // finally check that the current user has privileges to access this table
-        $this->service->validateResourceAccess( $resource, $table, $action );
+        $this->checkPermission( $action, $table );
     }
 
     /**
@@ -2927,11 +2924,39 @@ abstract class BaseDbTableResource extends BaseDbResource
                 'operations'  => [
                     [
                         'method'           => 'GET',
+                        'summary'          => 'getTablesList() - List resources available for database tables.',
+                        'nickname'         => 'getTablesList',
+                        'type'             => 'ComponentList',
+                        'event_name'       => $eventPath . '.list',
+                        'parameters'       => [
+                            [
+                                'name'          => 'refresh',
+                                'description'   => 'Refresh any cached copy of the schema list.',
+                                'allowMultiple' => false,
+                                'type'          => 'boolean',
+                                'paramType'     => 'query',
+                                'required'      => false,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'See listed operations for each resource available.',
+                    ],
+                    [
+                        'method'           => 'GET',
                         'summary'          => 'getTables() - List resources available for database tables.',
                         'nickname'         => 'getTables',
                         'type'             => 'Resources',
                         'event_name'       => $eventPath . '.list',
                         'parameters'       => [
+                            [
+                                'name'          => 'fields',
+                                'description'   => 'Return all or specified properties available for each resource.',
+                                'allowMultiple' => true,
+                                'type'          => 'string',
+                                'paramType'     => 'query',
+                                'required'      => true,
+                                'default'       => '*',
+                            ],
                             [
                                 'name'          => 'refresh',
                                 'description'   => 'Refresh any cached copy of the schema list.',

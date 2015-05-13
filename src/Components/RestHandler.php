@@ -24,7 +24,6 @@ use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Contracts\RequestHandlerInterface;
 use DreamFactory\Rave\Enums\ContentTypes;
-use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
@@ -256,7 +255,7 @@ abstract class RestHandler implements RequestHandlerInterface
     {
         /** @var ResourceInterface $obj */
         $obj = new $class( $info );
-        $obj->setParent($this);
+        $obj->setParent( $this );
 
         return $obj;
     }
@@ -434,38 +433,43 @@ abstract class RestHandler implements RequestHandlerInterface
     }
 
     /**
-     * @param array      $resources
-     * @param array|null $properties
-     * @param bool       $wrap
+     * @param array       $records
+     * @param string|null $identifier
+     * @param array|null  $fields
+     * @param string|null $wrapper
      *
      * @return array
      */
-    protected static function makeResourceList( array $resources, $properties = null, $wrap = true )
+    protected static function makeResourceList( array $records, $identifier = null, $fields = null, $wrapper = null )
     {
-        $resourceList = [ ];
+        $data = [ ];
 
-        if ( empty( $properties ) || ( is_string( $properties ) && ( 0 === strcasecmp( 'false', $properties ) ) ) )
+        if ( empty( $fields ) )
         {
-            $resourceList = array_column( $resources, 'name' );
+            if ( empty( $identifier ) )
+            {
+                $identifier = 'name';
+            }
+            $data = array_column( $records, $identifier );
         }
-        elseif ( ( true === $properties ) || ( is_string( $properties ) && ( 0 === strcasecmp( 'true', $properties ) ) ) )
+        elseif ( '*' === $fields )
         {
-            $resourceList = array_values( $resources );
+            $data = array_values( $records );
         }
         else
         {
-            foreach ( $resources as $resource )
+            if ( is_string( $fields ) )
             {
-                if ( is_string( $properties ) )
-                {
-                    $properties = explode( ',', $properties );
-                }
+                $fields = explode( ',', $fields );
+            }
 
-                $resourceList[] = array_intersect_key( $resource, array_flip( $properties ) );
+            foreach ( $records as $record )
+            {
+                $data[] = array_intersect_key( $record, array_flip( $fields ) );
             }
         }
 
-        return ( $wrap ) ? [ "resource" => $resourceList ] : $resourceList;
+        return ( $wrapper ) ? [ $wrapper => $data ] : $data;
     }
 
     /**
@@ -492,37 +496,19 @@ abstract class RestHandler implements RequestHandlerInterface
     }
 
     /**
-     * @param mixed $include_properties Use boolean, comma-delimited string, or array of properties
-     *
-     * @return ServiceResponseInterface
-     */
-    public function listResources( $include_properties = null )
-    {
-        $resources = $this->getResources();
-        if ( !empty( $resources ) )
-        {
-            return static::makeResourceList( $resources, $include_properties, true );
-        }
-
-        return false;
-    }
-
-    /**
      * Handles GET action
      *
-     * @return false|ServiceResponseInterface
+     * @return mixed
      */
     protected function handleGET()
     {
-        $includeProperties = $this->request->getParameter( 'include_properties' );
-
-        return $this->listResources( $includeProperties );
+        return false;
     }
 
     /**
      * Handles POST action
      *
-     * @return false|ServiceResponseInterface
+     * @return mixed
      */
     protected function handlePOST()
     {
@@ -532,7 +518,7 @@ abstract class RestHandler implements RequestHandlerInterface
     /**
      * Handles PUT action
      *
-     * @return false|ServiceResponseInterface
+     * @return mixed
      */
     protected function handlePUT()
     {
@@ -542,7 +528,7 @@ abstract class RestHandler implements RequestHandlerInterface
     /**
      * Handles PATCH action
      *
-     * @return false|ServiceResponseInterface
+     * @return mixed
      */
     protected function handlePATCH()
     {
@@ -552,7 +538,7 @@ abstract class RestHandler implements RequestHandlerInterface
     /**
      * Handles DELETE action
      *
-     * @return false|ServiceResponseInterface
+     * @return mixed
      */
     protected function handleDELETE()
     {
@@ -566,30 +552,5 @@ abstract class RestHandler implements RequestHandlerInterface
     protected function triggerActionEvent( &$result, $eventName = null, $event = null, $isPostProcess = false )
     {
         // TODO figure this out for RAVE
-    }
-
-    /**
-     * @param string $operation
-     * @param string $resource
-     *
-     * @return bool
-     */
-    public function checkPermission( $operation, $resource = null )
-    {
-        // TODO figure this out for RAVE
-        return true;
-    }
-
-    /**
-     * @param string $resource
-     *
-     * @return string
-     */
-    public function getPermissions( $resource = null )
-    {
-        // TODO figure this out for RAVE
-        return VerbsMask::maskToArray(
-            VerbsMask::NONE_MASK | VerbsMask::GET_MASK | VerbsMask::POST_MASK | VerbsMask::PUT_MASK | VerbsMask::PATCH_MASK | VerbsMask::DELETE_MASK
-        );
     }
 }

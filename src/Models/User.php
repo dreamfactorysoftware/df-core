@@ -73,28 +73,6 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         'user_lookup'         => 'DreamFactory\Rave\Models\UserLookup'
     ];
 
-    public static function seed()
-    {
-        $seeded = false;
-
-        if ( !static::whereId( 1 )->exists() )
-        {
-            static::create(
-                [
-                    'id'           => 1,
-                    'name'         => 'Rave Admin',
-                    'email'        => 'admin@rave.' . gethostname() . '.com',
-                    'password'     => bcrypt( 'rave_user' ),
-                    'is_sys_admin' => 1,
-                    'is_active'    => 1
-                ]
-            );
-            $seeded = true;
-        }
-
-        return $seeded;
-    }
-
     /**
      * If does not exists, creates a shadow OAuth user using user info provided
      * by the OAuth service provider and assigns default role to this user

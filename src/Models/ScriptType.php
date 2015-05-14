@@ -54,39 +54,4 @@ class ScriptType extends BaseModel
     protected $fillable = [ 'name', 'class_name', 'label', 'description', 'sandboxed' ];
 
     public $incrementing = false;
-
-    public static function seed()
-    {
-        $seeded = false;
-
-        if ( !static::whereName( 'php' )->count() )
-        {
-            static::create(
-                [
-                    'name'           => 'php',
-                    'class_name'     => 'DreamFactory\\Rave\\Scripting\\Engines\\Php',
-                    'label'          => 'PHP',
-                    'description'    => 'Script handler using native PHP.',
-                    'sandboxed'      => 0
-                ]
-            );
-            $seeded = true;
-        }
-
-        if ( !static::whereName( 'v8js' )->count() )
-        {
-            static::create(
-                [
-                    'name'           => 'v8js',
-                    'class_name'     => 'DreamFactory\\Rave\\Scripting\\Engines\\V8js',
-                    'label'          => 'V8Js',
-                    'description'    => 'Server-side JavaScript handler using the V8Js engine.',
-                    'sandboxed'      => 1
-                ]
-            );
-            $seeded = true;
-        }
-
-        return $seeded;
-    }
 }

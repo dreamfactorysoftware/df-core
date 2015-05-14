@@ -21,8 +21,9 @@ namespace DreamFactory\Rave\Database\Seeds;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Database\Eloquent\Model;
+use DreamFactory\Rave\Models\User;
 
-class DatabaseSeeder extends Seeder
+class AdminSeeder extends Seeder
 {
     /**
      * Run the database seeds.
@@ -33,11 +34,21 @@ class DatabaseSeeder extends Seeder
     {
         Model::unguard();
 
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\ServiceTypeSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\SystemResourceSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\ScriptTypeSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\ServiceSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\AdminSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\DbTableExtrasSeeder');
+        // Add default admin user
+        if ( !User::exists() )
+        {
+            User::create(
+                [
+                    'id'           => 1,
+                    'name'         => 'Rave Admin',
+                    'email'        => 'admin@rave.' . gethostname() . '.com',
+                    'password'     => bcrypt( 'rave_user' ),
+                    'is_sys_admin' => 1,
+                    'is_active'    => 1
+                ]
+            );
+
+            $this->command->info( 'Admin user seeded!' );
+        }
     }
 }

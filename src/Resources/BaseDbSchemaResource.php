@@ -62,11 +62,15 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      *
      * @throws BadRequestException
      */
-    protected function validateSchemaAccess( $table = null, $action = null )
+    protected function validateSchemaAccess( $table, $action = null )
     {
-        $resource = static::RESOURCE_NAME;
+        if ( empty( $table ) )
+        {
+            throw new BadRequestException( 'Table name can not be empty.' );
+        }
+
         $this->correctTableName( $table );
-        $this->service->validateResourceAccess( $resource, $table, $action );
+        $this->checkPermission( $action, $table );
     }
 
     /**
@@ -112,7 +116,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     protected function handlePOST()
     {
         $payload = $this->request->getPayloadData();
-        $checkExist = $this->request->getParameterAsBool('check_exist' );
+        $checkExist = $this->request->getParameterAsBool( 'check_exist' );
         $returnSchema = $this->request->getParameterAsBool( 'return_schema' );
         if ( empty( $this->resource ) )
         {
@@ -291,7 +295,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             'The request contains no valid table names or properties.'
         );
 
-        $out = [];
+        $out = [ ];
         foreach ( $tables as $table )
         {
             $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
@@ -345,7 +349,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             'The request contains no valid table names or properties.'
         );
 
-        $out = [];
+        $out = [ ];
         foreach ( $tables as $table )
         {
             $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
@@ -363,7 +367,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @param bool   $check_exist
      * @param bool   $return_schema Return a refreshed copy of the schema from the database
      */
-    abstract public function createTable( $table, $properties = [], $check_exist = false, $return_schema = false );
+    abstract public function createTable( $table, $properties = [ ], $check_exist = false, $return_schema = false );
 
     /**
      * Create a single table field by name and additional properties
@@ -374,7 +378,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @param bool   $check_exist
      * @param bool   $return_schema Return a refreshed copy of the schema from the database
      */
-    abstract public function createField( $table, $field, $properties = [], $check_exist = false, $return_schema = false );
+    abstract public function createField( $table, $field, $properties = [ ], $check_exist = false, $return_schema = false );
 
     /**
      * Update one or more tables by array of table properties
@@ -395,7 +399,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         );
 
         // update tables allows for create as well
-        $out = [];
+        $out = [ ];
         foreach ( $tables as $table )
         {
             $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
@@ -459,7 +463,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             'The request contains no valid table names or properties.'
         );
 
-        $out = [];
+        $out = [ ];
         foreach ( $tables as $table )
         {
             $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
@@ -495,7 +499,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName( '.' );
         $_base = parent::getApiDocInfo();
 
         $_commonResponses = ApiDocUtilities::getCommonResponses();
@@ -507,11 +511,39 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 'operations'  => [
                     [
                         'method'           => 'GET',
+                        'summary'          => 'getSchemasList() - List resources available for database schema.',
+                        'nickname'         => 'getSchemasList',
+                        'type'             => 'ComponentList',
+                        'event_name'       => $eventPath . '.list',
+                        'parameters'       => [
+                            [
+                                'name'          => 'refresh',
+                                'description'   => 'Refresh any cached copy of the schema list.',
+                                'allowMultiple' => false,
+                                'type'          => 'boolean',
+                                'paramType'     => 'query',
+                                'required'      => false,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'See listed operations for each resource available.',
+                    ],
+                    [
+                        'method'           => 'GET',
                         'summary'          => 'getSchemas() - List resources available for database schema.',
                         'nickname'         => 'getSchemas',
                         'type'             => 'Resources',
                         'event_name'       => $eventPath . '.list',
                         'parameters'       => [
+                            [
+                                'name'          => 'fields',
+                                'description'   => 'Return all or specified properties available for each resource.',
+                                'allowMultiple' => true,
+                                'type'          => 'string',
+                                'paramType'     => 'query',
+                                'required'      => true,
+                                'default'       => '*',
+                            ],
                             [
                                 'name'          => 'refresh',
                                 'description'   => 'Refresh any cached copy of the schema list.',
@@ -881,7 +913,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         ];
 
         $_models = [
-            'Tables'              => [
+            'Tables' => [
                 'id'         => 'Tables',
                 'properties' => [
                     'table' => [
@@ -893,7 +925,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                     ],
                 ],
             ],
-            'Table'               => [
+            'Table'  => [
                 'id'         => 'Table',
                 'properties' => [
                     'name' => [

@@ -1,47 +1,65 @@
 {
-    "name":              "dreamfactory/rave",
-    "description":       "DreamFactory RAVE(tm) Common Components",
-    "config":            {
-        "discard-changes": true
+  "name": "dreamfactory/rave",
+  "description": "DreamFactory RAVE(tm) Common Components",
+  "config": {
+    "discard-changes": true
+  },
+  "homepage": "https://www.dreamfactory.com/",
+  "keywords": [
+    "dsp",
+    "rave",
+    "rest",
+    "api",
+    "mbaas",
+    "baas",
+    "paas"
+  ],
+  "license": ["Apache-2.0"],
+  "authors": [
+    {
+      "name": "Arif Islam",
+      "email": "arifislam@dreamfactory.com"
     },
-    "homepage":          "https://www.dreamfactory.com/",
-    "keywords":          ["dsp", "rave", "rest", "api", "mbaas", "baas", "paas"],
-    "license":           ["Apache-2.0"],
-    "authors":           [
-        {
-            "name":  "Arif Islam",
-            "email": "arifislam@dreamfactory.com"
-        },
-        {
-            "name":  "Lee Hicks",
-            "email": "leehicks@dreamfactory.com"
-        },
-        {
-            "name":  "Jerry Ablan",
-            "email": "jerryablan@dreamfactory.com"
-        }
-    ],
-    "minimum-stability": "dev",
-    "prefer-stable":     true,
-    "require":           {
-        "php": "~5.4",
-        "ramsey/array_column": "~1.1",
-        "dreamfactory/php-utils": "dev-develop as dev-master",
-        "dreamfactory/rave-sqldb-core": "dev-develop as dev-master",
-        "guzzlehttp/guzzle": "~5.0",
-        "barryvdh/laravel-cors": "0.4.x@dev"
+    {
+      "name": "Lee Hicks",
+      "email": "leehicks@dreamfactory.com"
     },
-    "require-dev":       {
-        "phpunit/phpunit": "@stable"
-    },
-    "autoload":          {
-        "psr-4": {
-            "DreamFactory\\Rave\\": "src/"
-        }
-    },
-    "extra":             {
-        "branch-alias": {
-            "dev-develop": "0.0.x-dev"
-        }
+    {
+      "name": "Jerry Ablan",
+      "email": "jerryablan@dreamfactory.com"
     }
+  ],
+  "minimum-stability": "dev",
+  "prefer-stable": true,
+  "require": {
+    "php": "~5.4",
+    "ramsey/array_column": "~1.1",
+    "dreamfactory/php-utils": "dev-develop as dev-master",
+    "dreamfactory/rave-sqldb-core": "dev-develop as dev-master",
+    "guzzlehttp/guzzle": "~5.0",
+    "barryvdh/laravel-cors": "0.4.x@dev"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "@stable"
+  },
+  "autoload": {
+    "psr-4": {
+      "DreamFactory\\Rave\\": "src/"
+    }
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-develop": "0.0.x-dev"
+    }
+  },
+  "scripts": {
+    "post-install-cmd": [
+      "php -r \"copy('vendor/dreamfactory/rave/database/migrations/2015_01_27_190908_create_system_tables.php', 'database/migrations/');\""
+    ],
+    "post-update-cmd": [
+      "php -r \"copy('vendor/dreamfactory/rave/database/migrations/2015_01_27_190908_create_system_tables.php', 'database/migrations/');\""
+    ],
+    "post-create-project-cmd": [
+    ]
+  }
 }

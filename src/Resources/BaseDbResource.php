@@ -19,7 +19,8 @@
  */
 namespace DreamFactory\Rave\Resources;
 
-use DreamFactory\Rave\Services\BaseDbService;
+use DreamFactory\Rave\Contracts\RequestHandlerInterface;
+use DreamFactory\Rave\Services\BaseRestService;
 
 class BaseDbResource extends BaseRestResource
 {
@@ -27,10 +28,6 @@ class BaseDbResource extends BaseRestResource
     //	Members
     //*************************************************************************
 
-    /**
-     * @var null|BaseDbService
-     */
-    protected $service = null;
     /**
      * @var integer Service identifier
      */
@@ -41,23 +38,25 @@ class BaseDbResource extends BaseRestResource
     //*************************************************************************
 
     /**
-     * @param BaseDbService $service
-     * @param array         $settings
+     * @param RequestHandlerInterface $parent
      */
-    public function __construct( $service, $settings = array() )
+    public function setParent( RequestHandlerInterface $parent )
     {
-        parent::__construct( $settings );
+        parent::setParent( $parent );
 
-        $this->setService( $service );
+        /** @var BaseRestService $parent */
+        $this->serviceId = $parent->getServiceId();
     }
 
     /**
-     * @param BaseDbService $service
+     * @param null $schema
+     * @param bool $refresh
      *
+     * @return array
      */
-    public function setService( $service )
+    public function listAccessComponents( $schema = null, $refresh = false )
     {
-        $this->service = $service;
-        $this->serviceId = $service->getServiceId();
+        return [ ];
     }
+
 }

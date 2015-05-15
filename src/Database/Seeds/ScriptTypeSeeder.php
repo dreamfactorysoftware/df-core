@@ -19,25 +19,24 @@
  */
 namespace DreamFactory\Rave\Database\Seeds;
 
-use Illuminate\Database\Seeder;
-use Illuminate\Database\Eloquent\Model;
-
-class DatabaseSeeder extends Seeder
+class ScriptTypeSeeder extends BaseModelSeeder
 {
-    /**
-     * Run the database seeds.
-     *
-     * @return void
-     */
-    public function run()
-    {
-        Model::unguard();
+    protected $modelClass = 'DreamFactory\\Rave\\Models\\ScriptType';
 
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\ServiceTypeSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\SystemResourceSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\ScriptTypeSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\ServiceSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\AdminSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\DbTableExtrasSeeder');
-    }
+    protected $records = [
+        [
+            'name'        => 'php',
+            'class_name'  => 'DreamFactory\\Rave\\Scripting\\Engines\\Php',
+            'label'       => 'PHP',
+            'description' => 'Script handler using native PHP.',
+            'sandboxed'   => 0
+        ],
+        [
+            'name'        => 'v8js',
+            'class_name'  => 'DreamFactory\\Rave\\Scripting\\Engines\\V8js',
+            'label'       => 'V8Js',
+            'description' => 'Server-side JavaScript handler using the V8Js engine.',
+            'sandboxed'   => 1
+        ]
+    ];
 }

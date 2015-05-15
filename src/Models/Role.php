@@ -17,12 +17,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 namespace DreamFactory\Rave\Models;
 
 use \Cache;
 use DreamFactory\Library\Utility\ArrayUtils;
-use Illuminate\Support\Arr;
 use DreamFactory\Rave\Utility\Cache as CacheUtil;
 
 /**
@@ -35,12 +33,9 @@ use DreamFactory\Rave\Utility\Cache as CacheUtil;
  * @property string  $created_date
  * @property string  $last_modified_date
  * @method static \Illuminate\Database\Query\Builder|Role whereId( $value )
- * @method static \Illuminate\Database\Query\Builder|Role whereApiName( $value )
  * @method static \Illuminate\Database\Query\Builder|Role whereName( $value )
  * @method static \Illuminate\Database\Query\Builder|Role whereDescription( $value )
  * @method static \Illuminate\Database\Query\Builder|Role whereIsActive( $value )
- * @method static \Illuminate\Database\Query\Builder|Role whereTypeId( $value )
- * @method static \Illuminate\Database\Query\Builder|Role whereNativeFormatId( $value )
  * @method static \Illuminate\Database\Query\Builder|Role whereCreatedDate( $value )
  * @method static \Illuminate\Database\Query\Builder|Role whereLastModifiedDate( $value )
  */
@@ -51,15 +46,6 @@ class Role extends BaseSystemModel
     protected $fillable = [ 'name', 'description', 'is_active', 'role_service_access_by_role_id', 'role_lookup_by_role_id' ];
 
     protected $hidden = [ 'user_to_app_to_role_by_role_id', 'app_by_user_to_app_to_role', 'user_by_user_to_app_to_role', 'user_by_role_lookup'];
-
-    protected static $tableToModelMap = [
-        'role_service_access' => 'DreamFactory\Rave\Models\RoleServiceAccess',
-        'role_lookup'         => 'DreamFactory\Rave\Models\RoleLookup',
-        'app'                 => 'DreamFactory\Rave\Models\App',
-        'system_config'       => 'DreamFactory\Rave\Models\Config',
-        'service'             => 'DreamFactory\Rave\Models\Service',
-        'user_to_app_to_role'    => 'DreamFactory\Rave\Models\UserAppRole'
-    ];
 
     public static function boot()
     {

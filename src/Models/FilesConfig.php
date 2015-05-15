@@ -20,8 +20,7 @@
 
 namespace DreamFactory\Rave\Models;
 
-
-
-class FilesConfig extends BaseSystemModel{
+class FilesConfig extends BaseSystemModel
+{
     protected $table = "files_config";
 }

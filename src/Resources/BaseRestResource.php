@@ -23,9 +23,11 @@ namespace DreamFactory\Rave\Resources;
 use DreamFactory\Rave\Components\RestHandler;
 use DreamFactory\Rave\Contracts\RequestHandlerInterface;
 use DreamFactory\Rave\Contracts\ResourceInterface;
+use DreamFactory\Rave\Enums\ServiceRequestorTypes;
 use DreamFactory\Rave\Events\ResourcePostProcess;
 use DreamFactory\Rave\Events\ResourcePreProcess;
 use DreamFactory\Rave\Services\BaseRestService;
+use DreamFactory\Rave\Utility\Session;
 
 /**
  * Class BaseRestResource
@@ -90,7 +92,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         /** @noinspection PhpUnusedLocalVariableInspection */
         $results = \Event::fire(
             new ResourcePreProcess(
-                $this->getServiceName(), $this->getFullPathName('.'), $this->request, $this->resourcePath
+                $this->getServiceName(), $this->getFullPathName( '.' ), $this->request, $this->resourcePath
             )
         );
     }
@@ -101,13 +103,78 @@ class BaseRestResource extends RestHandler implements ResourceInterface
     protected function postProcess()
     {
         $event = new ResourcePostProcess(
-            $this->getServiceName(), $this->getFullPathName('.'), $this->request, $this->response, $this->resourcePath
+            $this->getServiceName(), $this->getFullPathName( '.' ), $this->request, $this->response, $this->resourcePath
         );
         /** @noinspection PhpUnusedLocalVariableInspection */
         $results = \Event::fire( $event );
 
         // todo doing something wrong that I have to copy this array back over
         $this->response = $event->response;
+    }
+
+    /**
+     * @param string $operation
+     * @param string $resource
+     *
+     * @return bool
+     */
+    public function checkPermission( $operation, $resource = null )
+    {
+        $path = $this->getFullPathName();
+        if ( !empty( $resource ) )
+        {
+            $path = ( !empty( $path ) ) ? '/' . $resource : $resource;
+        }
+
+        $requestType = ($this->request) ? $this->request->getRequestorType() : ServiceRequestorTypes::API;
+
+        Session::checkServicePermission( $operation, $this->getServiceName(), $path, $requestType );
+    }
+
+    /**
+     * @param string $resource
+     *
+     * @return int
+     */
+    public function getPermissions( $resource = null )
+    {
+        $path = $this->getFullPathName();
+        if ( !empty( $resource ) )
+        {
+            $path = ( !empty( $path ) ) ? '/' . $resource : $resource;
+        }
+
+        $requestType = ($this->request) ? $this->request->getRequestorType() : ServiceRequestorTypes::API;
+
+        return Session::getServicePermissions( $this->getServiceName(), $path, $requestType );
+    }
+
+    /**
+     * @param mixed $fields Use '*', comma-delimited string, or array of properties
+     *
+     * @return boolean|array
+     */
+    public function listResources( $fields = null )
+    {
+        $resources = $this->getResources();
+        if ( !empty( $resources ) )
+        {
+            return static::makeResourceList( $resources, 'name', $fields );
+        }
+
+        return false;
+    }
+
+    /**
+     * Handles GET action
+     *
+     * @return mixed
+     */
+    protected function handleGET()
+    {
+        $fields = $this->request->getParameter( 'fields' );
+
+        return $this->listResources( $fields );
     }
 
     public function getApiDocInfo()

@@ -20,6 +20,7 @@
 namespace DreamFactory\Rave\Utility;
 
 use Config;
+use DreamFactory\Rave\Models\DbFieldExtras;
 use DreamFactory\Rave\Models\DbTableExtras;
 use Log;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -149,13 +150,15 @@ class DbUtilities
             throw new \InvalidArgumentException( 'Invalid table list provided.' );
         }
 
-        $call = DbTableExtras::where( 'service_id', $service_id)->whereIn('table', $values);
-        if ( !$include_fields )
+        $result = DbTableExtras::where( 'service_id', $service_id)->whereIn('table', $values)->get()->toArray();
+
+        if ( $include_fields )
         {
-            $call->where('field', '');
+            $fieldResult = DbFieldExtras::where( 'service_id', $service_id)->whereIn('table', $values)->get()->toArray();
+            $result = array_merge($result, $fieldResult);
         }
 
-        return $call->get()->toArray();
+        return $result;
     }
 
     /**

@@ -20,12 +20,16 @@
 
 namespace DreamFactory\Rave\Services;
 
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Components\RestHandler;
 use DreamFactory\Rave\Contracts\ServiceInterface;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
+use DreamFactory\Rave\Enums\ServiceRequestorTypes;
+use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Rave\Events\ServicePostProcess;
 use DreamFactory\Rave\Events\ServicePreProcess;
 use DreamFactory\Rave\Utility\ResponseFactory;
+use DreamFactory\Rave\Utility\Session;
 
 /**
  * Class BaseRestService
@@ -82,6 +86,39 @@ class BaseRestService extends RestHandler implements ServiceInterface
     }
 
     /**
+     * @param mixed $fields Use '*', comma-delimited string, or array of properties
+     *
+     * @return boolean|array
+     */
+    public function listResources( $fields = null )
+    {
+        $resources = $this->getResources();
+        if ( !empty( $resources ) )
+        {
+            foreach ($resources as &$resource)
+            {
+                $resource['access'] = VerbsMask::maskToArray($this->getPermissions(ArrayUtils::get($resource, 'name')));
+            }
+
+            return static::makeResourceList( $resources, 'name', $fields, 'resource' );
+        }
+
+        return false;
+    }
+
+    /**
+     * Handles GET action
+     *
+     * @return mixed
+     */
+    protected function handleGET()
+    {
+        $fields = $this->request->getParameter( 'fields' );
+
+        return $this->listResources( $fields );
+    }
+
+    /**
      * @return ServiceResponseInterface
      */
     protected function respond()
@@ -92,6 +129,29 @@ class BaseRestService extends RestHandler implements ServiceInterface
         }
 
         return ResponseFactory::create( $this->response, $this->outputFormat, ServiceResponseInterface::HTTP_OK );
+    }
+
+    /**
+     * @param string $operation
+     * @param string $resource
+     *
+     * @return bool
+     */
+    public function checkPermission( $operation, $resource = null )
+    {
+        $requestType = ($this->request) ? $this->request->getRequestorType() : ServiceRequestorTypes::API;
+        Session::checkServicePermission( $operation, $this->name, $resource, $requestType );
+    }
+
+    /**
+     * @param string $resource
+     *
+     * @return string
+     */
+    public function getPermissions( $resource = null )
+    {
+        $requestType = ($this->request) ? $this->request->getRequestorType() : ServiceRequestorTypes::API;
+        return Session::getServicePermissions($this->name, $resource, $requestType);
     }
 
     public function getApiDocInfo()

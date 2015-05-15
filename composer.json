@@ -54,10 +54,10 @@
   },
   "scripts": {
     "post-install-cmd": [
-      "php -r \"copy('database/migrations/2015_01_27_190908_create_system_tables.php', '../../database/migrations/');\""
+      "php -r \"copy('vendor/dreamfactory/rave/database/migrations/2015_01_27_190908_create_system_tables.php', 'database/migrations/');\""
     ],
     "post-update-cmd": [
-      "php -r \"copy('database/migrations/2015_01_27_190908_create_system_tables.php', '../../database/migrations/');\""
+      "php -r \"copy('vendor/dreamfactory/rave/database/migrations/2015_01_27_190908_create_system_tables.php', 'database/migrations/');\""
     ],
     "post-create-project-cmd": [
     ]

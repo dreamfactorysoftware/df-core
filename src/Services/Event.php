@@ -214,7 +214,7 @@ class Event extends BaseRestService
                 $criteria['order'] = $value;
             }
 
-            $data = $model->selectResponse( $criteria, $related );
+            $data = $model->selectByRequest( $criteria, $related );
             $data = [ static::RECORD_WRAPPER => $data ];
         }
 

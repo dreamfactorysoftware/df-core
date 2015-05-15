@@ -24,8 +24,8 @@ use \Auth;
 use \Cache;
 use \Config;
 use \Closure;
-use DreamFactory\Library\Utility\ArrayUtils;
 use \Session;
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Enums\ContentTypes;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\ForbiddenException;
@@ -33,6 +33,7 @@ use DreamFactory\Rave\Exceptions\UnauthorizedException;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\App;
 use DreamFactory\Rave\Models\Role;
+use DreamFactory\Rave\Models\User;
 use DreamFactory\Rave\Utility\Session as SessionUtil;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Utility\Cache as CacheUtil;
@@ -81,6 +82,7 @@ class AccessCheck
 
         if($authenticated)
         {
+            /** @var User $authenticatedUser */
             $authenticatedUser = Auth::user();
         }
 

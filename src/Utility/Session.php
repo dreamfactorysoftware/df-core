@@ -393,6 +393,21 @@ class Session
     }
 
     /**
+     * Gets user id of the currently logged in user.
+     *
+     * @return integer|null
+     */
+    public static function getCurrentUserId()
+    {
+        if(\Auth::check())
+        {
+            return session( 'user_id' );
+        }
+
+        return null;
+    }
+
+    /**
      * Sets System-Role-User lookup keys in session.
      *
      * @param integer|null $roleId

@@ -25,11 +25,13 @@ use DreamFactory\Rave\Components\ConnectionAdapter;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\SqlDbCore\ColumnSchema;
 use DreamFactory\Rave\SqlDbCore\RelationSchema;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use DreamFactory\Rave\SqlDbCore\Schema;
 use DreamFactory\Rave\SqlDbCore\TableSchema;
 use DreamFactory\Rave\Components\Builder as RaveBuilder;
+use DreamFactory\Rave\Exceptions\InternalServerErrorException;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Crypt;
 use DB;
 
@@ -40,20 +42,6 @@ use DB;
  */
 class BaseModel extends Model
 {
-    /**
-     * The name of the "created at" column.
-     *
-     * @var string
-     */
-    const CREATED_AT = 'created_date';
-
-    /**
-     * The name of the "updated at" column.
-     *
-     * @var string
-     */
-    const UPDATED_AT = 'last_modified_date';
-
     const TABLE_TO_MODEL_MAP_CACHE_KEY = 'system.table_model_map';
 
     const TABLE_TO_MODEL_MAP_CACHE_TTL = 60;
@@ -172,6 +160,113 @@ class BaseModel extends Model
     }
 
     /**
+     * @param       $records
+     * @param array $params
+     *
+     * @return array|mixed
+     * @throws BadRequestException
+     * @throws \Exception
+     */
+    public static function bulkCreate( $records, $params = [ ] )
+    {
+        if ( empty( $records ) )
+        {
+            throw new BadRequestException( 'There are no record sets in the request.' );
+        }
+
+        $singleRow = ( 1 === count( $records ) ) ? true : false;
+        $response = array();
+        $transaction = false;
+        $errors = array();
+        $rollback = ArrayUtils::getBool( $params, 'rollback' );
+        $continue = ArrayUtils::getBool( $params, 'continue' );
+
+        try
+        {
+            //	Start a transaction
+            if ( !$singleRow && $rollback )
+            {
+                DB::beginTransaction();
+                $transaction = true;
+            }
+
+            foreach ( $records as $key => $record )
+            {
+                try
+                {
+                    $response[$key] = static::createInternal( $record, $params );
+                }
+                catch ( \Exception $ex )
+                {
+                    if ( $singleRow )
+                    {
+                        throw $ex;
+                    }
+
+                    if ( $rollback && $transaction )
+                    {
+                        DB::rollBack();
+                        throw $ex;
+                    }
+
+                    // track the index of the error and copy error to results
+                    $errors[] = $key;
+                    $response[$key] = $ex->getMessage();
+                    if ( !$continue )
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        catch ( \Exception $ex )
+        {
+            throw $ex;
+        }
+
+        if ( !empty( $errors ) )
+        {
+            $msg = array( 'errors' => $errors, 'record' => $response );
+            throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
+        }
+
+        //	Commit
+        if ( $transaction )
+        {
+            try
+            {
+                DB::commit();
+            }
+            catch ( \Exception $ex )
+            {
+                throw $ex;
+            }
+        }
+
+        return $singleRow ? current( $response ) : array( 'record' => $response );
+    }
+
+    /**
+     * @param       $record
+     * @param array $params
+     *
+     * @return array
+     */
+    protected static function createInternal( $record, $params = [ ] )
+    {
+        try
+        {
+            $model = static::create( $record );
+        }
+        catch ( \PDOException $e )
+        {
+            throw $e;
+        }
+
+        return static::buildResult( $model, $params );
+    }
+
+    /**
      * Update the model in the database.
      *
      * @param array $attributes
@@ -233,6 +328,361 @@ class BaseModel extends Model
         }
 
         return $updated;
+    }
+
+    public static function updateById( $id, $record, $params = [ ] )
+    {
+        $m = new static;
+        $pk = $m->getPrimaryKey();
+        ArrayUtils::set( $record, $pk, $id );
+
+        return static::bulkUpdate( array( $record ), $params );
+    }
+
+    public static function updateByIds( $ids, $record, $params = [ ] )
+    {
+        if ( !is_array( $ids ) )
+        {
+            $ids = explode( ",", $ids );
+        }
+
+        $records = [ ];
+
+        $m = new static;
+        $pk = $m->getPrimaryKey();
+        foreach ( $ids as $id )
+        {
+            ArrayUtils::set( $record, $pk, $id );
+            $records[] = $record;
+        }
+
+        return static::bulkUpdate( $records, $params );
+    }
+
+    /**
+     * @param       $records
+     * @param array $params
+     *
+     * @return array|mixed
+     * @throws BadRequestException
+     * @throws \Exception
+     */
+    public static function bulkUpdate( $records, $params = [ ] )
+    {
+        if ( empty( $records ) )
+        {
+            throw new BadRequestException( 'There is no record in the request.' );
+        }
+
+        $response = array();
+        $transaction = null;
+        $errors = array();
+        $singleRow = ( 1 === count( $records ) ) ? true : false;
+        $rollback = ArrayUtils::getBool( $params, 'rollback' );
+        $continue = ArrayUtils::getBool( $params, 'continue' );
+
+        try
+        {
+            //	Start a transaction
+            if ( !$singleRow && $rollback )
+            {
+                DB::beginTransaction();
+                $transaction = true;
+            }
+
+            foreach ( $records as $key => $record )
+            {
+                try
+                {
+                    $m = new static;
+                    $pk = $m->getPrimaryKey();
+                    $id = ArrayUtils::get( $record, $pk );
+                    $response[$key] = static::updateInternal( $id, $record, $params );
+                }
+                catch ( \Exception $ex )
+                {
+                    if ( $singleRow )
+                    {
+                        throw $ex;
+                    }
+
+                    if ( $rollback && $transaction )
+                    {
+                        DB::rollBack();
+                        throw $ex;
+                    }
+
+                    // track the index of the error and copy error to results
+                    $errors[] = $key;
+                    $response[$key] = $ex->getMessage();
+                    if ( !$continue )
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        catch ( \Exception $ex )
+        {
+            throw $ex;
+        }
+
+        if ( !empty( $errors ) )
+        {
+            $msg = array( 'errors' => $errors, 'record' => $response );
+            throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
+        }
+
+        //	Commit
+        if ( $transaction )
+        {
+            try
+            {
+                DB::commit();
+            }
+            catch ( \Exception $ex )
+            {
+                throw $ex;
+            }
+        }
+
+        return $singleRow ? current( $response ) : array( 'record' => $response );
+    }
+
+    /**
+     * @param       $id
+     * @param       $record
+     * @param array $params
+     *
+     * @return array
+     * @throws BadRequestException
+     * @throws InternalServerErrorException
+     */
+    public static function updateInternal( $id, $record, $params = [ ] )
+    {
+        if ( empty( $record ) )
+        {
+            throw new BadRequestException( 'There are no fields in the record to create . ' );
+        }
+
+        if ( empty( $id ) )
+        {
+            //Todo:perform logging below
+            //Log::error( 'Update request with no id supplied: ' . print_r( $record, true ) );
+            throw new BadRequestException( 'Identifying field "id" can not be empty for update request . ' );
+        }
+
+        $model = static::find( $id );
+
+        if ( !$model instanceof Model )
+        {
+            throw new ModelNotFoundException( 'No model found for ' . $id );
+        }
+
+        $pk = $model->primaryKey;
+        //	Remove the PK from the record since this is an update
+        ArrayUtils::remove( $record, $pk );
+
+        try
+        {
+            $model->update( $record );
+
+            return static::buildResult( $model, $params );
+        }
+        catch ( \Exception $ex )
+        {
+            throw new InternalServerErrorException( 'Failed to update resource: ' . $ex->getMessage() );
+        }
+    }
+
+    public static function deleteById( $id, $params = [ ] )
+    {
+        $records = array( array() );
+
+        $m = new static;
+        $pk = $m->getPrimaryKey();
+        foreach ( $records as $key => $record )
+        {
+            ArrayUtils::set( $records[$key], $pk, $id );
+        }
+
+        return static::bulkDelete( $records, $params );
+    }
+
+    public static function deleteByIds( $ids, $params = [ ] )
+    {
+        if ( !is_array( $ids ) )
+        {
+            $ids = explode( ",", $ids );
+        }
+
+        $records = [ ];
+
+        $m = new static;
+        $pk = $m->getPrimaryKey();
+        foreach ( $ids as $id )
+        {
+            $record = [ ];
+            ArrayUtils::set( $record, $pk, $id );
+            $records[] = $record;
+        }
+
+        return static::bulkDelete( $records, $params );
+    }
+
+    /**
+     * @param       $records
+     * @param array $params
+     *
+     * @return array|mixed
+     * @throws BadRequestException
+     * @throws \Exception
+     */
+    public static function bulkDelete( $records, $params = [ ] )
+    {
+        if ( empty( $records ) )
+        {
+            throw new BadRequestException( 'There is no record in the request.' );
+        }
+
+        $response = array();
+        $transaction = null;
+        $errors = array();
+        $singleRow = ( 1 === count( $records ) ) ? true : false;
+        $rollback = ArrayUtils::getBool( $params, 'rollback' );
+        $continue = ArrayUtils::getBool( $params, 'continue' );
+
+        try
+        {
+            //	Start a transaction
+            if ( !$singleRow && $rollback )
+            {
+                DB::beginTransaction();
+                $transaction = true;
+            }
+
+            foreach ( $records as $key => $record )
+            {
+                try
+                {
+                    $m = new static;
+                    $pk = $m->getPrimaryKey();
+                    $id = ArrayUtils::get( $record, $pk );
+                    $response[$key] = static::deleteInternal( $id, $record, $params );
+                }
+                catch ( \Exception $ex )
+                {
+                    if ( $singleRow )
+                    {
+                        throw $ex;
+                    }
+
+                    if ( $rollback && $transaction )
+                    {
+                        DB::rollBack();
+                        throw $ex;
+                    }
+
+                    // track the index of the error and copy error to results
+                    $errors[] = $key;
+                    $response[$key] = $ex->getMessage();
+                    if ( !$continue )
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+        catch ( \Exception $ex )
+        {
+            throw $ex;
+        }
+
+        if ( !empty( $errors ) )
+        {
+            $msg = array( 'errors' => $errors, 'record' => $response );
+            throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
+        }
+
+        //	Commit
+        if ( $transaction )
+        {
+            try
+            {
+                DB::commit();
+            }
+            catch ( \Exception $ex )
+            {
+                throw $ex;
+            }
+        }
+
+        return $singleRow ? current( $response ) : array( 'record' => $response );
+    }
+
+    /**
+     * @param       $id
+     * @param       $record
+     * @param array $params
+     *
+     * @return array
+     * @throws BadRequestException
+     * @throws InternalServerErrorException
+     */
+    public static function deleteInternal( $id, $record, $params = [ ] )
+    {
+        if ( empty( $record ) )
+        {
+            throw new BadRequestException( 'There are no fields in the record to create . ' );
+        }
+
+        if ( empty( $id ) )
+        {
+            //Todo:perform logging below
+            //Log::error( 'Update request with no id supplied: ' . print_r( $record, true ) );
+            throw new BadRequestException( 'Identifying field "id" can not be empty for update request . ' );
+        }
+
+        $model = static::find( $id );
+
+        if ( !$model instanceof Model )
+        {
+            throw new ModelNotFoundException( 'No model found for ' . $id );
+        }
+
+        try
+        {
+            $model->delete();
+            $result = static::buildResult( $model, $params );
+
+            return $result;
+        }
+        catch ( \Exception $ex )
+        {
+            throw new InternalServerErrorException( 'Failed to delete resource: ' . $ex->getMessage() );
+        }
+    }
+
+    /**
+     * @param       $model
+     * @param array $params
+     *
+     * @return array
+     */
+    public static function buildResult( $model, $params = [ ] )
+    {
+        $pk = $model->primaryKey;
+        $fields = ArrayUtils::get( $params, 'fields', $pk );
+
+        $fieldsArray = explode( ",", $fields );
+
+        $result = array();
+        foreach ( $fieldsArray as $f )
+        {
+            $result[$f] = $model->{$f};
+        }
+
+        return $result;
     }
 
     /**
@@ -306,33 +756,111 @@ class BaseModel extends Model
     }
 
     /**
+     * Selects a model by id.
+     *
+     * @param integer $id
+     * @param array   $related
+     * @param array   $fields
+     *
+     * @return array
+     */
+    public static function selectById( $id, array $related = [ ], array $fields = [ '*' ] )
+    {
+        $model = static::with( $related )->find( $id, $fields );
+
+        $data = ( !empty( $model ) ) ? $model->toArray() : [ ];
+
+        return $data;
+    }
+
+    /**
+     * Selects records by multiple ids.
+     *
+     * @param string|array $ids
+     * @param array        $related
+     * @param array        $criteria
+     *
+     * @return mixed
+     */
+    public static function selectByIds( $ids, array $related = [ ], array $criteria = [ ] )
+    {
+        if ( empty( $criteria ) )
+        {
+            $criteria['select'] = [ '*' ];
+        }
+
+        if ( is_array( $ids ) )
+        {
+            $ids = implode( ',', $ids );
+        }
+
+        if ( !empty( $ids ) )
+        {
+            $pk = static::getPrimaryKeyStatic();
+            $idsPhrase = " $pk IN ($ids) ";
+
+            $condition = ArrayUtils::get( $criteria, 'condition' );
+
+            if ( !empty( $condition ) )
+            {
+                $condition .= ' AND ' . $idsPhrase;
+            }
+            else
+            {
+                $condition = $idsPhrase;
+            }
+
+            ArrayUtils::set( $criteria, 'condition', $condition );
+        }
+
+        $data = static::selectByRequest( $criteria, $related );
+
+        return $data;
+    }
+
+    /**
      * Performs a SELECT query based on
      * query criteria supplied from api request.
      *
-     * @param null  $criteria
+     * @param array $criteria
      * @param array $related
      *
      * @return array
      */
-    public function selectResponse( $criteria = null, $related = [ ] )
+    public static function selectByRequest( array $criteria = [ ], array $related = [ ] )
     {
-        if ( empty( $criteria ) )
-        {
-            $collections = $this->all();
-        }
-        else
-        {
-            if ( !empty( $criteria['select'] ) )
-            {
-                $_fields = explode( ',', $criteria['select'] );
+        $pk = static::getPrimaryKeyStatic();
+        $selection = ArrayUtils::get( $criteria, 'select' );
+        $condition = ArrayUtils::get( $criteria, 'condition' );
+        $limit = ArrayUtils::get( $criteria, 'limit', \Config::get( 'rave.db_max_records_returned' ) );
+        $offset = ArrayUtils::get( $criteria, 'offset', 0 );
+        $orderBy = ArrayUtils::get( $criteria, 'order', "$pk asc" );
+        $orders = explode( ',', $orderBy );
 
-                $collections = $this->with( $related )->get( $_fields );
+        if ( !empty( $selection ) )
+        {
+            if ( !empty( $condition ) )
+            {
+                $builder = static::whereRaw( $condition )->with( $related )->skip( $offset )->take( $limit );
             }
             else
             {
-                // todo fix this
-                $collections = $this->all();
+                $builder = static::with( $related )->skip( $offset )->take( $limit );
             }
+
+            foreach($orders as $order)
+            {
+                $order = trim($order);
+                list($column, $direction) = explode(' ', $order);
+                $builder = $builder->orderBy($column, $direction);
+            }
+
+            $collections = $builder->get( $selection );
+        }
+        //This should never happen as $criteria['select'] is always '*' by default.
+        else
+        {
+            $collections = static::skip( $offset )->take( $limit )->all();
         }
 
         $result = $collections->toArray();
@@ -469,7 +997,7 @@ class BaseModel extends Model
         $rf = null;
         foreach ( $references as $item )
         {
-            if ( $item->refTable === $table && $table.'_by_'.$item->refFields === $name )
+            if ( $item->refTable === $table && $table . '_by_' . $item->refFields === $name )
             {
                 $rf = $item->refFields;
                 break;
@@ -575,6 +1103,18 @@ class BaseModel extends Model
     public function getPrimaryKey()
     {
         return $this->primaryKey;
+    }
+
+    /**
+     * A static method to get the primary key
+     *
+     * @return string
+     */
+    public static function getPrimaryKeyStatic()
+    {
+        $m = new static;
+
+        return $m->getPrimaryKey();
     }
 
     /**
@@ -750,7 +1290,7 @@ class BaseModel extends Model
                         case RelationSchema::MANY_MANY:
                             $pivot = substr( $relation->join, 0, strpos( $relation->join, '(' ) );
                             $pivotModel = static::tableNameToModel( $pivot );
-                            $pivotModel = static::getModelBaseName($pivotModel);
+                            $pivotModel = static::getModelBaseName( $pivotModel );
                             $pivotModel = empty( $pivotModel ) ? $pivot : $pivotModel;
 
                             if ( $this->isFillable( $relation->name ) )
@@ -779,7 +1319,7 @@ class BaseModel extends Model
 
             if ( empty( $name ) )
             {
-                $name = static::getModelBaseName(basename( get_class( $this ) ));
+                $name = static::getModelBaseName( basename( get_class( $this ) ) );
             }
 
             return [

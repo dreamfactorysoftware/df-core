@@ -31,6 +31,7 @@ use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\BaseSystemModel;
 use Illuminate\Database\Eloquent\Collection;
+use DreamFactory\Rave\Utility\Session as SessionUtil;
 
 /**
  * Class BaseSystemResource
@@ -101,6 +102,137 @@ class BaseSystemResource extends BaseRestResource
     }
 
     /**
+     * Retrieves records by id.
+     *
+     * @param integer $id
+     * @param array   $related
+     *
+     * @return array
+     */
+    protected function retrieveById( $id, array $related = [ ] )
+    {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
+        $criteria = $this->getSelectionCriteria();
+        $fields = ArrayUtils::get( $criteria, 'select' );
+        $data = $modelClass::selectById( $id, $related, $fields );
+
+        return $data;
+    }
+
+    /**
+     * Retrieves records by ids.
+     *
+     * @param mixed $ids
+     * @param array $related
+     *
+     * @return array
+     */
+    protected function retrieveByIds( $ids, array $related = [ ] )
+    {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
+        $criteria = $this->getSelectionCriteria();
+        $data = $modelClass::selectByIds( $ids, $related, $criteria );
+        $data = [ self::RECORD_WRAPPER => $data ];
+
+        return $data;
+    }
+
+    protected function retrieveByRecords( array $records, array $related = [ ] )
+    {
+        /** @var BaseSystemModel $model */
+        $model = $this->getModel();
+        $pk = $model->getPrimaryKey();
+        $ids = [ ];
+        foreach ( $records as $record )
+        {
+            $ids[] = ArrayUtils::get( $record, $pk );
+        }
+
+        return $this->retrieveByIds( $ids, $related );
+    }
+
+    /**
+     * Retrieves records by criteria/filters.
+     *
+     * @param array $related
+     *
+     * @return array
+     */
+    protected function retrieveByRequest( array $related = [ ] )
+    {
+        /** @var BaseSystemModel $model */
+        $modelClass = $this->model;
+        $criteria = $this->getSelectionCriteria();
+        $data = $modelClass::selectByRequest( $criteria, $related );
+        $data = [ static::RECORD_WRAPPER => $data ];
+
+        return $data;
+    }
+
+    /**
+     * Builds the selection criteria from request and returns it.
+     *
+     * @return array
+     */
+    protected function getSelectionCriteria()
+    {
+        $criteria = [
+            'params' => [ ]
+        ];
+
+        if ( null !== ( $value = $this->request->getParameter( 'fields' ) ) )
+        {
+            $criteria['select'] = explode(',', $value);
+        }
+        else
+        {
+            $criteria['select'] = ['*'];
+        }
+
+        if ( null !== ( $value = $this->request->getPayloadData( 'params' ) ) )
+        {
+            $criteria['params'] = $value;
+        }
+
+        if ( null !== ( $value = $this->request->getParameter( 'filter' ) ) )
+        {
+            $criteria['condition'] = $value;
+
+            //	Add current user ID into parameter array if in condition, but not specified.
+            if ( false !== stripos( $value, ':user_id' ) )
+            {
+                if ( !isset( $criteria['params'][':user_id'] ) )
+                {
+                    $criteria['params'][':user_id'] = SessionUtil::getCurrentUserId();
+                }
+            }
+        }
+
+        $value = intval( $this->request->getParameter( 'limit' ) );
+        $maxAllowed = intval( \Config::get( 'rave.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
+        if ( ( $value < 1 ) || ( $value > $maxAllowed ) )
+        {
+            // impose a limit to protect server
+            $value = $maxAllowed;
+        }
+        $criteria['limit'] = $value;
+
+        if ( null !== ( $value = $this->request->getParameter( 'offset' ) ) )
+        {
+            $criteria['offset'] = $value;
+        }
+
+        if ( null !== ( $value = $this->request->getParameter( 'order' ) ) )
+        {
+            $criteria['order'] = $value;
+        }
+
+        return $criteria;
+    }
+
+    /**
      * Handles GET action
      *
      * @return array
@@ -123,102 +255,25 @@ class BaseSystemResource extends BaseRestResource
             $related = [ ];
         }
 
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = $this->model;
-        /** @var BaseSystemModel $model */
-        $model = $this->getModel();
-        $pk = $model->getPrimaryKey();
-
         //	Single resource by ID
         if ( !empty( $this->resource ) )
         {
-            $foundModel = $modelClass::with( $related )->find( $this->resource );
-            if ( $foundModel )
-            {
-                $data = $foundModel->toArray();
-            }
+            $data = $this->retrieveById( $this->resource, $related );
         }
         else if ( !empty( $ids ) )
         {
-            /** @var Collection $dataCol */
-            $dataCol = $modelClass::with( $related )->whereIn( $pk, explode( ',', $ids ) )->get();
-            $data = $dataCol->toArray();
-            $data = [ self::RECORD_WRAPPER => $data ];
+            $data = $this->retrieveByIds( $ids, $related );
         }
         else if ( !empty( $records ) )
         {
-            $pk = $model->getPrimaryKey();
-            $ids = [ ];
-
-            foreach ( $records as $record )
-            {
-                $ids[] = ArrayUtils::get( $record, $pk );
-            }
-
-            /** @var Collection $dataCol */
-            $dataCol = $modelClass::with( $related )->whereIn( $pk, $ids )->get();
-            $data = $dataCol->toArray();
-            $data = [ self::RECORD_WRAPPER => $data ];
+            $data = $this->retrieveByRecords( $records, $related );
         }
         else
         {
-            //	Build our criteria
-            $criteria = [
-                'params' => [ ],
-            ];
-
-            if ( null !== ( $value = $this->request->getParameter( 'fields' ) ) )
-            {
-                $criteria['select'] = $value;
-            }
-            else
-            {
-                $criteria['select'] = "*";
-            }
-
-            if ( null !== ( $value = $this->request->getPayloadData( 'params' ) ) )
-            {
-                $criteria['params'] = $value;
-            }
-
-            if ( null !== ( $value = $this->request->getParameter( 'filter' ) ) )
-            {
-                $criteria['condition'] = $value;
-
-                //	Add current user ID into parameter array if in condition, but not specified.
-                if ( false !== stripos( $value, ':user_id' ) )
-                {
-                    if ( !isset( $criteria['params'][':user_id'] ) )
-                    {
-                        //$criteria['params'][':user_id'] = Session::getCurrentUserId();
-                    }
-                }
-            }
-
-            $value = intval( $this->request->getParameter( 'limit' ) );
-            $maxAllowed = intval( \Config::get( 'rave.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
-            if ( ( $value < 1 ) || ( $value > $maxAllowed ) )
-            {
-                // impose a limit to protect server
-                $value = $maxAllowed;
-            }
-            $criteria['limit'] = $value;
-
-            if ( null !== ( $value = $this->request->getParameter( 'offset' ) ) )
-            {
-                $criteria['offset'] = $value;
-            }
-
-            if ( null !== ( $value = $this->request->getParameter( 'order' ) ) )
-            {
-                $criteria['order'] = $value;
-            }
-
-            $data = $model->selectResponse( $criteria, $related );
-            $data = [ static::RECORD_WRAPPER => $data ];
+            $data = $this->retrieveByRequest( $related );
         }
 
-        if ( null === $data )
+        if ( empty($data) )
         {
             throw new NotFoundException( "Record not found." );
         }
@@ -237,6 +292,8 @@ class BaseSystemResource extends BaseRestResource
 
         if ( !empty( $data ) && $this->request->getParameterAsBool( 'include_schema' ) === true )
         {
+            /** @var BaseSystemModel $model */
+            $model = $this->getModel();
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
 
@@ -288,6 +345,56 @@ class BaseSystemResource extends BaseRestResource
     }
 
     /**
+     * Updates record by id.
+     *
+     * @param BaseSystemModel $modelClass
+     * @param                 $id
+     * @param                 $record
+     * @param array           $params
+     *
+     * @return mixed
+     */
+    protected static function updateById( $modelClass, $id, $record, array $params = [ ] )
+    {
+        $result = $modelClass::updateById( $id, $record, $params );
+
+        return $result;
+    }
+
+    /**
+     * Updates records by ids.
+     *
+     * @param BaseSystemModel $modelClass
+     * @param                 $ids
+     * @param                 $record
+     * @param array           $params
+     *
+     * @return mixed
+     */
+    protected static function updateByIds( $modelClass, $ids, $record, array $params = [ ] )
+    {
+        $result = $modelClass::updateByIds( $ids, $record, $params );
+
+        return $result;
+    }
+
+    /**
+     * Bulk updates records.
+     *
+     * @param BaseSystemModel $modelClass
+     * @param                 $records
+     * @param array           $params
+     *
+     * @return mixed
+     */
+    protected static function bulkUpdate( $modelClass, $records, array $params = [ ] )
+    {
+        $result = $modelClass::bulkUpdate( $records, $params );
+
+        return $result;
+    }
+
+    /**
      * Handles PATCH action
      *
      * @return \DreamFactory\Rave\Utility\ServiceResponse
@@ -298,6 +405,7 @@ class BaseSystemResource extends BaseRestResource
     {
         $records = $this->getPayloadData( static::RECORD_WRAPPER );
         $ids = $this->request->getParameter( 'ids' );
+        /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
 
         if ( empty( $records ) )
@@ -309,16 +417,64 @@ class BaseSystemResource extends BaseRestResource
 
         if ( !empty( $this->resource ) )
         {
-            $result = $modelClass::updateById( $this->resource, $records[0], $this->request->getParameters() );
+            $result = static::updateById( $modelClass, $this->resource, $records[0], $this->request->getParameters() );
         }
         elseif ( !empty( $ids ) )
         {
-            $result = $modelClass::updateByIds( $ids, $records[0], $this->request->getParameters() );
+            $result = static::updateByIds( $modelClass, $ids, $records[0], $this->request->getParameters() );
         }
         else
         {
-            $result = $modelClass::bulkUpdate( $records, $this->request->getParameters() );
+            $result = static::bulkUpdate( $modelClass, $records, $this->request->getParameters() );
         }
+
+        return $result;
+    }
+
+    /**
+     * Deletes a record by id.
+     *
+     * @param BaseSystemModel $modelClass
+     * @param                 $id
+     * @param array           $params
+     *
+     * @return mixed
+     */
+    public static function deleteById( $modelClass, $id, array $params = [ ] )
+    {
+        $result = $modelClass::deleteById( $id, $params );
+
+        return $result;
+    }
+
+    /**
+     * Deletes records by ids.
+     *
+     * @param BaseSystemModel $modelClass
+     * @param                 $ids
+     * @param array           $params
+     *
+     * @return mixed
+     */
+    public static function deleteByIds( $modelClass, $ids, array $params = [ ] )
+    {
+        $result = $modelClass::deleteByIds( $ids, $params );
+
+        return $result;
+    }
+
+    /**
+     * Deletes records.
+     *
+     * @param BaseSystemModel $modelClass
+     * @param                 $records
+     * @param array           $params
+     *
+     * @return mixed
+     */
+    public static function bulkDelete( $modelClass, $records, array $params = [ ] )
+    {
+        $result = $modelClass::bulkDelete( $records, $params );
 
         return $result;
     }
@@ -334,15 +490,16 @@ class BaseSystemResource extends BaseRestResource
     {
         $this->triggerActionEvent( $this->response );
         $ids = $this->request->getParameter( 'ids' );
+        /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
 
         if ( !empty( $this->resource ) )
         {
-            $result = $modelClass::deleteById( $this->resource, $this->request->getParameters() );
+            $result = static::deleteById( $modelClass, $this->resource, $this->request->getParameters() );
         }
         elseif ( !empty( $ids ) )
         {
-            $result = $modelClass::deleteByIds( $ids, $this->request->getParameters() );
+            $result = static::deleteByIds( $modelClass, $ids, $this->request->getParameters() );
         }
         else
         {
@@ -352,7 +509,7 @@ class BaseSystemResource extends BaseRestResource
             {
                 throw new BadRequestException( 'No record(s) detected in request.' );
             }
-            $result = $modelClass::bulkDelete( $records, $this->request->getParameters() );
+            $result = static::bulkDelete( $modelClass, $records, $this->request->getParameters() );
         }
 
         return $result;

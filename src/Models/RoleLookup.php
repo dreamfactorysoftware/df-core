@@ -20,7 +20,6 @@
 
 namespace DreamFactory\Rave\Models;
 
-use Illuminate\Support\Facades\Crypt;
 use DreamFactory\Rave\Utility\Cache as CacheUtil;
 
 /**
@@ -41,7 +40,7 @@ use DreamFactory\Rave\Utility\Cache as CacheUtil;
  * @method static \Illuminate\Database\Query\Builder|RoleLookup whereCreatedDate( $value )
  * @method static \Illuminate\Database\Query\Builder|RoleLookup whereLastModifiedDate( $value )
  */
-class RoleLookup extends BaseModel
+class RoleLookup extends BaseSystemModel
 {
     use LookupTrait;
 

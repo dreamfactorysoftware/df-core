@@ -22,7 +22,7 @@ namespace DreamFactory\Rave\Models;
 
 use DreamFactory\Rave\Utility\Cache as CacheUtil;
 
-class AppLookup extends BaseModel
+class AppLookup extends BaseSystemModel
 {
     use LookupTrait;
 

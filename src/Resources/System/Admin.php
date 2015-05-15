@@ -20,6 +20,47 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
+use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Rave\Models\BaseSystemModel;
+
 class Admin extends BaseSystemResource
 {
+    /**
+     * {@inheritdoc}
+     */
+    protected function retrieveById( $id, array $related = [ ] )
+    {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
+        $criteria = $this->getSelectionCriteria();
+        $fields = ArrayUtils::get( $criteria, 'select' );
+        $model = $modelClass::whereIsSysAdmin(1)->with($related)->find($id, $fields);
+
+        $data = (!empty($model))? $model->toArray() : [];
+
+        return $data;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getSelectionCriteria()
+    {
+        $criteria = parent::getSelectionCriteria();
+
+        $condition = ArrayUtils::get( $criteria, 'condition' );
+
+        if ( !empty( $condition ) )
+        {
+            $condition .= ' AND is_sys_admin = "1" ';
+        }
+        else
+        {
+            $condition = ' is_sys_admin = "1" ';
+        }
+
+        ArrayUtils::set( $criteria, 'condition', $condition );
+
+        return $criteria;
+    }
 }

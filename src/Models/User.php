@@ -17,7 +17,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 namespace DreamFactory\Rave\Models;
 
 use Illuminate\Auth\Authenticatable;
@@ -29,6 +28,29 @@ use DreamFactory\DSP\OAuth\Services\BaseOAuthService;
 use DreamFactory\DSP\ADLdap\Contracts\User as LdapUserContract;
 use DreamFactory\DSP\ADLdap\Services\LDAP as LdapService;
 
+/**
+ * User
+ *
+ * @property integer $id
+ * @property string  $name
+ * @property string  $first_name
+ * @property string  $last_name
+ * @property string  $email
+ * @property string  $description
+ * @property boolean $is_active
+ * @property integer $role_id
+ * @property string  $created_date
+ * @property string  $last_modified_date
+ * @method static \Illuminate\Database\Query\Builder|User whereId( $value )
+ * @method static \Illuminate\Database\Query\Builder|User whereName( $value )
+ * @method static \Illuminate\Database\Query\Builder|User whereFirstName( $value )
+ * @method static \Illuminate\Database\Query\Builder|User whereLastName( $value )
+ * @method static \Illuminate\Database\Query\Builder|User whereEmail( $value )
+ * @method static \Illuminate\Database\Query\Builder|User whereIsActive( $value )
+ * @method static \Illuminate\Database\Query\Builder|User whereRoleId( $value )
+ * @method static \Illuminate\Database\Query\Builder|User whereCreatedDate( $value )
+ * @method static \Illuminate\Database\Query\Builder|User whereLastModifiedDate( $value )
+ */
 class User extends BaseSystemModel implements AuthenticatableContract, CanResetPasswordContract
 {
 
@@ -67,11 +89,6 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      * @var array
      */
     protected $hidden = [ 'password', 'remember_token' ];
-
-    protected static $tableToModelMap = [
-        'user_to_app_to_role' => 'DreamFactory\Rave\Models\UserAppRole',
-        'user_lookup'         => 'DreamFactory\Rave\Models\UserLookup'
-    ];
 
     /**
      * If does not exists, creates a shadow OAuth user using user info provided

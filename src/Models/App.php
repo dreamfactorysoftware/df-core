@@ -17,9 +17,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 namespace DreamFactory\Rave\Models;
 
+/**
+ * App
+ *
+ * @property integer $id
+ * @property string  $name
+ * @property string  $api_key
+ * @property string  $description
+ * @property boolean $is_active
+ * @property integer $role_id
+ * @property string  $created_date
+ * @property string  $last_modified_date
+ * @method static \Illuminate\Database\Query\Builder|App whereId( $value )
+ * @method static \Illuminate\Database\Query\Builder|App whereName( $value )
+ * @method static \Illuminate\Database\Query\Builder|App whereApiKey( $value )
+ * @method static \Illuminate\Database\Query\Builder|App whereIsActive( $value )
+ * @method static \Illuminate\Database\Query\Builder|App whereRoleId( $value )
+ * @method static \Illuminate\Database\Query\Builder|App whereCreatedDate( $value )
+ * @method static \Illuminate\Database\Query\Builder|App whereLastModifiedDate( $value )
+ */
 class App extends BaseSystemModel
 {
     protected $table = 'app';
@@ -38,13 +56,6 @@ class App extends BaseSystemModel
         'allow_fullscreen_toggle',
         'toggle_location',
         'role_id'
-    ];
-
-    protected static $tableToModelMap = [
-        'role'             => 'DreamFactory\Rave\Models\Role',
-        'user_to_app_role' => 'DreamFactory\Rave\Models\UserAppRole',
-        'app_to_app_group' => 'DreamFactory\Rave\Models\AppToAppGroup',
-        'app_lookup'       => 'DreamFactory\Rave\Models\AppLookup'
     ];
 
     public static function generateApiKey( $name )

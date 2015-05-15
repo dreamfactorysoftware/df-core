@@ -17,10 +17,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 namespace DreamFactory\Rave\Models;
 
-
+/**
+ * UserAppRole
+ *
+ * @property integer $user_id
+ * @property integer $app_id
+ * @property integer $role_id
+ * @method static \Illuminate\Database\Query\Builder|User whereUserId( $value )
+ * @method static \Illuminate\Database\Query\Builder|User whereAppId( $value )
+ * @method static \Illuminate\Database\Query\Builder|User whereRoleId( $value )
+ */
 class UserAppRole extends BaseModel
 {
     protected $table = 'user_to_app_to_role';

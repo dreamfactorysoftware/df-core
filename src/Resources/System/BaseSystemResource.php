@@ -184,11 +184,11 @@ class BaseSystemResource extends BaseRestResource
 
         if ( null !== ( $value = $this->request->getParameter( 'fields' ) ) )
         {
-            $criteria['select'] = explode(',', $value);
+            $criteria['select'] = explode( ',', $value );
         }
         else
         {
-            $criteria['select'] = ['*'];
+            $criteria['select'] = [ '*' ];
         }
 
         if ( null !== ( $value = $this->request->getPayloadData( 'params' ) ) )
@@ -273,7 +273,7 @@ class BaseSystemResource extends BaseRestResource
             $data = $this->retrieveByRequest( $related );
         }
 
-        if ( empty($data) )
+        if ( empty( $data ) )
         {
             throw new NotFoundException( "Record not found." );
         }
@@ -347,15 +347,16 @@ class BaseSystemResource extends BaseRestResource
     /**
      * Updates record by id.
      *
-     * @param BaseSystemModel $modelClass
-     * @param                 $id
-     * @param                 $record
-     * @param array           $params
+     * @param integer $id
+     * @param array   $record
+     * @param array   $params
      *
      * @return mixed
      */
-    protected static function updateById( $modelClass, $id, $record, array $params = [ ] )
+    protected function updateById( $id, array $record, array $params = [ ] )
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
         $result = $modelClass::updateById( $id, $record, $params );
 
         return $result;
@@ -364,15 +365,16 @@ class BaseSystemResource extends BaseRestResource
     /**
      * Updates records by ids.
      *
-     * @param BaseSystemModel $modelClass
-     * @param                 $ids
-     * @param                 $record
-     * @param array           $params
+     * @param array|string $ids
+     * @param array        $record
+     * @param array        $params
      *
      * @return mixed
      */
-    protected static function updateByIds( $modelClass, $ids, $record, array $params = [ ] )
+    protected function updateByIds( $ids, array $record, array $params = [ ] )
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
         $result = $modelClass::updateByIds( $ids, $record, $params );
 
         return $result;
@@ -381,14 +383,15 @@ class BaseSystemResource extends BaseRestResource
     /**
      * Bulk updates records.
      *
-     * @param BaseSystemModel $modelClass
      * @param                 $records
      * @param array           $params
      *
      * @return mixed
      */
-    protected static function bulkUpdate( $modelClass, $records, array $params = [ ] )
+    protected function bulkUpdate( array $records, array $params = [ ] )
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
         $result = $modelClass::bulkUpdate( $records, $params );
 
         return $result;
@@ -405,8 +408,6 @@ class BaseSystemResource extends BaseRestResource
     {
         $records = $this->getPayloadData( static::RECORD_WRAPPER );
         $ids = $this->request->getParameter( 'ids' );
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = $this->model;
 
         if ( empty( $records ) )
         {
@@ -417,15 +418,15 @@ class BaseSystemResource extends BaseRestResource
 
         if ( !empty( $this->resource ) )
         {
-            $result = static::updateById( $modelClass, $this->resource, $records[0], $this->request->getParameters() );
+            $result = $this->updateById( $this->resource, $records[0], $this->request->getParameters() );
         }
         elseif ( !empty( $ids ) )
         {
-            $result = static::updateByIds( $modelClass, $ids, $records[0], $this->request->getParameters() );
+            $result = $this->updateByIds( $ids, $records[0], $this->request->getParameters() );
         }
         else
         {
-            $result = static::bulkUpdate( $modelClass, $records, $this->request->getParameters() );
+            $result = $this->bulkUpdate( $records, $this->request->getParameters() );
         }
 
         return $result;
@@ -434,14 +435,15 @@ class BaseSystemResource extends BaseRestResource
     /**
      * Deletes a record by id.
      *
-     * @param BaseSystemModel $modelClass
-     * @param                 $id
-     * @param array           $params
+     * @param integer $id
+     * @param array   $params
      *
      * @return mixed
      */
-    public static function deleteById( $modelClass, $id, array $params = [ ] )
+    public function deleteById( $id, array $params = [ ] )
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
         $result = $modelClass::deleteById( $id, $params );
 
         return $result;
@@ -450,14 +452,15 @@ class BaseSystemResource extends BaseRestResource
     /**
      * Deletes records by ids.
      *
-     * @param BaseSystemModel $modelClass
-     * @param                 $ids
-     * @param array           $params
+     * @param array|string $ids
+     * @param array        $params
      *
      * @return mixed
      */
-    public static function deleteByIds( $modelClass, $ids, array $params = [ ] )
+    public function deleteByIds( $ids, array $params = [ ] )
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
         $result = $modelClass::deleteByIds( $ids, $params );
 
         return $result;
@@ -466,14 +469,15 @@ class BaseSystemResource extends BaseRestResource
     /**
      * Deletes records.
      *
-     * @param BaseSystemModel $modelClass
-     * @param                 $records
-     * @param array           $params
+     * @param array $records
+     * @param array $params
      *
      * @return mixed
      */
-    public static function bulkDelete( $modelClass, $records, array $params = [ ] )
+    public function bulkDelete( array $records, array $params = [ ] )
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
         $result = $modelClass::bulkDelete( $records, $params );
 
         return $result;
@@ -490,16 +494,14 @@ class BaseSystemResource extends BaseRestResource
     {
         $this->triggerActionEvent( $this->response );
         $ids = $this->request->getParameter( 'ids' );
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = $this->model;
 
         if ( !empty( $this->resource ) )
         {
-            $result = static::deleteById( $modelClass, $this->resource, $this->request->getParameters() );
+            $result = $this->deleteById( $this->resource, $this->request->getParameters() );
         }
         elseif ( !empty( $ids ) )
         {
-            $result = static::deleteByIds( $modelClass, $ids, $this->request->getParameters() );
+            $result = $this->deleteByIds( $ids, $this->request->getParameters() );
         }
         else
         {
@@ -509,7 +511,8 @@ class BaseSystemResource extends BaseRestResource
             {
                 throw new BadRequestException( 'No record(s) detected in request.' );
             }
-            $result = static::bulkDelete( $modelClass, $records, $this->request->getParameters() );
+
+            $result = $this->bulkDelete( $records, $this->request->getParameters() );
         }
 
         return $result;

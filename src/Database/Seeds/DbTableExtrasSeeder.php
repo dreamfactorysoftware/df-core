@@ -37,6 +37,10 @@ class DbTableExtrasSeeder extends BaseModelSeeder
             'model'      => '\\DreamFactory\\Rave\\Models\\UserLookup',
         ],
         [
+            'table'      => 'user_to_app_to_role',
+            'model'      => '\\DreamFactory\\Rave\\Models\\UserAppRole',
+        ],
+        [
             'table'      => 'service',
             'model'      => '\\DreamFactory\\Rave\\Models\\Service',
         ],

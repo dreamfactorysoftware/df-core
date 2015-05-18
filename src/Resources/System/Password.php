@@ -20,7 +20,9 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
-class Password extends BaseSystemResource
+use DreamFactory\Rave\Resources\UserPasswordResource;
+
+class Password extends UserPasswordResource
 {
-    const RESOURCE_NAME = 'password';
+
 }

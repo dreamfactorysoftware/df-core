@@ -22,13 +22,10 @@ namespace DreamFactory\Rave\Resources\System;
 
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Exceptions\UnauthorizedException;
+use DreamFactory\Rave\Resources\UserSessionResource;
 
-class Session extends BaseSystemResource
+class Session extends UserSessionResource
 {
-    const RESOURCE_NAME = 'session';
-
-    use UserSessionTrait;
-
     /**
      * Authenticates valid user.
      *

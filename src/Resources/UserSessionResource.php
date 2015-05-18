@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources\System;
+namespace DreamFactory\Rave\Resources;
 
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Exceptions\UnauthorizedException;
@@ -26,8 +26,10 @@ use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Utility\Session as SessionUtil;
 use Carbon\Carbon;
 
-trait UserSessionTrait
+class UserSessionResource extends BaseRestResource
 {
+    const RESOURCE_NAME = 'session';
+
     /**
      * Gets basic user session data.
      *

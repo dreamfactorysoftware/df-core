@@ -848,11 +848,11 @@ class BaseModel extends Model
                 $builder = static::with( $related )->skip( $offset )->take( $limit );
             }
 
-            foreach($orders as $order)
+            foreach ( $orders as $order )
             {
-                $order = trim($order);
-                list($column, $direction) = explode(' ', $order);
-                $builder = $builder->orderBy($column, $direction);
+                $order = trim( $order );
+                list( $column, $direction ) = explode( ' ', $order );
+                $builder = $builder->orderBy( $column, $direction );
             }
 
             $collections = $builder->get( $selection );

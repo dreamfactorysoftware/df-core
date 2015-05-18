@@ -30,7 +30,6 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\BaseSystemModel;
-use Illuminate\Database\Eloquent\Collection;
 use DreamFactory\Rave\Utility\Session as SessionUtil;
 
 /**
@@ -306,6 +305,23 @@ class BaseSystemResource extends BaseRestResource
     }
 
     /**
+     * Creates new records in bulk.
+     *
+     * @param array $records
+     * @param array $params
+     *
+     * @return mixed
+     */
+    protected function bulkCreate( array $records, array $params = [ ] )
+    {
+        /** @var BaseSystemModel $model */
+        $modelClass = $this->model;
+        $result = $modelClass::bulkCreate( $records, $params );
+
+        return $result;
+    }
+
+    /**
      * Handles POST action
      *
      * @return \DreamFactory\Rave\Utility\ServiceResponse
@@ -328,8 +344,7 @@ class BaseSystemResource extends BaseRestResource
 
         $this->triggerActionEvent( $this->response );
 
-        $modelClass = $this->model;
-        $result = $modelClass::bulkCreate( $records, $this->request->getParameters() );
+        $result = $this->bulkCreate( $records, $this->request->getParameters() );
 
         $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
 
@@ -440,7 +455,7 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return mixed
      */
-    public function deleteById( $id, array $params = [ ] )
+    protected function deleteById( $id, array $params = [ ] )
     {
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
@@ -457,7 +472,7 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return mixed
      */
-    public function deleteByIds( $ids, array $params = [ ] )
+    protected function deleteByIds( $ids, array $params = [ ] )
     {
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
@@ -474,7 +489,7 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return mixed
      */
-    public function bulkDelete( array $records, array $params = [ ] )
+    protected function bulkDelete( array $records, array $params = [ ] )
     {
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;

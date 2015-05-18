@@ -19,6 +19,7 @@
  */
 namespace DreamFactory\Rave\Models;
 
+use DreamFactory\Library\Utility\ArrayUtils;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
@@ -88,7 +89,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      *
      * @var array
      */
-    protected $hidden = [ 'password', 'remember_token' ];
+    protected $hidden = [ 'is_sys_admin', 'password', 'remember_token' ];
 
     /**
      * If does not exists, creates a shadow OAuth user using user info provided
@@ -239,6 +240,11 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         return true;
     }
 
+    /**
+     * @param $value
+     *
+     * @return string
+     */
     public function getEmailAttribute( $value )
     {
         if ( false !== strpos( $value, '+' ) )
@@ -250,5 +256,28 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
 
         return $value;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected static function createInternal( $record, $params = [ ] )
+    {
+        try
+        {
+            $model = static::create( $record );
+
+            if ( true === ArrayUtils::getBool( $params, 'admin' ) && true === ArrayUtils::getBool( $record, 'is_sys_admin' ) )
+            {
+                $model->is_sys_admin = 1;
+                $model->save();
+            }
+        }
+        catch ( \PDOException $e )
+        {
+            throw $e;
+        }
+
+        return static::buildResult( $model, $params );
     }
 }

@@ -26,12 +26,11 @@ use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Resources\BaseRestResource;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\BaseSystemModel;
-use Illuminate\Database\Eloquent\Collection;
 use DreamFactory\Rave\Utility\Session as SessionUtil;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
  * Class BaseSystemResource

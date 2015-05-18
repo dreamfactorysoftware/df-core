@@ -25,11 +25,11 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Resources\BaseRestResource;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\BaseSystemModel;
-use Illuminate\Database\Eloquent\Collection;
+use DreamFactory\Rave\Utility\Session as SessionUtil;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
  * Class ReadOnlySystemResource
@@ -100,6 +100,137 @@ class ReadOnlySystemResource extends BaseRestResource
     }
 
     /**
+     * Retrieves records by id.
+     *
+     * @param integer $id
+     * @param array   $related
+     *
+     * @return array
+     */
+    protected function retrieveById( $id, array $related = [ ] )
+    {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
+        $criteria = $this->getSelectionCriteria();
+        $fields = ArrayUtils::get( $criteria, 'select' );
+        $data = $modelClass::selectById( $id, $related, $fields );
+
+        return $data;
+    }
+
+    /**
+     * Retrieves records by ids.
+     *
+     * @param mixed $ids
+     * @param array $related
+     *
+     * @return array
+     */
+    protected function retrieveByIds( $ids, array $related = [ ] )
+    {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
+        $criteria = $this->getSelectionCriteria();
+        $data = $modelClass::selectByIds( $ids, $related, $criteria );
+        $data = [ self::RECORD_WRAPPER => $data ];
+
+        return $data;
+    }
+
+    protected function retrieveByRecords( array $records, array $related = [ ] )
+    {
+        /** @var BaseSystemModel $model */
+        $model = $this->getModel();
+        $pk = $model->getPrimaryKey();
+        $ids = [ ];
+        foreach ( $records as $record )
+        {
+            $ids[] = ArrayUtils::get( $record, $pk );
+        }
+
+        return $this->retrieveByIds( $ids, $related );
+    }
+
+    /**
+     * Retrieves records by criteria/filters.
+     *
+     * @param array $related
+     *
+     * @return array
+     */
+    protected function retrieveByRequest( array $related = [ ] )
+    {
+        /** @var BaseSystemModel $model */
+        $modelClass = $this->model;
+        $criteria = $this->getSelectionCriteria();
+        $data = $modelClass::selectByRequest( $criteria, $related );
+        $data = [ static::RECORD_WRAPPER => $data ];
+
+        return $data;
+    }
+
+    /**
+     * Builds the selection criteria from request and returns it.
+     *
+     * @return array
+     */
+    protected function getSelectionCriteria()
+    {
+        $criteria = [
+            'params' => [ ]
+        ];
+
+        if ( null !== ( $value = $this->request->getParameter( 'fields' ) ) )
+        {
+            $criteria['select'] = explode( ',', $value );
+        }
+        else
+        {
+            $criteria['select'] = [ '*' ];
+        }
+
+        if ( null !== ( $value = $this->request->getPayloadData( 'params' ) ) )
+        {
+            $criteria['params'] = $value;
+        }
+
+        if ( null !== ( $value = $this->request->getParameter( 'filter' ) ) )
+        {
+            $criteria['condition'] = $value;
+
+            //	Add current user ID into parameter array if in condition, but not specified.
+            if ( false !== stripos( $value, ':user_id' ) )
+            {
+                if ( !isset( $criteria['params'][':user_id'] ) )
+                {
+                    $criteria['params'][':user_id'] = SessionUtil::getCurrentUserId();
+                }
+            }
+        }
+
+        $value = intval( $this->request->getParameter( 'limit' ) );
+        $maxAllowed = intval( \Config::get( 'rave.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
+        if ( ( $value < 1 ) || ( $value > $maxAllowed ) )
+        {
+            // impose a limit to protect server
+            $value = $maxAllowed;
+        }
+        $criteria['limit'] = $value;
+
+        if ( null !== ( $value = $this->request->getParameter( 'offset' ) ) )
+        {
+            $criteria['offset'] = $value;
+        }
+
+        if ( null !== ( $value = $this->request->getParameter( 'order' ) ) )
+        {
+            $criteria['order'] = $value;
+        }
+
+        return $criteria;
+    }
+
+    /**
      * Handles GET action
      *
      * @return array
@@ -122,102 +253,25 @@ class ReadOnlySystemResource extends BaseRestResource
             $related = [ ];
         }
 
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = $this->model;
-        /** @var BaseSystemModel $model */
-        $model = $this->getModel();
-        $pk = $model->getPrimaryKey();
-
         //	Single resource by ID
         if ( !empty( $this->resource ) )
         {
-            $foundModel = $modelClass::with( $related )->find( $this->resource );
-            if ( $foundModel )
-            {
-                $data = $foundModel->toArray();
-            }
+            $data = $this->retrieveById( $this->resource, $related );
         }
         else if ( !empty( $ids ) )
         {
-            /** @var Collection $dataCol */
-            $dataCol = $modelClass::with( $related )->whereIn( $pk, explode( ',', $ids ) )->get();
-            $data = $dataCol->toArray();
-            $data = [ self::RECORD_WRAPPER => $data ];
+            $data = $this->retrieveByIds( $ids, $related );
         }
         else if ( !empty( $records ) )
         {
-            $pk = $model->getPrimaryKey();
-            $ids = [ ];
-
-            foreach ( $records as $record )
-            {
-                $ids[] = ArrayUtils::get( $record, $pk );
-            }
-
-            /** @var Collection $dataCol */
-            $dataCol = $modelClass::with( $related )->whereIn( $pk, $ids )->get();
-            $data = $dataCol->toArray();
-            $data = [ self::RECORD_WRAPPER => $data ];
+            $data = $this->retrieveByRecords( $records, $related );
         }
         else
         {
-            //	Build our criteria
-            $criteria = [
-                'params' => [ ],
-            ];
-
-            if ( null !== ( $value = $this->request->getParameter( 'fields' ) ) )
-            {
-                $criteria['select'] = $value;
-            }
-            else
-            {
-                $criteria['select'] = "*";
-            }
-
-            if ( null !== ( $value = $this->request->getPayloadData( 'params' ) ) )
-            {
-                $criteria['params'] = $value;
-            }
-
-            if ( null !== ( $value = $this->request->getParameter( 'filter' ) ) )
-            {
-                $criteria['condition'] = $value;
-
-                //	Add current user ID into parameter array if in condition, but not specified.
-                if ( false !== stripos( $value, ':user_id' ) )
-                {
-                    if ( !isset( $criteria['params'][':user_id'] ) )
-                    {
-                        //$criteria['params'][':user_id'] = Session::getCurrentUserId();
-                    }
-                }
-            }
-
-            $value = intval( $this->request->getParameter( 'limit' ) );
-            $maxAllowed = intval( \Config::get( 'rave.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
-            if ( ( $value < 1 ) || ( $value > $maxAllowed ) )
-            {
-                // impose a limit to protect server
-                $value = $maxAllowed;
-            }
-            $criteria['limit'] = $value;
-
-            if ( null !== ( $value = $this->request->getParameter( 'offset' ) ) )
-            {
-                $criteria['offset'] = $value;
-            }
-
-            if ( null !== ( $value = $this->request->getParameter( 'order' ) ) )
-            {
-                $criteria['order'] = $value;
-            }
-
-            $data = $model->selectByRequest( $criteria, $related );
-            $data = [ static::RECORD_WRAPPER => $data ];
+            $data = $this->retrieveByRequest( $related );
         }
 
-        if ( null === $data )
+        if ( empty( $data ) )
         {
             throw new NotFoundException( "Record not found." );
         }
@@ -236,6 +290,8 @@ class ReadOnlySystemResource extends BaseRestResource
 
         if ( !empty( $data ) && $this->request->getParameterAsBool( 'include_schema' ) === true )
         {
+            /** @var BaseSystemModel $model */
+            $model = $this->getModel();
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
 
@@ -246,6 +302,7 @@ class ReadOnlySystemResource extends BaseRestResource
 
         return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_OK );
     }
+
 
     /**
      * Returns associated model with the service/resource.

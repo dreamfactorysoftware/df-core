@@ -22,10 +22,61 @@ namespace DreamFactory\Rave\Resources\System;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Exceptions\BadRequestException;
+use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Models\BaseSystemModel;
 
 class Admin extends BaseSystemResource
 {
+    protected $resources = [
+        Password::RESOURCE_NAME => [
+            'name'       => Password::RESOURCE_NAME,
+            'class_name' => 'DreamFactory\\Rave\\Resources\\System\\Password',
+            'label'      => 'Password'
+        ],
+        Session::RESOURCE_NAME  => [
+            'name'       => Session::RESOURCE_NAME,
+            'class_name' => 'DreamFactory\\Rave\\Resources\\System\\Session',
+            'label'      => 'Session'
+        ]
+    ];
+
+    public function getResources()
+    {
+        return $this->resources;
+    }
+
+    protected function handleResource( array $resources )
+    {
+        try
+        {
+            return parent::handleResource( $resources );
+        }
+        catch ( NotFoundException $e )
+        {
+            //  Perform any pre-request processing
+            $this->preProcess();
+
+            $this->response = $this->processRequest();
+
+            if ( false !== $this->response )
+            {
+                //  Perform any post-request processing
+                $this->postProcess();
+            }
+            //	Inherent failure?
+            if ( false === $this->response )
+            {
+                $what = ( !empty( $this->resourcePath ) ? " for resource '{$this->resourcePath}'" : ' without a resource' );
+                $message = ucfirst( $this->action ) . " requests $what are not currently supported by the '{$this->name}' service.";
+
+                throw new BadRequestException( $message );
+            }
+
+            //  Perform any response processing
+            return $this->respond();
+        }
+    }
+
     /**
      * {@inheritdoc}
      */

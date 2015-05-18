@@ -20,14 +20,15 @@
 
 namespace DreamFactory\Rave\Utility;
 
-use DreamFactory\Library\Utility\Enums\Verbs;
 use \Request;
+use Illuminate\Routing\Router;
+use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Exceptions\ForbiddenException;
 use DreamFactory\Rave\Enums\ServiceRequestorTypes;
 use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Models\User as DspUser;
-use Illuminate\Routing\Router;
+use DreamFactory\Rave\Exceptions\NotFoundException;
 
 class Session
 {
@@ -48,8 +49,8 @@ class Session
 
         /** @var Router $router */
         $router = app( 'router' );
-        $service = $router->input( 'service' );
-        $resource = $router->input( 'resource' );
+        $service = strtolower( $router->input( 'service' ) );
+        $resource = strtolower( $router->input( 'resource' ) );
         $action = VerbsMask::toNumeric( Request::getMethod() );
         $roleServiceAccess = session( 'rsa.role.services' );
 
@@ -133,7 +134,7 @@ class Session
             return VerbsMask::NONE_MASK | VerbsMask::GET_MASK | VerbsMask::POST_MASK | VerbsMask::PUT_MASK | VerbsMask::PATCH_MASK | VerbsMask::DELETE_MASK;
         }
 
-        $_services = ArrayUtils::clean(  session( 'rsa.role.services' ) );
+        $_services = ArrayUtils::clean( session( 'rsa.role.services' ) );
         $service = strval( $service );
         $component = strval( $component );
 
@@ -393,13 +394,50 @@ class Session
     }
 
     /**
+     * Fetches user session data based on the authenticated user.
+     *
+     * @return array
+     * @throws NotFoundException
+     */
+    public static function getUserInfo()
+    {
+        $user = \Auth::getUser();
+
+        if ( empty( $user ) )
+        {
+            throw new NotFoundException( 'No user session found.' );
+        }
+
+        $sessionData = [
+            'user_id'         => $user->id,
+            'session_id'      => \Session::getId(),
+            'name'            => $user->name,
+            'first_name'      => $user->first_name,
+            'last_name'       => $user->last_name,
+            'email'           => $user->email,
+            'is_sys_admin'    => $user->is_sys_admin,
+            'last_login_date' => $user->last_login_date,
+            'host'            => gethostname()
+        ];
+
+        if ( !$user->is_sys_admin )
+        {
+            $role = session( 'rsa.role' );
+            ArrayUtils::set( $sessionData, 'role', ArrayUtils::get( $role, 'name' ) );
+            ArrayUtils::set( $sessionData, 'rold_id', ArrayUtils::get( $role, 'id' ) );
+        }
+
+        return $sessionData;
+    }
+
+    /**
      * Gets user id of the currently logged in user.
      *
      * @return integer|null
      */
     public static function getCurrentUserId()
     {
-        if(\Auth::check())
+        if ( \Auth::check() )
         {
             return session( 'user_id' );
         }

@@ -25,6 +25,7 @@ use \Cache;
 use \Config;
 use \Closure;
 use \Session;
+use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Enums\ContentTypes;
 use DreamFactory\Rave\Exceptions\BadRequestException;
@@ -52,12 +53,18 @@ class AccessCheck
     {
         Session::put( 'is_sys_admin', 0 );
 
-        //Check to see if session ID is supplied for using an existing session.
-        $sessionId = $request->header('X_DREAMFACTORY_SESSION_TOKEN');
-
-        if(!empty($sessionId) && !Auth::check())
+        //Bypassing access check for admin login attempts using system/admin/session (POST)
+        if ( static::isAdminLogin() )
         {
-            if(Session::isValidId($sessionId))
+            return $next( $request );
+        }
+
+        //Check to see if session ID is supplied for using an existing session.
+        $sessionId = $request->header( 'X_DREAMFACTORY_SESSION_TOKEN' );
+
+        if ( !empty( $sessionId ) && !Auth::check() )
+        {
+            if ( Session::isValidId( $sessionId ) )
             {
                 Session::setId( $sessionId );
                 Session::start();
@@ -65,48 +72,48 @@ class AccessCheck
             }
         }
 
-        $apiKey = $request->query('api_key');
-        if(empty($apiKey))
+        $apiKey = $request->query( 'api_key' );
+        if ( empty( $apiKey ) )
         {
-            $apiKey = $request->header('X_DREAMFACTORY_API_KEY');
+            $apiKey = $request->header( 'X_DREAMFACTORY_API_KEY' );
         }
 
         $authenticated = Auth::check();
 
         //If not authenticated then check for HTTP Basic Auth request.
-        if(!$authenticated)
+        if ( !$authenticated )
         {
             Auth::onceBasic();
             $authenticated = Auth::check();
         }
 
-        if($authenticated)
+        if ( $authenticated )
         {
             /** @var User $authenticatedUser */
             $authenticatedUser = Auth::user();
         }
 
-        if($authenticated && $authenticatedUser->is_sys_admin)
+        if ( $authenticated && $authenticatedUser->is_sys_admin )
         {
             $appId = null;
-            if($apiKey)
+            if ( $apiKey )
             {
-                $app = App::whereApiKey($apiKey)->first();
+                $app = App::whereApiKey( $apiKey )->first();
                 $appId = $app->id;
             }
             Session::put( 'is_sys_admin', 1 );
-            SessionUtil::setLookupKeys(null, $authenticatedUser->id);
-            SessionUtil::setAppLookupKeys($appId);
+            SessionUtil::setLookupKeys( null, $authenticatedUser->id );
+            SessionUtil::setAppLookupKeys( $appId );
         }
-        else if(!empty($apiKey) && $authenticated && class_exists('\DreamFactory\Rave\User\Resources\System\User'))
+        else if ( !empty( $apiKey ) && $authenticated && class_exists( '\DreamFactory\Rave\User\Resources\System\User' ) )
         {
-            $cacheKey = CacheUtil::getApiKeyUserCacheKey($apiKey, $authenticatedUser->id);
+            $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey, $authenticatedUser->id );
 
-            $cacheData = Cache::get($cacheKey);
+            $cacheData = Cache::get( $cacheKey );
 
-            $roleData = (!empty($cacheData))? ArrayUtils::get($cacheData, 'role_data') : [];
+            $roleData = ( !empty( $cacheData ) ) ? ArrayUtils::get( $cacheData, 'role_data' ) : [ ];
 
-            if(empty($roleData))
+            if ( empty( $roleData ) )
             {
                 /** @var App $app */
                 $app = App::with(
@@ -118,95 +125,96 @@ class AccessCheck
                     ]
                 )->whereApiKey( $apiKey )->first();
 
-                if(empty($app))
+                if ( empty( $app ) )
                 {
-                    return static::getException(new UnauthorizedException('Unauthorized request. Invalid API Key.'), $request);
+                    return static::getException( new UnauthorizedException( 'Unauthorized request. Invalid API Key.' ), $request );
                 }
 
                 /** @var Role $role */
                 $role = $app->getRelation( 'role_by_user_to_app_to_role' )->first();
 
-                if(empty($role))
+                if ( empty( $role ) )
                 {
-                    $app->load('role_by_role_id');
+                    $app->load( 'role_by_role_id' );
                     /** @var Role $role */
                     $role = $app->getRelation( 'role_by_role_id' );
                 }
 
-                if(empty($role))
+                if ( empty( $role ) )
                 {
-                    return static::getException(new InternalServerErrorException('Unexpected error occurred. Role not found for Application.'), $request);
+                    return static::getException( new InternalServerErrorException( 'Unexpected error occurred. Role not found for Application.' ), $request );
                 }
 
                 $roleData = static::getRoleData( $role );
                 $cacheData = [
                     'role_data' => $roleData,
-                    'user_id' => $authenticatedUser->id,
-                    'app_id' => $app->id
+                    'user_id'   => $authenticatedUser->id,
+                    'app_id'    => $app->id
                 ];
                 Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
             }
 
-            Session::put('rsa.role', $roleData);
-            SessionUtil::setLookupKeys(ArrayUtils::get($roleData, 'id'), ArrayUtils::get($cacheData, 'user_id'));
-            SessionUtil::setAppLookupKeys(ArrayUtils::get($cacheData, 'app_id'));
+            Session::put( 'rsa.role', $roleData );
+            SessionUtil::setLookupKeys( ArrayUtils::get( $roleData, 'id' ), ArrayUtils::get( $cacheData, 'user_id' ) );
+            SessionUtil::setAppLookupKeys( ArrayUtils::get( $cacheData, 'app_id' ) );
 
         }
-        elseif(!empty($apiKey))
+        elseif ( !empty( $apiKey ) )
         {
-            $cacheKey = CacheUtil::getApiKeyUserCacheKey($apiKey);
+            $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey );
 
-            $cacheData = Cache::get($cacheKey);
+            $cacheData = Cache::get( $cacheKey );
 
-            $roleData = (!empty($cacheData))? ArrayUtils::get($cacheData, 'role_data') : [];
+            $roleData = ( !empty( $cacheData ) ) ? ArrayUtils::get( $cacheData, 'role_data' ) : [ ];
 
-            if(empty($roleData))
+            if ( empty( $roleData ) )
             {
                 /** @var App $app */
                 $app = App::with( 'role_by_role_id' )->whereApiKey( $apiKey )->first();
 
-                if(empty($app))
+                if ( empty( $app ) )
                 {
-                    return static::getException(new UnauthorizedException('Unauthorized request. Invalid API Key.'), $request);
+                    return static::getException( new UnauthorizedException( 'Unauthorized request. Invalid API Key.' ), $request );
                 }
 
                 /** @var Role $role */
                 $role = $app->getRelation( 'role_by_role_id' );
 
-                if(empty($role))
+                if ( empty( $role ) )
                 {
-                    return static::getException(new InternalServerErrorException('Unexpected error occurred. Role not found for Application.'), $request);
+                    return static::getException( new InternalServerErrorException( 'Unexpected error occurred. Role not found for Application.' ), $request );
                 }
 
                 $roleData = static::getRoleData( $role );
                 $cacheData = [
                     'role_data' => $roleData,
-                    'app_id' => $app->id
+                    'app_id'    => $app->id
                 ];
-                Cache::put($cacheKey, $cacheData, Config::get('rave.default_cache_ttl'));
+                Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
             }
 
-            Session::put('rsa.role', $roleData);
-            SessionUtil::setLookupKeys(ArrayUtils::get($roleData, 'id'));
-            SessionUtil::setAppLookupKeys(ArrayUtils::get($cacheData, 'app_id'));
-        }
-        else{
-            $basicAuthUser = $request->getUser();
-            if(!empty($basicAuthUser))
-            {
-                return static::getException(new UnauthorizedException('Unauthorized. User credential did not match.'), $request);
-            }
-
-            return static::getException(new BadRequestException('Bad request. Missing api key.'), $request);
-        }
-
-        if(SessionUtil::isAccessAllowed())
-        {
-            return $next($request);
+            Session::put( 'rsa.role', $roleData );
+            SessionUtil::setLookupKeys( ArrayUtils::get( $roleData, 'id' ) );
+            SessionUtil::setAppLookupKeys( ArrayUtils::get( $cacheData, 'app_id' ) );
         }
         else
         {
-            return static::getException(new ForbiddenException('Access Forbidden.'), $request);
+            $basicAuthUser = $request->getUser();
+            if ( !empty( $basicAuthUser ) )
+            {
+                return static::getException( new UnauthorizedException( 'Unauthorized. User credential did not match.' ), $request );
+            }
+
+            return static::getException( new BadRequestException( 'Bad request. Missing api key.' ), $request );
+        }
+
+        if ( SessionUtil::isAccessAllowed() )
+        {
+            return $next( $request );
+        }
+        else
+        {
+            return static::getException( new ForbiddenException( 'Access Forbidden.' ), $request );
         }
     }
 
@@ -217,14 +225,14 @@ class AccessCheck
      *
      * @return array
      */
-    protected static function getRoleData(Role $role)
+    protected static function getRoleData( Role $role )
     {
-        $role->load('role_service_access_by_role_id', 'service_by_role_service_access');
+        $role->load( 'role_service_access_by_role_id', 'service_by_role_service_access' );
         $rsa = $role->getRoleServiceAccess();
 
         $roleData = array(
-            'name' => $role->name,
-            'id' => $role->id,
+            'name'     => $role->name,
+            'id'       => $role->id,
             'services' => $rsa
         );
 
@@ -232,18 +240,41 @@ class AccessCheck
     }
 
     /**
-     * @param \Exception $e
+     * @param \Exception               $e
      * @param \Illuminate\Http\Request $request
      *
      * @return array|mixed|string
      */
-    protected static function getException($e, $request)
+    protected static function getException( $e, $request )
     {
-        $response =  ResponseFactory::create( $e, ContentTypes::PHP_OBJECT, $e->getCode() );
+        $response = ResponseFactory::create( $e, ContentTypes::PHP_OBJECT, $e->getCode() );
 
-        $accept = explode(',', $request->header('ACCEPT'));
+        $accept = explode( ',', $request->header( 'ACCEPT' ) );
 
-        return ResponseFactory::sendResponse($response, $accept);
+        return ResponseFactory::sendResponse( $response, $accept );
     }
 
+    /**
+     * Checks to see if it is an admin user login call.
+     *
+     * @return bool
+     * @throws \DreamFactory\Rave\Exceptions\NotImplementedException
+     */
+    protected static function isAdminLogin()
+    {
+        /** @var Router $router */
+        $router = app( 'router' );
+        $service = strtolower( $router->input( 'service' ) );
+        $resource = strtolower( $router->input( 'resource' ) );
+        $action = VerbsMask::toNumeric( \Request::getMethod() );
+
+        if ( ( $action & VerbsMask::POST_MASK ) && $service === 'system' && $resource === 'admin/session' )
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 }

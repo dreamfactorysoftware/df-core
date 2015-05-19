@@ -280,4 +280,14 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
         return static::buildResult( $model, $params );
     }
+
+    /**
+     * Encrypts security answer.
+     *
+     * @param string $value
+     */
+    public function setSecurityAnswerAttribute( $value )
+    {
+        $this->attributes['security_answer'] = bcrypt( $value );
+    }
 }

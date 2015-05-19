@@ -58,42 +58,46 @@ abstract class BaseService extends BaseRestService
     {
         parent::__construct( $settings );
 
-        $config = ArrayUtils::get( $settings, 'config', [] );
-        $this->setParameters($config);
-        $this->setTransport($config);
+        $config = ArrayUtils::get( $settings, 'config', [ ] );
+        $this->setParameters( $config );
+        $this->setTransport( $config );
         $this->setMailer();
     }
 
     /**
      * Sets the email transport layer based on configuration.
+     *
      * @param array $config
      */
-    abstract protected function setTransport($config);
+    abstract protected function setTransport( $config );
 
     protected function setMailer()
     {
-        if(!$this->transport instanceof SwiftTransport)
+        if ( !$this->transport instanceof SwiftTransport )
         {
-            throw new InternalServerErrorException('Invalid Email Transport.');
+            throw new InternalServerErrorException( 'Invalid Email Transport.' );
         }
 
-        $swiftMailer = new SwiftMailer($this->transport);
+        $swiftMailer = new SwiftMailer( $this->transport );
         $this->mailer = new RaveMailer( App::make( 'view' ), $swiftMailer, App::make( 'events' ) );
     }
 
-    protected function setParameters($config)
+    protected function setParameters( $config )
     {
-        $parameters = ArrayUtils::clean( ArrayUtils::get( $config, 'parameters', [] ) );
+        $parameters = ArrayUtils::clean( ArrayUtils::get( $config, 'parameters', [ ] ) );
 
-        foreach($parameters as $params)
+        foreach ( $parameters as $params )
         {
-            $this->parameters[$params['name']] = ArrayUtils::get($params, 'value');
+            $this->parameters[$params['name']] = ArrayUtils::get( $params, 'value' );
         }
     }
 
-    public function handleGET()
+    /**
+     * {@inheritdoc}
+     */
+    protected function handleGET()
     {
-        return [];
+        return false;
     }
 
     /**
@@ -101,12 +105,12 @@ abstract class BaseService extends BaseRestService
      * @throws BadRequestException
      * @throws NotFoundException
      */
-    public function handlePOST()
+    protected function handlePOST()
     {
         $data = $this->getPayloadData();
         $templateName = $this->request->getParameter( 'template', null );
         $templateId = $this->request->getParameter( 'template_id', null );
-        $templateData = [];
+        $templateData = [ ];
 
         if ( !empty( $templateName ) )
         {
@@ -122,21 +126,16 @@ abstract class BaseService extends BaseRestService
             throw new BadRequestException( 'No valid data in request.' );
         }
 
-        $data = array_merge( ArrayUtils::clean( ArrayUtils::get( $templateData, 'defaults', [], true ) ), $data );
+        $data = array_merge( ArrayUtils::clean( ArrayUtils::get( $templateData, 'defaults', [ ], true ) ), $data );
         $data = array_merge( $this->parameters, $templateData, $data );
 
         $text = ArrayUtils::get( $data, 'body_text' );
         $html = ArrayUtils::get( $data, 'body_html' );
 
-        $view = [
-            'html' => $html,
-            'text' => $text
-        ];
-
-        $count = $this->sendEmail($view, $data);
+        $count = $this->sendEmail( $data, $text, $html );
 
         //Mandrill and Mailgun returns Guzzle\Message\Response object.
-        if(!is_int($count))
+        if ( !is_int( $count ) )
         {
             $count = 1;
         }
@@ -144,8 +143,22 @@ abstract class BaseService extends BaseRestService
         return [ 'count' => $count ];
     }
 
-    public function sendEmail($view, $data)
+    /**
+     * Sends out emails.
+     *
+     * @param array $data
+     * @param null  $textView
+     * @param null  $htmlView
+     *
+     * @return mixed
+     */
+    public function sendEmail( $data, $textView = null, $htmlView = null )
     {
+        $view = [
+            'html' => $htmlView,
+            'text' => $textView
+        ];
+
         $count = $this->mailer->send(
             $view,
             $data,
@@ -189,17 +202,16 @@ abstract class BaseService extends BaseRestService
 
                 $m->to( $to );
 
-
-                if(!empty($fromEmail))
+                if ( !empty( $fromEmail ) )
                 {
                     $m->from( $fromEmail, $fromName );
                 }
-                if(!empty($replyEmail))
+                if ( !empty( $replyEmail ) )
                 {
                     $m->replyTo( $replyEmail, $replyName );
                 }
 
-                if(!empty($subject))
+                if ( !empty( $subject ) )
                 {
                     $m->subject( EmailUtilities::applyDataToView( $subject, $data ) );
                 }
@@ -262,7 +274,7 @@ abstract class BaseService extends BaseRestService
 
         $base['apis'] = [
             [
-                'path'        => '/'. $this->name,
+                'path'        => '/' . $this->name,
                 'operations'  => [
                     [
                         'method'           => 'POST',

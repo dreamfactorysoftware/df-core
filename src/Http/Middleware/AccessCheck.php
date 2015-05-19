@@ -41,6 +41,29 @@ use DreamFactory\Rave\Utility\Cache as CacheUtil;
 
 class AccessCheck
 {
+    protected static $exceptions = [
+        [
+            'verb_mask' => 31, //Allow all verbs
+            'service'   => 'system',
+            'resource'  => 'admin/session'
+        ],
+        [
+            'verb_mask' => 31,
+            'service'   => 'user',
+            'resource'  => 'session'
+        ],
+        [
+            'verb_mask' => 2,
+            'service'   => 'user',
+            'resource'  => 'password'
+        ],
+        [
+            'verb_mask' => 2, //Allow POST only
+            'service'   => 'system',
+            'resource'  => 'admin/password'
+        ]
+    ];
+
     /**
      * Handle an incoming request.
      *
@@ -54,7 +77,7 @@ class AccessCheck
         Session::put( 'is_sys_admin', 0 );
 
         //Bypassing access check for admin login attempts using system/admin/session (POST)
-        if ( static::isAdminLogin() )
+        if ( static::isException() )
         {
             return $next( $request );
         }
@@ -260,7 +283,7 @@ class AccessCheck
      * @return bool
      * @throws \DreamFactory\Rave\Exceptions\NotImplementedException
      */
-    protected static function isAdminLogin()
+    protected static function isException()
     {
         /** @var Router $router */
         $router = app( 'router' );
@@ -268,13 +291,17 @@ class AccessCheck
         $resource = strtolower( $router->input( 'resource' ) );
         $action = VerbsMask::toNumeric( \Request::getMethod() );
 
-        if ( ( $action & VerbsMask::POST_MASK ) && $service === 'system' && $resource === 'admin/session' )
+        foreach ( static::$exceptions as $exception )
         {
-            return true;
+            if ( ( $action & ArrayUtils::get( $exception, 'verb_mask' ) ) &&
+                 $service === ArrayUtils::get( $exception, 'service' ) &&
+                 $resource === ArrayUtils::get( $exception, 'resource' )
+            )
+            {
+                return true;
+            }
         }
-        else
-        {
-            return false;
-        }
+
+        return false;
     }
 }

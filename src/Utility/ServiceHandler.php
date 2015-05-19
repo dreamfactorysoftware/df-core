@@ -45,6 +45,19 @@ class ServiceHandler
         $name = strtolower( trim( $name ) );
 
         $service = Service::whereName( $name )->get()->first();
+
+        return static::getServiceInternal($service);
+    }
+
+    public static function getServiceById($id)
+    {
+        $service = Service::find($id);
+
+        return static::getServiceInternal($service);
+    }
+
+    protected static function getServiceInternal($service)
+    {
         if ( $service instanceof Service )
         {
             if ($service->is_active)
@@ -54,11 +67,11 @@ class ServiceHandler
 
                 return new $serviceClass( $settings );
             }
-            
-            throw new ForbiddenException( "Service $name is inactive.");
+
+            throw new ForbiddenException( "Service $service->name is inactive.");
         }
-        
-        throw new NotFoundException( "Could not find a service for $name." );
+
+        throw new NotFoundException( "Could not find a service for $service->name." );
     }
 
     /**

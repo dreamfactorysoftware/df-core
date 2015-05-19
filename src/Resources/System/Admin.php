@@ -54,27 +54,34 @@ class Admin extends BaseSystemResource
         }
         catch ( NotFoundException $e )
         {
-            //  Perform any pre-request processing
-            $this->preProcess();
-
-            $this->response = $this->processRequest();
-
-            if ( false !== $this->response )
+            if ( is_numeric( $this->resource ) )
             {
-                //  Perform any post-request processing
-                $this->postProcess();
+                //  Perform any pre-request processing
+                $this->preProcess();
+
+                $this->response = $this->processRequest();
+
+                if ( false !== $this->response )
+                {
+                    //  Perform any post-request processing
+                    $this->postProcess();
+                }
+                //	Inherent failure?
+                if ( false === $this->response )
+                {
+                    $what = ( !empty( $this->resourcePath ) ? " for resource '{$this->resourcePath}'" : ' without a resource' );
+                    $message = ucfirst( $this->action ) . " requests $what are not currently supported by the '{$this->name}' service.";
+
+                    throw new BadRequestException( $message );
+                }
+
+                //  Perform any response processing
+                return $this->respond();
             }
-            //	Inherent failure?
-            if ( false === $this->response )
+            else
             {
-                $what = ( !empty( $this->resourcePath ) ? " for resource '{$this->resourcePath}'" : ' without a resource' );
-                $message = ucfirst( $this->action ) . " requests $what are not currently supported by the '{$this->name}' service.";
-
-                throw new BadRequestException( $message );
+                throw $e;
             }
-
-            //  Perform any response processing
-            return $this->respond();
         }
     }
 

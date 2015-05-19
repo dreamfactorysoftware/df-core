@@ -401,7 +401,7 @@ class Session
      */
     public static function getUserInfo()
     {
-        $user = \Auth::getUser();
+        $user = \Auth::user();
 
         if ( empty( $user ) )
         {

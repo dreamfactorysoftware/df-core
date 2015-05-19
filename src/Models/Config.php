@@ -44,7 +44,15 @@ class Config extends BaseSystemModel
 
     protected $table = 'system_config';
 
-    protected $fillable = [ 'db_version', 'login_with_user_name', 'api_key', 'allow_guest_access', 'guest_role_id' ];
+    protected $fillable = [
+        'db_version',
+        'login_with_user_name',
+        'password_email_service_id',
+        'password_email_template_id',
+        'api_key',
+        'allow_guest_access',
+        'guest_role_id'
+    ];
 
     public static function instance()
     {

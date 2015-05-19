@@ -25,7 +25,11 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
+use DreamFactory\Rave\Exceptions\ServiceUnavailableException;
+use DreamFactory\Rave\Models\Config as SystemConfig;
 use DreamFactory\Rave\Models\User;
+use DreamFactory\Rave\Utility\ServiceHandler;
+use DreamFactory\Rave\Services\Email\BaseService as EmailService;
 
 class UserPasswordResource extends BaseRestResource
 {
@@ -46,16 +50,25 @@ class UserPasswordResource extends BaseRestResource
         parent::__construct( $settings );
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function handleGET()
     {
         return false;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function handlePUT()
     {
         return false;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function handlePATCH()
     {
         return false;
@@ -70,39 +83,52 @@ class UserPasswordResource extends BaseRestResource
      */
     protected function handlePOST()
     {
-        $oldPassword = $this->getPayloadData('old_password');
-        $newPassword = $this->getPayloadData('new_password');
+        $oldPassword = $this->getPayloadData( 'old_password' );
+        $newPassword = $this->getPayloadData( 'new_password' );
 
         if ( !empty( $oldPassword ) && \Auth::check() )
         {
-            $user = \Auth::getUser();
+            $user = \Auth::user();
+
             return static::changePassword( $user, $oldPassword, $newPassword );
         }
 
-        $reset = $this->request->getParameterAsBool('reset');
+        $reset = $this->request->getParameterAsBool( 'reset' );
         $login = $this->request->getParameterAsBool( 'login' );
         $email = $this->getPayloadData( 'email' );
         $code = $this->getPayloadData( 'code' );
         $answer = $this->getPayloadData( 'security_answer' );
 
-        if ( true === $reset)
+        if ( true === $reset )
         {
             return static::passwordReset( $email );
         }
 
         if ( !empty( $code ) )
         {
-            return static::changePasswordByCode( $email, $code, $newPassword, $login, true );
+            return static::changePasswordByCode( $email, $code, $newPassword, $login );
         }
 
         if ( !empty( $answer ) )
         {
-            return static::changePasswordBySecurityAnswer( $email, $answer, $newPassword, $login, true );
+            return static::changePasswordBySecurityAnswer( $email, $answer, $newPassword, $login );
         }
 
         return false;
     }
 
+    /**
+     * Changes password.
+     *
+     * @param User   $user
+     * @param string $old
+     * @param string $new
+     *
+     * @return array
+     * @throws BadRequestException
+     * @throws InternalServerErrorException
+     * @throws NotFoundException
+     */
     protected static function changePassword( User $user, $old, $new )
     {
         // query with check for old password
@@ -121,7 +147,7 @@ class UserPasswordResource extends BaseRestResource
         try
         {
             // validate password
-            $isValid = \Hash::check($old, $user->password);
+            $isValid = \Hash::check( $old, $user->password );
         }
         catch ( \Exception $ex )
         {
@@ -135,10 +161,10 @@ class UserPasswordResource extends BaseRestResource
 
         try
         {
-            $user->password = bcrypt($new);
+            $user->password = bcrypt( $new );
             $user->save();
 
-            return array('success' => true);
+            return array( 'success' => true );
         }
         catch ( \Exception $ex )
         {
@@ -146,15 +172,25 @@ class UserPasswordResource extends BaseRestResource
         }
     }
 
-    protected static function passwordReset($email)
+    /**
+     * Resets password.
+     *
+     * @param $email
+     *
+     * @return array
+     * @throws BadRequestException
+     * @throws InternalServerErrorException
+     * @throws NotFoundException
+     */
+    protected static function passwordReset( $email )
     {
         if ( empty( $email ) )
         {
             throw new BadRequestException( "Missing required email for password reset confirmation." );
         }
 
-        /** @var User $_theUser */
-        $user = User::whereEmail($email)->get();
+        /** @var User $user */
+        $user = User::whereEmail( $email )->first();
 
         if ( null === $user )
         {
@@ -166,66 +202,61 @@ class UserPasswordResource extends BaseRestResource
         $question = $user->security_question;
         if ( !empty( $question ) )
         {
-            return array('security_question' => $question);
+            return array( 'security_question' => $question );
         }
 
         // otherwise, is email confirmation required?
-        /** @var $_config Config */
-        $_fields = 'password_email_service_id, password_email_template_id';
-        if ( null === ( $_config = Config::model()->find( array('select' => $_fields) ) ) )
+        /** @var $config Config */
+        $config = SystemConfig::instance();
+
+        if ( empty( $config ) )
         {
             throw new InternalServerErrorException( 'Unable to load system configuration.' );
         }
 
-        $_serviceId = $_config->password_email_service_id;
-        if ( !empty( $_serviceId ) )
+        $emailServiceId = $config->password_email_service_id;
+        if ( !empty( $emailServiceId ) )
         {
-            $_code = Hasher::generateUnique( $email, 32 );
+            $code = \Hash::make( $email );
             try
             {
-                $_theUser->setAttribute( 'confirm_code', $_code );
-                $_theUser->save();
+                $user->confirm_code = $code;
+                $user->save();
 
-                /** @var EmailSvc $_emailService */
-                $_emailService = ServiceHandler::getServiceObject( $_serviceId );
-                if ( !$_emailService )
+                /** @var EmailService $emailService */
+                $emailService = ServiceHandler::getServiceById( $emailServiceId );
+
+                if ( empty( $emailService ) )
                 {
-                    throw new \Exception( "Bad service identifier '$_serviceId'." );
+                    throw new ServiceUnavailableException( "Bad service identifier '$emailServiceId'." );
                 }
 
-                $_data = array();
-                $_template = $_config->password_email_template_id;
-                if ( !empty( $_template ) )
-                {
-                    $_data['template_id'] = $_template;
-                }
-                else
-                {
-                    $_defaultPath = Platform::getLibraryTemplatePath( '/email/confirm_password_reset.json' );
+                $data = array();
+                $templateId = $config->password_email_template_id;
 
-                    if ( !file_exists( $_defaultPath ) )
-                    {
-                        throw new \Exception( "No default email template for password reset." );
-                    }
-
-                    $_data = file_get_contents( $_defaultPath );
-                    $_data = json_decode( $_data, true );
-                    if ( empty( $_data ) || !is_array( $_data ) )
-                    {
-                        throw new \Exception( "No data found in default email template for password reset." );
-                    }
+                if ( !empty( $templateId ) )
+                {
+                    $data = $emailService::getTemplateDataById( $templateId );
                 }
 
-                $_data['to'] = $email;
-                $_userFields = array('first_name', 'last_name', 'display_name', 'confirm_code');
-                $_data = array_merge( $_data, $_theUser->getAttributes( $_userFields ) );
-                $_emailService->sendEmail( $_data );
+                if ( empty( $data ) || !is_array( $data ) )
+                {
+                    throw new ServiceUnavailableException( "No data found in default email template for password reset." );
+                }
 
-                return array('success' => true);
+                ArrayUtils::set( $data, 'to', $email );
+                ArrayUtils::set( $data, 'first_name', $user->first_name );
+                ArrayUtils::set( $data, 'last_name', $user->last_name );
+                ArrayUtils::set( $data, 'name', $user->name );
+                ArrayUtils::set( $data, 'confirm_code', $user->confirm_code );
+
+                $emailService->sendEmail( $data, ArrayUtils::get( $data, 'body_text' ), ArrayUtils::get( $data, 'body_html' ) );
+
+                return array( 'success' => true );
             }
             catch ( \Exception $ex )
             {
-                throw new InternalServerErrorException( "Error processing password reset.\n{$ex->getMessage()}", $ex->getCode() );
+                throw new InternalServerErrorException( "Error processing password reset.\n{$ex->getMessage()}" );
             }
         }
 
@@ -234,18 +265,157 @@ class UserPasswordResource extends BaseRestResource
         );
     }
 
-    protected static function changePasswordByCode( $email, $code, $newPassword, $login = true, $returnExtras = false )
+    /**
+     * Changes password by confirmation code.
+     *
+     * @param      $email
+     * @param      $code
+     * @param      $newPassword
+     * @param bool $login
+     *
+     * @return array
+     * @throws BadRequestException
+     * @throws InternalServerErrorException
+     * @throws NotFoundException
+     */
+    protected static function changePasswordByCode( $email, $code, $newPassword, $login = true )
     {
+        if ( empty( $email ) )
+        {
+            throw new BadRequestException( "Missing required email for password reset confirmation." );
+        }
 
+        if ( empty( $newPassword ) )
+        {
+            throw new BadRequestException( "Missing new password for reset." );
+        }
+
+        if ( empty( $code ) || 'y' == $code )
+        {
+            throw new BadRequestException( "Invalid confirmation code." );
+        }
+
+        /** @var User $user */
+        $user = User::whereEmail( $email )->whereConfirmCode( $code )->first();
+
+        if ( null === $user )
+        {
+            // bad code
+            throw new NotFoundException( "The supplied email and/or confirmation code were not found in the system." );
+        }
+
+        try
+        {
+            $user->confirm_code = 'y';
+            $user->password = bcrypt( $newPassword );
+            $user->save();
+        }
+        catch ( \Exception $ex )
+        {
+            throw new InternalServerErrorException( "Error processing password reset.\n{$ex->getMessage()}" );
+        }
+
+        if ( $login )
+        {
+            static::userLogin( $email, $newPassword );
+        }
+
+        return array( 'success' => true );
     }
 
-    protected static function changePasswordBySecurityAnswer( $email, $answer, $newPassword, $login = true, $returnExtras = false )
+    /**
+     * Changes password by security answer.
+     *
+     * @param      $email
+     * @param      $answer
+     * @param      $newPassword
+     * @param bool $login
+     *
+     * @return array
+     * @throws BadRequestException
+     * @throws InternalServerErrorException
+     * @throws NotFoundException
+     */
+    protected static function changePasswordBySecurityAnswer( $email, $answer, $newPassword, $login = true )
     {
+        if ( empty( $email ) )
+        {
+            throw new BadRequestException( "Missing required email for password reset confirmation." );
+        }
 
+        if ( empty( $newPassword ) )
+        {
+            throw new BadRequestException( "Missing new password for reset." );
+        }
+
+        if ( empty( $answer ) )
+        {
+            throw new BadRequestException( "Missing security answer." );
+        }
+
+        /** @var User $user */
+        $user = User::whereEmail( $email )->first();
+
+        if ( null === $user )
+        {
+            // bad code
+            throw new NotFoundException( "The supplied email and confirmation code were not found in the system." );
+        }
+
+        try
+        {
+            // validate answer
+            $isValid = \Hash::check( $answer, $user->security_answer );
+        }
+        catch ( \Exception $ex )
+        {
+            throw new InternalServerErrorException( "Error validating security answer.\n{$ex->getMessage()}" );
+        }
+
+        if ( !$isValid )
+        {
+            throw new BadRequestException( "The answer supplied does not match." );
+        }
+
+        try
+        {
+            $user->password = bcrypt( $newPassword );
+            $user->save();
+        }
+        catch ( \Exception $ex )
+        {
+            throw new InternalServerErrorException( "Error processing password change.\n{$ex->getMessage()}" );
+        }
+
+        if ( $login )
+        {
+            static::userLogin( $email, $newPassword );
+        }
+
+        return array( 'success' => true );
     }
 
-    protected static function sendPasswordResetConfirmationEmail(User $user)
+    /**
+     * Logs user in.
+     *
+     * @param $email
+     * @param $password
+     *
+     * @return bool
+     * @throws InternalServerErrorException
+     */
+    protected static function userLogin( $email, $password )
     {
+        try
+        {
+            $credentials = [ 'email' => $email, 'password' => $password ];
+            \Auth::attempt( $credentials );
+        }
+        catch ( \Exception $ex )
+        {
+            throw new InternalServerErrorException( "Password set, but failed to create a session.\n{$ex->getMessage()}" );
+        }
 
+        return true;
     }
 }

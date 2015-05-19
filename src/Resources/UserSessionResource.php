@@ -91,7 +91,7 @@ class UserSessionResource extends BaseRestResource
 
         if ( \Auth::attempt( $credentials, $rememberMe ) )
         {
-            $user = \Auth::getUser();
+            $user = \Auth::user();
             $user->update( [ 'last_login_date' => Carbon::now()->toDateTimeString() ] );
             SessionUtil::setUserInfo( $user );
 

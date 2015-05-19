@@ -133,6 +133,19 @@ abstract class BaseService extends BaseRestService
             'text' => $text
         ];
 
+        $count = $this->sendEmail($view, $data);
+
+        //Mandrill and Mailgun returns Guzzle\Message\Response object.
+        if(!is_int($count))
+        {
+            $count = 1;
+        }
+
+        return [ 'count' => $count ];
+    }
+
+    public function sendEmail($view, $data)
+    {
         $count = $this->mailer->send(
             $view,
             $data,
@@ -202,13 +215,7 @@ abstract class BaseService extends BaseRestService
             }
         );
 
-        //Mandrill and Mailgun returns Guzzle\Message\Response object.
-        if(!is_int($count))
-        {
-            $count = 1;
-        }
-
-        return [ 'count' => $count ];
+        return $count;
     }
 
     /**

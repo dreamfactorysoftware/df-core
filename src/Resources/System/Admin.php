@@ -21,6 +21,7 @@
 namespace DreamFactory\Rave\Resources\System;
 
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Models\BaseSystemModel;
@@ -224,7 +225,7 @@ class Admin extends BaseSystemResource
         $modelClass = $this->model;
         $user = $modelClass::find( $id );
 
-        if ( !empty( $user ) && true === boolval( $user->is_sys_admin ) )
+        if ( !empty( $user ) && true === Scalar::boolval( $user->is_sys_admin ) )
         {
             return true;
         }

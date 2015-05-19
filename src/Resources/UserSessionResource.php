@@ -20,6 +20,7 @@
 
 namespace DreamFactory\Rave\Resources;
 
+use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Exceptions\UnauthorizedException;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -86,7 +87,7 @@ class UserSessionResource extends BaseRestResource
             ArrayUtils::set( $credentials, 'is_sys_admin', 1 );
         }
 
-        $rememberMe = boolval( $this->getPayloadData( 'remember_me' ) );
+        $rememberMe = Scalar::boolval( $this->getPayloadData( 'remember_me' ) );
 
         if ( \Auth::attempt( $credentials, $rememberMe ) )
         {

@@ -23,6 +23,7 @@ namespace DreamFactory\Rave\Resources\System;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
+use DreamFactory\Rave\Models\App as AppModel;
 
 class App extends BaseSystemResource
 {
@@ -35,17 +36,28 @@ class App extends BaseSystemResource
      */
     protected function handlePOST()
     {
+        if ( true === $this->request->getParameterAsBool( 'regenerate' ) )
+        {
+            if ( empty( $this->resource ) )
+            {
+                throw new BadRequestException( 'No App ID provided for regenerating Api Key.' );
+            }
+
+            /** @var AppModel $appClass */
+            $appClass = $this->model;
+            $app = $appClass::find( $this->resource );
+            $app->api_key = $appClass::generateApiKey( $app->name );
+            $app->save();
+
+            return [ 'success' => true ];
+        }
+
         if ( !empty( $this->resource ) )
         {
             throw new BadRequestException( 'Create record by identifier not currently supported.' );
         }
 
         $records = $this->getPayloadData( self::RECORD_WRAPPER );
-
-        foreach($records as $key => $record)
-        {
-            $records[$key]['api_key'] = \DreamFactory\Rave\Models\App::generateApiKey($record['name']);
-        }
 
         if ( empty( $records ) )
         {
@@ -54,6 +66,7 @@ class App extends BaseSystemResource
 
         $this->triggerActionEvent( $this->response );
 
+        /** @var AppModel $modelClass */
         $modelClass = $this->model;
         $result = $modelClass::bulkCreate( $records, $this->request->getParameters() );
 

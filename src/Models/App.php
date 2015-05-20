@@ -44,7 +44,6 @@ class App extends BaseSystemModel
 
     protected $fillable = [
         'name',
-        'api_key',
         'description',
         'is_active',
         'type',
@@ -64,5 +63,28 @@ class App extends BaseSystemModel
         $key = hash( 'sha256', $string );
 
         return $key;
+    }
+
+    /**
+     * @param       $record
+     * @param array $params
+     *
+     * @return array
+     */
+    protected static function createInternal( $record, $params = [ ] )
+    {
+        try
+        {
+            $model = static::create( $record );
+            $apiKey = static::generateApiKey($model->name);
+            $model->api_key = $apiKey;
+            $model->save();
+        }
+        catch ( \PDOException $e )
+        {
+            throw $e;
+        }
+
+        return static::buildResult( $model, $params );
     }
 }

@@ -20,6 +20,9 @@
 
 namespace DreamFactory\Rave\Components;
 
+use DreamFactory\Rave\Exceptions\BadRequestException;
+use DreamFactory\Rave\Models\BaseModel;
+use DreamFactory\Rave\SqlDbCore\RelationSchema;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 
@@ -30,28 +33,32 @@ class Builder extends EloquentBuilder
      *
      * @param  string $relation
      *
-     * @return \Illuminate\Database\Eloquent\Relations\Relation
+     * @return Relation
+     * @throws BadRequestException
      */
     public function getRelation( $relation )
     {
         $query = Relation::noConstraints(
             function () use ( $relation )
             {
+                /** @var BaseModel $model */
                 $model = $this->getModel();
                 $relationType = $model->getReferencingType( $relation );
 
-                if ( 'has_many' === $relationType )
+                if ( RelationSchema::HAS_MANY === $relationType )
                 {
                     return $model->getHasManyByRelationName( $relation );
                 }
-                elseif ( 'many_many' === $relationType )
+                elseif ( RelationSchema::MANY_MANY === $relationType )
                 {
                     return $model->getBelongsToManyByRelationName( $relation );
                 }
-                elseif( 'belongs_to' === $relationType )
+                elseif ( RelationSchema::BELONGS_TO === $relationType )
                 {
                     return $model->getBelongsToByRelationName( $relation );
                 }
+
+                return null;
             }
         );
 
@@ -59,9 +66,12 @@ class Builder extends EloquentBuilder
         {
             return $query;
         }
-        else
+
+        if ( !method_exists( $this->getModel(), $relation ) )
         {
-            return parent::getRelation( $relation );
+            throw new BadRequestException( 'Unknown relationship: ' . $relation );
         }
+
+        return parent::getRelation( $relation );
     }
 }

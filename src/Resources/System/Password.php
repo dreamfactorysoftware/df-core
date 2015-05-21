@@ -26,18 +26,5 @@ use DreamFactory\Rave\Resources\UserPasswordResource;
 
 class Password extends UserPasswordResource
 {
-    /**
-     * {@inheritdoc}
-     */
-    protected function handlePOST()
-    {
-        $user = \Auth::user();
 
-        if ( empty( $user ) || false === Scalar::boolval( $user->is_sys_admin ) )
-        {
-            throw new UnauthorizedException( 'You are not authorized to perform this action' );
-        }
-
-        return parent::handlePOST();
-    }
 }

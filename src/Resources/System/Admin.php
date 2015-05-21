@@ -28,6 +28,21 @@ use DreamFactory\Rave\Models\BaseSystemModel;
 
 class Admin extends BaseSystemResource
 {
+    /**
+     * {@inheritdoc}
+     */
+    public function __construct( $settings = [ ] )
+    {
+        $user = \Auth::user();
+
+        if ( empty( $user ) || false === Scalar::boolval( $user->is_sys_admin ) )
+        {
+            throw new UnauthorizedException( 'You are not authorized to perform this action' );
+        }
+
+        parent::__construct($settings);
+    }
+
     protected $resources = [
         Password::RESOURCE_NAME => [
             'name'       => Password::RESOURCE_NAME,

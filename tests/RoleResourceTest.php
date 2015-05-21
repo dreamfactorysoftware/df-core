@@ -120,13 +120,7 @@ class RoleResourceTest extends \DreamFactory\Rave\Testing\TestCase
     {
         parent::stage();
 
-        $settings = [
-            'name'        => 'system',
-            'label'       => 'System Manager',
-            'description' => 'Handles all system resources and configuration'
-        ];
-
-        static::$service = new System($settings);
+        static::$service = \DreamFactory\Rave\Utility\ServiceHandler::getService('system');
     }
 
     public function testPOSTCreateRoles()
@@ -292,25 +286,5 @@ class RoleResourceTest extends \DreamFactory\Rave\Testing\TestCase
         $role = $getResponse->getContent();
 
         return $role;
-    }
-
-    protected function makeRequest($verb, $query=[], $header=[], $payload=null)
-    {
-        $request = new TestServiceRequest($verb, $query, $header);
-        $request->setApiVersion('v1');
-
-        if(!empty($payload))
-        {
-            if(is_array($payload))
-            {
-                $request->setContent($payload);
-            }
-            else
-            {
-                $request->setContent($payload, ContentTypes::JSON);
-            }
-        }
-
-        return $request;
     }
 }

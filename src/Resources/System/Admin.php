@@ -25,24 +25,10 @@ use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Models\BaseSystemModel;
+use DreamFactory\Rave\Exceptions\UnauthorizedException;
 
 class Admin extends BaseSystemResource
 {
-    /**
-     * {@inheritdoc}
-     */
-    public function __construct( $settings = [ ] )
-    {
-        $user = \Auth::user();
-
-        if ( empty( $user ) || false === Scalar::boolval( $user->is_sys_admin ) )
-        {
-            throw new UnauthorizedException( 'You are not authorized to perform this action' );
-        }
-
-        parent::__construct($settings);
-    }
-
     protected $resources = [
         Password::RESOURCE_NAME => [
             'name'       => Password::RESOURCE_NAME,
@@ -56,11 +42,17 @@ class Admin extends BaseSystemResource
         ]
     ];
 
+    /**
+     * {@inheritdoc}
+     */
     public function getResources()
     {
         return $this->resources;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function handleResource( array $resources )
     {
         try
@@ -71,6 +63,12 @@ class Admin extends BaseSystemResource
         {
             if ( is_numeric( $this->resource ) )
             {
+                $user = \Auth::user();
+                if(false === Scalar::boolval($user->is_sys_admin))
+                {
+                    throw new UnauthorizedException('You are not authorized to perform this action.');
+                }
+
                 //  Perform any pre-request processing
                 $this->preProcess();
 

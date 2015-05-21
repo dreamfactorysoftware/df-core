@@ -75,8 +75,8 @@ class TestCase extends LaravelTestCase
      */
     public function stage()
     {
-        Artisan::call( 'migrate', ['--path' => 'vendor/dreamfactory/rave/database/migrations/'] );
-        Artisan::call( 'db:seed', ['--class' => 'DreamFactory\\Rave\\Database\\Seeds\\DatabaseSeeder'] );
+        Artisan::call( 'migrate' );
+        Artisan::call( 'db:seed' );
     }
 
     /**
@@ -117,5 +117,25 @@ class TestCase extends LaravelTestCase
     protected function serviceExists( $serviceName )
     {
         return Service::whereName($serviceName)->exists();
+    }
+
+    protected function makeRequest($verb, $query=[], $header=[], $payload=null)
+    {
+        $request = new TestServiceRequest($verb, $query, $header);
+        $request->setApiVersion('v1');
+
+        if(!empty($payload))
+        {
+            if(is_array($payload))
+            {
+                $request->setContent($payload);
+            }
+            else
+            {
+                $request->setContent($payload, ContentTypes::JSON);
+            }
+        }
+
+        return $request;
     }
 }

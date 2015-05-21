@@ -131,6 +131,8 @@ class UserPasswordResource extends BaseRestResource
      */
     protected static function changePassword( User $user, $old, $new )
     {
+        static::isAllowed( $user );
+
         // query with check for old password
         // then update with new password
         if ( empty( $old ) || empty( $new ) )
@@ -198,6 +200,8 @@ class UserPasswordResource extends BaseRestResource
             throw new NotFoundException( "The supplied email was not found in the system." );
         }
 
+        static::isAllowed( $user );
+
         // if security question and answer provisioned, start with that
         $question = $user->security_question;
         if ( !empty( $question ) )
@@ -206,63 +210,22 @@ class UserPasswordResource extends BaseRestResource
         }
 
         // otherwise, is email confirmation required?
-        /** @var $config Config */
-        $config = SystemConfig::instance();
+        $code = \Hash::make( $email );
+        $user->confirm_code = $code;
+        $user->save();
 
-        if ( empty( $config ) )
+        $sent = static::sendPasswordResetEmail( $user );
+
+        if ( true === $sent )
         {
-            throw new InternalServerErrorException( 'Unable to load system configuration.' );
+            return array( 'success' => true );
         }
-
-        $emailServiceId = $config->password_email_service_id;
-        if ( !empty( $emailServiceId ) )
+        else
         {
-            $code = \Hash::make( $email );
-            try
-            {
-                $user->confirm_code = $code;
-                $user->save();
-
-                /** @var EmailService $emailService */
-                $emailService = ServiceHandler::getServiceById( $emailServiceId );
-
-                if ( empty( $emailService ) )
-                {
-                    throw new ServiceUnavailableException( "Bad service identifier '$emailServiceId'." );
-                }
-
-                $data = array();
-                $templateId = $config->password_email_template_id;
-
-                if ( !empty( $templateId ) )
-                {
-                    $data = $emailService::getTemplateDataById( $templateId );
-                }
-
-                if ( empty( $data ) || !is_array( $data ) )
-                {
-                    throw new ServiceUnavailableException( "No data found in default email template for password reset." );
-                }
-
-                ArrayUtils::set( $data, 'to', $email );
-                ArrayUtils::set( $data, 'first_name', $user->first_name );
-                ArrayUtils::set( $data, 'last_name', $user->last_name );
-                ArrayUtils::set( $data, 'name', $user->name );
-                ArrayUtils::set( $data, 'confirm_code', $user->confirm_code );
-
-                $emailService->sendEmail( $data, ArrayUtils::get( $data, 'body_text' ), ArrayUtils::get( $data, 'body_html' ) );
-
-                return array( 'success' => true );
-            }
-            catch ( \Exception $ex )
-            {
-                throw new InternalServerErrorException( "Error processing password reset.\n{$ex->getMessage()}" );
-            }
+            throw new InternalServerErrorException(
+                'No security question found or email confirmation available for this user. Please contact your administrator.'
+            );
         }
-
-        throw new InternalServerErrorException(
-            'No security question found or email confirmation available for this user. Please contact your administrator.'
-        );
     }
 
     /**
@@ -278,7 +241,7 @@ class UserPasswordResource extends BaseRestResource
      * @throws InternalServerErrorException
      * @throws NotFoundException
      */
-    protected static function changePasswordByCode( $email, $code, $newPassword, $login = true )
+    public static function changePasswordByCode( $email, $code, $newPassword, $login = true )
     {
         if ( empty( $email ) )
         {
@@ -303,6 +266,8 @@ class UserPasswordResource extends BaseRestResource
             // bad code
             throw new NotFoundException( "The supplied email and/or confirmation code were not found in the system." );
         }
+
+        static::isAllowed( $user );
 
         try
         {
@@ -362,6 +327,8 @@ class UserPasswordResource extends BaseRestResource
             throw new NotFoundException( "The supplied email and confirmation code were not found in the system." );
         }
 
+        static::isAllowed( $user );
+
         try
         {
             // validate answer
@@ -414,6 +381,92 @@ class UserPasswordResource extends BaseRestResource
         catch ( \Exception $ex )
         {
             throw new InternalServerErrorException( "Password set, but failed to create a session.\n{$ex->getMessage()}" );
+        }
+
+        return true;
+    }
+
+    /**
+     * Sends the user an email with password reset link.
+     *
+     * @param User $user
+     *
+     * @return bool
+     * @throws InternalServerErrorException
+     */
+    protected static function sendPasswordResetEmail( User $user )
+    {
+        $email = $user->email;
+
+        /** @var $config Config */
+        $config = SystemConfig::instance();
+
+        if ( empty( $config ) )
+        {
+            throw new InternalServerErrorException( 'Unable to load system configuration.' );
+        }
+
+        $emailServiceId = $config->password_email_service_id;
+
+        if ( !empty( $emailServiceId ) )
+        {
+
+            try
+            {
+                /** @var EmailService $emailService */
+                $emailService = ServiceHandler::getServiceById( $emailServiceId );
+
+                if ( empty( $emailService ) )
+                {
+                    throw new ServiceUnavailableException( "Bad service identifier '$emailServiceId'." );
+                }
+
+                $data = array();
+                $templateId = $config->password_email_template_id;
+
+                if ( !empty( $templateId ) )
+                {
+                    $data = $emailService::getTemplateDataById( $templateId );
+                }
+
+                if ( empty( $data ) || !is_array( $data ) )
+                {
+                    throw new ServiceUnavailableException( "No data found in default email template for password reset." );
+                }
+
+                ArrayUtils::set( $data, 'to', $email );
+                ArrayUtils::set( $data, 'first_name', $user->first_name );
+                ArrayUtils::set( $data, 'last_name', $user->last_name );
+                ArrayUtils::set( $data, 'name', $user->name );
+                ArrayUtils::set( $data, 'confirm_code', $user->confirm_code );
+                ArrayUtils::set( $data, 'link', url( 'password/reset/' . urlencode( $user->confirm_code ) ) );
+
+                $emailService->sendEmail( $data, ArrayUtils::get( $data, 'body_text' ), ArrayUtils::get( $data, 'body_html' ) );
+
+                return true;
+            }
+            catch ( \Exception $ex )
+            {
+                throw new InternalServerErrorException( "Error processing password reset.\n{$ex->getMessage()}" );
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Checks to see if the user is allowed to reset/change password.
+     *
+     * @param User $user
+     *
+     * @return bool
+     * @throws NotFoundException
+     */
+    protected static function isAllowed( User $user )
+    {
+        if ( null === $user )
+        {
+            throw new NotFoundException( "User not found in the system." );
         }
 
         return true;

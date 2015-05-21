@@ -395,8 +395,6 @@ class CreateSystemTables extends Migration
             {
                 $t->string( 'db_version', 32 )->primary();
                 $t->boolean( 'login_with_user_name' )->default( 0 );
-                $t->integer( 'password_email_service_id' )->unsigned()->nullable();
-                $t->integer( 'password_email_template_id' )->unsigned()->nullable();
                 $t->timestamp( 'created_date' );
                 $t->timestamp( 'last_modified_date' );
                 $t->integer( 'created_by_id' )->unsigned()->nullable();

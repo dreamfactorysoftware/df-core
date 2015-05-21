@@ -25,30 +25,9 @@ use DreamFactory\Rave\Exceptions\UnauthorizedException;
 use DreamFactory\Rave\Resources\UserPasswordResource;
 use DreamFactory\Rave\Models\User;
 use DreamFactory\Rave\Exceptions\NotFoundException;
-use Mail;
 
 class Password extends UserPasswordResource
 {
-    /**
-     * {@inheritdoc}
-     */
-    protected static function sendPasswordResetEmail( User $user )
-    {
-        $email = $user->email;
-        $code = $user->confirm_code;
-
-        Mail::send(
-            'emails.password',
-            [ 'token' => $code ],
-            function ( $m ) use ( $email )
-            {
-                $m->to( $email )->subject( 'Your password reset link' );
-            }
-        );
-
-        return true;
-    }
-
     /**
      * {@inheritdoc}
      */

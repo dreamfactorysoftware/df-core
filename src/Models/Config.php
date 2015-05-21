@@ -54,14 +54,6 @@ class Config extends BaseSystemModel
         'guest_role_id'
     ];
 
-    public static function instance()
-    {
-        $models = static::all();
-        $model = $models->first();
-
-        return $model;
-    }
-
     public static function boot()
     {
         parent::boot();

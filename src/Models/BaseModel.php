@@ -974,7 +974,7 @@ class BaseModel extends Model
         $lf = null;
         foreach ( $references as $item )
         {
-            if ( $item->refTable === $table )
+            if ( $item->refTable === $table  && $table . '_by_' . $item->field === $name)
             {
                 $lf = $item->field;
             }

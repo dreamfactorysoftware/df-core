@@ -474,7 +474,6 @@ class CreateSystemTables extends Migration
                 $t->integer( 'storage_service_id' )->unsigned()->nullable();
                 $t->foreign( 'storage_service_id' )->references( 'id' )->on( 'service' )->onDelete( 'set null' );
                 $t->string( 'storage_container', 255 )->nullable();
-                $t->text( 'import_url' )->nullable();
                 $t->boolean( 'requires_fullscreen' )->default( 0 );
                 $t->boolean( 'allow_fullscreen_toggle' )->default( 1 );
                 $t->string( 'toggle_location', 64 )->default( 'top' );

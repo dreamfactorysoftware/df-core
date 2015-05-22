@@ -19,6 +19,8 @@
  */
 namespace DreamFactory\Rave\Models;
 
+use DreamFactory\Rave\Enums\AppTypes;
+
 /**
  * App
  *
@@ -28,6 +30,11 @@ namespace DreamFactory\Rave\Models;
  * @property string  $description
  * @property boolean $is_active
  * @property integer $role_id
+ * @property integer $type
+ * @property integer $storage_service_id
+ * @property string  $storage_component
+ * @property string  $path
+ * @property string  $url
  * @property string  $created_date
  * @property string  $last_modified_date
  * @method static \Illuminate\Database\Query\Builder|App whereId( $value )
@@ -35,6 +42,7 @@ namespace DreamFactory\Rave\Models;
  * @method static \Illuminate\Database\Query\Builder|App whereApiKey( $value )
  * @method static \Illuminate\Database\Query\Builder|App whereIsActive( $value )
  * @method static \Illuminate\Database\Query\Builder|App whereRoleId( $value )
+ * @method static \Illuminate\Database\Query\Builder|App whereStorageServiceId( $value )
  * @method static \Illuminate\Database\Query\Builder|App whereCreatedDate( $value )
  * @method static \Illuminate\Database\Query\Builder|App whereLastModifiedDate( $value )
  */
@@ -47,15 +55,17 @@ class App extends BaseSystemModel
         'description',
         'is_active',
         'type',
+        'path',
         'url',
         'storage_service_id',
         'storage_container',
-        'import_url',
         'requires_fullscreen',
         'allow_fullscreen_toggle',
         'toggle_location',
         'role_id'
     ];
+
+    protected $appends = [ 'launch_url' ];
 
     public static function generateApiKey( $name )
     {
@@ -75,8 +85,9 @@ class App extends BaseSystemModel
     {
         try
         {
+            /** @var App $model */
             $model = static::create( $record );
-            $apiKey = static::generateApiKey($model->name);
+            $apiKey = static::generateApiKey( $model->name );
             $model->api_key = $apiKey;
             $model->save();
         }
@@ -86,5 +97,40 @@ class App extends BaseSystemModel
         }
 
         return static::buildResult( $model, $params );
+    }
+
+    public function getLaunchUrlAttribute()
+    {
+        $launchUrl = '';
+        switch ( $this->type )
+        {
+            case AppTypes::STORAGE_SERVICE:
+                if ( !empty( $this->storage_service_id ) )
+                {
+                    /** @var $_service Service */
+                    $_service = Service::whereId( $this->storage_service_id )->first();
+                    if ( !empty( $_service ) )
+                    {
+                        $launchUrl .= $_service->name . '/';
+                        if ( !empty( $this->storage_container ) )
+                        {
+                            $launchUrl .= $this->storage_container . '/';
+                        }
+                        $launchUrl .= $this->name .  '/' . ltrim($this->path, '/');
+                        $launchUrl = url($launchUrl);
+                    }
+                }
+                break;
+
+            case AppTypes::PATH:
+                $launchUrl = url($this->path);
+                break;
+
+            case AppTypes::URL:
+                $launchUrl = $this->url;
+                break;
+        }
+
+        return $launchUrl;
     }
 }

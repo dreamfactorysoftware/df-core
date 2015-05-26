@@ -39,7 +39,6 @@ class AdminSeeder extends Seeder
         {
             User::create(
                 [
-                    'id'           => 1,
                     'name'         => 'Rave Admin',
                     'email'        => 'admin@rave.' . gethostname() . '.com',
                     'password'     => bcrypt( 'rave_user' ),

@@ -39,5 +39,6 @@ class DatabaseSeeder extends Seeder
          $this->call('DreamFactory\\Rave\\Database\\Seeds\\ServiceSeeder');
          $this->call('DreamFactory\\Rave\\Database\\Seeds\\AdminSeeder');
          $this->call('DreamFactory\\Rave\\Database\\Seeds\\DbTableExtrasSeeder');
+         $this->call('DreamFactory\\Rave\\Database\\Seeds\\RoleAndAppSeeder');
     }
 }

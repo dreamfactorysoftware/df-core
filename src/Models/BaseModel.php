@@ -652,8 +652,8 @@ class BaseModel extends Model
 
         try
         {
-            $model->delete();
             $result = static::buildResult( $model, $params );
+            $model->delete();
 
             return $result;
         }
@@ -664,30 +664,27 @@ class BaseModel extends Model
     }
 
     /**
-     * @param BaseModel      $model
-     * @param array $params
+     * @param BaseModel $model
+     * @param array     $params
      *
      * @return array
      */
     public static function buildResult( $model, $params = [ ] )
     {
+        $id = $model->id;
         $pk = $model->primaryKey;
         $fields = ArrayUtils::get( $params, 'fields', $pk );
+        $related = ArrayUtils::get( $params, 'related' );
 
-        if ( '*' === $fields )
+        if ( $pk === $fields && empty( $related ) )
         {
-            $result = $model->fresh()->toArray();
+            return [ $pk => $id ];
         }
-        else
-        {
-            $fieldsArray = explode( ",", $fields );
 
-            $result = array();
-            foreach ( $fieldsArray as $f )
-            {
-                $result[$f] = $model->{$f};
-            }
-        }
+        $fieldsArray = explode( ',', $fields );
+        $relatedArray = ( !empty( $related ) ) ? explode( ',', $related ) : [ ];
+
+        $result = static::selectById( $id, $relatedArray, $fieldsArray );
 
         return $result;
     }

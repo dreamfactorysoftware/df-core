@@ -41,6 +41,13 @@ class CorsConfig extends BaseSystemModel
     protected $fillable = ['path', 'origin', 'header', 'method', 'max_age'];
 
     /**
+     * @var array
+     */
+    protected $casts = [
+        'method' => 'integer'
+    ];
+
+    /**
      * @var bool
      */
     public $timestamps = false;

@@ -664,7 +664,7 @@ class BaseModel extends Model
     }
 
     /**
-     * @param       $model
+     * @param BaseModel      $model
      * @param array $params
      *
      * @return array
@@ -674,12 +674,19 @@ class BaseModel extends Model
         $pk = $model->primaryKey;
         $fields = ArrayUtils::get( $params, 'fields', $pk );
 
-        $fieldsArray = explode( ",", $fields );
-
-        $result = array();
-        foreach ( $fieldsArray as $f )
+        if ( '*' === $fields )
         {
-            $result[$f] = $model->{$f};
+            $result = $model->fresh()->toArray();
+        }
+        else
+        {
+            $fieldsArray = explode( ",", $fields );
+
+            $result = array();
+            foreach ( $fieldsArray as $f )
+            {
+                $result[$f] = $model->{$f};
+            }
         }
 
         return $result;
@@ -974,7 +981,7 @@ class BaseModel extends Model
         $lf = null;
         foreach ( $references as $item )
         {
-            if ( $item->refTable === $table  && $table . '_by_' . $item->field === $name)
+            if ( $item->refTable === $table && $table . '_by_' . $item->field === $name )
             {
                 $lf = $item->field;
             }

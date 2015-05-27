@@ -19,26 +19,33 @@
  */
 namespace DreamFactory\Rave\Testing;
 
+use DreamFactory\Rave\Enums\ContentTypes;
+use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Models\Service;
+use DreamFactory\Rave\Utility\ServiceHandler;
 use Illuminate\Foundation\Testing\TestCase as LaravelTestCase;
 use Artisan;
-use DB;
+use DreamFactory\Rave\Services\BaseRestService;
 
 class TestCase extends LaravelTestCase
 {
-    /**
-     * URL prefix rest/ api, api/v1, api/v2 etc.
-     *
-     * @var string
-     */
-    protected $prefix = 'rest';
-
     /**
      * A flag to make sure that the stage() method gets to run one time only.
      *
      * @var bool
      */
     protected static $staged = false;
+
+    /**
+     * Provide the service id/name that you want to run
+     * the test cases on.
+     *
+     * @var mixed null
+     */
+    protected $serviceId = null;
+
+    /** @var BaseRestService null */
+    protected $service = null;
 
     /**
      * Runs before every test class.
@@ -61,6 +68,26 @@ class TestCase extends LaravelTestCase
         {
             $this->stage();
             static::$staged = true;
+        }
+
+        $this->setService();
+    }
+
+    /**
+     * Sets up the service based on
+     */
+    protected function setService()
+    {
+        if ( !empty( $this->serviceId ) )
+        {
+            if ( is_numeric( $this->serviceId ) )
+            {
+                $this->service = static::getServiceById( $this->serviceId );
+            }
+            else
+            {
+                $this->service = static::getService( $this->serviceId );
+            }
         }
     }
 
@@ -116,26 +143,74 @@ class TestCase extends LaravelTestCase
      */
     protected function serviceExists( $serviceName )
     {
-        return Service::whereName($serviceName)->exists();
+        return Service::whereName( $serviceName )->exists();
     }
 
-    protected function makeRequest($verb, $query=[], $header=[], $payload=null)
+    /**
+     * @param $name
+     *
+     * @return BaseRestService
+     */
+    public static function getService( $name )
     {
-        $request = new TestServiceRequest($verb, $query, $header);
-        $request->setApiVersion('v1');
+        return ServiceHandler::getService( $name );
+    }
 
-        if(!empty($payload))
+    /**
+     * @param $id
+     *
+     * @return mixed
+     */
+    public static function getServiceById( $id )
+    {
+        return ServiceHandler::getServiceById( $id );
+    }
+
+    /**
+     * @param       $verb
+     * @param       $resource
+     * @param array $query
+     * @param null  $payload
+     * @param array $header
+     *
+     * @return \DreamFactory\Rave\Contracts\ServiceResponseInterface
+     */
+    protected function makeRequest( $verb, $resource = null, $query = [ ], $payload = null, $header = [ ] )
+    {
+        $request = new TestServiceRequest( $verb, $query, $header );
+        $request->setApiVersion( 'v1' );
+
+        if ( !empty( $payload ) )
         {
-            if(is_array($payload))
+            if ( is_array( $payload ) )
             {
-                $request->setContent($payload);
+                $request->setContent( $payload );
             }
             else
             {
-                $request->setContent($payload, ContentTypes::JSON);
+                $request->setContent( $payload, ContentTypes::JSON );
             }
         }
 
-        return $request;
+        return $this->handleRequest( $request, $resource );
+    }
+
+    /**
+     * @param TestServiceRequest $request
+     * @param null               $resource
+     * @param int                $outputType
+     *
+     * @return \DreamFactory\Rave\Contracts\ServiceResponseInterface
+     * @throws InternalServerErrorException
+     * @throws \DreamFactory\Rave\Exceptions\BadRequestException
+     */
+    protected function handleRequest( TestServiceRequest $request, $resource = null, $outputType = ContentTypes::JSON )
+    {
+        if ( empty( $this->service ) )
+        {
+            throw new InternalServerErrorException( 'No service is setup to process request on. Please set the serviceId. It can be an Id or Name.' );
+        }
+
+        return $this->service->handleRequest( $request, $resource, $outputType );
     }
 }

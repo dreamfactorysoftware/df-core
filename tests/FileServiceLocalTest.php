@@ -22,6 +22,8 @@ class FileServiceLocalTest extends \DreamFactory\Rave\Testing\FileServiceTestCas
 {
     protected static $staged = false;
 
+    protected $serviceId = 'files';
+
     public function stage()
     {
         parent::stage();
@@ -38,11 +40,5 @@ class FileServiceLocalTest extends \DreamFactory\Rave\Testing\FileServiceTestCas
                 ]
             );
         }
-    }
-
-    protected function setService()
-    {
-        $this->service = 'files';
-        $this->prefix = $this->prefix.'/'.$this->service;
     }
 }

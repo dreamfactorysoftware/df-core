@@ -46,21 +46,31 @@ class ServiceHandler
 
         $service = Service::whereName( $name )->get()->first();
 
-        return static::getServiceInternal($service);
+        if ( empty( $service ) )
+        {
+            throw new NotFoundException( "Could not find a service for $name" );
+        }
+
+        return static::getServiceInternal( $service );
     }
 
-    public static function getServiceById($id)
+    public static function getServiceById( $id )
     {
-        $service = Service::find($id);
+        $service = Service::find( $id );
 
-        return static::getServiceInternal($service);
+        if ( empty( $service ) )
+        {
+            throw new NotFoundException( "Could not find a service for ID $id" );
+        }
+
+        return static::getServiceInternal( $service );
     }
 
-    protected static function getServiceInternal($service)
+    protected static function getServiceInternal( $service )
     {
         if ( $service instanceof Service )
         {
-            if ($service->is_active)
+            if ( $service->is_active )
             {
                 $serviceClass = $service->serviceType()->first()->class_name;
                 $settings = $service->toArray();
@@ -68,7 +78,7 @@ class ServiceHandler
                 return new $serviceClass( $settings );
             }
 
-            throw new ForbiddenException( "Service $service->name is inactive.");
+            throw new ForbiddenException( "Service $service->name is inactive." );
         }
 
         throw new NotFoundException( "Could not find a service for $service->name." );
@@ -76,9 +86,9 @@ class ServiceHandler
 
     /**
      * @param null|string $version
-     * @param      $service
-     * @param null $resource
-     * @param int  $outputFormat
+     * @param             $service
+     * @param null        $resource
+     * @param int         $outputFormat
      *
      * @return mixed
      * @throws NotFoundException
@@ -86,7 +96,7 @@ class ServiceHandler
     public static function processRequest( $version, $service, $resource = null, $outputFormat = ContentTypes::JSON )
     {
         $request = new ServiceRequest();
-        $request->setApiVersion($version);
+        $request->setApiVersion( $version );
 
         return self::getService( $service )->handleRequest( $request, $resource, $outputFormat );
     }
@@ -94,9 +104,9 @@ class ServiceHandler
     /**
      * @return array
      */
-    public static function listServices($include_properties = false)
+    public static function listServices( $include_properties = false )
     {
-        $services = Service::available($include_properties);
+        $services = Service::available( $include_properties );
 
         return [ 'service' => $services ];
 

@@ -290,4 +290,19 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     {
         $this->attributes['security_answer'] = bcrypt( $value );
     }
+
+    /**
+     * Encrypts password.
+     *
+     * @param $password
+     */
+    public function setPasswordAttribute( $password )
+    {
+        if ( !empty( $password ) )
+        {
+            $password = bcrypt( $password );
+        }
+
+        $this->attributes['password'] = $password;
+    }
 }

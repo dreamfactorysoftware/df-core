@@ -312,27 +312,12 @@ class Admin extends BaseSystemResource
         {
             foreach ( $records as $key => $record )
             {
-                $password = ArrayUtils::get( $record, 'password' );
-                if ( !empty( $password ) )
-                {
-                    $password = bcrypt( $password );
-                    ArrayUtils::set( $record, 'password', $password );
-                }
-
                 ArrayUtils::set( $record, 'is_sys_admin', 1 );
-
                 $records[$key] = $record;
             }
         }
         else
         {
-            $password = ArrayUtils::get( $records, 'password' );
-            if ( !empty( $password ) )
-            {
-                $password = bcrypt( $password );
-                ArrayUtils::set( $records, 'password', $password );
-            }
-
             ArrayUtils::set( $records, 'is_sys_admin', 1 );
         }
 

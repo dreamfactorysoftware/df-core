@@ -21,6 +21,7 @@
 namespace DreamFactory\Rave\Models;
 
 use DreamFactory\Rave\Contracts\ServiceConfigHandlerInterface;
+use DreamFactory\Rave\SqlDbCore\ColumnSchema;
 
 /**
  * Class BaseServiceConfigModel
@@ -92,9 +93,9 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
             //This way service_id will be set first and is available
             //for use right away. This helps setting an auto-generated
             //field that may depend on parent data. See OAuthConfig->setAttribute.
-            $config = array_reverse($config, true);
+            $config = array_reverse( $config, true );
             $config['service_id'] = $id;
-            $config = array_reverse($config, true);
+            $config = array_reverse( $config, true );
             static::create( $config );
         }
     }
@@ -112,6 +113,34 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
      */
     public static function getAvailableConfigs()
     {
+        return null;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function getConfigSchema()
+    {
+        $model = new static;
+
+        $schema = $model->getTableSchema();
+        if ( $schema )
+        {
+            $out = [ ];
+            foreach ( $schema->columns as $name => $column )
+            {
+                if ( 'service_id' === $name )
+                {
+                    continue;
+                }
+                
+                /** @var ColumnSchema $column */
+                $out[$name] = $column->toArray();
+            }
+
+            return $out;
+        }
+
         return null;
     }
 }

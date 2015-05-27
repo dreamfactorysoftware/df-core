@@ -60,4 +60,9 @@ interface ServiceConfigHandlerInterface
      * @return array|null Returns array of available configurations for this service
      */
     public static function getAvailableConfigs();
+
+    /**
+     * @return array|null Returns array of available configuration fields and types for this service
+     */
+    public static function getConfigSchema();
 }

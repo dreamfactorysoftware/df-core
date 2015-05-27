@@ -20,6 +20,8 @@
 
 namespace DreamFactory\Rave\Models;
 
+use DreamFactory\Rave\Contracts\ServiceConfigHandlerInterface;
+
 /**
  * ServiceType
  *
@@ -55,7 +57,24 @@ class ServiceType extends BaseModel
 
     protected $primaryKey = 'name';
 
-    protected $fillable = [ 'name', 'class_name', 'config_handler', 'label', 'description', 'group', 'singleton' ];
+    protected $guarded = [ '*' ]; //
+
+    protected $hidden = [ 'class_name', 'config_handler' ];
+
+    protected $appends = [ 'config_schema' ];
 
     public $incrementing = false;
+
+    public function getConfigSchemaAttribute()
+    {
+        if ( is_subclass_of( $this->config_handler, 'DreamFactory\Rave\Contracts\ServiceConfigHandlerInterface' ) )
+        {
+            /** @var ServiceConfigHandlerInterface $handler */
+            $handler = $this->config_handler;
+
+            return $handler::getConfigSchema();
+        }
+
+        return null;
+    }
 }

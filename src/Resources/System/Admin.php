@@ -131,12 +131,9 @@ class Admin extends BaseSystemResource
      */
     protected function updateById( $id, array $record, array $params = [ ] )
     {
-        if ( false === $this->checkAdminById( $id ) )
-        {
-            throw new BadRequestException( 'No admin user found for the ID supplied.' );
-        }
-
         $record = static::fixRecords( $record );
+
+        ArrayUtils::set( $params, 'admin', true );
 
         return parent::updateById( $id, $record, $params );
     }
@@ -146,12 +143,9 @@ class Admin extends BaseSystemResource
      */
     protected function updateByIds( $ids, array $record, array $params = [ ] )
     {
-        if ( false === $this->checkAdminByIds( $ids ) )
-        {
-            throw new BadRequestException( 'Not all users found by the IDs supplied are admins.' );
-        }
-
         $record = static::fixRecords( $record );
+
+        ArrayUtils::set( $params, 'admin', true );
 
         return parent::updateByIds( $ids, $record, $params );
     }
@@ -161,12 +155,9 @@ class Admin extends BaseSystemResource
      */
     protected function bulkUpdate( array $records, array $params = [ ] )
     {
-        if ( false === $this->checkAdminByRecords( $records ) )
-        {
-            throw new BadRequestException( 'Not all users found by the records supplied are admins.' );
-        }
-
         $records = static::fixRecords( $records );
+
+        ArrayUtils::set( $params, 'admin', true );
 
         return parent::bulkUpdate( $records, $params );
     }
@@ -176,10 +167,7 @@ class Admin extends BaseSystemResource
      */
     protected function deleteById( $id, array $params = [ ] )
     {
-        if ( false === $this->checkAdminById( $id ) )
-        {
-            throw new BadRequestException( 'No admin user found for the ID supplied.' );
-        }
+        ArrayUtils::set( $params, 'admin', true );
 
         return parent::deleteById( $id, $params );
     }
@@ -189,10 +177,7 @@ class Admin extends BaseSystemResource
      */
     protected function deleteByIds( $ids, array $params = [ ] )
     {
-        if ( false === $this->checkAdminByIds( $ids ) )
-        {
-            throw new BadRequestException( 'Not all users found by the IDs supplied are admins.' );
-        }
+        ArrayUtils::set( $params, 'admin', true );
 
         return parent::deleteByIds( $ids, $params );
     }
@@ -202,10 +187,7 @@ class Admin extends BaseSystemResource
      */
     protected function bulkDelete( array $records, array $params = [ ] )
     {
-        if ( false === $this->checkAdminByRecords( $records ) )
-        {
-            throw new BadRequestException( 'Not all users found by the records supplied are admins.' );
-        }
+        ArrayUtils::set( $params, 'admin', true );
 
         return parent::bulkDelete( $records, $params );
     }
@@ -231,70 +213,6 @@ class Admin extends BaseSystemResource
         ArrayUtils::set( $criteria, 'condition', $condition );
 
         return $criteria;
-    }
-
-    /**
-     * Checks to see if user is an Admin by it's id.
-     *
-     * @param integer $id
-     *
-     * @return bool
-     */
-    protected function checkAdminById( $id )
-    {
-        $modelClass = $this->model;
-        $user = $modelClass::find( $id );
-
-        if ( !empty( $user ) && true === Scalar::boolval( $user->is_sys_admin ) )
-        {
-            return true;
-        }
-
-        return false;
-    }
-
-    /**
-     * Checks to see if all users are admins by their ids.
-     *
-     * @param array|string $ids
-     *
-     * @return bool
-     */
-    protected function checkAdminByIds( $ids )
-    {
-        if ( !is_array( $ids ) )
-        {
-            $ids = explode( ',', $ids );
-        }
-
-        foreach ( $ids as $id )
-        {
-            if ( false === $this->checkAdminById( $id ) )
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Checks to see if all users are admins by their records.
-     *
-     * @param array $records
-     *
-     * @return bool
-     */
-    protected function checkAdminByRecords( array $records )
-    {
-        $ids = [ ];
-        $model = $this->getModel();
-        foreach ( $records as $record )
-        {
-            $ids[] = ArrayUtils::get( $record, $model->getPrimaryKey() );
-        }
-
-        return $this->checkAdminByIds( $ids );
     }
 
     /**

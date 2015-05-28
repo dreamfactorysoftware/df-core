@@ -20,6 +20,8 @@
 namespace DreamFactory\Rave\Models;
 
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Rave\Exceptions\ForbiddenException;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
@@ -28,6 +30,10 @@ use Laravel\Socialite\Contracts\User as OAuthUserContract;
 use DreamFactory\DSP\OAuth\Services\BaseOAuthService;
 use DreamFactory\DSP\ADLdap\Contracts\User as LdapUserContract;
 use DreamFactory\DSP\ADLdap\Services\LDAP as LdapService;
+use DreamFactory\Rave\Exceptions\BadRequestException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
+use DreamFactory\Rave\Exceptions\InternalServerErrorException;
+use Illuminate\Database\Eloquent\Model;
 
 /**
  * User
@@ -279,6 +285,115 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
 
         return static::buildResult( $model, $params );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function updateInternal( $id, $record, $params = [ ] )
+    {
+        if ( empty( $record ) )
+        {
+            throw new BadRequestException( 'There are no fields in the record to create . ' );
+        }
+
+        if ( empty( $id ) )
+        {
+            //Todo:perform logging below
+            //Log::error( 'Update request with no id supplied: ' . print_r( $record, true ) );
+            throw new BadRequestException( 'Identifying field "id" can not be empty for update request . ' );
+        }
+
+        $model = static::find( $id );
+
+        if ( !$model instanceof Model )
+        {
+            throw new ModelNotFoundException( 'No model found for ' . $id );
+        }
+
+        $pk = $model->primaryKey;
+        //	Remove the PK from the record since this is an update
+        ArrayUtils::remove( $record, $pk );
+
+        try
+        {
+            if ( true === Scalar::boolval($model->is_sys_admin) && false === ArrayUtils::getBool($params, 'admin'))
+            {
+                throw new ForbiddenException('No allowed to change an admin user.');
+            }
+            elseif(true === ArrayUtils::getBool($params, 'admin') && false === Scalar::boolval($model->is_sys_admin))
+            {
+                throw new BadRequestException('Cannot update a non-admin user.');
+            }
+
+            $model->update( $record );
+
+            return static::buildResult( $model, $params );
+        }
+        catch ( \Exception $ex )
+        {
+            if( !$ex instanceof ForbiddenException && !$ex instanceof BadRequestException)
+            {
+                throw new InternalServerErrorException( 'Failed to update resource: ' . $ex->getMessage() );
+            }
+            else
+            {
+                throw $ex;
+            }
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function deleteInternal( $id, $record, $params = [ ] )
+    {
+        if ( empty( $record ) )
+        {
+            throw new BadRequestException( 'There are no fields in the record to create . ' );
+        }
+
+        if ( empty( $id ) )
+        {
+            //Todo:perform logging below
+            //Log::error( 'Update request with no id supplied: ' . print_r( $record, true ) );
+            throw new BadRequestException( 'Identifying field "id" can not be empty for update request . ' );
+        }
+
+        $model = static::find( $id );
+
+        if ( !$model instanceof Model )
+        {
+            throw new ModelNotFoundException( 'No model found for ' . $id );
+        }
+
+        try
+        {
+            if ( true === Scalar::boolval($model->is_sys_admin) && false === ArrayUtils::getBool($params, 'admin'))
+            {
+                throw new ForbiddenException('No allowed to delete an admin user.');
+            }
+            elseif(true === ArrayUtils::getBool($params, 'admin') && false === Scalar::boolval($model->is_sys_admin))
+            {
+                throw new BadRequestException('Cannot delete a non-admin user.');
+            }
+
+            $result = static::buildResult( $model, $params );
+            $model->delete();
+
+            return $result;
+        }
+        catch ( \Exception $ex )
+        {
+            if( !$ex instanceof ForbiddenException && !$ex instanceof BadRequestException)
+            {
+                throw new InternalServerErrorException( 'Failed to delete resource: ' . $ex->getMessage() );
+            }
+            else
+            {
+                throw $ex;
+            }
+        }
     }
 
     /**

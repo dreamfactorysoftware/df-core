@@ -46,7 +46,7 @@ class BaseSystemModel extends BaseModel
     /**
      * {@inheritdoc}
      */
-    public static function selectById( $id, array $related = [ ], array $fields = ['*'] )
+    public static function selectById( $id, array $related = [ ], array $fields = [ '*' ] )
     {
         $fields = static::cleanFields( $fields );
         $response = parent::selectById( $id, $related, $fields );
@@ -105,6 +105,14 @@ class BaseSystemModel extends BaseModel
             $fields = explode( ',', $fields );
         }
 
+        //If config is requested add id and type as they are need to pull config.
+        if ( in_array( 'config', $fields ) )
+        {
+            $fields[] = 'id';
+            $fields[] = 'type';
+        }
+
+        //Removing config from field list as it is not a real column in the table.
         if ( in_array( 'config', $fields ) )
         {
             $key = array_keys( $fields, 'config' );
@@ -129,7 +137,8 @@ class BaseSystemModel extends BaseModel
             $fields = explode( ',', $fields );
         }
 
-        if ( ArrayUtils::get( $fields, 0 ) !== '*' )
+        //config is only available when both id and type is present. Therefore only show config if id and type is there.
+        if ( ArrayUtils::get( $fields, 0 ) !== '*' && ( !in_array( 'type', $fields ) || !in_array( 'id', $fields ) ) )
         {
             $result = [ ];
 

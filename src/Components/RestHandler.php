@@ -23,7 +23,7 @@ namespace DreamFactory\Rave\Components;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Contracts\RequestHandlerInterface;
-use DreamFactory\Rave\Enums\ContentTypes;
+use DreamFactory\Rave\Enums\DataFormats;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
@@ -80,17 +80,9 @@ abstract class RestHandler implements RequestHandlerInterface
      */
     protected $originalAction = null;
     /**
-     * @var string Native format of output of service, null for php, otherwise json, xml, etc.
+     * @var int|null Native data format of this service - DataFormats enum value.
      */
-    protected $nativeFormat = ContentTypes::PHP_ARRAY;
-    /**
-     * @var int|null Default output format, either null (native), or DataFormats enum value.
-     */
-    protected $outputFormat = ContentTypes::JSON;
-    /**
-     * @var string If set, prompt browser to download response as a file.
-     */
-    protected $outputAsFile = null;
+    protected $nativeFormat = DataFormats::PHP_ARRAY;
     /**
      * @var string Resource name.
      */
@@ -173,18 +165,16 @@ abstract class RestHandler implements RequestHandlerInterface
     /**
      * @param ServiceRequestInterface $request
      * @param null                    $resource
-     * @param int                     $outputFormat
      *
      * @return ServiceResponseInterface
      * @throws BadRequestException
      * @throws InternalServerErrorException
      */
-    public function handleRequest( ServiceRequestInterface $request, $resource = null, $outputFormat = ContentTypes::JSON )
+    public function handleRequest( ServiceRequestInterface $request, $resource = null )
     {
         $this->setRequest( $request );
         $this->setAction( $request->getMethod() );
         $this->setResourceMembers( $resource );
-        $this->setResponseFormat( $outputFormat );
 
         $resources = $this->getResources();
         if ( !empty( $resources ) && !empty( $this->resource ) )
@@ -245,7 +235,7 @@ abstract class RestHandler implements RequestHandlerInterface
             array_shift( $newPath );
             $newPath = implode( '/', $newPath );
 
-            return $resource->handleRequest( $this->request, $newPath, $this->outputFormat );
+            return $resource->handleRequest( $this->request, $newPath );
         }
 
         throw new NotFoundException( "Resource '{$this->resource}' not found for service '{$this->name}'." );
@@ -427,9 +417,9 @@ abstract class RestHandler implements RequestHandlerInterface
      *
      * @param int $outputFormat
      */
-    protected function setResponseFormat( $outputFormat = null )
+    protected function setNativeFormat( $outputFormat = null )
     {
-        $this->outputFormat = $outputFormat;
+        $this->nativeFormat = $outputFormat;
     }
 
     /**

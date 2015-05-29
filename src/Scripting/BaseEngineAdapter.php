@@ -23,7 +23,7 @@ use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Contracts\ScriptingEngineInterface;
-use DreamFactory\Rave\Enums\ContentTypes;
+use DreamFactory\Rave\Enums\DataFormats;
 use DreamFactory\Rave\Exceptions\ServiceUnavailableException;
 use DreamFactory\Rave\Utility\ServiceHandler;
 use DreamFactory\Rave\Utility\ResponseFactory;
@@ -242,7 +242,7 @@ abstract class BaseEngineAdapter
         }
         catch ( \Exception $_ex )
         {
-            $_result = ResponseFactory::create( $_ex, ContentTypes::PHP_ARRAY, $_ex->getCode() );
+            $_result = ResponseFactory::create( $_ex );
 
             Log::error( 'Exception: ' . $_ex->getMessage(), [ ], [ 'response' => $_result ] );
         }
@@ -352,11 +352,11 @@ abstract class BaseEngineAdapter
 
             //  Now set the request object and go...
             $service = ServiceHandler::getService( $serviceName );
-            $result = $service->handleRequest( $request, $resource, ContentTypes::PHP_ARRAY );
+            $result = $service->handleRequest( $request, $resource );
         }
         catch ( \Exception $_ex )
         {
-            $result = ResponseFactory::create( $_ex, ContentTypes::PHP_ARRAY, $_ex->getCode() );
+            $result = ResponseFactory::create( $_ex );
 
             Log::error( 'Exception: ' . $_ex->getMessage(), [ ], [ 'response' => $result ] );
         }

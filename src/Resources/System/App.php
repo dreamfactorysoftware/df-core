@@ -20,58 +20,32 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
-use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Models\App as AppModel;
 
 class App extends BaseSystemResource
 {
     /**
-     * Handles POST action
+     * Handles PATCH action
      *
      * @return \DreamFactory\Rave\Utility\ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */
-    protected function handlePOST()
+    protected function handlePATCH()
     {
-        if ( true === $this->request->getParameterAsBool( 'regenerate' ) )
-        {
-            if ( empty( $this->resource ) )
-            {
-                throw new BadRequestException( 'No App ID provided for regenerating Api Key.' );
-            }
-
-            /** @var AppModel $appClass */
-            $appClass = $this->model;
-            $app = $appClass::find( $this->resource );
-            $app->api_key = $appClass::generateApiKey( $app->name );
-            $app->save();
-
-            return [ 'success' => true ];
-        }
-
         if ( !empty( $this->resource ) )
         {
-            throw new BadRequestException( 'Create record by identifier not currently supported.' );
+            if ( true === $this->request->getParameterAsBool( 'regenerate' ) )
+            {
+                /** @var AppModel $appClass */
+                $appClass = $this->model;
+                $app = $appClass::find( $this->resource )->first();
+                $app->api_key = $appClass::generateApiKey( $app->name );
+                $app->save();
+            }
         }
 
-        $records = $this->getPayloadData( self::RECORD_WRAPPER );
-
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'No record(s) detected in request.' );
-        }
-
-        $this->triggerActionEvent( $this->response );
-
-        /** @var AppModel $modelClass */
-        $modelClass = $this->model;
-        $result = $modelClass::bulkCreate( $records, $this->request->getParameters() );
-
-        $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
-
-        return $response;
+        return parent::handlePATCH();
     }
 }

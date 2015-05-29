@@ -21,7 +21,7 @@ namespace DreamFactory\Rave\Components;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Enums\ContentTypes;
+use DreamFactory\Rave\Enums\DataFormats;
 
 /**
  * Trait InternalServiceRequest
@@ -142,17 +142,17 @@ trait InternalServiceRequest
      *
      * @return $this
      */
-    public function setContent( $data, $type = ContentTypes::PHP_ARRAY )
+    public function setContent( $data, $type = DataFormats::PHP_ARRAY )
     {
         $this->content = $data;
         $this->contentType = $type;
 
         switch ( $type )
         {
-            case ContentTypes::PHP_ARRAY:
+            case DataFormats::PHP_ARRAY:
                 $this->contentAsArray = $data;
                 break;
-            case ContentTypes::JSON:
+            case DataFormats::JSON:
                 $this->contentAsArray = json_decode( $data, true );
                 break;
         }

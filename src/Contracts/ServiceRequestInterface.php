@@ -20,7 +20,7 @@
 
 namespace DreamFactory\Rave\Contracts;
 
-use DreamFactory\Rave\Enums\ContentTypes;
+use DreamFactory\Rave\Enums\DataFormats;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
 interface ServiceRequestInterface
@@ -100,7 +100,7 @@ interface ServiceRequestInterface
      * @param mixed $content
      * @param int   $type
      */
-    public function setContent( $content, $type = ContentTypes::PHP_ARRAY );
+    public function setContent( $content, $type = DataFormats::PHP_ARRAY );
 
     /**
      * @return array

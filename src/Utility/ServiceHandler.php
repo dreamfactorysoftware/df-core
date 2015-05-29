@@ -20,7 +20,6 @@
 
 namespace DreamFactory\Rave\Utility;
 
-use DreamFactory\Rave\Enums\ContentTypes;
 use DreamFactory\Rave\Exceptions\ForbiddenException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Models\Service;
@@ -88,20 +87,21 @@ class ServiceHandler
      * @param null|string $version
      * @param             $service
      * @param null        $resource
-     * @param int         $outputFormat
      *
      * @return mixed
      * @throws NotFoundException
      */
-    public static function processRequest( $version, $service, $resource = null, $outputFormat = ContentTypes::JSON )
+    public static function processRequest( $version, $service, $resource = null )
     {
         $request = new ServiceRequest();
         $request->setApiVersion( $version );
 
-        return self::getService( $service )->handleRequest( $request, $resource, $outputFormat );
+        return self::getService( $service )->handleRequest( $request, $resource );
     }
 
     /**
+     * @param bool $include_properties
+     *
      * @return array
      */
     public static function listServices( $include_properties = false )

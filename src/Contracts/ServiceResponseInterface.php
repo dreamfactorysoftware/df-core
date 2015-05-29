@@ -22,11 +22,10 @@ namespace DreamFactory\Rave\Contracts;
 
 interface ServiceResponseInterface extends HttpStatusCodeInterface
 {
-
     /**
      * @param $code int Http Status code
      *
-     * @return void
+     * @return ServiceResponseInterface
      */
     public function setStatusCode( $code );
 
@@ -38,7 +37,7 @@ interface ServiceResponseInterface extends HttpStatusCodeInterface
     /**
      * @param $content mixed Response content
      *
-     * @return void
+     * @return ServiceResponseInterface
      */
     public function setContent( $content );
 
@@ -48,16 +47,28 @@ interface ServiceResponseInterface extends HttpStatusCodeInterface
     public function getContent();
 
     /**
-     * @param $type int ContentTypes
+     * @param $type string Content Type (i.e. MIME type)
      *
-     * @return void
+     * @return ServiceResponseInterface
      */
     public function setContentType( $type );
 
     /**
-     * @return int ContentTypes
+     * @return null|string Content Type (i.e. MIME type) or null if not set
      */
     public function getContentType();
+
+    /**
+     * @param $format int DataFormats
+     *
+     * @return ServiceResponseInterface
+     */
+    public function setContentFormat( $format );
+
+    /**
+     * @return int DataFormats
+     */
+    public function getContentFormat();
 
     /**
      * @return array All attributes as an array

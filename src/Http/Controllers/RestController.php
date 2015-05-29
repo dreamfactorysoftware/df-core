@@ -6,7 +6,6 @@ use Request;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Utility\ServiceHandler;
-use DreamFactory\Rave\Enums\ContentTypes;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
@@ -23,7 +22,7 @@ class RestController extends Controller
      */
     public function __construct()
     {
-        $this->middleware('access_check');
+        $this->middleware( 'access_check' );
     }
 
     /**
@@ -33,22 +32,20 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function index( $version = null )
+    public function index( /** @noinspection PhpUnusedParameterInspection */ $version = null )
     {
-        $includeProperties = Request::query( 'include_properties', false);
+        $includeProperties = Request::query( 'include_properties', false );
         try
         {
-            $services = ServiceHandler::listServices($includeProperties);
-            $response = ResponseFactory::create( $services, ContentTypes::PHP_ARRAY, ServiceResponseInterface::HTTP_OK );
+            $services = ServiceHandler::listServices( $includeProperties );
+            $response = ResponseFactory::create( $services );
         }
         catch ( \Exception $e )
         {
-            $response = ResponseFactory::create( $e, ContentTypes::PHP_OBJECT, ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR );
+            $response = ResponseFactory::create( $e );
         }
 
-        $accept = explode(',', \Request::header('ACCEPT'));
-
-        return ResponseFactory::sendResponse( $response, $accept );
+        return ResponseFactory::sendResponse( $response );
     }
 
     /**
@@ -227,16 +224,14 @@ class RestController extends Controller
         }
         catch ( \Exception $e )
         {
-            $response = ResponseFactory::create( $e, ContentTypes::PHP_OBJECT, $e->getCode() );
+            $response = ResponseFactory::create( $e );
         }
 
-        if($response instanceof RedirectResponse)
+        if ( $response instanceof RedirectResponse )
         {
             return $response;
         }
 
-        $accept = explode(',', \Request::header('ACCEPT'));
-
-        return ResponseFactory::sendResponse( $response, $accept );
+        return ResponseFactory::sendResponse( $response );
     }
 }

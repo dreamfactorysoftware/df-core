@@ -25,7 +25,6 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Resources\BaseRestResource;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\BaseSystemModel;
 use DreamFactory\Rave\Utility\Session as SessionUtil;
@@ -295,12 +294,7 @@ class ReadOnlySystemResource extends BaseRestResource
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
 
-        if ( empty( $data ) )
-        {
-            return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_NOT_FOUND );
-        }
-
-        return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_OK );
+        return ResponseFactory::create( $data, $this->nativeFormat );
     }
 
 

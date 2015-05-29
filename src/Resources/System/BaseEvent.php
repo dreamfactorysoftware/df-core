@@ -255,12 +255,7 @@ abstract class BaseEvent extends BaseSystemResource
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
 
-        if ( empty( $data ) )
-        {
-            return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_NOT_FOUND );
-        }
-
-        return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_OK );
+        return ResponseFactory::create( $data, $this->nativeFormat );
     }
 
     /**
@@ -294,7 +289,7 @@ abstract class BaseEvent extends BaseSystemResource
         $modelClass = $this->model;
         $result = $modelClass::bulkCreate( $records, $this->request->getParameters() );
 
-        $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
+        $response = ResponseFactory::create( $result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED );
 
         return $response;
     }
@@ -385,7 +380,6 @@ abstract class BaseEvent extends BaseSystemResource
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName( '.' );
         $name = Inflector::camelize( $this->name );
-        $plural = Inflector::pluralize( $name );
         $apis = [
             [
                 'path'        => $path,

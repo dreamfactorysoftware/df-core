@@ -24,10 +24,10 @@ use \Auth;
 use \Cache;
 use \Config;
 use \Closure;
+use Illuminate\Routing\Router;
 use \Session;
 use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Enums\ContentTypes;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\ForbiddenException;
 use DreamFactory\Rave\Exceptions\UnauthorizedException;
@@ -110,11 +110,8 @@ class AccessCheck
             $authenticated = Auth::check();
         }
 
-        if ( $authenticated )
-        {
-            /** @var User $authenticatedUser */
-            $authenticatedUser = Auth::user();
-        }
+        /** @var User $authenticatedUser */
+        $authenticatedUser = Auth::user();
 
         if ( $authenticated && $authenticatedUser->is_sys_admin )
         {
@@ -253,11 +250,11 @@ class AccessCheck
         $role->load( 'role_service_access_by_role_id', 'service_by_role_service_access' );
         $rsa = $role->getRoleServiceAccess();
 
-        $roleData = array(
+        $roleData = [
             'name'     => $role->name,
             'id'       => $role->id,
             'services' => $rsa
-        );
+        ];
 
         return $roleData;
     }
@@ -270,11 +267,11 @@ class AccessCheck
      */
     protected static function getException( $e, $request )
     {
-        $response = ResponseFactory::create( $e, ContentTypes::PHP_OBJECT, $e->getCode() );
+        $response = ResponseFactory::create( $e );
 
-        $accept = explode( ',', $request->header( 'ACCEPT' ) );
+        $accepts = explode( ',', $request->header( 'ACCEPT' ) );
 
-        return ResponseFactory::sendResponse( $response, $accept );
+        return ResponseFactory::sendResponse( $response, $accepts );
     }
 
     /**

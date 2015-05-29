@@ -240,12 +240,7 @@ class Event extends BaseRestService
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
 
-        if ( empty( $data ) )
-        {
-            return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_NOT_FOUND );
-        }
-
-        return ResponseFactory::create( $data, $this->outputFormat, ServiceResponseInterface::HTTP_OK );
+        return ResponseFactory::create( $data, $this->nativeFormat );
     }
 
     /**
@@ -274,7 +269,7 @@ class Event extends BaseRestService
         $model = $this->getModel();
         $result = $model::bulkCreate( $records, $this->request->getParameters() );
 
-        $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
+        $response = ResponseFactory::create( $result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED );
 
         return $response;
     }

@@ -357,7 +357,7 @@ abstract class BaseFileService extends BaseRestService
             }
         }
 
-        return ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
+        return ResponseFactory::create( $result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED );
     }
 
     /**
@@ -547,7 +547,7 @@ abstract class BaseFileService extends BaseRestService
             unlink( $zipFileName );
 
             // output handled by file handler, short the response here
-            $this->setResponseFormat( null );
+            $this->setNativeFormat( null );
             $result = null;
         }
         else
@@ -584,7 +584,7 @@ abstract class BaseFileService extends BaseRestService
             unlink( $zipFileName );
 
             // output handled by file handler, short the response here
-            $this->setResponseFormat( null );
+            $this->setNativeFormat( null );
             $result = null;
         }
         else
@@ -624,7 +624,7 @@ abstract class BaseFileService extends BaseRestService
             $this->driver->streamFile( $this->container, $this->filePath, $download );
 
             // output handled by file handler, short the response here
-            $this->setResponseFormat( null );
+            $this->setNativeFormat( null );
             $result = null;
         }
 

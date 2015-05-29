@@ -19,8 +19,6 @@
  */
 namespace DreamFactory\Rave\Contracts;
 
-use DreamFactory\Rave\Enums\ContentTypes;
-
 /**
  * Something that can handle requests
  */
@@ -29,9 +27,8 @@ interface RequestHandlerInterface
     /**
      * @param ServiceRequestInterface $request
      * @param null                    $resource
-     * @param int                     $outputFormat
      *
      * @return ServiceResponseInterface
      */
-    public function handleRequest( ServiceRequestInterface $request, $resource = null, $outputFormat = ContentTypes::JSON );
+    public function handleRequest( ServiceRequestInterface $request, $resource = null );
 }

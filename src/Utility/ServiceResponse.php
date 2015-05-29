@@ -22,34 +22,43 @@ namespace DreamFactory\Rave\Utility;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
+use DreamFactory\Rave\Enums\DataFormats;
 
 class ServiceResponse implements ServiceResponseInterface
 {
     /**
-     * @var int Http Status code
+     * @var int HTTP Status code, see HttpStatusCodes
      */
     protected $statusCode = null;
 
     /**
-     * @var mixed Response content
+     * @var mixed Response content/data
      */
     protected $content = null;
 
     /**
-     * @var int ContentType
+     * @var string Content Type header value for this content/data (i.e. MIME type).
+     * If null, the response Content-Type is determined by the $dataFormat.
      */
     protected $contentType = null;
 
     /**
-     * @param mixed $content     Response content
-     * @param int   $contentType ContentType
-     * @param int   $statusCode  Http Status code
+     * @var int Data format of the content, see DataFormats
      */
-    public function __construct( $content = null, $contentType = null, $statusCode = null )
+    protected $dataFormat = null;
+
+    /**
+     * @param mixed  $content      Response content
+     * @param int    $format       Data Format of content
+     * @param int    $status       HTTP Status code
+     * @param string $content_type Content Type of content
+     */
+    public function __construct( $content = null, $format = DataFormats::PHP_ARRAY, $status = ServiceResponseInterface::HTTP_OK, $content_type = null )
     {
         $this->content = $content;
-        $this->contentType = $contentType;
-        $this->statusCode = $statusCode;
+        $this->dataFormat = $format;
+        $this->statusCode = $status;
+        $this->contentType = $content_type;
     }
 
     /**
@@ -58,6 +67,8 @@ class ServiceResponse implements ServiceResponseInterface
     public function setStatusCode( $code )
     {
         $this->statusCode = $code;
+
+        return $this;
     }
 
     /**
@@ -74,6 +85,8 @@ class ServiceResponse implements ServiceResponseInterface
     public function setContent( $content )
     {
         $this->content = $content;
+
+        return $this;
     }
 
     /**
@@ -90,6 +103,8 @@ class ServiceResponse implements ServiceResponseInterface
     public function setContentType( $type )
     {
         $this->contentType = $type;
+
+        return $this;
     }
 
     /**
@@ -98,6 +113,24 @@ class ServiceResponse implements ServiceResponseInterface
     public function getContentType()
     {
         return $this->contentType;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setContentFormat( $format )
+    {
+        $this->dataFormat = $format;
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getContentFormat()
+    {
+        return $this->dataFormat;
     }
 
     /**
@@ -117,11 +150,11 @@ class ServiceResponse implements ServiceResponseInterface
      */
     public function mergeFromArray( array $data )
     {
-        $this->setStatusCode(ArrayUtils::get($data, 'status_code'));
-        if (ArrayUtils::getBool( $data, 'payload_changed' ))
+        $this->setStatusCode( ArrayUtils::get( $data, 'status_code' ) );
+        if ( ArrayUtils::getBool( $data, 'payload_changed' ) )
         {
-            $this->setContentType(ArrayUtils::get($data, 'content_type'));
-            $this->setContent(ArrayUtils::get($data, 'content'));
+            $this->setContentType( ArrayUtils::get( $data, 'content_type' ) );
+            $this->setContent( ArrayUtils::get( $data, 'content' ) );
         }
     }
 }

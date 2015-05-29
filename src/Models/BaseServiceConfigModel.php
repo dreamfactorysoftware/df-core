@@ -133,7 +133,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
                 {
                     continue;
                 }
-                
+
                 /** @var ColumnSchema $column */
                 $out[$name] = $column->toArray();
             }

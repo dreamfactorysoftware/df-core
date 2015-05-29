@@ -23,12 +23,14 @@ use DreamFactory\Library\Utility\Enums\FactoryEnum;
 use DreamFactory\Rave\Exceptions\NotImplementedException;
 
 /**
- * Various HTTP and server-side content types.
+ * Various supported data formats.
  *
  * This class defines formats that are passed in and out of services and
- * that are potentially able to be formatted to other types.
+ * that are potentially able to be formatted to other types. It includes
+ * conversions to MIME type for Content-Type and Accepts headers and
+ * file extensions for uploading/downloading files.
  */
-class ContentTypes extends FactoryEnum
+class DataFormats extends FactoryEnum
 {
     //*************************************************************************
     //	Constants
@@ -134,7 +136,7 @@ class ContentTypes extends FactoryEnum
     /**
      * @var array A hash of enum values against file extensions
      */
-    protected static $_extensionMap = array(
+    protected static $_extensionMap = [
         self::CSV           => 'csv',
         self::TSV           => 'tsv',
         self::PSV           => 'psv',
@@ -156,9 +158,9 @@ class ContentTypes extends FactoryEnum
         self::PHP_OBJECT    => null,
         self::PHP_SIMPLEXML => null,
         self::RAW           => null,
-    );
+    ];
 
-    protected static $_contentTypeMap = array(
+    protected static $_contentTypeMap = [
         self::CSV           => 'text/csv',
         self::TSV           => 'text/tab-separated-values',
         self::PSV           => 'application/octet-stream',
@@ -180,7 +182,7 @@ class ContentTypes extends FactoryEnum
         self::PHP_OBJECT    => null,
         self::PHP_SIMPLEXML => null,
         self::RAW           => null,
-    );
+    ];
 
     //*************************************************************************
     //* Methods
@@ -221,12 +223,14 @@ class ContentTypes extends FactoryEnum
     /**
      * Translates/converts class enum value to an outbound HTTP content-type's MIME type
      *
-     * @param int $enum_value
+     * @param int     $enum_value
+     * @param string  $default            Default to return if enum value not found
+     * @param boolean $throw_if_not_found Throw and exception if not found, otherwise return default
      *
      * @throws NotImplementedException
      * @return string
      */
-    public static function toMimeType( $enum_value )
+    public static function toMimeType( $enum_value, $default = 'application/octet-stream', $throw_if_not_found = false )
     {
         if ( !is_numeric( $enum_value ) )
         {
@@ -235,7 +239,12 @@ class ContentTypes extends FactoryEnum
 
         if ( !array_key_exists( $enum_value, static::$_contentTypeMap ) )
         {
-            throw new NotImplementedException( 'The content type "' . $enum_value . '" is not supported.' );
+            if ( $throw_if_not_found )
+            {
+                throw new NotImplementedException( 'The content type "' . $enum_value . '" is not supported.' );
+            }
+
+            return $default;
         }
 
         return static::$_contentTypeMap[$enum_value];
@@ -244,22 +253,29 @@ class ContentTypes extends FactoryEnum
     /**
      * Translates/converts an inbound HTTP content-type's MIME type to a class enum value
      *
-     * @param string $mime_type
+     * @param string   $mime_type
+     * @param int|null $default            Default to return if mime type value not found
+     * @param boolean  $throw_if_not_found Throw and exception if not found, otherwise return default
      *
      * @throws NotImplementedException
      * @return int
      */
-    public static function fromMimeType( $mime_type )
+    public static function fromMimeType( $mime_type, $default = self::RAW, $throw_if_not_found = false )
     {
         if ( !is_string( $mime_type ) )
         {
             throw new \InvalidArgumentException( 'The MIME type "' . $mime_type . '" is not a string.' );
         }
 
-        $mime_type = strstr($mime_type, ';', true);
+        $mime_type = ( false !== strpos( $mime_type, ';' ) ) ? trim( strstr( $mime_type, ';', true ) ) : $mime_type;
         if ( false === $_pos = array_search( strtolower( $mime_type ), static::$_contentTypeMap ) )
         {
-            throw new NotImplementedException( 'The MIME type "' . $mime_type . '" is not supported.' );
+            if ( $throw_if_not_found )
+            {
+                throw new NotImplementedException( 'The MIME type "' . $mime_type . '" is not supported.' );
+            }
+
+            return $default;
         }
 
         return $_pos;
@@ -268,12 +284,14 @@ class ContentTypes extends FactoryEnum
     /**
      * Translates/converts class enum value to an outbound file extension
      *
-     * @param int $enum_value
+     * @param int     $enum_value
+     * @param string  $default            Default to return if enum value not found
+     * @param boolean $throw_if_not_found Throw and exception if not found, otherwise return default
      *
      * @throws NotImplementedException
      * @return string
      */
-    public static function toFileExtension( $enum_value )
+    public static function toFileExtension( $enum_value, $default = 'txt', $throw_if_not_found = false )
     {
         if ( !is_numeric( $enum_value ) )
         {
@@ -282,7 +300,12 @@ class ContentTypes extends FactoryEnum
 
         if ( !array_key_exists( $enum_value, static::$_extensionMap ) )
         {
-            throw new NotImplementedException( 'The content type "' . $enum_value . '" is not supported.' );
+            if ( $throw_if_not_found )
+            {
+                throw new NotImplementedException( 'The content type "' . $enum_value . '" is not supported.' );
+            }
+
+            return $default;
         }
 
         return static::$_extensionMap[$enum_value];
@@ -291,12 +314,14 @@ class ContentTypes extends FactoryEnum
     /**
      * Translates/converts an inbound file extension to a class enum value
      *
-     * @param string $extension
+     * @param string   $extension
+     * @param int|null $default            Default to return if extension not found
+     * @param boolean  $throw_if_not_found Throw and exception if not found, otherwise return default
      *
      * @throws NotImplementedException
      * @return int
      */
-    public static function fromFileExtension( $extension )
+    public static function fromFileExtension( $extension, $default = self::RAW, $throw_if_not_found = false )
     {
         if ( !is_string( $extension ) )
         {
@@ -305,7 +330,12 @@ class ContentTypes extends FactoryEnum
 
         if ( false === $_pos = array_search( strtolower( $extension ), static::$_extensionMap ) )
         {
-            throw new NotImplementedException( 'The file extension "' . $extension . '" is not supported.' );
+            if ( $throw_if_not_found )
+            {
+                throw new NotImplementedException( 'The file extension "' . $extension . '" is not supported.' );
+            }
+
+            return $default;
         }
 
         return static::$_extensionMap[$_pos];

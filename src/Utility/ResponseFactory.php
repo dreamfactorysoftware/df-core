@@ -21,13 +21,13 @@
 namespace DreamFactory\Rave\Utility;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Resources\System\Config;
-use Illuminate\Http\Response;
+use DreamFactory\Rave\Exceptions\BadRequestException;
+use DreamFactory\Rave\Exceptions\RestException;
 use DreamFactory\Rave\Components\RaveResponse;
 use DreamFactory\Rave\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Rave\Enums\HttpStatusCodes;
 use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Enums\ContentTypes;
+use DreamFactory\Rave\Enums\DataFormats;
 use DreamFactory\Rave\Exceptions\RaveException;
 
 /**
@@ -38,120 +38,125 @@ use DreamFactory\Rave\Exceptions\RaveException;
 class ResponseFactory
 {
     /**
-     * @param mixed  $content
-     * @param string $contentType
-     * @param int    $statusCode
+     * @param mixed       $content
+     * @param int         $format
+     * @param int         $status
+     * @param string|null $content_type
      *
      * @return ServiceResponse
      */
-    public static function create( $content, $contentType, $statusCode = ServiceResponseInterface::HTTP_OK )
+    public static function create( $content, $format = DataFormats::PHP_ARRAY, $status = ServiceResponseInterface::HTTP_OK, $content_type = null )
     {
-        return new ServiceResponse( $content, $contentType, $statusCode );
+        return new ServiceResponse( $content, $format, $status, $content_type );
     }
 
     /**
      * @param ServiceResponseInterface $response
-     * @param int|array                $format
+     * @param null|string|array        $accepts
      *
      * @return array|mixed|string
+     * @throws BadRequestException
      */
-    public static function sendResponse( ServiceResponseInterface $response, $format = ContentTypes::JSON )
+    public static function sendResponse( ServiceResponseInterface $response, $accepts = null )
     {
-        $result = $response->getContent();
-        $code = $response->getStatusCode();
-        $responseType = $response->getContentType();
-
-        if ( is_array( $format ) )
+        if ( empty( $accepts ) )
         {
-            $json = ContentTypes::toMimeType( ContentTypes::JSON );
-            if ( in_array( $json, $format ) )
+            $accepts = array_map( 'trim', explode( ',', \Request::header( 'ACCEPT' ) ) );
+        }
+
+        $content = $response->getContent();
+        $format = $response->getContentFormat();
+
+        if ( empty( $content ) && is_null( $format ) )
+        {
+            // No content and type specified. (File stream already handled by service)
+            return null;
+        }
+
+        $status = $response->getStatusCode();
+        //  In case the status code is not a valid HTTP Status code
+        if ( !in_array( $status, HttpStatusCodes::getDefinedConstants() ) )
+        {
+            //  Do necessary translation here. Default is Internal server error.
+            $status = HttpStatusCodeInterface::HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        if ( $content instanceof \Exception )
+        {
+            $content = self::makeExceptionContent( $content );
+            $format = DataFormats::PHP_ARRAY;
+            $status = ( $content instanceof RestException ) ? $content->getStatusCode() : ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        // check if the current content type is acceptable for return
+        $contentType = $response->getContentType();
+        if ( empty( $contentType ) )
+        {
+            $contentType = DataFormats::toMimeType( $format, null );
+        }
+
+        // see if we match an accepts type, if so, go with it.
+        $accepts = ArrayUtils::clean( $accepts );
+        if ( !empty( $contentType ) && static::acceptedContentType( $accepts, $contentType ) )
+        {
+            return RaveResponse::create( $content, $status, [ "Content-Type" => $contentType ] );
+        }
+
+        // we don't have an acceptable content type, see if we can convert the content.
+        $acceptsAny = false;
+        foreach ( $accepts as $acceptType )
+        {
+            $acceptFormat = DataFormats::fromMimeType( $acceptType, null );
+            $mimeType = ( false !== strpos( $acceptType, ';' ) ) ? trim( strstr( $acceptType, ';', true ) ) : $acceptType;
+            if ( is_null( $acceptFormat ) )
             {
-                $format = ContentTypes::JSON;
+                if ( '*/*' === $mimeType )
+                {
+                    $acceptsAny = true;
+                }
+                continue;
             }
-            else
+
+            if ( false !== $reformatted = DataFormatter::reformatData( $content, $format, $acceptFormat ) )
             {
-                $mimeType = ArrayUtils::get( $format, 0 );
-                if('*/*' === $mimeType)
+                return RaveResponse::create( $reformatted, $status, [ "Content-Type" => $acceptType ] );
+            }
+        }
+
+        if ( $acceptsAny )
+        {
+            $contentType = ( empty($contentType) ) ? DataFormats::toMimeType( $format ) : $contentType;
+
+            return RaveResponse::create( $content, $status, [ "Content-Type" => $contentType ] );
+        }
+
+        throw new BadRequestException( 'Content in response can not be resolved to acceptable content type.' );
+    }
+
+    protected static function acceptedContentType( array $accepts, $content_type )
+    {
+        // see if we match an accepts type, if so, go with it.
+        if ( !empty( $content_type ) )
+        {
+            foreach ( $accepts as $acceptType )
+            {
+                $mimeType = ( false !== strpos( $acceptType, ';' ) ) ? trim( strstr( $acceptType, ';', true ) ) : $acceptType;
+                if ( ( 0 === strcasecmp( $mimeType, $content_type ) ) || ( '*/*' === $mimeType ) )
                 {
-                    $format = ContentTypes::JSON;
-                }
-                else
-                {
-                    $format = ContentTypes::fromMimeType( $mimeType );
+                    return true;
                 }
             }
         }
 
-        if ( empty( $result ) && empty( $responseType ) )
-        {
-            //No content and type specified. (File stream already handled by service)
-            return;
-        }
-
-        if ( $result instanceof \Exception )
-        {
-            $result = self::makeExceptionContent( $result );
-            $format = ContentTypes::JSON;
-            $code = ( $result['error']['code'] ) ?: $code;
-        }
-
-        switch ( $format )
-        {
-            case ContentTypes::JSON:
-                if ( ContentTypes::PHP_ARRAY === $responseType )
-                {
-                    //$result = DataFormatter::arrayToJson($result);
-                    //Symfony Response object automatically converts this.
-                }
-                elseif(ContentTypes::TEXT === $responseType)
-                {
-                    $result = json_encode(['response'=>$result]);
-                }
-
-                $contentType = 'application/json; charset=utf-8';
-                break;
-
-            case ContentTypes::XML:
-                if ( ContentTypes::XML !== $responseType )
-                {
-                    //Perform data conversion as needed here
-                }
-                $contentType = 'application/xml';
-                $result = '<?xml version="1.0" ?>' . "<dfapi>\n$result</dfapi>";
-                break;
-
-            case ContentTypes::CSV:
-                if ( ContentTypes::CSV !== $responseType )
-                {
-                    //Perform data conversion as needed here
-                }
-                $contentType = 'text/csv';
-                break;
-
-            default:
-                $contentType = 'application/octet-stream';
-                break;
-        }
-
-        //In case if the status code is not a valid HTTP Status code
-        if ( !in_array( $code, HttpStatusCodes::getDefinedConstants() ) )
-        {
-            //do necessary translation here. Default is Internal server error.
-            $code = HttpStatusCodeInterface::HTTP_INTERNAL_SERVER_ERROR;
-        }
-
-        $ro = RaveResponse::create( $result, $code );
-        $ro->headers->set( "Content-Type", $contentType );
-
-        return $ro;
+        return false;
     }
 
     /**
-     * @param $exception
+     * @param \Exception $exception
      *
      * @return array
      */
-    protected static function makeExceptionContent( $exception )
+    protected static function makeExceptionContent( \Exception $exception )
     {
         $code = ( $exception->getCode() ) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
         $context = ( $exception instanceof RaveException ) ? $exception->getContext() : null;
@@ -162,7 +167,7 @@ class ResponseFactory
         if ( "local" === env( "APP_ENV" ) )
         {
             $trace = $exception->getTraceAsString();
-            $trace = str_replace( array( "\n", "#", "):" ), array( "", "<br><br>|#", "):<br>|---->" ), $trace );
+            $trace = str_replace( [ "\n", "#", "):" ], [ "", "<br><br>|#", "):<br>|---->" ], $trace );
             $traceArray = explode( "<br>", $trace );
             foreach ( $traceArray as $k => $v )
             {
@@ -174,10 +179,10 @@ class ResponseFactory
             $errorInfo['trace'] = $traceArray;
         }
 
-        $result = array(
+        $result = [
             //Todo: $errorInfo used to be wrapped inside an array. May need to account for that for backward compatibility.
             'error' => $errorInfo
-        );
+        ];
 
         return $result;
     }

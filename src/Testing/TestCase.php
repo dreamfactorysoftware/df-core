@@ -19,7 +19,7 @@
  */
 namespace DreamFactory\Rave\Testing;
 
-use DreamFactory\Rave\Enums\ContentTypes;
+use DreamFactory\Rave\Enums\DataFormats;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Models\Service;
 use DreamFactory\Rave\Utility\ServiceHandler;
@@ -188,7 +188,7 @@ class TestCase extends LaravelTestCase
             }
             else
             {
-                $request->setContent( $payload, ContentTypes::JSON );
+                $request->setContent( $payload, DataFormats::JSON );
             }
         }
 
@@ -198,19 +198,18 @@ class TestCase extends LaravelTestCase
     /**
      * @param TestServiceRequest $request
      * @param null               $resource
-     * @param int                $outputType
      *
      * @return \DreamFactory\Rave\Contracts\ServiceResponseInterface
      * @throws InternalServerErrorException
      * @throws \DreamFactory\Rave\Exceptions\BadRequestException
      */
-    protected function handleRequest( TestServiceRequest $request, $resource = null, $outputType = ContentTypes::JSON )
+    protected function handleRequest( TestServiceRequest $request, $resource = null )
     {
         if ( empty( $this->service ) )
         {
             throw new InternalServerErrorException( 'No service is setup to process request on. Please set the serviceId. It can be an Id or Name.' );
         }
 
-        return $this->service->handleRequest( $request, $resource, $outputType );
+        return $this->service->handleRequest( $request, $resource );
     }
 }

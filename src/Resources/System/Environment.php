@@ -24,121 +24,266 @@ class Environment extends ReadOnlySystemResource
 {
     protected function handleGET()
     {
-        return false;
+        $_release = null;
+        $_phpInfo = $this->_getPhpInfo();
+
+        if ( false !== ( $_raw = file( static::LSB_RELEASE ) ) && !empty( $_raw ) )
+        {
+            $_release = array();
+
+            foreach ( $_raw as $_line )
+            {
+                $_fields = explode( '=', $_line );
+                $_release[str_replace( 'distrib_', null, strtolower( $_fields[0] ) )] = trim( $_fields[1], PHP_EOL . '"' );
+            }
+        }
+
+        $_response = array(
+            'php_info' => $_phpInfo,
+            'platform' => Config::getCurrentConfig(),
+            'release'  => $_release,
+            'server'   => array(
+                'server_os' => strtolower( php_uname( 's' ) ),
+                'uname'     => php_uname( 'a' ),
+            ),
+        );
+
+        array_multisort( $_response );
+
+        //	Cache configuration
+        Platform::storeSet( static::CACHE_KEY, $_response, static::CONFIG_CACHE_TTL );
+
+        $this->_response = $this->_response ? array_merge( $this->_response, $_response ) : $_response;
+        unset( $_response );
+
+        return $this->_response;
+    }
+
+    /**
+     * Parses the data coming back from phpinfo() call and returns in an array
+     *
+     * @return array
+     */
+    protected function _getPhpInfo()
+    {
+        $_html = null;
+        $_info = array();
+        $_pattern =
+            '#(?:<h2>(?:<a name=".*?">)?(.*?)(?:</a>)?</h2>)|(?:<tr(?: class=".*?")?><t[hd](?: class=".*?")?>(.*?)\s*</t[hd]>(?:<t[hd](?: class=".*?")?>(.*?)\s*</t[hd]>(?:<t[hd](?: class=".*?")?>(.*?)\s*</t[hd]>)?)?</tr>)#s';
+
+        \ob_start();
+        @\phpinfo();
+        $_html = \ob_get_contents();
+        \ob_end_clean();
+
+        if ( preg_match_all( $_pattern, $_html, $_matches, PREG_SET_ORDER ) )
+        {
+            foreach ( $_matches as $_match )
+            {
+                $_keys = array_keys( $_info );
+                $_lastKey = end( $_keys );
+
+                if ( strlen( $_match[1] ) )
+                {
+                    $_info[$_match[1]] = array();
+                }
+                elseif ( isset( $_match[3] ) )
+                {
+                    $_info[$_lastKey][$_match[2]] = isset( $_match[4] ) ? array($_match[3], $_match[4]) : $_match[3];
+                }
+                else
+                {
+                    $_info[$_lastKey][] = $_match[2];
+                }
+
+                unset( $_keys, $_match );
+            }
+        }
+
+        return $this->_cleanPhpInfo( $_info );
+    }
+
+    /**
+     * @param array $info
+     *
+     * @param bool  $recursive
+     *
+     * @return array
+     */
+    protected function _cleanPhpInfo( $info, $recursive = false )
+    {
+        static $_excludeKeys = array('directive', 'variable',);
+
+        $_clean = array();
+
+        //  Remove images and move nested args to root
+        if ( !$recursive && isset( $info[0], $info[0][0] ) && is_array( $info[0] ) )
+        {
+            $info['general'] = array();
+
+            foreach ( $info[0] as $_key => $_value )
+            {
+                if ( is_numeric( $_key ) || in_array( strtolower( $_key ), $_excludeKeys ) )
+                {
+                    continue;
+                }
+
+                $info['general'][$_key] = $_value;
+                unset( $info[0][$_key] );
+            }
+
+            unset( $info[0] );
+        }
+
+        foreach ( $info as $_key => $_value )
+        {
+            if ( in_array( strtolower( $_key ), $_excludeKeys ) )
+            {
+                continue;
+            }
+
+            $_key = strtolower( str_replace( ' ', '_', $_key ) );
+
+            if ( is_array( $_value ) && 2 == count( $_value ) && isset( $_value[0], $_value[1] ) )
+            {
+                $_v1 = Option::get( $_value, 0 );
+
+                if ( $_v1 == '<i>no value</i>' )
+                {
+                    $_v1 = null;
+                }
+
+                if ( Scalar::in( strtolower( $_v1 ), 'on', 'off', '0', '1' ) )
+                {
+                    $_v1 = Option::getBool( $_value, 0 );
+                }
+
+                $_value = $_v1;
+            }
+
+            if ( is_array( $_value ) )
+            {
+                $_value = $this->_cleanPhpInfo( $_value, true );
+            }
+
+            $_clean[$_key] = $_value;
+        }
+
+        return $_clean;
     }
 
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName( '.' );
 
-        return array(
+        return [
 
             //-------------------------------------------------------------------------
             //	APIs
             //-------------------------------------------------------------------------
 
-            'apis'   => array(
-                array(
+            'apis'   => [
+                [
                     'path'        => $path,
-                    'operations'  => array(
-                        array(
+                    'operations'  => [
+                        [
                             'method'     => 'GET',
                             'summary'    => 'getEnvironment() - Retrieve environment information.',
                             'nickname'   => 'getEnvironment',
                             'type'       => 'EnvironmentResponse',
                             'event_name' => $eventPath . '.read',
                             'notes'      => 'The retrieved information describes the container/machine on which the DSP resides.',
-                        ),
-                    ),
+                        ],
+                    ],
                     'description' => 'Operations for system configuration options.',
-                ),
-            ),
+                ],
+            ],
             //-------------------------------------------------------------------------
             //	Models
             //-------------------------------------------------------------------------
 
-            'models' => array(
-                'ServerSection'       => array(
+            'models' => [
+                'ServerSection'       => [
                     'id'         => 'ServerSection',
-                    'properties' => array(
-                        'server_os' => array(
+                    'properties' => [
+                        'server_os' => [
                             'type' => 'string',
-                        ),
-                        'uname'     => array(
+                        ],
+                        'uname'     => [
                             'type' => 'string',
-                        ),
-                    ),
-                ),
-                'ReleaseSection'      => array(
+                        ],
+                    ],
+                ],
+                'ReleaseSection'      => [
                     'id'         => 'ReleaseSection',
-                    'properties' => array(
-                        'id'          => array(
+                    'properties' => [
+                        'id'          => [
                             'type' => 'string',
-                        ),
-                        'release'     => array(
+                        ],
+                        'release'     => [
                             'type' => 'string',
-                        ),
-                        'codename'    => array(
+                        ],
+                        'codename'    => [
                             'type' => 'string',
-                        ),
-                        'description' => array(
+                        ],
+                        'description' => [
                             'type' => 'string',
-                        ),
-                    ),
-                ),
-                'PlatformSection'     => array(
+                        ],
+                    ],
+                ],
+                'PlatformSection'     => [
                     'id'         => 'PlatformSection',
-                    'properties' => array(
-                        'is_hosted'           => array(
+                    'properties' => [
+                        'is_hosted'           => [
                             'type' => 'boolean',
-                        ),
-                        'is_private'          => array(
+                        ],
+                        'is_private'          => [
                             'type' => 'boolean',
-                        ),
-                        'dsp_version_current' => array(
+                        ],
+                        'dsp_version_current' => [
                             'type' => 'string',
-                        ),
-                        'dsp_version_latest'  => array(
+                        ],
+                        'dsp_version_latest'  => [
                             'type' => 'string',
-                        ),
-                        'upgrade_available'   => array(
+                        ],
+                        'upgrade_available'   => [
                             'type' => 'boolean',
-                        ),
-                    ),
-                ),
-                'PhpInfoSection'      => array(
+                        ],
+                    ],
+                ],
+                'PhpInfoSection'      => [
                     'id'         => 'PhpInfoSection',
-                    'properties' => array(
-                        'name' => array(
+                    'properties' => [
+                        'name' => [
                             'type'  => 'array',
-                            'items' => array(
+                            'items' => [
                                 'type' => 'string',
-                            ),
-                        ),
-                    ),
-                ),
-                'EnvironmentResponse' => array(
+                            ],
+                        ],
+                    ],
+                ],
+                'EnvironmentResponse' => [
                     'id'         => 'EnvironmentResponse',
-                    'properties' => array(
-                        'server'   => array(
+                    'properties' => [
+                        'server'   => [
                             'type' => 'ServerSection',
-                        ),
-                        'release'  => array(
+                        ],
+                        'release'  => [
                             'type' => 'ReleaseSection',
-                        ),
-                        'platform' => array(
+                        ],
+                        'platform' => [
                             'type' => 'PlatformSection',
-                        ),
-                        'php_info' => array(
+                        ],
+                        'php_info' => [
                             'type'  => 'array',
-                            'items' => array(
+                            'items' => [
                                 '$ref' => 'PhpInfoSection',
-                            ),
-                        ),
-                    ),
-                ),
-            )
-        );
+                            ],
+                        ],
+                    ],
+                ],
+            ]
+        ];
     }
 }

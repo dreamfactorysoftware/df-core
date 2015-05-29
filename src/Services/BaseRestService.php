@@ -128,7 +128,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
             return $this->response;
         }
 
-        return ResponseFactory::create( $this->response, $this->outputFormat, ServiceResponseInterface::HTTP_OK );
+        return ResponseFactory::create( $this->response, $this->nativeFormat );
     }
 
     /**

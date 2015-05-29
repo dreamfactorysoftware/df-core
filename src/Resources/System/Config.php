@@ -339,7 +339,7 @@ HTML
         $modelClass = $this->model;
         $result = $modelClass::bulkCreate( $records, $this->request->getParameters() );
 
-        $response = ResponseFactory::create( $result, $this->outputFormat, ServiceResponseInterface::HTTP_CREATED );
+        $response = ResponseFactory::create( $result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED );
 
         return $response;
     }

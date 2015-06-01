@@ -855,7 +855,13 @@ class BaseModel extends Model
             foreach ( $orders as $order )
             {
                 $order = trim( $order );
-                list( $column, $direction ) = explode( ' ', $order );
+
+                @list( $column, $direction ) = explode( ' ', $order );
+                if(empty($direction))
+                {
+                    $direction = 'ASC';
+                }
+
                 $builder = $builder->orderBy( $column, $direction );
             }
 

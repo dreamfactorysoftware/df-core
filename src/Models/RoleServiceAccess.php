@@ -20,6 +20,8 @@
 
 namespace DreamFactory\Rave\Models;
 
+use DreamFactory\Rave\Exceptions\BadRequestException;
+
 /**
  * RoleServiceAccess
  *
@@ -44,4 +46,19 @@ class RoleServiceAccess extends BaseSystemModel
     protected $table = 'role_service_access';
 
     protected $guarded = [ 'id' ];
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::saving(
+            function(RoleServiceAccess $rsa)
+            {
+                if(1 === $rsa->service_id && ('*' === $rsa->component || 'admin' === $rsa->component))
+                {
+                    throw new BadRequestException('* and/or admin is not allowed on system service.');
+                }
+            }
+        );
+    }
 }

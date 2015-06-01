@@ -21,11 +21,9 @@
 namespace DreamFactory\Rave\Resources\System;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Models\BaseSystemModel;
-use DreamFactory\Rave\Exceptions\UnauthorizedException;
 
 class Admin extends BaseSystemResource
 {
@@ -63,12 +61,6 @@ class Admin extends BaseSystemResource
         {
             if ( is_numeric( $this->resource ) )
             {
-                $user = \Auth::user();
-                if(false === Scalar::boolval($user->is_sys_admin))
-                {
-                    throw new UnauthorizedException('You are not authorized to perform this action.');
-                }
-
                 //  Perform any pre-request processing
                 $this->preProcess();
 

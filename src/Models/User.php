@@ -45,7 +45,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string  $email
  * @property string  $description
  * @property boolean $is_active
- * @property integer $role_id
+ * @property boolean $is_sys_admin
  * @property string  $created_date
  * @property string  $last_modified_date
  * @method static \Illuminate\Database\Query\Builder|User whereId( $value )
@@ -54,7 +54,7 @@ use Illuminate\Database\Eloquent\Model;
  * @method static \Illuminate\Database\Query\Builder|User whereLastName( $value )
  * @method static \Illuminate\Database\Query\Builder|User whereEmail( $value )
  * @method static \Illuminate\Database\Query\Builder|User whereIsActive( $value )
- * @method static \Illuminate\Database\Query\Builder|User whereRoleId( $value )
+ * @method static \Illuminate\Database\Query\Builder|User whereIsSysAdmin( $value )
  * @method static \Illuminate\Database\Query\Builder|User whereCreatedDate( $value )
  * @method static \Illuminate\Database\Query\Builder|User whereLastModifiedDate( $value )
  */
@@ -95,6 +95,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      * @var array
      */
     protected $hidden = [ 'is_sys_admin', 'password', 'remember_token' ];
+
+    protected $casts = [ 'is_active' => 'boolean', 'is_sys_admin' => 'boolean' ];
 
     /**
      * If does not exists, creates a shadow OAuth user using user info provided
@@ -318,13 +320,13 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
         try
         {
-            if ( true === Scalar::boolval($model->is_sys_admin) && false === ArrayUtils::getBool($params, 'admin'))
+            if ( true === Scalar::boolval( $model->is_sys_admin ) && false === ArrayUtils::getBool( $params, 'admin' ) )
             {
-                throw new ForbiddenException('No allowed to change an admin user.');
+                throw new ForbiddenException( 'No allowed to change an admin user.' );
             }
-            elseif(true === ArrayUtils::getBool($params, 'admin') && false === Scalar::boolval($model->is_sys_admin))
+            elseif ( true === ArrayUtils::getBool( $params, 'admin' ) && false === Scalar::boolval( $model->is_sys_admin ) )
             {
-                throw new BadRequestException('Cannot update a non-admin user.');
+                throw new BadRequestException( 'Cannot update a non-admin user.' );
             }
 
             if(true === ArrayUtils::getBool($params, 'admin') && !empty(ArrayUtils::get($record, 'password')))
@@ -338,7 +340,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
         catch ( \Exception $ex )
         {
-            if( !$ex instanceof ForbiddenException && !$ex instanceof BadRequestException)
+            if ( !$ex instanceof ForbiddenException && !$ex instanceof BadRequestException )
             {
                 throw new InternalServerErrorException( 'Failed to update resource: ' . $ex->getMessage() );
             }
@@ -375,13 +377,13 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
         try
         {
-            if ( true === Scalar::boolval($model->is_sys_admin) && false === ArrayUtils::getBool($params, 'admin'))
+            if ( true === Scalar::boolval( $model->is_sys_admin ) && false === ArrayUtils::getBool( $params, 'admin' ) )
             {
-                throw new ForbiddenException('No allowed to delete an admin user.');
+                throw new ForbiddenException( 'No allowed to delete an admin user.' );
             }
-            elseif(true === ArrayUtils::getBool($params, 'admin') && false === Scalar::boolval($model->is_sys_admin))
+            elseif ( true === ArrayUtils::getBool( $params, 'admin' ) && false === Scalar::boolval( $model->is_sys_admin ) )
             {
-                throw new BadRequestException('Cannot delete a non-admin user.');
+                throw new BadRequestException( 'Cannot delete a non-admin user.' );
             }
 
             $result = static::buildResult( $model, $params );
@@ -391,7 +393,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
         catch ( \Exception $ex )
         {
-            if( !$ex instanceof ForbiddenException && !$ex instanceof BadRequestException)
+            if ( !$ex instanceof ForbiddenException && !$ex instanceof BadRequestException )
             {
                 throw new InternalServerErrorException( 'Failed to delete resource: ' . $ex->getMessage() );
             }

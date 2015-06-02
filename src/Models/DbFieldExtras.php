@@ -38,4 +38,6 @@ namespace DreamFactory\Rave\Models;
 class DbFieldExtras extends BaseSystemModel
 {
     protected $table = 'db_field_extras';
+
+    protected $casts = [ 'validation' => 'array' ];
 }

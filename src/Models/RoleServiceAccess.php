@@ -47,6 +47,8 @@ class RoleServiceAccess extends BaseSystemModel
 
     protected $guarded = [ 'id' ];
 
+    protected $casts = [ 'filters' => 'array' ];
+
     public static function boot()
     {
         parent::boot();

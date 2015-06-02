@@ -30,9 +30,6 @@ class UserLookup extends BaseSystemModel
 
     protected $fillable = ['user_id', 'name', 'value', 'private', 'description'];
 
-    /**
-     * @var array
-     */
     protected $encrypted = ['value'];
 
     public static function boot()

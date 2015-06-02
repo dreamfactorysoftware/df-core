@@ -48,9 +48,8 @@ class RoleLookup extends BaseSystemModel
 
     protected $fillable = ['id', 'role_id', 'name', 'value', 'private', 'description'];
 
-    /**
-     * @var array
-     */
+    protected $casts = [ 'is_private' => 'boolean' ];
+
     protected $encrypted = ['value'];
 
     public static function boot()

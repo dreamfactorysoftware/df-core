@@ -56,6 +56,8 @@ class Service extends BaseSystemModel
 
     protected $appends = [ 'config' ];
 
+    protected $casts = [ 'is_active' => 'boolean', 'mutable' => 'boolean', 'deletable' => 'boolean' ];
+
     /**
      * @var array Extra config to pass to any config handler
      */
@@ -135,9 +137,9 @@ class Service extends BaseSystemModel
     /**
      * @return array
      */
-    public static function available($include_properties = false)
+    public static function available( $include_properties = false )
     {
-        return static::lists('name');
+        return static::lists( 'name' );
     }
 
     /**

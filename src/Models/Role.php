@@ -45,7 +45,9 @@ class Role extends BaseSystemModel
 
     protected $fillable = [ 'name', 'description', 'is_active', 'role_service_access_by_role_id', 'role_lookup_by_role_id' ];
 
-    protected $hidden = [ 'user_to_app_to_role_by_role_id', 'app_by_user_to_app_to_role', 'user_by_user_to_app_to_role', 'user_by_role_lookup'];
+    protected $hidden = [ 'user_to_app_to_role_by_role_id', 'app_by_user_to_app_to_role', 'user_by_user_to_app_to_role', 'user_by_role_lookup' ];
+
+    protected $casts = [ 'is_active' => 'boolean' ];
 
     public static function boot()
     {
@@ -62,7 +64,7 @@ class Role extends BaseSystemModel
                 {
                     $apiKey = ArrayUtils::get( $app, 'api_key' );
 
-                    $cacheKey = CacheUtil::getApiKeyUserCacheKey($apiKey);
+                    $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey );
 
                     if ( Cache::has( $cacheKey ) )
                     {
@@ -85,7 +87,7 @@ class Role extends BaseSystemModel
                         if ( $appId === ArrayUtils::get( $ur, 'app_id' ) && $roleId === ArrayUtils::get( $ur, 'role_id' ) )
                         {
                             $userId = ArrayUtils::get( $ur, 'user_id' );
-                            $cacheKey = CacheUtil::getApiKeyUserCacheKey($apiKey, $userId);
+                            $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey, $userId );
 
                             if ( Cache::has( $cacheKey ) )
                             {

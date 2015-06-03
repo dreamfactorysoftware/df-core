@@ -27,6 +27,8 @@ namespace DreamFactory\Rave\Models;
  * @property string     $type
  * @property string     $content
  * @property string     $config
+ * @property boolean    $is_active
+ * @property boolean    $affects_process
  * @method static \Illuminate\Database\Query\Builder|EventScript whereName( $value )
  * @method static \Illuminate\Database\Query\Builder|EventScript whereType( $value )
  */
@@ -44,6 +46,8 @@ class EventScript extends BaseSystemModel
     protected $table = 'event_script';
 
     protected $fillable = [ 'name', 'type', 'content', 'config', 'is_active', 'affects_process' ];
+
+    protected $casts = [ 'is_active' => 'boolean', 'affects_process' => 'boolean' ];
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

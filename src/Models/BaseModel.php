@@ -175,9 +175,9 @@ class BaseModel extends Model
         }
 
         $singleRow = ( 1 === count( $records ) ) ? true : false;
-        $response = array();
+        $response = [ ];
         $transaction = false;
-        $errors = array();
+        $errors = [ ];
         $rollback = ArrayUtils::getBool( $params, 'rollback' );
         $continue = ArrayUtils::getBool( $params, 'continue' );
 
@@ -226,7 +226,7 @@ class BaseModel extends Model
 
         if ( !empty( $errors ) )
         {
-            $msg = array( 'errors' => $errors, 'record' => $response );
+            $msg = [ 'errors' => $errors, 'record' => $response ];
             throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
         }
 
@@ -243,7 +243,7 @@ class BaseModel extends Model
             }
         }
 
-        return $singleRow ? current( $response ) : array( 'record' => $response );
+        return $singleRow ? current( $response ) : [ 'record' => $response ];
     }
 
     /**
@@ -336,7 +336,7 @@ class BaseModel extends Model
         $pk = $m->getPrimaryKey();
         ArrayUtils::set( $record, $pk, $id );
 
-        return static::bulkUpdate( array( $record ), $params );
+        return static::bulkUpdate( [ $record ], $params );
     }
 
     public static function updateByIds( $ids, $record, $params = [ ] )
@@ -374,9 +374,9 @@ class BaseModel extends Model
             throw new BadRequestException( 'There is no record in the request.' );
         }
 
-        $response = array();
+        $response = [ ];
         $transaction = null;
-        $errors = array();
+        $errors = [ ];
         $singleRow = ( 1 === count( $records ) ) ? true : false;
         $rollback = ArrayUtils::getBool( $params, 'rollback' );
         $continue = ArrayUtils::getBool( $params, 'continue' );
@@ -429,7 +429,7 @@ class BaseModel extends Model
 
         if ( !empty( $errors ) )
         {
-            $msg = array( 'errors' => $errors, 'record' => $response );
+            $msg = [ 'errors' => $errors, 'record' => $response ];
             throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
         }
 
@@ -446,7 +446,7 @@ class BaseModel extends Model
             }
         }
 
-        return $singleRow ? current( $response ) : array( 'record' => $response );
+        return $singleRow ? current( $response ) : [ 'record' => $response ];
     }
 
     /**
@@ -497,7 +497,7 @@ class BaseModel extends Model
 
     public static function deleteById( $id, $params = [ ] )
     {
-        $records = array( array() );
+        $records = [ [ ] ];
 
         $m = new static;
         $pk = $m->getPrimaryKey();
@@ -545,9 +545,9 @@ class BaseModel extends Model
             throw new BadRequestException( 'There is no record in the request.' );
         }
 
-        $response = array();
+        $response = [ ];
         $transaction = null;
-        $errors = array();
+        $errors = [ ];
         $singleRow = ( 1 === count( $records ) ) ? true : false;
         $rollback = ArrayUtils::getBool( $params, 'rollback' );
         $continue = ArrayUtils::getBool( $params, 'continue' );
@@ -600,7 +600,7 @@ class BaseModel extends Model
 
         if ( !empty( $errors ) )
         {
-            $msg = array( 'errors' => $errors, 'record' => $response );
+            $msg = [ 'errors' => $errors, 'record' => $response ];
             throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
         }
 
@@ -617,7 +617,7 @@ class BaseModel extends Model
             }
         }
 
-        return $singleRow ? current( $response ) : array( 'record' => $response );
+        return $singleRow ? current( $response ) : [ 'record' => $response ];
     }
 
     /**

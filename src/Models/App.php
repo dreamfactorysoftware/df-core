@@ -67,6 +67,12 @@ class App extends BaseSystemModel
 
     protected $appends = [ 'launch_url' ];
 
+    protected $casts = [
+        'is_active'               => 'boolean',
+        'requires_fullscreen'     => 'boolean',
+        'allow_fullscreen_toggle' => 'boolean'
+    ];
+
     public static function generateApiKey( $name )
     {
         $string = gethostname() . $name . time();
@@ -116,14 +122,14 @@ class App extends BaseSystemModel
                         {
                             $launchUrl .= $this->storage_container . '/';
                         }
-                        $launchUrl .= $this->name .  '/' . ltrim($this->path, '/');
-                        $launchUrl = url($launchUrl);
+                        $launchUrl .= $this->name . '/' . ltrim( $this->path, '/' );
+                        $launchUrl = url( $launchUrl );
                     }
                 }
                 break;
 
             case AppTypes::PATH:
-                $launchUrl = url($this->path);
+                $launchUrl = url( $this->path );
                 break;
 
             case AppTypes::URL:

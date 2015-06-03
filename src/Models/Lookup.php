@@ -48,9 +48,8 @@ class Lookup extends BaseSystemModel
 
     protected $fillable = ['name', 'value', 'private', 'description'];
 
-    /**
-     * @var array
-     */
+    protected $casts = [ 'is_private' => 'boolean' ];
+
     protected $encrypted = ['value'];
 
     public static function boot()

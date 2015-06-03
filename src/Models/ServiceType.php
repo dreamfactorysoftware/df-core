@@ -63,6 +63,8 @@ class ServiceType extends BaseModel
 
     protected $appends = [ 'config_schema' ];
 
+    protected $casts = [ 'singleton' => 'boolean' ];
+
     public $incrementing = false;
 
     public function getConfigSchemaAttribute()

@@ -53,5 +53,7 @@ class ScriptType extends BaseModel
 
     protected $fillable = [ 'name', 'class_name', 'label', 'description', 'sandboxed' ];
 
+    protected $casts = [ 'sandboxed' => 'boolean' ];
+
     public $incrementing = false;
 }

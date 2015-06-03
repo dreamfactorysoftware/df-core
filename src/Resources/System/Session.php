@@ -23,6 +23,7 @@ namespace DreamFactory\Rave\Resources\System;
 use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Rave\Exceptions\UnauthorizedException;
 use DreamFactory\Rave\Resources\UserSessionResource;
+use DreamFactory\Rave\Exceptions\NotFoundException;
 
 class Session extends UserSessionResource
 {
@@ -33,9 +34,14 @@ class Session extends UserSessionResource
     {
         $user = \Auth::user();
 
-        if(false === Scalar::boolval($user->is_sys_admin))
+        if ( empty( $user ) )
         {
-            throw new UnauthorizedException('You are not authorized to perform this action.');
+            throw new NotFoundException( 'No user session found.' );
+        }
+
+        if ( false === Scalar::boolval( $user->is_sys_admin ) )
+        {
+            throw new UnauthorizedException( 'You are not authorized to perform this action.' );
         }
 
         return parent::handleGET();

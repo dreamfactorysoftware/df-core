@@ -22,7 +22,6 @@ namespace DreamFactory\Rave\Testing;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Illuminate\Support\Arr;
-use DreamFactory\Library\Utility\Scalar;
 use Auth;
 use Hash;
 
@@ -33,12 +32,14 @@ class UserResourceTestCase extends TestCase
     protected $serviceId = 'system';
 
     protected $user1 = [
-        'name'       => 'John Doe',
-        'first_name' => 'John',
-        'last_name'  => 'Doe',
-        'email'      => 'jdoe@dreamfactory.com',
-        'password'   => 'test1234',
-        'is_active'  => 1
+        'name'              => 'John Doe',
+        'first_name'        => 'John',
+        'last_name'         => 'Doe',
+        'email'             => 'jdoe@dreamfactory.com',
+        'password'          => 'test1234',
+        'security_question' => 'Make of your first car?',
+        'security_answer'   => 'mazda',
+        'is_active'         => 1
     ];
 
     protected $user2 = [
@@ -112,7 +113,7 @@ class UserResourceTestCase extends TestCase
         $this->assertEquals( Arr::get( $this->user2, 'email' ), Arr::get( $data, '1.email' ) );
         $this->assertEquals( 0, count( Arr::get( $data, '0.user_lookup_by_user_id' ) ) );
         $this->assertEquals( 2, count( Arr::get( $data, '1.user_lookup_by_user_id' ) ) );
-        $this->assertTrue($this->adminCheck($data));
+        $this->assertTrue( $this->adminCheck( $data ) );
     }
 
     public function testPOSTCreateAdmin()
@@ -126,7 +127,7 @@ class UserResourceTestCase extends TestCase
         $this->assertEquals( 3, count( Arr::get( $data, 'user_lookup_by_user_id' ) ) );
         $this->assertEquals( '**********', Arr::get( $data, 'user_lookup_by_user_id.1.value' ) );
         $this->assertEquals( '**********', Arr::get( $data, 'user_lookup_by_user_id.2.value' ) );
-        $this->assertTrue($this->adminCheck([$data]));
+        $this->assertTrue( $this->adminCheck( [ $data ] ) );
     }
 
     /************************************************
@@ -172,7 +173,7 @@ class UserResourceTestCase extends TestCase
 
         $this->assertEquals( 'my_param', Arr::get( $content, 'user_lookup_by_user_id.0.name' ) );
         $this->assertEquals( '**********', Arr::get( $content, 'user_lookup_by_user_id.1.value' ) );
-        $this->assertTrue($this->adminCheck([$content]));
+        $this->assertTrue( $this->adminCheck( [ $content ] ) );
     }
 
     public function testPATCHByIds()
@@ -209,7 +210,7 @@ class UserResourceTestCase extends TestCase
         $this->assertEquals( 'common name', Arr::get( $data, '0.user_lookup_by_user_id.0.value' ) );
         $this->assertEquals( 'common name', Arr::get( $data, '1.user_lookup_by_user_id.2.value' ) );
         $this->assertEquals( 'common name', Arr::get( $data, '2.user_lookup_by_user_id.3.value' ) );
-        $this->assertTrue($this->adminCheck($data));
+        $this->assertTrue( $this->adminCheck( $data ) );
     }
 
     public function testPATCHByRecords()
@@ -230,7 +231,7 @@ class UserResourceTestCase extends TestCase
         $this->assertEquals( $user1['first_name'], Arr::get( $content, 'record.0.first_name' ) );
         $this->assertEquals( $user2['first_name'], Arr::get( $content, 'record.1.first_name' ) );
         $this->assertEquals( $user3['first_name'], Arr::get( $content, 'record.2.first_name' ) );
-        $this->assertTrue($this->adminCheck($content['record']));
+        $this->assertTrue( $this->adminCheck( $content['record'] ) );
     }
 
     public function testPATCHPassword()
@@ -244,7 +245,7 @@ class UserResourceTestCase extends TestCase
         $content = $rs->getContent();
 
         $this->assertTrue( Auth::attempt( [ 'email' => $user['email'], 'password' => '1234' ] ) );
-        $this->assertTrue($this->adminCheck([$content]));
+        $this->assertTrue( $this->adminCheck( [ $content ] ) );
     }
 
     public function testPATCHSecurityAnswer()
@@ -257,7 +258,7 @@ class UserResourceTestCase extends TestCase
         $rs = $this->makeRequest( Verbs::PATCH, static::RESOURCE . '/' . $user['id'], [ 'fields' => 'id,security_answer' ], $payload );
         $content = $rs->getContent();
 
-        $this->assertTrue($this->adminCheck([$content]));
+        $this->assertTrue( $this->adminCheck( [ $content ] ) );
         $this->assertTrue( Hash::check( 'mazda', $content['security_answer'] ) );
     }
 
@@ -292,7 +293,7 @@ class UserResourceTestCase extends TestCase
         $this->assertEquals( $user['name'], $data['name'] );
         $this->assertTrue( $this->adminCheck( [ $data ] ) );
 
-        $this->assertTrue( $this->adminCheck([$data]));
+        $this->assertTrue( $this->adminCheck( [ $data ] ) );
         $this->assertEquals( count( $user['user_lookup_by_user_id'] ), count( $data['user_lookup_by_user_id'] ) );
     }
 

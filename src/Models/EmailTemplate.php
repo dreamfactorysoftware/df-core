@@ -48,4 +48,5 @@ class EmailTemplate extends BaseSystemModel
 {
     protected $table = 'email_template';
 
+    protected $fillable = ['name'];
 }

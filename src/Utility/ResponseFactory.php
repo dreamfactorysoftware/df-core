@@ -83,9 +83,9 @@ class ResponseFactory
 
         if ( $content instanceof \Exception )
         {
+            $status = ( $content instanceof RestException ) ? $content->getStatusCode() : ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
             $content = self::makeExceptionContent( $content );
             $format = DataFormats::PHP_ARRAY;
-            $status = ( $content instanceof RestException ) ? $content->getStatusCode() : ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
         }
 
         // check if the current content type is acceptable for return

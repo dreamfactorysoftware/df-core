@@ -1,5 +1,6 @@
 <?php namespace DreamFactory\Rave\Components;
 
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Models\User;
 use Validator;
 use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
@@ -29,14 +30,18 @@ class Registrar implements RegistrarContract {
 	 */
 	public function create(array $data)
 	{
-		return User::create([
-			'name' => $data['name'],
-            'first_name' => $data['first_name'],
-            'last_name' => $data['last_name'],
-            'is_sys_admin' => $data['is_sys_admin'],
-			'email' => $data['email'],
-			'password' => bcrypt($data['password']),
+		$user = User::create([
+			'name' => ArrayUtils::get($data, 'name'),
+            'first_name' => ArrayUtils::get($data, 'first_name'),
+            'last_name' => ArrayUtils::get($data, 'last_name'),
+            'is_sys_admin' => ArrayUtils::get($data, 'is_sys_admin', 0),
+			'email' => ArrayUtils::get($data, 'email')
 		]);
+
+        $user->password = ArrayUtils::get($data, 'password');
+        $user->save();
+
+        return $user;
 	}
 
 }

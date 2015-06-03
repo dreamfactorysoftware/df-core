@@ -23,6 +23,7 @@ use DreamFactory\Rave\Enums\DataFormats;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Models\Service;
 use DreamFactory\Rave\Utility\ServiceHandler;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\TestCase as LaravelTestCase;
 use Artisan;
 use DreamFactory\Rave\Services\BaseRestService;
@@ -63,6 +64,8 @@ class TestCase extends LaravelTestCase
     public function setUp()
     {
         parent::setUp();
+
+        Model::unguard(false);
 
         if ( false === static::$staged )
         {

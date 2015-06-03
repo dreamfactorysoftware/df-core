@@ -56,22 +56,6 @@ class UserPasswordResource extends BaseRestResource
     }
 
     /**
-     * {@inheritdoc}
-     */
-    protected function handlePUT()
-    {
-        return false;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    protected function handlePATCH()
-    {
-        return false;
-    }
-
-    /**
      * Resets user password.
      *
      * @return array|bool
@@ -160,7 +144,7 @@ class UserPasswordResource extends BaseRestResource
 
         try
         {
-            $user->password = bcrypt( $new );
+            $user->password = $new;
             $user->save();
 
             return array( 'success' => true );
@@ -207,8 +191,8 @@ class UserPasswordResource extends BaseRestResource
         }
 
         // otherwise, is email confirmation required?
-        $code = \Hash::make( $email );
-        $user->confirm_code = $code;
+        $code =  \Hash::make( $email );
+        $user->confirm_code = base64_encode($code);
         $user->save();
 
         $sent = static::sendPasswordResetEmail( $user );
@@ -269,7 +253,7 @@ class UserPasswordResource extends BaseRestResource
         try
         {
             $user->confirm_code = 'y';
-            $user->password = bcrypt( $newPassword );
+            $user->password = $newPassword;
             $user->save();
         }
         catch ( \Exception $ex )
@@ -343,7 +327,7 @@ class UserPasswordResource extends BaseRestResource
 
         try
         {
-            $user->password = bcrypt( $newPassword );
+            $user->password = $newPassword;
             $user->save();
         }
         catch ( \Exception $ex )

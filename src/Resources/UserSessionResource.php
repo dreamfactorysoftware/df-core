@@ -89,7 +89,7 @@ class UserSessionResource extends BaseRestResource
 
         $rememberMe = Scalar::boolval( $this->getPayloadData( 'remember_me' ) );
 
-        if ( \Auth::attempt( $credentials, $rememberMe ) )
+        if ( empty(ArrayUtils::get($credentials, 'password')) || \Auth::attempt( $credentials, $rememberMe ) )
         {
             $user = \Auth::user();
             $user->update( [ 'last_login_date' => Carbon::now()->toDateTimeString() ] );
@@ -99,7 +99,7 @@ class UserSessionResource extends BaseRestResource
         }
         else
         {
-            throw new UnauthorizedException( 'Invalid user name and password combination.' );
+            throw new UnauthorizedException( 'Invalid credentials supplied.' );
         }
     }
 

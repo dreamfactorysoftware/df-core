@@ -168,6 +168,16 @@ class RoleServiceAccessTest extends \DreamFactory\Rave\Testing\TestCase
         $this->assertEquals(VerbsMask::POST_MASK, $this->check('system', 'app'), 'check(system, app)');
     }
 
+    public function testMostSpecificOverwrite2()
+    {
+        $this->setRsa('system', 'app', ['GET']);
+        $this->setRsa('system', 'app/*', ['POST']);
+
+        $this->assertEquals(VerbsMask::GET_MASK, $this->check('system', 'app'), 'check(system, app)');
+        $this->assertEquals(VerbsMask::POST_MASK, $this->check('system', 'app/1'), 'check(system, app/1)');
+        $this->assertEquals(VerbsMask::NONE_MASK, $this->check('system', 'role'), 'check(system, role)');
+    }
+
     public function testMultiVerb()
     {
         $verbs = ['GET','POST','PUT','PATCH'];

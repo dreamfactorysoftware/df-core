@@ -48,12 +48,12 @@ class AccessCheck
             'resource'  => 'admin/session'
         ],
         [
-            'verb_mask' => 31,
+            'verb_mask' => 31, //Allow all verbs
             'service'   => 'user',
             'resource'  => 'session'
         ],
         [
-            'verb_mask' => 2,
+            'verb_mask' => 2, //Allow POST only
             'service'   => 'user',
             'resource'  => 'password'
         ],
@@ -76,7 +76,7 @@ class AccessCheck
     {
         Session::put( 'is_sys_admin', 0 );
 
-        //Bypassing access check for admin login attempts using system/admin/session (POST)
+        //Bypassing access check for exception cases such as login attempts using system/admin/session (POST)
         if ( static::isException() )
         {
             return $next( $request );
@@ -247,7 +247,6 @@ class AccessCheck
      */
     protected static function getRoleData( Role $role )
     {
-        $role->load( 'role_service_access_by_role_id', 'service_by_role_service_access' );
         $rsa = $role->getRoleServiceAccess();
 
         $roleData = [

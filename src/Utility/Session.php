@@ -42,41 +42,14 @@ class Session
      */
     public static function isAccessAllowed( $requestor = ServiceRequestorTypes::API )
     {
-        if ( session( 'is_sys_admin' ) )
-        {
-            return true;
-        }
-
         /** @var Router $router */
         $router = app( 'router' );
         $service = strtolower( $router->input( 'service' ) );
-        $resource = strtolower( $router->input( 'resource' ) );
+        $component = strtolower( $router->input( 'resource' ) );
         $action = VerbsMask::toNumeric( Request::getMethod() );
-        $roleServiceAccess = session( 'rsa.role.services' );
+        $allowed = static::getServicePermissions( $service, $component, $requestor );
 
-        if ( !empty( $roleServiceAccess ) )
-        {
-            foreach ( $roleServiceAccess as $rsa )
-            {
-                $allowedResource = ArrayUtils::get( $rsa, 'component' );
-                $allowedService = ArrayUtils::get( $rsa, 'service_name' );
-                $allowedAction = ArrayUtils::get( $rsa, 'verb_mask' );
-                $allowedRequestor = ArrayUtils::get( $rsa, 'requestor_mask' );
-
-                if ( ( $action & $allowedAction ) &&
-                     ( $requestor & $allowedRequestor ) &&
-                     ( $service === $allowedService || '*' === $allowedService || 'all' === strtolower( $allowedService ) )
-                )
-                {
-                    if ( '*' === $allowedResource || ( $resource === $allowedResource ) )
-                    {
-                        return true;
-                    }
-                }
-            }
-        }
-
-        return false;
+        return ( $action & $allowed ) ? true : false;
     }
 
     /**
@@ -159,14 +132,7 @@ class Session
 
             $_tempService = strval( ArrayUtils::get( $_svcInfo, 'service' ) );
             $_tempComponent = strval( ArrayUtils::get( $_svcInfo, 'component' ) );
-            if ( null === $_tempVerbs = ArrayUtils::get( $_svcInfo, 'verb_mask' ) )
-            {
-                //  Check for old verbs array
-                if ( null !== $_temp = ArrayUtils::get( $_svcInfo, 'verbs' ) )
-                {
-                    $_tempVerbs = VerbsMask::arrayToMask( $_temp );
-                }
-            }
+            $_tempVerbs = ArrayUtils::get( $_svcInfo, 'verb_mask' );
 
             if ( 0 == strcasecmp( $service, $_tempService ) )
             {
@@ -206,8 +172,8 @@ class Session
             }
             else
             {
-                // system services don't fall under the "All" services category
-                if ( ( 'system' != $service ) && empty( $_tempService ) && ( '*' == $_tempComponent ) )
+                if ( empty( $_tempService ) && ( ( '*' == $_tempComponent ) || ( empty( $_tempComponent ) && empty( $component ) ) )
+                )
                 {
                     $_allAllowed |= $_tempVerbs;
                     $_allFound = true;
@@ -471,5 +437,20 @@ class Session
 
         \Session::put( 'lookup_app', ArrayUtils::get( $lookupApp, 'lookup', [ ] ) );
         \Session::put( 'lookup_app_secret', ArrayUtils::get( $lookupApp, 'lookup_secret', [ ] ) );
+    }
+
+    public static function get( $key, $default = null )
+    {
+        return \Session::get( $key, $default );
+    }
+
+    public static function put( $key, $value = null )
+    {
+        \Session::put( $key, $value );
+    }
+
+    public static function has( $name )
+    {
+        return \Session::has( $name );
     }
 }

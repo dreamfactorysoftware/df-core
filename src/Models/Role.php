@@ -105,13 +105,14 @@ class Role extends BaseSystemModel
      */
     public function getRoleServiceAccess()
     {
+        $this->load( 'role_service_access_by_role_id', 'service_by_role_service_access' );
         $rsa = $this->getRelation( 'role_service_access_by_role_id' )->toArray();
         $services = $this->getRelation( 'service_by_role_service_access' )->toArray();
 
         foreach ( $rsa as $key => $s )
         {
             $serviceName = ArrayUtils::findByKeyValue( $services, 'id', ArrayUtils::get( $s, 'service_id' ), 'name' );
-            ArrayUtils::set( $rsa[$key], 'service_name', $serviceName );
+            ArrayUtils::set( $rsa[$key], 'service', $serviceName );
         }
 
         return $rsa;

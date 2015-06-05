@@ -444,13 +444,53 @@ class Session
         return \Session::get( $key, $default );
     }
 
+    public static function set($name, $value)
+    {
+        \Session::set($name, $value);
+    }
+
     public static function put( $key, $value = null )
     {
         \Session::put( $key, $value );
     }
 
+    public static function push($key, $value)
+    {
+        \Session::push($key, $value);
+    }
+
     public static function has( $name )
     {
         return \Session::has( $name );
+    }
+
+    public static function getId()
+    {
+        return \Session::getId();
+    }
+
+    public static function isValidId($id)
+    {
+        return \Session::isValidId($id);
+    }
+
+    public static function setId($sessionId)
+    {
+        \Session::setId($sessionId);
+    }
+
+    public static function start()
+    {
+        return \Session::start();
+    }
+
+    public static function driver($driver=null)
+    {
+        return \Session::driver($driver);
+    }
+
+    public static function all()
+    {
+        return \Session::all();
     }
 }

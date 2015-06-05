@@ -25,7 +25,6 @@ use \Cache;
 use \Config;
 use \Closure;
 use Illuminate\Routing\Router;
-use \Session;
 use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Exceptions\BadRequestException;
@@ -35,7 +34,7 @@ use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\App;
 use DreamFactory\Rave\Models\Role;
 use DreamFactory\Rave\Models\User;
-use DreamFactory\Rave\Utility\Session as SessionUtil;
+use DreamFactory\Rave\Utility\Session;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
 use DreamFactory\Rave\Utility\Cache as CacheUtil;
 
@@ -122,8 +121,8 @@ class AccessCheck
                 $appId = $app->id;
             }
             Session::put( 'is_sys_admin', 1 );
-            SessionUtil::setLookupKeys( null, $authenticatedUser->id );
-            SessionUtil::setAppLookupKeys( $appId );
+            Session::setLookupKeys( null, $authenticatedUser->id );
+            Session::setAppLookupKeys( $appId );
         }
         else if ( !empty( $apiKey ) && $authenticated && class_exists( '\DreamFactory\Rave\User\Resources\System\User' ) )
         {
@@ -175,8 +174,8 @@ class AccessCheck
             }
 
             Session::put( 'rsa.role', $roleData );
-            SessionUtil::setLookupKeys( ArrayUtils::get( $roleData, 'id' ), ArrayUtils::get( $cacheData, 'user_id' ) );
-            SessionUtil::setAppLookupKeys( ArrayUtils::get( $cacheData, 'app_id' ) );
+            Session::setLookupKeys( ArrayUtils::get( $roleData, 'id' ), ArrayUtils::get( $cacheData, 'user_id' ) );
+            Session::setAppLookupKeys( ArrayUtils::get( $cacheData, 'app_id' ) );
 
         }
         elseif ( !empty( $apiKey ) )
@@ -214,8 +213,8 @@ class AccessCheck
             }
 
             Session::put( 'rsa.role', $roleData );
-            SessionUtil::setLookupKeys( ArrayUtils::get( $roleData, 'id' ) );
-            SessionUtil::setAppLookupKeys( ArrayUtils::get( $cacheData, 'app_id' ) );
+            Session::setLookupKeys( ArrayUtils::get( $roleData, 'id' ) );
+            Session::setAppLookupKeys( ArrayUtils::get( $cacheData, 'app_id' ) );
         }
         else
         {
@@ -228,7 +227,7 @@ class AccessCheck
             return static::getException( new BadRequestException( 'Bad request. Missing api key.' ), $request );
         }
 
-        if ( SessionUtil::isAccessAllowed() )
+        if ( Session::isAccessAllowed() )
         {
             return $next( $request );
         }

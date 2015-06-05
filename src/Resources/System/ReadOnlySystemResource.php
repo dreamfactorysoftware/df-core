@@ -27,7 +27,7 @@ use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Resources\BaseRestResource;
 use DreamFactory\Rave\Utility\ResponseFactory;
 use DreamFactory\Rave\Models\BaseSystemModel;
-use DreamFactory\Rave\Utility\Session as SessionUtil;
+use DreamFactory\Rave\Utility\Session;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -202,7 +202,7 @@ class ReadOnlySystemResource extends BaseRestResource
             {
                 if ( !isset( $criteria['params'][':user_id'] ) )
                 {
-                    $criteria['params'][':user_id'] = SessionUtil::getCurrentUserId();
+                    $criteria['params'][':user_id'] = Session::getCurrentUserId();
                 }
             }
         }

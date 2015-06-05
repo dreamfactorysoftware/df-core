@@ -24,7 +24,7 @@ use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Exceptions\UnauthorizedException;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Utility\Session as SessionUtil;
+use DreamFactory\Rave\Utility\Session;
 use Carbon\Carbon;
 
 class UserSessionResource extends BaseRestResource
@@ -39,7 +39,7 @@ class UserSessionResource extends BaseRestResource
      */
     protected function handleGET()
     {
-        return SessionUtil::getUserInfo();
+        return Session::getUserInfo();
     }
 
     /**
@@ -93,9 +93,9 @@ class UserSessionResource extends BaseRestResource
         {
             $user = \Auth::user();
             $user->update( [ 'last_login_date' => Carbon::now()->toDateTimeString() ] );
-            SessionUtil::setUserInfo( $user );
+            Session::setUserInfo( $user );
 
-            return SessionUtil::getUserInfo();
+            return Session::getUserInfo();
         }
         else
         {

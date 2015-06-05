@@ -27,6 +27,7 @@ use DreamFactory\Rave\Enums\DataFormats;
 use DreamFactory\Rave\Exceptions\ServiceUnavailableException;
 use DreamFactory\Rave\Utility\ServiceHandler;
 use DreamFactory\Rave\Utility\ResponseFactory;
+use DreamFactory\Rave\Utility\Session;
 use \Log;
 
 /**
@@ -462,7 +463,7 @@ abstract class BaseEngineAdapter
         return [
             'api'     => static::getExposedApi(),
             'config'  => \Config::all(),
-            'session' => \Session::all(),
+            'session' => Session::all(),
             'store'   => new ScriptSession( \Config::get( "script.$identifier.store" ), app( 'cache' ) )
         ];
     }

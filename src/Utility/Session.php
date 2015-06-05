@@ -107,95 +107,95 @@ class Session
             return VerbsMask::NONE_MASK | VerbsMask::GET_MASK | VerbsMask::POST_MASK | VerbsMask::PUT_MASK | VerbsMask::PATCH_MASK | VerbsMask::DELETE_MASK;
         }
 
-        $_services = ArrayUtils::clean( session( 'rsa.role.services' ) );
+        $services = ArrayUtils::clean( session( 'rsa.role.services' ) );
         $service = strval( $service );
         $component = strval( $component );
 
         //  If exact match found take it, otherwise follow up the chain as necessary
         //  All - Service - Component - Sub-component
-        $_allAllowed = VerbsMask::NONE_MASK;
-        $_allFound = false;
-        $_serviceAllowed = VerbsMask::NONE_MASK;
-        $_serviceFound = false;
-        $_componentAllowed = VerbsMask::NONE_MASK;
-        $_componentFound = false;
-        $_exactAllowed = VerbsMask::NONE_MASK;
-        $_exactFound = false;
-        foreach ( $_services as $_svcInfo )
+        $allAllowed = VerbsMask::NONE_MASK;
+        $allFound = false;
+        $serviceAllowed = VerbsMask::NONE_MASK;
+        $serviceFound = false;
+        $componentAllowed = VerbsMask::NONE_MASK;
+        $componentFound = false;
+        $exactAllowed = VerbsMask::NONE_MASK;
+        $exactFound = false;
+        foreach ( $services as $svcInfo )
         {
-            $_tempRequestors = ArrayUtils::get( $_svcInfo, 'requestor_mask', ServiceRequestorTypes::API );
-            if ( !( $requestor & $_tempRequestors ) )
+            $tempRequestors = ArrayUtils::get( $svcInfo, 'requestor_mask', ServiceRequestorTypes::API );
+            if ( !( $requestor & $tempRequestors ) )
             {
                 //  Requestor type not found in allowed requestors, skip access setting
                 continue;
             }
 
-            $_tempService = strval( ArrayUtils::get( $_svcInfo, 'service' ) );
-            $_tempComponent = strval( ArrayUtils::get( $_svcInfo, 'component' ) );
-            $_tempVerbs = ArrayUtils::get( $_svcInfo, 'verb_mask' );
+            $tempService = strval( ArrayUtils::get( $svcInfo, 'service' ) );
+            $tempComponent = strval( ArrayUtils::get( $svcInfo, 'component' ) );
+            $tempVerbs = ArrayUtils::get( $svcInfo, 'verb_mask' );
 
-            if ( 0 == strcasecmp( $service, $_tempService ) )
+            if ( 0 == strcasecmp( $service, $tempService ) )
             {
                 if ( !empty( $component ) )
                 {
-                    if ( 0 == strcasecmp( $component, $_tempComponent ) )
+                    if ( 0 == strcasecmp( $component, $tempComponent ) )
                     {
                         // exact match
-                        $_exactAllowed |= $_tempVerbs;
-                        $_exactFound = true;
+                        $exactAllowed |= $tempVerbs;
+                        $exactFound = true;
                     }
-                    elseif ( 0 == strcasecmp( substr( $component, 0, strpos( $component, '/' ) + 1 ) . '*', $_tempComponent ) )
+                    elseif ( 0 == strcasecmp( substr( $component, 0, strpos( $component, '/' ) + 1 ) . '*', $tempComponent ) )
                     {
-                        $_componentAllowed |= $_tempVerbs;
-                        $_componentFound = true;
+                        $componentAllowed |= $tempVerbs;
+                        $componentFound = true;
                     }
-                    elseif ( '*' == $_tempComponent )
+                    elseif ( '*' == $tempComponent )
                     {
-                        $_serviceAllowed |= $_tempVerbs;
-                        $_serviceFound = true;
+                        $serviceAllowed |= $tempVerbs;
+                        $serviceFound = true;
                     }
                 }
                 else
                 {
-                    if ( empty( $_tempComponent ) )
+                    if ( empty( $tempComponent ) )
                     {
                         // exact match
-                        $_exactAllowed |= $_tempVerbs;
-                        $_exactFound = true;
+                        $exactAllowed |= $tempVerbs;
+                        $exactFound = true;
                     }
-                    elseif ( '*' == $_tempComponent )
+                    elseif ( '*' == $tempComponent )
                     {
-                        $_serviceAllowed |= $_tempVerbs;
-                        $_serviceFound = true;
+                        $serviceAllowed |= $tempVerbs;
+                        $serviceFound = true;
                     }
                 }
             }
             else
             {
-                if ( empty( $_tempService ) && ( ( '*' == $_tempComponent ) || ( empty( $_tempComponent ) && empty( $component ) ) )
+                if ( empty( $tempService ) && ( ( '*' == $tempComponent ) || ( empty( $tempComponent ) && empty( $component ) ) )
                 )
                 {
-                    $_allAllowed |= $_tempVerbs;
-                    $_allFound = true;
+                    $allAllowed |= $tempVerbs;
+                    $allFound = true;
                 }
             }
         }
 
-        if ( $_exactFound )
+        if ( $exactFound )
         {
-            return $_exactAllowed;
+            return $exactAllowed;
         }
-        elseif ( $_componentFound )
+        elseif ( $componentFound )
         {
-            return $_componentAllowed;
+            return $componentAllowed;
         }
-        elseif ( $_serviceFound )
+        elseif ( $serviceFound )
         {
-            return $_serviceAllowed;
+            return $serviceAllowed;
         }
-        elseif ( $_allFound )
+        elseif ( $allFound )
         {
-            return $_allAllowed;
+            return $allAllowed;
         }
 
         return VerbsMask::NONE_MASK;

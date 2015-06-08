@@ -60,6 +60,11 @@ class AccessCheck
             'verb_mask' => 2, //Allow POST only
             'service'   => 'system',
             'resource'  => 'admin/password'
+        ],
+        [
+            'verb_mask' => 1,
+            'service'   => 'system',
+            'resource'  => 'environment'
         ]
     ];
 
@@ -73,8 +78,6 @@ class AccessCheck
      */
     public function handle( $request, Closure $next )
     {
-        Session::put( 'is_sys_admin', 0 );
-
         //Bypassing access check for exception cases such as login attempts using system/admin/session (POST)
         if ( static::isException() )
         {
@@ -120,7 +123,7 @@ class AccessCheck
                 $app = App::whereApiKey( $apiKey )->first();
                 $appId = $app->id;
             }
-            Session::put( 'is_sys_admin', 1 );
+
             Session::setLookupKeys( null, $authenticatedUser->id );
             Session::setAppLookupKeys( $appId );
         }

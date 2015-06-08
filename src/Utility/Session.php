@@ -20,6 +20,7 @@
 
 namespace DreamFactory\Rave\Utility;
 
+use DreamFactory\Library\Utility\Scalar;
 use \Request;
 use Illuminate\Routing\Router;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -102,7 +103,7 @@ class Session
      */
     public static function getServicePermissions( $service, $component = null, $requestor = ServiceRequestorTypes::API )
     {
-        if ( session( 'is_sys_admin' ) )
+        if ( true === static::isSysAdmin() )
         {
             return VerbsMask::NONE_MASK | VerbsMask::GET_MASK | VerbsMask::POST_MASK | VerbsMask::PUT_MASK | VerbsMask::PATCH_MASK | VerbsMask::DELETE_MASK;
         }
@@ -234,7 +235,7 @@ class Session
      */
     public static function getServiceFilters( $action, $service, $component = null )
     {
-        if ( session( 'is_sys_admin' ) )
+        if ( true === static::isSysAdmin() )
         {
             return [ ];
         }
@@ -346,12 +347,6 @@ class Session
         if ( \Auth::check() )
         {
             \Session::put( 'user_id', $user->id );
-            \Session::put( 'display_name', $user->name );
-            \Session::put( 'first_name', $user->first_name );
-            \Session::put( 'last_name', $user->last_name );
-            \Session::put( 'email', $user->email );
-            \Session::put( 'is_sys_admin', $user->is_sys_admin );
-            \Session::put( 'last_login_date', $user->last_login_date );
 
             return true;
         }
@@ -439,6 +434,31 @@ class Session
         \Session::put( 'lookup_app_secret', ArrayUtils::get( $lookupApp, 'lookup_secret', [ ] ) );
     }
 
+    /**
+     * @return DspUser|null
+     */
+    public static function getUser()
+    {
+        return \Auth::user();
+    }
+
+    /**
+     * @return bool
+     */
+    public static function isSysAdmin()
+    {
+        $user = \Auth::user();
+
+        if(!empty($user) && true === Scalar::boolval($user->is_sys_admin))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
     public static function get( $key, $default = null )
     {
         return \Session::get( $key, $default );
@@ -492,5 +512,10 @@ class Session
     public static function all()
     {
         return \Session::all();
+    }
+
+    public static function flush()
+    {
+        \Session::flush();
     }
 }

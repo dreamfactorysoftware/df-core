@@ -23,6 +23,7 @@ use DreamFactory\Rave\Models\App;
 use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Rave\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Rave\Utility\Session;
 use Illuminate\Support\Arr;
 
 class AccessCheckMiddlewareTest extends \DreamFactory\Rave\Testing\TestCase
@@ -39,9 +40,10 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Rave\Testing\TestCase
         $this->be($user);
         $this->call(Verbs::GET, '/api/v2/system');
 
-        $this->assertTrue(Scalar::boolval(session('is_sys_admin')));
+        $this->assertTrue(Session::isSysAdmin());
         $this->assertEquals(null, session('rsa.role.id'));
-        $this->assertTrue(empty(session('rsa.role.services')));
+        $rsa = session('rsa.role.services');
+        $this->assertTrue(empty($rsa));
     }
 
     public function testApiKeyRole()
@@ -51,9 +53,10 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Rave\Testing\TestCase
 
         $this->call(Verbs::GET, '/api/v2/system', ['api_key'=>$apiKey]);
 
-        $this->assertFalse(Scalar::boolval(session('is_sys_admin')));
+        $this->assertFalse(Session::isSysAdmin());
         $this->assertEquals(1, session('rsa.role.id'));
-        $this->assertTrue(!empty(session('rsa.role.services')));
+        $rsa = session('rsa.role.services');
+        $this->assertTrue(!empty($rsa));
     }
 
     public function testApiKeyUserRole()
@@ -81,8 +84,9 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Rave\Testing\TestCase
         $this->be(User::find($userId));
         $this->call(Verbs::GET, '/api/v2/system', [], [], [], ['HTTP_X_DREAMFACTORY_API_KEY'=>$apiKey]);
 
-        $this->assertFalse(Scalar::boolval(session('is_sys_admin')));
+        $this->assertFalse(Session::isSysAdmin());
         $this->assertEquals(1, session('rsa.role.id'));
-        $this->assertTrue(!empty(session('rsa.role.services')));
+        $rsa = session('rsa.role.services');
+        $this->assertTrue(!empty($rsa));
     }
 }

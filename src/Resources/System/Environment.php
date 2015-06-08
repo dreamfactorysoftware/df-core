@@ -20,50 +20,135 @@
 
 namespace DreamFactory\Rave\Resources\System;
 
+use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Rave\Models\Service;
+use DreamFactory\Rave\Utility\Session;
+
 class Environment extends ReadOnlySystemResource
 {
+    const OAUTH_ROUTE = '/dsp/oauth/login/';
+
     protected function handleGET()
     {
-        $_release = null;
-        $_phpInfo = $this->_getPhpInfo();
+        $result = [ ];
 
-        if ( false !== ( $_raw = file( static::LSB_RELEASE ) ) && !empty( $_raw ) )
+        if ( true === Scalar::boolval( Session::isSysAdmin() ) )
         {
-            $_release = array();
+            $result['server'] = [
+                'server_os' => 'tbi'
+            ];
 
-            foreach ( $_raw as $_line )
-            {
-                $_fields = explode( '=', $_line );
-                $_release[str_replace( 'distrib_', null, strtolower( $_fields[0] ) )] = trim( $_fields[1], PHP_EOL . '"' );
-            }
+            $result['release'] = [
+                'id'          => 'tbi',
+                'release'     => 'tbi',
+                'codename'    => 'tbi',
+                'description' => 'tbi'
+            ];
+
+            $result['platform'] = [
+                'is_hosted'           => 'tbi',
+                'is_private'          => 'tbi',
+                'dfi_version_current' => 'tbi',
+                'dfi_version_latest'  => 'tbi',
+                'upgrade_available'   => 'tbi'
+            ];
         }
 
-        $_response = array(
-            'php_info' => $_phpInfo,
-            'platform' => Config::getCurrentConfig(),
-            'release'  => $_release,
-            'server'   => array(
-                'server_os' => strtolower( php_uname( 's' ) ),
-                'uname'     => php_uname( 'a' ),
-            ),
-        );
+        $oauth = static::getOAuthServices();
+        $ldap = static::getAdLdapServices();
 
-        array_multisort( $_response );
+        $auth = [
+            'oauth' => $oauth,
+            'ldap'  => $ldap
+        ];
 
-        //	Cache configuration
-        Platform::storeSet( static::CACHE_KEY, $_response, static::CONFIG_CACHE_TTL );
+        $result['authentication'] = $auth;
 
-        $this->_response = $this->_response ? array_merge( $this->_response, $_response ) : $_response;
-        unset( $_response );
-
-        return $this->_response;
+        return $result;
     }
+
+    protected static function getOAuthServices()
+    {
+        $oauth = Service::whereIn(
+            'type',
+            [ 'oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google' ]
+        )->whereIsActive( 1 )->get( [ 'name', 'type' ] )->toArray();
+
+        $services = [ ];
+
+        foreach ( $oauth as $o )
+        {
+            $services[$o['type']][] = [
+                'name' => $o['name'],
+                'url'  => '//' . \Request::getHost() . static::OAUTH_ROUTE . $o['name']
+            ];
+        }
+
+        return $services;
+    }
+
+    protected static function getAdLdapServices()
+    {
+        $ldap = Service::whereIn(
+            'type',
+            [ 'ldap', 'adldap' ]
+        )->whereIsActive( 1 )->get( [ 'name', 'type' ] )->toArray();
+
+        $services = [ ];
+
+        foreach ( $ldap as $l )
+        {
+            $services[$l['type']][] = [ 'name' => $l['name'] ];
+        }
+
+        return $services;
+    }
+
+    //Following codes are directly copied over from 1.x and is not functional.
+
+//    protected function handleGET()
+//    {
+//        $_release = null;
+//        $_phpInfo = $this->_getPhpInfo();
+//
+//        if ( false !== ( $_raw = file( static::LSB_RELEASE ) ) && !empty( $_raw ) )
+//        {
+//            $_release = array();
+//
+//            foreach ( $_raw as $_line )
+//            {
+//                $_fields = explode( '=', $_line );
+//                $_release[str_replace( 'distrib_', null, strtolower( $_fields[0] ) )] = trim( $_fields[1], PHP_EOL . '"' );
+//            }
+//        }
+//
+//        $_response = array(
+//            'php_info' => $_phpInfo,
+//            'platform' => Config::getCurrentConfig(),
+//            'release'  => $_release,
+//            'server'   => array(
+//                'server_os' => strtolower( php_uname( 's' ) ),
+//                'uname'     => php_uname( 'a' ),
+//            ),
+//        );
+//
+//        array_multisort( $_response );
+//
+//        //	Cache configuration
+//        Platform::storeSet( static::CACHE_KEY, $_response, static::CONFIG_CACHE_TTL );
+//
+//        $this->_response = $this->_response ? array_merge( $this->_response, $_response ) : $_response;
+//        unset( $_response );
+//
+//        return $this->_response;
+//    }
 
     /**
      * Parses the data coming back from phpinfo() call and returns in an array
      *
      * @return array
      */
+    /*
     protected function _getPhpInfo()
     {
         $_html = null;
@@ -102,6 +187,7 @@ class Environment extends ReadOnlySystemResource
 
         return $this->_cleanPhpInfo( $_info );
     }
+    */
 
     /**
      * @param array $info
@@ -110,6 +196,7 @@ class Environment extends ReadOnlySystemResource
      *
      * @return array
      */
+    /*
     protected function _cleanPhpInfo( $info, $recursive = false )
     {
         static $_excludeKeys = array('directive', 'variable',);
@@ -171,7 +258,9 @@ class Environment extends ReadOnlySystemResource
 
         return $_clean;
     }
+    */
 
+    /*
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
@@ -286,4 +375,5 @@ class Environment extends ReadOnlySystemResource
             ]
         ];
     }
+    */
 }

@@ -112,6 +112,9 @@ class UserSessionResource extends BaseRestResource
     {
         \Auth::logout();
 
+        //Clear everything in session.
+        Session::flush();
+
         return [ 'success' => true ];
     }
 

@@ -30,7 +30,8 @@ class RoleServiceAccessTest extends \DreamFactory\Rave\Testing\TestCase
 
     public function testSysAdmin()
     {
-        Session::put( 'is_sys_admin', 1 );
+        $user = \DreamFactory\Rave\Models\User::find(1);
+        $this->be($user);
         $permission = Session::getServicePermissions( 'system', '*' );
 
         $this->assertEquals(
@@ -38,7 +39,18 @@ class RoleServiceAccessTest extends \DreamFactory\Rave\Testing\TestCase
             ( VerbsMask::NONE_MASK | VerbsMask::GET_MASK | VerbsMask::POST_MASK | VerbsMask::PUT_MASK | VerbsMask::PATCH_MASK | VerbsMask::DELETE_MASK )
         );
 
-        Session::put( 'is_sys_admin', 0 );
+        $nonAdminUser = \DreamFactory\Rave\Models\User::create([
+            'name'              => 'John Doe',
+            'first_name'        => 'John',
+            'last_name'         => 'Doe',
+            'email'             => 'jdoe@dreamfactory.com',
+            'password'          => 'test1234',
+            'security_question' => 'Make of your first car?',
+            'security_answer'   => 'mazda',
+            'is_active'         => 1
+        ]);
+
+        $this->be($nonAdminUser);
         $permission = Session::getServicePermissions( 'system', '*' );
 
         $this->assertEquals( VerbsMask::NONE_MASK, $permission );

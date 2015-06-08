@@ -1,7 +1,9 @@
 <?php namespace DreamFactory\Rave\Components;
 
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Rave\Models\User;
+use DreamFactory\Rave\Utility\Session;
 use Validator;
 use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 
@@ -30,6 +32,14 @@ class Registrar implements RegistrarContract {
 	 */
 	public function create(array $data)
 	{
+        $currentUser = Session::getUser();
+
+        if(false === Scalar::boolval($currentUser->is_sys_admin))
+        {
+            //If current user is not an admin then new user cannot be an admin either.
+            ArrayUtils::set($data, 'is_sys_admin', 0);
+        }
+
 		$user = User::create([
 			'name' => ArrayUtils::get($data, 'name'),
             'first_name' => ArrayUtils::get($data, 'first_name'),

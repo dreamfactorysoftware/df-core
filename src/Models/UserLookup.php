@@ -39,13 +39,25 @@ class UserLookup extends BaseSystemModel
         static::saved(
             function ( UserLookup $ul )
             {
-                $cacheKey = CacheUtil::getUserLookupCacheKey($ul->user_id);
-
-                if(\Cache::has($cacheKey))
-                {
-                    \Cache::forget($cacheKey);
-                }
+                UserLookup::clearCache($ul->user_id);
             }
         );
+
+        static::deleted(
+            function ( UserLookup $ul )
+            {
+                UserLookup::clearCache($ul->user_id);
+            }
+        );
+    }
+
+    public static function clearCache($id)
+    {
+        $cacheKey = CacheUtil::getUserLookupCacheKey($id);
+
+        if(\Cache::has($cacheKey))
+        {
+            \Cache::forget($cacheKey);
+        }
     }
 }

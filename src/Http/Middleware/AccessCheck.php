@@ -97,12 +97,15 @@ class AccessCheck
             }
         }
 
+        //Check for API key in request parameters.
         $apiKey = $request->query( 'api_key' );
         if ( empty( $apiKey ) )
         {
+            //Check for API key in request HEADER.
             $apiKey = $request->header( 'X_DREAMFACTORY_API_KEY' );
         }
 
+        //Check for authenticated session.
         $authenticated = Auth::check();
 
         //If not authenticated then check for HTTP Basic Auth request.
@@ -115,6 +118,7 @@ class AccessCheck
         /** @var User $authenticatedUser */
         $authenticatedUser = Auth::user();
 
+        //If authenticated and user is a system admin then all is allowed for system admin.
         if ( $authenticated && $authenticatedUser->is_sys_admin )
         {
             $appId = null;
@@ -124,9 +128,10 @@ class AccessCheck
                 $appId = $app->id;
             }
 
-            Session::setLookupKeys( null, $authenticatedUser->id );
-            Session::setAppLookupKeys( $appId );
+            Session::setLookupKeys( null, $appId, $authenticatedUser->id );
         }
+        //If API key is provided and authenticated user is non-admin and user management package is installed.
+        //Use the role assigned to this user for the app.
         else if ( !empty( $apiKey ) && $authenticated && class_exists( '\DreamFactory\Rave\User\Resources\System\User' ) )
         {
             $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey, $authenticatedUser->id );
@@ -177,10 +182,10 @@ class AccessCheck
             }
 
             Session::put( 'rsa.role', $roleData );
-            Session::setLookupKeys( ArrayUtils::get( $roleData, 'id' ), ArrayUtils::get( $cacheData, 'user_id' ) );
-            Session::setAppLookupKeys( ArrayUtils::get( $cacheData, 'app_id' ) );
+            Session::setLookupKeys( ArrayUtils::get( $roleData, 'id' ), ArrayUtils::get( $cacheData, 'app_id' ), ArrayUtils::get( $cacheData, 'user_id' ) );
 
         }
+        //If no user is authenticated but API key is provided. Use the default role of this app.
         elseif ( !empty( $apiKey ) )
         {
             $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey );
@@ -216,9 +221,9 @@ class AccessCheck
             }
 
             Session::put( 'rsa.role', $roleData );
-            Session::setLookupKeys( ArrayUtils::get( $roleData, 'id' ) );
-            Session::setAppLookupKeys( ArrayUtils::get( $cacheData, 'app_id' ) );
+            Session::setLookupKeys( ArrayUtils::get( $roleData, 'id' ), ArrayUtils::get( $cacheData, 'app_id' ) );
         }
+        //No Api key provided and user is not an admin.
         else
         {
             $basicAuthUser = $request->getUser();

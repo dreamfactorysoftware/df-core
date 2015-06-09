@@ -20,8 +20,8 @@
 
 namespace DreamFactory\Rave\Utility;
 
-use DreamFactory\Library\Utility\Scalar;
 use \Request;
+use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Routing\Router;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Rave\Exceptions\ForbiddenException;
@@ -344,14 +344,13 @@ class Session
      */
     public static function setUserInfo( DspUser $user )
     {
-        if ( \Auth::check() )
-        {
-            \Session::put( 'user_id', $user->id );
-
-            return true;
-        }
-
-        return false;
+        \Session::put( 'user.id', $user->id );
+        \Session::put( 'user.display_name', $user->name );
+        \Session::put( 'user.first_name', $user->first_name );
+        \Session::put( 'user.last_name', $user->last_name );
+        \Session::put( 'user.email', $user->email );
+        \Session::put( 'user.is_sys_admin', $user->is_sys_admin );
+        \Session::put( 'user.last_login_date', $user->last_login_date );
     }
 
     /**
@@ -362,26 +361,26 @@ class Session
      */
     public static function getUserInfo()
     {
-        $user = \Auth::user();
+        $userId = session( 'user.id' );
 
-        if ( empty( $user ) )
+        if ( empty( $userId ) )
         {
             throw new NotFoundException( 'No user session found.' );
         }
 
         $sessionData = [
-            'user_id'         => $user->id,
+            'user_id'         => $userId,
             'session_id'      => \Session::getId(),
-            'name'            => $user->name,
-            'first_name'      => $user->first_name,
-            'last_name'       => $user->last_name,
-            'email'           => $user->email,
-            'is_sys_admin'    => $user->is_sys_admin,
-            'last_login_date' => $user->last_login_date,
+            'name'            => session( 'user.display_name' ),
+            'first_name'      => session( 'user.first_name' ),
+            'last_name'       => session( 'user.last_name' ),
+            'email'           => session( 'user.email' ),
+            'is_sys_admin'    => session( 'user.is_sys_admin' ),
+            'last_login_date' => session( 'user.last_login_date' ),
             'host'            => gethostname()
         ];
 
-        if ( !$user->is_sys_admin )
+        if ( false == Scalar::boolval( session( 'user.is_sys_admin' ) ) )
         {
             $role = session( 'rsa.role' );
             ArrayUtils::set( $sessionData, 'role', ArrayUtils::get( $role, 'name' ) );
@@ -398,12 +397,7 @@ class Session
      */
     public static function getCurrentUserId()
     {
-        if ( \Auth::check() )
-        {
-            return session( 'user_id' );
-        }
-
-        return null;
+        return session( 'user.id' );
     }
 
     /**
@@ -412,26 +406,12 @@ class Session
      * @param integer|null $roleId
      * @param integer|null $userId
      */
-    public static function setLookupKeys( $roleId = null, $userId = null )
+    public static function setLookupKeys( $roleId = null, $appId = null, $userId = null )
     {
-        $lookup = LookupKey::getSystemRoleUserLookup( $roleId, $userId );
+        $lookup = LookupKey::getLookup( $roleId, $appId, $userId );
 
         \Session::put( 'lookup', ArrayUtils::get( $lookup, 'lookup', [ ] ) );
-        \Session::put( 'lookup_secret', ArrayUtils::get( $lookup, 'lookup_secret', [ ] ) );
-    }
-
-    /**
-     * Sets app lookup keys in session.
-     *
-     * @param integer|null $appId
-     */
-    public static function setAppLookupKeys( $appId = null )
-    {
-
-        $lookupApp = LookupKey::getAppLookup( $appId );
-
-        \Session::put( 'lookup_app', ArrayUtils::get( $lookupApp, 'lookup', [ ] ) );
-        \Session::put( 'lookup_app_secret', ArrayUtils::get( $lookupApp, 'lookup_secret', [ ] ) );
+        \Session::put( 'lookup.secret', ArrayUtils::get( $lookup, 'lookup_secret', [ ] ) );
     }
 
     /**
@@ -449,7 +429,7 @@ class Session
     {
         $user = \Auth::user();
 
-        if(!empty($user) && true === Scalar::boolval($user->is_sys_admin))
+        if ( !empty( $user ) && true === Scalar::boolval( $user->is_sys_admin ) )
         {
             return true;
         }
@@ -464,9 +444,9 @@ class Session
         return \Session::get( $key, $default );
     }
 
-    public static function set($name, $value)
+    public static function set( $name, $value )
     {
-        \Session::set($name, $value);
+        \Session::set( $name, $value );
     }
 
     public static function put( $key, $value = null )
@@ -474,9 +454,9 @@ class Session
         \Session::put( $key, $value );
     }
 
-    public static function push($key, $value)
+    public static function push( $key, $value )
     {
-        \Session::push($key, $value);
+        \Session::push( $key, $value );
     }
 
     public static function has( $name )
@@ -489,14 +469,14 @@ class Session
         return \Session::getId();
     }
 
-    public static function isValidId($id)
+    public static function isValidId( $id )
     {
-        return \Session::isValidId($id);
+        return \Session::isValidId( $id );
     }
 
-    public static function setId($sessionId)
+    public static function setId( $sessionId )
     {
-        \Session::setId($sessionId);
+        \Session::setId( $sessionId );
     }
 
     public static function start()
@@ -504,9 +484,9 @@ class Session
         return \Session::start();
     }
 
-    public static function driver($driver=null)
+    public static function driver( $driver = null )
     {
-        return \Session::driver($driver);
+        return \Session::driver( $driver );
     }
 
     public static function all()

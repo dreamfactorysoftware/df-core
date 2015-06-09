@@ -59,13 +59,25 @@ class RoleLookup extends BaseSystemModel
         static::saved(
             function ( RoleLookup $rl )
             {
-                $cacheKey = CacheUtil::getRoleLookupCacheKey($rl->role_id);
-
-                if(\Cache::has($cacheKey))
-                {
-                    \Cache::forget($cacheKey);
-                }
+                RoleLookup::clearCache($rl->role_id);
             }
         );
+
+        static::deleted(
+            function(RoleLookup $rl)
+            {
+                RoleLookup::clearCache($rl->role_id);
+            }
+        );
+    }
+
+    public static function clearCache($id)
+    {
+        $cacheKey = CacheUtil::getRoleLookupCacheKey($id);
+
+        if(\Cache::has($cacheKey))
+        {
+            \Cache::forget($cacheKey);
+        }
     }
 }

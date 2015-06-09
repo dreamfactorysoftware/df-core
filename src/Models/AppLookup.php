@@ -42,13 +42,25 @@ class AppLookup extends BaseSystemModel
         static::saved(
             function ( AppLookup $al )
             {
-                $cacheKey = CacheUtil::getAppLookupCacheKey($al->app_id);
-
-                if(\Cache::has($cacheKey))
-                {
-                    \Cache::forget($cacheKey);
-                }
+                AppLookup::clearCache($al->app_id);
             }
         );
+
+        static::deleted(
+            function(AppLookup $al)
+            {
+                AppLookup::clearCache($al->app_id);
+            }
+        );
+    }
+
+    public static function clearCache($id)
+    {
+        $cacheKey = CacheUtil::getAppLookupCacheKey($id);
+
+        if(\Cache::has($cacheKey))
+        {
+            \Cache::forget($cacheKey);
+        }
     }
 }

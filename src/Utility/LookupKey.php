@@ -29,14 +29,23 @@ use DreamFactory\Rave\Utility\Cache as CacheUtil;
 
 class LookupKey
 {
-    public static function getSystemRoleUserLookup( $roleId = null, $userId = null )
+    /**
+     * @param null $roleId
+     * @param null $appId
+     * @param null $userId
+     *
+     * @return array
+     */
+    public static function getLookup( $roleId = null, $appId=null, $userId = null )
     {
         $slck = CacheUtil::getSystemLookupCacheKey();
         $rlck = CacheUtil::getRoleLookupCacheKey($roleId);
+        $alck = CacheUtil::getAppLookupCacheKey($appId);
         $ulck = CacheUtil::getUserLookupCacheKey($userId);
 
         $systemKeys = \Cache::get($slck);
         $roleKeys = \Cache::get($rlck);
+        $appKeys = \Cache::get($alck);
         $userKeys = \Cache::get($ulck);
 
         if(empty($systemKeys))
@@ -51,6 +60,13 @@ class LookupKey
             $roleLookup = RoleLookup::whereRoleId( $roleId )->get()->all();
             $roleKeys = static::modelsToArray($roleLookup);
             \Cache::put($rlck, $roleKeys, \Config::get('rave.default_cache_ttl'));
+        }
+
+        if(empty($appKeys))
+        {
+            $appLookup = AppLookup::whereAppId( $appId )->get()->all();
+            $appKeys = static::modelsToArray($appLookup);
+            \Cache::put($alck, $appKeys, \Config::get('rave.default_cache_ttl'));
         }
 
         if(empty($userKeys))
@@ -87,6 +103,18 @@ class LookupKey
             }
         }
 
+        foreach ( $appKeys as $ak )
+        {
+            if ( true === ArrayUtils::getBool($ak, 'private') )
+            {
+                ArrayUtils::set( $lookupSecret, ArrayUtils::get($ak, 'name'), ArrayUtils::get($ak, 'value'));
+            }
+            else
+            {
+                ArrayUtils::set( $lookup, ArrayUtils::get($ak, 'name'), ArrayUtils::get($ak, 'value') );
+            }
+        }
+
         foreach ( $userKeys as $uk )
         {
             if ( true === ArrayUtils::getBool($uk, 'private') )
@@ -105,40 +133,11 @@ class LookupKey
         ];
     }
 
-    public static function getAppLookup( $appId = null )
-    {
-        $alck = CacheUtil::getAppLookupCacheKey($appId);
-
-        $appKeys = \Cache::get($alck);
-
-        if(empty($appKeys))
-        {
-            $appLookup = AppLookup::whereAppId( $appId )->get()->all();
-            $appKeys = static::modelsToArray($appLookup);
-            \Cache::put($alck, $appKeys, \Config::get('rave.default_cache_ttl'));
-        }
-
-        $lookupApp = [ ];
-        $lookupAppSecret = [ ];
-
-        foreach ( $appKeys as $ak )
-        {
-            if ( true === ArrayUtils::getBool($ak, 'private') )
-            {
-                ArrayUtils::set( $lookupApp, ArrayUtils::get($ak, 'name'), ArrayUtils::get($ak, 'value'));
-            }
-            else
-            {
-                ArrayUtils::set( $lookupAppSecret, ArrayUtils::get($ak, 'name'), ArrayUtils::get($ak, 'value') );
-            }
-        }
-
-        return [
-            'lookup'        => $lookupApp,
-            'lookup_secret' => $lookupAppSecret
-        ];
-    }
-
+    /**
+     * @param $models
+     *
+     * @return array
+     */
     protected static function modelsToArray($models)
     {
         $array = [];

@@ -24,6 +24,7 @@ use \Auth;
 use \Cache;
 use \Config;
 use \Closure;
+use DreamFactory\Rave\Utility\LookupKey;
 use Illuminate\Routing\Router;
 use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -78,12 +79,6 @@ class AccessCheck
      */
     public function handle( $request, Closure $next )
     {
-        //Bypassing access check for exception cases such as login attempts using system/admin/session (POST)
-        if ( static::isException() )
-        {
-            return $next( $request );
-        }
-
         //Check to see if session ID is supplied for using an existing session.
         $sessionId = $request->header( 'X_DREAMFACTORY_SESSION_TOKEN' );
 
@@ -105,6 +100,9 @@ class AccessCheck
             $apiKey = $request->header( 'X_DREAMFACTORY_API_KEY' );
         }
 
+        //Storing this in session to be able to easily look it up. Otherwise would have to lookup it up from Request object.
+        Session::setCurrentApiKey($apiKey);
+
         //Check for authenticated session.
         $authenticated = Auth::check();
 
@@ -122,108 +120,143 @@ class AccessCheck
         if ( $authenticated && $authenticatedUser->is_sys_admin )
         {
             $appId = null;
-            if ( $apiKey )
+            if ( $apiKey && !Session::hasApiKey($apiKey))
             {
-                $app = App::whereApiKey( $apiKey )->first();
-                $appId = $app->id;
-            }
+                $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey, $authenticatedUser->id );
+                $cacheData = ( !empty( $cacheData ) ) ? Cache::get( $cacheKey ) : [];
+                $appId = ArrayUtils::get( $cacheData, 'app_id' );
 
-            Session::setLookupKeys( null, $appId, $authenticatedUser->id );
+                if ( empty( $appId ) )
+                {
+                    $app = App::whereApiKey( $apiKey )->first();
+                    $appId = $app->id;
+                    $cacheData = [
+                        'user_id' => $authenticatedUser->id,
+                        'app_id'  => $app->id
+                    ];
+                    Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
+                }
+
+                Session::setLookupKeys($apiKey, null, $appId, $authenticatedUser->id);
+            }
+            elseif(!Session::has('admin'))
+            {
+                $lookup = LookupKey::getLookup(null, $appId, $authenticatedUser->id);
+                \Session::put( 'admin.lookup', ArrayUtils::get( $lookup, 'lookup', [ ] ) );
+                \Session::put( 'admin.lookup_secret', ArrayUtils::get( $lookup, 'lookup_secret', [ ] ) );
+            }
         }
         //If API key is provided and authenticated user is non-admin and user management package is installed.
         //Use the role assigned to this user for the app.
         else if ( !empty( $apiKey ) && $authenticated && class_exists( '\DreamFactory\Rave\User\Resources\System\User' ) )
         {
-            $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey, $authenticatedUser->id );
-
-            $cacheData = Cache::get( $cacheKey );
-
-            $roleData = ( !empty( $cacheData ) ) ? ArrayUtils::get( $cacheData, 'role_data' ) : [ ];
-
-            if ( empty( $roleData ) )
+            if(!Session::hasApiKey($apiKey))
             {
-                /** @var App $app */
-                $app = App::with(
-                    [
-                        'role_by_user_to_app_to_role' => function ( $q ) use ( $authenticatedUser )
-                        {
-                            $q->whereUserId( $authenticatedUser->id );
-                        }
-                    ]
-                )->whereApiKey( $apiKey )->first();
+                $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey, $authenticatedUser->id );
+                $cacheData = Cache::get( $cacheKey );
+                $roleData = ( !empty( $cacheData ) ) ? ArrayUtils::get( $cacheData, 'role_data' ) : [ ];
 
-                if ( empty( $app ) )
+                if ( empty( $roleData ) )
                 {
-                    return static::getException( new UnauthorizedException( 'Unauthorized request. Invalid API Key.' ), $request );
-                }
+                    /** @var App $app */
+                    $app = App::with(
+                        [
+                            'role_by_user_to_app_to_role' => function ( $q ) use ( $authenticatedUser )
+                            {
+                                $q->whereUserId( $authenticatedUser->id );
+                            }
+                        ]
+                    )->whereApiKey( $apiKey )->first();
 
-                /** @var Role $role */
-                $role = $app->getRelation( 'role_by_user_to_app_to_role' )->first();
+                    if ( empty( $app ) )
+                    {
+                        return static::getException( new UnauthorizedException( 'Unauthorized request. Invalid API Key.' ), $request );
+                    }
 
-                if ( empty( $role ) )
-                {
-                    $app->load( 'role_by_role_id' );
                     /** @var Role $role */
-                    $role = $app->getRelation( 'role_by_role_id' );
+                    $role = $app->getRelation( 'role_by_user_to_app_to_role' )->first();
+
+                    if ( empty( $role ) )
+                    {
+                        $app->load( 'role_by_role_id' );
+                        /** @var Role $role */
+                        $role = $app->getRelation( 'role_by_role_id' );
+                    }
+
+                    if ( empty( $role ) )
+                    {
+                        return static::getException(
+                            new InternalServerErrorException( 'Unexpected error occurred. Role not found for Application.' ),
+                            $request
+                        );
+                    }
+
+                    $roleData = static::getRoleData( $role );
+                    $cacheData = [
+                        'role_data' => $roleData,
+                        'user_id'   => $authenticatedUser->id,
+                        'app_id'    => $app->id
+                    ];
+                    Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
                 }
 
-                if ( empty( $role ) )
-                {
-                    return static::getException( new InternalServerErrorException( 'Unexpected error occurred. Role not found for Application.' ), $request );
-                }
-
-                $roleData = static::getRoleData( $role );
-                $cacheData = [
-                    'role_data' => $roleData,
-                    'user_id'   => $authenticatedUser->id,
-                    'app_id'    => $app->id
-                ];
-                Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
+                Session::putWithApiKey( $apiKey, 'role', $roleData );
+                Session::setLookupKeys(
+                    $apiKey,
+                    ArrayUtils::get( $roleData, 'id' ),
+                    ArrayUtils::get( $cacheData, 'app_id' ),
+                    ArrayUtils::get( $cacheData, 'user_id' )
+                );
             }
-
-            Session::put( 'rsa.role', $roleData );
-            Session::setLookupKeys( ArrayUtils::get( $roleData, 'id' ), ArrayUtils::get( $cacheData, 'app_id' ), ArrayUtils::get( $cacheData, 'user_id' ) );
-
         }
         //If no user is authenticated but API key is provided. Use the default role of this app.
         elseif ( !empty( $apiKey ) )
         {
-            $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey );
-
-            $cacheData = Cache::get( $cacheKey );
-
-            $roleData = ( !empty( $cacheData ) ) ? ArrayUtils::get( $cacheData, 'role_data' ) : [ ];
-
-            if ( empty( $roleData ) )
+            if(!Session::hasApiKey($apiKey))
             {
-                /** @var App $app */
-                $app = App::with( 'role_by_role_id' )->whereApiKey( $apiKey )->first();
+                $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey );
+                $cacheData = Cache::get( $cacheKey );
+                $roleData = ( !empty( $cacheData ) ) ? ArrayUtils::get( $cacheData, 'role_data' ) : [ ];
 
-                if ( empty( $app ) )
+                if ( empty( $roleData ) )
                 {
-                    return static::getException( new UnauthorizedException( 'Unauthorized request. Invalid API Key.' ), $request );
+                    /** @var App $app */
+                    $app = App::with( 'role_by_role_id' )->whereApiKey( $apiKey )->first();
+
+                    if ( empty( $app ) )
+                    {
+                        return static::getException( new UnauthorizedException( 'Unauthorized request. Invalid API Key.' ), $request );
+                    }
+
+                    /** @var Role $role */
+                    $role = $app->getRelation( 'role_by_role_id' );
+
+                    if ( empty( $role ) )
+                    {
+                        return static::getException(
+                            new InternalServerErrorException( 'Unexpected error occurred. Role not found for Application.' ),
+                            $request
+                        );
+                    }
+
+                    $roleData = static::getRoleData( $role );
+                    $cacheData = [
+                        'role_data' => $roleData,
+                        'app_id'    => $app->id
+                    ];
+                    Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
                 }
 
-                /** @var Role $role */
-                $role = $app->getRelation( 'role_by_role_id' );
-
-                if ( empty( $role ) )
-                {
-                    return static::getException( new InternalServerErrorException( 'Unexpected error occurred. Role not found for Application.' ), $request );
-                }
-
-                $roleData = static::getRoleData( $role );
-                $cacheData = [
-                    'role_data' => $roleData,
-                    'app_id'    => $app->id
-                ];
-                Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
+                Session::putWithApiKey( $apiKey, 'role', $roleData );
+                Session::setLookupKeys( $apiKey, ArrayUtils::get( $roleData, 'id' ), ArrayUtils::get( $cacheData, 'app_id' ) );
             }
-
-            Session::put( 'rsa.role', $roleData );
-            Session::setLookupKeys( ArrayUtils::get( $roleData, 'id' ), ArrayUtils::get( $cacheData, 'app_id' ) );
         }
-        //No Api key provided and user is not an admin.
+        //If no API key and user is non-admin then check for exception cases.
+        elseif ( static::isException() )
+        {
+            return $next( $request );
+        }
+        //No Api key provided, user is not an admin, and is not an exception case. Throws exception.
         else
         {
             $basicAuthUser = $request->getUser();
@@ -236,6 +269,11 @@ class AccessCheck
         }
 
         if ( Session::isAccessAllowed() )
+        {
+            return $next( $request );
+        }
+        //API key and/or (non-admin) user logged in, but if access is still not allowed then check for exception case.
+        elseif ( static::isException() )
         {
             return $next( $request );
         }

@@ -24,14 +24,24 @@ use DreamFactory\Rave\Enums\ServiceRequestorTypes;
 
 class RoleServiceAccessTest extends \DreamFactory\Rave\Testing\TestCase
 {
-    protected $rsaKey = 'rsa.role.services';
+    protected $rsaKey = 'role.services';
+
+    protected $apiKey = '1234567890';
 
     protected $rsa = [ ];
+
+    public function tearDown()
+    {
+        \DreamFactory\Rave\Models\User::whereEmail('jdoe@dreamfactory.com')->delete();
+
+        parent::tearDown();
+    }
 
     public function testSysAdmin()
     {
         $user = \DreamFactory\Rave\Models\User::find(1);
         $this->be($user);
+        Session::setUserInfo($user);
         $permission = Session::getServicePermissions( 'system', '*' );
 
         $this->assertEquals(
@@ -51,6 +61,7 @@ class RoleServiceAccessTest extends \DreamFactory\Rave\Testing\TestCase
         ]);
 
         $this->be($nonAdminUser);
+        Session::setUserInfo($nonAdminUser);
         $permission = Session::getServicePermissions( 'system', '*' );
 
         $this->assertEquals( VerbsMask::NONE_MASK, $permission );
@@ -246,7 +257,8 @@ class RoleServiceAccessTest extends \DreamFactory\Rave\Testing\TestCase
 
         $this->rsa[] = $rsa;
 
-        Session::put( $this->rsaKey, $this->rsa );
+        Session::setCurrentApiKey($this->apiKey);
+        Session::putWithApiKey( $this->apiKey, $this->rsaKey, $this->rsa );
     }
 
     protected function check( $service, $component = null, $requestor = ServiceRequestorTypes::API )

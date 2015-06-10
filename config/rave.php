@@ -18,14 +18,14 @@
  * limitations under the License.
  */
 
-return array(
+return [
     /** General API version number, 1.x was earlier product and may be supported by most services */
-    'api_version' => '2.0',
+    'api_version'                  => '2.0',
     /** Local File Storage setup, see also local config/filesystems.php */
-    'local_file_service_root' => storage_path()."/app",
-    'local_file_service_root_test' => storage_path()."/test",
+    'local_file_service_root'      => storage_path() . "/app",
+    'local_file_service_root_test' => storage_path() . "/test",
     /** The default number of records to return at once for database queries */
-    'db_max_records_returned'   => 1000,
+    'db_max_records_returned'      => 1000,
     //-------------------------------------------------------------------------
     //	Date and Time Format Options
     //  The default date and time formats used for in and out requests for
@@ -34,22 +34,22 @@ return array(
     //  For options see https://github.com/dreamfactorysoftware/dsp-core/wiki/Database-Date-Time-Formats
     //  Examples: 'm/d/y h:i:s A' or 'c' or DATE_COOKIE
     //-------------------------------------------------------------------------
-    'dsp.db_time_format'            => null,
-    'dsp.db_date_format'            => null,
-    'dsp.db_datetime_format'        => null,
-    'dsp.db_timestamp_format'       => null,
+    'db_time_format'           => null,
+    'db_date_format'           => null,
+    'db_datetime_format'       => null,
+    'db_timestamp_format'      => null,
     /** Enable/disable detailed CORS logging */
-    'dsp.log_cors_info'             => false,
-    'default_cache_ttl'             => 300,
-    'cors' => array(
-        'defaults' => array(
+    'log_cors_info'            => false,
+    'default_cache_ttl'            => env( 'CACHE_TTL', 300 ),
+    'cors'                         => [
+        'defaults' => [
             'supportsCredentials' => false,
-            'allowedOrigins' => array(),
-            'allowedHeaders' => array(),
-            'allowedMethods' => array(),
-            'exposedHeaders' => array(),
-            'maxAge' => 0,
-            'hosts' => array(),
-        )
-    )
-);
+            'allowedOrigins'      => [ ],
+            'allowedHeaders'      => [ ],
+            'allowedMethods'      => [ ],
+            'exposedHeaders'      => [ ],
+            'maxAge'              => 0,
+            'hosts'               => [ ],
+        ]
+    ]
+];

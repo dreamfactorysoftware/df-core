@@ -279,7 +279,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 $model->is_sys_admin = 1;
             }
 
-            $model->password = ArrayUtils::get($record, 'password');
+            $model->password = ArrayUtils::get( $record, 'password' );
             $model->save();
         }
         catch ( \PDOException $e )
@@ -329,9 +329,10 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 throw new BadRequestException( 'Cannot update a non-admin user.' );
             }
 
-            if(true === ArrayUtils::getBool($params, 'admin') && !empty(ArrayUtils::get($record, 'password')))
+            $password = ArrayUtils::get( $record, 'password' );
+            if ( true === ArrayUtils::getBool( $params, 'admin' ) && !empty( $password ) )
             {
-                $model->password = ArrayUtils::get($record, 'password');
+                $model->password = ArrayUtils::get( $record, 'password' );
             }
 
             $model->update( $record );

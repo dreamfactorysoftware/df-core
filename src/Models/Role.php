@@ -21,7 +21,7 @@ namespace DreamFactory\Rave\Models;
 
 use \Cache;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Utility\Cache as CacheUtil;
+use DreamFactory\Rave\Utility\CacheUtilities;
 
 /**
  * Role
@@ -78,7 +78,7 @@ class Role extends BaseSystemModel
         {
             $apiKey = ArrayUtils::get( $app, 'api_key' );
 
-            $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey );
+            $cacheKey = CacheUtilities::makeApiKeyUserIdKey( $apiKey );
 
             if ( Cache::has( $cacheKey ) )
             {
@@ -101,11 +101,20 @@ class Role extends BaseSystemModel
                 if ( $appId === ArrayUtils::get( $ur, 'app_id' ) && $roleId === ArrayUtils::get( $ur, 'role_id' ) )
                 {
                     $userId = ArrayUtils::get( $ur, 'user_id' );
-                    $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey, $userId );
+                    $cacheKey = CacheUtilities::makeApiKeyUserIdKey( $apiKey, $userId );
 
                     if ( Cache::has( $cacheKey ) )
                     {
-                        Cache::forget( $cacheKey );
+                        if ( $appId === ArrayUtils::get( $ur, 'app_id' ) && $roleId === ArrayUtils::get( $ur, 'role_id' ) )
+                        {
+                            $userId = ArrayUtils::get( $ur, 'user_id' );
+                            $cacheKey = CacheUtilities::makeApiKeyUserIdKey( $apiKey, $userId );
+
+                            if ( Cache::has( $cacheKey ) )
+                            {
+                                Cache::forget( $cacheKey );
+                            }
+                        }
                     }
                 }
             }

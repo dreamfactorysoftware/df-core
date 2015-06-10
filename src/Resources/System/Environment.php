@@ -22,9 +22,10 @@ namespace DreamFactory\Rave\Resources\System;
 
 use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Rave\Models\Service;
-use DreamFactory\Rave\Utility\Session;
+use DreamFactory\Rave\Resources\BaseRestResource;
+use DreamFactory\Rave\Utility\Session as SessionUtilities;
 
-class Environment extends ReadOnlySystemResource
+class Environment extends BaseRestResource
 {
     const OAUTH_ROUTE = '/dsp/oauth/login/';
 
@@ -32,7 +33,7 @@ class Environment extends ReadOnlySystemResource
     {
         $result = [ ];
 
-        if ( true === Scalar::boolval( Session::isSysAdmin() ) )
+        if ( true === Scalar::boolval( SessionUtilities::isSysAdmin() ) )
         {
             $result['server'] = [
                 'server_os' => 'tbi'

@@ -386,7 +386,7 @@ class Session
         {
             $role = session( 'rsa.role' );
             ArrayUtils::set( $sessionData, 'role', ArrayUtils::get( $role, 'name' ) );
-            ArrayUtils::set( $sessionData, 'rold_id', ArrayUtils::get( $role, 'id' ) );
+            ArrayUtils::set( $sessionData, 'role_id', ArrayUtils::get( $role, 'id' ) );
         }
 
         return $sessionData;
@@ -400,6 +400,16 @@ class Session
     public static function getCurrentUserId()
     {
         return session( 'user.id' );
+    }
+
+    /**
+     * Gets role id of the currently logged in user, if not admin.
+     *
+     * @return integer|null
+     */
+    public static function getRoleId()
+    {
+        return session( 'rsa.role.id' );
     }
 
     /**

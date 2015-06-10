@@ -20,44 +20,29 @@
 
 namespace DreamFactory\Rave\Models;
 
-use DreamFactory\Rave\Utility\Cache as CacheUtil;
-
+/**
+ * UserLookup
+ *
+ * @property integer $id
+ * @property integer $user_id
+ * @property string  $name
+ * @property string  $value
+ * @property string  $description
+ * @property boolean $is_private
+ * @property string  $created_date
+ * @property string  $last_modified_date
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereId( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereUserId( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereName( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereValue( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereDescription( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereIsPrivate( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereCreatedDate( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereLastModifiedDate( $value )
+ */
 class UserLookup extends BaseSystemModel
 {
-    use LookupTrait;
-
     protected $table = 'user_lookup';
 
     protected $fillable = ['user_id', 'name', 'value', 'private', 'description'];
-
-    protected $encrypted = ['value'];
-
-    public static function boot()
-    {
-        parent::boot();
-
-        static::saved(
-            function ( UserLookup $ul )
-            {
-                UserLookup::clearCache($ul->user_id);
-            }
-        );
-
-        static::deleted(
-            function ( UserLookup $ul )
-            {
-                UserLookup::clearCache($ul->user_id);
-            }
-        );
-    }
-
-    public static function clearCache($id)
-    {
-        $cacheKey = CacheUtil::getUserLookupCacheKey($id);
-
-        if(\Cache::has($cacheKey))
-        {
-            \Cache::forget($cacheKey);
-        }
-    }
 }

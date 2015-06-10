@@ -37,7 +37,7 @@ use DreamFactory\Rave\Models\Role;
 use DreamFactory\Rave\Models\User;
 use DreamFactory\Rave\Utility\Session;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Utility\Cache as CacheUtil;
+use DreamFactory\Rave\Utility\CacheUtilities;
 
 class AccessCheck
 {
@@ -101,7 +101,7 @@ class AccessCheck
         }
 
         //Storing this in session to be able to easily look it up. Otherwise would have to lookup it up from Request object.
-        Session::setCurrentApiKey($apiKey);
+        Session::setCurrentApiKey( $apiKey );
 
         //Check for authenticated session.
         $authenticated = Auth::check();
@@ -120,10 +120,10 @@ class AccessCheck
         if ( $authenticated && $authenticatedUser->is_sys_admin )
         {
             $appId = null;
-            if ( $apiKey && !Session::hasApiKey($apiKey))
+            if ( $apiKey && !Session::hasApiKey( $apiKey ) )
             {
-                $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey, $authenticatedUser->id );
-                $cacheData = ( !empty( $cacheData ) ) ? Cache::get( $cacheKey ) : [];
+                $cacheKey = CacheUtilities::makeApiKeyUserIdKey( $apiKey, $authenticatedUser->id );
+                $cacheData = ( !empty( $cacheData ) ) ? Cache::get( $cacheKey ) : [ ];
                 $appId = ArrayUtils::get( $cacheData, 'app_id' );
 
                 if ( empty( $appId ) )
@@ -137,11 +137,11 @@ class AccessCheck
                     Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
                 }
 
-                Session::setLookupKeys($apiKey, null, $appId, $authenticatedUser->id);
+                Session::setLookupKeys( $apiKey, null, $appId, $authenticatedUser->id );
             }
-            elseif(!Session::has('admin'))
+            elseif ( !Session::has( 'admin' ) )
             {
-                $lookup = LookupKey::getLookup(null, $appId, $authenticatedUser->id);
+                $lookup = LookupKey::getLookup( null, $appId, $authenticatedUser->id );
                 \Session::put( 'admin.lookup', ArrayUtils::get( $lookup, 'lookup', [ ] ) );
                 \Session::put( 'admin.lookup_secret', ArrayUtils::get( $lookup, 'lookup_secret', [ ] ) );
             }
@@ -150,9 +150,9 @@ class AccessCheck
         //Use the role assigned to this user for the app.
         else if ( !empty( $apiKey ) && $authenticated && class_exists( '\DreamFactory\Rave\User\Resources\System\User' ) )
         {
-            if(!Session::hasApiKey($apiKey))
+            if ( !Session::hasApiKey( $apiKey ) )
             {
-                $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey, $authenticatedUser->id );
+                $cacheKey = CacheUtilities::makeApiKeyUserIdKey( $apiKey, $authenticatedUser->id );
                 $cacheData = Cache::get( $cacheKey );
                 $roleData = ( !empty( $cacheData ) ) ? ArrayUtils::get( $cacheData, 'role_data' ) : [ ];
 
@@ -212,9 +212,9 @@ class AccessCheck
         //If no user is authenticated but API key is provided. Use the default role of this app.
         elseif ( !empty( $apiKey ) )
         {
-            if(!Session::hasApiKey($apiKey))
+            if ( !Session::hasApiKey( $apiKey ) )
             {
-                $cacheKey = CacheUtil::getApiKeyUserCacheKey( $apiKey );
+                $cacheKey = CacheUtilities::makeApiKeyUserIdKey( $apiKey );
                 $cacheData = Cache::get( $cacheKey );
                 $roleData = ( !empty( $cacheData ) ) ? ArrayUtils::get( $cacheData, 'role_data' ) : [ ];
 
@@ -262,10 +262,10 @@ class AccessCheck
             $basicAuthUser = $request->getUser();
             if ( !empty( $basicAuthUser ) )
             {
-                return static::getException( new UnauthorizedException( 'Unauthorized. User credential did not match.' ), $request );
+                return static::getException( new UnauthorizedException( 'Unauthorized. User credentials did not match.' ), $request );
             }
 
-            return static::getException( new BadRequestException( 'Bad request. Missing api key.' ), $request );
+            return static::getException( new BadRequestException( 'Bad request. Missing API key.' ), $request );
         }
 
         if ( Session::isAccessAllowed() )

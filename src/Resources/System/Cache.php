@@ -23,6 +23,7 @@ namespace DreamFactory\Rave\Resources\System;
 use DreamFactory\Rave\Contracts\CachedInterface;
 use DreamFactory\Rave\Exceptions\NotImplementedException;
 use DreamFactory\Rave\Resources\BaseRestResource;
+use DreamFactory\Rave\Utility\CacheUtilities;
 use DreamFactory\Rave\Utility\ServiceHandler;
 
 /**
@@ -42,7 +43,7 @@ class Cache extends BaseRestResource
     {
         if ( empty( $this->resource ) )
         {
-            \Cache::flush();
+            CacheUtilities::flush();
         }
         else
         {

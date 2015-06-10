@@ -20,12 +20,11 @@
 
 namespace DreamFactory\Rave\Models;
 
-use DreamFactory\Rave\Utility\Cache as CacheUtil;
-
 /**
  * RoleLookup
  *
  * @property integer $id
+ * @property integer $role_id
  * @property string  $name
  * @property string  $value
  * @property string  $description
@@ -33,6 +32,7 @@ use DreamFactory\Rave\Utility\Cache as CacheUtil;
  * @property string  $created_date
  * @property string  $last_modified_date
  * @method static \Illuminate\Database\Query\Builder|RoleLookup whereId( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereRoleId( $value )
  * @method static \Illuminate\Database\Query\Builder|RoleLookup whereName( $value )
  * @method static \Illuminate\Database\Query\Builder|RoleLookup whereValue( $value )
  * @method static \Illuminate\Database\Query\Builder|RoleLookup whereDescription( $value )
@@ -40,44 +40,9 @@ use DreamFactory\Rave\Utility\Cache as CacheUtil;
  * @method static \Illuminate\Database\Query\Builder|RoleLookup whereCreatedDate( $value )
  * @method static \Illuminate\Database\Query\Builder|RoleLookup whereLastModifiedDate( $value )
  */
-class RoleLookup extends BaseSystemModel
+class RoleLookup extends BaseSystemLookup
 {
-    use LookupTrait;
-
     protected $table = 'role_lookup';
 
-    protected $fillable = ['id', 'role_id', 'name', 'value', 'private', 'description'];
-
-    protected $casts = [ 'is_private' => 'boolean' ];
-
-    protected $encrypted = ['value'];
-
-    public static function boot()
-    {
-        parent::boot();
-
-        static::saved(
-            function ( RoleLookup $rl )
-            {
-                RoleLookup::clearCache($rl->role_id);
-            }
-        );
-
-        static::deleted(
-            function(RoleLookup $rl)
-            {
-                RoleLookup::clearCache($rl->role_id);
-            }
-        );
-    }
-
-    public static function clearCache($id)
-    {
-        $cacheKey = CacheUtil::getRoleLookupCacheKey($id);
-
-        if(\Cache::has($cacheKey))
-        {
-            \Cache::forget($cacheKey);
-        }
-    }
+    protected $fillable = ['role_id', 'name', 'value', 'private', 'description'];
 }

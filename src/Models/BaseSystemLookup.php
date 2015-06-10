@@ -20,8 +20,10 @@
 
 namespace DreamFactory\Rave\Models;
 
+use DreamFactory\Library\Utility\ArrayUtils;
+
 /**
- * Lookup
+ * BaseSystemLookup - an abstract base class for system lookups
  *
  * @property integer $id
  * @property string  $name
@@ -38,7 +40,28 @@ namespace DreamFactory\Rave\Models;
  * @method static \Illuminate\Database\Query\Builder|Lookup whereCreatedDate( $value )
  * @method static \Illuminate\Database\Query\Builder|Lookup whereLastModifiedDate( $value )
  */
-class Lookup extends BaseSystemLookup
+class BaseSystemLookup extends BaseSystemModel
 {
-    protected $table = 'system_lookup';
+    protected $fillable = [ 'name', 'value', 'private', 'description' ];
+
+    protected $casts = [ 'is_private' => 'boolean' ];
+
+    protected $encrypted = [ 'value' ];
+
+    /**
+     * Convert the model instance to an array.
+     *
+     * @return array
+     */
+    public function toArray()
+    {
+        $attributes = $this->attributesToArray();
+
+        if ( ArrayUtils::getBool( $attributes, 'private' ) )
+        {
+            $attributes['value'] = '**********';
+        }
+
+        return array_merge( $attributes, $this->relationsToArray() );
+    }
 }

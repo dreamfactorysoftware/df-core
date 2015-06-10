@@ -19,19 +19,20 @@
  */
 namespace DreamFactory\Rave\Services;
 
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Rave\Enums\ApiDocFormatTypes;
+use DreamFactory\Rave\Components\ApiDocManager;
+use DreamFactory\Rave\Contracts\CachedInterface;
 use DreamFactory\Rave\Exceptions\InternalServerErrorException;
+use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Models\Service;
+use DreamFactory\Rave\Utility\CacheUtilities;
+use DreamFactory\Rave\Utility\Session;
 
 /**
  * Swagger
  * DSP API Documentation manager
  *
  */
-class Swagger extends BaseRestService
+class Swagger extends BaseRestService implements CachedInterface
 {
     //*************************************************************************
     //	Constants
@@ -50,38 +51,9 @@ class Swagger extends BaseRestService
      */
     const SWAGGER_CACHE_FILE = '_.json';
     /**
-     * @const string A cached process-handling events list derived from Swagger
-     */
-    const SWAGGER_PROCESS_EVENT_CACHE_FILE = '_process_events.json';
-    /**
-     * @const string A cached broadcast events list derived from Swagger
-     */
-    const SWAGGER_BROADCAST_EVENT_CACHE_FILE = '_broadcast_events.json';
-    /**
      * @const integer How long a swagger cache will live, 1440 = 24 minutes (default session timeout).
      */
     const SWAGGER_CACHE_TTL = 1440;
-    /**
-     * @var string Triggered immediately after the swagger cache is cleared
-     */
-    const CACHE_CLEARED = 'swagger.cache_cleared';
-    /**
-     * @var string Triggered immediately after the swagger cache has been rebuilt
-     */
-    const CACHE_REBUILT = 'swagger.cache_rebuilt';
-
-    //*************************************************************************
-    //	Members
-    //*************************************************************************
-
-    /**
-     * @var array The process-handling event map
-     */
-    protected static $processEventMap = false;
-    /**
-     * @var array The broadcast event map
-     */
-    protected static $broadcastEventMap = false;
 
     //*************************************************************************
     //	Methods
@@ -97,362 +69,15 @@ class Swagger extends BaseRestService
 //        Session::checkAppPermission( null, false );
         if ( $this->request->getParameterAsBool( 'refresh' ) )
         {
-            static::clearCache();
+            $this->flush();
         }
 
         if ( empty( $this->resource ) )
         {
-            return static::getSwagger();
+            return $this->getSwagger();
         }
 
-        return static::getSwaggerForService( $this->resource );
-    }
-
-    /**
-     * Internal building method builds all static services and some dynamic
-     * services from file annotations, otherwise swagger info is loaded from
-     * database or storage files for each service, if it exists.
-     *
-     * @return array
-     * @throws \Exception
-     */
-    protected static function buildSwagger()
-    {
-        \Log::info( 'Building Swagger cache' );
-
-        $_baseSwagger = [
-            'swaggerVersion' => static::SWAGGER_VERSION,
-            'apiVersion'     => \Config::get( 'rave.api_version', static::API_VERSION ),
-            'basePath'       => url( '/rest' ),
-        ];
-
-        //  Build services from database
-        //  Pull any custom swagger docs
-        $_result = Service::with(
-            [
-                'serviceDocs' => function ( $query )
-                {
-                    $query->where( 'format', ApiDocFormatTypes::SWAGGER );
-
-                }
-            ]
-        )->get();
-
-        // gather the services
-        $_services = [ ];
-
-        //	Initialize the event map
-        static::$processEventMap = static::$processEventMap ?: [ ];
-        static::$broadcastEventMap = static::$broadcastEventMap ?: [ ];
-
-        //	Spin through services and pull the configs
-        foreach ( $_result as $_service )
-        {
-            $_apiName = $_service->name;
-            $_content = static::getStoredContentForService( $_service );
-
-            if ( empty( $_content ) )
-            {
-                \Log::info( '  * No Swagger content found for service "' . $_apiName . '"' );
-                continue;
-            }
-
-            if ( !isset( static::$processEventMap[$_apiName] ) || !is_array( static::$processEventMap[$_apiName] ) || empty( static::$processEventMap[$_apiName] )
-            )
-            {
-                static::$processEventMap[$_apiName] = [ ];
-            }
-
-            if ( !isset( static::$broadcastEventMap[$_apiName] ) ||
-                 !is_array( static::$broadcastEventMap[$_apiName] ) ||
-                 empty( static::$broadcastEventMap[$_apiName] )
-            )
-            {
-                static::$broadcastEventMap[$_apiName] = [ ];
-            }
-
-            $_serviceEvents = static::_parseSwaggerEvents( $_apiName, $_content );
-
-            $_content = array_merge( $_baseSwagger, $_content );
-            $_content = json_encode( $_content, JSON_UNESCAPED_SLASHES );
-
-            // replace service type placeholder with api name for this service instance
-            $_content = str_replace( '/{api_name}', '/' . $_apiName, $_content );
-
-            // cache it for later access
-            if ( false === \Cache::add( $_apiName . '.json', $_content, static::SWAGGER_CACHE_TTL ) )
-            {
-                \Log::error( '  * System error creating swagger cache file: ' . $_apiName . '.json' );
-                continue;
-            }
-
-            // build main services list
-            $_services[] = [
-                'path'        => '/' . $_apiName,
-                'description' => $_service->description
-            ];
-
-            //	Parse the events while we get the chance...
-            static::$processEventMap[$_apiName] = array_merge(
-                ArrayUtils::clean( static::$processEventMap[$_apiName] ),
-                $_serviceEvents['script']
-            );
-            static::$broadcastEventMap[$_apiName] = array_merge(
-                ArrayUtils::clean( static::$broadcastEventMap[$_apiName] ),
-                $_serviceEvents['subscribe']
-            );
-
-            unset( $_content, $_filePath, $_service, $_serviceEvents );
-        }
-
-        // cache main api listing file
-        $_description = <<<HTML
-HTML;
-
-        $_resourceListing = [
-            'swaggerVersion' => static::SWAGGER_VERSION,
-            'apiVersion'     => static::API_VERSION,
-            'authorizations' => [ 'apiKey' => [ 'type' => 'apiKey', 'passAs' => 'header' ] ],
-            'info'           => [
-                'title'       => 'DreamFactory Live API Documentation',
-                'description' => $_description,
-                //'termsOfServiceUrl' => 'http://www.dreamfactory.com/terms/',
-                'contact'     => 'support@dreamfactory.com',
-                'license'     => 'Apache 2.0',
-                'licenseUrl'  => 'http://www.apache.org/licenses/LICENSE-2.0.html'
-            ],
-            /**
-             * The events thrown that are relevant to Swagger
-             */
-            'events'         => [
-                static::CACHE_CLEARED,
-                static::CACHE_REBUILT,
-            ],
-        ];
-        $_out = array_merge( $_resourceListing, [ 'apis' => $_services ] );
-
-        if ( false === \Cache::add(
-                static::SWAGGER_CACHE_FILE,
-                json_encode( $_out, JSON_UNESCAPED_SLASHES ),
-                static::SWAGGER_CACHE_TTL
-            )
-        )
-        {
-            \Log::error( '  * System error creating swagger cache file: ' . static::SWAGGER_CACHE_FILE );
-        }
-
-        //	Write event cache file
-        if ( false === \Cache::add(
-                static::SWAGGER_PROCESS_EVENT_CACHE_FILE,
-                json_encode( static::$processEventMap, JSON_UNESCAPED_SLASHES ),
-                static::SWAGGER_CACHE_TTL
-            )
-        )
-        {
-            \Log::error( '  * System error creating swagger script-able event cache file: ' . static::SWAGGER_PROCESS_EVENT_CACHE_FILE );
-        }
-
-        if ( false === \Cache::add(
-                static::SWAGGER_BROADCAST_EVENT_CACHE_FILE,
-                json_encode( static::$broadcastEventMap, JSON_UNESCAPED_SLASHES ),
-                static::SWAGGER_CACHE_TTL
-            )
-        )
-        {
-            \Log::error( '  * System error creating swagger subscribe-able event cache file: ' . static::SWAGGER_BROADCAST_EVENT_CACHE_FILE );
-        }
-
-        \Log::info( 'Swagger cache build process complete' );
-
-//        Platform::trigger( static::CACHE_REBUILT );
-
-        return $_out;
-    }
-
-    public static function getStoredContentForService( Service $service )
-    {
-        // check the database records for custom doc in swagger, raml, etc.
-        $info = $service->serviceDocs()->first();
-        $content = ( isset( $info ) ) ? $info->content : null;
-        if ( is_string( $content ) )
-        {
-            $content = json_decode( $content, true );
-        }
-        else
-        {
-            $serviceClass = $service->serviceType()->first()->class_name;
-            $settings = $service->toArray();
-
-            /** @var BaseRestService $obj */
-            $obj = new $serviceClass( $settings );
-            $content = $obj->getApiDocInfo();
-        }
-
-        return $content;
-    }
-
-    /**
-     * @param string $apiName
-     * @param array  $data
-     *
-     * @return array
-     */
-    protected static function _parseSwaggerEvents( $apiName, &$data )
-    {
-        $processEvents = [ ];
-        $broadcastEvents = [ ];
-        $eventCount = 0;
-
-        foreach ( ArrayUtils::get( $data, 'apis', [ ] ) as $_ixApi => $api )
-        {
-            $apiProcessEvents = $apiBroadcastEvents = [ ];
-
-            if ( null === ( $path = ArrayUtils::get( $api, 'path' ) ) )
-            {
-                \Log::notice( '  * Missing "path" in Swagger definition: ' . $apiName );
-                continue;
-            }
-
-            $path = str_replace(
-                [ '{api_name}', '/' ],
-                [ $apiName, '.' ],
-                trim( $path, '/' )
-            );
-
-            foreach ( ArrayUtils::get( $api, 'operations', [ ] ) as $_ixOps => $_operation )
-            {
-                if ( null !== ( $_eventNames = ArrayUtils::get( $_operation, 'event_name' ) ) )
-                {
-                    $_method = strtolower( ArrayUtils::get( $_operation, 'method', Verbs::GET ) );
-                    $_eventsThrown = [ ];
-
-                    if ( is_string( $_eventNames ) && false !== strpos( $_eventNames, ',' ) )
-                    {
-                        $_eventNames = explode( ',', $_eventNames );
-
-                        //  Clean up any spaces...
-                        foreach ( $_eventNames as &$_tempEvent )
-                        {
-                            $_tempEvent = trim( $_tempEvent );
-                        }
-                    }
-
-                    if ( empty( $_eventNames ) )
-                    {
-                        $_eventNames = [ ];
-                    }
-                    else if ( !is_array( $_eventNames ) )
-                    {
-                        $_eventNames = [ $_eventNames ];
-                    }
-
-                    //  Set into master record
-                    $data['apis'][$_ixApi]['operations'][$_ixOps]['event_name'] = $_eventNames;
-
-                    foreach ( $_eventNames as $_ixEventNames => $_templateEventName )
-                    {
-                        $_eventName = str_replace(
-                            [
-                                '{api_name}',
-                                $apiName . '.' . $apiName . '.',
-                                '{action}',
-                                '{request.method}'
-                            ],
-                            [
-                                $apiName,
-                                'system.' . $apiName . '.',
-                                $_method,
-                                $_method,
-                            ],
-                            $_templateEventName
-                        );
-
-                        $_eventsThrown[] = $_eventName;
-
-                        //  Set actual name in swagger file
-                        $data['apis'][$_ixApi]['operations'][$_ixOps]['event_name'][$_ixEventNames] = $_eventName;
-
-                        $eventCount++;
-                    }
-
-                    $apiBroadcastEvents[$_method] = $_eventsThrown;
-                    $apiProcessEvents[$_method] = [ "$path.$_method.pre_process", "$path.$_method.post_process" ];
-                }
-
-                unset( $_operation, $_eventsThrown );
-            }
-
-            $processEvents[str_ireplace( '{api_name}', $apiName, $path )] = $apiProcessEvents;
-            $broadcastEvents[str_ireplace( '{api_name}', $apiName, $path )] = $apiBroadcastEvents;
-
-            unset( $apiProcessEvents, $apiBroadcastEvents, $api );
-        }
-
-        \Log::debug( '  * Discovered ' . $eventCount . ' event(s).' );
-
-        return [ 'script' => $processEvents, 'subscribe' => $broadcastEvents ];
-    }
-
-    /**
-     * Retrieves the cached event map or triggers a rebuild
-     *
-     * @return array
-     */
-    public static function getProcessEventMap()
-    {
-        if ( !empty( static::$processEventMap ) )
-        {
-            return static::$processEventMap;
-        }
-
-        $_encoded = \Cache::get( static::SWAGGER_PROCESS_EVENT_CACHE_FILE );
-
-        if ( !empty( $_encoded ) )
-        {
-            if ( false === ( static::$processEventMap = json_decode( $_encoded, true ) ) )
-            {
-                \Log::error( '  * Event cache appears corrupt, or cannot be read.' );
-            }
-        }
-
-        //	If we still have no event map, build it.
-        if ( empty( static::$processEventMap ) )
-        {
-            static::buildSwagger();
-        }
-
-        return static::$processEventMap;
-    }
-
-    /**
-     * Retrieves the cached event map or triggers a rebuild
-     *
-     * @return array
-     */
-    public static function getBroadcastEventMap()
-    {
-        if ( !empty( static::$broadcastEventMap ) )
-        {
-            return static::$broadcastEventMap;
-        }
-
-        $_encoded = \Cache::get( static::SWAGGER_BROADCAST_EVENT_CACHE_FILE );
-
-        if ( !empty( $_encoded ) )
-        {
-            if ( false === ( static::$broadcastEventMap = json_decode( $_encoded, true ) ) )
-            {
-                \Log::error( '  * Broadcast event cache appears corrupt, or cannot be read.' );
-            }
-        }
-
-        //	If we still have no event map, build it.
-        if ( empty( static::$broadcastEventMap ) )
-        {
-            static::buildSwagger();
-        }
-
-        return static::$broadcastEventMap;
+        return $this->getSwaggerForService( $this->resource );
     }
 
     /**
@@ -462,41 +87,120 @@ HTML;
      * @return string The JSON contents of the swagger api listing.
      * @throws InternalServerErrorException
      */
-    public static function getSwagger()
+    public function getSwagger()
     {
-        if ( null === ( $_content = \Cache::get( static::SWAGGER_CACHE_FILE ) ) )
+        $roleId = Session::getRoleId();
+        if ( null === ( $content = CacheUtilities::getByRoleId( $roleId, static::SWAGGER_CACHE_FILE ) ) )
         {
-            static::buildSwagger();
+            \Log::info( 'Building Swagger cache' );
 
-            if ( null === $_content = \Cache::get( static::SWAGGER_CACHE_FILE ) )
+            //  Build services from database
+            //  Pull any custom swagger docs
+            $result = Service::all( [ 'name', 'description' ] );
+
+            // gather the services
+            $services = [ ];
+
+            //	Spin through services and pull the configs
+            foreach ( $result as $service )
             {
-                throw new InternalServerErrorException( "Failed to get or create swagger cache." );
+                // build main services list
+                $services[] = [
+                    'path'        => '/' . $service->name,
+                    'description' => $service->description
+                ];
+
+                unset( $service );
             }
+
+            // cache main api listing file
+            $description = <<<HTML
+HTML;
+
+            $resourceListing = [
+                'swaggerVersion' => static::SWAGGER_VERSION,
+                'apiVersion'     => \Config::get( 'rave.api_version', static::API_VERSION ),
+                'authorizations' => [ 'apiKey' => [ 'type' => 'apiKey', 'passAs' => 'header' ] ],
+                'info'           => [
+                    'title'       => 'DreamFactory Live API Documentation',
+                    'description' => $description,
+                    //'termsOfServiceUrl' => 'http://www.dreamfactory.com/terms/',
+                    'contact'     => 'support@dreamfactory.com',
+                    'license'     => 'Apache 2.0',
+                    'licenseUrl'  => 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                ],
+                /**
+                 * The events thrown that are relevant to Swagger
+                 */
+                'events'         => [ ],
+            ];
+
+            $content = array_merge( $resourceListing, [ 'apis' => $services ] );
+            $content = json_encode( $content, JSON_UNESCAPED_SLASHES );
+
+            if ( false === CacheUtilities::putByRoleId( $roleId, static::SWAGGER_CACHE_FILE, $content, static::SWAGGER_CACHE_TTL ) )
+            {
+                \Log::error( '  * System error creating swagger cache file: ' . static::SWAGGER_CACHE_FILE );
+            }
+
+            // Add to this services keys for clearing later.
+            $key = CacheUtilities::makeKeyFromTypeAndId( 'role', $roleId, static::SWAGGER_CACHE_FILE );
+            CacheUtilities::addKeysByTypeAndId( 'service', $this->id, $key );
+
+            \Log::info( 'Swagger cache build process complete' );
         }
 
-        return $_content;
+        return $content;
     }
 
     /**
      * Main retrieve point for each service
      *
-     * @param string $service Which service (api_name) to retrieve.
+     * @param string $name Which service (name) to retrieve.
      *
-     * @throws InternalServerErrorException
-     * @return string The JSON contents of the swagger service.
+     * @return string
+     * @throws NotFoundException
      */
-    public static function getSwaggerForService( $service )
+    public function getSwaggerForService( $name )
     {
-        $_cachePath = $service . '.json';
+        $_cachePath = $name . '.json';
 
-        if ( null === $_content = \Cache::get( $_cachePath ) )
+        if ( null === $_content = CacheUtilities::getByServiceId( $this->id, $_cachePath ) )
         {
-            static::buildSwagger();
-
-            if ( null === $_content = \Cache::get( $_cachePath ) )
+            $service = Service::whereName( $name )->get()->first();
+            if ( empty( $service ) )
             {
-                throw new InternalServerErrorException( "Failed to get or create swagger cache." );
+                throw new NotFoundException( "Could not find a service for '$name''" );
             }
+
+            $_content = ApiDocManager::getStoredContentForService( $service );
+
+            if ( empty( $_content ) )
+            {
+                throw new NotFoundException( "No Swagger content found for service '$name'" );
+            }
+
+            $_baseSwagger = [
+                'swaggerVersion' => static::SWAGGER_VERSION,
+                'apiVersion'     => \Config::get( 'rave.api_version', static::API_VERSION ),
+                'basePath'       => url( '/api/v2' ),
+            ];
+
+            $_content = array_merge( $_baseSwagger, $_content );
+            $_content = json_encode( $_content, JSON_UNESCAPED_SLASHES );
+
+            // replace service type placeholder with api name for this service instance
+            $_content = str_replace( '{api_name}', $name, $_content );
+
+            // cache it for later access
+            if ( false === CacheUtilities::putByServiceId( $this->id, $_cachePath, $_content, static::SWAGGER_CACHE_TTL ) )
+            {
+                \Log::error( "  * System error creating swagger cache file: $name.json" );
+            }
+
+            // Add to this the queried service's keys for clearing later.
+            $key = CacheUtilities::makeKeyFromTypeAndId( 'service', $this->id, $_cachePath );
+            CacheUtilities::addKeysByTypeAndId( 'service', $service->id, $key );
         }
 
         return $_content;
@@ -505,36 +209,17 @@ HTML;
     /**
      * Clears the cache produced by the swagger annotations
      */
-    public static function clearCache()
+    public function flush()
     {
-        \Cache::forget( static::SWAGGER_CACHE_FILE );
-        \Cache::forget( static::SWAGGER_PROCESS_EVENT_CACHE_FILE );
-        \Cache::forget( static::SWAGGER_BROADCAST_EVENT_CACHE_FILE );
+        CacheUtilities::forgetAllByTypeAndId( 'service', $this->id );
 
-        //  Clear the rest of the swagger cache for each service api name
-        //	Spin through services and clear the cache file
-        foreach ( Service::lists( 'name' ) as $service )
-        {
-            if ( false === \Cache::forget( $service . '.json' ) )
-            {
-                \Log::error( '  * System error deleting swagger cache file: ' . $service . '.json' );
-                continue;
-            }
-        }
-
-        //  Trigger a swagger.cache_cleared event
-//        Platform::trigger( SwaggerEvents::CACHE_CLEARED );
-
-        // rebuild swagger cache
-        static::buildSwagger();
+        ApiDocManager::clearCache();
     }
 
     public function getApiDocInfo()
     {
         $path = '/' . $this->name;
         $eventPath = $this->name;
-        $name = Inflector::camelize( $this->name );
-        $plural = Inflector::pluralize( $name );
         $apis = [
             [
                 'path'        => $path,
@@ -571,8 +256,7 @@ HTML;
                                 'code'    => 500,
                             ],
                         ],
-                        'notes'            =>
-                            'This returns the base Swagger file containing all API services.',
+                        'notes'            => 'This returns the base Swagger file containing all API services.',
                     ],
                 ],
                 'description' => 'Operations for retrieving API documents.',
@@ -618,10 +302,10 @@ HTML;
         ];
 
         $models = [
-            'ApiDocsResponse'  => [
+            'ApiDocsResponse' => [
                 'id'         => 'ApiDocsResponse',
                 'properties' => [
-                    'apiVersion' => [
+                    'apiVersion'     => [
                         'type'        => 'string',
                         'description' => 'Version of the API.',
                     ],
@@ -629,7 +313,7 @@ HTML;
                         'type'        => 'string',
                         'description' => 'Version of the Swagger API.',
                     ],
-                    'apis' => [
+                    'apis'           => [
                         'type'        => 'array',
                         'description' => 'Array of APIs.',
                         'items'       => [
@@ -638,10 +322,10 @@ HTML;
                     ],
                 ],
             ],
-            'ApiDocResponse' => [
+            'ApiDocResponse'  => [
                 'id'         => 'ApiDocResponse',
                 'properties' => [
-                    'apiVersion' => [
+                    'apiVersion'     => [
                         'type'        => 'string',
                         'description' => 'Version of the API.',
                     ],
@@ -649,18 +333,18 @@ HTML;
                         'type'        => 'string',
                         'description' => 'Version of the Swagger API.',
                     ],
-                    'basePath' => [
+                    'basePath'       => [
                         'type'        => 'string',
                         'description' => 'Base path of the API.',
                     ],
-                    'apis' => [
+                    'apis'           => [
                         'type'        => 'array',
                         'description' => 'Array of APIs.',
                         'items'       => [
                             '$ref' => 'Api',
                         ],
                     ],
-                    'models' => [
+                    'models'         => [
                         'type'        => 'array',
                         'description' => 'Array of API models.',
                         'items'       => [
@@ -669,10 +353,10 @@ HTML;
                     ],
                 ],
             ],
-            'Api'  => [
+            'Api'             => [
                 'id'         => 'Api',
                 'properties' => [
-                    'path' => [
+                    'path'        => [
                         'type'        => 'string',
                         'description' => 'Path to access the API.',
                     ],
@@ -682,7 +366,7 @@ HTML;
                     ],
                 ],
             ],
-            'Model'  => [
+            'Model'           => [
                 'id'         => 'Model',
                 'properties' => [
                     '__name__' => [

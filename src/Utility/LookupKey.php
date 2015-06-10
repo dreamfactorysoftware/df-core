@@ -20,137 +20,55 @@
 
 namespace DreamFactory\Rave\Utility;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Rave\Models\AppLookup;
 use DreamFactory\Rave\Models\Lookup;
 use DreamFactory\Rave\Models\RoleLookup;
 use DreamFactory\Rave\Models\UserLookup;
-use DreamFactory\Rave\Utility\Cache as CacheUtil;
 
 class LookupKey
 {
     /**
-     * @param null $roleId
-     * @param null $appId
-     * @param null $userId
+     * @param null|int $roleId
+     * @param null|int $appId
+     * @param null|int $userId
      *
      * @return array
      */
-    public static function getLookup( $roleId = null, $appId=null, $userId = null )
+    public static function getLookup( $roleId = null, $appId = null, $userId = null )
     {
-        $slck = CacheUtil::getSystemLookupCacheKey();
-        $rlck = CacheUtil::getRoleLookupCacheKey($roleId);
-        $alck = CacheUtil::getAppLookupCacheKey($appId);
-        $ulck = CacheUtil::getUserLookupCacheKey($userId);
+        $lookups = [ ];
+        $secretLookups = [ ];
 
-        $systemKeys = \Cache::get($slck);
-        $roleKeys = \Cache::get($rlck);
-        $appKeys = \Cache::get($alck);
-        $userKeys = \Cache::get($ulck);
+        $systemLookups = Lookup::all()->all();
+        static::addLookupsToMap( $systemLookups, $lookups, $secretLookups );
 
-        if(empty($systemKeys))
-        {
-            $systemLookup = Lookup::all()->all();
-            $systemKeys = static::modelsToArray($systemLookup);
-            \Cache::put($slck, $systemKeys, \Config::get('rave.default_cache_ttl'));
-        }
+        $roleLookups = RoleLookup::whereRoleId( $roleId )->get()->all();
+        static::addLookupsToMap( $roleLookups, $lookups, $secretLookups );
 
-        if(empty($roleKeys))
-        {
-            $roleLookup = RoleLookup::whereRoleId( $roleId )->get()->all();
-            $roleKeys = static::modelsToArray($roleLookup);
-            \Cache::put($rlck, $roleKeys, \Config::get('rave.default_cache_ttl'));
-        }
+        $appLookups = AppLookup::whereAppId( $appId )->get()->all();
+        static::addLookupsToMap( $appLookups, $lookups, $secretLookups );
 
-        if(empty($appKeys))
-        {
-            $appLookup = AppLookup::whereAppId( $appId )->get()->all();
-            $appKeys = static::modelsToArray($appLookup);
-            \Cache::put($alck, $appKeys, \Config::get('rave.default_cache_ttl'));
-        }
-
-        if(empty($userKeys))
-        {
-            $userLookup = UserLookup::whereUserId( $userId )->get()->all();
-            $userKeys = static::modelsToArray($userLookup);
-            \Cache::put($ulck, $userKeys, \Config::get('rave.default_cache_ttl'));
-        }
-
-        $lookup = [ ];
-        $lookupSecret = [ ];
-
-        foreach ( $systemKeys as $sk )
-        {
-            if ( true === ArrayUtils::getBool($sk, 'private') )
-            {
-                ArrayUtils::set( $lookupSecret, ArrayUtils::get($sk, 'name'), ArrayUtils::get($sk, 'value') );
-            }
-            else
-            {
-                ArrayUtils::set( $lookup, ArrayUtils::get($sk, 'name'), ArrayUtils::get($sk, 'value') );
-            }
-        }
-
-        foreach ( $roleKeys as $rk )
-        {
-            if ( true === ArrayUtils::getBool($rk, 'private') )
-            {
-                ArrayUtils::set( $lookupSecret, ArrayUtils::get($rk, 'name'), ArrayUtils::get($rk, 'value') );
-            }
-            else
-            {
-                ArrayUtils::set( $lookup, ArrayUtils::get($rk, 'name'), ArrayUtils::get($rk, 'value') );
-            }
-        }
-
-        foreach ( $appKeys as $ak )
-        {
-            if ( true === ArrayUtils::getBool($ak, 'private') )
-            {
-                ArrayUtils::set( $lookupSecret, ArrayUtils::get($ak, 'name'), ArrayUtils::get($ak, 'value'));
-            }
-            else
-            {
-                ArrayUtils::set( $lookup, ArrayUtils::get($ak, 'name'), ArrayUtils::get($ak, 'value') );
-            }
-        }
-
-        foreach ( $userKeys as $uk )
-        {
-            if ( true === ArrayUtils::getBool($uk, 'private') )
-            {
-                ArrayUtils::set( $lookupSecret, ArrayUtils::get($uk, 'name'), ArrayUtils::get($uk, 'value') );
-            }
-            else
-            {
-                ArrayUtils::set( $lookup, ArrayUtils::get($uk, 'name'), ArrayUtils::get($uk, 'value') );
-            }
-        }
+        $userLookups = UserLookup::whereUserId( $userId )->get()->all();
+        static::addLookupsToMap( $userLookups, $lookups, $secretLookups );
 
         return [
-            'lookup'        => $lookup,
-            'lookup_secret' => $lookupSecret
+            'lookup'        => $lookups,
+            'lookup_secret' => $secretLookups
         ];
     }
 
-    /**
-     * @param $models
-     *
-     * @return array
-     */
-    protected static function modelsToArray($models)
+    protected static function addLookupsToMap( $lookups, array &$map, array &$map_secret )
     {
-        $array = [];
-
-        foreach($models as $m)
+        foreach ( $lookups as $lookup )
         {
-            $array[] = [
-                'name' => $m->name,
-                'value' => $m->value,
-                'private' => $m->private
-            ];
+            if ( $lookup->private )
+            {
+                $map_secret[$lookup->name] = $lookup->value;
+            }
+            else
+            {
+                $map[$lookup->name] = $lookup->value;
+            }
         }
-
-        return $array;
     }
 }

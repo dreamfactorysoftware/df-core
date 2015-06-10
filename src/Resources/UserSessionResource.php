@@ -89,7 +89,8 @@ class UserSessionResource extends BaseRestResource
 
         $rememberMe = Scalar::boolval( $this->getPayloadData( 'remember_me' ) );
 
-        if ( empty(ArrayUtils::get($credentials, 'password')) || \Auth::attempt( $credentials, $rememberMe ) )
+        $password = ArrayUtils::get($credentials, 'password');
+        if ( empty($password) || \Auth::attempt( $credentials, $rememberMe ) )
         {
             $user = \Auth::user();
             $user->update( [ 'last_login_date' => Carbon::now()->toDateTimeString() ] );

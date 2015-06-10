@@ -20,47 +20,29 @@
 
 namespace DreamFactory\Rave\Models;
 
-use DreamFactory\Rave\Utility\Cache as CacheUtil;
-
-class AppLookup extends BaseSystemModel
+/**
+ * AppLookup
+ *
+ * @property integer $id
+ * @property integer $app_id
+ * @property string  $name
+ * @property string  $value
+ * @property string  $description
+ * @property boolean $is_private
+ * @property string  $created_date
+ * @property string  $last_modified_date
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereId( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereAppId( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereName( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereValue( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereDescription( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereIsPrivate( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereCreatedDate( $value )
+ * @method static \Illuminate\Database\Query\Builder|RoleLookup whereLastModifiedDate( $value )
+ */
+class AppLookup extends BaseSystemLookup
 {
-    use LookupTrait;
-
     protected $table = 'app_lookup';
 
     protected $fillable = ['app_id', 'name', 'value', 'private', 'description'];
-
-    /**
-     * @var array
-     */
-    protected $encrypted = ['value'];
-
-    public static function boot()
-    {
-        parent::boot();
-
-        static::saved(
-            function ( AppLookup $al )
-            {
-                AppLookup::clearCache($al->app_id);
-            }
-        );
-
-        static::deleted(
-            function(AppLookup $al)
-            {
-                AppLookup::clearCache($al->app_id);
-            }
-        );
-    }
-
-    public static function clearCache($id)
-    {
-        $cacheKey = CacheUtil::getAppLookupCacheKey($id);
-
-        if(\Cache::has($cacheKey))
-        {
-            \Cache::forget($cacheKey);
-        }
-    }
 }

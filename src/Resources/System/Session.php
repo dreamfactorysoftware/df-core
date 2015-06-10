@@ -55,9 +55,9 @@ class Session extends UserSessionResource
         $credentials = [
             'email'        => $this->getPayloadData( 'email' ),
             'password'     => $this->getPayloadData( 'password' ),
-            'is_sys_admin' => 1
+            'is_sys_admin' => true
         ];
 
-        return $this->handleLogin( $credentials );
+        return $this->handleLogin( $credentials, Scalar::boolval( $this->getPayloadData( 'remember_me' ) ) );
     }
 }

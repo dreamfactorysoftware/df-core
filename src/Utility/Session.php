@@ -20,6 +20,7 @@
 
 namespace DreamFactory\Rave\Utility;
 
+use DreamFactory\Rave\Exceptions\UnauthorizedException;
 use \Request;
 use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Routing\Router;
@@ -28,7 +29,7 @@ use DreamFactory\Rave\Exceptions\ForbiddenException;
 use DreamFactory\Rave\Enums\ServiceRequestorTypes;
 use DreamFactory\Rave\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Models\User as DspUser;
+use DreamFactory\Rave\Models\User;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 
 class Session
@@ -110,7 +111,7 @@ class Session
             return VerbsMask::NONE_MASK | VerbsMask::GET_MASK | VerbsMask::POST_MASK | VerbsMask::PUT_MASK | VerbsMask::PATCH_MASK | VerbsMask::DELETE_MASK;
         }
 
-        $services = ArrayUtils::clean( static::getWithApiKey('role.services'));
+        $services = ArrayUtils::clean( static::getWithApiKey( 'role.services' ) );
         $service = strval( $service );
         $component = strval( $component );
 
@@ -340,11 +341,11 @@ class Session
     /**
      * Sets basic info of the user in session when authenticated.
      *
-     * @param DspUser $user
+     * @param User $user
      *
      * @return bool
      */
-    public static function setUserInfo( DspUser $user )
+    public static function setUserInfo( User $user )
     {
         \Session::put( 'user.id', $user->id );
         \Session::put( 'user.display_name', $user->name );
@@ -359,20 +360,18 @@ class Session
      * Fetches user session data based on the authenticated user.
      *
      * @return array
-     * @throws NotFoundException
+     * @throws UnauthorizedException
      */
-    public static function getUserInfo()
+    public static function getPublicInfo()
     {
-        $userId = session( 'user.id' );
-
-        if ( empty( $userId ) )
+        if ( ( null === session( 'user' ) ) && ( null === session( 'api_key' ) ) )
         {
-            throw new NotFoundException( 'No user session found.' );
+            throw new UnauthorizedException( 'There is no valid session for the current request.' );
         }
 
         $sessionData = [
-            'user_id'         => $userId,
             'session_id'      => \Session::getId(),
+            'id'              => session( 'user.id' ),
             'name'            => session( 'user.display_name' ),
             'first_name'      => session( 'user.first_name' ),
             'last_name'       => session( 'user.last_name' ),
@@ -382,7 +381,7 @@ class Session
             'host'            => gethostname()
         ];
 
-        if ( false == Scalar::boolval( session( 'user.is_sys_admin' ) ) )
+        if ( !Scalar::boolval( session( 'user.is_sys_admin' ) ) )
         {
             $role = session( 'rsa.role' );
             ArrayUtils::set( $sessionData, 'role', ArrayUtils::get( $role, 'name' ) );
@@ -424,12 +423,12 @@ class Session
     {
         $lookup = LookupKey::getLookup( $roleId, $appId, $userId );
 
-        \Session::put( static::API_KEY_PREFIX.'.'.$apiKey.'.lookup', ArrayUtils::get( $lookup, 'lookup', [ ] ) );
-        \Session::put( static::API_KEY_PREFIX.'.'.$apiKey.'.lookup_secret', ArrayUtils::get( $lookup, 'lookup_secret', [ ] ) );
+        \Session::put( static::API_KEY_PREFIX . '.' . $apiKey . '.lookup', ArrayUtils::get( $lookup, 'lookup', [ ] ) );
+        \Session::put( static::API_KEY_PREFIX . '.' . $apiKey . '.lookup_secret', ArrayUtils::get( $lookup, 'lookup_secret', [ ] ) );
     }
 
     /**
-     * @return DspUser|null
+     * @return User|null
      */
     public static function getUser()
     {
@@ -441,7 +440,7 @@ class Session
      */
     public static function isSysAdmin()
     {
-        return session('user.is_sys_admin', false);
+        return session( 'user.is_sys_admin', false );
     }
 
     public static function get( $key, $default = null )
@@ -449,13 +448,14 @@ class Session
         return \Session::get( $key, $default );
     }
 
-    public static function getWithApiKey($key, $default=null, $apiKey=null)
+    public static function getWithApiKey( $key, $default = null, $apiKey = null )
     {
-        if(empty($apiKey))
+        if ( empty( $apiKey ) )
         {
             $apiKey = static::getCurrentApiKey();
         }
-        return \Session::get(static::API_KEY_PREFIX.'.'.$apiKey.'.'.$key, $default);
+
+        return \Session::get( static::API_KEY_PREFIX . '.' . $apiKey . '.' . $key, $default );
     }
 
     public static function set( $name, $value )
@@ -468,9 +468,9 @@ class Session
         \Session::put( $key, $value );
     }
 
-    public static function putWithApiKey($apiKey, $key, $value=null)
+    public static function putWithApiKey( $apiKey, $key, $value = null )
     {
-        \Session::put(static::API_KEY_PREFIX.'.'.$apiKey.'.'.$key, $value);
+        \Session::put( static::API_KEY_PREFIX . '.' . $apiKey . '.' . $key, $value );
     }
 
     public static function push( $key, $value )
@@ -483,9 +483,9 @@ class Session
         return \Session::has( $name );
     }
 
-    public static function hasApiKey($key)
+    public static function hasApiKey( $key )
     {
-        return \Session::has(static::API_KEY_PREFIX.'.'.$key);
+        return \Session::has( static::API_KEY_PREFIX . '.' . $key );
     }
 
     public static function getId()
@@ -525,26 +525,26 @@ class Session
 
     public static function getCurrentApiKey()
     {
-        return session('current_api_key');
+        return session( 'current_api_key' );
     }
 
-    public static function setCurrentApiKey($key)
+    public static function setCurrentApiKey( $key )
     {
-        \Session::put('current_api_key', $key);
+        \Session::put( 'current_api_key', $key );
     }
 
-    public static function remove($name)
+    public static function remove( $name )
     {
-        return \Session::remove($name);
+        return \Session::remove( $name );
     }
 
-    public static function forget($key)
+    public static function forget( $key )
     {
-        return \Session::forget($key);
+        \Session::forget( $key );
     }
 
     public static function forgetApiKeys()
     {
-        return \Session::forget(static::API_KEY_PREFIX);
+        \Session::forget( static::API_KEY_PREFIX );
     }
 }

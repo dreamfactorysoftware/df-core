@@ -21,6 +21,7 @@
 namespace DreamFactory\Rave\Resources;
 
 use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Rave\Exceptions\BadRequestException;
 use DreamFactory\Rave\Exceptions\NotFoundException;
 use DreamFactory\Rave\Exceptions\UnauthorizedException;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -39,7 +40,7 @@ class UserSessionResource extends BaseRestResource
      */
     protected function handleGET()
     {
-        return Session::getUserInfo();
+        return Session::getPublicInfo();
     }
 
     /**
@@ -51,57 +52,12 @@ class UserSessionResource extends BaseRestResource
      */
     protected function handlePOST()
     {
-        return $this->handleLogin();
-    }
+        $credentials = [
+            'email'        => $this->getPayloadData( 'email' ),
+            'password'     => $this->getPayloadData( 'password' )
+        ];
 
-    /**
-     * Performs login.
-     *
-     * @param array $credentials
-     *
-     * @return array
-     * @throws NotFoundException
-     * @throws UnauthorizedException
-     * @throws \Exception
-     */
-    protected function handleLogin( array $credentials = [ ] )
-    {
-        $email = ArrayUtils::get( $credentials, 'email' );
-        $password = ArrayUtils::get( $credentials, 'password' );
-
-        if ( empty( $email ) )
-        {
-            ArrayUtils::set( $credentials, 'email', $this->getPayloadData( 'email' ) );
-        }
-
-        if ( empty( $password ) )
-        {
-            ArrayUtils::set( $credentials, 'password', $this->getPayloadData( 'password' ) );
-        }
-
-        ArrayUtils::set( $credentials, 'is_active', 1 );
-
-        //if user management not available then only system admins can login.
-        if ( !class_exists( '\DreamFactory\Rave\User\Resources\System\User' ) )
-        {
-            ArrayUtils::set( $credentials, 'is_sys_admin', 1 );
-        }
-
-        $rememberMe = Scalar::boolval( $this->getPayloadData( 'remember_me' ) );
-
-        $password = ArrayUtils::get($credentials, 'password');
-        if ( empty($password) || \Auth::attempt( $credentials, $rememberMe ) )
-        {
-            $user = \Auth::user();
-            $user->update( [ 'last_login_date' => Carbon::now()->toDateTimeString() ] );
-            Session::setUserInfo( $user );
-
-            return Session::getUserInfo();
-        }
-        else
-        {
-            throw new UnauthorizedException( 'Invalid credentials supplied.' );
-        }
+        return $this->handleLogin( $credentials, Scalar::boolval( $this->getPayloadData( 'remember_me' ) ) );
     }
 
     /**
@@ -120,12 +76,50 @@ class UserSessionResource extends BaseRestResource
     }
 
     /**
-     * Handles PATCH action.
+     * Performs login.
      *
-     * @return bool
+     * @param array $credentials
+     * @param bool  $remember
+     *
+     * @return array
+     * @throws BadRequestException
+     * @throws NotFoundException
+     * @throws UnauthorizedException
+     * @throws \Exception
      */
-    protected function handlePATCH()
+    protected function handleLogin( array $credentials = [ ], $remember = false )
     {
-        return false;
+        $email = ArrayUtils::get( $credentials, 'email' );
+        if ( empty( $email ) )
+        {
+            throw new BadRequestException( 'Login request is missing required email.' );
+        }
+
+        $password = ArrayUtils::get( $credentials, 'password' );
+        if ( empty( $password ) )
+        {
+            throw new BadRequestException( 'Login request is missing required password.' );
+        }
+
+        $credentials['is_active'] = true;
+
+        // if user management not available then only system admins can login.
+        if ( !class_exists( '\DreamFactory\Rave\User\Resources\System\User' ) )
+        {
+            $credentials['is_sys_admin'] = true;
+        }
+
+        if ( \Auth::attempt( $credentials, $remember ) )
+        {
+            $user = \Auth::user();
+            $user->update( [ 'last_login_date' => Carbon::now()->toDateTimeString() ] );
+            Session::setUserInfo( $user );
+
+            return Session::getPublicInfo();
+        }
+        else
+        {
+            throw new BadRequestException( 'Invalid credentials supplied.' );
+        }
     }
 }

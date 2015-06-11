@@ -44,7 +44,7 @@ trait ApiVersion
     {
         if ( empty( $version ) )
         {
-            $version = \Config::get( 'rave.api_version' );
+            $version = \Config::get( 'df.api_version' );
         }
 
         $version = strval( $version ); // if numbers are passed in

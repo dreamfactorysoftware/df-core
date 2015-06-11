@@ -33,7 +33,7 @@ class RaveCorsServiceProvider extends CorsServiceProvider
      * Register the service provider.
      *
      * Overriding this method only to NOT use the cors.php config file
-     * from the vendor's package. Instead using rave.php config (cors.defaults).
+     * from the vendor's package. Instead using df.php config (cors.defaults).
      *
      * @return void
      */
@@ -56,7 +56,7 @@ class RaveCorsServiceProvider extends CorsServiceProvider
      */
     protected function getOptions(Request $request)
     {
-        $defaults = $this->app['config']->get('rave.cors.defaults', []);
+        $defaults = $this->app['config']->get('df.cors.defaults', []);
         $paths = $this->getPath();
 
         $uri = $request->getPathInfo() ? : '/';

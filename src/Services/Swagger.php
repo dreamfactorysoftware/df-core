@@ -119,7 +119,7 @@ HTML;
 
             $resourceListing = [
                 'swaggerVersion' => static::SWAGGER_VERSION,
-                'apiVersion'     => \Config::get( 'rave.api_version', static::API_VERSION ),
+                'apiVersion'     => \Config::get( 'df.api_version', static::API_VERSION ),
                 'authorizations' => [ 'apiKey' => [ 'type' => 'apiKey', 'passAs' => 'header' ] ],
                 'info'           => [
                     'title'       => 'DreamFactory Live API Documentation',
@@ -182,7 +182,7 @@ HTML;
 
             $_baseSwagger = [
                 'swaggerVersion' => static::SWAGGER_VERSION,
-                'apiVersion'     => \Config::get( 'rave.api_version', static::API_VERSION ),
+                'apiVersion'     => \Config::get( 'df.api_version', static::API_VERSION ),
                 'basePath'       => url( '/api/v2' ),
             ];
 

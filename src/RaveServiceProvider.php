@@ -29,7 +29,7 @@ class RaveServiceProvider extends BaseServiceProvider
     {
         $this->publishes(
             [
-                __DIR__ . '/../config/rave.php'  => config_path(),
+                __DIR__ . '/../config/df.php'  => config_path(),
                 __DIR__ . '/../views/test_rest.html'   => public_path(),
                 __DIR__ . '/../storage/' => storage_path(),
             ]

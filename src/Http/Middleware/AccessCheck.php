@@ -134,7 +134,7 @@ class AccessCheck
                         'user_id' => $authenticatedUser->id,
                         'app_id'  => $app->id
                     ];
-                    Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
+                    Cache::put( $cacheKey, $cacheData, Config::get( 'df.default_cache_ttl' ) );
                 }
 
                 Session::setLookupKeys( $apiKey, null, $appId, $authenticatedUser->id );
@@ -197,7 +197,7 @@ class AccessCheck
                         'user_id'   => $authenticatedUser->id,
                         'app_id'    => $app->id
                     ];
-                    Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
+                    Cache::put( $cacheKey, $cacheData, Config::get( 'df.default_cache_ttl' ) );
                 }
 
                 Session::putWithApiKey( $apiKey, 'role', $roleData );
@@ -244,7 +244,7 @@ class AccessCheck
                         'role_data' => $roleData,
                         'app_id'    => $app->id
                     ];
-                    Cache::put( $cacheKey, $cacheData, Config::get( 'rave.default_cache_ttl' ) );
+                    Cache::put( $cacheKey, $cacheData, Config::get( 'df.default_cache_ttl' ) );
                 }
 
                 Session::putWithApiKey( $apiKey, 'role', $roleData );

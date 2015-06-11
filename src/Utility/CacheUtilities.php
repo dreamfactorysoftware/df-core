@@ -85,7 +85,7 @@ class CacheUtilities
     {
         if ( is_null( $ttl ) )
         {
-            $ttl = \Config::get( 'rave.default_cache_ttl' );
+            $ttl = \Config::get( 'df.default_cache_ttl' );
         }
 
         return Cache::add( $key, $value, $ttl );
@@ -100,7 +100,7 @@ class CacheUtilities
     {
         if ( is_null( $ttl ) )
         {
-            $ttl = \Config::get( 'rave.default_cache_ttl' );
+            $ttl = \Config::get( 'df.default_cache_ttl' );
         }
 
         Cache::put( $key, $value, $ttl );
@@ -252,7 +252,7 @@ class CacheUtilities
 
         static::$cacheKeysMap[$type][$id] = $newKeys;
         // Save the map to cache
-        Cache::put( 'cacheKeysMap', static::$cacheKeysMap, \Config::get( 'rave.default_cache_ttl' ) );
+        Cache::put( 'cacheKeysMap', static::$cacheKeysMap, \Config::get( 'df.default_cache_ttl' ) );
     }
 
     /**
@@ -276,7 +276,7 @@ class CacheUtilities
 
         static::$cacheKeysMap[$type][$id] = $newKeys;
         // Save the map to cache
-        Cache::put( 'cacheKeysMap', static::$cacheKeysMap, \Config::get( 'rave.default_cache_ttl' ) );
+        Cache::put( 'cacheKeysMap', static::$cacheKeysMap, \Config::get( 'df.default_cache_ttl' ) );
     }
 
     /**
@@ -341,7 +341,7 @@ class CacheUtilities
         $key = static::makeKeyFromTypeAndId( $type, $id, $key );
         if ( is_null( $ttl ) )
         {
-            $ttl = \Config::get( 'rave.default_cache_ttl' );
+            $ttl = \Config::get( 'df.default_cache_ttl' );
         }
 
         if ( !Cache::add( $key, $value, $ttl ) )
@@ -366,7 +366,7 @@ class CacheUtilities
         $key = static::makeKeyFromTypeAndId( $type, $id, $key );
         if ( is_null( $ttl ) )
         {
-            $ttl = \Config::get( 'rave.default_cache_ttl' );
+            $ttl = \Config::get( 'df.default_cache_ttl' );
         }
 
         Cache::put( $key, $value, $ttl );

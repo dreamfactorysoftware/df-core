@@ -140,7 +140,7 @@ class ScriptEngineManager
         $output = ob_get_clean();
         static::destroy( $_engine );
 
-        if ( Scalar::boolval( \Config::get( 'rave.log_script_memory_usage', false ) ) )
+        if ( Scalar::boolval( \Config::get( 'df.log_script_memory_usage', false ) ) )
         {
             Log::debug( 'Engine memory usage: ' . static::resizeBytes( memory_get_usage( true ) ) );
         }

@@ -836,7 +836,7 @@ class BaseModel extends Model
         $pk = static::getPrimaryKeyStatic();
         $selection = ArrayUtils::get( $criteria, 'select' );
         $condition = ArrayUtils::get( $criteria, 'condition' );
-        $limit = ArrayUtils::get( $criteria, 'limit', \Config::get( 'rave.db_max_records_returned' ) );
+        $limit = ArrayUtils::get( $criteria, 'limit', \Config::get( 'df.db_max_records_returned' ) );
         $offset = ArrayUtils::get( $criteria, 'offset', 0 );
         $orderBy = ArrayUtils::get( $criteria, 'order', "$pk asc" );
         $orders = explode( ',', $orderBy );

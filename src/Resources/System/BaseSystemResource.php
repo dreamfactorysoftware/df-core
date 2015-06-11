@@ -210,7 +210,7 @@ class BaseSystemResource extends BaseRestResource
         }
 
         $value = intval( $this->request->getParameter( 'limit' ) );
-        $maxAllowed = intval( \Config::get( 'rave.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
+        $maxAllowed = intval( \Config::get( 'df.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
         if ( ( $value < 1 ) || ( $value > $maxAllowed ) )
         {
             // impose a limit to protect server

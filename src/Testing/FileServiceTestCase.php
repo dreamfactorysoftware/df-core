@@ -98,7 +98,7 @@ abstract class FileServiceTestCase extends TestCase
 
     public function testPOSTZipFileFromUrl()
     {
-        $rs = $this->makeRequest( Verbs::POST, static::CONTAINER_1 . '/f1/', [ 'url' => 'http://rave.local/testfiles.zip' ] );
+        $rs = $this->makeRequest( Verbs::POST, static::CONTAINER_1 . '/f1/', [ 'url' => 'http://df.local/testfiles.zip' ] );
         $content = json_encode( $rs->getContent(), JSON_UNESCAPED_SLASHES );
 
         $this->assertEquals( '{"file":[{"name":"testfiles.zip","path":"' . static::CONTAINER_1 . '/f1/testfiles.zip"}]}', $content );
@@ -109,7 +109,7 @@ abstract class FileServiceTestCase extends TestCase
         $rs = $this->makeRequest(
             Verbs::POST,
             static::CONTAINER_1 . '/f2/',
-            [ 'url' => 'http://rave.local/testfiles.zip', 'extract' => 'true', 'clean' => 'true' ]
+            [ 'url' => 'http://df.local/testfiles.zip', 'extract' => 'true', 'clean' => 'true' ]
         );
         $content = json_encode( $rs->getContent(), JSON_UNESCAPED_SLASHES );
 

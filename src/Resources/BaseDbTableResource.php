@@ -2515,7 +2515,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected static function getMaxRecordsReturnedLimit()
     {
-        return intval( Config::get( 'rave.db_max_records_returned', static::MAX_RECORDS_RETURNED ) );
+        return intval( Config::get( 'df.db_max_records_returned', static::MAX_RECORDS_RETURNED ) );
     }
 
     /**

@@ -525,16 +525,16 @@ class DbUtilities
         switch ( strtolower( strval( $type ) ) )
         {
             case 'time':
-                return Config::get( 'dsp.db_time_format' );
+                return Config::get( 'df.db_time_format' );
 
             case 'date':
-                return Config::get( 'dsp.db_date_format' );
+                return Config::get( 'df.db_date_format' );
 
             case 'datetime':
-                return Config::get( 'dsp.db_datetime_format' );
+                return Config::get( 'df.db_datetime_format' );
 
             case 'timestamp':
-                return Config::get( 'dsp.db_timestamp_format' );
+                return Config::get( 'df.db_timestamp_format' );
         }
 
         return null;

@@ -43,7 +43,7 @@ class RoleAndAppSeeder extends BaseModelSeeder
                     'description' => 'Default Admin Application',
                     'is_active'   => 1,
                     'type'        => 3,
-                    'path'        => 'dsp-admin-app/app/index.html'
+                    'path'        => 'dreamfactory/app/index.html'
                 ]
             ]
         ],

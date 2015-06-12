@@ -18,13 +18,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Scripting;
+namespace DreamFactory\Core\Scripting;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Scalar;
-use DreamFactory\Rave\Contracts\ScriptingEngineInterface;
-use DreamFactory\Rave\Events\Exceptions\ScriptException;
-use DreamFactory\Rave\Exceptions\ServiceUnavailableException;
+use DreamFactory\Core\Contracts\ScriptingEngineInterface;
+use DreamFactory\Core\Events\Exceptions\ScriptException;
+use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use \Log;
 
 /**

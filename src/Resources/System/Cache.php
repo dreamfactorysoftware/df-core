@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,18 +18,18 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources\System;
+namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Rave\Contracts\CachedInterface;
-use DreamFactory\Rave\Exceptions\NotImplementedException;
-use DreamFactory\Rave\Resources\BaseRestResource;
-use DreamFactory\Rave\Utility\CacheUtilities;
-use DreamFactory\Rave\Utility\ServiceHandler;
+use DreamFactory\Core\Contracts\CachedInterface;
+use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Core\Resources\BaseRestResource;
+use DreamFactory\Core\Utility\CacheUtilities;
+use DreamFactory\Core\Utility\ServiceHandler;
 
 /**
  * Class Cache
  *
- * @package DreamFactory\Rave\Resources
+ * @package DreamFactory\Core\Resources
  */
 class Cache extends BaseRestResource
 {

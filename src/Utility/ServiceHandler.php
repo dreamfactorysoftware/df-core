@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,17 +18,17 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Utility;
+namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Rave\Exceptions\ForbiddenException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Models\Service;
-use DreamFactory\Rave\Services\BaseRestService;
+use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Services\BaseRestService;
 
 /**
  * Class ServiceHandler
  *
- * @package DreamFactory\Rave\Utility
+ * @package DreamFactory\Core\Utility
  */
 class ServiceHandler
 {

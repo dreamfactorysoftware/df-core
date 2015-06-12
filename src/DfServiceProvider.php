@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,27 +18,25 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave;
+namespace DreamFactory\Core;
 
-use DreamFactory\Rave\Handlers\Events\ServiceEventHandler;
-use DreamFactory\Rave\Providers\BaseServiceProvider;
+use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
+use DreamFactory\Core\Providers\BaseServiceProvider;
 
-class RaveServiceProvider extends BaseServiceProvider
+class DfServiceProvider extends BaseServiceProvider
 {
     public function boot()
     {
         $this->publishes(
             [
                 __DIR__ . '/../config/df.php'  => config_path(),
-                __DIR__ . '/../views/test_rest.html'   => public_path(),
-                __DIR__ . '/../storage/' => storage_path(),
             ]
         );
 
-        include __DIR__ . '/Http/RaveRoutes.php';
+        include __DIR__ . '/Http/Routes.php';
 
         $router = $this->app['router'];
-        $router->middleware( 'access_check', 'DreamFactory\Rave\Http\Middleware\AccessCheck' );
+        $router->middleware( 'access_check', 'DreamFactory\Core\Http\Middleware\AccessCheck' );
     }
 
     public function register()

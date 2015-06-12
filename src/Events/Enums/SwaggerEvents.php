@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Events\Enums;
+namespace DreamFactory\Core\Events\Enums;
 
 /**
  * The base events raised by swagger operations

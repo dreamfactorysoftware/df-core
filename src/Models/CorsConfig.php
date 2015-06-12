@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,15 +18,15 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Models;
+namespace DreamFactory\Core\Models;
 
-use DreamFactory\Rave\Enums\VerbsMask;
-use DreamFactory\Rave\Exceptions\BadRequestException;
+use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Exceptions\BadRequestException;
 
 /**
  * Class CorsConfig
  *
- * @package DreamFactory\Rave\Models
+ * @package DreamFactory\Core\Models
  */
 class CorsConfig extends BaseSystemModel
 {
@@ -82,7 +82,7 @@ class CorsConfig extends BaseSystemModel
      * Validates and cleans model attributes
      *
      * @throws BadRequestException
-     * @throws \DreamFactory\Rave\Exceptions\NotImplementedException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public function validateAndClean()
     {

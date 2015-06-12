@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-use DreamFactory\Rave\Enums\VerbsMask;
-use DreamFactory\Rave\Utility\Session;
-use DreamFactory\Rave\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Utility\Session;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
 
-class RoleServiceAccessTest extends \DreamFactory\Rave\Testing\TestCase
+class RoleServiceAccessTest extends \DreamFactory\Core\Testing\TestCase
 {
     protected $rsaKey = 'role.services';
 
@@ -32,14 +32,14 @@ class RoleServiceAccessTest extends \DreamFactory\Rave\Testing\TestCase
 
     public function tearDown()
     {
-        \DreamFactory\Rave\Models\User::whereEmail('jdoe@dreamfactory.com')->delete();
+        \DreamFactory\Core\Models\User::whereEmail('jdoe@dreamfactory.com')->delete();
 
         parent::tearDown();
     }
 
     public function testSysAdmin()
     {
-        $user = \DreamFactory\Rave\Models\User::find(1);
+        $user = \DreamFactory\Core\Models\User::find(1);
         $this->be($user);
         Session::setUserInfo($user);
         $permission = Session::getServicePermissions( 'system', '*' );
@@ -49,7 +49,7 @@ class RoleServiceAccessTest extends \DreamFactory\Rave\Testing\TestCase
             ( VerbsMask::NONE_MASK | VerbsMask::GET_MASK | VerbsMask::POST_MASK | VerbsMask::PUT_MASK | VerbsMask::PATCH_MASK | VerbsMask::DELETE_MASK )
         );
 
-        $nonAdminUser = \DreamFactory\Rave\Models\User::create([
+        $nonAdminUser = \DreamFactory\Core\Models\User::create([
             'name'              => 'John Doe',
             'first_name'        => 'John',
             'last_name'         => 'Doe',

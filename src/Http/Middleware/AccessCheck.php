@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,26 +18,26 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Http\Middleware;
+namespace DreamFactory\Core\Http\Middleware;
 
 use \Auth;
 use \Cache;
 use \Config;
 use \Closure;
-use DreamFactory\Rave\Utility\LookupKey;
+use DreamFactory\Core\Utility\LookupKey;
 use Illuminate\Routing\Router;
-use DreamFactory\Rave\Enums\VerbsMask;
+use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\ForbiddenException;
-use DreamFactory\Rave\Exceptions\UnauthorizedException;
-use DreamFactory\Rave\Utility\ResponseFactory;
-use DreamFactory\Rave\Models\App;
-use DreamFactory\Rave\Models\Role;
-use DreamFactory\Rave\Models\User;
-use DreamFactory\Rave\Utility\Session;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Utility\CacheUtilities;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Exceptions\UnauthorizedException;
+use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Models\App;
+use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Utility\Session;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Utility\CacheUtilities;
 
 class AccessCheck
 {
@@ -148,7 +148,7 @@ class AccessCheck
         }
         //If API key is provided and authenticated user is non-admin and user management package is installed.
         //Use the role assigned to this user for the app.
-        else if ( !empty( $apiKey ) && $authenticated && class_exists( '\DreamFactory\Rave\User\Resources\System\User' ) )
+        else if ( !empty( $apiKey ) && $authenticated && class_exists( '\DreamFactory\Core\User\Resources\System\User' ) )
         {
             if ( !Session::hasApiKey( $apiKey ) )
             {
@@ -322,7 +322,7 @@ class AccessCheck
      * Checks to see if it is an admin user login call.
      *
      * @return bool
-     * @throws \DreamFactory\Rave\Exceptions\NotImplementedException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     protected static function isException()
     {

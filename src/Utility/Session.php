@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,19 +18,19 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Utility;
+namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Rave\Exceptions\UnauthorizedException;
+use DreamFactory\Core\Exceptions\UnauthorizedException;
 use \Request;
 use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Routing\Router;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Exceptions\ForbiddenException;
-use DreamFactory\Rave\Enums\ServiceRequestorTypes;
-use DreamFactory\Rave\Enums\VerbsMask;
+use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Models\User;
-use DreamFactory\Rave\Exceptions\NotFoundException;
+use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Exceptions\NotFoundException;
 
 class Session
 {
@@ -42,7 +42,7 @@ class Session
      * @param int $requestor
      *
      * @return bool
-     * @throws \DreamFactory\Rave\Exceptions\NotImplementedException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public static function isAccessAllowed( $requestor = ServiceRequestorTypes::API )
     {

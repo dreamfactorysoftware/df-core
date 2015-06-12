@@ -17,17 +17,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Scripting;
+namespace DreamFactory\Core\Scripting;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Contracts\ScriptingEngineInterface;
-use DreamFactory\Rave\Enums\DataFormats;
-use DreamFactory\Rave\Exceptions\ServiceUnavailableException;
-use DreamFactory\Rave\Utility\ServiceHandler;
-use DreamFactory\Rave\Utility\ResponseFactory;
-use DreamFactory\Rave\Utility\Session;
+use DreamFactory\Core\Contracts\ScriptingEngineInterface;
+use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Exceptions\ServiceUnavailableException;
+use DreamFactory\Core\Utility\ServiceHandler;
+use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Utility\Session;
 use \Log;
 
 /**
@@ -147,14 +147,11 @@ abstract class BaseEngineAdapter
         //  Add ones from constructor
         $libraryPaths = ArrayUtils::clean( $libraryPaths );
 
-        //  Local vendor repo directory
-        $libraryPaths[] = dirname( dirname( __DIR__ ) ) . '/config/scripts';
-
         //  Application storage script path
-        $libraryPath[] = storage_path( DIRECTORY_SEPARATOR . 'scripts' );
+        $libraryPaths[] = storage_path( DIRECTORY_SEPARATOR . 'scripting' );
 
         //  Merge in config libraries...
-        $libraryPaths = array_merge( $libraryPaths, ArrayUtils::clean( \Config::get( 'dsp.scripting.paths', [ ] ) ) );
+        $libraryPaths = array_merge( $libraryPaths, ArrayUtils::clean( \Config::get( 'df.scripting.paths', [ ] ) ) );
 
         //  Add them to collection if valid
         if ( is_array( $libraryPaths ) )

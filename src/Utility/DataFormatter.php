@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,16 +18,16 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Utility;
+namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Enums\DataFormats;
+use DreamFactory\Core\Enums\DataFormats;
 use Illuminate\Contracts\Support\Arrayable;
 
 /**
  * Class DataFormatter
  *
- * @package DreamFactory\Rave\Utility
+ * @package DreamFactory\Core\Utility
  */
 class DataFormatter
 {

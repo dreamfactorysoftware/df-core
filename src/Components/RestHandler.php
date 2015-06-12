@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,23 +18,23 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Components;
+namespace DreamFactory\Core\Components;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Contracts\RequestHandlerInterface;
-use DreamFactory\Rave\Enums\DataFormats;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Contracts\ResourceInterface;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Contracts\RequestHandlerInterface;
+use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Contracts\ResourceInterface;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
 
 /**
  * Class RestHandler
  *
- * @package DreamFactory\Rave\Components
+ * @package DreamFactory\Core\Components
  */
 abstract class RestHandler implements RequestHandlerInterface
 {
@@ -541,6 +541,6 @@ abstract class RestHandler implements RequestHandlerInterface
      */
     protected function triggerActionEvent( &$result, $eventName = null, $event = null, $isPostProcess = false )
     {
-        // TODO figure this out for RAVE
+        // TODO figure this out
     }
 }

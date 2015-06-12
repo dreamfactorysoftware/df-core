@@ -1,9 +1,9 @@
 <?php
-namespace DreamFactory\Rave\Events;
+namespace DreamFactory\Core\Events;
 
 use App\Events\Event;
 use Illuminate\Queue\SerializesModels;
-use DreamFactory\Rave\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
 
 class ResourcePreProcess extends Event
 {

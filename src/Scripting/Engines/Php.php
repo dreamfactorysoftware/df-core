@@ -17,9 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Scripting\Engines;
+namespace DreamFactory\Core\Scripting\Engines;
 
-use DreamFactory\Rave\Contracts\ScriptingEngineInterface;
+use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 
 /**
  * Wrapper around the php extension
@@ -47,8 +47,8 @@ class Php implements ScriptingEngineInterface
      * @param array  $engineArguments An array of arguments to pass when executing the string
      *
      * @internal param string $eventName
-     * @internal param \DreamFactory\Rave\Events\PlatformEvent $event
-     * @internal param \DreamFactory\Rave\Events\EventDispatcher $dispatcher
+     * @internal param \DreamFactory\Core\Events\PlatformEvent $event
+     * @internal param \DreamFactory\Core\Events\EventDispatcher $dispatcher
      * @return mixed
      */
     public function executeString( $script, $identifier, $data, array $engineArguments = [] )

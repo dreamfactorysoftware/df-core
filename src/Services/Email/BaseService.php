@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,21 +18,21 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Services\Email;
+namespace DreamFactory\Core\Services\Email;
 
 use App;
-use DreamFactory\Rave\Utility\ApiDocUtilities;
+use DreamFactory\Core\Utility\ApiDocUtilities;
 use Illuminate\Mail\Message;
 use Swift_Transport as SwiftTransport;
 use Swift_Mailer as SwiftMailer;
-use DreamFactory\Rave\Services\BaseRestService;
+use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Utility\EmailUtilities;
-use DreamFactory\Rave\Models\EmailTemplate;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Components\Mailer as RaveMailer;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Utility\EmailUtilities;
+use DreamFactory\Core\Models\EmailTemplate;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Components\Mailer as DfMailer;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 
 abstract class BaseService extends BaseRestService
 {
@@ -79,7 +79,7 @@ abstract class BaseService extends BaseRestService
         }
 
         $swiftMailer = new SwiftMailer( $this->transport );
-        $this->mailer = new RaveMailer( App::make( 'view' ), $swiftMailer, App::make( 'events' ) );
+        $this->mailer = new DfMailer( App::make( 'view' ), $swiftMailer, App::make( 'events' ) );
     }
 
     protected function setParameters( $config )

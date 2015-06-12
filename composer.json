@@ -1,13 +1,12 @@
 {
-  "name": "dreamfactory/rave",
-  "description": "DreamFactory RAVE(tm) Common Components",
+  "name": "dreamfactory/df-core",
+  "description": "DreamFactory(tm) Core Components",
   "config": {
     "discard-changes": true
   },
   "homepage": "https://www.dreamfactory.com/",
   "keywords": [
     "dsp",
-    "rave",
     "rest",
     "api",
     "mbaas",
@@ -31,11 +30,17 @@
   ],
   "minimum-stability": "dev",
   "prefer-stable": true,
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "git@github.com:dreamfactorysoftware/df-sqldb-core.git"
+    }
+  ],
   "require": {
     "php": "~5.4",
     "ramsey/array_column": "~1.1",
     "dreamfactory/php-utils": "dev-develop as dev-master",
-    "dreamfactory/rave-sqldb-core": "dev-develop as dev-master",
+    "dreamfactory/df-sqldb-core": "dev-develop as dev-master",
     "guzzlehttp/guzzle": "~5.0",
     "barryvdh/laravel-cors": "0.4.x@dev"
   },
@@ -44,7 +49,7 @@
   },
   "autoload": {
     "psr-4": {
-      "DreamFactory\\Rave\\": "src/"
+      "DreamFactory\\Core\\": "src/"
     }
   },
   "extra": {

@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,11 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Models;
+namespace DreamFactory\Core\Models;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Scalar;
-use DreamFactory\Rave\Exceptions\ForbiddenException;
+use DreamFactory\Core\Exceptions\ForbiddenException;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
@@ -30,9 +30,9 @@ use Laravel\Socialite\Contracts\User as OAuthUserContract;
 use DreamFactory\DSP\OAuth\Services\BaseOAuthService;
 use DreamFactory\DSP\ADLdap\Contracts\User as LdapUserContract;
 use DreamFactory\DSP\ADLdap\Services\LDAP as LdapService;
-use DreamFactory\Rave\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use Illuminate\Database\Eloquent\Model;
 
 /**

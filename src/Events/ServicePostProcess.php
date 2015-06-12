@@ -1,10 +1,10 @@
 <?php
-namespace DreamFactory\Rave\Events;
+namespace DreamFactory\Core\Events;
 
 use App\Events\Event;
 use Illuminate\Queue\SerializesModels;
-use DreamFactory\Rave\Contracts\ServiceRequestInterface;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
 
 class ServicePostProcess extends Event
 {

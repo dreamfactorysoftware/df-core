@@ -17,15 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Scripting;
+namespace DreamFactory\Core\Scripting;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Events\EventDispatcher;
-use DreamFactory\Rave\Events\PlatformEvent;
-use DreamFactory\Rave\Resources\System\Config;
-use DreamFactory\Rave\Resources\User\Session;
-use DreamFactory\Rave\Utility\Platform;
-use DreamFactory\Rave\Yii\Models\App;
+use DreamFactory\Core\Events\EventDispatcher;
+use DreamFactory\Core\Events\PlatformEvent;
+use DreamFactory\Core\Resources\System\Config;
+use DreamFactory\Core\Resources\User\Session;
+use DreamFactory\Core\Utility\Platform;
+use DreamFactory\Core\Yii\Models\App;
 use DreamFactory\Yii\Utility\Pii;
 use Kisma\Core\Utility\Inflector;
 use Kisma\Core\Utility\Log;

@@ -1,9 +1,9 @@
-<?php namespace DreamFactory\Rave\Components;
+<?php namespace DreamFactory\Core\Components;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Scalar;
-use DreamFactory\Rave\Models\User;
-use DreamFactory\Rave\Utility\Session;
+use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Utility\Session;
 use Validator;
 use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 

@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,20 +18,20 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Utility;
+namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Scalar;
-use DreamFactory\Rave\Components\InternalServiceRequest;
-use DreamFactory\Rave\Enums\ServiceRequestorTypes;
-use DreamFactory\Rave\Exceptions\BadRequestException;
+use DreamFactory\Core\Components\InternalServiceRequest;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use Request;
-use DreamFactory\Rave\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
 
 /**
  * Class ServiceRequest
  *
- * @package DreamFactory\Rave\Utility
+ * @package DreamFactory\Core\Utility
  */
 class ServiceRequest implements ServiceRequestInterface
 {

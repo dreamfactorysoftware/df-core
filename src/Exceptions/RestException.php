@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory RAVE(tm) Common
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory RAVE(tm) Common <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2015 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Exceptions;
+namespace DreamFactory\Core\Exceptions;
 
 //use DreamFactory\Library\Utility\IfSet;
 use Symfony\Component\HttpFoundation\Response;
@@ -28,7 +28,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * The HTTP error code can be obtained via {@link statusCode}.
  */
-class RestException extends RaveServiceException
+class RestException extends DfServiceException
 {
     //*************************************************************************
     //* Members

@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Models;
+namespace DreamFactory\Core\Models;
 
 class EmailServiceConfig extends BaseServiceConfigModel
 {
@@ -59,7 +59,7 @@ class EmailServiceConfig extends BaseServiceConfigModel
      */
     public function parameter()
     {
-        return $this->hasMany( 'DreamFactory\Rave\Models\EmailServiceParameterConfig', 'service_id' );
+        return $this->hasMany( 'DreamFactory\Core\Models\EmailServiceParameterConfig', 'service_id' );
     }
 
     /**

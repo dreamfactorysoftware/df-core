@@ -1,18 +1,18 @@
 <?php
-namespace DreamFactory\Rave\Http\Controllers;
+namespace DreamFactory\Core\Http\Controllers;
 
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Request;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Utility\ResponseFactory;
-use DreamFactory\Rave\Utility\ServiceHandler;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Utility\ServiceHandler;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
 /**
  * Class RestController
  *
- * @package DreamFactory\Rave\Http\Controllers
+ * @package DreamFactory\Core\Http\Controllers
  */
 class RestController extends Controller
 {

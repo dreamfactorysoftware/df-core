@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,16 +18,16 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave;
+namespace DreamFactory\Core;
 
 
 use Barryvdh\Cors\CorsServiceProvider;
 use Asm89\Stack\CorsService;
 use Illuminate\Support\Str;
 use Illuminate\Http\Request;
-use DreamFactory\Rave\Models\CorsConfig;
+use DreamFactory\Core\Models\CorsConfig;
 
-class RaveCorsServiceProvider extends CorsServiceProvider
+class DfCorsServiceProvider extends CorsServiceProvider
 {
     /**
      * Register the service provider.

@@ -17,15 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Services;
+namespace DreamFactory\Core\Services;
 
-use DreamFactory\Rave\Components\ApiDocManager;
-use DreamFactory\Rave\Contracts\CachedInterface;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Models\Service;
-use DreamFactory\Rave\Utility\CacheUtilities;
-use DreamFactory\Rave\Utility\Session;
+use DreamFactory\Core\Components\ApiDocManager;
+use DreamFactory\Core\Contracts\CachedInterface;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Utility\CacheUtilities;
+use DreamFactory\Core\Utility\Session;
 
 /**
  * Swagger

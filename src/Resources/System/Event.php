@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,15 +18,15 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources\System;
+namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Resources\BaseRestResource;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Resources\BaseRestResource;
 
 /**
  * Class Event
  *
- * @package DreamFactory\Rave\Resources
+ * @package DreamFactory\Core\Resources
  */
 class Event extends BaseRestResource
 {
@@ -36,17 +36,17 @@ class Event extends BaseRestResource
     protected $resources = [
         EventScript::RESOURCE_NAME    => [
             'name'       => EventScript::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Rave\\Resources\\System\\EventScript',
+            'class_name' => 'DreamFactory\\Core\\Resources\\System\\EventScript',
             'label'      => 'Scripts',
         ],
         ProcessEvent::RESOURCE_NAME   => [
             'name'       => ProcessEvent::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Rave\\Resources\\System\\ProcessEvent',
+            'class_name' => 'DreamFactory\\Core\\Resources\\System\\ProcessEvent',
             'label'      => 'Process Events',
         ],
         BroadcastEvent::RESOURCE_NAME => [
             'name'       => BroadcastEvent::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Rave\\Resources\\System\\BroadcastEvent',
+            'class_name' => 'DreamFactory\\Core\\Resources\\System\\BroadcastEvent',
             'label'      => 'Broadcast Events',
         ],
     ];

@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,12 +19,12 @@
  */
 
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Enums\HttpStatusCodes;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Library\Utility\ArrayUtils;
 use Illuminate\Support\Arr;
 
-class RoleResourceTest extends \DreamFactory\Rave\Testing\TestCase
+class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 {
     const RESOURCE = 'role';
 

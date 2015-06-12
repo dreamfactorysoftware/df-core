@@ -17,11 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Database\Seeds;
+namespace DreamFactory\Core\Database\Seeds;
 
 class ServiceSeeder extends BaseModelSeeder
 {
-    protected $modelClass = 'DreamFactory\\Rave\\Models\\Service';
+    protected $modelClass = 'DreamFactory\\Core\\Models\\Service';
 
     protected $records = [
         [

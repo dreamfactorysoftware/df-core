@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,27 +18,27 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Services;
+namespace DreamFactory\Core\Services;
 
-use DreamFactory\Rave\Utility\ApiDocUtilities;
-use DreamFactory\Rave\Utility\FileUtilities;
-use DreamFactory\Rave\Utility\ResponseFactory;
+use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Utility\FileUtilities;
+use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 
 /**
  * Class BaseFileService
  *
- * @package DreamFactory\Rave\Services
+ * @package DreamFactory\Core\Services
  */
 abstract class BaseFileService extends BaseRestService
 {
     /**
-     * @var \DreamFactory\Rave\Contracts\FileSystemInterface
+     * @var \DreamFactory\Core\Contracts\FileSystemInterface
      */
     protected $driver = null;
     /**
@@ -146,7 +146,7 @@ abstract class BaseFileService extends BaseRestService
     /**
      * Handles GET actions.
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      */
     protected function handleGET()
     {
@@ -176,7 +176,7 @@ abstract class BaseFileService extends BaseRestService
     /**
      * Handles POST actions.
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      * @throws BadRequestException
      * @throws InternalServerErrorException
      * @throws \Exception
@@ -363,7 +363,7 @@ abstract class BaseFileService extends BaseRestService
     /**
      * Handles PATCH actions.
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      */
     protected function handlePATCH()
     {
@@ -410,7 +410,7 @@ abstract class BaseFileService extends BaseRestService
     /**
      * Handles DELETE actions.
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      * @throws BadRequestException
      */
     protected function handleDELETE()

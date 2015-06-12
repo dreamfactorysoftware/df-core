@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,24 +18,24 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources\System;
+namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Models\BaseSystemModel;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Models\BaseSystemModel;
 
 class Admin extends BaseSystemResource
 {
     protected $resources = [
         Password::RESOURCE_NAME => [
             'name'       => Password::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Rave\\Resources\\System\\Password',
+            'class_name' => 'DreamFactory\\Core\\Resources\\System\\Password',
             'label'      => 'Password'
         ],
         Session::RESOURCE_NAME  => [
             'name'       => Session::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Rave\\Resources\\System\\Session',
+            'class_name' => 'DreamFactory\\Core\\Resources\\System\\Session',
             'label'      => 'Session'
         ]
     ];

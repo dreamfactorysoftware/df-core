@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,12 +18,12 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources\System;
+namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Utility\ResponseFactory;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Library\Utility\Enums\Verbs;
 
 class Config extends BaseSystemResource
@@ -40,7 +40,7 @@ class Config extends BaseSystemResource
 
         parent::__construct( $settings );
 
-        $this->model = 'DreamFactory\Rave\Models\Config';
+        $this->model = 'DreamFactory\Core\Models\Config';
     }
 
     public function getApiDocInfo()

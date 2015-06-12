@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Testing;
+namespace DreamFactory\Core\Testing;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Illuminate\Support\Arr;
@@ -440,7 +440,7 @@ class UserResourceTestCase extends TestCase
     {
         $user = $this->{'user' . $num};
         $email = Arr::get( $user, 'email' );
-        \DreamFactory\Rave\Models\User::whereEmail( $email )->delete();
+        \DreamFactory\Core\Models\User::whereEmail( $email )->delete();
     }
 
     protected function adminCheck( $records )

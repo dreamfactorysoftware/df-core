@@ -17,16 +17,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Components;
+namespace DreamFactory\Core\Components;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Enums\ApiDocFormatTypes;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Models\Service;
-use DreamFactory\Rave\Services\BaseRestService;
-use DreamFactory\Rave\Utility\CacheUtilities;
+use DreamFactory\Core\Enums\ApiDocFormatTypes;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Core\Utility\CacheUtilities;
 
 /**
  * ApiDocManager

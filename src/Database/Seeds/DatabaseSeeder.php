@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Database\Seeds;
+namespace DreamFactory\Core\Database\Seeds;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Database\Eloquent\Model;
@@ -33,12 +33,12 @@ class DatabaseSeeder extends Seeder
     {
         Model::unguard();
 
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\ServiceTypeSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\SystemResourceSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\ScriptTypeSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\ServiceSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\AdminSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\DbTableExtrasSeeder');
-         $this->call('DreamFactory\\Rave\\Database\\Seeds\\RoleAndAppSeeder');
+         $this->call('DreamFactory\\Core\\Database\\Seeds\\ServiceTypeSeeder');
+         $this->call('DreamFactory\\Core\\Database\\Seeds\\SystemResourceSeeder');
+         $this->call('DreamFactory\\Core\\Database\\Seeds\\ScriptTypeSeeder');
+         $this->call('DreamFactory\\Core\\Database\\Seeds\\ServiceSeeder');
+         $this->call('DreamFactory\\Core\\Database\\Seeds\\AdminSeeder');
+         $this->call('DreamFactory\\Core\\Database\\Seeds\\DbTableExtrasSeeder');
+         $this->call('DreamFactory\\Core\\Database\\Seeds\\RoleAndAppSeeder');
     }
 }

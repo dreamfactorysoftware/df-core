@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -21,10 +21,10 @@
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Illuminate\Support\Arr;
 use DreamFactory\Library\Utility\Scalar;
-use DreamFactory\Rave\Utility\ServiceHandler;
-use DreamFactory\Rave\Models\User;
+use DreamFactory\Core\Utility\ServiceHandler;
+use DreamFactory\Core\Models\User;
 
-class AdminResourceTest extends \DreamFactory\Rave\Testing\UserResourceTestCase
+class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
 {
     const RESOURCE = 'admin';
 
@@ -32,7 +32,7 @@ class AdminResourceTest extends \DreamFactory\Rave\Testing\UserResourceTestCase
     {
         foreach ( $records as $user )
         {
-            $userModel = \DreamFactory\Rave\Models\User::find( $user['id'] );
+            $userModel = \DreamFactory\Core\Models\User::find( $user['id'] );
 
             if ( !Scalar::boolval( $userModel->is_sys_admin ) )
             {
@@ -49,13 +49,13 @@ class AdminResourceTest extends \DreamFactory\Rave\Testing\UserResourceTestCase
         $this->makeRequest( Verbs::POST, 'user', [ 'fields' => '*', 'related' => 'user_lookup_by_user_id' ], [ $user ] );
 
         //Using a new instance here. Prev instance is set for user resource.
-        $this->service = \DreamFactory\Rave\Utility\ServiceHandler::getService( 'system' );
+        $this->service = \DreamFactory\Core\Utility\ServiceHandler::getService( 'system' );
 
         $rs = $this->makeRequest( Verbs::GET, static::RESOURCE );
         $content = $rs->getContent();
 
         $this->assertEquals( 1, count( $content['record'] ) );
-        $this->assertEquals( 'Rave Admin', Arr::get( $content, 'record.0.name' ) );
+        $this->assertEquals( 'DF Admin', Arr::get( $content, 'record.0.name' ) );
     }
 
     /************************************************
@@ -64,7 +64,7 @@ class AdminResourceTest extends \DreamFactory\Rave\Testing\UserResourceTestCase
 
     public function testSessionNotFound()
     {
-        $this->setExpectedException( '\DreamFactory\Rave\Exceptions\NotFoundException' );
+        $this->setExpectedException( '\DreamFactory\Core\Exceptions\NotFoundException' );
         $this->makeRequest( Verbs::GET, static::RESOURCE . '/session' );
     }
 
@@ -78,7 +78,7 @@ class AdminResourceTest extends \DreamFactory\Rave\Testing\UserResourceTestCase
         //Using a new instance here. Prev instance is set for user resource.
         $this->service = ServiceHandler::getService( 'system' );
 
-        $this->setExpectedException('\DreamFactory\Rave\Exceptions\UnauthorizedException');
+        $this->setExpectedException('\DreamFactory\Core\Exceptions\UnauthorizedException');
         $this->makeRequest(Verbs::GET, static::RESOURCE.'/session');
     }
 
@@ -100,7 +100,7 @@ class AdminResourceTest extends \DreamFactory\Rave\Testing\UserResourceTestCase
         $user = $this->createUser(1);
         $payload = ['name'=>'foo'];
 
-        $this->setExpectedException('\DreamFactory\Rave\Exceptions\BadRequestException');
+        $this->setExpectedException('\DreamFactory\Core\Exceptions\BadRequestException');
         $this->makeRequest(Verbs::PATCH, static::RESOURCE.'/session/'.$user['id'], [], $payload);
     }
 
@@ -118,7 +118,7 @@ class AdminResourceTest extends \DreamFactory\Rave\Testing\UserResourceTestCase
 
         $this->assertTrue($content['success']);
 
-        $this->setExpectedException( '\DreamFactory\Rave\Exceptions\NotFoundException' );
+        $this->setExpectedException( '\DreamFactory\Core\Exceptions\NotFoundException' );
         $this->makeRequest( Verbs::GET, static::RESOURCE . '/session' );
     }
 
@@ -128,13 +128,13 @@ class AdminResourceTest extends \DreamFactory\Rave\Testing\UserResourceTestCase
 
     public function testGET()
     {
-        $this->setExpectedException('\DreamFactory\Rave\Exceptions\BadRequestException');
+        $this->setExpectedException('\DreamFactory\Core\Exceptions\BadRequestException');
         $this->makeRequest(Verbs::GET, static::RESOURCE.'/password');
     }
 
     public function testDELETE()
     {
-        $this->setExpectedException('\DreamFactory\Rave\Exceptions\BadRequestException');
+        $this->setExpectedException('\DreamFactory\Core\Exceptions\BadRequestException');
         $this->makeRequest(Verbs::DELETE, static::RESOURCE.'/password');
     }
 

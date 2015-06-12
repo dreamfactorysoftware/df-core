@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,12 +17,12 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Scripting;
+namespace DreamFactory\Core\Scripting;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Components\InternalServiceRequest;
-use DreamFactory\Rave\Contracts\ServiceRequestInterface;
-use DreamFactory\Rave\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Components\InternalServiceRequest;
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
 
 /**
  * Class ScriptServiceRequest

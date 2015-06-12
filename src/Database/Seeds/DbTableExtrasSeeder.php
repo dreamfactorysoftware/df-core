@@ -17,92 +17,92 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Database\Seeds;
+namespace DreamFactory\Core\Database\Seeds;
 
-use DreamFactory\Rave\Models\Service;
+use DreamFactory\Core\Models\Service;
 
 class DbTableExtrasSeeder extends BaseModelSeeder
 {
-    protected $modelClass = 'DreamFactory\\Rave\\Models\\DbTableExtras';
+    protected $modelClass = 'DreamFactory\\Core\\Models\\DbTableExtras';
 
     protected $recordIdentifier = 'table';
 
     protected $records = [
         [
             'table'      => 'user',
-            'model'      => '\\DreamFactory\\Rave\\Models\\User',
+            'model'      => '\\DreamFactory\\Core\\Models\\User',
         ],
         [
             'table'      => 'user_lookup',
-            'model'      => '\\DreamFactory\\Rave\\Models\\UserLookup',
+            'model'      => '\\DreamFactory\\Core\\Models\\UserLookup',
         ],
         [
             'table'      => 'user_to_app_to_role',
-            'model'      => '\\DreamFactory\\Rave\\Models\\UserAppRole',
+            'model'      => '\\DreamFactory\\Core\\Models\\UserAppRole',
         ],
         [
             'table'      => 'service',
-            'model'      => '\\DreamFactory\\Rave\\Models\\Service',
+            'model'      => '\\DreamFactory\\Core\\Models\\Service',
         ],
         [
             'table'      => 'service_type',
-            'model'      => '\\DreamFactory\\Rave\\Models\\ServiceType',
+            'model'      => '\\DreamFactory\\Core\\Models\\ServiceType',
         ],
         [
             'table'      => 'service_doc',
-            'model'      => '\\DreamFactory\\Rave\\Models\\ServiceDoc',
+            'model'      => '\\DreamFactory\\Core\\Models\\ServiceDoc',
         ],
         [
             'table'      => 'role',
-            'model'      => '\\DreamFactory\\Rave\\Models\\Role',
+            'model'      => '\\DreamFactory\\Core\\Models\\Role',
         ],
         [
             'table'      => 'role_service_access',
-            'model'      => '\\DreamFactory\\Rave\\Models\\RoleServiceAccess',
+            'model'      => '\\DreamFactory\\Core\\Models\\RoleServiceAccess',
         ],
         [
             'table'      => 'role_lookup',
-            'model'      => '\\DreamFactory\\Rave\\Models\\RoleLookup',
+            'model'      => '\\DreamFactory\\Core\\Models\\RoleLookup',
         ],
         [
             'table'      => 'app',
-            'model'      => '\\DreamFactory\\Rave\\Models\\App',
+            'model'      => '\\DreamFactory\\Core\\Models\\App',
         ],
         [
             'table'      => 'app_lookup',
-            'model'      => '\\DreamFactory\\Rave\\Models\\AppLookup',
+            'model'      => '\\DreamFactory\\Core\\Models\\AppLookup',
         ],
         [
             'table'      => 'app_group',
-            'model'      => '\\DreamFactory\\Rave\\Models\\AppGroup',
+            'model'      => '\\DreamFactory\\Core\\Models\\AppGroup',
         ],
         [
             'table'      => 'system_resource',
-            'model'      => '\\DreamFactory\\Rave\\Models\\SystemResource',
+            'model'      => '\\DreamFactory\\Core\\Models\\SystemResource',
         ],
         [
             'table'      => 'script_type',
-            'model'      => '\\DreamFactory\\Rave\\Models\\ScriptType',
+            'model'      => '\\DreamFactory\\Core\\Models\\ScriptType',
         ],
         [
             'table'      => 'event_script',
-            'model'      => '\\DreamFactory\\Rave\\Models\\EventScript',
+            'model'      => '\\DreamFactory\\Core\\Models\\EventScript',
         ],
         [
             'table'      => 'event_subscriber',
-            'model'      => '\\DreamFactory\\Rave\\Models\\EventSubscriber',
+            'model'      => '\\DreamFactory\\Core\\Models\\EventSubscriber',
         ],
         [
             'table'      => 'email_template',
-            'model'      => '\\DreamFactory\\Rave\\Models\\EmailTemplate',
+            'model'      => '\\DreamFactory\\Core\\Models\\EmailTemplate',
         ],
         [
             'table'      => 'system_setting',
-            'model'      => '\\DreamFactory\\Rave\\Models\\Setting',
+            'model'      => '\\DreamFactory\\Core\\Models\\Setting',
         ],
         [
             'table'      => 'system_lookup',
-            'model'      => '\\DreamFactory\\Rave\\Models\\Lookup',
+            'model'      => '\\DreamFactory\\Core\\Models\\Lookup',
         ]
     ];
 

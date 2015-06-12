@@ -17,9 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Events\Exceptions;
+namespace DreamFactory\Core\Events\Exceptions;
 
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 
 /**
  * Thrown when scripts exceptions are thrown

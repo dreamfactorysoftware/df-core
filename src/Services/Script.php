@@ -17,11 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Services;
+namespace DreamFactory\Core\Services;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Scripting\ScriptEngineManager;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Scripting\ScriptEngineManager;
 use \Log;
 
 /**
@@ -102,7 +102,7 @@ class Script extends BaseRestService
     /**
      * @return mixed
      * @throws InternalServerErrorException
-     * @throws \DreamFactory\Rave\Events\Exceptions\ScriptException
+     * @throws \DreamFactory\Core\Events\Exceptions\ScriptException
      */
     protected function runScript()
     {

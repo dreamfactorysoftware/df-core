@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Services;
+namespace DreamFactory\Core\Services;
 
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Utility\ApiDocUtilities;
-use DreamFactory\Rave\Resources\BaseDbResource;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Resources\BaseDbResource;
 
 abstract class BaseDbService extends BaseRestService
 {

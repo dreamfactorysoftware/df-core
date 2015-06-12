@@ -17,15 +17,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Services;
+namespace DreamFactory\Core\Services;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Models\BaseSystemModel;
-use DreamFactory\Rave\Models\EventSubscriber;
-use DreamFactory\Rave\Utility\ResponseFactory;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Models\BaseSystemModel;
+use DreamFactory\Core\Models\EventSubscriber;
+use DreamFactory\Core\Utility\ResponseFactory;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -52,7 +52,7 @@ class Event extends BaseRestService
     //*************************************************************************
 
     /**
-     * @var \DreamFactory\Rave\Models\BaseSystemModel Model Class name.
+     * @var \DreamFactory\Core\Models\BaseSystemModel Model Class name.
      */
     protected $model = null;
 
@@ -246,7 +246,7 @@ class Event extends BaseRestService
     /**
      * Handles POST action
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */
@@ -285,7 +285,7 @@ class Event extends BaseRestService
     /**
      * Handles PATCH action
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */
@@ -321,7 +321,7 @@ class Event extends BaseRestService
     /**
      * Handles DELETE action
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */
@@ -356,7 +356,7 @@ class Event extends BaseRestService
     /**
      * Returns associated model with the service/resource.
      *
-     * @return \DreamFactory\Rave\Models\BaseSystemModel
+     * @return \DreamFactory\Core\Models\BaseSystemModel
      * @throws ModelNotFoundException
      */
     protected function getModel()

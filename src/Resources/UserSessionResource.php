@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,14 +18,14 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources;
+namespace DreamFactory\Core\Resources;
 
 use DreamFactory\Library\Utility\Scalar;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Exceptions\UnauthorizedException;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Utility\Session;
+use DreamFactory\Core\Utility\Session;
 use Carbon\Carbon;
 
 class UserSessionResource extends BaseRestResource
@@ -104,7 +104,7 @@ class UserSessionResource extends BaseRestResource
         $credentials['is_active'] = true;
 
         // if user management not available then only system admins can login.
-        if ( !class_exists( '\DreamFactory\Rave\User\Resources\System\User' ) )
+        if ( !class_exists( '\DreamFactory\Core\User\Resources\System\User' ) )
         {
             $credentials['is_sys_admin'] = true;
         }

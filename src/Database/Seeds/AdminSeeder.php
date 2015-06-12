@@ -17,11 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Database\Seeds;
+namespace DreamFactory\Core\Database\Seeds;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Database\Eloquent\Model;
-use DreamFactory\Rave\Models\User;
+use DreamFactory\Core\Models\User;
 
 class AdminSeeder extends Seeder
 {

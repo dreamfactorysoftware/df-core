@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,17 +18,17 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Models;
+namespace DreamFactory\Core\Models;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Components\ConnectionAdapter;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\SqlDbCore\ColumnSchema;
-use DreamFactory\Rave\SqlDbCore\RelationSchema;
-use DreamFactory\Rave\SqlDbCore\Schema;
-use DreamFactory\Rave\SqlDbCore\TableSchema;
-use DreamFactory\Rave\Components\Builder as RaveBuilder;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Components\ConnectionAdapter;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\SqlDbCore\ColumnSchema;
+use DreamFactory\Core\SqlDbCore\RelationSchema;
+use DreamFactory\Core\SqlDbCore\Schema;
+use DreamFactory\Core\SqlDbCore\TableSchema;
+use DreamFactory\Core\Components\Builder as DfBuilder;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -38,7 +38,7 @@ use DB;
 /**
  * Class BaseModel
  *
- * @package DreamFactory\Rave\Models
+ * @package DreamFactory\Core\Models
  */
 class BaseModel extends Model
 {
@@ -1136,7 +1136,7 @@ class BaseModel extends Model
      */
     public function newEloquentBuilder( $query )
     {
-        return new RaveBuilder( $query );
+        return new DfBuilder( $query );
     }
 
     public static function getTableToModelMap()

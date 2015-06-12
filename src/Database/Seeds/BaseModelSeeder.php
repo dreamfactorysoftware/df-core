@@ -17,11 +17,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Database\Seeds;
+namespace DreamFactory\Core\Database\Seeds;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Rave\Models\BaseModel;
+use DreamFactory\Core\Models\BaseModel;
 use Illuminate\Database\Seeder;
 
 class BaseModelSeeder extends Seeder

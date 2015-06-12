@@ -17,23 +17,23 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Database\Seeds;
+namespace DreamFactory\Core\Database\Seeds;
 
 class ScriptTypeSeeder extends BaseModelSeeder
 {
-    protected $modelClass = 'DreamFactory\\Rave\\Models\\ScriptType';
+    protected $modelClass = 'DreamFactory\\Core\\Models\\ScriptType';
 
     protected $records = [
         [
             'name'        => 'php',
-            'class_name'  => 'DreamFactory\\Rave\\Scripting\\Engines\\Php',
+            'class_name'  => 'DreamFactory\\Core\\Scripting\\Engines\\Php',
             'label'       => 'PHP',
             'description' => 'Script handler using native PHP.',
             'sandboxed'   => 0
         ],
         [
             'name'        => 'v8js',
-            'class_name'  => 'DreamFactory\\Rave\\Scripting\\Engines\\V8js',
+            'class_name'  => 'DreamFactory\\Core\\Scripting\\Engines\\V8js',
             'label'       => 'V8Js',
             'description' => 'Server-side JavaScript handler using the V8Js engine.',
             'sandboxed'   => 1

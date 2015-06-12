@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,11 +18,11 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Components;
+namespace DreamFactory\Core\Components;
 
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Models\BaseModel;
-use DreamFactory\Rave\SqlDbCore\RelationSchema;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Models\BaseModel;
+use DreamFactory\Core\SqlDbCore\RelationSchema;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 

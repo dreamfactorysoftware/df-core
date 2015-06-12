@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,23 +18,23 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Services;
+namespace DreamFactory\Core\Services;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Components\RestHandler;
-use DreamFactory\Rave\Contracts\ServiceInterface;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Enums\ServiceRequestorTypes;
-use DreamFactory\Rave\Enums\VerbsMask;
-use DreamFactory\Rave\Events\ServicePostProcess;
-use DreamFactory\Rave\Events\ServicePreProcess;
-use DreamFactory\Rave\Utility\ResponseFactory;
-use DreamFactory\Rave\Utility\Session;
+use DreamFactory\Core\Components\RestHandler;
+use DreamFactory\Core\Contracts\ServiceInterface;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Events\ServicePostProcess;
+use DreamFactory\Core\Events\ServicePreProcess;
+use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Utility\Session;
 
 /**
  * Class BaseRestService
  *
- * @package DreamFactory\Rave\Services
+ * @package DreamFactory\Core\Services
  */
 class BaseRestService extends RestHandler implements ServiceInterface
 {

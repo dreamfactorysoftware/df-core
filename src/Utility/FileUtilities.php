@@ -17,9 +17,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Utility;
+namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Rave\Exceptions\NotFoundException;
+use DreamFactory\Core\Exceptions\NotFoundException;
 use Log;
 use DreamFactory\Library\Utility\ArrayUtils;
 

@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm) Common
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) Common <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,10 +17,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Enums;
+namespace DreamFactory\Core\Enums;
 
 use DreamFactory\Library\Utility\Enums\FactoryEnum;
-use DreamFactory\Rave\Exceptions\NotImplementedException;
+use DreamFactory\Core\Exceptions\NotImplementedException;
 
 /**
  * Various Application storage types

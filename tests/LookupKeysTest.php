@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,12 +19,12 @@
  */
 
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Models\Lookup;
+use DreamFactory\Core\Models\Lookup;
 use Illuminate\Support\Arr;
-use DreamFactory\Rave\Utility\Session;
-use DreamFactory\Rave\Models\App;
+use DreamFactory\Core\Utility\Session;
+use DreamFactory\Core\Models\App;
 
-class LookupKeysTest extends \DreamFactory\Rave\Testing\TestCase
+class LookupKeysTest extends \DreamFactory\Core\Testing\TestCase
 {
     protected $sytemLookup = [
         ['name'=>'host', 'value'=>'localhost'],

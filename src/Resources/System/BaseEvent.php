@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,22 +18,22 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources\System;
+namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Models\EventScript as EventScriptModel;
-use DreamFactory\Rave\Models\BaseSystemModel;
-use DreamFactory\Rave\Utility\ResponseFactory;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Models\EventScript as EventScriptModel;
+use DreamFactory\Core\Models\BaseSystemModel;
+use DreamFactory\Core\Utility\ResponseFactory;
 use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Class BaseEvent
  *
- * @package DreamFactory\Rave\Resources
+ * @package DreamFactory\Core\Resources
  */
 abstract class BaseEvent extends BaseSystemResource
 {
@@ -44,7 +44,7 @@ abstract class BaseEvent extends BaseSystemResource
     /**
      * @var BaseSystemModel $modelClass
      */
-    protected $model = 'DreamFactory\Rave\Models\EventScript';
+    protected $model = 'DreamFactory\Core\Models\EventScript';
 
     //*************************************************************************
     //	Methods
@@ -261,7 +261,7 @@ abstract class BaseEvent extends BaseSystemResource
     /**
      * Handles POST action
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */
@@ -297,7 +297,7 @@ abstract class BaseEvent extends BaseSystemResource
     /**
      * Handles PATCH action
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */
@@ -338,7 +338,7 @@ abstract class BaseEvent extends BaseSystemResource
     /**
      * Handles DELETE action
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */

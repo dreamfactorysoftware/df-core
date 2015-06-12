@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,24 +18,24 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources\System;
+namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Resources\BaseRestResource;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Utility\ResponseFactory;
-use DreamFactory\Rave\Models\BaseSystemModel;
-use DreamFactory\Rave\Utility\Session;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Resources\BaseRestResource;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Models\BaseSystemModel;
+use DreamFactory\Core\Utility\Session;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
  * Class BaseSystemResource
  *
- * @package DreamFactory\Rave\Resources
+ * @package DreamFactory\Core\Resources
  */
 class BaseSystemResource extends BaseRestResource
 {
@@ -49,7 +49,7 @@ class BaseSystemResource extends BaseRestResource
     const MAX_RECORDS_RETURNED = 1000;
 
     /**
-     * @var string DreamFactory\Rave\Models\BaseSystemModel Model Class name.
+     * @var string DreamFactory\Core\Models\BaseSystemModel Model Class name.
      */
     protected $model = null;
 
@@ -319,7 +319,7 @@ class BaseSystemResource extends BaseRestResource
     /**
      * Handles POST action
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */
@@ -410,7 +410,7 @@ class BaseSystemResource extends BaseRestResource
     /**
      * Handles PATCH action
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */
@@ -496,7 +496,7 @@ class BaseSystemResource extends BaseRestResource
     /**
      * Handles DELETE action
      *
-     * @return \DreamFactory\Rave\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */
@@ -531,7 +531,7 @@ class BaseSystemResource extends BaseRestResource
     /**
      * Returns associated model with the service/resource.
      *
-     * @return \DreamFactory\Rave\Models\BaseSystemModel
+     * @return \DreamFactory\Core\Models\BaseSystemModel
      * @throws ModelNotFoundException
      */
     protected function getModel()

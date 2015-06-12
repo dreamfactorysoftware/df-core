@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,22 +18,22 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Utility;
+namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\RestException;
-use DreamFactory\Rave\Components\RaveResponse;
-use DreamFactory\Rave\Contracts\HttpStatusCodeInterface;
-use DreamFactory\Rave\Enums\HttpStatusCodes;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Enums\DataFormats;
-use DreamFactory\Rave\Exceptions\RaveException;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Components\DfResponse;
+use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
+use DreamFactory\Core\Enums\HttpStatusCodes;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Exceptions\DfException;
 
 /**
  * Class ResponseFactory
  *
- * @package DreamFactory\Rave\Utility
+ * @package DreamFactory\Core\Utility
  */
 class ResponseFactory
 {
@@ -99,7 +99,7 @@ class ResponseFactory
         $accepts = ArrayUtils::clean( $accepts );
         if ( !empty( $contentType ) && static::acceptedContentType( $accepts, $contentType ) )
         {
-            return RaveResponse::create( $content, $status, [ "Content-Type" => $contentType ] );
+            return DfResponse::create( $content, $status, [ "Content-Type" => $contentType ] );
         }
 
         // we don't have an acceptable content type, see if we can convert the content.
@@ -119,7 +119,7 @@ class ResponseFactory
 
             if ( false !== $reformatted = DataFormatter::reformatData( $content, $format, $acceptFormat ) )
             {
-                return RaveResponse::create( $reformatted, $status, [ "Content-Type" => $acceptType ] );
+                return DfResponse::create( $reformatted, $status, [ "Content-Type" => $acceptType ] );
             }
         }
 
@@ -127,7 +127,7 @@ class ResponseFactory
         {
             $contentType = ( empty($contentType) ) ? DataFormats::toMimeType( $format ) : $contentType;
 
-            return RaveResponse::create( $content, $status, [ "Content-Type" => $contentType ] );
+            return DfResponse::create( $content, $status, [ "Content-Type" => $contentType ] );
         }
 
         throw new BadRequestException( 'Content in response can not be resolved to acceptable content type.' );
@@ -159,7 +159,7 @@ class ResponseFactory
     protected static function makeExceptionContent( \Exception $exception )
     {
         $code = ( $exception->getCode() ) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-        $context = ( $exception instanceof RaveException ) ? $exception->getContext() : null;
+        $context = ( $exception instanceof DfException ) ? $exception->getContext() : null;
         $errorInfo['context'] = $context;
         $errorInfo['message'] = htmlentities( $exception->getMessage() );
         $errorInfo['code'] = $code;

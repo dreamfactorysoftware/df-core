@@ -17,13 +17,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Scripting\Engines;
+namespace DreamFactory\Core\Scripting\Engines;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Contracts\ScriptingEngineInterface;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Exceptions\ServiceUnavailableException;
-use DreamFactory\Rave\Scripting\BaseEngineAdapter;
+use DreamFactory\Core\Contracts\ScriptingEngineInterface;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\ServiceUnavailableException;
+use DreamFactory\Core\Scripting\BaseEngineAdapter;
 use \Log;
 
 /**
@@ -249,7 +249,7 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
     /**
      * @param string $module The name of the module to load
      *
-     * @throws \DreamFactory\Rave\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @return mixed
      */
     public static function loadScriptingModule( $module )
@@ -323,7 +323,7 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      * @param array  $data
      * @param array  $platform
      *
-     * @throws \DreamFactory\Rave\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @return string
      */
     protected function enrobeScript( $script, array &$data = [ ], array $platform = [ ] )

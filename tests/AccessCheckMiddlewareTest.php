@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,15 +18,15 @@
  * limitations under the License.
  */
 
-use DreamFactory\Rave\Models\User;
-use DreamFactory\Rave\Models\App;
+use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Models\App;
 use DreamFactory\Library\Utility\Scalar;
-use DreamFactory\Rave\Utility\ServiceHandler;
+use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Utility\Session;
+use DreamFactory\Core\Utility\Session;
 use Illuminate\Support\Arr;
 
-class AccessCheckMiddlewareTest extends \DreamFactory\Rave\Testing\TestCase
+class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
 {
     public function tearDown()
     {
@@ -78,7 +78,7 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Rave\Testing\TestCase
         $data = $rs->getContent();
         $userId = Arr::get($data, 'id');
 
-        \DreamFactory\Rave\Models\UserAppRole::create(['user_id'=>$userId, 'app_id'=>2, 'role_id'=>1]);
+        \DreamFactory\Core\Models\UserAppRole::create(['user_id'=>$userId, 'app_id'=>2, 'role_id'=>1]);
         $app = App::find(2);
         $apiKey = $app->api_key;
 

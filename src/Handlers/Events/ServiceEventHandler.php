@@ -1,17 +1,17 @@
 <?php
-namespace DreamFactory\Rave\Handlers\Events;
+namespace DreamFactory\Core\Handlers\Events;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Contracts\ServiceRequestInterface;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Models\EventScript;
-use DreamFactory\Rave\Scripting\ScriptEngineManager;
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Models\EventScript;
+use DreamFactory\Core\Scripting\ScriptEngineManager;
 use Illuminate\Contracts\Events\Dispatcher;
-use DreamFactory\Rave\Events\ResourcePreProcess;
-use DreamFactory\Rave\Events\ResourcePostProcess;
-use DreamFactory\Rave\Events\ServicePreProcess;
-use DreamFactory\Rave\Events\ServicePostProcess;
+use DreamFactory\Core\Events\ResourcePreProcess;
+use DreamFactory\Core\Events\ResourcePostProcess;
+use DreamFactory\Core\Events\ServicePreProcess;
+use DreamFactory\Core\Events\ServicePostProcess;
 use \Log;
 
 class ServiceEventHandler
@@ -25,10 +25,10 @@ class ServiceEventHandler
      */
     public function subscribe( $events )
     {
-        $events->listen( 'DreamFactory\Rave\Events\ServicePreProcess', 'DreamFactory\Rave\Handlers\Events\ServiceEventHandler@onServicePreProcess' );
-        $events->listen( 'DreamFactory\Rave\Events\ServicePostProcess', 'DreamFactory\Rave\Handlers\Events\ServiceEventHandler@onServicePostProcess' );
-        $events->listen( 'DreamFactory\Rave\Events\ResourcePreProcess', 'DreamFactory\Rave\Handlers\Events\ServiceEventHandler@onResourcePreProcess' );
-        $events->listen( 'DreamFactory\Rave\Events\ResourcePostProcess', 'DreamFactory\Rave\Handlers\Events\ServiceEventHandler@onResourcePostProcess' );
+        $events->listen( 'DreamFactory\Core\Events\ServicePreProcess', 'DreamFactory\Core\Handlers\Events\ServiceEventHandler@onServicePreProcess' );
+        $events->listen( 'DreamFactory\Core\Events\ServicePostProcess', 'DreamFactory\Core\Handlers\Events\ServiceEventHandler@onServicePostProcess' );
+        $events->listen( 'DreamFactory\Core\Events\ResourcePreProcess', 'DreamFactory\Core\Handlers\Events\ServiceEventHandler@onResourcePreProcess' );
+        $events->listen( 'DreamFactory\Core\Events\ResourcePostProcess', 'DreamFactory\Core\Handlers\Events\ServiceEventHandler@onResourcePostProcess' );
     }
 
     /**
@@ -165,7 +165,7 @@ class ServiceEventHandler
      *
      * @return bool|null
      * @throws InternalServerErrorException
-     * @throws \DreamFactory\Rave\Events\Exceptions\ScriptException
+     * @throws \DreamFactory\Core\Events\Exceptions\ScriptException
      */
     protected function handleEventScript( $name, &$event )
     {

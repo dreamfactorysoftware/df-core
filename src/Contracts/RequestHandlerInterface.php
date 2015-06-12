@@ -17,7 +17,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Contracts;
+namespace DreamFactory\Core\Contracts;
 
 /**
  * Something that can handle requests

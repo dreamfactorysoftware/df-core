@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,21 +18,21 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources;
+namespace DreamFactory\Core\Resources;
 
-use DreamFactory\Rave\Components\RestHandler;
-use DreamFactory\Rave\Contracts\RequestHandlerInterface;
-use DreamFactory\Rave\Contracts\ResourceInterface;
-use DreamFactory\Rave\Enums\ServiceRequestorTypes;
-use DreamFactory\Rave\Events\ResourcePostProcess;
-use DreamFactory\Rave\Events\ResourcePreProcess;
-use DreamFactory\Rave\Services\BaseRestService;
-use DreamFactory\Rave\Utility\Session;
+use DreamFactory\Core\Components\RestHandler;
+use DreamFactory\Core\Contracts\RequestHandlerInterface;
+use DreamFactory\Core\Contracts\ResourceInterface;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Events\ResourcePostProcess;
+use DreamFactory\Core\Events\ResourcePreProcess;
+use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Core\Utility\Session;
 
 /**
  * Class BaseRestResource
  *
- * @package DreamFactory\Rave\Resources
+ * @package DreamFactory\Core\Resources
  */
 class BaseRestResource extends RestHandler implements ResourceInterface
 {

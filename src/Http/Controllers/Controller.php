@@ -1,4 +1,4 @@
-<?php namespace DreamFactory\Rave\Http\Controllers;
+<?php namespace DreamFactory\Core\Http\Controllers;
 
 use Illuminate\Foundation\Bus\DispatchesCommands;
 use Illuminate\Routing\Controller as BaseController;

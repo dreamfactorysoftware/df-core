@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,20 +18,20 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Components;
+namespace DreamFactory\Core\Components;
 
-use DreamFactory\Rave\Contracts\FileSystemInterface;
-use DreamFactory\Rave\Utility\FileUtilities;
+use DreamFactory\Core\Contracts\FileSystemInterface;
+use DreamFactory\Core\Utility\FileUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Exceptions\RaveException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\DfException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 
 /**
  * Class RemoteFileSystem (a copy of dsp's RemoteFileSvc class)
  *
- * @package DreamFactory\Rave\Components
+ * @package DreamFactory\Core\Components
  */
 abstract class RemoteFileSystem implements FileSystemInterface
 {
@@ -50,7 +50,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
     {
         if ( !$this->containerExists( $container ) )
         {
-            $this->createContainer( array( 'name' => $container ) );
+            $this->createContainer( [ 'name' => $container ] );
         }
     }
 
@@ -64,14 +64,14 @@ abstract class RemoteFileSystem implements FileSystemInterface
      */
     public function createContainers( $containers, $check_exist = false )
     {
-        $_out = array();
+        $_out = [];
 
         if ( !empty( $containers ) )
         {
             if ( !isset( $containers[0] ) )
             {
                 // single folder, make into array
-                $containers = array( $containers );
+                $containers = [ $containers ];
             }
             foreach ( $containers as $_key => $_folder )
             {
@@ -83,7 +83,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
                 catch ( \Exception $ex )
                 {
                     // error whole batch here?
-                    $_out[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+                    $_out[$_key]['error'] = [ 'message' => $ex->getMessage(), 'code' => $ex->getCode() ];
                 }
             }
         }
@@ -97,7 +97,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
      * @param array $containers
      * @param bool  $force Force a delete if it is not empty
      *
-     * @throws RaveException
+     * @throws DfException
      * @return array
      */
     public function deleteContainers( $containers, $force = false )
@@ -107,7 +107,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
             if ( !isset( $containers[0] ) )
             {
                 // single folder, make into array
-                $containers = array( $containers );
+                $containers = [ $containers ];
             }
             foreach ( $containers as $_key => $_folder )
             {
@@ -121,13 +121,13 @@ abstract class RemoteFileSystem implements FileSystemInterface
                     }
                     else
                     {
-                        throw new RaveException( 'No name found for container in delete request.' );
+                        throw new DfException( 'No name found for container in delete request.' );
                     }
                 }
                 catch ( \Exception $ex )
                 {
                     // error whole batch here?
-                    $containers[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+                    $containers[$_key]['error'] = [ 'message' => $ex->getMessage(), 'code' => $ex->getCode() ];
                 }
             }
         }
@@ -173,7 +173,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
         {
             $path = FileUtilities::fixFolderPath( $path );
             $_shortName = FileUtilities::getNameFromPath( $path );
-            $_out = array( 'container' => $container, 'name' => $_shortName, 'path' => $container . '/' . $path );
+            $_out = [ 'container' => $container, 'name' => $_shortName, 'path' => $container . '/' . $path ];
             if ( $include_properties )
             {
                 // properties
@@ -186,12 +186,12 @@ abstract class RemoteFileSystem implements FileSystemInterface
         }
         else
         {
-            $_out = array( 'container' => $container, 'name' => $container, 'path' => $container );
+            $_out = [ 'container' => $container, 'name' => $container, 'path' => $container ];
         }
 
         $_delimiter = ( $full_tree ) ? '' : '/';
-        $_files = array();
-        $_folders = array();
+        $_files = [];
+        $_folders = [];
         if ( $this->containerExists( $container ) )
         {
             if ( !empty( $path ) )
@@ -253,7 +253,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
      * @throws BadRequestException
      * @return void
      */
-    public function createFolder( $container, $path, $is_public = true, $properties = array(), $check_exist = true )
+    public function createFolder( $container, $path, $is_public = true, $properties = [], $check_exist = true )
     {
         if ( empty( $path ) )
         {
@@ -350,7 +350,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
      * @throws \Exception
      * @return void
      */
-    public function updateFolderProperties( $container, $path, $properties = array() )
+    public function updateFolderProperties( $container, $path, $properties = [] )
     {
         $path = FileUtilities::fixFolderPath( $path );
         // does this folder exist?
@@ -442,7 +442,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
             catch ( \Exception $ex )
             {
                 // error whole batch here?
-                $folders[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+                $folders[$_key]['error'] = [ 'message' => $ex->getMessage(), 'code' => $ex->getCode() ];
             }
         }
 
@@ -548,7 +548,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
      */
     public function streamFile( $container, $path, $download = false )
     {
-        $_params = ( $download ) ? array( 'disposition' => 'attachment' ) : array();
+        $_params = ( $download ) ? [ 'disposition' => 'attachment' ] : [];
         $this->streamBlob( $container, $path, $_params );
     }
 
@@ -561,7 +561,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
      * @throws \Exception
      * @return void
      */
-    public function updateFileProperties( $container, $path, $properties = array() )
+    public function updateFileProperties( $container, $path, $properties = [] )
     {
         $path = FileUtilities::fixFolderPath( $path );
         // does this file exist?
@@ -745,7 +745,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
             catch ( \Exception $ex )
             {
                 // error whole batch here?
-                $files[$_key]['error'] = array( 'message' => $ex->getMessage(), 'code' => $ex->getCode() );
+                $files[$_key]['error'] = [ 'message' => $ex->getMessage(), 'code' => $ex->getCode() ];
             }
         }
 
@@ -878,14 +878,14 @@ abstract class RemoteFileSystem implements FileSystemInterface
                 $fullPathName = $path . $_name;
                 if ( '/' === substr( $fullPathName, -1 ) )
                 {
-                    $this->createFolder( $container, $fullPathName, true, array(), false );
+                    $this->createFolder( $container, $fullPathName, true, [], false );
                 }
                 else
                 {
                     $parent = FileUtilities::getParentFolder( $fullPathName );
                     if ( !empty( $parent ) )
                     {
-                        $this->createFolder( $container, $parent, true, array(), false );
+                        $this->createFolder( $container, $parent, true, [], false );
                     }
                     $content = $zip->getFromIndex( $i );
                     $this->writeFile( $container, $fullPathName, $content );
@@ -897,7 +897,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
             }
         }
 
-        return array( 'folder' => array( 'name' => rtrim( $path, DIRECTORY_SEPARATOR ), 'path' => $container . '/' . $path ) );
+        return [ 'folder' => [ 'name' => rtrim( $path, DIRECTORY_SEPARATOR ), 'path' => $container . '/' . $path ] ];
     }
 
     /**
@@ -938,7 +938,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
      *
      * @throws \Exception
      */
-    abstract public function putBlobData( $container, $name, $data = null, $properties = array() );
+    abstract public function putBlobData( $container, $name, $data = null, $properties = [] );
 
     /**
      * @param string $container
@@ -948,7 +948,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
      *
      * @throws \Exception
      */
-    abstract public function putBlobFromFile( $container, $name, $localFileName = null, $properties = array() );
+    abstract public function putBlobFromFile( $container, $name, $localFileName = null, $properties = [] );
 
     /**
      * @param string $container
@@ -959,7 +959,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
      *
      * @throws \Exception
      */
-    abstract public function copyBlob( $container, $name, $src_container, $src_name, $properties = array() );
+    abstract public function copyBlob( $container, $name, $src_container, $src_name, $properties = [] );
 
     /**
      * List blobs, all or limited by prefix or delimiter
@@ -1011,7 +1011,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
      *
      * @throws \Exception
      */
-    abstract public function streamBlob( $container, $name, $params = array() );
+    abstract public function streamBlob( $container, $name, $params = [] );
 
     /**
      * @param string $container

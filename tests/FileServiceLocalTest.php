@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,7 +18,7 @@
  * limitations under the License.
  */
 
-class FileServiceLocalTest extends \DreamFactory\Rave\Testing\FileServiceTestCase
+class FileServiceLocalTest extends \DreamFactory\Core\Testing\FileServiceTestCase
 {
     protected static $staged = false;
 
@@ -30,7 +30,7 @@ class FileServiceLocalTest extends \DreamFactory\Rave\Testing\FileServiceTestCas
 
         if(!$this->serviceExists('files'))
         {
-            \DreamFactory\Rave\Models\Service::create(
+            \DreamFactory\Core\Models\Service::create(
                 [
                     "name"        => "files",
                     "label"       => "Local file service",

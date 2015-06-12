@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,12 +18,12 @@
  * limitations under the License.
  */
 
-namespace DreamFactory\Rave\Resources\System;
+namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Library\Utility\Scalar;
-use DreamFactory\Rave\Models\Service;
-use DreamFactory\Rave\Resources\BaseRestResource;
-use DreamFactory\Rave\Utility\Session as SessionUtilities;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Resources\BaseRestResource;
+use DreamFactory\Core\Utility\Session as SessionUtilities;
 
 class Environment extends BaseRestResource
 {

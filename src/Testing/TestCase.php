@@ -1,8 +1,8 @@
 <?php
 /**
- * This file is part of the DreamFactory Rave(tm)
+ * This file is part of the DreamFactory(tm) Core
  *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,16 +17,16 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-namespace DreamFactory\Rave\Testing;
+namespace DreamFactory\Core\Testing;
 
-use DreamFactory\Rave\Enums\DataFormats;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Models\Service;
-use DreamFactory\Rave\Utility\ServiceHandler;
+use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Utility\ServiceHandler;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\TestCase as LaravelTestCase;
 use Artisan;
-use DreamFactory\Rave\Services\BaseRestService;
+use DreamFactory\Core\Services\BaseRestService;
 
 class TestCase extends LaravelTestCase
 {
@@ -176,7 +176,7 @@ class TestCase extends LaravelTestCase
      * @param null  $payload
      * @param array $header
      *
-     * @return \DreamFactory\Rave\Contracts\ServiceResponseInterface
+     * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
      */
     protected function makeRequest( $verb, $resource = null, $query = [ ], $payload = null, $header = [ ] )
     {
@@ -202,9 +202,9 @@ class TestCase extends LaravelTestCase
      * @param TestServiceRequest $request
      * @param null               $resource
      *
-     * @return \DreamFactory\Rave\Contracts\ServiceResponseInterface
+     * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
      * @throws InternalServerErrorException
-     * @throws \DreamFactory\Rave\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
     protected function handleRequest( TestServiceRequest $request, $resource = null )
     {

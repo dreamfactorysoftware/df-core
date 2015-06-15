@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Utility;
 
@@ -53,8 +35,12 @@ class ServiceResponse implements ServiceResponseInterface
      * @param int    $status       HTTP Status code
      * @param string $content_type Content Type of content
      */
-    public function __construct( $content = null, $format = DataFormats::PHP_ARRAY, $status = ServiceResponseInterface::HTTP_OK, $content_type = null )
-    {
+    public function __construct(
+        $content = null,
+        $format = DataFormats::PHP_ARRAY,
+        $status = ServiceResponseInterface::HTTP_OK,
+        $content_type = null
+    ){
         $this->content = $content;
         $this->dataFormat = $format;
         $this->statusCode = $status;
@@ -64,7 +50,7 @@ class ServiceResponse implements ServiceResponseInterface
     /**
      * {@inheritdoc}
      */
-    public function setStatusCode( $code )
+    public function setStatusCode($code)
     {
         $this->statusCode = $code;
 
@@ -82,7 +68,7 @@ class ServiceResponse implements ServiceResponseInterface
     /**
      * {@inheritdoc}
      */
-    public function setContent( $content )
+    public function setContent($content)
     {
         $this->content = $content;
 
@@ -100,7 +86,7 @@ class ServiceResponse implements ServiceResponseInterface
     /**
      * {@inheritdoc}
      */
-    public function setContentType( $type )
+    public function setContentType($type)
     {
         $this->contentType = $type;
 
@@ -118,7 +104,7 @@ class ServiceResponse implements ServiceResponseInterface
     /**
      * {@inheritdoc}
      */
-    public function setContentFormat( $format )
+    public function setContentFormat($format)
     {
         $this->dataFormat = $format;
 
@@ -148,13 +134,12 @@ class ServiceResponse implements ServiceResponseInterface
     /**
      * @param array $data Merge some attributes from an array
      */
-    public function mergeFromArray( array $data )
+    public function mergeFromArray(array $data)
     {
-        $this->setStatusCode( ArrayUtils::get( $data, 'status_code' ) );
-        if ( ArrayUtils::getBool( $data, 'payload_changed' ) )
-        {
-            $this->setContentType( ArrayUtils::get( $data, 'content_type' ) );
-            $this->setContent( ArrayUtils::get( $data, 'content' ) );
+        $this->setStatusCode(ArrayUtils::get($data, 'status_code'));
+        if (ArrayUtils::getBool($data, 'payload_changed')) {
+            $this->setContentType(ArrayUtils::get($data, 'content_type'));
+            $this->setContent(ArrayUtils::get($data, 'content'));
         }
     }
 }

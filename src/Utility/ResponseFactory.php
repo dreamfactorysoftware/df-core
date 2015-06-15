@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Utility;
 
@@ -38,16 +20,20 @@ use DreamFactory\Core\Exceptions\DfException;
 class ResponseFactory
 {
     /**
-     * @param mixed       $content
-     * @param int         $format
-     * @param int         $status
+     * @param mixed $content
+     * @param int $format
+     * @param int $status
      * @param string|null $content_type
      *
      * @return ServiceResponse
      */
-    public static function create( $content, $format = DataFormats::PHP_ARRAY, $status = ServiceResponseInterface::HTTP_OK, $content_type = null )
-    {
-        return new ServiceResponse( $content, $format, $status, $content_type );
+    public static function create(
+        $content,
+        $format = DataFormats::PHP_ARRAY,
+        $status = ServiceResponseInterface::HTTP_OK,
+        $content_type = null
+    ){
+        return new ServiceResponse($content, $format, $status, $content_type);
     }
 
     /**
@@ -57,92 +43,80 @@ class ResponseFactory
      * @return array|mixed|string
      * @throws BadRequestException
      */
-    public static function sendResponse( ServiceResponseInterface $response, $accepts = null )
+    public static function sendResponse(ServiceResponseInterface $response, $accepts = null)
     {
-        if ( empty( $accepts ) )
-        {
-            $accepts = array_map( 'trim', explode( ',', \Request::header( 'ACCEPT' ) ) );
+        if (empty($accepts)) {
+            $accepts = array_map('trim', explode(',', \Request::header('ACCEPT')));
         }
 
         $content = $response->getContent();
         $format = $response->getContentFormat();
 
-        if ( empty( $content ) && is_null( $format ) )
-        {
+        if (empty($content) && is_null($format)) {
             // No content and type specified. (File stream already handled by service)
             return null;
         }
 
         $status = $response->getStatusCode();
         //  In case the status code is not a valid HTTP Status code
-        if ( !in_array( $status, HttpStatusCodes::getDefinedConstants() ) )
-        {
+        if (!in_array($status, HttpStatusCodes::getDefinedConstants())) {
             //  Do necessary translation here. Default is Internal server error.
             $status = HttpStatusCodeInterface::HTTP_INTERNAL_SERVER_ERROR;
         }
 
-        if ( $content instanceof \Exception )
-        {
-            $status = ( $content instanceof RestException ) ? $content->getStatusCode() : ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-            $content = self::makeExceptionContent( $content );
+        if ($content instanceof \Exception) {
+            $status =
+                ($content instanceof RestException) ? $content->getStatusCode()
+                    : ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
+            $content = self::makeExceptionContent($content);
             $format = DataFormats::PHP_ARRAY;
         }
 
         // check if the current content type is acceptable for return
         $contentType = $response->getContentType();
-        if ( empty( $contentType ) )
-        {
-            $contentType = DataFormats::toMimeType( $format, null );
+        if (empty($contentType)) {
+            $contentType = DataFormats::toMimeType($format, null);
         }
 
         // see if we match an accepts type, if so, go with it.
-        $accepts = ArrayUtils::clean( $accepts );
-        if ( !empty( $contentType ) && static::acceptedContentType( $accepts, $contentType ) )
-        {
-            return DfResponse::create( $content, $status, [ "Content-Type" => $contentType ] );
+        $accepts = ArrayUtils::clean($accepts);
+        if (!empty($contentType) && static::acceptedContentType($accepts, $contentType)) {
+            return DfResponse::create($content, $status, ["Content-Type" => $contentType]);
         }
 
         // we don't have an acceptable content type, see if we can convert the content.
         $acceptsAny = false;
-        foreach ( $accepts as $acceptType )
-        {
-            $acceptFormat = DataFormats::fromMimeType( $acceptType, null );
-            $mimeType = ( false !== strpos( $acceptType, ';' ) ) ? trim( strstr( $acceptType, ';', true ) ) : $acceptType;
-            if ( is_null( $acceptFormat ) )
-            {
-                if ( '*/*' === $mimeType )
-                {
+        foreach ($accepts as $acceptType) {
+            $acceptFormat = DataFormats::fromMimeType($acceptType, null);
+            $mimeType = (false !== strpos($acceptType, ';')) ? trim(strstr($acceptType, ';', true)) : $acceptType;
+            if (is_null($acceptFormat)) {
+                if ('*/*' === $mimeType) {
                     $acceptsAny = true;
                 }
                 continue;
             }
 
-            if ( false !== $reformatted = DataFormatter::reformatData( $content, $format, $acceptFormat ) )
-            {
-                return DfResponse::create( $reformatted, $status, [ "Content-Type" => $acceptType ] );
+            if (false !== $reformatted = DataFormatter::reformatData($content, $format, $acceptFormat)) {
+                return DfResponse::create($reformatted, $status, ["Content-Type" => $acceptType]);
             }
         }
 
-        if ( $acceptsAny )
-        {
-            $contentType = ( empty($contentType) ) ? DataFormats::toMimeType( $format ) : $contentType;
+        if ($acceptsAny) {
+            $contentType = (empty($contentType)) ? DataFormats::toMimeType($format) : $contentType;
 
-            return DfResponse::create( $content, $status, [ "Content-Type" => $contentType ] );
+            return DfResponse::create($content, $status, ["Content-Type" => $contentType]);
         }
 
-        throw new BadRequestException( 'Content in response can not be resolved to acceptable content type.' );
+        throw new BadRequestException('Content in response can not be resolved to acceptable content type.');
     }
 
-    protected static function acceptedContentType( array $accepts, $content_type )
+    protected static function acceptedContentType(array $accepts, $content_type)
     {
         // see if we match an accepts type, if so, go with it.
-        if ( !empty( $content_type ) )
-        {
-            foreach ( $accepts as $acceptType )
-            {
-                $mimeType = ( false !== strpos( $acceptType, ';' ) ) ? trim( strstr( $acceptType, ';', true ) ) : $acceptType;
-                if ( ( 0 === strcasecmp( $mimeType, $content_type ) ) || ( '*/*' === $mimeType ) )
-                {
+        if (!empty($content_type)) {
+            foreach ($accepts as $acceptType) {
+                $mimeType = (false !== strpos($acceptType, ';')) ? trim(strstr($acceptType, ';', true)) : $acceptType;
+                if ((0 === strcasecmp($mimeType, $content_type)) || ('*/*' === $mimeType)) {
                     return true;
                 }
             }
@@ -156,23 +130,20 @@ class ResponseFactory
      *
      * @return array
      */
-    protected static function makeExceptionContent( \Exception $exception )
+    protected static function makeExceptionContent(\Exception $exception)
     {
-        $code = ( $exception->getCode() ) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-        $context = ( $exception instanceof DfException ) ? $exception->getContext() : null;
+        $code = ($exception->getCode()) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
+        $context = ($exception instanceof DfException) ? $exception->getContext() : null;
         $errorInfo['context'] = $context;
-        $errorInfo['message'] = htmlentities( $exception->getMessage() );
+        $errorInfo['message'] = htmlentities($exception->getMessage());
         $errorInfo['code'] = $code;
 
-        if ( "local" === env( "APP_ENV" ) )
-        {
+        if ("local" === env("APP_ENV")) {
             $trace = $exception->getTraceAsString();
-            $trace = str_replace( [ "\n", "#", "):" ], [ "", "<br><br>|#", "):<br>|---->" ], $trace );
-            $traceArray = explode( "<br>", $trace );
-            foreach ( $traceArray as $k => $v )
-            {
-                if ( empty( $v ) )
-                {
+            $trace = str_replace(["\n", "#", "):"], ["", "<br><br>|#", "):<br>|---->"], $trace);
+            $traceArray = explode("<br>", $trace);
+            foreach ($traceArray as $k => $v) {
+                if (empty($v)) {
                     $traceArray[$k] = '|';
                 }
             }

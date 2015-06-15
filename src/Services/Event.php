@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory Services Platform(tm) SDK For PHP
- *
- * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -63,41 +45,36 @@ class Event extends BaseRestService
     /**
      * @param array $settings
      */
-    public function __construct( $settings = [ ] )
+    public function __construct($settings = [])
     {
-        parent::__construct( $settings );
+        parent::__construct($settings);
         $this->model = new EventSubscriber();
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function getPayloadData( $key = null, $default = null )
+    protected function getPayloadData($key = null, $default = null)
     {
         $payload = parent::getPayloadData();
 
-        if ( null !== $key && !empty( $payload[$key] ) )
-        {
+        if (null !== $key && !empty($payload[$key])) {
             return $payload[$key];
         }
 
-        if ( !empty( $this->resource ) && !empty( $payload ) )
-        {
+        if (!empty($this->resource) && !empty($payload)) {
             // single records passed in which don't use the record wrapper, so wrap it
-            $payload = [ static::RECORD_WRAPPER => [ $payload ] ];
-        }
-        elseif ( ArrayUtils::isArrayNumeric( $payload ) )
-        {
+            $payload = [static::RECORD_WRAPPER => [$payload]];
+        } elseif (ArrayUtils::isArrayNumeric($payload)) {
             // import from csv, etc doesn't include a wrapper, so wrap it
-            $payload = [ static::RECORD_WRAPPER => $payload ];
+            $payload = [static::RECORD_WRAPPER => $payload];
         }
 
-        if ( empty( $key ) )
-        {
+        if (empty($key)) {
             $key = static::RECORD_WRAPPER;
         }
 
-        return ArrayUtils::get( $payload, $key );
+        return ArrayUtils::get($payload, $key);
     }
 
     /**
@@ -108,19 +85,16 @@ class Event extends BaseRestService
      */
     protected function handleGET()
     {
-        $ids = $this->request->getParameter( 'ids' );
-        $records = $this->getPayloadData( self::RECORD_WRAPPER );
+        $ids = $this->request->getParameter('ids');
+        $records = $this->getPayloadData(self::RECORD_WRAPPER);
 
         $data = null;
 
-        $related = $this->request->getParameter( 'related' );
-        if ( !empty( $related ) )
-        {
-            $related = explode( ',', $related );
-        }
-        else
-        {
-            $related = [ ];
+        $related = $this->request->getParameter('related');
+        if (!empty($related)) {
+            $related = explode(',', $related);
+        } else {
+            $related = [];
         }
 
         /** @var BaseSystemModel $modelClass */
@@ -130,117 +104,92 @@ class Event extends BaseRestService
         $pk = $model->getPrimaryKey();
 
         //	Single resource by ID
-        if ( !empty( $this->resource ) )
-        {
-            $foundModel = $modelClass::with( $related )->find( $this->resource );
-            if ( $foundModel )
-            {
+        if (!empty($this->resource)) {
+            $foundModel = $modelClass::with($related)->find($this->resource);
+            if ($foundModel) {
                 $data = $foundModel->toArray();
             }
-        }
-        else if ( !empty( $ids ) )
-        {
+        } else if (!empty($ids)) {
             /** @var Collection $dataCol */
-            $dataCol = $modelClass::with( $related )->whereIn( $pk, explode( ',', $ids ) )->get();
+            $dataCol = $modelClass::with($related)->whereIn($pk, explode(',', $ids))->get();
             $data = $dataCol->toArray();
-            $data = [ self::RECORD_WRAPPER => $data ];
-        }
-        else if ( !empty( $records ) )
-        {
+            $data = [self::RECORD_WRAPPER => $data];
+        } else if (!empty($records)) {
             $pk = $model->getPrimaryKey();
-            $ids = [ ];
+            $ids = [];
 
-            foreach ( $records as $record )
-            {
-                $ids[] = ArrayUtils::get( $record, $pk );
+            foreach ($records as $record) {
+                $ids[] = ArrayUtils::get($record, $pk);
             }
 
             /** @var Collection $dataCol */
-            $dataCol = $modelClass::with( $related )->whereIn( $pk, $ids )->get();
+            $dataCol = $modelClass::with($related)->whereIn($pk, $ids)->get();
             $data = $dataCol->toArray();
-            $data = [ self::RECORD_WRAPPER => $data ];
-        }
-        else
-        {
+            $data = [self::RECORD_WRAPPER => $data];
+        } else {
             //	Build our criteria
             $criteria = [
-                'params' => [ ],
+                'params' => [],
             ];
 
-            if ( null !== ( $value = $this->request->getParameter( 'fields' ) ) )
-            {
+            if (null !== ($value = $this->request->getParameter('fields'))) {
                 $criteria['select'] = $value;
-            }
-            else
-            {
+            } else {
                 $criteria['select'] = "*";
             }
 
-            if ( null !== ( $value = $this->request->getPayloadData( 'params' ) ) )
-            {
+            if (null !== ($value = $this->request->getPayloadData('params'))) {
                 $criteria['params'] = $value;
             }
 
-            if ( null !== ( $value = $this->request->getParameter( 'filter' ) ) )
-            {
+            if (null !== ($value = $this->request->getParameter('filter'))) {
                 $criteria['condition'] = $value;
 
                 //	Add current user ID into parameter array if in condition, but not specified.
-                if ( false !== stripos( $value, ':user_id' ) )
-                {
-                    if ( !isset( $criteria['params'][':user_id'] ) )
-                    {
+                if (false !== stripos($value, ':user_id')) {
+                    if (!isset($criteria['params'][':user_id'])) {
                         //$criteria['params'][':user_id'] = Session::getCurrentUserId();
                     }
                 }
             }
 
-            $value = intval( $this->request->getParameter( 'limit' ) );
-            $maxAllowed = intval( \Config::get( 'df.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
-            if ( ( $value < 1 ) || ( $value > $maxAllowed ) )
-            {
+            $value = intval($this->request->getParameter('limit'));
+            $maxAllowed = intval(\Config::get('df.db_max_records_returned', self::MAX_RECORDS_RETURNED));
+            if (($value < 1) || ($value > $maxAllowed)) {
                 // impose a limit to protect server
                 $value = $maxAllowed;
             }
             $criteria['limit'] = $value;
 
-            if ( null !== ( $value = $this->request->getParameter( 'offset' ) ) )
-            {
+            if (null !== ($value = $this->request->getParameter('offset'))) {
                 $criteria['offset'] = $value;
             }
 
-            if ( null !== ( $value = $this->request->getParameter( 'order' ) ) )
-            {
+            if (null !== ($value = $this->request->getParameter('order'))) {
                 $criteria['order'] = $value;
             }
 
-            $data = $model->selectByRequest( $criteria, $related );
-            $data = [ static::RECORD_WRAPPER => $data ];
+            $data = $model->selectByRequest($criteria, $related);
+            $data = [static::RECORD_WRAPPER => $data];
         }
 
-        if ( null === $data )
-        {
-            throw new NotFoundException( "Record not found." );
+        if (null === $data) {
+            throw new NotFoundException("Record not found.");
         }
 
-        if ( $this->request->getParameterAsBool( 'include_count' ) === true )
-        {
-            if ( isset( $data['record'] ) )
-            {
-                $data['meta']['count'] = count( $data['record'] );
-            }
-            elseif ( !empty( $data ) )
-            {
+        if ($this->request->getParameterAsBool('include_count') === true) {
+            if (isset($data['record'])) {
+                $data['meta']['count'] = count($data['record']);
+            } elseif (!empty($data)) {
                 $data['meta']['count'] = 1;
             }
         }
 
-        if ( !empty( $data ) && $this->request->getParameterAsBool( 'include_schema' ) === true )
-        {
+        if (!empty($data) && $this->request->getParameterAsBool('include_schema') === true) {
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
 
-        return ResponseFactory::create( $data, $this->nativeFormat );
+        return ResponseFactory::create($data, $this->nativeFormat);
     }
 
     /**
@@ -252,24 +201,22 @@ class Event extends BaseRestService
      */
     protected function handlePOST()
     {
-        if ( !empty( $this->resource ) )
-        {
-            throw new BadRequestException( 'Create record by identifier not currently supported.' );
+        if (!empty($this->resource)) {
+            throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $records = $this->getPayloadData( self::RECORD_WRAPPER );
+        $records = $this->getPayloadData(self::RECORD_WRAPPER);
 
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'No record(s) detected in request.' );
+        if (empty($records)) {
+            throw new BadRequestException('No record(s) detected in request.');
         }
 
-        $this->triggerActionEvent( $this->response );
+        $this->triggerActionEvent($this->response);
 
         $model = $this->getModel();
-        $result = $model::bulkCreate( $records, $this->request->getParameters() );
+        $result = $model::bulkCreate($records, $this->request->getParameters());
 
-        $response = ResponseFactory::create( $result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED );
+        $response = ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
 
         return $response;
     }
@@ -279,7 +226,7 @@ class Event extends BaseRestService
      */
     protected function handlePUT()
     {
-        throw new BadRequestException( 'PUT is not supported on System Resource. Use PATCH' );
+        throw new BadRequestException('PUT is not supported on System Resource. Use PATCH');
     }
 
     /**
@@ -291,28 +238,22 @@ class Event extends BaseRestService
      */
     protected function handlePATCH()
     {
-        $records = $this->getPayloadData( static::RECORD_WRAPPER );
-        $ids = $this->request->getParameter( 'ids' );
+        $records = $this->getPayloadData(static::RECORD_WRAPPER);
+        $ids = $this->request->getParameter('ids');
         $modelClass = $this->getModel();
 
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'No record(s) detected in request.' );
+        if (empty($records)) {
+            throw new BadRequestException('No record(s) detected in request.');
         }
 
-        $this->triggerActionEvent( $this->response );
+        $this->triggerActionEvent($this->response);
 
-        if ( !empty( $this->resource ) )
-        {
-            $result = $modelClass::updateById( $this->resource, $records[0], $this->request->getParameters() );
-        }
-        elseif ( !empty( $ids ) )
-        {
-            $result = $modelClass::updateByIds( $ids, $records[0], $this->request->getParameters() );
-        }
-        else
-        {
-            $result = $modelClass::bulkUpdate( $records, $this->request->getParameters() );
+        if (!empty($this->resource)) {
+            $result = $modelClass::updateById($this->resource, $records[0], $this->request->getParameters());
+        } elseif (!empty($ids)) {
+            $result = $modelClass::updateByIds($ids, $records[0], $this->request->getParameters());
+        } else {
+            $result = $modelClass::bulkUpdate($records, $this->request->getParameters());
         }
 
         return $result;
@@ -327,27 +268,21 @@ class Event extends BaseRestService
      */
     protected function handleDELETE()
     {
-        $this->triggerActionEvent( $this->response );
-        $ids = $this->request->getParameter( 'ids' );
+        $this->triggerActionEvent($this->response);
+        $ids = $this->request->getParameter('ids');
         $modelClass = $this->getModel();
 
-        if ( !empty( $this->resource ) )
-        {
-            $result = $modelClass::deleteById( $this->resource, $this->request->getParameters() );
-        }
-        elseif ( !empty( $ids ) )
-        {
-            $result = $modelClass::deleteByIds( $ids, $this->request->getParameters() );
-        }
-        else
-        {
-            $records = $this->getPayloadData( static::RECORD_WRAPPER );
+        if (!empty($this->resource)) {
+            $result = $modelClass::deleteById($this->resource, $this->request->getParameters());
+        } elseif (!empty($ids)) {
+            $result = $modelClass::deleteByIds($ids, $this->request->getParameters());
+        } else {
+            $records = $this->getPayloadData(static::RECORD_WRAPPER);
 
-            if ( empty( $records ) )
-            {
-                throw new BadRequestException( 'No record(s) detected in request.' );
+            if (empty($records)) {
+                throw new BadRequestException('No record(s) detected in request.');
             }
-            $result = $modelClass::bulkDelete( $records, $this->request->getParameters() );
+            $result = $modelClass::bulkDelete($records, $this->request->getParameters());
         }
 
         return $result;
@@ -361,8 +296,7 @@ class Event extends BaseRestService
      */
     protected function getModel()
     {
-        if ( empty( $this->model ) )
-        {
+        if (empty($this->model)) {
             throw new ModelNotFoundException();
         }
 
@@ -381,8 +315,8 @@ class Event extends BaseRestService
                         'nickname'         => 'getEventSubscribers',
                         'type'             => 'SubscribersResponse',
                         'event_name'       => $this->name . '.subscriber.list',
-                        'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
-                        'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
+                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
+                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [
                             [
                                 'name'          => 'ids',
@@ -495,8 +429,8 @@ class Event extends BaseRestService
                         'nickname'         => 'createEventSubscribers',
                         'type'             => 'SubscribersResponse',
                         'event_name'       => $this->name . '.subscriber.create',
-                        'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
-                        'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
+                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
+                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [
                             [
                                 'name'          => 'body',
@@ -525,7 +459,7 @@ class Event extends BaseRestService
                             [
                                 'name'          => 'X-HTTP-METHOD',
                                 'description'   => 'Override request using POST to tunnel other http request, such as DELETE.',
-                                'enum'          => [ 'GET', 'PUT', 'PATCH', 'DELETE' ],
+                                'enum'          => ['GET', 'PUT', 'PATCH', 'DELETE'],
                                 'allowMultiple' => false,
                                 'type'          => 'string',
                                 'paramType'     => 'header',
@@ -557,8 +491,8 @@ class Event extends BaseRestService
                         'nickname'         => 'updateEventSubscribers',
                         'type'             => 'SubscribersResponse',
                         'event_name'       => $this->name . '.subscriber.update',
-                        'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
-                        'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
+                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
+                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [
                             [
                                 'name'          => 'body',
@@ -869,6 +803,6 @@ class Event extends BaseRestService
             ],
         ];
 
-        return [ 'apis' => $apis, 'models' => $models ];
+        return ['apis' => $apis, 'models' => $models];
     }
 }

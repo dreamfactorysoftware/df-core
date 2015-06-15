@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Services;
 
@@ -37,7 +19,7 @@ abstract class BaseDbService extends BaseRestService
     /**
      * @var array Array of resource defining arrays
      */
-    protected $resources = [ ];
+    protected $resources = [];
 
     //*************************************************************************
     //	Methods
@@ -56,46 +38,42 @@ abstract class BaseDbService extends BaseRestService
     /**
      * {@inheritdoc}
      */
-    public function listResources( $fields = null )
+    public function listResources($fields = null)
     {
-        $refresh = $this->request->getParameterAsBool( 'refresh' );
-        $schema = $this->request->getParameter( 'schema', '' );
+        $refresh = $this->request->getParameterAsBool('refresh');
+        $schema = $this->request->getParameter('schema', '');
 
-        if ( !empty( $fields ) || ( !$this->request->getParameterAsBool( 'as_access_components' ) ) )
-        {
-            return parent::listResources( $fields );
+        if (!empty($fields) || (!$this->request->getParameterAsBool('as_access_components'))) {
+            return parent::listResources($fields);
         }
 
-        $output = [ ];
+        $output = [];
         $access = $this->getPermissions();
-        if ( !empty( $access ) )
-        {
+        if (!empty($access)) {
             $output[] = '';
             $output[] = '*';
         }
-        foreach ( $this->resources as $resourceInfo )
-        {
+        foreach ($this->resources as $resourceInfo) {
             $className = $resourceInfo['class_name'];
 
-            if ( !class_exists( $className ) )
-            {
-                throw new InternalServerErrorException( 'Service configuration class name lookup failed for resource ' . $this->resourcePath );
+            if (!class_exists($className)) {
+                throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
+                    $this->resourcePath);
             }
 
             /** @var BaseDbResource $resource */
-            $resource = $this->instantiateResource( $className, $resourceInfo );
-            $access = $this->getPermissions( $resource->name );
-            if ( !empty( $access ) )
-            {
+            $resource = $this->instantiateResource($className, $resourceInfo);
+            $access = $this->getPermissions($resource->name);
+            if (!empty($access)) {
                 $output[] = $resource->name . '/';
                 $output[] = $resource->name . '/*';
 
-                $results = $resource->listAccessComponents( $schema, $refresh );
-                $output = array_merge( $output, $results );
+                $results = $resource->listAccessComponents($schema, $refresh);
+                $output = array_merge($output, $results);
             }
         }
 
-        return [ 'resource' => $output ];
+        return ['resource' => $output];
     }
 
     /**
@@ -116,7 +94,7 @@ abstract class BaseDbService extends BaseRestService
                         'nickname'         => 'getResourceList',
                         'notes'            => 'List the resource names available in this service.',
                         'type'             => 'ComponentList',
-                        'event_name'       => [ $this->name . '.list' ],
+                        'event_name'       => [$this->name . '.list'],
                         'parameters'       => [
                             [
                                 'name'          => 'as_access_components',
@@ -136,7 +114,7 @@ abstract class BaseDbService extends BaseRestService
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses( [ 400, 401, 500 ] ),
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                     ],
                     [
                         'method'           => 'GET',
@@ -144,7 +122,7 @@ abstract class BaseDbService extends BaseRestService
                         'nickname'         => 'getResources',
                         'notes'            => 'List the resources available on this service. ',
                         'type'             => 'Resources',
-                        'event_name'       => [ $this->name . '.list' ],
+                        'event_name'       => [$this->name . '.list'],
                         'parameters'       => [
                             [
                                 'name'          => 'fields',
@@ -164,13 +142,13 @@ abstract class BaseDbService extends BaseRestService
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses( [ 400, 401, 500 ] ),
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                     ],
                 ],
             ],
         ];
 
-        $base['apis'] = array_merge( $base['apis'], $apis );
+        $base['apis'] = array_merge($base['apis'], $apis);
 
         return $base;
     }

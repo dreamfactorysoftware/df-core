@@ -29,7 +29,7 @@ class ResourcePostProcess extends Event
      * @param array|ServiceResponseInterface $response
      * @param mixed                          $resource
      */
-    public function __construct( $service, $resource_path, $request, &$response, $resource = null )
+    public function __construct($service, $resource_path, $request, &$response, $resource = null)
     {
         $this->service = $service;
         $this->resourcePath = $resource_path;

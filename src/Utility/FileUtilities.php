@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory Services Platform(tm) SDK For PHP
- *
- * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -37,11 +19,10 @@ class FileUtilities
      *
      * @return string
      */
-    public static function fixFolderPath( $path )
+    public static function fixFolderPath($path)
     {
-        if ( !empty( $path ) )
-        {
-            $path = rtrim( $path, '/' ) . '/';
+        if (!empty($path)) {
+            $path = rtrim($path, '/') . '/';
         }
 
         return $path;
@@ -52,18 +33,17 @@ class FileUtilities
      *
      * @return string
      */
-    public static function getParentFolder( $path )
+    public static function getParentFolder($path)
     {
-        $path = rtrim( $path, '/' ); // may be a folder
+        $path = rtrim($path, '/'); // may be a folder
 
-        $marker = strrpos( $path, '/' );
+        $marker = strrpos($path, '/');
 
-        if ( false === $marker )
-        {
+        if (false === $marker) {
             return '';
         }
 
-        return substr( $path, 0, $marker );
+        return substr($path, 0, $marker);
     }
 
     /**
@@ -71,21 +51,19 @@ class FileUtilities
      *
      * @return string
      */
-    public static function getNameFromPath( $path )
+    public static function getNameFromPath($path)
     {
-        $path = rtrim( $path, '/' ); // may be a folder
-        if ( empty( $path ) )
-        {
+        $path = rtrim($path, '/'); // may be a folder
+        if (empty($path)) {
             return '.';
         } // self directory
 
-        $marker = strrpos( $path, '/' );
-        if ( false === $marker )
-        {
+        $marker = strrpos($path, '/');
+        if (false === $marker) {
             return $path;
         }
 
-        return substr( $path, $marker + 1 );
+        return substr($path, $marker + 1);
     }
 
     /**
@@ -93,9 +71,9 @@ class FileUtilities
      *
      * @return string
      */
-    public static function getFileExtension( $path )
+    public static function getFileExtension($path)
     {
-        return pathinfo( $path, PATHINFO_EXTENSION );
+        return pathinfo($path, PATHINFO_EXTENSION);
     }
 
     /**
@@ -103,12 +81,11 @@ class FileUtilities
      *
      * @return bool
      */
-    public static function url_exist( $url )
+    public static function url_exist($url)
     {
-        $_headers = @get_headers( $url );
+        $_headers = @get_headers($url);
 
-        if ( empty( $_headers ) || 'HTTP/1.1 404 Not Found' == $_headers[0] )
-        {
+        if (empty($_headers) || 'HTTP/1.1 404 Not Found' == $_headers[0]) {
             return false;
         }
 
@@ -123,80 +100,66 @@ class FileUtilities
      * @throws \Exception
      * @return string temporary file path
      */
-    public static function importUrlFileToTemp( $url, $name = '' )
+    public static function importUrlFileToTemp($url, $name = '')
     {
-        if ( static::url_exist( $url ) )
-        {
-            $readFrom = @fopen( $url, 'rb' );
-            if ( $readFrom )
-            {
-                $directory = rtrim( sys_get_temp_dir(), DIRECTORY_SEPARATOR ) . DIRECTORY_SEPARATOR;
+        if (static::url_exist($url)) {
+            $readFrom = @fopen($url, 'rb');
+            if ($readFrom) {
+                $directory = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 //				$ext = FileUtilities::getFileExtension( basename( $url ) );
 //              $validTypes = array( 'zip', 'dfpkg' ); // default zip and package extensions
 //              if ( !in_array( $ext, $validTypes ) )
 //				{
 //                  throw new Exception( 'Invalid file type. Currently only URLs to repository zip files are accepted.' );
 //              }
-                if ( empty( $name ) )
-                {
-                    $name = basename( $url );
+                if (empty($name)) {
+                    $name = basename($url);
                 }
                 $newFile = $directory . $name;
-                $writeTo = fopen( $newFile, 'wb' ); // creating new file on local server
-                if ( $writeTo )
-                {
-                    while ( !feof( $readFrom ) )
-                    {
+                $writeTo = fopen($newFile, 'wb'); // creating new file on local server
+                if ($writeTo) {
+                    while (!feof($readFrom)) {
                         // Write the url file to the directory.
                         fwrite(
                             $writeTo,
-                            fread( $readFrom, 1024 * 8 ),
+                            fread($readFrom, 1024 * 8),
                             1024 * 8
                         ); // write the file to the new directory at a rate of 8kb/sec. until we reach the end.
                     }
-                    fclose( $readFrom );
-                    fclose( $writeTo );
+                    fclose($readFrom);
+                    fclose($writeTo);
 
                     return $newFile;
+                } else {
+                    throw new \Exception("Could not establish new file ($directory$name) on local server.");
                 }
-                else
-                {
-                    throw new \Exception( "Could not establish new file ($directory$name) on local server." );
-                }
+            } else {
+                throw new \Exception("Could not read the file: $url");
             }
-            else
-            {
-                throw new \Exception( "Could not read the file: $url" );
-            }
-        }
-        else
-        {
-            throw new NotFoundException( 'Invalid URL entered. File not found.' );
+        } else {
+            throw new NotFoundException('Invalid URL entered. File not found.');
         }
     }
 
-    public static function sendFile( $file, $download = false )
+    public static function sendFile($file, $download = false)
     {
-        if ( is_file( $file ) )
-        {
-            $_ext = FileUtilities::getFileExtension( $file );
-            $_disposition = ( $download ) ? 'attachment' : 'inline';
-            header( 'Last-Modified: ' . gmdate( 'D, d M Y H:i:s \G\M\T', filemtime( $file ) ) );
-            header( 'Content-Type: ' . FileUtilities::determineContentType( $_ext, '', $file ) );
-            header( 'Content-Length:' . filesize( $file ) );
-            header( 'Content-Disposition: ' . $_disposition .'; filename="' . basename($file) . '";' );
-            header( 'Cache-Control: private' ); // use this to open files directly
-            header( 'Expires: 0' );
-            header( 'Pragma: public' );
-            readfile( $file );
-        }
-        else
-        {
-            Log::debug( 'FileUtilities::downloadFile is_file call fail: ' . $file );
+        if (is_file($file)) {
+            $_ext = FileUtilities::getFileExtension($file);
+            $_disposition = ($download) ? 'attachment' : 'inline';
+            header('Last-Modified: ' . gmdate('D, d M Y H:i:s \G\M\T', filemtime($file)));
+            header('Content-Type: ' . FileUtilities::determineContentType($_ext, '', $file));
+            header('Content-Length:' . filesize($file));
+            header('Content-Disposition: ' . $_disposition . '; filename="' . basename($file) . '";');
+            header('Cache-Control: private'); // use this to open files directly
+            header('Expires: 0');
+            header('Pragma: public');
+            readfile($file);
+        } else {
+            Log::debug('FileUtilities::downloadFile is_file call fail: ' . $file);
 
             $_statusHeader = 'HTTP/1.1 404 The specified file ' . $file . ' does not exist.';
-            header( $_statusHeader );
-            header( 'Content-Type: text/html' );
+            header($_statusHeader);
+            header('Content-Type: text/html');
         }
     }
 
@@ -208,7 +171,7 @@ class FileUtilities
      *
      * @return string
      */
-    public static function determineContentType( $ext = '', $content = '', $local_file = '', $default = '' )
+    public static function determineContentType($ext = '', $content = '', $local_file = '', $default = '')
     {
         /**
          * @var array of file extensions to mime types
@@ -1201,47 +1164,37 @@ class FileUtilities
 
         $defaultMime = 'application/octet-stream';
 
-        if ( !empty( $default ) )
-        {
+        if (!empty($default)) {
             $defaultMime = $default;
         }
 
         $mime = '';
 
-        if ( class_exists( 'finfo' ) )
-        {
-            $file_info = new \finfo( FILEINFO_MIME_TYPE );
-            if ( !empty( $content ) )
-            {
-                $mime = $file_info->buffer( $content );
-            }
-            elseif ( !empty( $local_file ) )
-            {
-                $mime = $file_info->file( $local_file );
+        if (class_exists('finfo')) {
+            $file_info = new \finfo(FILEINFO_MIME_TYPE);
+            if (!empty($content)) {
+                $mime = $file_info->buffer($content);
+            } elseif (!empty($local_file)) {
+                $mime = $file_info->file($local_file);
             }
         }
 
-        if ( empty( $mime ) ||
-             ( 0 === strcasecmp( $mime, $defaultMime ) ) ||
-             ( 0 === strcasecmp( 'text/plain', $mime ) ) ||
-             ( 0 === strcasecmp( 'text/x-asm', $mime ) ) ||
-             ( 0 === strcasecmp( 'text/x-c', $mime ) ) ||
-             ( 0 === strcasecmp( 'text/x-c++', $mime ) ) ||
-             ( 0 === strcasecmp( 'text/x-java', $mime ) )
-        )
-        {
+        if (empty($mime) ||
+            (0 === strcasecmp($mime, $defaultMime)) ||
+            (0 === strcasecmp('text/plain', $mime)) ||
+            (0 === strcasecmp('text/x-asm', $mime)) ||
+            (0 === strcasecmp('text/x-c', $mime)) ||
+            (0 === strcasecmp('text/x-c++', $mime)) ||
+            (0 === strcasecmp('text/x-java', $mime))
+        ) {
             // need further guidance on these, as they are sometimes incorrect
-            if ( 0 === strcasecmp( 'dfpkg', $ext ) )
-            {
+            if (0 === strcasecmp('dfpkg', $ext)) {
                 $mime = 'application/zip';
-            }
-            else
-            {
-                $mime = ArrayUtils::get( $_mimeTypes, $ext );
+            } else {
+                $mime = ArrayUtils::get($_mimeTypes, $ext);
             }
         }
-        if ( empty( $mime ) )
-        {
+        if (empty($mime)) {
             return $defaultMime;
         }
 
@@ -1253,10 +1206,10 @@ class FileUtilities
      *
      * @return bool
      */
-    public static function isZipContent( $content_type )
+    public static function isZipContent($content_type)
     {
-        return ( ( 0 == strcasecmp( $content_type, 'application/zip' ) ) ||
-                 ( 0 == strcasecmp( $content_type, 'application/x-zip-compressed' ) ) );
+        return ((0 == strcasecmp($content_type, 'application/zip')) ||
+            (0 == strcasecmp($content_type, 'application/x-zip-compressed')));
     }
 
     /**
@@ -1266,34 +1219,25 @@ class FileUtilities
      *
      * @throws \Exception
      */
-    public static function deleteTree( $dir, $force = false, $delete_self = true )
+    public static function deleteTree($dir, $force = false, $delete_self = true)
     {
-        if ( is_dir( $dir ) )
-        {
-            $files = array_diff( scandir( $dir ), array('.', '..') );
-            if ( !empty( $files ) && !$force )
-            {
-                throw new \Exception( "Directory not empty, can not delete without force option." );
+        if (is_dir($dir)) {
+            $files = array_diff(scandir($dir), array('.', '..'));
+            if (!empty($files) && !$force) {
+                throw new \Exception("Directory not empty, can not delete without force option.");
             }
-            foreach ( $files as $file )
-            {
+            foreach ($files as $file) {
                 $delPath = $dir . DIRECTORY_SEPARATOR . $file;
-                if ( is_dir( $delPath ) )
-                {
-                    static::deleteTree( $delPath, $force, true );
-                }
-                elseif ( is_file( $delPath ) )
-                {
-                    unlink( $delPath );
-                }
-                else
-                {
+                if (is_dir($delPath)) {
+                    static::deleteTree($delPath, $force, true);
+                } elseif (is_file($delPath)) {
+                    unlink($delPath);
+                } else {
                     // bad path?
                 }
             }
-            if ( $delete_self )
-            {
-                rmdir( $dir );
+            if ($delete_self) {
+                rmdir($dir);
             }
         }
     }
@@ -1306,26 +1250,21 @@ class FileUtilities
      *
      * @return void
      */
-    public static function copyTree( $src, $dst, $clean = false, $skip = array('.', '..') )
+    public static function copyTree($src, $dst, $clean = false, $skip = array('.', '..'))
     {
-        if ( file_exists( $dst ) && $clean )
-        {
-            static::deleteTree( $dst );
+        if (file_exists($dst) && $clean) {
+            static::deleteTree($dst);
         }
-        if ( is_dir( $src ) )
-        {
-            @mkdir( $dst );
-            $files = array_diff( scandir( $src ), $skip );
-            foreach ( $files as $file )
-            {
-                $_srcFile = static::fixFolderPath( $src ) . $file;
-                $_dstFile = static::fixFolderPath( $dst ) . $file;
-                static::copyTree( $_srcFile, $_dstFile, $clean, $skip );
+        if (is_dir($src)) {
+            @mkdir($dst);
+            $files = array_diff(scandir($src), $skip);
+            foreach ($files as $file) {
+                $_srcFile = static::fixFolderPath($src) . $file;
+                $_dstFile = static::fixFolderPath($dst) . $file;
+                static::copyTree($_srcFile, $_dstFile, $clean, $skip);
             }
-        }
-        else if ( file_exists( $src ) )
-        {
-            copy( $src, $dst );
+        } else if (file_exists($src)) {
+            copy($src, $dst);
         }
     }
 
@@ -1337,39 +1276,30 @@ class FileUtilities
      *
      * @throws \Exception
      */
-    public static function addTreeToZip( $zip, $root, $path = '', $skip = array('.', '..') )
+    public static function addTreeToZip($zip, $root, $path = '', $skip = array('.', '..'))
     {
         $dirPath = $root;
-        if ( !empty( $path ) )
-        {
+        if (!empty($path)) {
             $dirPath .= $path . DIRECTORY_SEPARATOR;
         }
-        if ( is_dir( $dirPath ) )
-        {
-            $files = array_diff( scandir( $dirPath ), $skip );
-            if ( empty( $files ) )
-            {
-                $newPath = str_replace( DIRECTORY_SEPARATOR, '/', $path );
-                if ( !$zip->addEmptyDir( $newPath ) )
-                {
-                    throw new \Exception( "Can not include folder '$newPath' in zip file." );
+        if (is_dir($dirPath)) {
+            $files = array_diff(scandir($dirPath), $skip);
+            if (empty($files)) {
+                $newPath = str_replace(DIRECTORY_SEPARATOR, '/', $path);
+                if (!$zip->addEmptyDir($newPath)) {
+                    throw new \Exception("Can not include folder '$newPath' in zip file.");
                 }
 
                 return;
             }
-            foreach ( $files as $file )
-            {
-                $newPath = ( empty( $path ) ? $file : $path . DIRECTORY_SEPARATOR . $file );
-                if ( is_dir( $dirPath . $file ) )
-                {
-                    static::addTreeToZip( $zip, $root, $newPath, $skip );
-                }
-                else if ( file_exists( $dirPath . $file ) )
-                {
-                    $newPath = str_replace( DIRECTORY_SEPARATOR, '/', $newPath );
-                    if ( !$zip->addFile( $dirPath . $file, $newPath ) )
-                    {
-                        throw new \Exception( "Can not include file '$newPath' in zip file." );
+            foreach ($files as $file) {
+                $newPath = (empty($path) ? $file : $path . DIRECTORY_SEPARATOR . $file);
+                if (is_dir($dirPath . $file)) {
+                    static::addTreeToZip($zip, $root, $newPath, $skip);
+                } else if (file_exists($dirPath . $file)) {
+                    $newPath = str_replace(DIRECTORY_SEPARATOR, '/', $newPath);
+                    if (!$zip->addFile($dirPath . $file, $newPath)) {
+                        throw new \Exception("Can not include file '$newPath' in zip file.");
                     }
                 }
             }
@@ -1381,20 +1311,15 @@ class FileUtilities
      *
      * @return array
      */
-    public static function rearrangePostedFiles( $arr )
+    public static function rearrangePostedFiles($arr)
     {
         $new = array();
-        foreach ( $arr as $key => $all )
-        {
-            if ( is_array( $all ) )
-            {
-                foreach ( $all as $i => $val )
-                {
+        foreach ($arr as $key => $all) {
+            if (is_array($all)) {
+                foreach ($all as $i => $val) {
                     $new[$i][$key] = $val;
                 }
-            }
-            else
-            {
+            } else {
                 $new[0][$key] = $all;
             }
         }

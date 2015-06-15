@@ -1,23 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the 'License');
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an 'AS IS' BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
@@ -37,31 +18,39 @@ use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
  * @property integer $native_format_id
  * @property string  $created_date
  * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|Service whereId( $value )
- * @method static \Illuminate\Database\Query\Builder|Service whereName( $value )
- * @method static \Illuminate\Database\Query\Builder|Service whereLabel( $value )
- * @method static \Illuminate\Database\Query\Builder|Service whereIsActive( $value )
- * @method static \Illuminate\Database\Query\Builder|Service whereType( $value )
- * @method static \Illuminate\Database\Query\Builder|Service whereNativeFormatId( $value )
- * @method static \Illuminate\Database\Query\Builder|Service whereCreatedDate( $value )
- * @method static \Illuminate\Database\Query\Builder|Service whereLastModifiedDate( $value )
+ * @method static \Illuminate\Database\Query\Builder|Service whereId($value)
+ * @method static \Illuminate\Database\Query\Builder|Service whereName($value)
+ * @method static \Illuminate\Database\Query\Builder|Service whereLabel($value)
+ * @method static \Illuminate\Database\Query\Builder|Service whereIsActive($value)
+ * @method static \Illuminate\Database\Query\Builder|Service whereType($value)
+ * @method static \Illuminate\Database\Query\Builder|Service whereNativeFormatId($value)
+ * @method static \Illuminate\Database\Query\Builder|Service whereCreatedDate($value)
+ * @method static \Illuminate\Database\Query\Builder|Service whereLastModifiedDate($value)
  */
 class Service extends BaseSystemModel
 {
     protected $table = 'service';
 
-    protected $fillable = [ 'name', 'label', 'description', 'is_active', 'type', 'config' ];
+    protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config'];
 
-    protected $guarded = [ 'id', 'mutable', 'deletable', 'created_date', 'last_modified_date', 'created_by_id', 'last_modified_by_id' ];
+    protected $guarded = [
+        'id',
+        'mutable',
+        'deletable',
+        'created_date',
+        'last_modified_date',
+        'created_by_id',
+        'last_modified_by_id'
+    ];
 
-    protected $appends = [ 'config' ];
+    protected $appends = ['config'];
 
-    protected $casts = [ 'is_active' => 'boolean', 'mutable' => 'boolean', 'deletable' => 'boolean' ];
+    protected $casts = ['is_active' => 'boolean', 'mutable' => 'boolean', 'deletable' => 'boolean'];
 
     /**
      * @var array Extra config to pass to any config handler
      */
-    protected $config = [ ];
+    protected $config = [];
 
     public function disableRelated()
     {
@@ -73,16 +62,13 @@ class Service extends BaseSystemModel
         parent::boot();
 
         static::created(
-            function ( Service $service )
-            {
-                if ( !empty( $service->config ) )
-                {
+            function (Service $service){
+                if (!empty($service->config)) {
                     // take the type information and get the config_handler class
                     // set the config giving the service id and new config
                     $serviceCfg = $service->getConfigHandler();
-                    if ( !empty( $serviceCfg ) )
-                    {
-                        return $serviceCfg::setConfig( $service->getKey(), $service->config );
+                    if (!empty($serviceCfg)) {
+                        return $serviceCfg::setConfig($service->getKey(), $service->config);
                     }
                 }
 
@@ -91,14 +77,12 @@ class Service extends BaseSystemModel
         );
 
         static::deleted(
-            function ( Service $service )
-            {
+            function (Service $service){
                 // take the type information and get the config_handler class
                 // set the config giving the service id and new config
                 $serviceCfg = $service->getConfigHandler();
-                if ( !empty( $serviceCfg ) )
-                {
-                    return $serviceCfg::removeConfig( $service->getKey() );
+                if (!empty($serviceCfg)) {
+                    return $serviceCfg::removeConfig($service->getKey());
                 }
 
                 return true;
@@ -111,7 +95,7 @@ class Service extends BaseSystemModel
      */
     public function serviceType()
     {
-        return $this->belongsTo( 'DreamFactory\Core\Models\ServiceType', 'type', 'name' );
+        return $this->belongsTo('DreamFactory\Core\Models\ServiceType', 'type', 'name');
     }
 
     /**
@@ -119,7 +103,7 @@ class Service extends BaseSystemModel
      */
     public function serviceDocs()
     {
-        return $this->hasMany( 'DreamFactory\Core\Models\ServiceDoc', 'service_id', 'id' );
+        return $this->hasMany('DreamFactory\Core\Models\ServiceDoc', 'service_id', 'id');
     }
 
     /**
@@ -127,19 +111,19 @@ class Service extends BaseSystemModel
      *
      * @return null
      */
-    public static function getTypeByName( $name )
+    public static function getTypeByName($name)
     {
-        $_typeRec = static::whereName( $name )->get( [ 'type' ] )->first();
+        $_typeRec = static::whereName($name)->get(['type'])->first();
 
-        return ( isset( $_typeRec, $_typeRec['type'] ) ) ? $_typeRec['type'] : null;
+        return (isset($_typeRec, $_typeRec['type'])) ? $_typeRec['type'] : null;
     }
 
     /**
      * @return array
      */
-    public static function available( $include_properties = false )
+    public static function available($include_properties = false)
     {
-        return static::lists( 'name' );
+        return static::lists('name');
     }
 
     /**
@@ -149,8 +133,7 @@ class Service extends BaseSystemModel
      */
     protected function getConfigHandler()
     {
-        if ( null !== $typeInfo = $this->serviceType()->first() )
-        {
+        if (null !== $typeInfo = $this->serviceType()->first()) {
             // lookup related service type config model
             return $typeInfo->config_handler;
         }
@@ -166,9 +149,8 @@ class Service extends BaseSystemModel
         // take the type information and get the config_handler class
         // set the config giving the service id and new config
         $serviceCfg = $this->getConfigHandler();
-        if ( !empty( $serviceCfg ) )
-        {
-            return $serviceCfg::getConfig( $this->getKey() );
+        if (!empty($serviceCfg)) {
+            return $serviceCfg::getConfig($this->getKey());
         }
 
         return $this->config;
@@ -177,24 +159,19 @@ class Service extends BaseSystemModel
     /**
      * @param array $val
      */
-    public function setConfigAttribute( Array $val )
+    public function setConfigAttribute(Array $val)
     {
         $this->config = $val;
         // take the type information and get the config_handler class
         // set the config giving the service id and new config
         $serviceCfg = $this->getConfigHandler();
-        if ( !empty( $serviceCfg ) )
-        {
-            if ( $this->exists )
-            {
-                if ( $serviceCfg::validateConfig( $this->config ) )
-                {
-                    $serviceCfg::setConfig( $this->getKey(), $this->config );
+        if (!empty($serviceCfg)) {
+            if ($this->exists) {
+                if ($serviceCfg::validateConfig($this->config)) {
+                    $serviceCfg::setConfig($this->getKey(), $this->config);
                 }
-            }
-            else
-            {
-                $serviceCfg::validateConfig( $this->config );
+            } else {
+                $serviceCfg::validateConfig($this->config);
             }
         }
     }

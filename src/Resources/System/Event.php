@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Resources\System;
 
@@ -80,7 +62,7 @@ class Event extends BaseRestResource
                         'summary'    => 'getEventResources() - Retrieve event resources.',
                         'nickname'   => 'getEventResources',
                         'type'       => 'ComponentList',
-                        'event_name' => [ ],
+                        'event_name' => [],
                         'notes'      => 'The retrieved information describes the resources available for this service.',
                     ],
                 ],
@@ -88,37 +70,33 @@ class Event extends BaseRestResource
             ]
         ];
 
-        $models = [ ];
-        foreach ( $this->resources as $resourceInfo )
-        {
+        $models = [];
+        foreach ($this->resources as $resourceInfo) {
             $className = $resourceInfo['class_name'];
 
-            if ( !class_exists( $className ) )
-            {
-                throw new InternalServerErrorException( 'Service configuration class name lookup failed for resource ' . $this->resourcePath );
+            if (!class_exists($className)) {
+                throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
+                    $this->resourcePath);
             }
 
             /** @var BaseRestResource $resource */
-            $resource = $this->instantiateResource( $className, $resourceInfo );
+            $resource = $this->instantiateResource($className, $resourceInfo);
 
             $name = $className::RESOURCE_NAME . '/';
-            $_access = $this->getPermissions( $name );
-            if ( !empty( $_access ) )
-            {
+            $_access = $this->getPermissions($name);
+            if (!empty($_access)) {
                 $results = $resource->getApiDocInfo();
-                if ( isset( $results, $results['apis'] ) )
-                {
-                    $apis = array_merge( $apis, $results['apis'] );
+                if (isset($results, $results['apis'])) {
+                    $apis = array_merge($apis, $results['apis']);
                 }
-                if ( isset( $results, $results['models'] ) )
-                {
-                    $models = array_merge( $models, $results['models'] );
+                if (isset($results, $results['models'])) {
+                    $models = array_merge($models, $results['models']);
                 }
             }
         }
 
-        $base['apis'] = array_merge( $base['apis'], $apis );
-        $base['models'] = array_merge( $base['models'], $models );
+        $base['apis'] = array_merge($base['apis'], $apis);
+        $base['models'] = array_merge($base['models'], $models);
 
         return $base;
     }

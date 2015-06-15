@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory Services Platform(tm) SDK For PHP
- *
- * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <developer-support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Components\ApiDocManager;
@@ -67,17 +49,15 @@ class Swagger extends BaseRestService implements CachedInterface
         // lock down access to valid apps only, can't check session permissions
         // here due to sdk access
 //        Session::checkAppPermission( null, false );
-        if ( $this->request->getParameterAsBool( 'refresh' ) )
-        {
+        if ($this->request->getParameterAsBool('refresh')) {
             $this->flush();
         }
 
-        if ( empty( $this->resource ) )
-        {
+        if (empty($this->resource)) {
             return $this->getSwagger();
         }
 
-        return $this->getSwaggerForService( $this->resource );
+        return $this->getSwaggerForService($this->resource);
     }
 
     /**
@@ -90,27 +70,25 @@ class Swagger extends BaseRestService implements CachedInterface
     public function getSwagger()
     {
         $roleId = Session::getRoleId();
-        if ( null === ( $content = CacheUtilities::getByRoleId( $roleId, static::SWAGGER_CACHE_FILE ) ) )
-        {
-            \Log::info( 'Building Swagger cache' );
+        if (null === ($content = CacheUtilities::getByRoleId($roleId, static::SWAGGER_CACHE_FILE))) {
+            \Log::info('Building Swagger cache');
 
             //  Build services from database
             //  Pull any custom swagger docs
-            $result = Service::all( [ 'name', 'description' ] );
+            $result = Service::all(['name', 'description']);
 
             // gather the services
-            $services = [ ];
+            $services = [];
 
             //	Spin through services and pull the configs
-            foreach ( $result as $service )
-            {
+            foreach ($result as $service) {
                 // build main services list
                 $services[] = [
                     'path'        => '/' . $service->name,
                     'description' => $service->description
                 ];
 
-                unset( $service );
+                unset($service);
             }
 
             // cache main api listing file
@@ -119,8 +97,8 @@ HTML;
 
             $resourceListing = [
                 'swaggerVersion' => static::SWAGGER_VERSION,
-                'apiVersion'     => \Config::get( 'df.api_version', static::API_VERSION ),
-                'authorizations' => [ 'apiKey' => [ 'type' => 'apiKey', 'passAs' => 'header' ] ],
+                'apiVersion'     => \Config::get('df.api_version', static::API_VERSION),
+                'authorizations' => ['apiKey' => ['type' => 'apiKey', 'passAs' => 'header']],
                 'info'           => [
                     'title'       => 'DreamFactory Live API Documentation',
                     'description' => $description,
@@ -132,22 +110,23 @@ HTML;
                 /**
                  * The events thrown that are relevant to Swagger
                  */
-                'events'         => [ ],
+                'events'         => [],
             ];
 
-            $content = array_merge( $resourceListing, [ 'apis' => $services ] );
-            $content = json_encode( $content, JSON_UNESCAPED_SLASHES );
+            $content = array_merge($resourceListing, ['apis' => $services]);
+            $content = json_encode($content, JSON_UNESCAPED_SLASHES);
 
-            if ( false === CacheUtilities::putByRoleId( $roleId, static::SWAGGER_CACHE_FILE, $content, static::SWAGGER_CACHE_TTL ) )
-            {
-                \Log::error( '  * System error creating swagger cache file: ' . static::SWAGGER_CACHE_FILE );
+            if (false ===
+                CacheUtilities::putByRoleId($roleId, static::SWAGGER_CACHE_FILE, $content, static::SWAGGER_CACHE_TTL)
+            ) {
+                \Log::error('  * System error creating swagger cache file: ' . static::SWAGGER_CACHE_FILE);
             }
 
             // Add to this services keys for clearing later.
-            $key = CacheUtilities::makeKeyFromTypeAndId( 'role', $roleId, static::SWAGGER_CACHE_FILE );
-            CacheUtilities::addKeysByTypeAndId( 'service', $this->id, $key );
+            $key = CacheUtilities::makeKeyFromTypeAndId('role', $roleId, static::SWAGGER_CACHE_FILE);
+            CacheUtilities::addKeysByTypeAndId('service', $this->id, $key);
 
-            \Log::info( 'Swagger cache build process complete' );
+            \Log::info('Swagger cache build process complete');
         }
 
         return $content;
@@ -161,46 +140,44 @@ HTML;
      * @return string
      * @throws NotFoundException
      */
-    public function getSwaggerForService( $name )
+    public function getSwaggerForService($name)
     {
         $_cachePath = $name . '.json';
 
-        if ( null === $_content = CacheUtilities::getByServiceId( $this->id, $_cachePath ) )
-        {
-            $service = Service::whereName( $name )->get()->first();
-            if ( empty( $service ) )
-            {
-                throw new NotFoundException( "Could not find a service for '$name''" );
+        if (null === $_content = CacheUtilities::getByServiceId($this->id, $_cachePath)) {
+            $service = Service::whereName($name)->get()->first();
+            if (empty($service)) {
+                throw new NotFoundException("Could not find a service for '$name''");
             }
 
-            $_content = ApiDocManager::getStoredContentForService( $service );
+            $_content = ApiDocManager::getStoredContentForService($service);
 
-            if ( empty( $_content ) )
-            {
-                throw new NotFoundException( "No Swagger content found for service '$name'" );
+            if (empty($_content)) {
+                throw new NotFoundException("No Swagger content found for service '$name'");
             }
 
             $_baseSwagger = [
                 'swaggerVersion' => static::SWAGGER_VERSION,
-                'apiVersion'     => \Config::get( 'df.api_version', static::API_VERSION ),
-                'basePath'       => url( '/api/v2' ),
+                'apiVersion'     => \Config::get('df.api_version', static::API_VERSION),
+                'basePath'       => url('/api/v2'),
             ];
 
-            $_content = array_merge( $_baseSwagger, $_content );
-            $_content = json_encode( $_content, JSON_UNESCAPED_SLASHES );
+            $_content = array_merge($_baseSwagger, $_content);
+            $_content = json_encode($_content, JSON_UNESCAPED_SLASHES);
 
             // replace service type placeholder with api name for this service instance
-            $_content = str_replace( '{api_name}', $name, $_content );
+            $_content = str_replace('{api_name}', $name, $_content);
 
             // cache it for later access
-            if ( false === CacheUtilities::putByServiceId( $this->id, $_cachePath, $_content, static::SWAGGER_CACHE_TTL ) )
-            {
-                \Log::error( "  * System error creating swagger cache file: $name.json" );
+            if (false ===
+                CacheUtilities::putByServiceId($this->id, $_cachePath, $_content, static::SWAGGER_CACHE_TTL)
+            ) {
+                \Log::error("  * System error creating swagger cache file: $name.json");
             }
 
             // Add to this the queried service's keys for clearing later.
-            $key = CacheUtilities::makeKeyFromTypeAndId( 'service', $this->id, $_cachePath );
-            CacheUtilities::addKeysByTypeAndId( 'service', $service->id, $key );
+            $key = CacheUtilities::makeKeyFromTypeAndId('service', $this->id, $_cachePath);
+            CacheUtilities::addKeysByTypeAndId('service', $service->id, $key);
         }
 
         return $_content;
@@ -211,7 +188,7 @@ HTML;
      */
     public function flush()
     {
-        CacheUtilities::forgetAllByTypeAndId( 'service', $this->id );
+        CacheUtilities::forgetAllByTypeAndId('service', $this->id);
 
         ApiDocManager::clearCache();
     }
@@ -230,8 +207,8 @@ HTML;
                         'nickname'         => 'getApiDocs',
                         'type'             => 'ApiDocsResponse',
                         'event_name'       => $eventPath . '.list',
-                        'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
-                        'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
+                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
+                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [
                             [
                                 'name'          => 'file',
@@ -377,6 +354,6 @@ HTML;
             ],
         ];
 
-        return [ 'apis' => $apis, 'models' => $models ];
+        return ['apis' => $apis, 'models' => $models];
     }
 }

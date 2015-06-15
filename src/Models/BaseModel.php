@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Models;
 
@@ -65,14 +47,14 @@ class BaseModel extends Model
      *
      * @var array
      */
-    protected $references = [ ];
+    protected $references = [];
 
     /**
      * Lists the config params (fields) that need to be encrypted
      *
      * @var array
      */
-    protected $encrypted = [ ];
+    protected $encrypted = [];
 
     /**
      * An array map of table names and their models
@@ -84,7 +66,7 @@ class BaseModel extends Model
      *
      * @var array
      */
-    protected static $tableToModelMap = [ ];
+    protected static $tableToModelMap = [];
 
     /**
      * Save a new model and return the instance.
@@ -94,62 +76,52 @@ class BaseModel extends Model
      * @return BaseModel
      * @throws \Exception
      */
-    public static function create( array $attributes )
+    public static function create(array $attributes)
     {
         $m = new static;
-        $relations = [ ];
+        $relations = [];
         $transaction = false;
 
-        foreach ( $attributes as $key => $value )
-        {
-            if ( $m->isRelationMapped( $key ) )
-            {
+        foreach ($attributes as $key => $value) {
+            if ($m->isRelationMapped($key)) {
                 $relations[$key] = $value;
-                unset( $attributes[$key] );
+                unset($attributes[$key]);
             }
         }
 
-        if ( count( $relations ) > 0 )
-        {
+        if (count($relations) > 0) {
             DB::beginTransaction();
             $transaction = true;
         }
 
-        try
-        {
+        try {
             /** @var BaseModel $model */
-            $model = parent::create( $attributes );
+            $model = parent::create($attributes);
 
-            foreach ( $relations as $name => $value )
-            {
-                $relatedModel = $model->getReferencingModel( $name );
-                $newModels = [ ];
+            foreach ($relations as $name => $value) {
+                $relatedModel = $model->getReferencingModel($name);
+                $newModels = [];
 
-                if ( !is_array( $value ) )
-                {
-                    throw new BadRequestException( 'Bad data supplied for ' . $name . '. Related data must be supplied as array.' );
+                if (!is_array($value)) {
+                    throw new BadRequestException('Bad data supplied for ' .
+                        $name .
+                        '. Related data must be supplied as array.');
                 }
 
-                foreach ( $value as $record )
-                {
-                    $newModels[] = new $relatedModel( $record );
+                foreach ($value as $record) {
+                    $newModels[] = new $relatedModel($record);
                 }
 
-                if ( RelationSchema::HAS_MANY === $model->getReferencingType( $name ) )
-                {
-                    $model->getHasManyByRelationName( $name )->saveMany( $newModels );
+                if (RelationSchema::HAS_MANY === $model->getReferencingType($name)) {
+                    $model->getHasManyByRelationName($name)->saveMany($newModels);
                 }
             }
 
-            if ( $transaction )
-            {
+            if ($transaction) {
                 DB::commit();
             }
-        }
-        catch ( \Exception $e )
-        {
-            if ( $transaction )
-            {
+        } catch (\Exception $e) {
+            if ($transaction) {
                 DB::rollBack();
             }
 
@@ -167,44 +139,35 @@ class BaseModel extends Model
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkCreate( $records, $params = [ ] )
+    public static function bulkCreate($records, $params = [])
     {
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'There are no record sets in the request.' );
+        if (empty($records)) {
+            throw new BadRequestException('There are no record sets in the request.');
         }
 
-        $singleRow = ( 1 === count( $records ) ) ? true : false;
-        $response = [ ];
+        $singleRow = (1 === count($records)) ? true : false;
+        $response = [];
         $transaction = false;
-        $errors = [ ];
-        $rollback = ArrayUtils::getBool( $params, 'rollback' );
-        $continue = ArrayUtils::getBool( $params, 'continue' );
+        $errors = [];
+        $rollback = ArrayUtils::getBool($params, 'rollback');
+        $continue = ArrayUtils::getBool($params, 'continue');
 
-        try
-        {
+        try {
             //	Start a transaction
-            if ( !$singleRow && $rollback )
-            {
+            if (!$singleRow && $rollback) {
                 DB::beginTransaction();
                 $transaction = true;
             }
 
-            foreach ( $records as $key => $record )
-            {
-                try
-                {
-                    $response[$key] = static::createInternal( $record, $params );
-                }
-                catch ( \Exception $ex )
-                {
-                    if ( $singleRow )
-                    {
+            foreach ($records as $key => $record) {
+                try {
+                    $response[$key] = static::createInternal($record, $params);
+                } catch (\Exception $ex) {
+                    if ($singleRow) {
                         throw $ex;
                     }
 
-                    if ( $rollback && $transaction )
-                    {
+                    if ($rollback && $transaction) {
                         DB::rollBack();
                         throw $ex;
                     }
@@ -212,38 +175,31 @@ class BaseModel extends Model
                     // track the index of the error and copy error to results
                     $errors[] = $key;
                     $response[$key] = $ex->getMessage();
-                    if ( !$continue )
-                    {
+                    if (!$continue) {
                         break;
                     }
                 }
             }
-        }
-        catch ( \Exception $ex )
-        {
+        } catch (\Exception $ex) {
             throw $ex;
         }
 
-        if ( !empty( $errors ) )
-        {
-            $msg = [ 'errors' => $errors, 'record' => $response ];
-            throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
+        if (!empty($errors)) {
+            $msg = ['errors' => $errors, 'record' => $response];
+            throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
+                $msg);
         }
 
         //	Commit
-        if ( $transaction )
-        {
-            try
-            {
+        if ($transaction) {
+            try {
                 DB::commit();
-            }
-            catch ( \Exception $ex )
-            {
+            } catch (\Exception $ex) {
                 throw $ex;
             }
         }
 
-        return $singleRow ? current( $response ) : [ 'record' => $response ];
+        return $singleRow ? current($response) : ['record' => $response];
     }
 
     /**
@@ -252,18 +208,15 @@ class BaseModel extends Model
      *
      * @return array
      */
-    protected static function createInternal( $record, $params = [ ] )
+    protected static function createInternal($record, $params = [])
     {
-        try
-        {
-            $model = static::create( $record );
-        }
-        catch ( \PDOException $e )
-        {
+        try {
+            $model = static::create($record);
+        } catch (\PDOException $e) {
             throw $e;
         }
 
-        return static::buildResult( $model, $params );
+        return static::buildResult($model, $params);
     }
 
     /**
@@ -274,53 +227,42 @@ class BaseModel extends Model
      * @return bool|int
      * @throws \Exception
      */
-    public function update( array $attributes = [ ] )
+    public function update(array $attributes = [])
     {
-        $relations = [ ];
+        $relations = [];
         $transaction = false;
 
-        foreach ( $attributes as $key => $value )
-        {
-            if ( $this->isRelationMapped( $key ) )
-            {
+        foreach ($attributes as $key => $value) {
+            if ($this->isRelationMapped($key)) {
                 $relations[$key] = $value;
-                unset( $attributes[$key] );
+                unset($attributes[$key]);
             }
         }
 
-        if ( count( $relations ) > 0 )
-        {
+        if (count($relations) > 0) {
             DB::beginTransaction();
             $transaction = true;
         }
 
-        try
-        {
-            $updated = parent::update( $attributes );
+        try {
+            $updated = parent::update($attributes);
 
-            if ( $updated && $this->exists && count( $relations ) > 0 )
-            {
-                foreach ( $relations as $name => $value )
-                {
-                    $relatedModel = $this->getReferencingModel( $name );
+            if ($updated && $this->exists && count($relations) > 0) {
+                foreach ($relations as $name => $value) {
+                    $relatedModel = $this->getReferencingModel($name);
 
-                    if ( RelationSchema::HAS_MANY === $this->getReferencingType( $name ) )
-                    {
-                        $hasMany = $this->getHasManyByRelationName( $name );
-                        $this->saveHasManyData( $relatedModel, $hasMany, $value, $name );
+                    if (RelationSchema::HAS_MANY === $this->getReferencingType($name)) {
+                        $hasMany = $this->getHasManyByRelationName($name);
+                        $this->saveHasManyData($relatedModel, $hasMany, $value, $name);
                     }
                 }
             }
 
-            if ( $transaction )
-            {
+            if ($transaction) {
                 DB::commit();
             }
-        }
-        catch ( \Exception $e )
-        {
-            if ( $transaction )
-            {
+        } catch (\Exception $e) {
+            if ($transaction) {
                 DB::rollBack();
             }
 
@@ -330,33 +272,31 @@ class BaseModel extends Model
         return $updated;
     }
 
-    public static function updateById( $id, $record, $params = [ ] )
+    public static function updateById($id, $record, $params = [])
     {
         $m = new static;
         $pk = $m->getPrimaryKey();
-        ArrayUtils::set( $record, $pk, $id );
+        ArrayUtils::set($record, $pk, $id);
 
-        return static::bulkUpdate( [ $record ], $params );
+        return static::bulkUpdate([$record], $params);
     }
 
-    public static function updateByIds( $ids, $record, $params = [ ] )
+    public static function updateByIds($ids, $record, $params = [])
     {
-        if ( !is_array( $ids ) )
-        {
-            $ids = explode( ",", $ids );
+        if (!is_array($ids)) {
+            $ids = explode(",", $ids);
         }
 
-        $records = [ ];
+        $records = [];
 
         $m = new static;
         $pk = $m->getPrimaryKey();
-        foreach ( $ids as $id )
-        {
-            ArrayUtils::set( $record, $pk, $id );
+        foreach ($ids as $id) {
+            ArrayUtils::set($record, $pk, $id);
             $records[] = $record;
         }
 
-        return static::bulkUpdate( $records, $params );
+        return static::bulkUpdate($records, $params);
     }
 
     /**
@@ -367,47 +307,38 @@ class BaseModel extends Model
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkUpdate( $records, $params = [ ] )
+    public static function bulkUpdate($records, $params = [])
     {
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'There is no record in the request.' );
+        if (empty($records)) {
+            throw new BadRequestException('There is no record in the request.');
         }
 
-        $response = [ ];
+        $response = [];
         $transaction = null;
-        $errors = [ ];
-        $singleRow = ( 1 === count( $records ) ) ? true : false;
-        $rollback = ArrayUtils::getBool( $params, 'rollback' );
-        $continue = ArrayUtils::getBool( $params, 'continue' );
+        $errors = [];
+        $singleRow = (1 === count($records)) ? true : false;
+        $rollback = ArrayUtils::getBool($params, 'rollback');
+        $continue = ArrayUtils::getBool($params, 'continue');
 
-        try
-        {
+        try {
             //	Start a transaction
-            if ( !$singleRow && $rollback )
-            {
+            if (!$singleRow && $rollback) {
                 DB::beginTransaction();
                 $transaction = true;
             }
 
-            foreach ( $records as $key => $record )
-            {
-                try
-                {
+            foreach ($records as $key => $record) {
+                try {
                     $m = new static;
                     $pk = $m->getPrimaryKey();
-                    $id = ArrayUtils::get( $record, $pk );
-                    $response[$key] = static::updateInternal( $id, $record, $params );
-                }
-                catch ( \Exception $ex )
-                {
-                    if ( $singleRow )
-                    {
+                    $id = ArrayUtils::get($record, $pk);
+                    $response[$key] = static::updateInternal($id, $record, $params);
+                } catch (\Exception $ex) {
+                    if ($singleRow) {
                         throw $ex;
                     }
 
-                    if ( $rollback && $transaction )
-                    {
+                    if ($rollback && $transaction) {
                         DB::rollBack();
                         throw $ex;
                     }
@@ -415,38 +346,31 @@ class BaseModel extends Model
                     // track the index of the error and copy error to results
                     $errors[] = $key;
                     $response[$key] = $ex->getMessage();
-                    if ( !$continue )
-                    {
+                    if (!$continue) {
                         break;
                     }
                 }
             }
-        }
-        catch ( \Exception $ex )
-        {
+        } catch (\Exception $ex) {
             throw $ex;
         }
 
-        if ( !empty( $errors ) )
-        {
-            $msg = [ 'errors' => $errors, 'record' => $response ];
-            throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
+        if (!empty($errors)) {
+            $msg = ['errors' => $errors, 'record' => $response];
+            throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
+                $msg);
         }
 
         //	Commit
-        if ( $transaction )
-        {
-            try
-            {
+        if ($transaction) {
+            try {
                 DB::commit();
-            }
-            catch ( \Exception $ex )
-            {
+            } catch (\Exception $ex) {
                 throw $ex;
             }
         }
 
-        return $singleRow ? current( $response ) : [ 'record' => $response ];
+        return $singleRow ? current($response) : ['record' => $response];
     }
 
     /**
@@ -458,76 +382,67 @@ class BaseModel extends Model
      * @throws BadRequestException
      * @throws InternalServerErrorException
      */
-    public static function updateInternal( $id, $record, $params = [ ] )
+    public static function updateInternal($id, $record, $params = [])
     {
-        if ( empty( $record ) )
-        {
-            throw new BadRequestException( 'There are no fields in the record to create . ' );
+        if (empty($record)) {
+            throw new BadRequestException('There are no fields in the record to create . ');
         }
 
-        if ( empty( $id ) )
-        {
+        if (empty($id)) {
             //Todo:perform logging below
             //Log::error( 'Update request with no id supplied: ' . print_r( $record, true ) );
-            throw new BadRequestException( 'Identifying field "id" can not be empty for update request . ' );
+            throw new BadRequestException('Identifying field "id" can not be empty for update request . ');
         }
 
-        $model = static::find( $id );
+        $model = static::find($id);
 
-        if ( !$model instanceof Model )
-        {
-            throw new ModelNotFoundException( 'No model found for ' . $id );
+        if (!$model instanceof Model) {
+            throw new ModelNotFoundException('No model found for ' . $id);
         }
 
         $pk = $model->primaryKey;
         //	Remove the PK from the record since this is an update
-        ArrayUtils::remove( $record, $pk );
+        ArrayUtils::remove($record, $pk);
 
-        try
-        {
-            $model->update( $record );
+        try {
+            $model->update($record);
 
-            return static::buildResult( $model, $params );
-        }
-        catch ( \Exception $ex )
-        {
-            throw new InternalServerErrorException( 'Failed to update resource: ' . $ex->getMessage() );
+            return static::buildResult($model, $params);
+        } catch (\Exception $ex) {
+            throw new InternalServerErrorException('Failed to update resource: ' . $ex->getMessage());
         }
     }
 
-    public static function deleteById( $id, $params = [ ] )
+    public static function deleteById($id, $params = [])
     {
-        $records = [ [ ] ];
+        $records = [[]];
 
         $m = new static;
         $pk = $m->getPrimaryKey();
-        foreach ( $records as $key => $record )
-        {
-            ArrayUtils::set( $records[$key], $pk, $id );
+        foreach ($records as $key => $record) {
+            ArrayUtils::set($records[$key], $pk, $id);
         }
 
-        return static::bulkDelete( $records, $params );
+        return static::bulkDelete($records, $params);
     }
 
-    public static function deleteByIds( $ids, $params = [ ] )
+    public static function deleteByIds($ids, $params = [])
     {
-        if ( !is_array( $ids ) )
-        {
-            $ids = explode( ",", $ids );
+        if (!is_array($ids)) {
+            $ids = explode(",", $ids);
         }
 
-        $records = [ ];
+        $records = [];
 
         $m = new static;
         $pk = $m->getPrimaryKey();
-        foreach ( $ids as $id )
-        {
-            $record = [ ];
-            ArrayUtils::set( $record, $pk, $id );
+        foreach ($ids as $id) {
+            $record = [];
+            ArrayUtils::set($record, $pk, $id);
             $records[] = $record;
         }
 
-        return static::bulkDelete( $records, $params );
+        return static::bulkDelete($records, $params);
     }
 
     /**
@@ -538,47 +453,38 @@ class BaseModel extends Model
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkDelete( $records, $params = [ ] )
+    public static function bulkDelete($records, $params = [])
     {
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'There is no record in the request.' );
+        if (empty($records)) {
+            throw new BadRequestException('There is no record in the request.');
         }
 
-        $response = [ ];
+        $response = [];
         $transaction = null;
-        $errors = [ ];
-        $singleRow = ( 1 === count( $records ) ) ? true : false;
-        $rollback = ArrayUtils::getBool( $params, 'rollback' );
-        $continue = ArrayUtils::getBool( $params, 'continue' );
+        $errors = [];
+        $singleRow = (1 === count($records)) ? true : false;
+        $rollback = ArrayUtils::getBool($params, 'rollback');
+        $continue = ArrayUtils::getBool($params, 'continue');
 
-        try
-        {
+        try {
             //	Start a transaction
-            if ( !$singleRow && $rollback )
-            {
+            if (!$singleRow && $rollback) {
                 DB::beginTransaction();
                 $transaction = true;
             }
 
-            foreach ( $records as $key => $record )
-            {
-                try
-                {
+            foreach ($records as $key => $record) {
+                try {
                     $m = new static;
                     $pk = $m->getPrimaryKey();
-                    $id = ArrayUtils::get( $record, $pk );
-                    $response[$key] = static::deleteInternal( $id, $record, $params );
-                }
-                catch ( \Exception $ex )
-                {
-                    if ( $singleRow )
-                    {
+                    $id = ArrayUtils::get($record, $pk);
+                    $response[$key] = static::deleteInternal($id, $record, $params);
+                } catch (\Exception $ex) {
+                    if ($singleRow) {
                         throw $ex;
                     }
 
-                    if ( $rollback && $transaction )
-                    {
+                    if ($rollback && $transaction) {
                         DB::rollBack();
                         throw $ex;
                     }
@@ -586,38 +492,31 @@ class BaseModel extends Model
                     // track the index of the error and copy error to results
                     $errors[] = $key;
                     $response[$key] = $ex->getMessage();
-                    if ( !$continue )
-                    {
+                    if (!$continue) {
                         break;
                     }
                 }
             }
-        }
-        catch ( \Exception $ex )
-        {
+        } catch (\Exception $ex) {
             throw $ex;
         }
 
-        if ( !empty( $errors ) )
-        {
-            $msg = [ 'errors' => $errors, 'record' => $response ];
-            throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
+        if (!empty($errors)) {
+            $msg = ['errors' => $errors, 'record' => $response];
+            throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
+                $msg);
         }
 
         //	Commit
-        if ( $transaction )
-        {
-            try
-            {
+        if ($transaction) {
+            try {
                 DB::commit();
-            }
-            catch ( \Exception $ex )
-            {
+            } catch (\Exception $ex) {
                 throw $ex;
             }
         }
 
-        return $singleRow ? current( $response ) : [ 'record' => $response ];
+        return $singleRow ? current($response) : ['record' => $response];
     }
 
     /**
@@ -629,37 +528,31 @@ class BaseModel extends Model
      * @throws BadRequestException
      * @throws InternalServerErrorException
      */
-    public static function deleteInternal( $id, $record, $params = [ ] )
+    public static function deleteInternal($id, $record, $params = [])
     {
-        if ( empty( $record ) )
-        {
-            throw new BadRequestException( 'There are no fields in the record to create . ' );
+        if (empty($record)) {
+            throw new BadRequestException('There are no fields in the record to create . ');
         }
 
-        if ( empty( $id ) )
-        {
+        if (empty($id)) {
             //Todo:perform logging below
             //Log::error( 'Update request with no id supplied: ' . print_r( $record, true ) );
-            throw new BadRequestException( 'Identifying field "id" can not be empty for update request . ' );
+            throw new BadRequestException('Identifying field "id" can not be empty for update request . ');
         }
 
-        $model = static::find( $id );
+        $model = static::find($id);
 
-        if ( !$model instanceof Model )
-        {
-            throw new ModelNotFoundException( 'No model found for ' . $id );
+        if (!$model instanceof Model) {
+            throw new ModelNotFoundException('No model found for ' . $id);
         }
 
-        try
-        {
-            $result = static::buildResult( $model, $params );
+        try {
+            $result = static::buildResult($model, $params);
             $model->delete();
 
             return $result;
-        }
-        catch ( \Exception $ex )
-        {
-            throw new InternalServerErrorException( 'Failed to delete resource: ' . $ex->getMessage() );
+        } catch (\Exception $ex) {
+            throw new InternalServerErrorException('Failed to delete resource: ' . $ex->getMessage());
         }
     }
 
@@ -669,22 +562,21 @@ class BaseModel extends Model
      *
      * @return array
      */
-    public static function buildResult( $model, $params = [ ] )
+    public static function buildResult($model, $params = [])
     {
         $id = $model->id;
         $pk = $model->primaryKey;
-        $fields = ArrayUtils::get( $params, 'fields', $pk );
-        $related = ArrayUtils::get( $params, 'related' );
+        $fields = ArrayUtils::get($params, 'fields', $pk);
+        $related = ArrayUtils::get($params, 'related');
 
-        if ( $pk === $fields && empty( $related ) )
-        {
-            return [ $pk => $id ];
+        if ($pk === $fields && empty($related)) {
+            return [$pk => $id];
         }
 
-        $fieldsArray = explode( ',', $fields );
-        $relatedArray = ( !empty( $related ) ) ? explode( ',', $related ) : [ ];
+        $fieldsArray = explode(',', $fields);
+        $relatedArray = (!empty($related)) ? explode(',', $related) : [];
 
-        $result = static::selectById( $id, $relatedArray, $fieldsArray );
+        $result = static::selectById($id, $relatedArray, $fieldsArray);
 
         return $result;
     }
@@ -697,19 +589,18 @@ class BaseModel extends Model
      */
     public function getSchema()
     {
-        if ( empty( $this->schema ) )
-        {
+        if (empty($this->schema)) {
             $connection = $this->getConnection();
             $database = $connection->getDatabaseName();
-            $host = $connection->getConfig( 'host' );
-            $username = $connection->getConfig( 'username' );
-            $password = $connection->getConfig( 'password' );
-            $driver = $connection->getConfig( 'driver' );
+            $host = $connection->getConfig('host');
+            $username = $connection->getConfig('username');
+            $password = $connection->getConfig('password');
+            $driver = $connection->getConfig('driver');
 
             //Todo: This will only work for Mysql and Postgres. If we use other db for system this needs to account for that.
             $dsn = $driver . ":host=" . $host . ";dbname=" . $database;
 
-            $adaptedConnection = new ConnectionAdapter( $dsn, $username, $password );
+            $adaptedConnection = new ConnectionAdapter($dsn, $username, $password);
             $this->schema = $adaptedConnection->getSchema();
         }
 
@@ -723,14 +614,11 @@ class BaseModel extends Model
      */
     public function getReferences()
     {
-        if ( empty( $this->references ) )
-        {
-            if ( empty( $this->schema ) )
-            {
+        if (empty($this->references)) {
+            if (empty($this->schema)) {
                 $this->getSchema();
             }
-            if ( empty( $this->tableSchema ) )
-            {
+            if (empty($this->tableSchema)) {
                 $this->getTableSchema();
             }
 
@@ -747,13 +635,11 @@ class BaseModel extends Model
      */
     public function getTableSchema()
     {
-        if ( empty( $this->tableSchema ) )
-        {
-            if ( empty( $this->schema ) )
-            {
+        if (empty($this->tableSchema)) {
+            if (empty($this->schema)) {
                 $this->getSchema();
             }
-            $this->tableSchema = $this->schema->getTable( $this->table );
+            $this->tableSchema = $this->schema->getTable($this->table);
         }
 
         return $this->tableSchema;
@@ -768,11 +654,11 @@ class BaseModel extends Model
      *
      * @return array
      */
-    public static function selectById( $id, array $related = [ ], array $fields = [ '*' ] )
+    public static function selectById($id, array $related = [], array $fields = ['*'])
     {
-        $model = static::with( $related )->find( $id, $fields );
+        $model = static::with($related)->find($id, $fields);
 
-        $data = ( !empty( $model ) ) ? $model->toArray() : [ ];
+        $data = (!empty($model)) ? $model->toArray() : [];
 
         return $data;
     }
@@ -786,38 +672,32 @@ class BaseModel extends Model
      *
      * @return mixed
      */
-    public static function selectByIds( $ids, array $related = [ ], array $criteria = [ ] )
+    public static function selectByIds($ids, array $related = [], array $criteria = [])
     {
-        if ( empty( $criteria ) )
-        {
-            $criteria['select'] = [ '*' ];
+        if (empty($criteria)) {
+            $criteria['select'] = ['*'];
         }
 
-        if ( is_array( $ids ) )
-        {
-            $ids = implode( ',', $ids );
+        if (is_array($ids)) {
+            $ids = implode(',', $ids);
         }
 
-        if ( !empty( $ids ) )
-        {
+        if (!empty($ids)) {
             $pk = static::getPrimaryKeyStatic();
             $idsPhrase = " $pk IN ($ids) ";
 
-            $condition = ArrayUtils::get( $criteria, 'condition' );
+            $condition = ArrayUtils::get($criteria, 'condition');
 
-            if ( !empty( $condition ) )
-            {
+            if (!empty($condition)) {
                 $condition .= ' AND ' . $idsPhrase;
-            }
-            else
-            {
+            } else {
                 $condition = $idsPhrase;
             }
 
-            ArrayUtils::set( $criteria, 'condition', $condition );
+            ArrayUtils::set($criteria, 'condition', $condition);
         }
 
-        $data = static::selectByRequest( $criteria, $related );
+        $data = static::selectByRequest($criteria, $related);
 
         return $data;
     }
@@ -831,46 +711,38 @@ class BaseModel extends Model
      *
      * @return array
      */
-    public static function selectByRequest( array $criteria = [ ], array $related = [ ] )
+    public static function selectByRequest(array $criteria = [], array $related = [])
     {
         $pk = static::getPrimaryKeyStatic();
-        $selection = ArrayUtils::get( $criteria, 'select' );
-        $condition = ArrayUtils::get( $criteria, 'condition' );
-        $limit = ArrayUtils::get( $criteria, 'limit', \Config::get( 'df.db_max_records_returned' ) );
-        $offset = ArrayUtils::get( $criteria, 'offset', 0 );
-        $orderBy = ArrayUtils::get( $criteria, 'order', "$pk asc" );
-        $orders = explode( ',', $orderBy );
+        $selection = ArrayUtils::get($criteria, 'select');
+        $condition = ArrayUtils::get($criteria, 'condition');
+        $limit = ArrayUtils::get($criteria, 'limit', \Config::get('df.db_max_records_returned'));
+        $offset = ArrayUtils::get($criteria, 'offset', 0);
+        $orderBy = ArrayUtils::get($criteria, 'order', "$pk asc");
+        $orders = explode(',', $orderBy);
 
-        if ( !empty( $selection ) )
-        {
-            if ( !empty( $condition ) )
-            {
-                $builder = static::whereRaw( $condition )->with( $related )->skip( $offset )->take( $limit );
-            }
-            else
-            {
-                $builder = static::with( $related )->skip( $offset )->take( $limit );
+        if (!empty($selection)) {
+            if (!empty($condition)) {
+                $builder = static::whereRaw($condition)->with($related)->skip($offset)->take($limit);
+            } else {
+                $builder = static::with($related)->skip($offset)->take($limit);
             }
 
-            foreach ( $orders as $order )
-            {
-                $order = trim( $order );
+            foreach ($orders as $order) {
+                $order = trim($order);
 
-                @list( $column, $direction ) = explode( ' ', $order );
-                if(empty($direction))
-                {
+                @list($column, $direction) = explode(' ', $order);
+                if (empty($direction)) {
                     $direction = 'ASC';
                 }
 
-                $builder = $builder->orderBy( $column, $direction );
+                $builder = $builder->orderBy($column, $direction);
             }
 
-            $collections = $builder->get( $selection );
-        }
-        //This should never happen as $criteria['select'] is always '*' by default.
-        else
-        {
-            $collections = static::skip( $offset )->take( $limit )->all();
+            $collections = $builder->get($selection);
+        } //This should never happen as $criteria['select'] is always '*' by default.
+        else {
+            $collections = static::skip($offset)->take($limit)->all();
         }
 
         $result = $collections->toArray();
@@ -890,49 +762,39 @@ class BaseModel extends Model
      *
      * @throws \Exception
      */
-    protected function saveHasManyData( $relatedModel, HasMany $hasMany, $data, $relationName )
+    protected function saveHasManyData($relatedModel, HasMany $hasMany, $data, $relationName)
     {
-        if ( $this->exists )
-        {
-            $models = [ ];
+        if ($this->exists) {
+            $models = [];
             $pk = $hasMany->getRelated()->primaryKey;
 
-            foreach ( $data as $d )
-            {
+            foreach ($data as $d) {
                 /** @var Model $model */
-                $model = $relatedModel::find( ArrayUtils::get( $d, $pk ) );
-                if ( !empty( $model ) )
-                {
+                $model = $relatedModel::find(ArrayUtils::get($d, $pk));
+                if (!empty($model)) {
                     $fk = $hasMany->getPlainForeignKey();
-                    $fkId = ArrayUtils::get( $d, $fk );
-                    if ( null === $fkId )
-                    {
+                    $fkId = ArrayUtils::get($d, $fk);
+                    if (null === $fkId) {
                         //Foreign key field is null therefore delete the child record.
                         $model->delete();
                         continue;
-                    }
-                    elseif ( !empty( $fkId ) && $fkId !== $this->id && ( null !== $parent = static::find( $fkId ) ) )
-                    {
+                    } elseif (!empty($fkId) && $fkId !== $this->id && (null !== $parent = static::find($fkId))) {
                         //Foreign key field is set but the id belongs to a different parent than this parent.
                         //There the child is adopted by the supplied parent id (foreign key).
-                        $relatedData = [ $relationName => [ $d ] ];
-                        $parent->update( $relatedData );
+                        $relatedData = [$relationName => [$d]];
+                        $parent->update($relatedData);
+                        continue;
+                    } else {
+                        $model->update($d);
                         continue;
                     }
-                    else
-                    {
-                        $model->update( $d );
-                        continue;
-                    }
-                }
-                else
-                {
-                    $model = new $relatedModel( $d );
+                } else {
+                    $model = new $relatedModel($d);
                 }
                 $models[] = $model;
             }
 
-            $hasMany->saveMany( $models );
+            $hasMany->saveMany($models);
         }
     }
 
@@ -944,12 +806,12 @@ class BaseModel extends Model
      *
      * @return HasMany
      */
-    protected function getHasMany( $table, $relationName )
+    protected function getHasMany($table, $relationName)
     {
-        $model = $this->tableNameToModel( $table );
-        $refField = $this->getReferencingField( $table, $relationName );
+        $model = $this->tableNameToModel($table);
+        $refField = $this->getReferencingField($table, $relationName);
 
-        return $this->hasMany( $model, $refField );
+        return $this->hasMany($model, $refField);
     }
 
     /**
@@ -957,40 +819,38 @@ class BaseModel extends Model
      *
      * @return HasMany|null
      */
-    public function getHasManyByRelationName( $name )
+    public function getHasManyByRelationName($name)
     {
-        $table = $this->getReferencingTable( $name );
-        $mappedTables = array_keys( static::getTableToModelMap() );
+        $table = $this->getReferencingTable($name);
+        $mappedTables = array_keys(static::getTableToModelMap());
 
-        return ( !empty( $table ) && in_array( $table, $mappedTables ) ) ? $this->getHasMany( $table, $name ) : null;
+        return (!empty($table) && in_array($table, $mappedTables)) ? $this->getHasMany($table, $name) : null;
     }
 
-    public function getBelongsToManyByRelationName( $name )
+    public function getBelongsToManyByRelationName($name)
     {
-        $table = $this->getReferencingTable( $name );
-        $model = $this->tableNameToModel( $table );
+        $table = $this->getReferencingTable($name);
+        $model = $this->tableNameToModel($table);
 
-        list( $pivotTable, $fk, $rk ) = $this->getReferencingJoin( $name );
+        list($pivotTable, $fk, $rk) = $this->getReferencingJoin($name);
 
-        return $this->belongsToMany( $model, $pivotTable, $fk, $rk );
+        return $this->belongsToMany($model, $pivotTable, $fk, $rk);
     }
 
-    public function getBelongsToByRelationName( $name )
+    public function getBelongsToByRelationName($name)
     {
-        $table = $this->getReferencingTable( $name );
-        $model = $this->tableNameToModel( $table );
+        $table = $this->getReferencingTable($name);
+        $model = $this->tableNameToModel($table);
 
         $references = $this->getReferences();
         $lf = null;
-        foreach ( $references as $item )
-        {
-            if ( $item->refTable === $table && $table . '_by_' . $item->field === $name )
-            {
+        foreach ($references as $item) {
+            if ($item->refTable === $table && $table . '_by_' . $item->field === $name) {
                 $lf = $item->field;
             }
         }
 
-        return $this->belongsTo( $model, $lf );
+        return $this->belongsTo($model, $lf);
     }
 
     /**
@@ -1001,14 +861,12 @@ class BaseModel extends Model
      *
      * @return mixed|null
      */
-    protected function getReferencingField( $table, $name )
+    protected function getReferencingField($table, $name)
     {
         $references = $this->getReferences();
         $rf = null;
-        foreach ( $references as $item )
-        {
-            if ( $item->refTable === $table && $table . '_by_' . $item->refFields === $name )
-            {
+        foreach ($references as $item) {
+            if ($item->refTable === $table && $table . '_by_' . $item->refFields === $name) {
                 $rf = $item->refFields;
                 break;
             }
@@ -1025,45 +883,41 @@ class BaseModel extends Model
      *
      * @return mixed|null
      */
-    protected function getReferencingTable( $name )
+    protected function getReferencingTable($name)
     {
         $references = $this->getReferences();
 
-        if ( array_key_exists( $name, $references ) )
-        {
+        if (array_key_exists($name, $references)) {
             return $references[$name]->refTable;
         }
 
         return null;
     }
 
-    public function getReferencingType( $name )
+    public function getReferencingType($name)
     {
         $references = $this->getReferences();
 
-        if ( array_key_exists( $name, $references ) )
-        {
+        if (array_key_exists($name, $references)) {
             return $references[$name]->type;
         }
 
         return null;
     }
 
-    protected function getReferencingJoin( $name )
+    protected function getReferencingJoin($name)
     {
         $references = $this->getReferences();
 
-        if ( array_key_exists( $name, $references ) )
-        {
+        if (array_key_exists($name, $references)) {
             $join = $references[$name]->join;
-            if ( !empty( $join ) )
-            {
-                $pivotTable = substr( $join, 0, strpos( $join, '(' ) );
-                $fields = substr( $join, ( strpos( $join, '(' ) + 1 ) );
-                $fields = substr( $fields, 0, strlen( $fields ) - 1 );
-                list( $fk, $rk ) = explode( ',', $fields );
+            if (!empty($join)) {
+                $pivotTable = substr($join, 0, strpos($join, '('));
+                $fields = substr($join, (strpos($join, '(') + 1));
+                $fields = substr($fields, 0, strlen($fields) - 1);
+                list($fk, $rk) = explode(',', $fields);
 
-                return [ $pivotTable, $fk, $rk ];
+                return [$pivotTable, $fk, $rk];
             }
         }
 
@@ -1077,15 +931,14 @@ class BaseModel extends Model
      *
      * @return BaseModel
      */
-    protected function getReferencingModel( $name )
+    protected function getReferencingModel($name)
     {
-        if ( !$this->isRelationMapped( $name ) )
-        {
+        if (!$this->isRelationMapped($name)) {
             return null;
         }
 
-        $table = $this->getReferencingTable( $name );
-        $model = static::tableNameToModel( $table );
+        $table = $this->getReferencingTable($name);
+        $model = static::tableNameToModel($table);
 
         return $model;
     }
@@ -1098,11 +951,11 @@ class BaseModel extends Model
      *
      * @return bool
      */
-    protected function isRelationMapped( $name )
+    protected function isRelationMapped($name)
     {
-        $table = $this->getReferencingTable( $name );
+        $table = $this->getReferencingTable($name);
 
-        return array_key_exists( $table, static::getTableToModelMap() );
+        return array_key_exists($table, static::getTableToModelMap());
     }
 
     /**
@@ -1134,37 +987,36 @@ class BaseModel extends Model
      *
      * @return \Illuminate\Database\Eloquent\Builder|static
      */
-    public function newEloquentBuilder( $query )
+    public function newEloquentBuilder($query)
     {
-        return new DfBuilder( $query );
+        return new DfBuilder($query);
     }
 
     public static function getTableToModelMap()
     {
-        if ( empty( static::$tableToModelMap ) )
-        {
-            static::$tableToModelMap = \Cache::get( static::TABLE_TO_MODEL_MAP_CACHE_KEY, [ ] );
-            if ( empty( static::$tableToModelMap ) )
-            {
-                static::$tableToModelMap = DB::table( 'db_table_extras' )->where( 'service_id', 1 )->lists( 'model', 'table' );
-                \Cache::add( static::TABLE_TO_MODEL_MAP_CACHE_KEY, static::$tableToModelMap, static::TABLE_TO_MODEL_MAP_CACHE_TTL );
+        if (empty(static::$tableToModelMap)) {
+            static::$tableToModelMap = \Cache::get(static::TABLE_TO_MODEL_MAP_CACHE_KEY, []);
+            if (empty(static::$tableToModelMap)) {
+                static::$tableToModelMap =
+                    DB::table('db_table_extras')->where('service_id', 1)->lists('model', 'table');
+                \Cache::add(static::TABLE_TO_MODEL_MAP_CACHE_KEY, static::$tableToModelMap,
+                    static::TABLE_TO_MODEL_MAP_CACHE_TTL);
             }
         }
 
         return static::$tableToModelMap;
     }
 
-    public static function tableNameToModel( $table )
+    public static function tableNameToModel($table)
     {
         $map = static::getTableToModelMap();
 
-        return isset( $map[$table] ) ? $map[$table] : null;
+        return isset($map[$table]) ? $map[$table] : null;
     }
 
-    public static function getModelBaseName( $fqcn )
+    public static function getModelBaseName($fqcn)
     {
-        if ( preg_match( '@\\\\([\w]+)$@', $fqcn, $matches ) )
-        {
+        if (preg_match('@\\\\([\w]+)$@', $fqcn, $matches)) {
             $fqcn = $matches[1];
         }
 
@@ -1174,27 +1026,25 @@ class BaseModel extends Model
     /**
      * {@inheritdoc}
      */
-    public function getAttribute( $key )
+    public function getAttribute($key)
     {
-        if ( in_array( $key, $this->encrypted ) && !empty( $this->attributes[$key] ) )
-        {
-            return Crypt::decrypt( $this->attributes[$key] );
+        if (in_array($key, $this->encrypted) && !empty($this->attributes[$key])) {
+            return Crypt::decrypt($this->attributes[$key]);
         }
 
-        return parent::getAttribute( $key );
+        return parent::getAttribute($key);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function setAttribute( $key, $value )
+    public function setAttribute($key, $value)
     {
-        if ( in_array( $key, $this->encrypted ) )
-        {
-            $value = Crypt::encrypt( $value );
+        if (in_array($key, $this->encrypted)) {
+            $value = Crypt::encrypt($value);
         }
 
-        parent::setAttribute( $key, $value );
+        parent::setAttribute($key, $value);
     }
 
     /**
@@ -1204,29 +1054,24 @@ class BaseModel extends Model
     {
         $attributes = parent::attributesToArray();
 
-        foreach ( $attributes as $key => $value )
-        {
-            if ( in_array( $key, $this->encrypted ) && !empty( $this->attributes[$key] ) )
-            {
-                $attributes[$key] = Crypt::decrypt( $value );
+        foreach ($attributes as $key => $value) {
+            if (in_array($key, $this->encrypted) && !empty($this->attributes[$key])) {
+                $attributes[$key] = Crypt::decrypt($value);
             }
         }
 
         return $attributes;
     }
 
-    public function toApiDocsModel( $name = null )
+    public function toApiDocsModel($name = null)
     {
         $schema = $this->getTableSchema();
-        if ( $schema )
-        {
-            $requestFields = [ ];
-            $responseFields = array_flip( $this->getArrayableItems( array_keys( $schema->columns ) ) );
+        if ($schema) {
+            $requestFields = [];
+            $responseFields = array_flip($this->getArrayableItems(array_keys($schema->columns)));
             /** @var ColumnSchema $field */
-            foreach ( $schema->columns as $field )
-            {
-                if ( $this->isFillable( $field->name ) )
-                {
+            foreach ($schema->columns as $field) {
+                if ($this->isFillable($field->name)) {
                     $requestFields[$field->name] = [
                         'type'        => $field->type,
                         'description' => $field->comment,
@@ -1234,8 +1079,7 @@ class BaseModel extends Model
                     ];
                 }
 
-                if ( array_key_exists( $field->name, $responseFields ) )
-                {
+                if (array_key_exists($field->name, $responseFields)) {
                     $responseFields[$field->name] = [
                         'type'        => $field->type,
                         'description' => $field->comment,
@@ -1244,22 +1088,18 @@ class BaseModel extends Model
                 }
             }
 
-            $requestRelatives = [ ];
-            $responseRelatives = array_flip( $this->getArrayableItems( array_keys( $schema->relations ) ) );
+            $requestRelatives = [];
+            $responseRelatives = array_flip($this->getArrayableItems(array_keys($schema->relations)));
             /** @var RelationSchema $relation */
-            foreach ( $schema->relations as $relation )
-            {
-                $refModel = static::tableNameToModel( $relation->refTable );
+            foreach ($schema->relations as $relation) {
+                $refModel = static::tableNameToModel($relation->refTable);
 
-                if ( !empty( $refModel ) )
-                {
-                    $refModel = static::getModelBaseName( $refModel );
+                if (!empty($refModel)) {
+                    $refModel = static::getModelBaseName($refModel);
 
-                    switch ( $relation->type )
-                    {
+                    switch ($relation->type) {
                         case RelationSchema::BELONGS_TO:
-                            if ( $this->isFillable( $relation->name ) )
-                            {
+                            if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
                                     'type'        => 'Related' . $refModel . 'Request',
                                     'description' => "A single $refModel record that this record potentially belongs to.",
@@ -1267,8 +1107,7 @@ class BaseModel extends Model
                                 ];
                             }
 
-                            if ( array_key_exists( $relation->name, $responseRelatives ) )
-                            {
+                            if (array_key_exists($relation->name, $responseRelatives)) {
                                 $responseRelatives[$relation->name] = [
                                     'type'        => 'Related' . $refModel . 'Response',
                                     'description' => "A single $refModel record that this record potentially belongs to.",
@@ -1277,47 +1116,43 @@ class BaseModel extends Model
                             }
                             break;
                         case RelationSchema::HAS_MANY:
-                            if ( $this->isFillable( $relation->name ) )
-                            {
+                            if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => [ '$ref' => 'Related' . $refModel . 'Response' ],
+                                    'items'       => ['$ref' => 'Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record directly",
                                     'required'    => false
                                 ];
                             }
 
-                            if ( array_key_exists( $relation->name, $responseRelatives ) )
-                            {
+                            if (array_key_exists($relation->name, $responseRelatives)) {
                                 $responseRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => [ '$ref' => 'Related' . $refModel . 'Response' ],
+                                    'items'       => ['$ref' => 'Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record directly",
                                     'required'    => false
                                 ];
                             }
                             break;
                         case RelationSchema::MANY_MANY:
-                            $pivot = substr( $relation->join, 0, strpos( $relation->join, '(' ) );
-                            $pivotModel = static::tableNameToModel( $pivot );
-                            $pivotModel = static::getModelBaseName( $pivotModel );
-                            $pivotModel = empty( $pivotModel ) ? $pivot : $pivotModel;
+                            $pivot = substr($relation->join, 0, strpos($relation->join, '('));
+                            $pivotModel = static::tableNameToModel($pivot);
+                            $pivotModel = static::getModelBaseName($pivotModel);
+                            $pivotModel = empty($pivotModel) ? $pivot : $pivotModel;
 
-                            if ( $this->isFillable( $relation->name ) )
-                            {
+                            if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => [ '$ref' => 'Related' . $refModel . 'Request' ],
+                                    'items'       => ['$ref' => 'Related' . $refModel . 'Request'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
                                     'required'    => false
                                 ];
                             }
 
-                            if ( array_key_exists( $relation->name, $responseRelatives ) )
-                            {
+                            if (array_key_exists($relation->name, $responseRelatives)) {
                                 $responseRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => [ '$ref' => 'Related' . $refModel . 'Response' ],
+                                    'items'       => ['$ref' => 'Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
                                     'required'    => false
                                 ];
@@ -1327,9 +1162,8 @@ class BaseModel extends Model
                 }
             }
 
-            if ( empty( $name ) )
-            {
-                $name = static::getModelBaseName( basename( get_class( $this ) ) );
+            if (empty($name)) {
+                $name = static::getModelBaseName(basename(get_class($this)));
             }
 
             return [

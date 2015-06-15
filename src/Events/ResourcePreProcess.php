@@ -25,7 +25,7 @@ class ResourcePreProcess extends Event
      * @param ServiceRequestInterface $request
      * @param mixed                   $resource
      */
-    public function __construct( $service, $resource_path, &$request, $resource = null )
+    public function __construct($service, $resource_path, &$request, $resource = null)
     {
         $this->service = $service;
         $this->resourcePath = $resource_path;

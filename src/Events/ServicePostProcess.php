@@ -26,7 +26,7 @@ class ServicePostProcess extends Event
      * @param array|ServiceResponseInterface $response
      * @param mixed                          $resource
      */
-    public function __construct( $service, $request, &$response, $resource = null )
+    public function __construct($service, $request, &$response, $resource = null)
     {
         $this->service = $service;
         $this->request = $request;

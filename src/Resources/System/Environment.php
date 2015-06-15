@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Resources\System;
 
@@ -31,10 +13,9 @@ class Environment extends BaseRestResource
 
     protected function handleGET()
     {
-        $result = [ ];
+        $result = [];
 
-        if ( true === Scalar::boolval( SessionUtilities::isSysAdmin() ) )
-        {
+        if (true === Scalar::boolval(SessionUtilities::isSysAdmin())) {
             $result['server'] = [
                 'server_os' => 'tbi'
             ];
@@ -72,13 +53,12 @@ class Environment extends BaseRestResource
     {
         $oauth = Service::whereIn(
             'type',
-            [ 'oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google' ]
-        )->whereIsActive( 1 )->get( [ 'name', 'type' ] )->toArray();
+            ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google']
+        )->whereIsActive(1)->get(['name', 'type'])->toArray();
 
-        $services = [ ];
+        $services = [];
 
-        foreach ( $oauth as $o )
-        {
+        foreach ($oauth as $o) {
             $services[$o['type']][] = [
                 'name' => $o['name'],
                 'url'  => '//' . \Request::getHost() . static::OAUTH_ROUTE . $o['name']
@@ -92,14 +72,13 @@ class Environment extends BaseRestResource
     {
         $ldap = Service::whereIn(
             'type',
-            [ 'ldap', 'adldap' ]
-        )->whereIsActive( 1 )->get( [ 'name', 'type' ] )->toArray();
+            ['ldap', 'adldap']
+        )->whereIsActive(1)->get(['name', 'type'])->toArray();
 
-        $services = [ ];
+        $services = [];
 
-        foreach ( $ldap as $l )
-        {
-            $services[$l['type']][] = [ 'name' => $l['name'] ];
+        foreach ($ldap as $l) {
+            $services[$l['type']][] = ['name' => $l['name']];
         }
 
         return $services;

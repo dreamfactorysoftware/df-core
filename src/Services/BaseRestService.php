@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Services;
 
@@ -69,7 +51,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
     protected function preProcess()
     {
         /** @noinspection PhpUnusedLocalVariableInspection */
-        $results = \Event::fire( new ServicePreProcess( $this->name, $this->request, $this->resourcePath ) );
+        $results = \Event::fire(new ServicePreProcess($this->name, $this->request, $this->resourcePath));
     }
 
     /**
@@ -77,9 +59,9 @@ class BaseRestService extends RestHandler implements ServiceInterface
      */
     protected function postProcess()
     {
-        $event = new ServicePostProcess( $this->name, $this->request, $this->response, $this->resourcePath );
+        $event = new ServicePostProcess($this->name, $this->request, $this->response, $this->resourcePath);
         /** @noinspection PhpUnusedLocalVariableInspection */
-        $results = \Event::fire( $event );
+        $results = \Event::fire($event);
 
         // todo doing something wrong that I have to copy this array back over
         $this->response = $event->response;
@@ -90,17 +72,15 @@ class BaseRestService extends RestHandler implements ServiceInterface
      *
      * @return boolean|array
      */
-    public function listResources( $fields = null )
+    public function listResources($fields = null)
     {
         $resources = $this->getResources();
-        if ( !empty( $resources ) )
-        {
-            foreach ($resources as &$resource)
-            {
+        if (!empty($resources)) {
+            foreach ($resources as &$resource) {
                 $resource['access'] = VerbsMask::maskToArray($this->getPermissions(ArrayUtils::get($resource, 'name')));
             }
 
-            return static::makeResourceList( $resources, 'name', $fields, 'resource' );
+            return static::makeResourceList($resources, 'name', $fields, 'resource');
         }
 
         return false;
@@ -113,9 +93,9 @@ class BaseRestService extends RestHandler implements ServiceInterface
      */
     protected function handleGET()
     {
-        $fields = $this->request->getParameter( 'fields' );
+        $fields = $this->request->getParameter('fields');
 
-        return $this->listResources( $fields );
+        return $this->listResources($fields);
     }
 
     /**
@@ -123,12 +103,11 @@ class BaseRestService extends RestHandler implements ServiceInterface
      */
     protected function respond()
     {
-        if ( $this->response instanceof ServiceResponseInterface )
-        {
+        if ($this->response instanceof ServiceResponseInterface) {
             return $this->response;
         }
 
-        return ResponseFactory::create( $this->response, $this->nativeFormat );
+        return ResponseFactory::create($this->response, $this->nativeFormat);
     }
 
     /**
@@ -137,10 +116,10 @@ class BaseRestService extends RestHandler implements ServiceInterface
      *
      * @return bool
      */
-    public function checkPermission( $operation, $resource = null )
+    public function checkPermission($operation, $resource = null)
     {
         $requestType = ($this->request) ? $this->request->getRequestorType() : ServiceRequestorTypes::API;
-        Session::checkServicePermission( $operation, $this->name, $resource, $requestType );
+        Session::checkServicePermission($operation, $this->name, $resource, $requestType);
     }
 
     /**
@@ -148,9 +127,10 @@ class BaseRestService extends RestHandler implements ServiceInterface
      *
      * @return string
      */
-    public function getPermissions( $resource = null )
+    public function getPermissions($resource = null)
     {
         $requestType = ($this->request) ? $this->request->getRequestorType() : ServiceRequestorTypes::API;
+
         return Session::getServicePermissions($this->name, $resource, $requestType);
     }
 
@@ -161,8 +141,8 @@ class BaseRestService extends RestHandler implements ServiceInterface
          */
         return [
             'resourcePath' => '/' . $this->name,
-            'produces'     => [ 'application/json', 'application/xml' ],
-            'consumes'     => [ 'application/json', 'application/xml' ],
+            'produces'     => ['application/json', 'application/xml'],
+            'consumes'     => ['application/json', 'application/xml'],
             'apis'         => [
                 [
                     'path'        => '/' . $this->name,

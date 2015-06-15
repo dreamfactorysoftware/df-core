@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 namespace DreamFactory\Core\Enums;
 
 use DreamFactory\Library\Utility\Enums\FactoryEnum;
@@ -194,14 +176,13 @@ class DataFormats extends FactoryEnum
      * @throws NotImplementedException
      * @return string
      */
-    public static function toNumeric( $contentType )
+    public static function toNumeric($contentType)
     {
-        if ( !is_string( $contentType ) )
-        {
-            throw new \InvalidArgumentException( 'The content type "' . $contentType . '" is not a string.' );
+        if (!is_string($contentType)) {
+            throw new \InvalidArgumentException('The content type "' . $contentType . '" is not a string.');
         }
 
-        return static::defines( strtoupper( $contentType ), true );
+        return static::defines(strtoupper($contentType), true);
     }
 
     /**
@@ -210,14 +191,13 @@ class DataFormats extends FactoryEnum
      * @throws NotImplementedException
      * @return string
      */
-    public static function toString( $numericLevel = self::TEXT )
+    public static function toString($numericLevel = self::TEXT)
     {
-        if ( !is_numeric( $numericLevel ) )
-        {
-            throw new \InvalidArgumentException( 'The content type "' . $numericLevel . '" is not numeric.' );
+        if (!is_numeric($numericLevel)) {
+            throw new \InvalidArgumentException('The content type "' . $numericLevel . '" is not numeric.');
         }
 
-        return static::nameOf( $numericLevel, true, false );
+        return static::nameOf($numericLevel, true, false);
     }
 
     /**
@@ -230,18 +210,15 @@ class DataFormats extends FactoryEnum
      * @throws NotImplementedException
      * @return string
      */
-    public static function toMimeType( $enum_value, $default = 'application/octet-stream', $throw_if_not_found = false )
+    public static function toMimeType($enum_value, $default = 'application/octet-stream', $throw_if_not_found = false)
     {
-        if ( !is_numeric( $enum_value ) )
-        {
-            throw new \InvalidArgumentException( 'The content type "' . $enum_value . '" is not numeric.' );
+        if (!is_numeric($enum_value)) {
+            throw new \InvalidArgumentException('The content type "' . $enum_value . '" is not numeric.');
         }
 
-        if ( !array_key_exists( $enum_value, static::$_contentTypeMap ) )
-        {
-            if ( $throw_if_not_found )
-            {
-                throw new NotImplementedException( 'The content type "' . $enum_value . '" is not supported.' );
+        if (!array_key_exists($enum_value, static::$_contentTypeMap)) {
+            if ($throw_if_not_found) {
+                throw new NotImplementedException('The content type "' . $enum_value . '" is not supported.');
             }
 
             return $default;
@@ -260,19 +237,16 @@ class DataFormats extends FactoryEnum
      * @throws NotImplementedException
      * @return int
      */
-    public static function fromMimeType( $mime_type, $default = self::RAW, $throw_if_not_found = false )
+    public static function fromMimeType($mime_type, $default = self::RAW, $throw_if_not_found = false)
     {
-        if ( !is_string( $mime_type ) )
-        {
-            throw new \InvalidArgumentException( 'The MIME type "' . $mime_type . '" is not a string.' );
+        if (!is_string($mime_type)) {
+            throw new \InvalidArgumentException('The MIME type "' . $mime_type . '" is not a string.');
         }
 
-        $mime_type = ( false !== strpos( $mime_type, ';' ) ) ? trim( strstr( $mime_type, ';', true ) ) : $mime_type;
-        if ( false === $_pos = array_search( strtolower( $mime_type ), static::$_contentTypeMap ) )
-        {
-            if ( $throw_if_not_found )
-            {
-                throw new NotImplementedException( 'The MIME type "' . $mime_type . '" is not supported.' );
+        $mime_type = (false !== strpos($mime_type, ';')) ? trim(strstr($mime_type, ';', true)) : $mime_type;
+        if (false === $_pos = array_search(strtolower($mime_type), static::$_contentTypeMap)) {
+            if ($throw_if_not_found) {
+                throw new NotImplementedException('The MIME type "' . $mime_type . '" is not supported.');
             }
 
             return $default;
@@ -291,18 +265,15 @@ class DataFormats extends FactoryEnum
      * @throws NotImplementedException
      * @return string
      */
-    public static function toFileExtension( $enum_value, $default = 'txt', $throw_if_not_found = false )
+    public static function toFileExtension($enum_value, $default = 'txt', $throw_if_not_found = false)
     {
-        if ( !is_numeric( $enum_value ) )
-        {
-            throw new \InvalidArgumentException( 'The content type "' . $enum_value . '" is not numeric.' );
+        if (!is_numeric($enum_value)) {
+            throw new \InvalidArgumentException('The content type "' . $enum_value . '" is not numeric.');
         }
 
-        if ( !array_key_exists( $enum_value, static::$_extensionMap ) )
-        {
-            if ( $throw_if_not_found )
-            {
-                throw new NotImplementedException( 'The content type "' . $enum_value . '" is not supported.' );
+        if (!array_key_exists($enum_value, static::$_extensionMap)) {
+            if ($throw_if_not_found) {
+                throw new NotImplementedException('The content type "' . $enum_value . '" is not supported.');
             }
 
             return $default;
@@ -321,18 +292,15 @@ class DataFormats extends FactoryEnum
      * @throws NotImplementedException
      * @return int
      */
-    public static function fromFileExtension( $extension, $default = self::RAW, $throw_if_not_found = false )
+    public static function fromFileExtension($extension, $default = self::RAW, $throw_if_not_found = false)
     {
-        if ( !is_string( $extension ) )
-        {
-            throw new \InvalidArgumentException( 'The file extension "' . $extension . '" is not a string.' );
+        if (!is_string($extension)) {
+            throw new \InvalidArgumentException('The file extension "' . $extension . '" is not a string.');
         }
 
-        if ( false === $_pos = array_search( strtolower( $extension ), static::$_extensionMap ) )
-        {
-            if ( $throw_if_not_found )
-            {
-                throw new NotImplementedException( 'The file extension "' . $extension . '" is not supported.' );
+        if (false === $_pos = array_search(strtolower($extension), static::$_extensionMap)) {
+            if ($throw_if_not_found) {
+                throw new NotImplementedException('The file extension "' . $extension . '" is not supported.');
             }
 
             return $default;

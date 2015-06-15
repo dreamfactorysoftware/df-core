@@ -435,6 +435,11 @@ class Session
         return \Auth::user();
     }
 
+    public static function isAuthenticated()
+    {
+        return Scalar::boolval(static::getCurrentUserId());
+    }
+
     /**
      * @return bool
      */

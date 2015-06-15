@@ -173,6 +173,7 @@ class UserResourceTestCase extends TestCase
 
         $this->assertEquals( 'my_param', Arr::get( $content, 'user_lookup_by_user_id.0.name' ) );
         $this->assertEquals( '**********', Arr::get( $content, 'user_lookup_by_user_id.1.value' ) );
+        $this->assertEquals( 1, Arr::get( $content, 'user_lookup_by_user_id.1.private' ) );
         $this->assertTrue( $this->adminCheck( [ $content ] ) );
     }
 

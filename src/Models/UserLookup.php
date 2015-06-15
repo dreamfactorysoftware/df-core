@@ -40,7 +40,7 @@ namespace DreamFactory\Core\Models;
  * @method static \Illuminate\Database\Query\Builder|RoleLookup whereCreatedDate( $value )
  * @method static \Illuminate\Database\Query\Builder|RoleLookup whereLastModifiedDate( $value )
  */
-class UserLookup extends BaseSystemModel
+class UserLookup extends BaseSystemLookup
 {
     protected $table = 'user_lookup';
 

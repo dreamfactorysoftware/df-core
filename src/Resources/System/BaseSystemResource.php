@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Resources\System;
 
@@ -56,48 +38,43 @@ class BaseSystemResource extends BaseRestResource
     /**
      * @param array $settings
      */
-    public function __construct( $settings = [ ] )
+    public function __construct($settings = [])
     {
         $verbAliases = [
             Verbs::PUT   => Verbs::PATCH,
             Verbs::MERGE => Verbs::PATCH
         ];
-        ArrayUtils::set( $settings, "verbAliases", $verbAliases );
+        ArrayUtils::set($settings, "verbAliases", $verbAliases);
 
-        parent::__construct( $settings );
+        parent::__construct($settings);
 
-        $this->model = ArrayUtils::get( $settings, "model_name", $this->model ); // could be statically set
+        $this->model = ArrayUtils::get($settings, "model_name", $this->model); // could be statically set
     }
 
     /**
      * {@inheritdoc}
      */
-    protected function getPayloadData( $key = null, $default = null )
+    protected function getPayloadData($key = null, $default = null)
     {
         $payload = parent::getPayloadData();
 
-        if ( null !== $key && !empty( $payload[$key] ) )
-        {
+        if (null !== $key && !empty($payload[$key])) {
             return $payload[$key];
         }
 
-        if ( !empty( $this->resource ) && !empty( $payload ) )
-        {
+        if (!empty($this->resource) && !empty($payload)) {
             // single records passed in which don't use the record wrapper, so wrap it
-            $payload = [ static::RECORD_WRAPPER => [ $payload ] ];
-        }
-        elseif ( ArrayUtils::isArrayNumeric( $payload ) )
-        {
+            $payload = [static::RECORD_WRAPPER => [$payload]];
+        } elseif (ArrayUtils::isArrayNumeric($payload)) {
             // import from csv, etc doesn't include a wrapper, so wrap it
-            $payload = [ static::RECORD_WRAPPER => $payload ];
+            $payload = [static::RECORD_WRAPPER => $payload];
         }
 
-        if ( empty( $key ) )
-        {
+        if (empty($key)) {
             $key = static::RECORD_WRAPPER;
         }
 
-        return ArrayUtils::get( $payload, $key );
+        return ArrayUtils::get($payload, $key);
     }
 
     /**
@@ -108,13 +85,13 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return array
      */
-    protected function retrieveById( $id, array $related = [ ] )
+    protected function retrieveById($id, array $related = [])
     {
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
-        $fields = ArrayUtils::get( $criteria, 'select' );
-        $data = $modelClass::selectById( $id, $related, $fields );
+        $fields = ArrayUtils::get($criteria, 'select');
+        $data = $modelClass::selectById($id, $related, $fields);
 
         return $data;
     }
@@ -127,29 +104,28 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return array
      */
-    protected function retrieveByIds( $ids, array $related = [ ] )
+    protected function retrieveByIds($ids, array $related = [])
     {
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
-        $data = $modelClass::selectByIds( $ids, $related, $criteria );
-        $data = [ self::RECORD_WRAPPER => $data ];
+        $data = $modelClass::selectByIds($ids, $related, $criteria);
+        $data = [self::RECORD_WRAPPER => $data];
 
         return $data;
     }
 
-    protected function retrieveByRecords( array $records, array $related = [ ] )
+    protected function retrieveByRecords(array $records, array $related = [])
     {
         /** @var BaseSystemModel $model */
         $model = $this->getModel();
         $pk = $model->getPrimaryKey();
-        $ids = [ ];
-        foreach ( $records as $record )
-        {
-            $ids[] = ArrayUtils::get( $record, $pk );
+        $ids = [];
+        foreach ($records as $record) {
+            $ids[] = ArrayUtils::get($record, $pk);
         }
 
-        return $this->retrieveByIds( $ids, $related );
+        return $this->retrieveByIds($ids, $related);
     }
 
     /**
@@ -159,13 +135,13 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return array
      */
-    protected function retrieveByRequest( array $related = [ ] )
+    protected function retrieveByRequest(array $related = [])
     {
         /** @var BaseSystemModel $model */
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
-        $data = $modelClass::selectByRequest( $criteria, $related );
-        $data = [ static::RECORD_WRAPPER => $data ];
+        $data = $modelClass::selectByRequest($criteria, $related);
+        $data = [static::RECORD_WRAPPER => $data];
 
         return $data;
     }
@@ -178,53 +154,43 @@ class BaseSystemResource extends BaseRestResource
     protected function getSelectionCriteria()
     {
         $criteria = [
-            'params' => [ ]
+            'params' => []
         ];
 
-        if ( null !== ( $value = $this->request->getParameter( 'fields' ) ) )
-        {
-            $criteria['select'] = explode( ',', $value );
-        }
-        else
-        {
-            $criteria['select'] = [ '*' ];
+        if (null !== ($value = $this->request->getParameter('fields'))) {
+            $criteria['select'] = explode(',', $value);
+        } else {
+            $criteria['select'] = ['*'];
         }
 
-        if ( null !== ( $value = $this->request->getPayloadData( 'params' ) ) )
-        {
+        if (null !== ($value = $this->request->getPayloadData('params'))) {
             $criteria['params'] = $value;
         }
 
-        if ( null !== ( $value = $this->request->getParameter( 'filter' ) ) )
-        {
+        if (null !== ($value = $this->request->getParameter('filter'))) {
             $criteria['condition'] = $value;
 
             //	Add current user ID into parameter array if in condition, but not specified.
-            if ( false !== stripos( $value, ':user_id' ) )
-            {
-                if ( !isset( $criteria['params'][':user_id'] ) )
-                {
+            if (false !== stripos($value, ':user_id')) {
+                if (!isset($criteria['params'][':user_id'])) {
                     $criteria['params'][':user_id'] = Session::getCurrentUserId();
                 }
             }
         }
 
-        $value = intval( $this->request->getParameter( 'limit' ) );
-        $maxAllowed = intval( \Config::get( 'df.db_max_records_returned', self::MAX_RECORDS_RETURNED ) );
-        if ( ( $value < 1 ) || ( $value > $maxAllowed ) )
-        {
+        $value = intval($this->request->getParameter('limit'));
+        $maxAllowed = intval(\Config::get('df.db_max_records_returned', self::MAX_RECORDS_RETURNED));
+        if (($value < 1) || ($value > $maxAllowed)) {
             // impose a limit to protect server
             $value = $maxAllowed;
         }
         $criteria['limit'] = $value;
 
-        if ( null !== ( $value = $this->request->getParameter( 'offset' ) ) )
-        {
+        if (null !== ($value = $this->request->getParameter('offset'))) {
             $criteria['offset'] = $value;
         }
 
-        if ( null !== ( $value = $this->request->getParameter( 'order' ) ) )
-        {
+        if (null !== ($value = $this->request->getParameter('order'))) {
             $criteria['order'] = $value;
         }
 
@@ -239,64 +205,48 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handleGET()
     {
-        $ids = $this->request->getParameter( 'ids' );
-        $records = $this->getPayloadData( self::RECORD_WRAPPER );
+        $ids = $this->request->getParameter('ids');
+        $records = $this->getPayloadData(self::RECORD_WRAPPER);
 
         $data = null;
 
-        $related = $this->request->getParameter( 'related' );
-        if ( !empty( $related ) )
-        {
-            $related = explode( ',', $related );
-        }
-        else
-        {
-            $related = [ ];
+        $related = $this->request->getParameter('related');
+        if (!empty($related)) {
+            $related = explode(',', $related);
+        } else {
+            $related = [];
         }
 
         //	Single resource by ID
-        if ( !empty( $this->resource ) )
-        {
-            $data = $this->retrieveById( $this->resource, $related );
-        }
-        else if ( !empty( $ids ) )
-        {
-            $data = $this->retrieveByIds( $ids, $related );
-        }
-        else if ( !empty( $records ) )
-        {
-            $data = $this->retrieveByRecords( $records, $related );
-        }
-        else
-        {
-            $data = $this->retrieveByRequest( $related );
+        if (!empty($this->resource)) {
+            $data = $this->retrieveById($this->resource, $related);
+        } else if (!empty($ids)) {
+            $data = $this->retrieveByIds($ids, $related);
+        } else if (!empty($records)) {
+            $data = $this->retrieveByRecords($records, $related);
+        } else {
+            $data = $this->retrieveByRequest($related);
         }
 
-        if ( empty( $data ) )
-        {
-            throw new NotFoundException( "Record not found." );
+        if (empty($data)) {
+            throw new NotFoundException("Record not found.");
         }
 
-        if ( $this->request->getParameterAsBool( 'include_count' ) === true )
-        {
-            if ( isset( $data['record'] ) )
-            {
-                $data['meta']['count'] = count( $data['record'] );
-            }
-            elseif ( !empty( $data ) )
-            {
+        if ($this->request->getParameterAsBool('include_count') === true) {
+            if (isset($data['record'])) {
+                $data['meta']['count'] = count($data['record']);
+            } elseif (!empty($data)) {
                 $data['meta']['count'] = 1;
             }
         }
 
-        if ( !empty( $data ) && $this->request->getParameterAsBool( 'include_schema' ) === true )
-        {
+        if (!empty($data) && $this->request->getParameterAsBool('include_schema') === true) {
             /** @var BaseSystemModel $model */
             $model = $this->getModel();
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
 
-        return ResponseFactory::create( $data, $this->nativeFormat );
+        return ResponseFactory::create($data, $this->nativeFormat);
     }
 
     /**
@@ -307,11 +257,11 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return mixed
      */
-    protected function bulkCreate( array $records, array $params = [ ] )
+    protected function bulkCreate(array $records, array $params = [])
     {
         /** @var BaseSystemModel $model */
         $modelClass = $this->model;
-        $result = $modelClass::bulkCreate( $records, $params );
+        $result = $modelClass::bulkCreate($records, $params);
 
         return $result;
     }
@@ -325,23 +275,21 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handlePOST()
     {
-        if ( !empty( $this->resource ) )
-        {
-            throw new BadRequestException( 'Create record by identifier not currently supported.' );
+        if (!empty($this->resource)) {
+            throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $records = $this->getPayloadData( self::RECORD_WRAPPER );
+        $records = $this->getPayloadData(self::RECORD_WRAPPER);
 
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'No record(s) detected in request.' );
+        if (empty($records)) {
+            throw new BadRequestException('No record(s) detected in request.');
         }
 
-        $this->triggerActionEvent( $this->response );
+        $this->triggerActionEvent($this->response);
 
-        $result = $this->bulkCreate( $records, $this->request->getParameters() );
+        $result = $this->bulkCreate($records, $this->request->getParameters());
 
-        $response = ResponseFactory::create( $result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED );
+        $response = ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
 
         return $response;
     }
@@ -351,7 +299,7 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handlePUT()
     {
-        throw new BadRequestException( 'PUT is not supported on System Resource. Use PATCH' );
+        throw new BadRequestException('PUT is not supported on System Resource. Use PATCH');
     }
 
     /**
@@ -363,11 +311,11 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return mixed
      */
-    protected function updateById( $id, array $record, array $params = [ ] )
+    protected function updateById($id, array $record, array $params = [])
     {
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
-        $result = $modelClass::updateById( $id, $record, $params );
+        $result = $modelClass::updateById($id, $record, $params);
 
         return $result;
     }
@@ -381,11 +329,11 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return mixed
      */
-    protected function updateByIds( $ids, array $record, array $params = [ ] )
+    protected function updateByIds($ids, array $record, array $params = [])
     {
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
-        $result = $modelClass::updateByIds( $ids, $record, $params );
+        $result = $modelClass::updateByIds($ids, $record, $params);
 
         return $result;
     }
@@ -398,11 +346,11 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return mixed
      */
-    protected function bulkUpdate( array $records, array $params = [ ] )
+    protected function bulkUpdate(array $records, array $params = [])
     {
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
-        $result = $modelClass::bulkUpdate( $records, $params );
+        $result = $modelClass::bulkUpdate($records, $params);
 
         return $result;
     }
@@ -416,27 +364,21 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handlePATCH()
     {
-        $records = $this->getPayloadData( static::RECORD_WRAPPER );
-        $ids = $this->request->getParameter( 'ids' );
+        $records = $this->getPayloadData(static::RECORD_WRAPPER);
+        $ids = $this->request->getParameter('ids');
 
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'No record(s) detected in request.' );
+        if (empty($records)) {
+            throw new BadRequestException('No record(s) detected in request.');
         }
 
-        $this->triggerActionEvent( $this->response );
+        $this->triggerActionEvent($this->response);
 
-        if ( !empty( $this->resource ) )
-        {
-            $result = $this->updateById( $this->resource, $records[0], $this->request->getParameters() );
-        }
-        elseif ( !empty( $ids ) )
-        {
-            $result = $this->updateByIds( $ids, $records[0], $this->request->getParameters() );
-        }
-        else
-        {
-            $result = $this->bulkUpdate( $records, $this->request->getParameters() );
+        if (!empty($this->resource)) {
+            $result = $this->updateById($this->resource, $records[0], $this->request->getParameters());
+        } elseif (!empty($ids)) {
+            $result = $this->updateByIds($ids, $records[0], $this->request->getParameters());
+        } else {
+            $result = $this->bulkUpdate($records, $this->request->getParameters());
         }
 
         return $result;
@@ -450,11 +392,11 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return mixed
      */
-    protected function deleteById( $id, array $params = [ ] )
+    protected function deleteById($id, array $params = [])
     {
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
-        $result = $modelClass::deleteById( $id, $params );
+        $result = $modelClass::deleteById($id, $params);
 
         return $result;
     }
@@ -467,11 +409,11 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return mixed
      */
-    protected function deleteByIds( $ids, array $params = [ ] )
+    protected function deleteByIds($ids, array $params = [])
     {
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
-        $result = $modelClass::deleteByIds( $ids, $params );
+        $result = $modelClass::deleteByIds($ids, $params);
 
         return $result;
     }
@@ -484,11 +426,11 @@ class BaseSystemResource extends BaseRestResource
      *
      * @return mixed
      */
-    protected function bulkDelete( array $records, array $params = [ ] )
+    protected function bulkDelete(array $records, array $params = [])
     {
         /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
-        $result = $modelClass::bulkDelete( $records, $params );
+        $result = $modelClass::bulkDelete($records, $params);
 
         return $result;
     }
@@ -502,27 +444,21 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handleDELETE()
     {
-        $this->triggerActionEvent( $this->response );
-        $ids = $this->request->getParameter( 'ids' );
+        $this->triggerActionEvent($this->response);
+        $ids = $this->request->getParameter('ids');
 
-        if ( !empty( $this->resource ) )
-        {
-            $result = $this->deleteById( $this->resource, $this->request->getParameters() );
-        }
-        elseif ( !empty( $ids ) )
-        {
-            $result = $this->deleteByIds( $ids, $this->request->getParameters() );
-        }
-        else
-        {
-            $records = $this->getPayloadData( static::RECORD_WRAPPER );
+        if (!empty($this->resource)) {
+            $result = $this->deleteById($this->resource, $this->request->getParameters());
+        } elseif (!empty($ids)) {
+            $result = $this->deleteByIds($ids, $this->request->getParameters());
+        } else {
+            $records = $this->getPayloadData(static::RECORD_WRAPPER);
 
-            if ( empty( $records ) )
-            {
-                throw new BadRequestException( 'No record(s) detected in request.' );
+            if (empty($records)) {
+                throw new BadRequestException('No record(s) detected in request.');
             }
 
-            $result = $this->bulkDelete( $records, $this->request->getParameters() );
+            $result = $this->bulkDelete($records, $this->request->getParameters());
         }
 
         return $result;
@@ -536,8 +472,7 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function getModel()
     {
-        if ( empty( $this->model ) || !class_exists( $this->model ) )
-        {
+        if (empty($this->model) || !class_exists($this->model)) {
             throw new ModelNotFoundException();
         }
 
@@ -547,11 +482,11 @@ class BaseSystemResource extends BaseRestResource
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName( '.' );
-        $name = Inflector::camelize( $this->name );
-        $plural = Inflector::pluralize( $name );
-        $words = str_replace( '_', ' ', $this->name );
-        $pluralWords = Inflector::pluralize( $words );
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $name = Inflector::camelize($this->name);
+        $plural = Inflector::pluralize($name);
+        $words = str_replace('_', ' ', $this->name);
+        $pluralWords = Inflector::pluralize($words);
         $apis = [
             [
                 'path'        => $path,
@@ -562,8 +497,8 @@ class BaseSystemResource extends BaseRestResource
                         'nickname'         => 'get' . $plural,
                         'type'             => $plural . 'Response',
                         'event_name'       => $eventPath . '.list',
-                        'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
-                        'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
+                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
+                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [
                             [
                                 'name'          => 'ids',
@@ -676,8 +611,8 @@ class BaseSystemResource extends BaseRestResource
                         'nickname'         => 'create' . $plural,
                         'type'             => $plural . 'Response',
                         'event_name'       => $eventPath . '.create',
-                        'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
-                        'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
+                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
+                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [
                             [
                                 'name'          => 'body',
@@ -706,7 +641,7 @@ class BaseSystemResource extends BaseRestResource
                             [
                                 'name'          => 'X-HTTP-METHOD',
                                 'description'   => 'Override request using POST to tunnel other http request, such as DELETE.',
-                                'enum'          => [ 'GET', 'PUT', 'PATCH', 'DELETE' ],
+                                'enum'          => ['GET', 'PUT', 'PATCH', 'DELETE'],
                                 'allowMultiple' => false,
                                 'type'          => 'string',
                                 'paramType'     => 'header',
@@ -738,8 +673,8 @@ class BaseSystemResource extends BaseRestResource
                         'nickname'         => 'update' . $plural,
                         'type'             => $plural . 'Response',
                         'event_name'       => $eventPath . '.update',
-                        'consumes'         => [ 'application/json', 'application/xml', 'text/csv' ],
-                        'produces'         => [ 'application/json', 'application/xml', 'text/csv' ],
+                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
+                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [
                             [
                                 'name'          => 'body',
@@ -1068,15 +1003,13 @@ class BaseSystemResource extends BaseRestResource
         ];
 
         $model = $this->getModel();
-        if ( $model )
-        {
-            $temp = $model->toApiDocsModel( $name );
-            if ( $temp )
-            {
-                $models = array_merge( $models, $temp );
+        if ($model) {
+            $temp = $model->toApiDocsModel($name);
+            if ($temp) {
+                $models = array_merge($models, $temp);
             }
         }
 
-        return [ 'apis' => $apis, 'models' => $models ];
+        return ['apis' => $apis, 'models' => $models];
     }
 }

@@ -22,7 +22,7 @@ class ServicePreProcess extends Event
      * @param ServiceRequestInterface $request
      * @param mixed                   $resource
      */
-    public function __construct( $service, &$request, $resource = null )
+    public function __construct($service, &$request, $resource = null)
     {
         $this->service = $service;
         $this->request = $request;

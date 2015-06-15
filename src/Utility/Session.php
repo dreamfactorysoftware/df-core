@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Utility;
 
@@ -44,16 +26,16 @@ class Session
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
-    public static function isAccessAllowed( $requestor = ServiceRequestorTypes::API )
+    public static function isAccessAllowed($requestor = ServiceRequestorTypes::API)
     {
         /** @var Router $router */
-        $router = app( 'router' );
-        $service = strtolower( $router->input( 'service' ) );
-        $component = strtolower( $router->input( 'resource' ) );
-        $action = VerbsMask::toNumeric( Request::getMethod() );
-        $allowed = static::getServicePermissions( $service, $component, $requestor );
+        $router = app('router');
+        $service = strtolower($router->input('service'));
+        $component = strtolower($router->input('resource'));
+        $action = VerbsMask::toNumeric(Request::getMethod());
+        $allowed = static::getServicePermissions($service, $component, $requestor);
 
-        return ( $action & $allowed ) ? true : false;
+        return ($action & $allowed) ? true : false;
     }
 
     /**
@@ -63,9 +45,8 @@ class Session
      */
     public static function checkPermission()
     {
-        if ( !static::isAccessAllowed() )
-        {
-            throw new ForbiddenException( 'Forbidden. You do not have permission to access the requested service/resource.' );
+        if (!static::isAccessAllowed()) {
+            throw new ForbiddenException('Forbidden. You do not have permission to access the requested service/resource.');
         }
     }
 
@@ -77,23 +58,25 @@ class Session
      *
      * @throws ForbiddenException
      */
-    public static function checkServicePermission( $action, $service, $component = null, $requestor = ServiceRequestorTypes::API )
-    {
-        $_verb = VerbsMask::toNumeric( static::cleanAction( $action ) );
+    public static function checkServicePermission(
+        $action,
+        $service,
+        $component = null,
+        $requestor = ServiceRequestorTypes::API
+    ){
+        $_verb = VerbsMask::toNumeric(static::cleanAction($action));
 
-        $_mask = static::getServicePermissions( $service, $component, $requestor );
+        $_mask = static::getServicePermissions($service, $component, $requestor);
 
-        if ( !( $_verb & $_mask ) )
-        {
-            $msg = ucfirst( $action ) . " access to ";
-            if ( !empty( $component ) )
-            {
+        if (!($_verb & $_mask)) {
+            $msg = ucfirst($action) . " access to ";
+            if (!empty($component)) {
                 $msg .= "component '$component' of ";
             }
 
             $msg .= "service '$service' is not allowed by this user's role.";
 
-            throw new ForbiddenException( $msg );
+            throw new ForbiddenException($msg);
         }
     }
 
@@ -104,16 +87,21 @@ class Session
      *
      * @returns array
      */
-    public static function getServicePermissions( $service, $component = null, $requestor = ServiceRequestorTypes::API )
+    public static function getServicePermissions($service, $component = null, $requestor = ServiceRequestorTypes::API)
     {
-        if ( true === static::isSysAdmin() )
-        {
-            return VerbsMask::NONE_MASK | VerbsMask::GET_MASK | VerbsMask::POST_MASK | VerbsMask::PUT_MASK | VerbsMask::PATCH_MASK | VerbsMask::DELETE_MASK;
+        if (true === static::isSysAdmin()) {
+            return
+                VerbsMask::NONE_MASK |
+                VerbsMask::GET_MASK |
+                VerbsMask::POST_MASK |
+                VerbsMask::PUT_MASK |
+                VerbsMask::PATCH_MASK |
+                VerbsMask::DELETE_MASK;
         }
 
-        $services = ArrayUtils::clean( static::getWithApiKey( 'role.services' ) );
-        $service = strval( $service );
-        $component = strval( $component );
+        $services = ArrayUtils::clean(static::getWithApiKey('role.services'));
+        $service = strval($service);
+        $component = strval($component);
 
         //  If exact match found take it, otherwise follow up the chain as necessary
         //  All - Service - Component - Sub-component
@@ -125,80 +113,58 @@ class Session
         $componentFound = false;
         $exactAllowed = VerbsMask::NONE_MASK;
         $exactFound = false;
-        foreach ( $services as $svcInfo )
-        {
-            $tempRequestors = ArrayUtils::get( $svcInfo, 'requestor_mask', ServiceRequestorTypes::API );
-            if ( !( $requestor & $tempRequestors ) )
-            {
+        foreach ($services as $svcInfo) {
+            $tempRequestors = ArrayUtils::get($svcInfo, 'requestor_mask', ServiceRequestorTypes::API);
+            if (!($requestor & $tempRequestors)) {
                 //  Requestor type not found in allowed requestors, skip access setting
                 continue;
             }
 
-            $tempService = strval( ArrayUtils::get( $svcInfo, 'service' ) );
-            $tempComponent = strval( ArrayUtils::get( $svcInfo, 'component' ) );
-            $tempVerbs = ArrayUtils::get( $svcInfo, 'verb_mask' );
+            $tempService = strval(ArrayUtils::get($svcInfo, 'service'));
+            $tempComponent = strval(ArrayUtils::get($svcInfo, 'component'));
+            $tempVerbs = ArrayUtils::get($svcInfo, 'verb_mask');
 
-            if ( 0 == strcasecmp( $service, $tempService ) )
-            {
-                if ( !empty( $component ) )
-                {
-                    if ( 0 == strcasecmp( $component, $tempComponent ) )
-                    {
+            if (0 == strcasecmp($service, $tempService)) {
+                if (!empty($component)) {
+                    if (0 == strcasecmp($component, $tempComponent)) {
                         // exact match
                         $exactAllowed |= $tempVerbs;
                         $exactFound = true;
-                    }
-                    elseif ( 0 == strcasecmp( substr( $component, 0, strpos( $component, '/' ) + 1 ) . '*', $tempComponent ) )
-                    {
+                    } elseif (0 ==
+                        strcasecmp(substr($component, 0, strpos($component, '/') + 1) . '*', $tempComponent)
+                    ) {
                         $componentAllowed |= $tempVerbs;
                         $componentFound = true;
-                    }
-                    elseif ( '*' == $tempComponent )
-                    {
+                    } elseif ('*' == $tempComponent) {
                         $serviceAllowed |= $tempVerbs;
                         $serviceFound = true;
                     }
-                }
-                else
-                {
-                    if ( empty( $tempComponent ) )
-                    {
+                } else {
+                    if (empty($tempComponent)) {
                         // exact match
                         $exactAllowed |= $tempVerbs;
                         $exactFound = true;
-                    }
-                    elseif ( '*' == $tempComponent )
-                    {
+                    } elseif ('*' == $tempComponent) {
                         $serviceAllowed |= $tempVerbs;
                         $serviceFound = true;
                     }
                 }
-            }
-            else
-            {
-                if ( empty( $tempService ) && ( ( '*' == $tempComponent ) || ( empty( $tempComponent ) && empty( $component ) ) )
-                )
-                {
+            } else {
+                if (empty($tempService) && (('*' == $tempComponent) || (empty($tempComponent) && empty($component)))
+                ) {
                     $allAllowed |= $tempVerbs;
                     $allFound = true;
                 }
             }
         }
 
-        if ( $exactFound )
-        {
+        if ($exactFound) {
             return $exactAllowed;
-        }
-        elseif ( $componentFound )
-        {
+        } elseif ($componentFound) {
             return $componentAllowed;
-        }
-        elseif ( $serviceFound )
-        {
+        } elseif ($serviceFound) {
             return $serviceAllowed;
-        }
-        elseif ( $allFound )
-        {
+        } elseif ($allFound) {
             return $allAllowed;
         }
 
@@ -210,12 +176,11 @@ class Session
      *
      * @return string
      */
-    protected static function cleanAction( $action )
+    protected static function cleanAction($action)
     {
         // check for non-conformists
-        $action = strtoupper( $action );
-        switch ( $action )
-        {
+        $action = strtoupper($action);
+        switch ($action) {
             case 'READ':
                 return Verbs::GET;
 
@@ -236,102 +201,80 @@ class Session
      *
      * @returns bool
      */
-    public static function getServiceFilters( $action, $service, $component = null )
+    public static function getServiceFilters($action, $service, $component = null)
     {
-        if ( true === static::isSysAdmin() )
-        {
-            return [ ];
+        if (true === static::isSysAdmin()) {
+            return [];
         }
 
-        if ( null === ( $_roleInfo = ArrayUtils::get( static::$_cache, 'role' ) ) )
-        {
+        if (null === ($_roleInfo = ArrayUtils::get(static::$_cache, 'role'))) {
             // no role assigned
-            return [ ];
+            return [];
         }
 
-        $_services = ArrayUtils::clean( ArrayUtils::get( $_roleInfo, 'services' ) );
+        $_services = ArrayUtils::clean(ArrayUtils::get($_roleInfo, 'services'));
 
         $_serviceAllowed = null;
         $_serviceFound = false;
         $_componentFound = false;
-        $action = VerbsMask::toNumeric( static::cleanAction( $action ) );
+        $action = VerbsMask::toNumeric(static::cleanAction($action));
 
-        foreach ( $_services as $_svcInfo )
-        {
-            $_tempService = ArrayUtils::get( $_svcInfo, 'service' );
-            if ( null === $_tempVerbs = ArrayUtils::get( $_svcInfo, 'verb_mask' ) )
-            {
+        foreach ($_services as $_svcInfo) {
+            $_tempService = ArrayUtils::get($_svcInfo, 'service');
+            if (null === $_tempVerbs = ArrayUtils::get($_svcInfo, 'verb_mask')) {
                 //  Check for old verbs array
-                if ( null !== $_temp = ArrayUtils::get( $_svcInfo, 'verbs' ) )
-                {
-                    $_tempVerbs = VerbsMask::arrayToMask( $_temp );
+                if (null !== $_temp = ArrayUtils::get($_svcInfo, 'verbs')) {
+                    $_tempVerbs = VerbsMask::arrayToMask($_temp);
                 }
             }
 
-            if ( 0 == strcasecmp( $service, $_tempService ) )
-            {
+            if (0 == strcasecmp($service, $_tempService)) {
                 $_serviceFound = true;
-                $_tempComponent = ArrayUtils::get( $_svcInfo, 'component' );
-                if ( !empty( $component ) )
-                {
-                    if ( 0 == strcasecmp( $component, $_tempComponent ) )
-                    {
+                $_tempComponent = ArrayUtils::get($_svcInfo, 'component');
+                if (!empty($component)) {
+                    if (0 == strcasecmp($component, $_tempComponent)) {
                         $_componentFound = true;
-                        if ( $_tempVerbs & $action )
-                        {
-                            $_filters = ArrayUtils::get( $_svcInfo, 'filters' );
-                            $_operator = ArrayUtils::get( $_svcInfo, 'filter_op', 'AND' );
-                            if ( empty( $_filters ) )
-                            {
+                        if ($_tempVerbs & $action) {
+                            $_filters = ArrayUtils::get($_svcInfo, 'filters');
+                            $_operator = ArrayUtils::get($_svcInfo, 'filter_op', 'AND');
+                            if (empty($_filters)) {
                                 return null;
                             }
 
-                            return [ 'filters' => $_filters, 'filter_op' => $_operator ];
+                            return ['filters' => $_filters, 'filter_op' => $_operator];
+                        }
+                    } elseif (empty($_tempComponent) || ('*' == $_tempComponent)) {
+                        if ($_tempVerbs & $action) {
+                            $_filters = ArrayUtils::get($_svcInfo, 'filters');
+                            $_operator = ArrayUtils::get($_svcInfo, 'filter_op', 'AND');
+                            if (empty($_filters)) {
+                                return null;
+                            }
+
+                            $_serviceAllowed = ['filters' => $_filters, 'filter_op' => $_operator];
                         }
                     }
-                    elseif ( empty( $_tempComponent ) || ( '*' == $_tempComponent ) )
-                    {
-                        if ( $_tempVerbs & $action )
-                        {
-                            $_filters = ArrayUtils::get( $_svcInfo, 'filters' );
-                            $_operator = ArrayUtils::get( $_svcInfo, 'filter_op', 'AND' );
-                            if ( empty( $_filters ) )
-                            {
+                } else {
+                    if (empty($_tempComponent) || ('*' == $_tempComponent)) {
+                        if ($_tempVerbs & $action) {
+                            $_filters = ArrayUtils::get($_svcInfo, 'filters');
+                            $_operator = ArrayUtils::get($_svcInfo, 'filter_op', 'AND');
+                            if (empty($_filters)) {
                                 return null;
                             }
 
-                            $_serviceAllowed = [ 'filters' => $_filters, 'filter_op' => $_operator ];
-                        }
-                    }
-                }
-                else
-                {
-                    if ( empty( $_tempComponent ) || ( '*' == $_tempComponent ) )
-                    {
-                        if ( $_tempVerbs & $action )
-                        {
-                            $_filters = ArrayUtils::get( $_svcInfo, 'filters' );
-                            $_operator = ArrayUtils::get( $_svcInfo, 'filter_op', 'AND' );
-                            if ( empty( $_filters ) )
-                            {
-                                return null;
-                            }
-
-                            $_serviceAllowed = [ 'filters' => $_filters, 'filter_op' => $_operator ];
+                            $_serviceAllowed = ['filters' => $_filters, 'filter_op' => $_operator];
                         }
                     }
                 }
             }
         }
 
-        if ( $_componentFound )
-        {
+        if ($_componentFound) {
             // at least one service and component match was found, but not the right verb
 
             return null;
-        }
-        elseif ( $_serviceFound )
-        {
+        } elseif ($_serviceFound) {
             return $_serviceAllowed;
         }
 
@@ -345,15 +288,15 @@ class Session
      *
      * @return bool
      */
-    public static function setUserInfo( User $user )
+    public static function setUserInfo(User $user)
     {
-        \Session::put( 'user.id', $user->id );
-        \Session::put( 'user.display_name', $user->name );
-        \Session::put( 'user.first_name', $user->first_name );
-        \Session::put( 'user.last_name', $user->last_name );
-        \Session::put( 'user.email', $user->email );
-        \Session::put( 'user.is_sys_admin', $user->is_sys_admin );
-        \Session::put( 'user.last_login_date', $user->last_login_date );
+        \Session::put('user.id', $user->id);
+        \Session::put('user.display_name', $user->name);
+        \Session::put('user.first_name', $user->first_name);
+        \Session::put('user.last_name', $user->last_name);
+        \Session::put('user.email', $user->email);
+        \Session::put('user.is_sys_admin', $user->is_sys_admin);
+        \Session::put('user.last_login_date', $user->last_login_date);
     }
 
     /**
@@ -364,28 +307,26 @@ class Session
      */
     public static function getPublicInfo()
     {
-        if ( ( null === session( 'user' ) ) && ( null === session( 'api_key' ) ) )
-        {
-            throw new UnauthorizedException( 'There is no valid session for the current request.' );
+        if ((null === session('user')) && (null === session('api_key'))) {
+            throw new UnauthorizedException('There is no valid session for the current request.');
         }
 
         $sessionData = [
             'session_id'      => \Session::getId(),
-            'id'              => session( 'user.id' ),
-            'name'            => session( 'user.display_name' ),
-            'first_name'      => session( 'user.first_name' ),
-            'last_name'       => session( 'user.last_name' ),
-            'email'           => session( 'user.email' ),
-            'is_sys_admin'    => session( 'user.is_sys_admin' ),
-            'last_login_date' => session( 'user.last_login_date' ),
+            'id'              => session('user.id'),
+            'name'            => session('user.display_name'),
+            'first_name'      => session('user.first_name'),
+            'last_name'       => session('user.last_name'),
+            'email'           => session('user.email'),
+            'is_sys_admin'    => session('user.is_sys_admin'),
+            'last_login_date' => session('user.last_login_date'),
             'host'            => gethostname()
         ];
 
-        if ( !Scalar::boolval( session( 'user.is_sys_admin' ) ) )
-        {
-            $role = session( 'rsa.role' );
-            ArrayUtils::set( $sessionData, 'role', ArrayUtils::get( $role, 'name' ) );
-            ArrayUtils::set( $sessionData, 'role_id', ArrayUtils::get( $role, 'id' ) );
+        if (!Scalar::boolval(session('user.is_sys_admin'))) {
+            $role = session('rsa.role');
+            ArrayUtils::set($sessionData, 'role', ArrayUtils::get($role, 'name'));
+            ArrayUtils::set($sessionData, 'role_id', ArrayUtils::get($role, 'id'));
         }
 
         return $sessionData;
@@ -398,7 +339,7 @@ class Session
      */
     public static function getCurrentUserId()
     {
-        return session( 'user.id' );
+        return session('user.id');
     }
 
     /**
@@ -408,7 +349,7 @@ class Session
      */
     public static function getRoleId()
     {
-        return session( 'rsa.role.id' );
+        return session('rsa.role.id');
     }
 
     /**
@@ -419,12 +360,13 @@ class Session
      * @param null $appId
      * @param null $userId
      */
-    public static function setLookupKeys( $apiKey, $roleId = null, $appId = null, $userId = null )
+    public static function setLookupKeys($apiKey, $roleId = null, $appId = null, $userId = null)
     {
-        $lookup = LookupKey::getLookup( $roleId, $appId, $userId );
+        $lookup = LookupKey::getLookup($roleId, $appId, $userId);
 
-        \Session::put( static::API_KEY_PREFIX . '.' . $apiKey . '.lookup', ArrayUtils::get( $lookup, 'lookup', [ ] ) );
-        \Session::put( static::API_KEY_PREFIX . '.' . $apiKey . '.lookup_secret', ArrayUtils::get( $lookup, 'lookup_secret', [ ] ) );
+        \Session::put(static::API_KEY_PREFIX . '.' . $apiKey . '.lookup', ArrayUtils::get($lookup, 'lookup', []));
+        \Session::put(static::API_KEY_PREFIX . '.' . $apiKey . '.lookup_secret',
+            ArrayUtils::get($lookup, 'lookup_secret', []));
     }
 
     /**
@@ -445,52 +387,51 @@ class Session
      */
     public static function isSysAdmin()
     {
-        return session( 'user.is_sys_admin', false );
+        return session('user.is_sys_admin', false);
     }
 
-    public static function get( $key, $default = null )
+    public static function get($key, $default = null)
     {
-        return \Session::get( $key, $default );
+        return \Session::get($key, $default);
     }
 
-    public static function getWithApiKey( $key, $default = null, $apiKey = null )
+    public static function getWithApiKey($key, $default = null, $apiKey = null)
     {
-        if ( empty( $apiKey ) )
-        {
+        if (empty($apiKey)) {
             $apiKey = static::getCurrentApiKey();
         }
 
-        return \Session::get( static::API_KEY_PREFIX . '.' . $apiKey . '.' . $key, $default );
+        return \Session::get(static::API_KEY_PREFIX . '.' . $apiKey . '.' . $key, $default);
     }
 
-    public static function set( $name, $value )
+    public static function set($name, $value)
     {
-        \Session::set( $name, $value );
+        \Session::set($name, $value);
     }
 
-    public static function put( $key, $value = null )
+    public static function put($key, $value = null)
     {
-        \Session::put( $key, $value );
+        \Session::put($key, $value);
     }
 
-    public static function putWithApiKey( $apiKey, $key, $value = null )
+    public static function putWithApiKey($apiKey, $key, $value = null)
     {
-        \Session::put( static::API_KEY_PREFIX . '.' . $apiKey . '.' . $key, $value );
+        \Session::put(static::API_KEY_PREFIX . '.' . $apiKey . '.' . $key, $value);
     }
 
-    public static function push( $key, $value )
+    public static function push($key, $value)
     {
-        \Session::push( $key, $value );
+        \Session::push($key, $value);
     }
 
-    public static function has( $name )
+    public static function has($name)
     {
-        return \Session::has( $name );
+        return \Session::has($name);
     }
 
-    public static function hasApiKey( $key )
+    public static function hasApiKey($key)
     {
-        return \Session::has( static::API_KEY_PREFIX . '.' . $key );
+        return \Session::has(static::API_KEY_PREFIX . '.' . $key);
     }
 
     public static function getId()
@@ -498,14 +439,14 @@ class Session
         return \Session::getId();
     }
 
-    public static function isValidId( $id )
+    public static function isValidId($id)
     {
-        return \Session::isValidId( $id );
+        return \Session::isValidId($id);
     }
 
-    public static function setId( $sessionId )
+    public static function setId($sessionId)
     {
-        \Session::setId( $sessionId );
+        \Session::setId($sessionId);
     }
 
     public static function start()
@@ -513,9 +454,9 @@ class Session
         return \Session::start();
     }
 
-    public static function driver( $driver = null )
+    public static function driver($driver = null)
     {
-        return \Session::driver( $driver );
+        return \Session::driver($driver);
     }
 
     public static function all()
@@ -530,26 +471,26 @@ class Session
 
     public static function getCurrentApiKey()
     {
-        return session( 'current_api_key' );
+        return session('current_api_key');
     }
 
-    public static function setCurrentApiKey( $key )
+    public static function setCurrentApiKey($key)
     {
-        \Session::put( 'current_api_key', $key );
+        \Session::put('current_api_key', $key);
     }
 
-    public static function remove( $name )
+    public static function remove($name)
     {
-        return \Session::remove( $name );
+        return \Session::remove($name);
     }
 
-    public static function forget( $key )
+    public static function forget($key)
     {
-        \Session::forget( $key );
+        \Session::forget($key);
     }
 
     public static function forgetApiKeys()
     {
-        \Session::forget( static::API_KEY_PREFIX );
+        \Session::forget(static::API_KEY_PREFIX);
     }
 }

@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Resources\System;
 
@@ -29,16 +11,16 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 class Config extends BaseSystemResource
 {
 
-    public function __construct( $settings = [ ] )
+    public function __construct($settings = [])
     {
         $verbAliases = [
             Verbs::PUT   => Verbs::POST,
             Verbs::MERGE => Verbs::POST,
             Verbs::PATCH => Verbs::POST
         ];
-        ArrayUtils::set( $settings, "verbAliases", $verbAliases );
+        ArrayUtils::set($settings, "verbAliases", $verbAliases);
 
-        parent::__construct( $settings );
+        parent::__construct($settings);
 
         $this->model = 'DreamFactory\Core\Models\Config';
     }
@@ -47,7 +29,7 @@ class Config extends BaseSystemResource
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
-        $_config = [ ];
+        $_config = [];
 
         $_config['apis'] = [
             [
@@ -194,7 +176,7 @@ class Config extends BaseSystemResource
             ],
         ];
 
-        @ksort( $_commonProperties );
+        @ksort($_commonProperties);
 
         $_config['models'] = [
             'ConfigRequest'  => [
@@ -313,33 +295,31 @@ HTML
             ],
         ];
 
-        @ksort( $_config['models'] );
-        @ksort( $_config['models']['ConfigResponse']['properties'] );
+        @ksort($_config['models']);
+        @ksort($_config['models']['ConfigResponse']['properties']);
 
         return $_config;
     }
 
     protected function handlePOST()
     {
-        if ( !empty( $this->resource ) )
-        {
-            throw new BadRequestException( 'Create record by identifier not currently supported.' );
+        if (!empty($this->resource)) {
+            throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $records = $this->getPayloadData( self::RECORD_WRAPPER );
-        unset( $records[0]['api_key'] );
+        $records = $this->getPayloadData(self::RECORD_WRAPPER);
+        unset($records[0]['api_key']);
 
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'No record(s) detected in request.' );
+        if (empty($records)) {
+            throw new BadRequestException('No record(s) detected in request.');
         }
 
-        $this->triggerActionEvent( $this->response );
+        $this->triggerActionEvent($this->response);
 
         $modelClass = $this->model;
-        $result = $modelClass::bulkCreate( $records, $this->request->getParameters() );
+        $result = $modelClass::bulkCreate($records, $this->request->getParameters());
 
-        $response = ResponseFactory::create( $result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED );
+        $response = ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
 
         return $response;
     }

@@ -1,23 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\HttpStatusCodes;
@@ -107,70 +88,71 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         ]
     ];
 
-    protected static $roleIds = [ ];
+    protected static $roleIds = [];
 
     protected $serviceId = 'system';
 
     public function testPOSTCreateRoles()
     {
         /** @var ServiceResponseInterface $response */
-        $response = $this->makeRequest( Verbs::POST, self::RESOURCE, [ ], [ $this->role1, $this->role2 ] );
+        $response = $this->makeRequest(Verbs::POST, self::RESOURCE, [], [$this->role1, $this->role2]);
         $content = $response->getContent();
 
-        $this->assertTrue( isset( $content['record'] ) );
+        $this->assertTrue(isset($content['record']));
 
-        $records = ArrayUtils::get( $content, 'record' );
+        $records = ArrayUtils::get($content, 'record');
 
-        static::$roleIds = [ ];
+        static::$roleIds = [];
 
-        foreach ( $records as $r )
-        {
-            $this->assertTrue( ArrayUtils::get( $r, 'id' ) > 0 );
-            static::$roleIds[] = ArrayUtils::get( $r, 'id' );
+        foreach ($records as $r) {
+            $this->assertTrue(ArrayUtils::get($r, 'id') > 0);
+            static::$roleIds[] = ArrayUtils::get($r, 'id');
         }
 
-        $this->assertEquals( HttpStatusCodes::HTTP_CREATED, $response->getStatusCode() );
+        $this->assertEquals(HttpStatusCodes::HTTP_CREATED, $response->getStatusCode());
     }
 
     public function testPOSTCreateRolesWithFieldsAndRelated()
     {
-        $response = $this->makeRequest( Verbs::POST, self::RESOURCE, [ 'fields' => 'name,id', 'related' => 'role_lookup_by_role_id' ], [ $this->role3 ] );
+        $response =
+            $this->makeRequest(Verbs::POST, self::RESOURCE,
+                ['fields' => 'name,id', 'related' => 'role_lookup_by_role_id'], [$this->role3]);
         $content = $response->getContent();
 
-        static::$roleIds[] = ArrayUtils::get( $content, 'id' );
+        static::$roleIds[] = ArrayUtils::get($content, 'id');
 
-        $this->assertEquals( ArrayUtils::get( $this->role3, 'name' ), ArrayUtils::get( $content, 'name' ) );
+        $this->assertEquals(ArrayUtils::get($this->role3, 'name'), ArrayUtils::get($content, 'name'));
         $this->assertEquals(
-            Arr::get( $this->role3, 'role_lookup_by_role_id.0.name' ),
-            Arr::get( $content, 'role_lookup_by_role_id.0.name' )
+            Arr::get($this->role3, 'role_lookup_by_role_id.0.name'),
+            Arr::get($content, 'role_lookup_by_role_id.0.name')
         );
     }
 
     public function testPATCHRole()
     {
-        $role1 = $this->getRole( static::$roleIds[0] );
+        $role1 = $this->getRole(static::$roleIds[0]);
 
         $role1['name'] = 'Patched Test Role 1';
         $role1['role_service_access_by_role_id'][0]['component'] = 'test';
         $role1['role_lookup_by_role_id'][0]['name'] = 'patched-test1_1';
         $role1['role_lookup_by_role_id'][0]['value'] = '897';
 
-        $rs = $this->makeRequest( Verbs::PATCH, self::RESOURCE, [ ], [ $role1 ] );
+        $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role1]);
         $c = $rs->getContent();
 
-        $this->assertTrue( ArrayUtils::get( $c, 'id' ) === static::$roleIds[0] );
+        $this->assertTrue(ArrayUtils::get($c, 'id') === static::$roleIds[0]);
 
-        $updatedRole = $this->getRole( static::$roleIds[0] );
+        $updatedRole = $this->getRole(static::$roleIds[0]);
 
-        $this->assertEquals( 'Patched Test Role 1', $updatedRole['name'] );
-        $this->assertEquals( 'test', $updatedRole['role_service_access_by_role_id'][0]['component'] );
-        $this->assertEquals( 'patched-test1_1', $updatedRole['role_lookup_by_role_id'][0]['name'] );
-        $this->assertEquals( '897', $updatedRole['role_lookup_by_role_id'][0]['value'] );
+        $this->assertEquals('Patched Test Role 1', $updatedRole['name']);
+        $this->assertEquals('test', $updatedRole['role_service_access_by_role_id'][0]['component']);
+        $this->assertEquals('patched-test1_1', $updatedRole['role_lookup_by_role_id'][0]['name']);
+        $this->assertEquals('897', $updatedRole['role_lookup_by_role_id'][0]['value']);
     }
 
     public function testPATCHRoleWithFieldsAndRelated()
     {
-        $role1 = $this->getRole( static::$roleIds[0] );
+        $role1 = $this->getRole(static::$roleIds[0]);
 
         $role1['name'] = 'Patched Test Role 1_2';
         $role1['role_service_access_by_role_id'][0]['component'] = 'test_2';
@@ -180,78 +162,78 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $rs = $this->makeRequest(
             Verbs::PATCH,
             self::RESOURCE,
-            [ 'fields' => 'id,name,is_active', 'related' => 'role_service_access_by_role_id,role_lookup_by_role_id' ],
-            [ $role1 ]
+            ['fields' => 'id,name,is_active', 'related' => 'role_service_access_by_role_id,role_lookup_by_role_id'],
+            [$role1]
         );
 
         $c = $rs->getContent();
 
-        $this->assertTrue( ArrayUtils::get( $c, 'id' ) === static::$roleIds[0] );
+        $this->assertTrue(ArrayUtils::get($c, 'id') === static::$roleIds[0]);
 
         $updatedRole = $c;
 
-        $this->assertEquals( 'Patched Test Role 1_2', $updatedRole['name'] );
-        $this->assertEquals( 'test_2', $updatedRole['role_service_access_by_role_id'][0]['component'] );
-        $this->assertEquals( 'patched-test1_1_2', $updatedRole['role_lookup_by_role_id'][0]['name'] );
-        $this->assertEquals( '900', $updatedRole['role_lookup_by_role_id'][0]['value'] );
+        $this->assertEquals('Patched Test Role 1_2', $updatedRole['name']);
+        $this->assertEquals('test_2', $updatedRole['role_service_access_by_role_id'][0]['component']);
+        $this->assertEquals('patched-test1_1_2', $updatedRole['role_lookup_by_role_id'][0]['name']);
+        $this->assertEquals('900', $updatedRole['role_lookup_by_role_id'][0]['value']);
     }
 
     public function testPATCHCreateRelation()
     {
-        $role2 = $this->getRole( static::$roleIds[1] );
+        $role2 = $this->getRole(static::$roleIds[1]);
 
-        unset( $role2['role_lookup_by_role_id'][0]['id'] );
+        unset($role2['role_lookup_by_role_id'][0]['id']);
 
-        $rs = $this->makeRequest( Verbs::PATCH, self::RESOURCE, [ ], [ $role2 ] );
+        $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role2]);
         $c = $rs->getContent();
 
-        $this->assertTrue( ArrayUtils::get( $c, 'id' ) === static::$roleIds[1] );
+        $this->assertTrue(ArrayUtils::get($c, 'id') === static::$roleIds[1]);
 
-        $updatedRole = $this->getRole( static::$roleIds[1] );
+        $updatedRole = $this->getRole(static::$roleIds[1]);
 
-        $this->assertEquals( 3, count( $updatedRole['role_lookup_by_role_id'] ) );
+        $this->assertEquals(3, count($updatedRole['role_lookup_by_role_id']));
     }
 
     public function testPATCHDeleteRelation()
     {
-        $role2 = $this->getRole( static::$roleIds[1] );
+        $role2 = $this->getRole(static::$roleIds[1]);
 
         $role2['role_lookup_by_role_id'][0]['role_id'] = null;
 
-        $rs = $this->makeRequest( Verbs::PATCH, self::RESOURCE, [ ], [ $role2 ] );
+        $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role2]);
         $c = $rs->getContent();
 
-        $this->assertTrue( ArrayUtils::get( $c, 'id' ) === static::$roleIds[1] );
+        $this->assertTrue(ArrayUtils::get($c, 'id') === static::$roleIds[1]);
 
-        $updatedRole = $this->getRole( static::$roleIds[1] );
+        $updatedRole = $this->getRole(static::$roleIds[1]);
 
-        $this->assertEquals( 2, count( $updatedRole['role_lookup_by_role_id'] ) );
+        $this->assertEquals(2, count($updatedRole['role_lookup_by_role_id']));
     }
 
     public function testPATCHAdoptRelation()
     {
-        $role1 = $this->getRole( static::$roleIds[0] );
-        $role2 = $this->getRole( static::$roleIds[1] );
+        $role1 = $this->getRole(static::$roleIds[0]);
+        $role2 = $this->getRole(static::$roleIds[1]);
 
         $role2['role_lookup_by_role_id'][0]['role_id'] = $role1['role_lookup_by_role_id'][0]['role_id'];
 
-        $rs = $this->makeRequest( Verbs::PATCH, self::RESOURCE, [ ], [ $role2 ] );
+        $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role2]);
         $c = $rs->getContent();
 
-        $this->assertTrue( ArrayUtils::get( $c, 'id' ) === static::$roleIds[1] );
+        $this->assertTrue(ArrayUtils::get($c, 'id') === static::$roleIds[1]);
 
-        $updatedRole = $this->getRole( static::$roleIds[1] );
-        $otherRole = $this->getRole( static::$roleIds[0] );
+        $updatedRole = $this->getRole(static::$roleIds[1]);
+        $otherRole = $this->getRole(static::$roleIds[0]);
 
-        $this->assertEquals( 1, count( $updatedRole['role_lookup_by_role_id'] ) );
-        $this->assertEquals( 3, count( $otherRole['role_lookup_by_role_id'] ) );
+        $this->assertEquals(1, count($updatedRole['role_lookup_by_role_id']));
+        $this->assertEquals(3, count($otherRole['role_lookup_by_role_id']));
     }
 
     public function testPATCHMultipleRoles()
     {
-        $role1 = $this->getRole( static::$roleIds[0] );
-        $role2 = $this->getRole( static::$roleIds[1] );
-        $role3 = $this->getRole( static::$roleIds[2] );
+        $role1 = $this->getRole(static::$roleIds[0]);
+        $role2 = $this->getRole(static::$roleIds[1]);
+        $role3 = $this->getRole(static::$roleIds[2]);
 
         $role1['name'] = 'test-multiple-update_1';
         $role1['role_service_access_by_role_id'][0]['component'] = 'updated1';
@@ -268,67 +250,67 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $rs = $this->makeRequest(
             Verbs::PATCH,
             self::RESOURCE,
-            [ 'fields' => '*', 'related' => 'role_service_access_by_role_id,role_lookup_by_role_id' ],
-            [ $role1, $role2, $role3 ]
+            ['fields' => '*', 'related' => 'role_service_access_by_role_id,role_lookup_by_role_id'],
+            [$role1, $role2, $role3]
         );
         $c = $rs->getContent();
-        $records = ArrayUtils::get( $c, 'record' );
+        $records = ArrayUtils::get($c, 'record');
 
-        foreach ( $records as $key => $record )
-        {
-            $this->assertEquals( static::$roleIds[$key], ArrayUtils::get( $record, 'id' ) );
+        foreach ($records as $key => $record) {
+            $this->assertEquals(static::$roleIds[$key], ArrayUtils::get($record, 'id'));
         }
 
-        $this->assertEquals( Arr::get( $role1, 'name' ), Arr::get( $records, '0.name' ) );
+        $this->assertEquals(Arr::get($role1, 'name'), Arr::get($records, '0.name'));
         $this->assertEquals(
-            Arr::get( $role1, 'role_service_access_by_role_id.0.component' ),
-            Arr::get( $records, '0.role_service_access_by_role_id.0.component' )
+            Arr::get($role1, 'role_service_access_by_role_id.0.component'),
+            Arr::get($records, '0.role_service_access_by_role_id.0.component')
         );
-        $this->assertEquals( Arr::get( $role1, 'role_lookup_by_role_id.1.name' ), Arr::get( $records, '0.role_lookup_by_role_id.1.name' ) );
+        $this->assertEquals(Arr::get($role1, 'role_lookup_by_role_id.1.name'),
+            Arr::get($records, '0.role_lookup_by_role_id.1.name'));
 
-        $this->assertEquals( Arr::get( $role2, 'name' ), Arr::get( $records, '1.name' ) );
+        $this->assertEquals(Arr::get($role2, 'name'), Arr::get($records, '1.name'));
         $this->assertEquals(
-            Arr::get( $role2, 'role_service_access_by_role_id.0.component' ),
-            Arr::get( $records, '1.role_service_access_by_role_id.0.component' )
+            Arr::get($role2, 'role_service_access_by_role_id.0.component'),
+            Arr::get($records, '1.role_service_access_by_role_id.0.component')
         );
-        $this->assertEquals( Arr::get( $role2, 'role_lookup_by_role_id.1.name' ), Arr::get( $records, '1.role_lookup_by_role_id.1.name' ) );
+        $this->assertEquals(Arr::get($role2, 'role_lookup_by_role_id.1.name'),
+            Arr::get($records, '1.role_lookup_by_role_id.1.name'));
 
-        $this->assertEquals( Arr::get( $role3, 'name' ), Arr::get( $records, '2.name' ) );
+        $this->assertEquals(Arr::get($role3, 'name'), Arr::get($records, '2.name'));
         $this->assertEquals(
-            Arr::get( $role3, 'role_service_access_by_role_id.0.component' ),
-            Arr::get( $records, '2.role_service_access_by_role_id.0.component' )
+            Arr::get($role3, 'role_service_access_by_role_id.0.component'),
+            Arr::get($records, '2.role_service_access_by_role_id.0.component')
         );
-        $this->assertEquals( Arr::get( $role3, 'role_lookup_by_role_id.1.name' ), Arr::get( $records, '2.role_lookup_by_role_id.1.name' ) );
+        $this->assertEquals(Arr::get($role3, 'role_lookup_by_role_id.1.name'),
+            Arr::get($records, '2.role_lookup_by_role_id.1.name'));
     }
 
     public function testDELETERoles()
     {
-        $ids = implode( ',', static::$roleIds );
-        $response = $this->makeRequest( Verbs::DELETE, self::RESOURCE, [ 'ids' => $ids ] );
+        $ids = implode(',', static::$roleIds);
+        $response = $this->makeRequest(Verbs::DELETE, self::RESOURCE, ['ids' => $ids]);
 
         $content = $response->getContent();
-        $records = ArrayUtils::get( $content, 'record' );
+        $records = ArrayUtils::get($content, 'record');
 
-        foreach ( $records as $key => $record )
-        {
-            $this->assertEquals( static::$roleIds[$key], ArrayUtils::get( $record, 'id' ) );
+        foreach ($records as $key => $record) {
+            $this->assertEquals(static::$roleIds[$key], ArrayUtils::get($record, 'id'));
         }
 
-        static::$roleIds = [ ];
+        static::$roleIds = [];
     }
 
-    protected function getRole( $id = null )
+    protected function getRole($id = null)
     {
-        if ( !empty( $id ) )
-        {
+        if (!empty($id)) {
             $resource = self::RESOURCE . '/' . $id;
-        }
-        else
-        {
+        } else {
             $resource = self::RESOURCE;
         }
 
-        $getResponse = $this->makeRequest( Verbs::GET, $resource, [ 'related' => 'role_lookup_by_role_id,role_service_access_by_role_id' ] );
+        $getResponse =
+            $this->makeRequest(Verbs::GET, $resource,
+                ['related' => 'role_lookup_by_role_id,role_service_access_by_role_id']);
         $role = $getResponse->getContent();
 
         return $role;

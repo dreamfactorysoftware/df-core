@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Utility;
 
@@ -50,8 +32,7 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getMethod()
     {
-        if ( !empty( $this->method ) )
-        {
+        if (!empty($this->method)) {
             return $this->method;
         }
 
@@ -61,21 +42,17 @@ class ServiceRequest implements ServiceRequestInterface
     /**
      * {@inheritdoc}
      */
-    public function getParameter( $key = null, $default = null )
+    public function getParameter($key = null, $default = null)
     {
-        if ( !empty( $this->parameters ) )
-        {
-            if ( null === $key )
-            {
+        if (!empty($this->parameters)) {
+            if (null === $key) {
                 return $this->parameters;
-            }
-            else
-            {
-                return ArrayUtils::get( $this->parameters, $key, $default );
+            } else {
+                return ArrayUtils::get($this->parameters, $key, $default);
             }
         }
 
-        return Request::query( $key, $default );
+        return Request::query($key, $default);
     }
 
     /**
@@ -83,22 +60,20 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getParameters()
     {
-        if ( !empty( $this->parameters ) )
-        {
+        if (!empty($this->parameters)) {
             return $this->parameters;
         }
 
         return Request::query();
     }
 
-    public function getParameterAsBool( $key, $default = false )
+    public function getParameterAsBool($key, $default = false)
     {
-        if ( !empty( $this->parameters ) )
-        {
-            return ArrayUtils::getBool( $this->parameters, $key, $default );
+        if (!empty($this->parameters)) {
+            return ArrayUtils::getBool($this->parameters, $key, $default);
         }
 
-        return Scalar::boolval( $this->getParameter( $key, $default ) );
+        return Scalar::boolval($this->getParameter($key, $default));
     }
 
     /**
@@ -108,44 +83,37 @@ class ServiceRequest implements ServiceRequestInterface
      * @return array
      * @throws BadRequestException
      */
-    public function getPayloadData( $key = null, $default = null )
+    public function getPayloadData($key = null, $default = null)
     {
-        if ( !empty( $this->contentAsArray ) )
-        {
-            if ( null === $key )
-            {
+        if (!empty($this->contentAsArray)) {
+            if (null === $key) {
                 return $this->contentAsArray;
-            }
-            else
-            {
-                return ArrayUtils::get( $this->contentAsArray, $key, $default );
+            } else {
+                return ArrayUtils::get($this->contentAsArray, $key, $default);
             }
         }
 
         //This just checks the Request Header Content-Type.
-        if ( Request::isJson() )
-        {
+        if (Request::isJson()) {
             //Decoded json data is cached internally using parameterBag.
-            return $this->json( $key, $default );
+            return $this->json($key, $default);
         }
 
         //Check the actual content. If it is blank return blank array.
         $content = $this->getContent();
-        if ( empty( $content ) )
-        {
-            return [ ];
+        if (empty($content)) {
+            return [];
         }
 
         //Checking this last to be more efficient.
-        if ( json_decode( $content ) !== null )
-        {
+        if (json_decode($content) !== null) {
             //Decoded json data is cached internally using parameterBag.
-            return $this->json( $key, $default );
+            return $this->json($key, $default);
         }
 
         //Todo:Check for additional content-type here.
 
-        throw new BadRequestException( 'Unrecognized payload type' );
+        throw new BadRequestException('Unrecognized payload type');
     }
 
     /**
@@ -154,15 +122,12 @@ class ServiceRequest implements ServiceRequestInterface
      *
      * @return mixed
      */
-    protected function json( $key = null, $default = null )
+    protected function json($key = null, $default = null)
     {
-        if ( null === $key )
-        {
+        if (null === $key) {
             return Request::json()->all();
-        }
-        else
-        {
-            return Request::json( $key, $default );
+        } else {
+            return Request::json($key, $default);
         }
     }
 
@@ -171,8 +136,7 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getContent()
     {
-        if ( !empty( $this->content ) )
-        {
+        if (!empty($this->content)) {
             return $this->content;
         }
 
@@ -184,8 +148,7 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getContentType()
     {
-        if ( !empty( $this->contentType ) )
-        {
+        if (!empty($this->contentType)) {
             return $this->contentType;
         }
 
@@ -195,27 +158,20 @@ class ServiceRequest implements ServiceRequestInterface
     /**
      * {@inheritdoc}
      */
-    public function getHeader( $key = null, $default = null )
+    public function getHeader($key = null, $default = null)
     {
-        if ( !empty( $this->headers ) )
-        {
-            if ( null === $key )
-            {
+        if (!empty($this->headers)) {
+            if (null === $key) {
                 return $this->headers;
-            }
-            else
-            {
-                return ArrayUtils::get( $this->headers, $key, $default );
+            } else {
+                return ArrayUtils::get($this->headers, $key, $default);
             }
         }
 
-        if ( null === $key )
-        {
+        if (null === $key) {
             return Request::header();
-        }
-        else
-        {
-            return Request::header( $key, $default );
+        } else {
+            return Request::header($key, $default);
         }
     }
 
@@ -224,8 +180,7 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getHeaders()
     {
-        if ( !empty( $this->headers ) )
-        {
+        if (!empty($this->headers)) {
             return $this->headers;
         }
 
@@ -235,16 +190,13 @@ class ServiceRequest implements ServiceRequestInterface
     /**
      * {@inheritdoc}
      */
-    public function getFile( $key = null, $default = null )
+    public function getFile($key = null, $default = null)
     {
         //Todo:Experiment Request::file()...
-        if ( null === $key )
-        {
+        if (null === $key) {
             return $_FILES;
-        }
-        else
-        {
-            return ArrayUtils::get( $_FILES, $key, $default );
+        } else {
+            return ArrayUtils::get($_FILES, $key, $default);
         }
     }
 

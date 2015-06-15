@@ -1,23 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -127,7 +108,7 @@ abstract class RestHandler implements RequestHandlerInterface
      *
      *    The result will be that processRequest() will dispatch a PUT, PATCH, or MERGE request to the POST handler.
      */
-    protected $verbAliases = [ ];
+    protected $verbAliases = [];
     /**
      * @var ServiceRequestInterface Request object implementing the ServiceRequestInterface.
      */
@@ -140,10 +121,9 @@ abstract class RestHandler implements RequestHandlerInterface
     /**
      * @param array $settings
      */
-    public function __construct( $settings = [ ] )
+    public function __construct($settings = [])
     {
-        foreach ( $settings as $key => $value )
-        {
+        foreach ($settings as $key => $value) {
             $this->{$key} = $value;
         }
     }
@@ -170,38 +150,34 @@ abstract class RestHandler implements RequestHandlerInterface
      * @throws BadRequestException
      * @throws InternalServerErrorException
      */
-    public function handleRequest( ServiceRequestInterface $request, $resource = null )
+    public function handleRequest(ServiceRequestInterface $request, $resource = null)
     {
-        $this->setRequest( $request );
-        $this->setAction( $request->getMethod() );
-        $this->setResourceMembers( $resource );
+        $this->setRequest($request);
+        $this->setAction($request->getMethod());
+        $this->setResourceMembers($resource);
 
         $resources = $this->getResources();
-        if ( !empty( $resources ) && !empty( $this->resource ) )
-        {
-            $this->response = $this->handleResource( $resources );
-        }
-        else
-        {
+        if (!empty($resources) && !empty($this->resource)) {
+            $this->response = $this->handleResource($resources);
+        } else {
             //  Perform any pre-request processing
             $this->preProcess();
 
             $this->response = $this->processRequest();
 
-            if ( false !== $this->response )
-            {
+            if (false !== $this->response) {
                 //  Perform any post-request processing
                 $this->postProcess();
             }
         }
 
         //	Inherent failure?
-        if ( false === $this->response )
-        {
-            $what = ( !empty( $this->resourcePath ) ? " for resource '{$this->resourcePath}'" : ' without a resource' );
-            $message = ucfirst( $this->action ) . " requests $what are not currently supported by the '{$this->name}' service.";
+        if (false === $this->response) {
+            $what = (!empty($this->resourcePath) ? " for resource '{$this->resourcePath}'" : ' without a resource');
+            $message =
+                ucfirst($this->action) . " requests $what are not currently supported by the '{$this->name}' service.";
 
-            throw new BadRequestException( $message );
+            throw new BadRequestException($message);
         }
 
         //  Perform any response processing
@@ -216,36 +192,35 @@ abstract class RestHandler implements RequestHandlerInterface
      * @throws InternalServerErrorException
      * @throws NotFoundException
      */
-    protected function handleResource( array $resources )
+    protected function handleResource(array $resources)
     {
-        $found = ArrayUtils::findByKeyValue( $resources, 'name', $this->resource );
-        if ( isset( $found, $found['class_name'] ) )
-        {
+        $found = ArrayUtils::findByKeyValue($resources, 'name', $this->resource);
+        if (isset($found, $found['class_name'])) {
             $className = $found['class_name'];
 
-            if ( !class_exists( $className ) )
-            {
-                throw new InternalServerErrorException( 'Service configuration class name lookup failed for resource ' . $this->resourcePath );
+            if (!class_exists($className)) {
+                throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
+                    $this->resourcePath);
             }
 
             /** @var ResourceInterface $resource */
-            $resource = $this->instantiateResource( $className, $found );
+            $resource = $this->instantiateResource($className, $found);
 
             $newPath = $this->resourceArray;
-            array_shift( $newPath );
-            $newPath = implode( '/', $newPath );
+            array_shift($newPath);
+            $newPath = implode('/', $newPath);
 
-            return $resource->handleRequest( $this->request, $newPath );
+            return $resource->handleRequest($this->request, $newPath);
         }
 
-        throw new NotFoundException( "Resource '{$this->resource}' not found for service '{$this->name}'." );
+        throw new NotFoundException("Resource '{$this->resource}' not found for service '{$this->name}'.");
     }
 
-    protected function instantiateResource( $class, $info = [ ] )
+    protected function instantiateResource($class, $info = [])
     {
         /** @var ResourceInterface $obj */
-        $obj = new $class( $info );
-        $obj->setParent( $this );
+        $obj = new $class($info);
+        $obj->setParent($this);
 
         return $obj;
     }
@@ -257,43 +232,36 @@ abstract class RestHandler implements RequestHandlerInterface
     protected function processRequest()
     {
         //	Now all actions must be HTTP verbs
-        if ( !Verbs::contains( $this->action ) )
-        {
-            throw new BadRequestException( 'The action "' . $this->action . '" is not supported.' );
+        if (!Verbs::contains($this->action)) {
+            throw new BadRequestException('The action "' . $this->action . '" is not supported.');
         }
 
         $methodToCall = false;
 
         //	Check verb aliases as closures
-        if ( true === $this->autoDispatch && null !== ( $alias = ArrayUtils::get( $this->verbAliases, $this->action ) ) )
-        {
+        if (true === $this->autoDispatch && null !== ($alias = ArrayUtils::get($this->verbAliases, $this->action))) {
             //	A closure?
-            if ( !in_array( $alias, Verbs::getDefinedConstants() ) && is_callable( $alias ) )
-            {
+            if (!in_array($alias, Verbs::getDefinedConstants()) && is_callable($alias)) {
                 $methodToCall = $alias;
             }
         }
 
         //  Not an alias, build a dispatch method if needed
-        if ( !$methodToCall )
-        {
+        if (!$methodToCall) {
             //	If we have a dedicated handler method, call it
-            $method = str_ireplace( static::ACTION_TOKEN, $this->action, $this->autoDispatchPattern );
+            $method = str_ireplace(static::ACTION_TOKEN, $this->action, $this->autoDispatchPattern);
 
-            if ( $this->autoDispatch && method_exists( $this, $method ) )
-            {
-                $methodToCall = [ $this, $method ];
+            if ($this->autoDispatch && method_exists($this, $method)) {
+                $methodToCall = [$this, $method];
             }
         }
 
-        if ( $methodToCall )
-        {
-            $result = call_user_func( $methodToCall );
+        if ($methodToCall) {
+            $result = call_user_func($methodToCall);
 
             //  Only GETs trigger after the call
-            if ( Verbs::GET == $this->action )
-            {
-                $this->triggerActionEvent( $result, null, null, true );
+            if (Verbs::GET == $this->action) {
+                $this->triggerActionEvent($result, null, null, true);
             }
 
             return $result;
@@ -318,7 +286,7 @@ abstract class RestHandler implements RequestHandlerInterface
      *
      * @return $this
      */
-    protected function setRequest( ServiceRequestInterface $request )
+    protected function setRequest(ServiceRequestInterface $request)
     {
         $this->request = $request;
 
@@ -332,16 +300,14 @@ abstract class RestHandler implements RequestHandlerInterface
      *
      * @return $this
      */
-    protected function setAction( $action )
+    protected function setAction($action)
     {
-        $this->action = trim( strtoupper( $action ) );
+        $this->action = trim(strtoupper($action));
 
         //	Check verb aliases, set correct action allowing for closures
-        if ( null !== ( $alias = ArrayUtils::get( $this->verbAliases, $this->action ) ) )
-        {
+        if (null !== ($alias = ArrayUtils::get($this->verbAliases, $this->action))) {
             //	A closure?
-            if ( in_array( $alias, Verbs::getDefinedConstants() ) || !is_callable( $alias ) )
-            {
+            if (in_array($alias, Verbs::getDefinedConstants()) || !is_callable($alias)) {
                 //	Set original and work with alias
                 $this->originalAction = $this->action;
                 $this->action = $alias;
@@ -364,9 +330,9 @@ abstract class RestHandler implements RequestHandlerInterface
      *
      * @return $this
      */
-    public function overrideAction( $action )
+    public function overrideAction($action)
     {
-        $this->action = trim( strtoupper( $action ) );
+        $this->action = trim(strtoupper($action));
 
         return $this;
     }
@@ -394,20 +360,18 @@ abstract class RestHandler implements RequestHandlerInterface
      *
      * @return $this
      */
-    protected function setResourceMembers( $resourcePath = null )
+    protected function setResourceMembers($resourcePath = null)
     {
         $this->resourcePath = $resourcePath;
-        $this->resourceArray = ( !empty( $this->resourcePath ) ) ? explode( '/', $this->resourcePath ) : [ ];
+        $this->resourceArray = (!empty($this->resourcePath)) ? explode('/', $this->resourcePath) : [];
 
-        if ( empty( $this->resource ) )
-        {
-            if ( null !== ( $resource = ArrayUtils::get( $this->resourceArray, 0 ) ) )
-            {
+        if (empty($this->resource)) {
+            if (null !== ($resource = ArrayUtils::get($this->resourceArray, 0))) {
                 $this->resource = $resource;
             }
         }
 
-        $this->resourceId = ArrayUtils::get( $this->resourceArray, 1 );
+        $this->resourceId = ArrayUtils::get($this->resourceArray, 1);
 
         return $this;
     }
@@ -417,7 +381,7 @@ abstract class RestHandler implements RequestHandlerInterface
      *
      * @param int $outputFormat
      */
-    protected function setNativeFormat( $outputFormat = null )
+    protected function setNativeFormat($outputFormat = null)
     {
         $this->nativeFormat = $outputFormat;
     }
@@ -430,36 +394,28 @@ abstract class RestHandler implements RequestHandlerInterface
      *
      * @return array
      */
-    protected static function makeResourceList( array $records, $identifier = null, $fields = null, $wrapper = null )
+    protected static function makeResourceList(array $records, $identifier = null, $fields = null, $wrapper = null)
     {
-        $data = [ ];
+        $data = [];
 
-        if ( empty( $fields ) )
-        {
-            if ( empty( $identifier ) )
-            {
+        if (empty($fields)) {
+            if (empty($identifier)) {
                 $identifier = 'name';
             }
-            $data = array_column( $records, $identifier );
-        }
-        elseif ( '*' === $fields )
-        {
-            $data = array_values( $records );
-        }
-        else
-        {
-            if ( is_string( $fields ) )
-            {
-                $fields = explode( ',', $fields );
+            $data = array_column($records, $identifier);
+        } elseif ('*' === $fields) {
+            $data = array_values($records);
+        } else {
+            if (is_string($fields)) {
+                $fields = explode(',', $fields);
             }
 
-            foreach ( $records as $record )
-            {
-                $data[] = array_intersect_key( $record, array_flip( $fields ) );
+            foreach ($records as $record) {
+                $data[] = array_intersect_key($record, array_flip($fields));
             }
         }
 
-        return ( $wrapper ) ? [ $wrapper => $data ] : $data;
+        return ($wrapper) ? [$wrapper => $data] : $data;
     }
 
     /**
@@ -468,9 +424,9 @@ abstract class RestHandler implements RequestHandlerInterface
      *
      * @return mixed
      */
-    protected function getPayloadData( $key = null, $default = null )
+    protected function getPayloadData($key = null, $default = null)
     {
-        $data = $this->request->getPayloadData( $key, $default );
+        $data = $this->request->getPayloadData($key, $default);
 
         return $data;
     }
@@ -482,7 +438,7 @@ abstract class RestHandler implements RequestHandlerInterface
      */
     protected function getResources()
     {
-        return [ ];
+        return [];
     }
 
     /**
@@ -539,7 +495,7 @@ abstract class RestHandler implements RequestHandlerInterface
      * Triggers the appropriate event for the action /service/resource_path.
      *
      */
-    protected function triggerActionEvent( &$result, $eventName = null, $event = null, $isPostProcess = false )
+    protected function triggerActionEvent(&$result, $eventName = null, $event = null, $isPostProcess = false)
     {
         // TODO figure this out
     }

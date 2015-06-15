@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
 namespace DreamFactory\Core\Resources;
 
@@ -52,7 +34,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @throws NotFoundException
      * @throws BadRequestException
      */
-    public function correctTableName( &$name )
+    public function correctTableName(&$name)
     {
     }
 
@@ -62,15 +44,14 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      *
      * @throws BadRequestException
      */
-    protected function validateSchemaAccess( $table, $action = null )
+    protected function validateSchemaAccess($table, $action = null)
     {
-        if ( empty( $table ) )
-        {
-            throw new BadRequestException( 'Table name can not be empty.' );
+        if (empty($table)) {
+            throw new BadRequestException('Table name can not be empty.');
         }
 
-        $this->correctTableName( $table );
-        $this->checkPermission( $action, $table );
+        $this->correctTableName($table);
+        $this->checkPermission($action, $table);
     }
 
     /**
@@ -79,31 +60,22 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handleGET()
     {
-        $refresh = $this->request->getParameterAsBool( 'refresh' );
-        if ( empty( $this->resource ) )
-        {
-            $tables = $this->request->getParameter( 'names' );
-            if ( empty( $tables ) )
-            {
-                $tables = $this->request->getPayloadData( 'table' );
+        $refresh = $this->request->getParameterAsBool('refresh');
+        if (empty($this->resource)) {
+            $tables = $this->request->getParameter('names');
+            if (empty($tables)) {
+                $tables = $this->request->getPayloadData('table');
             }
 
-            if ( !empty( $tables ) )
-            {
-                $result = [ 'table' => $this->describeTables( $tables, $refresh ) ];
-            }
-            else
-            {
+            if (!empty($tables)) {
+                $result = ['table' => $this->describeTables($tables, $refresh)];
+            } else {
                 $result = parent::handleGET();
             }
-        }
-        elseif ( empty( $this->resourceId ) )
-        {
-            $result = $this->describeTable( $this->resource, $refresh );
-        }
-        else
-        {
-            $result = $this->describeField( $this->resource, $this->resourceId, $refresh );
+        } elseif (empty($this->resourceId)) {
+            $result = $this->describeTable($this->resource, $refresh);
+        } else {
+            $result = $this->describeField($this->resource, $this->resourceId, $refresh);
         }
 
         return $result;
@@ -116,29 +88,21 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     protected function handlePOST()
     {
         $payload = $this->request->getPayloadData();
-        $checkExist = $this->request->getParameterAsBool( 'check_exist' );
-        $returnSchema = $this->request->getParameterAsBool( 'return_schema' );
-        if ( empty( $this->resource ) )
-        {
-            $tables = ArrayUtils::get( $payload, 'table', $payload );
-            if ( empty( $tables ) )
-            {
-                throw new BadRequestException( 'No data in schema create request.' );
+        $checkExist = $this->request->getParameterAsBool('check_exist');
+        $returnSchema = $this->request->getParameterAsBool('return_schema');
+        if (empty($this->resource)) {
+            $tables = ArrayUtils::get($payload, 'table', $payload);
+            if (empty($tables)) {
+                throw new BadRequestException('No data in schema create request.');
             }
 
-            $result = [ 'table' => $this->createTables( $tables, $checkExist, $returnSchema ) ];
-        }
-        elseif ( empty( $this->resourceId ) )
-        {
-            $result = $this->createTable( $this->resource, $payload, $checkExist, $returnSchema );
-        }
-        elseif ( empty( $payload ) )
-        {
-            throw new BadRequestException( 'No data in schema create request.' );
-        }
-        else
-        {
-            $result = $this->createField( $this->resource, $this->resourceId, $payload, $checkExist, $returnSchema );
+            $result = ['table' => $this->createTables($tables, $checkExist, $returnSchema)];
+        } elseif (empty($this->resourceId)) {
+            $result = $this->createTable($this->resource, $payload, $checkExist, $returnSchema);
+        } elseif (empty($payload)) {
+            throw new BadRequestException('No data in schema create request.');
+        } else {
+            $result = $this->createField($this->resource, $this->resourceId, $payload, $checkExist, $returnSchema);
         }
 
         return $result;
@@ -151,28 +115,20 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     protected function handlePUT()
     {
         $payload = $this->request->getPayloadData();
-        $returnSchema = $this->request->getParameterAsBool( 'return_schema' );
-        if ( empty( $this->resource ) )
-        {
-            $tables = ArrayUtils::get( $payload, 'table', $payload );
-            if ( empty( $tables ) )
-            {
-                throw new BadRequestException( 'No data in schema update request.' );
+        $returnSchema = $this->request->getParameterAsBool('return_schema');
+        if (empty($this->resource)) {
+            $tables = ArrayUtils::get($payload, 'table', $payload);
+            if (empty($tables)) {
+                throw new BadRequestException('No data in schema update request.');
             }
 
-            $result = [ 'table' => $this->updateTables( $tables, true, $returnSchema ) ];
-        }
-        elseif ( empty( $this->resourceId ) )
-        {
-            $result = $this->updateTable( $this->resource, $payload, true, $returnSchema );
-        }
-        elseif ( empty( $payload ) )
-        {
-            throw new BadRequestException( 'No data in schema update request.' );
-        }
-        else
-        {
-            $result = $this->updateField( $this->resource, $this->resourceId, $payload, true, $returnSchema );
+            $result = ['table' => $this->updateTables($tables, true, $returnSchema)];
+        } elseif (empty($this->resourceId)) {
+            $result = $this->updateTable($this->resource, $payload, true, $returnSchema);
+        } elseif (empty($payload)) {
+            throw new BadRequestException('No data in schema update request.');
+        } else {
+            $result = $this->updateField($this->resource, $this->resourceId, $payload, true, $returnSchema);
         }
 
         return $result;
@@ -185,28 +141,20 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     protected function handlePATCH()
     {
         $payload = $this->request->getPayloadData();
-        $returnSchema = $this->request->getParameterAsBool( 'return_schema' );
-        if ( empty( $this->resource ) )
-        {
-            $tables = ArrayUtils::get( $payload, 'table', $payload );
-            if ( empty( $tables ) )
-            {
-                throw new BadRequestException( 'No data in schema update request.' );
+        $returnSchema = $this->request->getParameterAsBool('return_schema');
+        if (empty($this->resource)) {
+            $tables = ArrayUtils::get($payload, 'table', $payload);
+            if (empty($tables)) {
+                throw new BadRequestException('No data in schema update request.');
             }
 
-            $result = [ 'table' => $this->updateTables( $tables, false, $returnSchema ) ];
-        }
-        elseif ( empty( $this->resourceId ) )
-        {
-            $result = $this->updateTable( $this->resource, $payload, false, $returnSchema );
-        }
-        elseif ( empty( $payload ) )
-        {
-            throw new BadRequestException( 'No data in schema update request.' );
-        }
-        else
-        {
-            $result = $this->updateField( $this->resource, $this->resourceId, $payload, false, $returnSchema );
+            $result = ['table' => $this->updateTables($tables, false, $returnSchema)];
+        } elseif (empty($this->resourceId)) {
+            $result = $this->updateTable($this->resource, $payload, false, $returnSchema);
+        } elseif (empty($payload)) {
+            throw new BadRequestException('No data in schema update request.');
+        } else {
+            $result = $this->updateField($this->resource, $this->resourceId, $payload, false, $returnSchema);
         }
 
         return $result;
@@ -220,34 +168,27 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     {
         $payload = $this->request->getPayloadData();
 
-        if ( empty( $this->resource ) )
-        {
-            $tables = $this->request->getParameter( 'names' );
-            if ( empty( $tables ) )
-            {
-                $tables = ArrayUtils::get( $payload, 'table' );
+        if (empty($this->resource)) {
+            $tables = $this->request->getParameter('names');
+            if (empty($tables)) {
+                $tables = ArrayUtils::get($payload, 'table');
             }
 
-            if ( empty( $tables ) )
-            {
-                throw new BadRequestException( 'No data in schema delete request.' );
+            if (empty($tables)) {
+                throw new BadRequestException('No data in schema delete request.');
             }
 
-            $result = $this->deleteTables( $tables );
+            $result = $this->deleteTables($tables);
 
-            $result = [ 'table' => $result ];
-        }
-        elseif ( empty( $this->resourceId ) )
-        {
-            $this->deleteTable( $this->resource );
+            $result = ['table' => $result];
+        } elseif (empty($this->resourceId)) {
+            $this->deleteTable($this->resource);
 
-            $result = [ 'success' => true ];
-        }
-        else
-        {
-            $this->deleteField( $this->resource, $this->resourceId );
+            $result = ['success' => true];
+        } else {
+            $this->deleteField($this->resource, $this->resourceId);
 
-            $result = [ 'success' => true ];
+            $result = ['success' => true];
         }
 
         return $result;
@@ -261,17 +202,13 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return boolean
      * @throws \Exception
      */
-    public function doesTableExist( $table_name )
+    public function doesTableExist($table_name)
     {
-        try
-        {
-            $this->correctTableName( $table_name );
+        try {
+            $this->correctTableName($table_name);
 
             return true;
-        }
-        catch ( \Exception $ex )
-        {
-
+        } catch (\Exception $ex) {
         }
 
         return false;
@@ -286,7 +223,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    public function describeTables( $tables, $refresh = false )
+    public function describeTables($tables, $refresh = false)
     {
         $tables = DbUtilities::validateAsArray(
             $tables,
@@ -295,13 +232,12 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             'The request contains no valid table names or properties.'
         );
 
-        $out = [ ];
-        foreach ( $tables as $table )
-        {
-            $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
-            $this->validateSchemaAccess( $name, Verbs::GET );
+        $out = [];
+        foreach ($tables as $table) {
+            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            $this->validateSchemaAccess($name, Verbs::GET);
 
-            $out[] = $this->describeTable( $table, $refresh );
+            $out[] = $this->describeTable($table, $refresh);
         }
 
         return $out;
@@ -316,7 +252,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function describeTable( $table, $refresh = false );
+    abstract public function describeTable($table, $refresh = false);
 
     /**
      * Get any properties related to the table field
@@ -328,7 +264,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function describeField( $table, $field, $refresh = false );
+    abstract public function describeField($table, $field, $refresh = false);
 
     /**
      * Create one or more tables by array of table properties
@@ -340,7 +276,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    public function createTables( $tables, $check_exist = false, $return_schema = false )
+    public function createTables($tables, $check_exist = false, $return_schema = false)
     {
         $tables = DbUtilities::validateAsArray(
             $tables,
@@ -349,11 +285,10 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             'The request contains no valid table names or properties.'
         );
 
-        $out = [ ];
-        foreach ( $tables as $table )
-        {
-            $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
-            $out[] = $this->createTable( $name, $table, $check_exist, $return_schema );
+        $out = [];
+        foreach ($tables as $table) {
+            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            $out[] = $this->createTable($name, $table, $check_exist, $return_schema);
         }
 
         return $out;
@@ -367,7 +302,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @param bool   $check_exist
      * @param bool   $return_schema Return a refreshed copy of the schema from the database
      */
-    abstract public function createTable( $table, $properties = [ ], $check_exist = false, $return_schema = false );
+    abstract public function createTable($table, $properties = [], $check_exist = false, $return_schema = false);
 
     /**
      * Create a single table field by name and additional properties
@@ -378,7 +313,13 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @param bool   $check_exist
      * @param bool   $return_schema Return a refreshed copy of the schema from the database
      */
-    abstract public function createField( $table, $field, $properties = [ ], $check_exist = false, $return_schema = false );
+    abstract public function createField(
+        $table,
+        $field,
+        $properties = [],
+        $check_exist = false,
+        $return_schema = false
+    );
 
     /**
      * Update one or more tables by array of table properties
@@ -389,7 +330,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      *
      * @return array
      */
-    public function updateTables( $tables, $allow_delete_fields = false, $return_schema = false )
+    public function updateTables($tables, $allow_delete_fields = false, $return_schema = false)
     {
         $tables = DbUtilities::validateAsArray(
             $tables,
@@ -399,19 +340,15 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         );
 
         // update tables allows for create as well
-        $out = [ ];
-        foreach ( $tables as $table )
-        {
-            $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
-            if ( $this->doesTableExist( $name ) )
-            {
-                $this->validateSchemaAccess( $name, Verbs::PATCH );
-                $out[] = $this->updateTable( $name, $table, $allow_delete_fields, $return_schema );
-            }
-            else
-            {
-                $this->validateSchemaAccess( null, Verbs::POST );
-                $out[] = $this->createTable( $name, $table, false, $return_schema );
+        $out = [];
+        foreach ($tables as $table) {
+            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            if ($this->doesTableExist($name)) {
+                $this->validateSchemaAccess($name, Verbs::PATCH);
+                $out[] = $this->updateTable($name, $table, $allow_delete_fields, $return_schema);
+            } else {
+                $this->validateSchemaAccess(null, Verbs::POST);
+                $out[] = $this->createTable($name, $table, false, $return_schema);
             }
         }
 
@@ -429,7 +366,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function updateTable( $table, $properties, $allow_delete_fields = false, $return_schema = false );
+    abstract public function updateTable($table, $properties, $allow_delete_fields = false, $return_schema = false);
 
     /**
      * Update properties related to the table
@@ -443,7 +380,13 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function updateField( $table, $field, $properties, $allow_delete_parts = false, $return_schema = false );
+    abstract public function updateField(
+        $table,
+        $field,
+        $properties,
+        $allow_delete_parts = false,
+        $return_schema = false
+    );
 
     /**
      * Delete multiple tables and all of their contents
@@ -454,7 +397,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    public function deleteTables( $tables, $check_empty = false )
+    public function deleteTables($tables, $check_empty = false)
     {
         $tables = DbUtilities::validateAsArray(
             $tables,
@@ -463,12 +406,11 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             'The request contains no valid table names or properties.'
         );
 
-        $out = [ ];
-        foreach ( $tables as $table )
-        {
-            $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
-            $this->validateSchemaAccess( $name, Verbs::DELETE );
-            $out[] = $this->deleteTable( $table, $check_empty );
+        $out = [];
+        foreach ($tables as $table) {
+            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            $this->validateSchemaAccess($name, Verbs::DELETE);
+            $out[] = $this->deleteTable($table, $check_empty);
         }
 
         return $out;
@@ -483,7 +425,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @throws \Exception
      * @return array
      */
-    abstract public function deleteTable( $table, $check_empty = false );
+    abstract public function deleteTable($table, $check_empty = false);
 
     /**
      * Delete a table field
@@ -494,12 +436,12 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @throws \Exception
      * @return array
      */
-    abstract public function deleteField( $table, $field );
+    abstract public function deleteField($table, $field);
 
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName( '.' );
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $_base = parent::getApiDocInfo();
 
         $_commonResponses = ApiDocUtilities::getCommonResponses();
@@ -744,7 +686,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'summary'          => 'deleteTable() - Delete (aka drop) the given table.',
                         'nickname'         => 'deleteTable',
                         'type'             => 'Success',
-                        'event_name'       => [ $eventPath . '.{table_name}.drop', $eventPath . '.table_dropped' ],
+                        'event_name'       => [$eventPath . '.{table_name}.drop', $eventPath . '.table_dropped'],
                         'parameters'       => [
                             [
                                 'name'          => 'table_name',
@@ -936,8 +878,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             ],
         ];
 
-        $_base['apis'] = array_merge( $_base['apis'], $_apis );
-        $_base['models'] = array_merge( $_base['models'], $_models );
+        $_base['apis'] = array_merge($_base['apis'], $_apis);
+        $_base['models'] = array_merge($_base['models'], $_models);
 
         return $_base;
     }

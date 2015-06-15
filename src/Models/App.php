@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Enums\AppTypes;
@@ -37,14 +19,14 @@ use DreamFactory\Core\Enums\AppTypes;
  * @property string  $url
  * @property string  $created_date
  * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|App whereId( $value )
- * @method static \Illuminate\Database\Query\Builder|App whereName( $value )
- * @method static \Illuminate\Database\Query\Builder|App whereApiKey( $value )
- * @method static \Illuminate\Database\Query\Builder|App whereIsActive( $value )
- * @method static \Illuminate\Database\Query\Builder|App whereRoleId( $value )
- * @method static \Illuminate\Database\Query\Builder|App whereStorageServiceId( $value )
- * @method static \Illuminate\Database\Query\Builder|App whereCreatedDate( $value )
- * @method static \Illuminate\Database\Query\Builder|App whereLastModifiedDate( $value )
+ * @method static \Illuminate\Database\Query\Builder|App whereId($value)
+ * @method static \Illuminate\Database\Query\Builder|App whereName($value)
+ * @method static \Illuminate\Database\Query\Builder|App whereApiKey($value)
+ * @method static \Illuminate\Database\Query\Builder|App whereIsActive($value)
+ * @method static \Illuminate\Database\Query\Builder|App whereRoleId($value)
+ * @method static \Illuminate\Database\Query\Builder|App whereStorageServiceId($value)
+ * @method static \Illuminate\Database\Query\Builder|App whereCreatedDate($value)
+ * @method static \Illuminate\Database\Query\Builder|App whereLastModifiedDate($value)
  */
 class App extends BaseSystemModel
 {
@@ -65,7 +47,7 @@ class App extends BaseSystemModel
         'role_id'
     ];
 
-    protected $appends = [ 'launch_url' ];
+    protected $appends = ['launch_url'];
 
     protected $casts = [
         'is_active'               => 'boolean',
@@ -73,10 +55,10 @@ class App extends BaseSystemModel
         'allow_fullscreen_toggle' => 'boolean'
     ];
 
-    public static function generateApiKey( $name )
+    public static function generateApiKey($name)
     {
         $string = gethostname() . $name . time();
-        $key = hash( 'sha256', $string );
+        $key = hash('sha256', $string);
 
         return $key;
     }
@@ -87,49 +69,42 @@ class App extends BaseSystemModel
      *
      * @return array
      */
-    protected static function createInternal( $record, $params = [ ] )
+    protected static function createInternal($record, $params = [])
     {
-        try
-        {
+        try {
             /** @var App $model */
-            $model = static::create( $record );
-            $apiKey = static::generateApiKey( $model->name );
+            $model = static::create($record);
+            $apiKey = static::generateApiKey($model->name);
             $model->api_key = $apiKey;
             $model->save();
-        }
-        catch ( \PDOException $e )
-        {
+        } catch (\PDOException $e) {
             throw $e;
         }
 
-        return static::buildResult( $model, $params );
+        return static::buildResult($model, $params);
     }
 
     public function getLaunchUrlAttribute()
     {
         $launchUrl = '';
-        switch ( $this->type )
-        {
+        switch ($this->type) {
             case AppTypes::STORAGE_SERVICE:
-                if ( !empty( $this->storage_service_id ) )
-                {
+                if (!empty($this->storage_service_id)) {
                     /** @var $_service Service */
-                    $_service = Service::whereId( $this->storage_service_id )->first();
-                    if ( !empty( $_service ) )
-                    {
+                    $_service = Service::whereId($this->storage_service_id)->first();
+                    if (!empty($_service)) {
                         $launchUrl .= $_service->name . '/';
-                        if ( !empty( $this->storage_container ) )
-                        {
+                        if (!empty($this->storage_container)) {
                             $launchUrl .= $this->storage_container . '/';
                         }
-                        $launchUrl .= $this->name . '/' . ltrim( $this->path, '/' );
-                        $launchUrl = url( $launchUrl );
+                        $launchUrl .= $this->name . '/' . ltrim($this->path, '/');
+                        $launchUrl = url($launchUrl);
                     }
                 }
                 break;
 
             case AppTypes::PATH:
-                $launchUrl = url( $this->path );
+                $launchUrl = url($this->path);
                 break;
 
             case AppTypes::URL:

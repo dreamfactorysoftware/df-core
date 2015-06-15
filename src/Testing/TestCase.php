@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory(tm) Core
- *
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 namespace DreamFactory\Core\Testing;
 
 use DreamFactory\Core\Enums\DataFormats;
@@ -67,8 +49,7 @@ class TestCase extends LaravelTestCase
 
         Model::unguard(false);
 
-        if ( false === static::$staged )
-        {
+        if (false === static::$staged) {
             $this->stage();
             static::$staged = true;
         }
@@ -81,15 +62,11 @@ class TestCase extends LaravelTestCase
      */
     protected function setService()
     {
-        if ( !empty( $this->serviceId ) )
-        {
-            if ( is_numeric( $this->serviceId ) )
-            {
-                $this->service = static::getServiceById( $this->serviceId );
-            }
-            else
-            {
-                $this->service = static::getService( $this->serviceId );
+        if (!empty($this->serviceId)) {
+            if (is_numeric($this->serviceId)) {
+                $this->service = static::getServiceById($this->serviceId);
+            } else {
+                $this->service = static::getService($this->serviceId);
             }
         }
     }
@@ -105,8 +82,8 @@ class TestCase extends LaravelTestCase
      */
     public function stage()
     {
-        Artisan::call( 'migrate' );
-        Artisan::call( 'db:seed' );
+        Artisan::call('migrate');
+        Artisan::call('db:seed');
     }
 
     /**
@@ -118,7 +95,7 @@ class TestCase extends LaravelTestCase
     {
         $app = require __DIR__ . '/../../../../../bootstrap/app.php';
 
-        $app->make( 'Illuminate\Contracts\Console\Kernel' )->bootstrap();
+        $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
         return $app;
     }
@@ -130,9 +107,9 @@ class TestCase extends LaravelTestCase
      *
      * @return \Illuminate\Http\Response
      */
-    protected function callWithPayload( $verb, $url, $payload )
+    protected function callWithPayload($verb, $url, $payload)
     {
-        $rs = $this->call( $verb, $url, [ ], [ ], [ ], [ ], $payload );
+        $rs = $this->call($verb, $url, [], [], [], [], $payload);
 
         return $rs;
     }
@@ -144,9 +121,9 @@ class TestCase extends LaravelTestCase
      *
      * @return bool
      */
-    protected function serviceExists( $serviceName )
+    protected function serviceExists($serviceName)
     {
-        return Service::whereName( $serviceName )->exists();
+        return Service::whereName($serviceName)->exists();
     }
 
     /**
@@ -154,9 +131,9 @@ class TestCase extends LaravelTestCase
      *
      * @return BaseRestService
      */
-    public static function getService( $name )
+    public static function getService($name)
     {
-        return ServiceHandler::getService( $name );
+        return ServiceHandler::getService($name);
     }
 
     /**
@@ -164,9 +141,9 @@ class TestCase extends LaravelTestCase
      *
      * @return mixed
      */
-    public static function getServiceById( $id )
+    public static function getServiceById($id)
     {
-        return ServiceHandler::getServiceById( $id );
+        return ServiceHandler::getServiceById($id);
     }
 
     /**
@@ -178,24 +155,20 @@ class TestCase extends LaravelTestCase
      *
      * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
      */
-    protected function makeRequest( $verb, $resource = null, $query = [ ], $payload = null, $header = [ ] )
+    protected function makeRequest($verb, $resource = null, $query = [], $payload = null, $header = [])
     {
-        $request = new TestServiceRequest( $verb, $query, $header );
-        $request->setApiVersion( 'v1' );
+        $request = new TestServiceRequest($verb, $query, $header);
+        $request->setApiVersion('v1');
 
-        if ( !empty( $payload ) )
-        {
-            if ( is_array( $payload ) )
-            {
-                $request->setContent( $payload );
-            }
-            else
-            {
-                $request->setContent( $payload, DataFormats::JSON );
+        if (!empty($payload)) {
+            if (is_array($payload)) {
+                $request->setContent($payload);
+            } else {
+                $request->setContent($payload, DataFormats::JSON);
             }
         }
 
-        return $this->handleRequest( $request, $resource );
+        return $this->handleRequest($request, $resource);
     }
 
     /**
@@ -206,13 +179,12 @@ class TestCase extends LaravelTestCase
      * @throws InternalServerErrorException
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
-    protected function handleRequest( TestServiceRequest $request, $resource = null )
+    protected function handleRequest(TestServiceRequest $request, $resource = null)
     {
-        if ( empty( $this->service ) )
-        {
-            throw new InternalServerErrorException( 'No service is setup to process request on. Please set the serviceId. It can be an Id or Name.' );
+        if (empty($this->service)) {
+            throw new InternalServerErrorException('No service is setup to process request on. Please set the serviceId. It can be an Id or Name.');
         }
 
-        return $this->service->handleRequest( $request, $resource );
+        return $this->service->handleRequest($request, $resource);
     }
 }

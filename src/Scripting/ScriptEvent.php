@@ -1,22 +1,4 @@
 <?php
-/**
- * This file is part of the DreamFactory Services Platform(tm) SDK For PHP
- *
- * DreamFactory Services Platform(tm) <http://github.com/dreamfactorysoftware/dsp-core>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 namespace DreamFactory\Core\Scripting;
 
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -59,37 +41,35 @@ class ScriptEvent
     //*************************************************************************
 
     /**
-     * @param string $template The name of the template to use for events. These are JSON files and reside in [library]/config/schema
+     * @param string $template The name of the template to use for events. These are JSON files and reside in
+     *                         [library]/config/schema
      *
      * @throws InternalServerErrorException
      * @return bool|array The schema in array form, FALSE on failure.
      */
-    public static function initialize( $template = self::SCRIPT_EVENT_SCHEMA )
+    public static function initialize($template = self::SCRIPT_EVENT_SCHEMA)
     {
-        if ( false !== ( $_eventTemplate = \Cache::get( 'scripting.event_schema', false ) ) )
-        {
+        if (false !== ($_eventTemplate = \Cache::get('scripting.event_schema', false))) {
             return $_eventTemplate;
         }
 
         //	Not cached, get it...
-        $_path = Platform::getLibraryConfigPath( '/schema' ) . '/' . trim( $template, ' /' );
+        $_path = Platform::getLibraryConfigPath('/schema') . '/' . trim($template, ' /');
 
-        if ( is_file( $_path ) &&
-             is_readable( $_path ) &&
-             ( false !== ( $_eventTemplate = file_get_contents( $_path ) ) )
-        )
-        {
-            if ( false !== ( $_eventTemplate = json_decode( $_eventTemplate, true ) ) &&
-                 JSON_ERROR_NONE == json_last_error()
-            )
-            {
-                \Cache::add( 'scripting.event_schema', $_eventTemplate, 86400 );
+        if (is_file($_path) &&
+            is_readable($_path) &&
+            (false !== ($_eventTemplate = file_get_contents($_path)))
+        ) {
+            if (false !== ($_eventTemplate = json_decode($_eventTemplate, true)) &&
+                JSON_ERROR_NONE == json_last_error()
+            ) {
+                \Cache::add('scripting.event_schema', $_eventTemplate, 86400);
 
                 return $_eventTemplate;
             }
         }
 
-        \Log::notice( 'Scripting unavailable. Unable to load scripting event schema: ' . $_path );
+        \Log::notice('Scripting unavailable. Unable to load scripting event schema: ' . $_path);
 
         return false;
     }
@@ -132,11 +112,12 @@ class ScriptEvent
      * Script resource as it sees fit.
      *
      * Please note that the format of the request and response bodies may differ slightly from the format passed in or
-     * sent back to the client. Some service handlers normalize the data for convenience, i.e. see BaseDbSvc::_determineRequestMembers().
+     * sent back to the client. Some service handlers normalize the data for convenience, i.e. see
+     * BaseDbSvc::_determineRequestMembers().
      *
-     * Therefore the data exposed by the event system has been "normalized" to provide a reliable and consistent manner in which to process said data.
-     * There should be no need for wasting time trying to determine if your data is "maybe here, or maybe there, or maybe over there even" when received by
-     * your event handlers.
+     * Therefore the data exposed by the event system has been "normalized" to provide a reliable and consistent manner
+     * in which to process said data. There should be no need for wasting time trying to determine if your data is
+     * "maybe here, or maybe there, or maybe over there even" when received by your event handlers.
      *
      *
      * @param string          $eventName        The event name
@@ -144,31 +125,37 @@ class ScriptEvent
      * @param EventDispatcher $dispatcher       The dispatcher of the event
      * @param array           $extra            Any additional data to put into the event structure
      * @param bool            $includeDspConfig If true, the current DSP config is added to container
-     * @param bool            $returnJson       If true, the event will be returned as a JSON string, otherwise an array.
+     * @param bool            $returnJson       If true, the event will be returned as a JSON string, otherwise an
+     *                                          array.
      *
      * @return array|string
      */
-    public static function normalizeEvent( $eventName, PlatformEvent $event, $dispatcher, array $extra = [], $includeDspConfig = true, $returnJson = false )
-    {
+    public static function normalizeEvent(
+        $eventName,
+        PlatformEvent $event,
+        $dispatcher,
+        array $extra = [],
+        $includeDspConfig = true,
+        $returnJson = false
+    ){
         static $_config = null;
 
-        if ( !$_config )
-        {
-            $_config = ( $includeDspConfig ? \Cache::get( Config::LAST_RESPONSE_CACHE_KEY, false ) : false );
+        if (!$_config) {
+            $_config = ($includeDspConfig ? \Cache::get(Config::LAST_RESPONSE_CACHE_KEY, false) : false);
         }
 
         //	Clean up the event extras, remove data portion
         $_eventExtras = $event->getData();
-        $_path = $dispatcher->getPathInfo( true );
+        $_path = $dispatcher->getPathInfo(true);
 
         //	Clean up the trigger
-        $_trigger = false !== strpos( $_path, 'rest', 0 ) || false !== strpos( $_path, '/rest', 0 ) ? str_replace(
-            [ '/rest', 'rest' ],
+        $_trigger = false !== strpos($_path, 'rest', 0) || false !== strpos($_path, '/rest', 0) ? str_replace(
+            ['/rest', 'rest'],
             null,
             $_path
         ) : $_path;
 
-        $_request = static::buildRequestArray( $event );
+        $_request = static::buildRequestArray($event);
         $_response = $event->getResponseData();
 
         //	Build the array
@@ -182,7 +169,7 @@ class ScriptEvent
                 'c',
                 Option::server(
                     'REQUEST_TIME_FLOAT',
-                    Option::server( 'REQUEST_TIME', microtime( true ) )
+                    Option::server('REQUEST_TIME', microtime(true))
                 )
             ),
             //  The resource request that triggered this event
@@ -190,10 +177,10 @@ class ScriptEvent
             //  A slightly sanitized version of the actual HTTP request URI
             'request_path'     => $_path,
             //  Indicator useful to halt propagation of this event, not necessarly because of errors...
-            'stop_propagation' => ArrayUtils::get( $_eventExtras, 'stop_propagation', false, true ),
+            'stop_propagation' => ArrayUtils::get($_eventExtras, 'stop_propagation', false, true),
             //	Dispatcher information
-            'dispatcher_id'    => spl_object_hash( $dispatcher ),
-            'dispatcher_type'  => Inflector::neutralize( get_class( $dispatcher ) ),
+            'dispatcher_id'    => spl_object_hash($dispatcher),
+            'dispatcher_type'  => Inflector::neutralize(get_class($dispatcher)),
             //	Extra information passed by caller
             'extra'            => $extra,
             //	An object that contains information about the current session and the configuration of this platform
@@ -218,7 +205,7 @@ class ScriptEvent
             //	Metadata if any
         ];
 
-        return $returnJson ? json_encode( $_event, JSON_UNESCAPED_SLASHES ) : $_event;
+        return $returnJson ? json_encode($_event, JSON_UNESCAPED_SLASHES) : $_event;
     }
 
     /**
@@ -228,21 +215,18 @@ class ScriptEvent
      */
     protected static function _getCleanedSession()
     {
-        if ( Pii::guest() )
-        {
+        if (Pii::guest()) {
             return false;
         }
 
         $_session = Session::getSessionData();
 
-        if ( isset( $_session, $_session['allowed_apps'] ) )
-        {
+        if (isset($_session, $_session['allowed_apps'])) {
             $_apps = [];
 
             /** @var App $_app */
-            foreach ( $_session['allowed_apps'] as $_app )
-            {
-                $_apps[ $_app->name ] = $_app->getAttributes();
+            foreach ($_session['allowed_apps'] as $_app) {
+                $_apps[$_app->name] = $_app->getAttributes();
             }
 
             $_session['allowed_apps'] = $_apps;
@@ -259,40 +243,34 @@ class ScriptEvent
      *
      * @return $this
      */
-    public static function updateEventFromHandler( PlatformEvent &$event, array $exposedEvent = [] )
+    public static function updateEventFromHandler(PlatformEvent &$event, array $exposedEvent = [])
     {
         //  Did propagation stop?
-        if ( ArrayUtils::get( $exposedEvent, 'stop_propagation', false ) )
-        {
+        if (ArrayUtils::get($exposedEvent, 'stop_propagation', false)) {
             $event->stopPropagation();
         }
 
-        $_request = ArrayUtils::getDeep( $exposedEvent, 'request', 'body' );
-        $_response = ArrayUtils::get( $exposedEvent, 'response', false );
+        $_request = ArrayUtils::getDeep($exposedEvent, 'request', 'body');
+        $_response = ArrayUtils::get($exposedEvent, 'response', false);
 
-        if ( !$_response )
-        {
+        if (!$_response) {
 //            Log::debug( 'No response in exposed event' );
         }
 
-        if ( $_request )
-        {
-            if ( !$event->isPostProcessScript() )
-            {
-                $event->setData( $_request );
+        if ($_request) {
+            if (!$event->isPostProcessScript()) {
+                $event->setData($_request);
             }
 
-            $event->setRequestData( $_request );
+            $event->setRequestData($_request);
         }
 
-        if ( $_response )
-        {
-            if ( $event->isPostProcessScript() )
-            {
-                $event->setData( $_response );
+        if ($_response) {
+            if ($event->isPostProcessScript()) {
+                $event->setData($_response);
             }
 
-            $event->setResponseData( $_response );
+            $event->setResponseData($_response);
         }
 
         return $event;
@@ -303,8 +281,7 @@ class ScriptEvent
      */
     public static function getEventTemplate()
     {
-        if ( empty( static::$_eventTemplate ) )
-        {
+        if (empty(static::$_eventTemplate)) {
             static::initialize();
         }
 
@@ -314,7 +291,7 @@ class ScriptEvent
     /**
      * @param string $eventTemplate
      */
-    public static function setEventTemplate( $eventTemplate )
+    public static function setEventTemplate($eventTemplate)
     {
         static::$_eventTemplate = $eventTemplate;
     }
@@ -324,13 +301,13 @@ class ScriptEvent
      *
      * @return array
      */
-    public static function buildRequestArray( $event = null )
+    public static function buildRequestArray($event = null)
     {
-        $_reqObj = Pii::request( false );
-        $_data = $event ? ( is_array( $event ) ? $event : $event->getRequestData() ) : null;
+        $_reqObj = Pii::request(false);
+        $_data = $event ? (is_array($event) ? $event : $event->getRequestData()) : null;
 
         $_request = [
-            'method'  => strtoupper( $_reqObj->getMethod() ),
+            'method'  => strtoupper($_reqObj->getMethod()),
             'headers' => $_reqObj->headers->all(),
             'cookies' => $_reqObj->cookies->all(),
             'query'   => $_reqObj->query->all(),
@@ -340,8 +317,7 @@ class ScriptEvent
 
         $_files = $_reqObj->files->all();
 
-        if ( !empty( $_files ) )
-        {
+        if (!empty($_files)) {
             $_request['files'] = $_files;
         }
 

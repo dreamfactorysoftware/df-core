@@ -22,7 +22,7 @@ class RestController extends Controller
      */
     public function __construct()
     {
-        $this->middleware( 'access_check' );
+        $this->middleware('access_check');
     }
 
     /**
@@ -32,20 +32,19 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function index( /** @noinspection PhpUnusedParameterInspection */ $version = null )
-    {
-        $includeProperties = Request::query( 'include_properties', false );
-        try
-        {
-            $services = ServiceHandler::listServices( $includeProperties );
-            $response = ResponseFactory::create( $services );
-        }
-        catch ( \Exception $e )
-        {
-            $response = ResponseFactory::create( $e );
+    public function index(
+        /** @noinspection PhpUnusedParameterInspection */
+        $version = null
+    ){
+        $includeProperties = Request::query('include_properties', false);
+        try {
+            $services = ServiceHandler::listServices($includeProperties);
+            $response = ResponseFactory::create($services);
+        } catch (\Exception $e) {
+            $response = ResponseFactory::create($e);
         }
 
-        return ResponseFactory::sendResponse( $response );
+        return ResponseFactory::sendResponse($response);
     }
 
     /**
@@ -56,9 +55,9 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function handleV1GET( $service = null, $resource = null )
+    public function handleV1GET($service = null, $resource = null)
     {
-        return $this->handleGET( 'v1', $service, $resource );
+        return $this->handleGET('v1', $service, $resource);
     }
 
     /**
@@ -69,9 +68,9 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function handleV1POST( $service = null, $resource = null )
+    public function handleV1POST($service = null, $resource = null)
     {
-        return $this->handlePOST( 'v1', $service, $resource );
+        return $this->handlePOST('v1', $service, $resource);
     }
 
     /**
@@ -82,9 +81,9 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function handleV1PUT( $service = null, $resource = null )
+    public function handleV1PUT($service = null, $resource = null)
     {
-        return $this->handlePUT( 'v1', $service, $resource );
+        return $this->handlePUT('v1', $service, $resource);
     }
 
     /**
@@ -95,9 +94,9 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function handleV1PATCH( $service = null, $resource = null )
+    public function handleV1PATCH($service = null, $resource = null)
     {
-        return $this->handlePATCH( 'v1', $service, $resource );
+        return $this->handlePATCH('v1', $service, $resource);
     }
 
     /**
@@ -108,9 +107,9 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function handleV1DELETE( $service = null, $resource = null )
+    public function handleV1DELETE($service = null, $resource = null)
     {
-        return $this->handleDELETE( 'v1', $service, $resource );
+        return $this->handleDELETE('v1', $service, $resource);
     }
 
     /**
@@ -122,9 +121,9 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function handleGET( $version = null, $service = null, $resource = null )
+    public function handleGET($version = null, $service = null, $resource = null)
     {
-        return $this->handleService( $version, $service, $resource );
+        return $this->handleService($version, $service, $resource);
     }
 
     /**
@@ -136,19 +135,17 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function handlePOST( $version = null, $service = null, $resource = null )
+    public function handlePOST($version = null, $service = null, $resource = null)
     {
-        $xMethod = Request::header( 'X-HTTP-Method' );;
-        if ( !empty( $xMethod ) )
-        {
-            if ( !in_array( $xMethod, Verbs::getDefinedConstants() ) )
-            {
-                throw new MethodNotAllowedHttpException( "Invalid verb tunneling with " . $xMethod );
+        $xMethod = Request::header('X-HTTP-Method');;
+        if (!empty($xMethod)) {
+            if (!in_array($xMethod, Verbs::getDefinedConstants())) {
+                throw new MethodNotAllowedHttpException("Invalid verb tunneling with " . $xMethod);
             }
-            Request::setMethod( $xMethod );
+            Request::setMethod($xMethod);
         }
 
-        return $this->handleService( $version, $service, $resource );
+        return $this->handleService($version, $service, $resource);
     }
 
     /**
@@ -160,9 +157,9 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function handlePUT( $version = null, $service = null, $resource = null )
+    public function handlePUT($version = null, $service = null, $resource = null)
     {
-        return $this->handleService( $version, $service, $resource );
+        return $this->handleService($version, $service, $resource);
     }
 
     /**
@@ -174,9 +171,9 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function handlePATCH( $version = null, $service = null, $resource = null )
+    public function handlePATCH($version = null, $service = null, $resource = null)
     {
-        return $this->handleService( $version, $service, $resource );
+        return $this->handleService($version, $service, $resource);
     }
 
     /**
@@ -188,9 +185,9 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface
      */
-    public function handleDELETE( $version = null, $service = null, $resource = null )
+    public function handleDELETE($version = null, $service = null, $resource = null)
     {
-        return $this->handleService( $version, $service, $resource );
+        return $this->handleService($version, $service, $resource);
     }
 
     /**
@@ -202,36 +199,30 @@ class RestController extends Controller
      *
      * @return ServiceResponseInterface|null
      */
-    public function handleService( $version = null, $service, $resource = null )
+    public function handleService($version = null, $service, $resource = null)
     {
-        try
-        {
-            $service = strtolower( $service );
+        try {
+            $service = strtolower($service);
 
             // fix removal of trailing slashes from resource
-            if ( !empty( $resource ) )
-            {
+            if (!empty($resource)) {
                 $uri = \Request::getRequestUri();
-                if ( ( false === strpos( $uri, '?' ) && '/' === substr( $uri, strlen( $uri ) - 1, 1 ) ) ||
-                     ( '/' === substr( $uri, strpos( $uri, '?' ) - 1, 1 ) )
-                )
-                {
+                if ((false === strpos($uri, '?') && '/' === substr($uri, strlen($uri) - 1, 1)) ||
+                    ('/' === substr($uri, strpos($uri, '?') - 1, 1))
+                ) {
                     $resource .= '/';
                 }
             }
 
-            $response = ServiceHandler::processRequest( $version, $service, $resource );
-        }
-        catch ( \Exception $e )
-        {
-            $response = ResponseFactory::create( $e );
+            $response = ServiceHandler::processRequest($version, $service, $resource);
+        } catch (\Exception $e) {
+            $response = ResponseFactory::create($e);
         }
 
-        if ( $response instanceof RedirectResponse )
-        {
+        if ($response instanceof RedirectResponse) {
             return $response;
         }
 
-        return ResponseFactory::sendResponse( $response );
+        return ResponseFactory::sendResponse($response);
     }
 }

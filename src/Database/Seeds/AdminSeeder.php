@@ -41,7 +41,7 @@ class AdminSeeder extends Seeder
                 [
                     'name'         => 'DF Admin',
                     'email'        => 'dfadmin@' . gethostname() . '.com',
-                    'password'     => bcrypt( 'Dream123!' ),
+                    'password'     => 'Dream123!',
                     'is_sys_admin' => 1,
                     'is_active'    => 1
                 ]

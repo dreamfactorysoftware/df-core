@@ -288,7 +288,7 @@ class Session
      *
      * @return bool
      */
-    public static function setUserInfo(User $user)
+    public static function setUserInfo(User $user, $temp=false)
     {
         \Session::put('user.id', $user->id);
         \Session::put('user.display_name', $user->name);
@@ -297,6 +297,7 @@ class Session
         \Session::put('user.email', $user->email);
         \Session::put('user.is_sys_admin', $user->is_sys_admin);
         \Session::put('user.last_login_date', $user->last_login_date);
+        \Session::put('user.temp', $temp);
     }
 
     /**
@@ -379,7 +380,8 @@ class Session
 
     public static function isAuthenticated()
     {
-        return Scalar::boolval(static::getCurrentUserId());
+        $userId = static::getCurrentUserId();
+        return boolval($userId);
     }
 
     /**

@@ -60,14 +60,38 @@ class AccessCheck
      */
     public function handle($request, Closure $next)
     {
-        //Check to see if session ID is supplied for using an existing session.
-        $sessionId = $request->header('X_DREAMFACTORY_SESSION_TOKEN');
+        //user.temp is set to true only when authenticated using basic auth.
+        //Since we are not using laravel's Auth::Check() method to check for authenticated
+        //user the Auth::onceBasic() method doesn't do the job. Therefore, user.temp is set to true
+        //when user authenticates using basic auth. Then on the following request the session is
+        //flushed away based on user.temp flag.
+        if(true === Session::get('user.temp'))
+        {
+            Session::flush();
+        }
 
-        if (!empty($sessionId) && !Auth::check()) {
-            if (Session::isValidId($sessionId)) {
-                Session::setId($sessionId);
-                Session::start();
-                \Request::setSession(Session::driver());
+        if (!Session::isAuthenticated()) {
+            //If user is not authenticated.
+
+            //Check to see if session ID is supplied for using an existing session.
+            $sessionId = $request->header('X_DREAMFACTORY_SESSION_TOKEN');
+
+            if (!empty($sessionId) && !Auth::check()) {
+                if (Session::isValidId($sessionId)) {
+                    Session::setId($sessionId);
+                    Session::start();
+                    \Request::setSession(Session::driver());
+                }
+            }
+
+            //If still no authenticated user then try basic auth.
+            if (!Session::isAuthenticated()) {
+                Auth::onceBasic();
+                /** @var User $authenticatedUser */
+                $authenticatedUser = Auth::user();
+                if (!empty($authenticatedUser)) {
+                    Session::setUserInfo($authenticatedUser, true);
+                }
             }
         }
 
@@ -80,24 +104,14 @@ class AccessCheck
 
         //Storing this in session to be able to easily look it up. Otherwise would have to lookup it up from Request object.
         Session::setCurrentApiKey($apiKey);
+        //ID of the currently authenticated user.
+        $userId = Session::getCurrentUserId();
 
-        //Check for authenticated session.
-        $authenticated = Auth::check();
-
-        //If not authenticated then check for HTTP Basic Auth request.
-        if (!$authenticated) {
-            Auth::onceBasic();
-            $authenticated = Auth::check();
-        }
-
-        /** @var User $authenticatedUser */
-        $authenticatedUser = Auth::user();
-
-        //If authenticated and user is a system admin then all is allowed for system admin.
-        if ($authenticated && $authenticatedUser->is_sys_admin) {
+        if (Session::isAuthenticated() && Session::isSysAdmin()) {
+            //If authenticated and user is a system admin then all is allowed for system admin.
             $appId = null;
             if ($apiKey && !Session::hasApiKey($apiKey)) {
-                $cacheKey = CacheUtilities::makeApiKeyUserIdKey($apiKey, $authenticatedUser->id);
+                $cacheKey = CacheUtilities::makeApiKeyUserIdKey($apiKey, $userId);
                 $cacheData = (!empty($cacheData)) ? Cache::get($cacheKey) : [];
                 $appId = ArrayUtils::get($cacheData, 'app_id');
 
@@ -105,24 +119,26 @@ class AccessCheck
                     $app = App::whereApiKey($apiKey)->first();
                     $appId = $app->id;
                     $cacheData = [
-                        'user_id' => $authenticatedUser->id,
+                        'user_id' => $userId,
                         'app_id'  => $app->id
                     ];
                     Cache::put($cacheKey, $cacheData, Config::get('df.default_cache_ttl'));
                 }
 
-                Session::setLookupKeys($apiKey, null, $appId, $authenticatedUser->id);
+                Session::setLookupKeys($apiKey, null, $appId, $userId);
             } elseif (!Session::has('admin')) {
-                $lookup = LookupKey::getLookup(null, $appId, $authenticatedUser->id);
-                \Session::put('admin.lookup', ArrayUtils::get($lookup, 'lookup', []));
-                \Session::put('admin.lookup_secret', ArrayUtils::get($lookup, 'lookup_secret', []));
+                $lookup = LookupKey::getLookup(null, $appId, $userId);
+                Session::put('admin.lookup', ArrayUtils::get($lookup, 'lookup', []));
+                Session::put('admin.lookup_secret', ArrayUtils::get($lookup, 'lookup_secret', []));
             }
-        }
-        //If API key is provided and authenticated user is non-admin and user management package is installed.
-        //Use the role assigned to this user for the app.
-        else if (!empty($apiKey) && $authenticated && class_exists('\DreamFactory\Core\User\Resources\System\User')) {
+        } else if (!empty($apiKey) &&
+            Session::isAuthenticated() &&
+            class_exists('\DreamFactory\Core\User\Resources\System\User')
+        ) {
+            //If API key is provided and authenticated user is non-admin and user management package is installed.
+            //Use the role assigned to this user for the app.
             if (!Session::hasApiKey($apiKey)) {
-                $cacheKey = CacheUtilities::makeApiKeyUserIdKey($apiKey, $authenticatedUser->id);
+                $cacheKey = CacheUtilities::makeApiKeyUserIdKey($apiKey, $userId);
                 $cacheData = Cache::get($cacheKey);
                 $roleData = (!empty($cacheData)) ? ArrayUtils::get($cacheData, 'role_data') : [];
 
@@ -130,8 +146,8 @@ class AccessCheck
                     /** @var App $app */
                     $app = App::with(
                         [
-                            'role_by_user_to_app_to_role' => function ($q) use ($authenticatedUser){
-                                $q->whereUserId($authenticatedUser->id);
+                            'role_by_user_to_app_to_role' => function ($q) use ($userId){
+                                $q->whereUserId($userId);
                             }
                         ]
                     )->whereApiKey($apiKey)->first();
@@ -160,7 +176,7 @@ class AccessCheck
                     $roleData = static::getRoleData($role);
                     $cacheData = [
                         'role_data' => $roleData,
-                        'user_id'   => $authenticatedUser->id,
+                        'user_id'   => $userId,
                         'app_id'    => $app->id
                     ];
                     Cache::put($cacheKey, $cacheData, Config::get('df.default_cache_ttl'));
@@ -174,8 +190,8 @@ class AccessCheck
                     ArrayUtils::get($cacheData, 'user_id')
                 );
             }
-        } //If no user is authenticated but API key is provided. Use the default role of this app.
-        elseif (!empty($apiKey)) {
+        } elseif (!empty($apiKey)) {
+            //If no user is authenticated but API key is provided. Use the default role of this app.
             if (!Session::hasApiKey($apiKey)) {
                 $cacheKey = CacheUtilities::makeApiKeyUserIdKey($apiKey);
                 $cacheData = Cache::get($cacheKey);
@@ -212,11 +228,11 @@ class AccessCheck
                 Session::setLookupKeys($apiKey, ArrayUtils::get($roleData, 'id'),
                     ArrayUtils::get($cacheData, 'app_id'));
             }
-        } //If no API key and user is non-admin then check for exception cases.
-        elseif (static::isException()) {
+        } elseif (static::isException()) {
+            //If no API key and user is non-admin then check for exception cases.
             return $next($request);
-        } //No Api key provided, user is not an admin, and is not an exception case. Throws exception.
-        else {
+        } else {
+            //No Api key provided, user is not an admin, and is not an exception case. Throws exception.
             $basicAuthUser = $request->getUser();
             if (!empty($basicAuthUser)) {
                 return static::getException(new UnauthorizedException('Unauthorized. User credentials did not match.'),
@@ -228,8 +244,9 @@ class AccessCheck
 
         if (Session::isAccessAllowed()) {
             return $next($request);
-        } //API key and/or (non-admin) user logged in, but if access is still not allowed then check for exception case.
-        elseif (static::isException()) {
+        } elseif (static::isException()) {
+            //API key and/or (non-admin) user logged in, but if access is still not allowed then check for exception case.
+
             return $next($request);
         } else {
             return static::getException(new ForbiddenException('Access Forbidden.'), $request);

@@ -1,7 +1,6 @@
 <?php
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\App;
-use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Utility\Session;
@@ -23,8 +22,10 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
         $this->call(Verbs::GET, '/api/v2/system');
 
         $this->assertTrue(Session::isSysAdmin());
-        $this->assertEquals(null, session('rsa.role.id'));
-        $rsa = session('rsa.role.services');
+        $this->assertEquals(null, session('admin.role.id'));
+        $this->assertEquals(0, count(session('admin.lookup')));
+        $this->assertEquals(0, count(session('admin.lookup_secret')));
+        $rsa = session('admin.role.services');
         $this->assertTrue(empty($rsa));
     }
 

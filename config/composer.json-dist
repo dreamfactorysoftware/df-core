@@ -46,7 +46,7 @@
         "dreamfactory/df-sqldb": "dev-develop as dev-master",
         "dreamfactory/df-mongodb": "dev-develop as dev-master",
         "dreamfactory/df-rws": "dev-develop as dev-master",
-        "dreamfactory/df-user-mgmt": "dev-develop as dev-master",
+        "dreamfactory/df-user": "dev-develop as dev-master",
         "dreamfactory/df-oauth": "dev-develop as dev-master",
         "dreamfactory/df-adldap": "dev-develop as dev-master"
 	},

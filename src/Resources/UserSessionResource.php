@@ -101,12 +101,12 @@ class UserSessionResource extends BaseRestResource
             throw new BadRequestException( 'Login request is missing required password.' );
         }
 
-        $credentials['is_active'] = true;
+        $credentials['is_active'] = 1;
 
         // if user management not available then only system admins can login.
         if ( !class_exists( '\DreamFactory\Core\User\Resources\System\User' ) )
         {
-            $credentials['is_sys_admin'] = true;
+            $credentials['is_sys_admin'] = 1;
         }
 
         if ( \Auth::attempt( $credentials, $remember ) )

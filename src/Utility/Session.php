@@ -2,17 +2,16 @@
 
 namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Core\Exceptions\UnauthorizedException;
 use \Request;
-use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Routing\Router;
+use DreamFactory\Core\Exceptions\UnauthorizedException;
+use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\User;
-use DreamFactory\Core\Exceptions\NotFoundException;
 
 class Session
 {
@@ -288,7 +287,7 @@ class Session
      *
      * @return bool
      */
-    public static function setUserInfo(User $user, $temp=false)
+    public static function setUserInfo(User $user)
     {
         \Session::put('user.id', $user->id);
         \Session::put('user.display_name', $user->name);
@@ -297,7 +296,6 @@ class Session
         \Session::put('user.email', $user->email);
         \Session::put('user.is_sys_admin', $user->is_sys_admin);
         \Session::put('user.last_login_date', $user->last_login_date);
-        \Session::put('user.temp', $temp);
     }
 
     /**
@@ -381,6 +379,7 @@ class Session
     public static function isAuthenticated()
     {
         $userId = static::getCurrentUserId();
+
         return boolval($userId);
     }
 
@@ -494,5 +493,30 @@ class Session
     public static function forgetApiKeys()
     {
         \Session::forget(static::API_KEY_PREFIX);
+    }
+
+    public static function destroy($id = null)
+    {
+        $currentSessionId = \Session::getId();
+
+        if (empty($id) || $id === $currentSessionId) {
+            \Session::flush();
+
+            return true;
+        } elseif (\Session::isValidId($id)) {
+            //Destroy target session.
+            \Session::setId($id);
+            \Session::start();
+            \Session::flush();
+
+            //Restore current session.
+            \Session::setId($currentSessionId);
+            \Session::start();
+            \Request::setSession(\Session::driver());
+
+            return true;
+        }
+
+        return false;
     }
 }

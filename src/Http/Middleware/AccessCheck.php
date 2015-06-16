@@ -5,8 +5,8 @@ use \Auth;
 use \Cache;
 use \Config;
 use \Closure;
-use DreamFactory\Core\Utility\LookupKey;
 use Illuminate\Routing\Router;
+use DreamFactory\Core\Utility\LookupKey;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -60,16 +60,6 @@ class AccessCheck
      */
     public function handle($request, Closure $next)
     {
-        //user.temp is set to true only when authenticated using basic auth.
-        //Since we are not using laravel's Auth::Check() method to check for authenticated
-        //user the Auth::onceBasic() method doesn't do the job. Therefore, user.temp is set to true
-        //when user authenticates using basic auth. Then on the following request the session is
-        //flushed away based on user.temp flag.
-        if(true === Session::get('user.temp'))
-        {
-            Session::flush();
-        }
-
         if (!Session::isAuthenticated()) {
             //If user is not authenticated.
 
@@ -80,17 +70,22 @@ class AccessCheck
                 if (Session::isValidId($sessionId)) {
                     Session::setId($sessionId);
                     Session::start();
-                    \Request::setSession(Session::driver());
+                    $request->setSession(Session::driver());
                 }
             }
 
             //If still no authenticated user then try basic auth.
             if (!Session::isAuthenticated()) {
-                Auth::onceBasic();
-                /** @var User $authenticatedUser */
-                $authenticatedUser = Auth::user();
-                if (!empty($authenticatedUser)) {
-                    Session::setUserInfo($authenticatedUser, true);
+                $basicAuthUser = $request->getUser();
+                $basicAuthPassword = $request->getPassword();
+
+                if(!empty($basicAuthUser) && !empty($basicAuthPassword)) {
+                    Auth::onceBasic();
+                    /** @var User $authenticatedUser */
+                    $authenticatedUser = Auth::user();
+                    if (!empty($authenticatedUser)) {
+                        Session::setUserInfo($authenticatedUser);
+                    }
                 }
             }
         }
@@ -124,14 +119,14 @@ class AccessCheck
                     ];
                     Cache::put($cacheKey, $cacheData, Config::get('df.default_cache_ttl'));
                 }
-
                 Session::setLookupKeys($apiKey, null, $appId, $userId);
             } elseif (!Session::has('admin')) {
                 $lookup = LookupKey::getLookup(null, $appId, $userId);
                 Session::put('admin.lookup', ArrayUtils::get($lookup, 'lookup', []));
                 Session::put('admin.lookup_secret', ArrayUtils::get($lookup, 'lookup_secret', []));
             }
-        } else if (!empty($apiKey) &&
+        } else if (
+            !empty($apiKey) &&
             Session::isAuthenticated() &&
             class_exists('\DreamFactory\Core\User\Resources\System\User')
         ) {
@@ -228,7 +223,7 @@ class AccessCheck
                 Session::setLookupKeys($apiKey, ArrayUtils::get($roleData, 'id'),
                     ArrayUtils::get($cacheData, 'app_id'));
             }
-        } elseif (static::isException()) {
+        } elseif (static::isException($request)) {
             //If no API key and user is non-admin then check for exception cases.
             return $next($request);
         } else {
@@ -244,9 +239,8 @@ class AccessCheck
 
         if (Session::isAccessAllowed()) {
             return $next($request);
-        } elseif (static::isException()) {
+        } elseif (static::isException($request)) {
             //API key and/or (non-admin) user logged in, but if access is still not allowed then check for exception case.
-
             return $next($request);
         } else {
             return static::getException(new ForbiddenException('Access Forbidden.'), $request);
@@ -291,16 +285,17 @@ class AccessCheck
     /**
      * Checks to see if it is an admin user login call.
      *
+     * @param  \Illuminate\Http\Request $request
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
-    protected static function isException()
+    protected static function isException($request)
     {
         /** @var Router $router */
         $router = app('router');
         $service = strtolower($router->input('service'));
         $resource = strtolower($router->input('resource'));
-        $action = VerbsMask::toNumeric(\Request::getMethod());
+        $action = VerbsMask::toNumeric($request->getMethod());
 
         foreach (static::$exceptions as $exception) {
             if (($action & ArrayUtils::get($exception, 'verb_mask')) &&

@@ -1,6 +1,6 @@
 <?php
 /**
- * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/dsp-core>
+ * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
  * Copyright 2012-2015 DreamFactory Software, Inc. <support@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");

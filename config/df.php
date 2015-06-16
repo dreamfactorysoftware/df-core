@@ -1,4 +1,5 @@
 <?php
+
 return [
     /** General API version number, 1.x was earlier product and may be supported by most services */
     'api_version'                  => '2.0',
@@ -27,7 +28,7 @@ return [
     'cors'                         => [
         'defaults' => [
             'supportsCredentials' => false,
-            'allowedOrigins'      => [],
+            'allowedOrigins'      => ['*'],
             'allowedHeaders'      => [],
             'allowedMethods'      => [],
             'exposedHeaders'      => [],

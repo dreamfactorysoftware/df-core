@@ -23,8 +23,12 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
 
         $this->assertTrue(Session::isSysAdmin());
         $this->assertEquals(null, session('admin.role.id'));
-        $this->assertEquals(0, count(session('admin.lookup')));
-        $this->assertEquals(0, count(session('admin.lookup_secret')));
+        $adminLookup = session('admin.lookup');
+        $adminLookupSecret = session('admin.lookup_secret');
+        $this->assertTrue(isset($adminLookup));
+        $this->assertTrue(isset($adminLookupSecret));
+        $this->assertEquals(0, count($adminLookup));
+        $this->assertEquals(0, count($adminLookupSecret));
         $rsa = session('admin.role.services');
         $this->assertTrue(empty($rsa));
     }

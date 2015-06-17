@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Events;
 
-use App\Events\Event;
 use Illuminate\Queue\SerializesModels;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;

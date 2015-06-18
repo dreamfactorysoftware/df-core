@@ -4,17 +4,13 @@ namespace DreamFactory\Core\Models;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
-use Laravel\Socialite\Contracts\User as OAuthUserContract;
-use DreamFactory\Core\OAuth\Services\BaseOAuthService;
-use DreamFactory\Core\ADLdap\Contracts\User as LdapUserContract;
-use DreamFactory\Core\ADLdap\Services\LDAP as LdapService;
-use DreamFactory\Core\Exceptions\BadRequestException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -81,110 +77,6 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     protected $casts = ['is_active' => 'boolean', 'is_sys_admin' => 'boolean'];
 
     /**
-     * If does not exists, creates a shadow OAuth user using user info provided
-     * by the OAuth service provider and assigns default role to this user
-     * for all apps in the system. If user already exists then updates user's
-     * role for all apps and returns it.
-     *
-     * @param OAuthUserContract $OAuthUser
-     * @param BaseOAuthService  $service
-     *
-     * @return User
-     * @throws \Exception
-     */
-    public static function createShadowOAuthUser(OAuthUserContract $OAuthUser, BaseOAuthService $service)
-    {
-        $fullName = $OAuthUser->getName();
-        @list($firstName, $lastName) = explode(' ', $fullName);
-
-        $email = $OAuthUser->getEmail();
-        $serviceName = $service->getName();
-        $providerName = $service->getProviderName();
-        $accessToken = $OAuthUser->token;
-
-        if (empty($email)) {
-            $email = $OAuthUser->getId() . '+' . $serviceName . '@' . $serviceName . '.com';
-        } else {
-            list($emailId, $domain) = explode('@', $email);
-            $email = $emailId . '+' . $serviceName . '@' . $domain;
-        }
-
-        $user = static::whereEmail($email)->first();
-
-        if (empty($user)) {
-            $data = [
-                'name'           => $fullName,
-                'first_name'     => $firstName,
-                'last_name'      => $lastName,
-                'email'          => $email,
-                'is_active'      => 1,
-                'oauth_provider' => $providerName,
-                'password'       => $accessToken
-            ];
-
-            $user = static::create($data);
-        }
-
-        $defaultRole = $service->getDefaultRole();
-
-        static::applyDefaultUserAppRole($user, $defaultRole);
-
-        return $user;
-    }
-
-    /**
-     * If does not exists, creates a shadow LDap user using user info provided
-     * by the Ldap service provider and assigns default role to this user
-     * for all apps in the system. If user already exists then updates user's
-     * role for all apps and returns it.
-     *
-     * @param LdapUserContract $ldapUser
-     * @param LdapService      $service
-     *
-     * @return User
-     * @throws \Exception
-     */
-    public static function createShadowADLdapUser(LdapUserContract $ldapUser, LdapService $service)
-    {
-        $email = $ldapUser->getEmail();
-        $serviceName = $service->getName();
-
-        if (empty($email)) {
-            $uid = $ldapUser->getUid();
-            if (empty($uid)) {
-                $uid = str_replace(' ', '', $ldapUser->getName());
-            }
-            $domain = $ldapUser->getDomain();
-            $email = $uid . '+' . $serviceName . '@' . $domain;
-        } else {
-            list($emailId, $domain) = explode('@', $email);
-            $email = $emailId . '+' . $serviceName . '@' . $domain;
-        }
-
-        $user = static::whereEmail($email)->first();
-
-        if (empty($user)) {
-            $data = [
-                'name'       => $ldapUser->getName(),
-                'first_name' => $ldapUser->getFirstName(),
-                'last_name'  => $ldapUser->getLastName(),
-                'email'      => $email,
-                'is_active'  => 1,
-                'adldap'     => $service->getProviderName(),
-                'password'   => $ldapUser->getPassword()
-            ];
-
-            $user = static::create($data);
-        }
-
-        $defaultRole = $service->getDefaultRole();
-
-        static::applyDefaultUserAppRole($user, $defaultRole);
-
-        return $user;
-    }
-
-    /**
      * Assigns a role to a user for all apps in the system.
      *
      * @param $user
@@ -193,7 +85,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      * @return bool
      * @throws \Exception
      */
-    protected static function applyDefaultUserAppRole($user, $defaultRole)
+    public static function applyDefaultUserAppRole($user, $defaultRole)
     {
         $apps = App::all();
 

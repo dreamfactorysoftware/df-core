@@ -15,7 +15,7 @@ class Environment extends BaseRestResource
     {
         $result = [];
 
-        if (true === Scalar::boolval(SessionUtilities::isSysAdmin())) {
+        if (SessionUtilities::isSysAdmin()) {
             $result['server'] = [
                 'server_os' => 'tbi'
             ];

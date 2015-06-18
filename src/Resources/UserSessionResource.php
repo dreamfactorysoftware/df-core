@@ -39,7 +39,7 @@ class UserSessionResource extends BaseRestResource
             'password' => $this->getPayloadData('password')
         ];
 
-        return $this->handleLogin($credentials, Scalar::boolval($this->getPayloadData('remember_me')));
+        return $this->handleLogin($credentials, boolval($this->getPayloadData('remember_me')));
     }
 
     /**

@@ -323,7 +323,7 @@ class Session
         ];
 
         $role = session('rsa.role');
-        if (!Scalar::boolval(session('user.is_sys_admin')) && !empty($role)) {
+        if (!session('user.is_sys_admin') && !empty($role)) {
             ArrayUtils::set($sessionData, 'role', ArrayUtils::get($role, 'name'));
             ArrayUtils::set($sessionData, 'role_id', ArrayUtils::get($role, 'id'));
         }

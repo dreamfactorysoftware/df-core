@@ -174,16 +174,14 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         ArrayUtils::remove($record, $pk);
 
         try {
-            if (true === Scalar::boolval($model->is_sys_admin) && false === ArrayUtils::getBool($params, 'admin')) {
+            if ($model->is_sys_admin && !ArrayUtils::getBool($params, 'admin')) {
                 throw new ForbiddenException('No allowed to change an admin user.');
-            } elseif (true === ArrayUtils::getBool($params, 'admin') &&
-                false === Scalar::boolval($model->is_sys_admin)
-            ) {
+            } elseif (ArrayUtils::getBool($params, 'admin') && !$model->is_sys_admin) {
                 throw new BadRequestException('Cannot update a non-admin user.');
             }
 
             $password = ArrayUtils::get($record, 'password');
-            if (true === ArrayUtils::getBool($params, 'admin') && !empty($password)) {
+            if (ArrayUtils::getBool($params, 'admin') && !empty($password)) {
                 $model->password = ArrayUtils::get($record, 'password');
             }
 
@@ -221,11 +219,9 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
 
         try {
-            if (true === Scalar::boolval($model->is_sys_admin) && false === ArrayUtils::getBool($params, 'admin')) {
+            if ($model->is_sys_admin && !ArrayUtils::getBool($params, 'admin')) {
                 throw new ForbiddenException('No allowed to delete an admin user.');
-            } elseif (true === ArrayUtils::getBool($params, 'admin') &&
-                false === Scalar::boolval($model->is_sys_admin)
-            ) {
+            } elseif (ArrayUtils::getBool($params, 'admin') && !$model->is_sys_admin) {
                 throw new BadRequestException('Cannot delete a non-admin user.');
             }
 

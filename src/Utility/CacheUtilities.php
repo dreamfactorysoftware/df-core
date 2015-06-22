@@ -3,8 +3,12 @@
 namespace DreamFactory\Core\Utility;
 
 use \Cache;
+use DreamFactory\Core\Models\Lookup;
+use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\User;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\App;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
  * Class CacheUtilities
@@ -121,6 +125,135 @@ class CacheUtilities
     public static function forget($key)
     {
         return Cache::forget($key);
+    }
+
+    /**
+     * Returns user info cached, or reads from db if not present.
+     * Pass in a key to return a portion/index of the cached data.
+     *
+     * @param int         $id
+     * @param null|string $key
+     * @param null        $default
+     *
+     * @return mixed|null
+     */
+    public static function getUserInfo($id, $key = null, $default = null)
+    {
+        $cacheKey = 'user:' . $id;
+        try {
+            $result = \Cache::remember($cacheKey, config('df.default_cache_ttl'), function ($id){
+                return User::with('user_lookup_by_user_id')->findOrFail($id)->toArray();
+            });
+
+            if (is_null($result)) {
+                return $default;
+            }
+        } catch (ModelNotFoundException $ex) {
+            return $default;
+        }
+
+        if (is_null($key)) {
+            return $result;
+        }
+
+        return ArrayUtils::get($result, $key, $default);
+    }
+
+    /**
+     * Returns role info cached, or reads from db if not present.
+     * Pass in a key to return a portion/index of the cached data.
+     *
+     * @param int         $id
+     * @param null|string $key
+     * @param null        $default
+     *
+     * @return mixed|null
+     */
+    public static function getRoleInfo($id, $key = null, $default = null)
+    {
+        $cacheKey = 'role:' . $id;
+        try {
+            $result = \Cache::remember($cacheKey, config('df.default_cache_ttl'), function ($id){
+                return Role::with(['role_lookup_by_role_id', 'role_service_access_by_role_id'])
+                    ->findOrFail($id)
+                    ->toArray();
+            });
+
+            if (is_null($result)) {
+                return $default;
+            }
+        } catch (ModelNotFoundException $ex) {
+            return $default;
+        }
+
+        if (is_null($key)) {
+            return $result;
+        }
+
+        return ArrayUtils::get($result, $key, $default);
+    }
+
+    /**
+     * Returns app info cached, or reads from db if not present.
+     * Pass in a key to return a portion/index of the cached data.
+     *
+     * @param int         $id
+     * @param null|string $key
+     * @param null        $default
+     *
+     * @return mixed|null
+     */
+    public static function getAppInfo($id, $key = null, $default = null)
+    {
+        $cacheKey = 'app:' . $id;
+        try {
+            $result = \Cache::remember($cacheKey, config('df.default_cache_ttl'), function ($id){
+                return App::with('app_lookup_by_app_id')->findOrFail($id)->toArray();
+            });
+
+            if (is_null($result)) {
+                return $default;
+            }
+        } catch (ModelNotFoundException $ex) {
+            return $default;
+        }
+
+        if (is_null($key)) {
+            return $result;
+        }
+
+        return ArrayUtils::get($result, $key, $default);
+    }
+
+    /**
+     * Returns system lookups cached, or reads from db if not present.
+     * Pass in a key to return a portion/index of the cached data.
+     *
+     * @param null|string $key
+     * @param null        $default
+     *
+     * @return mixed|null
+     */
+    public static function getSystemLookups($key = null, $default = null)
+    {
+        $cacheKey = 'system_lookups';
+        try {
+            $result = \Cache::remember($cacheKey, config('df.default_cache_ttl'), function (){
+                return Lookup::all()->toArray();
+            });
+
+            if (is_null($result)) {
+                return $default;
+            }
+        } catch (ModelNotFoundException $ex) {
+            return $default;
+        }
+
+        if (is_null($key)) {
+            return $result;
+        }
+
+        return ArrayUtils::get($result, $key, $default);
     }
 
     /**

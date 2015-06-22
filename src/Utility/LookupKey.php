@@ -9,43 +9,29 @@ use DreamFactory\Core\Models\UserLookup;
 
 class LookupKey
 {
-    /**
-     * @param null|int $roleId
-     * @param null|int $appId
-     * @param null|int $userId
-     *
-     * @return array
-     */
-    public static function getLookup($roleId = null, $appId = null, $userId = null)
+    public static function combineLookups($systemLookup = [], $appLookup = [], $roleLookup = [], $userLookup = [])
     {
-        $lookups = [];
-        $secretLookups = [];
+        $lookup = [];
+        $secretLookup = [];
 
-        $systemLookups = Lookup::all()->all();
-        static::addLookupsToMap($systemLookups, $lookups, $secretLookups);
-
-        $roleLookups = RoleLookup::whereRoleId($roleId)->get()->all();
-        static::addLookupsToMap($roleLookups, $lookups, $secretLookups);
-
-        $appLookups = AppLookup::whereAppId($appId)->get()->all();
-        static::addLookupsToMap($appLookups, $lookups, $secretLookups);
-
-        $userLookups = UserLookup::whereUserId($userId)->get()->all();
-        static::addLookupsToMap($userLookups, $lookups, $secretLookups);
+        static::addLookupsToMap($systemLookup, $lookup, $secretLookup);
+        static::addLookupsToMap($roleLookup, $lookup, $secretLookup);
+        static::addLookupsToMap($appLookup, $lookup, $secretLookup);
+        static::addLookupsToMap($userLookup, $lookup, $secretLookup);
 
         return [
-            'lookup'        => $lookups,
-            'lookup_secret' => $secretLookups
+            'lookup' => $lookup,
+            'lookup_secret' => $secretLookup
         ];
     }
 
     protected static function addLookupsToMap($lookups, array &$map, array &$map_secret)
     {
         foreach ($lookups as $lookup) {
-            if ($lookup->private) {
-                $map_secret[$lookup->name] = $lookup->value;
+            if ($lookup['private']) {
+                $map_secret[$lookup['name']] = $lookup['value'];
             } else {
-                $map[$lookup->name] = $lookup->value;
+                $map[$lookup['name']] = $lookup['value'];
             }
         }
     }

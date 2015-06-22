@@ -265,4 +265,19 @@ trait InternalServiceRequest
     {
         return null;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getApiKey()
+    {
+        //Check for API key in request parameters.
+        $apiKey = $this->getParameter('api_key');
+        if (empty($apiKey)) {
+            //Check for API key in request HEADER.
+            $apiKey = $this->getHeader('X_DREAMFACTORY_API_KEY');
+        }
+
+        return $apiKey;
+    }
 }

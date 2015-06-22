@@ -206,4 +206,29 @@ class ServiceRequest implements ServiceRequestInterface
     {
         return Request::instance();
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getApiKey()
+    {
+        if (!empty($this->parameters) && !empty($this->headers)) {
+            $apiKey = $this->getParameter('api_key');
+            if (empty($apiKey)) {
+                $apiKey = $this->getHeader('X_DREAMFACTORY_API_KEY');
+            }
+        } else {
+            $apiKey = Request::input('api_key');
+            if (empty($apiKey)) {
+                $apiKey = Request::header('X_DREAMFACTORY_API_KEY');
+            }
+        }
+
+        if(empty($apiKey))
+        {
+           $apiKey = null;
+        }
+
+        return $apiKey;
+    }
 }

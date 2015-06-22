@@ -18,7 +18,7 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
         $user = User::find(1);
 
         $this->be($user);
-        Session::setUserInfo($user);
+        Session::setUserInfo($user->toArray());
         $this->call(Verbs::GET, '/api/v2/system');
 
         $this->assertTrue(Session::isSysAdmin());
@@ -41,8 +41,8 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
         $this->call(Verbs::GET, '/api/v2/system', ['api_key' => $apiKey]);
 
         $this->assertFalse(Session::isSysAdmin());
-        $this->assertEquals(1, Session::getWithApiKey('role.id'));
-        $rsa = Session::getWithApiKey('role.services');
+        $this->assertEquals(1, Session::get('role.id'));
+        $rsa = Session::get('role.services');
         $this->assertTrue(!empty($rsa));
     }
 
@@ -70,12 +70,12 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
 
         $myUser = User::find($userId);
         $this->be($myUser);
-        Session::setUserInfo($myUser);
+        Session::setUserInfo($myUser->toArray());
         $this->call(Verbs::GET, '/api/v2/system', [], [], [], ['HTTP_X_DREAMFACTORY_API_KEY' => $apiKey]);
 
         $this->assertFalse(Session::isSysAdmin());
-        $this->assertEquals(1, Session::getWithApiKey('role.id'));
-        $rsa = Session::getWithApiKey('role.services');
+        $this->assertEquals(1, Session::get('role.id'));
+        $rsa = Session::get('role.services');
         $this->assertTrue(!empty($rsa));
     }
 }

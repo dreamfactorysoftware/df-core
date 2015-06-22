@@ -148,4 +148,11 @@ interface ServiceRequestInterface
      * @return mixed
      */
     public function getDriver();
+
+    /**
+     * Returns the api_key for the request.
+     *
+     * @return mixed
+     */
+    public function getApiKey();
 }

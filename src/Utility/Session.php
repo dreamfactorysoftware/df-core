@@ -14,8 +14,6 @@ use DreamFactory\Core\Models\User;
 
 class Session
 {
-    const API_KEY_PREFIX = 'api_key';
-
     /**
      * Checks to see if Access is Allowed based on Role-Service-Access.
      *
@@ -97,7 +95,7 @@ class Session
                 VerbsMask::DELETE_MASK;
         }
 
-        $services = ArrayUtils::clean(static::getWithApiKey('role.services'));
+        $services = ArrayUtils::clean(static::get('role.services'));
         $service = strval($service);
         $component = strval($component);
 
@@ -282,19 +280,23 @@ class Session
     /**
      * Sets basic info of the user in session when authenticated.
      *
-     * @param User $user
+     * @param array $user
      *
      * @return bool
      */
-    public static function setUserInfo(User $user)
+    public static function setUserInfo($user)
     {
-        \Session::put('user.id', $user->id);
-        \Session::put('user.display_name', $user->name);
-        \Session::put('user.first_name', $user->first_name);
-        \Session::put('user.last_name', $user->last_name);
-        \Session::put('user.email', $user->email);
-        \Session::put('user.is_sys_admin', $user->is_sys_admin);
-        \Session::put('user.last_login_date', $user->last_login_date);
+        if(!empty($user)) {
+            \Session::put('user.id', ArrayUtils::get($user, 'id'));
+            \Session::put('user.display_name', ArrayUtils::get($user, 'name'));
+            \Session::put('user.first_name', ArrayUtils::get($user, 'first_name'));
+            \Session::put('user.last_name', ArrayUtils::get($user, 'last_name'));
+            \Session::put('user.email', ArrayUtils::get($user, 'email'));
+            \Session::put('user.is_sys_admin', ArrayUtils::get($user, 'is_sys_admin'));
+            \Session::put('user.last_login_date', ArrayUtils::get($user, 'last_login_date'));
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -305,23 +307,22 @@ class Session
      */
     public static function getPublicInfo()
     {
-        if ((null === session('user')) && (null === session('api_key'))) {
+        if (empty(session('user'))) {
             throw new UnauthorizedException('There is no valid session for the current request.');
         }
 
         $sessionData = [
-            'session_id'      => \Session::getId(),
             'id'              => session('user.id'),
             'name'            => session('user.display_name'),
             'first_name'      => session('user.first_name'),
             'last_name'       => session('user.last_name'),
             'email'           => session('user.email'),
-            'is_sys_admin'    => boolval(session('user.is_sys_admin')),
+            'is_sys_admin'    => session('user.is_sys_admin'),
             'last_login_date' => session('user.last_login_date'),
             'host'            => gethostname()
         ];
 
-        $role = static::getWithApiKey('role.id');
+        $role = static::get('role');
         if (!session('user.is_sys_admin') && !empty($role)) {
             $sessionData['role'] = ArrayUtils::get($role, 'name');
             $sessionData['role_id'] = ArrayUtils::get($role, 'id');
@@ -347,24 +348,7 @@ class Session
      */
     public static function getRoleId()
     {
-        return static::getWithApiKey('role.id');
-    }
-
-    /**
-     * Sets System-Role-User lookup keys in session.
-     *
-     * @param      $apiKey
-     * @param null $roleId
-     * @param null $appId
-     * @param null $userId
-     */
-    public static function setLookupKeys($apiKey, $roleId = null, $appId = null, $userId = null)
-    {
-        $lookup = LookupKey::getLookup($roleId, $appId, $userId);
-
-        \Session::put(static::API_KEY_PREFIX . '.' . $apiKey . '.lookup', ArrayUtils::get($lookup, 'lookup', []));
-        \Session::put(static::API_KEY_PREFIX . '.' . $apiKey . '.lookup_secret',
-            ArrayUtils::get($lookup, 'lookup_secret', []));
+        return static::get('role.id');
     }
 
     /**
@@ -387,7 +371,7 @@ class Session
      */
     public static function isSysAdmin()
     {
-        return boolval(session('user.is_sys_admin', false));
+        return session('user.is_sys_admin');
     }
 
     public static function get($key, $default = null)
@@ -395,14 +379,6 @@ class Session
         return \Session::get($key, $default);
     }
 
-    public static function getWithApiKey($key, $default = null, $apiKey = null)
-    {
-        if (empty($apiKey)) {
-            $apiKey = static::getCurrentApiKey();
-        }
-
-        return \Session::get(static::API_KEY_PREFIX . '.' . $apiKey . '.' . $key, $default);
-    }
 
     public static function set($name, $value)
     {
@@ -414,11 +390,6 @@ class Session
         \Session::put($key, $value);
     }
 
-    public static function putWithApiKey($apiKey, $key, $value = null)
-    {
-        \Session::put(static::API_KEY_PREFIX . '.' . $apiKey . '.' . $key, $value);
-    }
-
     public static function push($key, $value)
     {
         \Session::push($key, $value);
@@ -427,11 +398,6 @@ class Session
     public static function has($name)
     {
         return \Session::has($name);
-    }
-
-    public static function hasApiKey($key)
-    {
-        return \Session::has(static::API_KEY_PREFIX . '.' . $key);
     }
 
     public static function getId()
@@ -469,16 +435,6 @@ class Session
         \Session::flush();
     }
 
-    public static function getCurrentApiKey()
-    {
-        return session('current_api_key');
-    }
-
-    public static function setCurrentApiKey($key)
-    {
-        \Session::put('current_api_key', $key);
-    }
-
     public static function remove($name)
     {
         return \Session::remove($name);
@@ -487,35 +443,5 @@ class Session
     public static function forget($key)
     {
         \Session::forget($key);
-    }
-
-    public static function forgetApiKeys()
-    {
-        \Session::forget(static::API_KEY_PREFIX);
-    }
-
-    public static function destroy($id = null)
-    {
-        $currentSessionId = \Session::getId();
-
-        if (empty($id) || $id === $currentSessionId) {
-            \Session::flush();
-
-            return true;
-        } elseif (\Session::isValidId($id)) {
-            //Destroy target session.
-            \Session::setId($id);
-            \Session::start();
-            \Session::flush();
-
-            //Restore current session.
-            \Session::setId($currentSessionId);
-            \Session::start();
-            \Request::setSession(\Session::driver());
-
-            return true;
-        }
-
-        return false;
     }
 }

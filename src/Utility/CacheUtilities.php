@@ -116,7 +116,10 @@ class CacheUtilities
         $cacheKey = 'user:' . $id;
         try {
             $result = Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
-                return User::with('user_lookup_by_user_id')->findOrFail($id)->toArray();
+                $user = User::with('user_lookup_by_user_id')->findOrFail($id);
+                $userInfo = $user->toArray();
+                ArrayUtils::set($userInfo, 'is_sys_admin', $user->is_sys_admin);
+                return $userInfo;
             });
 
             if (is_null($result)) {
@@ -147,10 +150,26 @@ class CacheUtilities
     {
         $cacheKey = 'role:' . $id;
         try {
-            $result = Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
-                return Role::with(['role_lookup_by_role_id', 'role_service_access_by_role_id'])
-                    ->findOrFail($id)
-                    ->toArray();
+            $result = \Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
+                $roleInfo =  Role::with(
+                    [
+                        'role_lookup_by_role_id',
+                        'role_service_access_by_role_id',
+                        'service_by_role_service_access'
+                    ]
+                )
+                ->findOrFail($id)
+                ->toArray();
+
+                $services = ArrayUtils::get($roleInfo, 'service_by_role_service_access');
+                unset($roleInfo['service_by_role_service_access']);
+
+                foreach($roleInfo['role_service_access_by_role_id'] as $key => $value){
+                    $serviceName = ArrayUtils::findByKeyValue($services, 'id', ArrayUtils::get($value, 'service_id'), 'name');
+                    $roleInfo['role_service_access_by_role_id'][$key]['service'] = $serviceName;
+                }
+
+                return $roleInfo;
             });
 
             if (is_null($result)) {

@@ -20,12 +20,12 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 class CacheUtilities
 {
     /**
-     * Map of API key and optional User id to a Role id.
+     * Map of App id and optional User id to a Role id.
      * This should be pulled from cache when available.
      *
      * @var array
      */
-    protected static $apiKeyUserIdRoleIdMap = [];
+    protected static $appIdUserIdToRoleIdMap = [];
 
     /**
      * Map of resource id to a list of cache keys, i.e. role_id.
@@ -286,6 +286,8 @@ class CacheUtilities
             $key = static::getAppInfo($id, 'api_key', null);
             if (!is_null($key)) {
                 static::setApiKeyToAppId($key, $id);
+
+                return $key;
             }
         }
 
@@ -296,26 +298,25 @@ class CacheUtilities
      * Use this primarily in middle-ware or where no session is established yet.
      * Once session is established, the role id is accessible via Session.
      *
-     * @param string   $api_key
+     * @param int   $app_id
      * @param null|int $user_id
      *
      * @return null|int The role id or null for admin
      */
-    public static function getRoleIdByApiKeyAndUserId($api_key, $user_id = null)
+    public static function getRoleIdByAppIAndUserId($app_id, $user_id = null)
     {
-        if (empty(static::$apiKeyUserIdRoleIdMap)) {
-            static::$apiKeyUserIdRoleIdMap = Cache::get('apiKeyUserIdRoleIdMap', []);
+        if (empty(static::$appIdUserIdToRoleIdMap)) {
+            static::$appIdUserIdToRoleIdMap = Cache::get('appIdUserIdToRoleIdMap', []);
         }
 
-        if (isset(static::$apiKeyUserIdRoleIdMap[$api_key], static::$apiKeyUserIdRoleIdMap[$api_key][$user_id])) {
-            return static::$apiKeyUserIdRoleIdMap[$api_key][$user_id];
+        if (isset(static::$appIdUserIdToRoleIdMap[$app_id], static::$appIdUserIdToRoleIdMap[$app_id][$user_id])) {
+            return static::$appIdUserIdToRoleIdMap[$app_id][$user_id];
         }
 
-        $app_id = static::getAppIdByApiKey($api_key);
         $map = UserAppRole::whereUserId($user_id)->whereAppId($app_id)->first(['role_id']);
         if ($map) {
-            static::$apiKeyUserIdRoleIdMap[$api_key][$user_id] = $map->role_id;
-            Cache::put('apiKeyUserIdRoleIdMap', static::$apiKeyUserIdRoleIdMap, Config::get('df.default_cache_ttl'));
+            static::$appIdUserIdToRoleIdMap[$app_id][$user_id] = $map->role_id;
+            Cache::put('appIdUserIdToRoleIdMap', static::$appIdUserIdToRoleIdMap, Config::get('df.default_cache_ttl'));
 
             return $map->role_id;
         }

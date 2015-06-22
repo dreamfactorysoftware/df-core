@@ -26,7 +26,7 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
     public function testRoleIdFromApiKey()
     {
         $app = App::firstOrFail();
-        $roleId = CacheUtilities::getRoleIdByApiKeyAndUserId($app->api_key);
+        $roleId = CacheUtilities::getRoleIdByAppIAndUserId($app->api_key);
 
         $this->assertEquals(null, $roleId);
     }
@@ -34,7 +34,7 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
     public function testRoleIdFromApiKeyUserId()
     {
         $app = App::firstOrFail();
-        $roleId = CacheUtilities::getRoleIdByApiKeyAndUserId($app->api_key);
+        $roleId = CacheUtilities::getRoleIdByAppIAndUserId($app->api_key);
 
         $this->assertEquals(null, $roleId);
     }
@@ -44,7 +44,7 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
         $app = App::firstOrFail();
         $info = CacheUtilities::getAppInfo($app->id);
 
-        $this->assertEquals(null, $info);
+        $this->assertNotEquals(null, $info);
     }
 
     public function testRoleInfo()
@@ -52,7 +52,7 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
         $role = Role::firstOrFail();
         $info = CacheUtilities::getRoleInfo($role->id);
 
-        $this->assertEquals(null, $info);
+        $this->assertNotEquals(null, $info);
     }
 
     public function testUserInfo()
@@ -60,6 +60,6 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
         $user = User::firstOrFail();
         $info = CacheUtilities::getUserInfo($user->id);
 
-        $this->assertEquals(null, $info);
+        $this->assertNotEquals(null, $info);
     }
 }

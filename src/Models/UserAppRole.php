@@ -7,9 +7,9 @@ namespace DreamFactory\Core\Models;
  * @property integer $user_id
  * @property integer $app_id
  * @property integer $role_id
- * @method static \Illuminate\Database\Query\Builder|User whereUserId($value)
- * @method static \Illuminate\Database\Query\Builder|User whereAppId($value)
- * @method static \Illuminate\Database\Query\Builder|User whereRoleId($value)
+ * @method static \Illuminate\Database\Query\Builder|UserAppRole whereUserId($value)
+ * @method static \Illuminate\Database\Query\Builder|UserAppRole whereAppId($value)
+ * @method static \Illuminate\Database\Query\Builder|UserAppRole whereRoleId($value)
  */
 class UserAppRole extends BaseModel
 {

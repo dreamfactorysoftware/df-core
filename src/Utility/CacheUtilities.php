@@ -7,6 +7,7 @@ use \Config;
 use DreamFactory\Core\Models\Lookup;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\App;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -18,6 +19,14 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
  */
 class CacheUtilities
 {
+    /**
+     * Map of API key and optional User id to a Role id.
+     * This should be pulled from cache when available.
+     *
+     * @var array
+     */
+    protected static $apiKeyUserIdRoleIdMap = [];
+
     /**
      * Map of resource id to a list of cache keys, i.e. role_id.
      * This should be pulled from cache when available.
@@ -278,6 +287,37 @@ class CacheUtilities
             if (!is_null($key)) {
                 static::setApiKeyToAppId($key, $id);
             }
+        }
+
+        return null;
+    }
+
+    /**
+     * Use this primarily in middle-ware or where no session is established yet.
+     * Once session is established, the role id is accessible via Session.
+     *
+     * @param string   $api_key
+     * @param null|int $user_id
+     *
+     * @return null|int The role id or null for admin
+     */
+    public static function getRoleIdByApiKeyAndUserId($api_key, $user_id = null)
+    {
+        if (empty(static::$apiKeyUserIdRoleIdMap)) {
+            static::$apiKeyUserIdRoleIdMap = Cache::get('apiKeyUserIdRoleIdMap', []);
+        }
+
+        if (isset(static::$apiKeyUserIdRoleIdMap[$api_key], static::$apiKeyUserIdRoleIdMap[$api_key][$user_id])) {
+            return static::$apiKeyUserIdRoleIdMap[$api_key][$user_id];
+        }
+
+        $app_id = static::getAppIdByApiKey($api_key);
+        $map = UserAppRole::whereUserId($user_id)->whereAppId($app_id)->first(['role_id']);
+        if ($map) {
+            static::$apiKeyUserIdRoleIdMap[$api_key][$user_id] = $map->role_id;
+            Cache::put('apiKeyUserIdRoleIdMap', static::$apiKeyUserIdRoleIdMap, Config::get('df.default_cache_ttl'));
+
+            return $map->role_id;
         }
 
         return null;

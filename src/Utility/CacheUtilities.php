@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Utility;
 
 use \Cache;
+use \Config;
 use DreamFactory\Core\Models\Lookup;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\User;
@@ -18,38 +19,6 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 class CacheUtilities
 {
     /**
-     * Map of API key to its App id.
-     * This should be pulled from cache when available.
-     *
-     * @var array
-     */
-    protected static $apiKeyAppIdMap = [];
-
-    /**
-     * Map of API key and optional User id to a Role id.
-     * This should be pulled from cache when available.
-     *
-     * @var array
-     */
-    protected static $apiKeyUserIdRoleIdMap = [];
-
-    /**
-     * Map of API key to a Session id.
-     * This should be pulled from cache when available.
-     *
-     * @var array
-     */
-    protected static $apiKeySessionIdMap = [];
-
-    /**
-     * Map of User id to a Session id.
-     * This should be pulled from cache when available.
-     *
-     * @var array
-     */
-    protected static $userIdSessionIdMap = [];
-
-    /**
      * Map of resource id to a list of cache keys, i.e. role_id.
      * This should be pulled from cache when available.
      * i.e. $cacheKeysMap = ['role' => [1 => ['a','b','c']]]
@@ -61,10 +30,6 @@ class CacheUtilities
     public static function flush()
     {
         Cache::flush();
-        static::$apiKeyAppIdMap = [];
-        static::$apiKeySessionIdMap = [];
-        static::$userIdSessionIdMap = [];
-        static::$apiKeyUserIdRoleIdMap = [];
     }
 
     /**
@@ -88,7 +53,7 @@ class CacheUtilities
     public static function add($key, $value, $ttl = null)
     {
         if (is_null($ttl)) {
-            $ttl = \Config::get('df.default_cache_ttl');
+            $ttl = Config::get('df.default_cache_ttl');
         }
 
         return Cache::add($key, $value, $ttl);
@@ -102,7 +67,7 @@ class CacheUtilities
     public static function put($key, $value, $ttl = null)
     {
         if (is_null($ttl)) {
-            $ttl = \Config::get('df.default_cache_ttl');
+            $ttl = Config::get('df.default_cache_ttl');
         }
 
         Cache::put($key, $value, $ttl);
@@ -141,7 +106,7 @@ class CacheUtilities
     {
         $cacheKey = 'user:' . $id;
         try {
-            $result = \Cache::remember($cacheKey, config('df.default_cache_ttl'), function ($id){
+            $result = Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
                 return User::with('user_lookup_by_user_id')->findOrFail($id)->toArray();
             });
 
@@ -173,7 +138,7 @@ class CacheUtilities
     {
         $cacheKey = 'role:' . $id;
         try {
-            $result = \Cache::remember($cacheKey, config('df.default_cache_ttl'), function ($id){
+            $result = Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
                 return Role::with(['role_lookup_by_role_id', 'role_service_access_by_role_id'])
                     ->findOrFail($id)
                     ->toArray();
@@ -207,7 +172,7 @@ class CacheUtilities
     {
         $cacheKey = 'app:' . $id;
         try {
-            $result = \Cache::remember($cacheKey, config('df.default_cache_ttl'), function ($id){
+            $result = Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
                 return App::with('app_lookup_by_app_id')->findOrFail($id)->toArray();
             });
 
@@ -238,7 +203,7 @@ class CacheUtilities
     {
         $cacheKey = 'system_lookups';
         try {
-            $result = \Cache::remember($cacheKey, config('df.default_cache_ttl'), function (){
+            $result = Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function (){
                 return Lookup::all()->toArray();
             });
 
@@ -257,8 +222,8 @@ class CacheUtilities
     }
 
     /**
-     * @param      $apiKey
-     * @param null $userId
+     * @param string   $apiKey
+     * @param int|null $userId
      *
      * @return string
      */
@@ -268,41 +233,15 @@ class CacheUtilities
     }
 
     /**
-     * @return string
-     */
-    public static function getSystemLookupCacheKey()
-    {
-        return 'lookup_system';
-    }
-
-    /**
-     * @param null $roleId
+     * Use this primarily in middle-ware or where no session is established yet.
      *
-     * @return string
+     * @param string $api_key
+     * @param int    $app_id
      */
-    public static function getRoleLookupCacheKey($roleId = null)
+    public static function setApiKeyToAppId($api_key, $app_id)
     {
-        return 'lookup_role_' . $roleId;
-    }
-
-    /**
-     * @param null $userId
-     *
-     * @return string
-     */
-    public static function getUserLookupCacheKey($userId = null)
-    {
-        return 'lookup_user_' . $userId;
-    }
-
-    /**
-     * @param null $appId
-     *
-     * @return string
-     */
-    public static function getAppLookupCacheKey($appId = null)
-    {
-        return 'lookup_app_' . $appId;
+        $cacheKey = 'apikey2appid:' . $api_key;
+        Cache::put($cacheKey, $app_id, Config::get('df.default_cache_ttl'));
     }
 
     /**
@@ -314,41 +253,31 @@ class CacheUtilities
      */
     public static function getAppIdByApiKey($api_key)
     {
-        if (!empty($api_key)) {
-            if (empty(static::$apiKeyAppIdMap)) {
-                static::$apiKeyAppIdMap = Cache::get('apiKeyAppIdMap', []);
-            }
-
-            if (isset(static::$apiKeyAppIdMap[$api_key])) {
-                return static::$apiKeyAppIdMap[$api_key];
-            } else {
-                $app = App::whereApiKey($api_key)->first();
-                if ($app) {
-                    return $app->id;
-                }
-            }
+        $cacheKey = 'apikey2appid:' . $api_key;
+        try {
+            return Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($api_key){
+                return App::whereApiKey($api_key)->firstOrFail()->id;
+            });
+        } catch (ModelNotFoundException $ex) {
+            return null;
         }
-
-        return null;
     }
 
     /**
      * Use this primarily in middle-ware or where no session is established yet.
-     * Once session is established, the role id is accessible via Session.
      *
-     * @param string   $api_key
-     * @param null|int $user_id
+     * @param int $id
      *
-     * @return null|int The role id or null for admin
+     * @return string|null The API key for the designated app or null if not found
      */
-    public static function getRoleIdByApiKeyAndUserId($api_key, $user_id = null)
+    public static function getApiKeyByAppId($id)
     {
-        if (empty(static::$apiKeyUserIdRoleIdMap)) {
-            static::$apiKeyUserIdRoleIdMap = Cache::get('apiKeyUserIdRoleIdMap', []);
-        }
-
-        if (isset(static::$apiKeyUserIdRoleIdMap[$api_key], static::$apiKeyUserIdRoleIdMap[$api_key][$user_id])) {
-            return static::$apiKeyUserIdRoleIdMap[$api_key][$user_id];
+        if (!empty($id)) {
+            // use local app caching
+            $key = static::getAppInfo($id, 'api_key', null);
+            if (!is_null($key)) {
+                static::setApiKeyToAppId($key, $id);
+            }
         }
 
         return null;
@@ -373,7 +302,7 @@ class CacheUtilities
 
         static::$cacheKeysMap[$type][$id] = $newKeys;
         // Save the map to cache
-        Cache::put('cacheKeysMap', static::$cacheKeysMap, \Config::get('df.default_cache_ttl'));
+        Cache::put('cacheKeysMap', static::$cacheKeysMap, Config::get('df.default_cache_ttl'));
     }
 
     /**
@@ -395,7 +324,7 @@ class CacheUtilities
 
         static::$cacheKeysMap[$type][$id] = $newKeys;
         // Save the map to cache
-        Cache::put('cacheKeysMap', static::$cacheKeysMap, \Config::get('df.default_cache_ttl'));
+        Cache::put('cacheKeysMap', static::$cacheKeysMap, Config::get('df.default_cache_ttl'));
     }
 
     /**
@@ -457,7 +386,7 @@ class CacheUtilities
     {
         $key = static::makeKeyFromTypeAndId($type, $id, $key);
         if (is_null($ttl)) {
-            $ttl = \Config::get('df.default_cache_ttl');
+            $ttl = Config::get('df.default_cache_ttl');
         }
 
         if (!Cache::add($key, $value, $ttl)) {
@@ -480,7 +409,7 @@ class CacheUtilities
     {
         $key = static::makeKeyFromTypeAndId($type, $id, $key);
         if (is_null($ttl)) {
-            $ttl = \Config::get('df.default_cache_ttl');
+            $ttl = Config::get('df.default_cache_ttl');
         }
 
         Cache::put($key, $value, $ttl);

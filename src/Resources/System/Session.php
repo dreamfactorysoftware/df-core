@@ -2,7 +2,6 @@
 
 namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Resources\UserSessionResource;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -38,6 +37,6 @@ class Session extends UserSessionResource
             'is_sys_admin' => 1
         ];
 
-        return $this->handleLogin($credentials, Scalar::boolval($this->getPayloadData('remember_me')));
+        return $this->handleLogin($credentials, boolval($this->getPayloadData('remember_me')));
     }
 }

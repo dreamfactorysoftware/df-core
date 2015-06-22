@@ -57,5 +57,9 @@ Route::group(
                 );
             }
         );
+
+        Route::get('{storage}/{path}', 'StorageController@handleGET')->where(
+            ['storage' => $servicePattern, 'path' => $resourcePathPattern]
+        );
     }
 );

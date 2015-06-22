@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Scripting;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Events\Exceptions\ScriptException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
@@ -119,7 +118,7 @@ class ScriptEngineManager
         $output = ob_get_clean();
         static::destroy($_engine);
 
-        if (Scalar::boolval(\Config::get('df.log_script_memory_usage', false))) {
+        if (boolval(\Config::get('df.log_script_memory_usage', false))) {
             Log::debug('Engine memory usage: ' . static::resizeBytes(memory_get_usage(true)));
         }
 

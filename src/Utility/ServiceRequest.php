@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Core\Components\InternalServiceRequest;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -73,7 +72,7 @@ class ServiceRequest implements ServiceRequestInterface
             return ArrayUtils::getBool($this->parameters, $key, $default);
         }
 
-        return Scalar::boolval($this->getParameter($key, $default));
+        return boolval($this->getParameter($key, $default));
     }
 
     /**

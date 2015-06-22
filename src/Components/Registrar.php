@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\Session;
 use Validator;
@@ -38,7 +37,7 @@ class Registrar implements RegistrarContract
     {
         $currentUser = Session::getUser();
 
-        if (!boolval($currentUser->is_sys_admin)) {
+        if (!$currentUser->is_sys_admin) {
             //If current user is not an admin then new user cannot be an admin either.
             ArrayUtils::set($data, 'is_sys_admin', 0);
         }

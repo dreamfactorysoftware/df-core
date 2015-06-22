@@ -321,8 +321,8 @@ class Session
             'host'            => gethostname()
         ];
 
-        if (!$sessionData['is_sys_admin']) {
-            $role = session('rsa.role');
+        $role = static::getWithApiKey('role.id');
+        if (!session('user.is_sys_admin') && !empty($role)) {
             $sessionData['role'] = ArrayUtils::get($role, 'name');
             $sessionData['role_id'] = ArrayUtils::get($role, 'id');
         }
@@ -347,7 +347,7 @@ class Session
      */
     public static function getRoleId()
     {
-        return session('rsa.role.id');
+        return static::getWithApiKey('role.id');
     }
 
     /**

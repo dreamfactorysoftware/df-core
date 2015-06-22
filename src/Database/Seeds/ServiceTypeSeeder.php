@@ -45,7 +45,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
         [
             'name'           => 'local_file',
             'class_name'     => 'DreamFactory\\Core\\Services\\LocalFileService',
-            'config_handler' => null,
+            'config_handler' => 'DreamFactory\\Core\\Models\\FilePublicPath',
             'label'          => 'Local File Service',
             'description'    => 'File service supporting the local file system.',
             'group'          => 'file',

@@ -26,7 +26,7 @@ abstract class BaseFileService extends BaseRestService
     /**
      * @var array Array of private path strings
      */
-    public $privatePaths = [];
+    public $publicPaths = [];
 
     /**
      * @var string Storage container name
@@ -58,7 +58,9 @@ abstract class BaseFileService extends BaseRestService
         ];
         ArrayUtils::set($settings, "verbAliases", $verbAliases);
         parent::__construct($settings);
-        $this->setDriver(ArrayUtils::get($settings, 'config'));
+        $config = ArrayUtils::get($settings, 'config');
+        $this->publicPaths = ArrayUtils::get($config, 'public_path', []);
+        $this->setDriver($config);
     }
 
     /**
@@ -513,7 +515,7 @@ abstract class BaseFileService extends BaseRestService
         } else {
             $download = $this->request->getParameterAsBool('download', false);
             // stream the file, exits processing
-            $this->driver->streamFile($this->container, $this->filePath, $download);
+            $this->streamFile($this->container, $this->filePath, $download);
 
             // output handled by file handler, short the response here
             $this->setNativeFormat(null);
@@ -521,6 +523,16 @@ abstract class BaseFileService extends BaseRestService
         }
 
         return $result;
+    }
+
+    /**
+     * @param      $container
+     * @param      $path
+     * @param bool $download
+     */
+    public function streamFile($container, $path, $download = false)
+    {
+        $this->driver->streamFile($container, $path, $download);
     }
 
     /**

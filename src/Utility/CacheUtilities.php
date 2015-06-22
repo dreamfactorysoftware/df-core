@@ -317,12 +317,12 @@ class CacheUtilities
      * Use this primarily in middle-ware or where no session is established yet.
      * Once session is established, the role id is accessible via Session.
      *
-     * @param int   $app_id
-     * @param null|int $user_id
+     * @param int $app_id
+     * @param int $user_id
      *
      * @return null|int The role id or null for admin
      */
-    public static function getRoleIdByAppIAndUserId($app_id, $user_id = null)
+    public static function getRoleIdByAppIAndUserId($app_id, $user_id)
     {
         if (empty(static::$appIdUserIdToRoleIdMap)) {
             static::$appIdUserIdToRoleIdMap = Cache::get('appIdUserIdToRoleIdMap', []);

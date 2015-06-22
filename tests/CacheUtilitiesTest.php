@@ -7,6 +7,11 @@ use DreamFactory\Core\Models\User;
 
 class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
 {
+    public function tearDown()
+    {
+        User::whereEmail('john@dreamfactory.com')->delete();
+    }
+
     public function testAppIdFromApiKey()
     {
         $app = App::firstOrFail();
@@ -23,20 +28,27 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
         $this->assertEquals($app->api_key, $key);
     }
 
-    public function testRoleIdFromApiKey()
-    {
-        $app = App::firstOrFail();
-        $roleId = CacheUtilities::getRoleIdByAppIAndUserId($app->api_key);
-
-        $this->assertEquals(null, $roleId);
-    }
-
     public function testRoleIdFromApiKeyUserId()
     {
         $app = App::firstOrFail();
-        $roleId = CacheUtilities::getRoleIdByAppIAndUserId($app->api_key);
+        $role = Role::firstOrFail();
 
-        $this->assertEquals(null, $roleId);
+        $temp = [
+            'name'              => 'John Doe',
+            'first_name'        => 'John',
+            'last_name'         => 'Doe',
+            'email'             => 'john@dreamfactory.com',
+            'password'          => 'test1234',
+            'is_active'         => 1
+        ];
+
+        /** @type User $user */
+        $user = User::create($temp);
+        \DreamFactory\Core\Models\UserAppRole::create(['user_id' => $user->id, 'app_id' => $app->id, 'role_id' => $role->id]);
+
+        $roleId = CacheUtilities::getRoleIdByAppIAndUserId($app->id, $user->id);
+
+        $this->assertEquals($role->id, $roleId);
     }
 
     public function testAppInfo()

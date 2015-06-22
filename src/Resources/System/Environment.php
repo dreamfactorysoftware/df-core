@@ -2,7 +2,6 @@
 
 namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
@@ -15,7 +14,7 @@ class Environment extends BaseRestResource
     {
         $result = [];
 
-        if (true === Scalar::boolval(SessionUtilities::isSysAdmin())) {
+        if (SessionUtilities::isSysAdmin()) {
             $result['server'] = [
                 'server_os' => 'tbi'
             ];

@@ -55,13 +55,12 @@ class UserPasswordResource extends BaseRestResource
             return static::changePassword($user, $oldPassword, $newPassword);
         }
 
-        $reset = $this->request->getParameterAsBool('reset');
         $login = $this->request->getParameterAsBool('login');
         $email = $this->getPayloadData('email');
         $code = $this->getPayloadData('code');
         $answer = $this->getPayloadData('security_answer');
 
-        if (true === $reset) {
+        if ($this->request->getParameterAsBool('reset')) {
             return static::passwordReset($email);
         }
 

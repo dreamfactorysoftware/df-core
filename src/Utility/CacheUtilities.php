@@ -30,6 +30,22 @@ class CacheUtilities
     protected static $apiKeyUserIdRoleIdMap = [];
 
     /**
+     * Map of API key to a Session id.
+     * This should be pulled from cache when available.
+     *
+     * @var array
+     */
+    protected static $apiKeySessionIdMap = [];
+
+    /**
+     * Map of User id to a Session id.
+     * This should be pulled from cache when available.
+     *
+     * @var array
+     */
+    protected static $userIdSessionIdMap = [];
+
+    /**
      * Map of resource id to a list of cache keys, i.e. role_id.
      * This should be pulled from cache when available.
      * i.e. $cacheKeysMap = ['role' => [1 => ['a','b','c']]]
@@ -42,6 +58,8 @@ class CacheUtilities
     {
         Cache::flush();
         static::$apiKeyAppIdMap = [];
+        static::$apiKeySessionIdMap = [];
+        static::$userIdSessionIdMap = [];
         static::$apiKeyUserIdRoleIdMap = [];
     }
 

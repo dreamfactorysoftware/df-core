@@ -5,7 +5,6 @@ namespace DreamFactory\Core\Utility;
 use \Request;
 use Illuminate\Routing\Router;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
-use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
@@ -88,7 +87,7 @@ class Session
      */
     public static function getServicePermissions($service, $component = null, $requestor = ServiceRequestorTypes::API)
     {
-        if (true === static::isSysAdmin()) {
+        if (static::isSysAdmin()) {
             return
                 VerbsMask::NONE_MASK |
                 VerbsMask::GET_MASK |
@@ -202,11 +201,11 @@ class Session
      */
     public static function getServiceFilters($action, $service, $component = null)
     {
-        if (true === static::isSysAdmin()) {
+        if (static::isSysAdmin()) {
             return [];
         }
 
-        if (null === ($_roleInfo = ArrayUtils::get(static::$_cache, 'role'))) {
+        if (null === ($_roleInfo = session('rsa.role'))) {
             // no role assigned
             return [];
         }
@@ -317,15 +316,15 @@ class Session
             'first_name'      => session('user.first_name'),
             'last_name'       => session('user.last_name'),
             'email'           => session('user.email'),
-            'is_sys_admin'    => session('user.is_sys_admin'),
+            'is_sys_admin'    => boolval(session('user.is_sys_admin')),
             'last_login_date' => session('user.last_login_date'),
             'host'            => gethostname()
         ];
 
-        if (!Scalar::boolval(session('user.is_sys_admin'))) {
+        if (!$sessionData['is_sys_admin']) {
             $role = session('rsa.role');
-            ArrayUtils::set($sessionData, 'role', ArrayUtils::get($role, 'name'));
-            ArrayUtils::set($sessionData, 'role_id', ArrayUtils::get($role, 'id'));
+            $sessionData['role'] = ArrayUtils::get($role, 'name');
+            $sessionData['role_id'] = ArrayUtils::get($role, 'id');
         }
 
         return $sessionData;
@@ -388,7 +387,7 @@ class Session
      */
     public static function isSysAdmin()
     {
-        return session('user.is_sys_admin', false);
+        return boolval(session('user.is_sys_admin', false));
     }
 
     public static function get($key, $default = null)

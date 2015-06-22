@@ -38,7 +38,7 @@ class Registrar implements RegistrarContract
     {
         $currentUser = Session::getUser();
 
-        if (false === Scalar::boolval($currentUser->is_sys_admin)) {
+        if (!boolval($currentUser->is_sys_admin)) {
             //If current user is not an admin then new user cannot be an admin either.
             ArrayUtils::set($data, 'is_sys_admin', 0);
         }
@@ -47,7 +47,7 @@ class Registrar implements RegistrarContract
             'name'         => ArrayUtils::get($data, 'name'),
             'first_name'   => ArrayUtils::get($data, 'first_name'),
             'last_name'    => ArrayUtils::get($data, 'last_name'),
-            'is_sys_admin' => ArrayUtils::get($data, 'is_sys_admin', 0),
+            'is_sys_admin' => ArrayUtils::getBool($data, 'is_sys_admin'),
             'email'        => ArrayUtils::get($data, 'email')
         ]);
 

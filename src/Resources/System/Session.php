@@ -20,7 +20,7 @@ class Session extends UserSessionResource
             throw new NotFoundException('No user session found.');
         }
 
-        if (false === Scalar::boolval($user->is_sys_admin)) {
+        if (!$user->is_sys_admin) {
             throw new UnauthorizedException('You are not authorized to perform this action.');
         }
 

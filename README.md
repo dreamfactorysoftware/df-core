@@ -1,11 +1,26 @@
-# DreamFactory(™) Core
+## DreamFactory Core
 
-This package contains the DreamFactory(™) Core. DreamFactory(™) Core is a laravel 5 package that can be installed on any laravel 5 projects. 
+[![Build Status](https://travis-ci.org/dreamfactory/df-core.svg)](https://travis-ci.org/dreamfactory/df-core)
+[![Total Downloads](https://poser.pugx.org/dreamfactory/df-core/d/total.svg)](https://packagist.org/packages/dreamfactory/df-core)
+[![Latest Stable Version](https://poser.pugx.org/dreamfactory/df-core/v/stable.svg)](https://packagist.org/packages/dreamfactory/df-core)
+[![Latest Unstable Version](https://poser.pugx.org/dreamfactory/df-core/v/unstable.svg)](https://packagist.org/packages/dreamfactory/df-core)
+[![License](https://poser.pugx.org/dreamfactory/df-core/license.svg)](http://www.apache.org/licenses/LICENSE-2.0)
 
+> **Note:** This repository contains the core code of the DreamFactory platform. If you want the full DreamFactory platform, visit the main [DreamFactory repository](https://github.com/dreamfactorysoftware/dreamfactory).
+
+## Overview
+
+DreamFactory(™) Core is a package built on top of the Laravel framework, and as such retains the requirements of the [Laravel v5.0 framework](https://github.com/laravel/framework). 
+
+## Documentation
+
+Documentation for the platform can be found on the [DreamFactory wiki](http://wiki.dreamfactory.com).
 
 ## Installation
 
-[Note: This document is currently intended for developers only at this time. It covers how to setup a dev (local) environment to start developing DreamFactory(™) packages.]
+> **Note:** This document is currently intended for developers who desire to add DreamFactory to an existing Laravel project. 
+It covers how to setup a local environment to start developing DreamFactory(™) packages. 
+For more information, see the [full platform repository](https://github.com/dreamfactorysoftware/dreamfactory).
 
 
 Edit your project’s composer.json to require the following package.
@@ -54,3 +69,13 @@ Now if you have setup the phpunit config right in phpunit.xml (Use the supplied 
 	phpunit vendor/dreamfactory/df-core/tests/
 
 [Note: Remember to turn off laravel 5’s CSRF token validation or you need to supply the valid token for every api call. This can be turned off by commenting out the VerifyCsrfToken middleware inside app/Http/Kernel.php]
+
+## Feedback and Contributions
+
+* Feedback is welcome in the form of pull requests and/or issues.
+* Contributions should generally follow the strategy outlined in ["Contributing to a project"](https://help.github.com/articles/fork-a-repo#contributing-to-a-project)
+* All pull requests must be in a ["git flow"](https://github.com/nvie/gitflow) feature branch and formatted as [PSR-2 compliant](http://www.php-fig.org/psr/psr-2/) to be considered.
+
+### License
+
+The DreamFactory core is open-sourced software available for use under the [Apache Version 2.0 license](http://www.apache.org/licenses/LICENSE-2.0).

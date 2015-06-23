@@ -21,6 +21,8 @@
  * Limits test
  */
 
+use Illuminate\Support\Facades\Config;
+
 class LimitsTest extends \DreamFactory\Rave\Testing\TestCase
 {
 
@@ -133,37 +135,122 @@ class LimitsTest extends \DreamFactory\Rave\Testing\TestCase
 
     ];
 
-    public function testDspOnly()
+    public function testLimitSet()
     {
-        // Use the dsp only limit configuration
+        $limits =
+            array(
+                $this->dspOnly,
+                $this->dspRoleOnly,
+                $this->dspUserOnly,
+                $this->dspApiOnly,
+                $this->dspApiRole,
+                $this->dspApiUser,
+                $this->dspApiService,
+                $this->dspApiServiceRole,
+                $this->dspApiServiceUser
+            );
 
-//        \Config::set( 'api_limits', $this->dspOnly );
-//
-//        $this->call( "GET", "api/apiName" );
-//
-//        $this->checkLimits($this->dspOnly['api']);
-    }
+        $this->_setTestMode();
 
-    public function testDspOnlyOverLimit() {
-
-        // Use the dsp only limit configuration
-
-        \Config::set( 'api_limits', $this->dspOnly );
-
-        $response = $this->call( "GET", "api/apiName" );
-
-        // Make a second call so it's now over the limit
-        $response = $this->call( "GET", "api/apiName" );
-
-        print_r($response->getStatusCode());
-
-
-    }
-
-    private function checkLimits(array $limits) {
         foreach ( $limits as $key => $limit )
         {
-            $this->assertEquals($limit['limit'], \Cache::get( $key, 0 ));
+            $this->_setLimits( $limit );
+
+            $this->call( "GET", "api/apiName" );
+
+            $this->_checkLimits( $limit['api'] );
+
+
+
         }
+
+        $this->_unsetTestMode();
+
+    }
+
+    public function testOverLimit()
+    {
+        $limits =
+            array(
+                $this->dspOnly,
+                $this->dspRoleOnly,
+                $this->dspUserOnly,
+                $this->dspApiOnly,
+                $this->dspApiRole,
+                $this->dspApiUser,
+                $this->dspApiService,
+                $this->dspApiServiceRole,
+                $this->dspApiServiceUser
+            );
+
+        $this->_setTestMode();
+
+        foreach ( $limits as $limit )
+        {
+            $this->_setLimits($limit);
+
+            $this->_checkOverLimit('api/apiName');
+
+            foreach ($limit as $key => $value) {
+                $this->_clearCache( $key );
+            }
+
+        }
+
+        $this->_unsetTestMode();
+
+    }
+
+    public function testNoLimits() {
+        // Test that everything works when there are no limits set
+
+        $this->call( "GET", "api/apiName" );
+        $this->call( "GET", "api/apiName" );
+        $this->call( "GET", "api/apiName" );
+        $response = $this->call( "GET", "api/apiName" );
+
+        $this->assertEquals( 200, $response->getStatusCode() );
+    }
+
+    private function _checkLimits( array $limits )
+    {
+        foreach ( $limits as $key => $limit )
+        {
+            $this->assertEquals( $limit['limit'], \Cache::get( $key, 0 ) );
+
+            $this->_clearCache( $key );
+
+        }
+    }
+
+    private function _setLimits( array $limits )
+    {
+        \Config::set( 'api_limits', $limits );
+    }
+
+    private function _checkOverLimit( $path )
+    {
+        $response = $this->call( "GET", $path );
+
+        // Make a second call so it's now over the limit
+        $response = $this->call( "GET", $path );
+
+        $this->assertEquals( 429, $response->getStatusCode() );
+    }
+
+    private function _clearCache($key) {
+        // Make sure we're clean for the next iteration
+
+        \Cache::forget( $key );
+    }
+
+    private function _setTestMode()
+    {
+        \Config::set( 'api_limits_test', true );
+    }
+
+    private function _unsetTestMode()
+    {
+        \Config::set( 'api_limits_test', false );
     }
 }

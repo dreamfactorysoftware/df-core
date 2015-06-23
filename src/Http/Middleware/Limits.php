@@ -28,6 +28,8 @@ use Illuminate\Contracts\Routing\Middleware;
 class Limits
 {
 
+    private $_inUnitTest = false;
+
     /**
      * Handle an incoming request.
      *
@@ -41,100 +43,103 @@ class Limits
         // Get limits
         $limits = \Config::get( 'api_limits' );
 
-        list( $userName, $userRole ) = $this->_getUserAndRole();
-
-        $apiName = $this->_getApiKey();
-
-        $serviceName = $this->_getServiceName();
-
-        // Build the list of API Hits to check
-
-        $apiKeysToCheck = array('api.default' => 0);
-
-        if ( empty( $userRole ) === false )
+        if ( is_null( $limits ) === false )
         {
-            $apiKeysToCheck['api.' . $userRole] = 0;
-        }
+            $this->_inUnitTest = \Config::get( 'api_limits_test' );
 
-        if ( empty( $userName ) === false )
-        {
-            $apiKeysToCheck['api.' . $userName] = 0;
-        }
+            list( $userName, $userRole ) = $this->_getUserAndRole();
 
-        if ( empty( $serviceName ) === false )
-        {
-            $apiKeysToCheck['api.' . $serviceName] = 0;
+            $apiName = $this->_getApiKey();
+
+            $serviceName = $this->_getServiceName();
+
+            // Build the list of API Hits to check
+
+            $apiKeysToCheck = array('api.default' => 0);
 
             if ( empty( $userRole ) === false )
             {
-                $apiKeysToCheck['api.' . $serviceName . '.' . $userRole] = 0;
+                $apiKeysToCheck['api.' . $userRole] = 0;
             }
 
             if ( empty( $userName ) === false )
             {
-                $apiKeysToCheck['api.' . $serviceName . '.' . $userName] = 0;
-            }
-        }
-
-        if ( empty( $apiName ) === false )
-        {
-            $apiKeysToCheck['api.' . $apiName] = 0;
-
-            if ( empty( $userRole ) === false )
-            {
-                $apiKeysToCheck['api.' . $apiName . '.' . $userRole] = 0;
-            }
-
-            if ( empty( $userName ) === false )
-            {
-                $apiKeysToCheck['api.' . $apiName . "." . $userName] = 0;
+                $apiKeysToCheck['api.' . $userName] = 0;
             }
 
             if ( empty( $serviceName ) === false )
             {
-                $apiKeysToCheck['api.' . $apiName . "." . $serviceName] = 0;
+                $apiKeysToCheck['api.' . $serviceName] = 0;
 
                 if ( empty( $userRole ) === false )
                 {
-                    $apiKeysToCheck['api.' . $apiName . "." . $serviceName . '.' . $userRole] = 0;
+                    $apiKeysToCheck['api.' . $serviceName . '.' . $userRole] = 0;
                 }
 
                 if ( empty( $userName ) === false )
                 {
-                    $apiKeysToCheck['api.' . $apiName . "." . $serviceName . '.' . $userName] = 0;
+                    $apiKeysToCheck['api.' . $serviceName . '.' . $userName] = 0;
                 }
             }
-        }
 
-//        print_r($limits);
-//        print_r($apiKeysToCheck);
-
-        $overLimit = false;
-        try
-        {
-            foreach ( $limits['api'] as $key => $limit )
+            if ( empty( $apiName ) === false )
             {
-                if ( array_key_exists( $key, $apiKeysToCheck ) === true )
-                {
+                $apiKeysToCheck['api.' . $apiName] = 0;
 
-                    $cacheValue = \Cache::get( $key, 0 );
-                    $cacheValue++;
-                    \Cache::put( $key, $cacheValue, $limit['period'] );
-                    if ( $cacheValue > $limit['limit'] )
+                if ( empty( $userRole ) === false )
+                {
+                    $apiKeysToCheck['api.' . $apiName . '.' . $userRole] = 0;
+                }
+
+                if ( empty( $userName ) === false )
+                {
+                    $apiKeysToCheck['api.' . $apiName . "." . $userName] = 0;
+                }
+
+                if ( empty( $serviceName ) === false )
+                {
+                    $apiKeysToCheck['api.' . $apiName . "." . $serviceName] = 0;
+
+                    if ( empty( $userRole ) === false )
                     {
-                        $overLimit = true;
+                        $apiKeysToCheck['api.' . $apiName . "." . $serviceName . '.' . $userRole] = 0;
+                    }
+
+                    if ( empty( $userName ) === false )
+                    {
+                        $apiKeysToCheck['api.' . $apiName . "." . $serviceName . '.' . $userName] = 0;
                     }
                 }
-
             }
-        }
-        catch ( Exception $e )
-        {
-            throw new InternalServerErrorException( 'Unable to update cache' );
-        }
 
-        if ($overLimit === true) {
-            throw new TooManyRequestsException('Specified connection limit exceeded');
+            $overLimit = false;
+            try
+            {
+                foreach ( $limits['api'] as $key => $limit )
+                {
+                    if ( array_key_exists( $key, $apiKeysToCheck ) === true )
+                    {
+
+                        $cacheValue = \Cache::get( $key, 0 );
+                        $cacheValue++;
+                        \Cache::put( $key, $cacheValue, $limit['period'] );
+                        if ( $cacheValue > $limit['limit'] )
+                        {
+                            $overLimit = true;
+                        }
+                    }
+
+                }
+            }
+            catch ( Exception $e )
+            {
+                throw new InternalServerErrorException( 'Unable to update cache' );
+            }
+
+            if ( $overLimit === true )
+            {
+                throw new TooManyRequestsException( 'Specified connection limit exceeded' );
+            }
         }
 
         return $next( $request );
@@ -146,7 +151,15 @@ class Limits
 
     private function _getUserAndRole()
     {
-        return ['userName', 'userRole'];
+        if ( $this->_inUnitTest === true )
+        {
+            return ['userName', 'roleName'];
+        }
+        else
+        {
+            // put actual method here
+            return ['', ''];
+        }
     }
 
     /*
@@ -155,7 +168,15 @@ class Limits
 
     private function _getApiKey()
     {
-        return 'apiName';
+        if ( $this->_inUnitTest === true )
+        {
+            return 'apiName';
+        }
+        else
+        {
+            // put actual method here
+            return '';
+        }
     }
 
     /*
@@ -164,7 +185,15 @@ class Limits
 
     private function _getServiceName()
     {
-        return 'serviceName';
+        if ( $this->_inUnitTest === true )
+        {
+            return 'serviceName';
+        }
+        else
+        {
+            // put actual method here
+            return '';
+        }
     }
 
 }

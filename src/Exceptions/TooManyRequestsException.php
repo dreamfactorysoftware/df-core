@@ -20,11 +20,12 @@
 namespace DreamFactory\Rave\Exceptions;
 
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception;
 
 /**
  * TooManyRequestsException
  */
-class TooManyRequestsException extends RestException
+class TooManyRequestsException extends Exception\HttpException
 {
 	/**
 	 * Constructor.
@@ -36,6 +37,17 @@ class TooManyRequestsException extends RestException
 	 */
 	public function __construct( $message = null, $code = null, $previous = null, $context = null )
 	{
-		parent::__construct( Response::HTTP_TOO_MANY_REQUESTS, $message, $code ? : Response::HTTP_TOO_MANY_REQUESTS, $previous, $context );
+		parent::__construct(Response::HTTP_TOO_MANY_REQUESTS, $message, $previous);
+
+        error_log(
+            'REST Exception #' . $code . ' > ' . $message
+        /*,
+        array(
+            'host'        => IfSet::get( $_SERVER, 'HTTP_HOST', \gethostname() ),
+            'request_uri' => IfSet::get( $_SERVER, 'REQUEST_URI' ),
+            'source_ip'   => IfSet::get( $_SERVER, 'REMOTE_ADDR' ),
+            'sapi_name'   => \php_sapi_name(),
+        )*/
+        );
 	}
 }

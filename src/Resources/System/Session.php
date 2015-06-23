@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Resources\System;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Resources\UserSessionResource;
 use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Utility\Session as SessionUtility;
 
 class Session extends UserSessionResource
 {
@@ -13,13 +14,11 @@ class Session extends UserSessionResource
      */
     protected function handleGET()
     {
-        $user = \Auth::user();
-
-        if (empty($user)) {
+        if (!SessionUtility::isAuthenticated()) {
             throw new NotFoundException('No user session found.');
         }
 
-        if (!$user->is_sys_admin) {
+        if (!SessionUtility::isSysAdmin()) {
             throw new UnauthorizedException('You are not authorized to perform this action.');
         }
 

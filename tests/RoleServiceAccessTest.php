@@ -8,8 +8,6 @@ class RoleServiceAccessTest extends \DreamFactory\Core\Testing\TestCase
 {
     protected $rsaKey = 'role.services';
 
-    protected $apiKey = '1234567890';
-
     protected $rsa = [];
 
     public function tearDown()
@@ -22,8 +20,7 @@ class RoleServiceAccessTest extends \DreamFactory\Core\Testing\TestCase
     public function testSysAdmin()
     {
         $user = \DreamFactory\Core\Models\User::find(1);
-        $this->be($user);
-        Session::setUserInfo($user->toArray());
+        Session::setUserInfoWithJWT($user);
         $permission = Session::getServicePermissions('system', '*');
 
         $this->assertEquals(
@@ -47,8 +44,7 @@ class RoleServiceAccessTest extends \DreamFactory\Core\Testing\TestCase
             'is_active'         => 1
         ]);
 
-        $this->be($nonAdminUser);
-        Session::setUserInfo($nonAdminUser->toArray());
+        Session::setUserInfoWithJWT($nonAdminUser);
         $permission = Session::getServicePermissions('system', '*');
 
         $this->assertEquals(VerbsMask::NONE_MASK, $permission);
@@ -263,8 +259,7 @@ class RoleServiceAccessTest extends \DreamFactory\Core\Testing\TestCase
 
         $this->rsa[] = $rsa;
 
-        //Session::setCurrentApiKey($this->apiKey);
-        //Session::put($this->apiKey, $this->rsaKey, $this->rsa);
+        Session::put($this->rsaKey, $this->rsa);
     }
 
     protected function check($service, $component = null, $requestor = ServiceRequestorTypes::API)

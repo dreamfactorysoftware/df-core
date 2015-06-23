@@ -16,21 +16,20 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
     public function testSysAdmin()
     {
         $user = User::find(1);
+        $token = Session::makeJWTByUserId($user->id);
 
-        $this->be($user);
-        Session::setUserInfo($user->toArray());
-        $this->call(Verbs::GET, '/api/v2/system');
+        $this->call(Verbs::GET, '/api/v2/system', [], [], [], ['HTTP_X_DREAMFACTORY_SESSION_TOKEN' => $token]);
 
-        $this->assertTrue(Session::isSysAdmin());
-        $this->assertEquals(null, session('admin.role.id'));
-        $adminLookup = session('admin.lookup');
-        $adminLookupSecret = session('admin.lookup_secret');
-        $this->assertTrue(isset($adminLookup));
-        $this->assertTrue(isset($adminLookupSecret));
-        $this->assertEquals(0, count($adminLookup));
-        $this->assertEquals(0, count($adminLookupSecret));
-        $rsa = session('admin.role.services');
-        $this->assertTrue(empty($rsa));
+        $this->assertTrue(Session::isSysAdmin(), 'assertion 1');
+        $this->assertEquals(null, session('admin.role.id'), 'assertion 2');
+        $adminLookup = session('lookup');
+        $adminLookupSecret = session('lookup_secret');
+        $this->assertTrue(isset($adminLookup), 'assertion 3');
+        $this->assertTrue(isset($adminLookupSecret), 'assertion 4');
+        $this->assertEquals(0, count($adminLookup), 'assertion 5');
+        $this->assertEquals(0, count($adminLookupSecret), 'assertion 6');
+        $rsa = session('role.services');
+        $this->assertTrue(empty($rsa), 'assertion 7');
     }
 
     public function testApiKeyRole()
@@ -69,13 +68,24 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
         $apiKey = $app->api_key;
 
         $myUser = User::find($userId);
-        $this->be($myUser);
-        Session::setUserInfo($myUser->toArray());
-        $this->call(Verbs::GET, '/api/v2/system', [], [], [], ['HTTP_X_DREAMFACTORY_API_KEY' => $apiKey]);
+        $token = Session::makeJWTByUserId($myUser->id);
+        $this->call(
+            Verbs::GET, '/api/v2/system',
+            [],
+            [],
+            [],
+            ['HTTP_X_DREAMFACTORY_API_KEY' => $apiKey, 'HTTP_X_DREAMFACTORY_SESSION_TOKEN' => $token]);
 
         $this->assertFalse(Session::isSysAdmin());
         $this->assertEquals(1, Session::get('role.id'));
         $rsa = Session::get('role.services');
         $this->assertTrue(!empty($rsa));
+    }
+
+    public function testPathException()
+    {
+        $rs = $this->call(Verbs::GET, '/api/v2/system/environment', [], [], [], ['HTTP_ACCEPT'=>'*/*']);
+        $content = $rs->getContent();
+        $this->assertContains('authentication', $content);
     }
 }

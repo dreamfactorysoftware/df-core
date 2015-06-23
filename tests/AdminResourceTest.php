@@ -53,6 +53,8 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $this->makeRequest(Verbs::POST, 'user', ['fields' => '*', 'related' => 'user_lookup_by_user_id'], [$user]);
 
         Auth::attempt(['email' => $user['email'], 'password' => $user['password']]);
+        $user = Auth::user();
+        \DreamFactory\Core\Utility\Session::setUserInfoWithJWT($user);
 
         //Using a new instance here. Prev instance is set for user resource.
         $this->service = ServiceHandler::getService('system');

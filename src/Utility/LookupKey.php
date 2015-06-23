@@ -2,11 +2,6 @@
 
 namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Core\Models\AppLookup;
-use DreamFactory\Core\Models\Lookup;
-use DreamFactory\Core\Models\RoleLookup;
-use DreamFactory\Core\Models\UserLookup;
-
 class LookupKey
 {
     public static function combineLookups($systemLookup = [], $appLookup = [], $roleLookup = [], $userLookup = [])

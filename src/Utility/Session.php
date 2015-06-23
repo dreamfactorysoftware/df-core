@@ -11,6 +11,10 @@ use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\User;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Facades\JWTFactory;
+use Tymon\JWTAuth\Token;
+use Tymon\JWTAuth\Payload;
 
 class Session
 {
@@ -277,6 +281,43 @@ class Session
         return null;
     }
 
+    public static function makeJWTByUserId($userId)
+    {
+        $claims = ['user_id' => $userId];
+        /** @type Payload $payload */
+        $payload = JWTFactory::make($claims);
+        /** @type Token $token */
+        $token = JWTAuth::encode($payload);
+        $tokenValue = $token->get();
+
+        return $tokenValue;
+    }
+
+    /**
+     * Sets basic info of the user in session with JWT when authenticated.
+     *
+     * @param  array|User $user
+     *
+     * @return bool
+     */
+    public static function setUserInfoWithJWT($user)
+    {
+        $userInfo = null;
+        if($user instanceof User)
+        {
+            $userInfo = $user->toArray();
+            ArrayUtils::set($userInfo, 'is_sys_admin', $user->is_sys_admin);
+        }
+
+        if(!empty($userInfo))
+        {
+            $token = static::makeJWTByUserId(ArrayUtils::get($userInfo, 'id'));
+            static::setSessionToken($token);
+            return static::setUserInfo($userInfo);
+        }
+        return false;
+    }
+
     /**
      * Sets basic info of the user in session when authenticated.
      *
@@ -286,7 +327,7 @@ class Session
      */
     public static function setUserInfo($user)
     {
-        if(!empty($user)) {
+        if (!empty($user)) {
             \Session::put('user.id', ArrayUtils::get($user, 'id'));
             \Session::put('user.display_name', ArrayUtils::get($user, 'name'));
             \Session::put('user.first_name', ArrayUtils::get($user, 'first_name'));
@@ -294,9 +335,47 @@ class Session
             \Session::put('user.email', ArrayUtils::get($user, 'email'));
             \Session::put('user.is_sys_admin', ArrayUtils::get($user, 'is_sys_admin'));
             \Session::put('user.last_login_date', ArrayUtils::get($user, 'last_login_date'));
+
             return true;
         }
+
         return false;
+    }
+
+    public static function setSessionData($appId = null, $userId = null)
+    {
+        $appInfo = CacheUtilities::getAppInfo($appId);
+        $userInfo = CacheUtilities::getUserInfo($userId);
+
+        $roleId = null;
+        if (!empty($userId) && !empty($appId)) {
+            $roleId = CacheUtilities::getRoleIdByAppIAndUserId($appId, $userId);
+        }
+
+        if (empty($roleId) && !empty($appInfo)) {
+            $roleId = ArrayUtils::get($appInfo, 'role_id');
+        }
+
+        Session::setUserInfo($userInfo);
+        Session::put('app_id', $appId);
+
+        $roleInfo = CacheUtilities::getRoleInfo($roleId);
+        if (!empty($roleInfo)) {
+            Session::put('role.id', $roleId);
+            Session::put('role.name', $roleInfo['name']);
+            Session::put('role.services', $roleInfo['role_service_access_by_role_id']);
+        }
+
+        $systemLookup = CacheUtilities::getSystemLookups();
+        $systemLookup = (!empty($systemLookup)) ? $systemLookup : [];
+        $appLookup = (!empty($appInfo['app_lookup_by_app_id'])) ? $appInfo['app_lookup_by_app_id'] : [];
+        $roleLookup = (!empty($roleInfo['role_lookup_by_role_id'])) ? $roleInfo['role_lookup_by_role_id'] : [];
+        $userLookup = (!empty($userInfo['user_lookup_by_user_id'])) ? $userInfo['user_lookup_by_user_id'] : [];
+
+        $combinedLookup = LookupKey::combineLookups($systemLookup, $appLookup, $roleLookup, $userLookup);
+
+        Session::put('lookup', ArrayUtils::get($combinedLookup, 'lookup'));
+        Session::put('lookup_secret', ArrayUtils::get($combinedLookup, 'lookup_secret'));
     }
 
     /**
@@ -312,6 +391,7 @@ class Session
         }
 
         $sessionData = [
+            'session_id'      => session('session_id'),
             'id'              => session('user.id'),
             'name'            => session('user.display_name'),
             'first_name'      => session('user.first_name'),
@@ -366,19 +446,28 @@ class Session
         return boolval($userId);
     }
 
+    public static function getSessionToken()
+    {
+        return \Session::get('session_id');
+    }
+
+    public static function setSessionToken($token)
+    {
+        \Session::set('session_id', $token);
+    }
+
     /**
      * @return bool
      */
     public static function isSysAdmin()
     {
-        return session('user.is_sys_admin');
+        return boolval(session('user.is_sys_admin'));
     }
 
     public static function get($key, $default = null)
     {
         return \Session::get($key, $default);
     }
-
 
     public static function set($name, $value)
     {

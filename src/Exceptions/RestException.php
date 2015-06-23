@@ -1,25 +1,6 @@
 <?php
-/**
- * This file is part of the DreamFactory RAVE(tm) Common
- *
- * DreamFactory RAVE(tm) Common <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2015 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-namespace DreamFactory\Rave\Exceptions;
+namespace DreamFactory\Core\Exceptions;
 
-//use DreamFactory\Library\Utility\IfSet;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -28,7 +9,7 @@ use Symfony\Component\HttpFoundation\Response;
  *
  * The HTTP error code can be obtained via {@link statusCode}.
  */
-class RestException extends RaveServiceException
+class RestException extends DfServiceException
 {
     //*************************************************************************
     //* Members
@@ -52,21 +33,18 @@ class RestException extends RaveServiceException
      * @param mixed  $previous
      * @param mixed  $context Additional information for downstream consumers
      */
-    public function __construct( $status, $message = null, $code = null, $previous = null, $context = null )
+    public function __construct($status, $message = null, $code = null, $previous = null, $context = null)
     {
         $this->statusCode = $status;
         $code = $code ?: $this->statusCode;
 
-        if ( is_null( $message ) )
-        {
+        if (is_null($message)) {
             $message = Response::$statusTexts[$code];
-        }
-        elseif ( !is_string( $message ) )
-        {
-            $message = strval( $message );
+        } elseif (!is_string($message)) {
+            $message = strval($message);
         }
 
-        parent::__construct( $message, $code, $previous, $context );
+        parent::__construct($message, $code, $previous, $context);
 
         //Todo:
         error_log(
@@ -86,7 +64,7 @@ class RestException extends RaveServiceException
      *
      * @return RestException
      */
-    public function setStatusCode( $statusCode )
+    public function setStatusCode($statusCode)
     {
         $this->statusCode = $statusCode;
 

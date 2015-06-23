@@ -1,26 +1,8 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm) Common
- *
- * DreamFactory Rave(tm) Common <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-namespace DreamFactory\Rave\Enums;
+namespace DreamFactory\Core\Enums;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Exceptions\NotImplementedException;
+use DreamFactory\Core\Exceptions\NotImplementedException;
 
 /**
  * Various REST verbs as bitmask-able values
@@ -108,17 +90,15 @@ class VerbsMask extends Verbs
      * @throws NotImplementedException
      * @return string
      */
-    public static function toNumeric( $requestorType = 'none' )
+    public static function toNumeric($requestorType = 'none')
     {
-        if ( !is_string( $requestorType ) )
-        {
-            throw new \InvalidArgumentException( 'The verb "' . $requestorType . '" is not a string.' );
+        if (!is_string($requestorType)) {
+            throw new \InvalidArgumentException('The verb "' . $requestorType . '" is not a string.');
         }
 
-        $requestorType = strtoupper( $requestorType );
-        if ( !isset( static::$_strings[$requestorType] ) )
-        {
-            throw new NotImplementedException( 'The verb "' . $requestorType . '" is not supported.' );
+        $requestorType = strtoupper($requestorType);
+        if (!isset(static::$_strings[$requestorType])) {
+            throw new NotImplementedException('The verb "' . $requestorType . '" is not supported.');
         }
 
         return static::$_strings[$requestorType];
@@ -130,16 +110,14 @@ class VerbsMask extends Verbs
      * @throws NotImplementedException
      * @return string
      */
-    public static function toString( $numericLevel = self::NONE_MASK )
+    public static function toString($numericLevel = self::NONE_MASK)
     {
-        if ( !is_numeric( $numericLevel ) )
-        {
-            throw new \InvalidArgumentException( 'The verb mask "' . $numericLevel . '" is not numeric.' );
+        if (!is_numeric($numericLevel)) {
+            throw new \InvalidArgumentException('The verb mask "' . $numericLevel . '" is not numeric.');
         }
 
-        if ( false === $_verb = array_search( $numericLevel, static::$_strings ) )
-        {
-            throw new NotImplementedException( 'The verb mask "' . $numericLevel . '" is not supported.' );
+        if (false === $_verb = array_search($numericLevel, static::$_strings)) {
+            throw new NotImplementedException('The verb mask "' . $numericLevel . '" is not supported.');
         }
 
         return $_verb;
@@ -150,19 +128,16 @@ class VerbsMask extends Verbs
      *
      * @return int
      */
-    public static function arrayToMask( $array )
+    public static function arrayToMask($array)
     {
         $_mask = self::NONE_MASK;
 
-        if ( empty( $array ) || !is_array( $array ) )
-        {
+        if (empty($array) || !is_array($array)) {
             return $_mask;
         }
 
-        foreach ( $array as $_verb )
-        {
-            switch ( $_verb )
-            {
+        foreach ($array as $_verb) {
+            switch ($_verb) {
                 case self::GET:
                     $_mask |= self::GET_MASK;
                     break;
@@ -204,53 +179,42 @@ class VerbsMask extends Verbs
      *
      * @return string
      */
-    public static function maskToArray( $mask )
+    public static function maskToArray($mask)
     {
         $_array = array();
 
-        if ( empty( $mask ) || !is_int( $mask ) )
-        {
+        if (empty($mask) || !is_int($mask)) {
             return $_array;
         }
 
-        if ( $mask & self::GET_MASK )
-        {
+        if ($mask & self::GET_MASK) {
             $_array[] = self::GET;
         }
-        if ( $mask & self::POST_MASK )
-        {
+        if ($mask & self::POST_MASK) {
             $_array[] = self::POST;
         }
-        if ( $mask & self::PUT_MASK )
-        {
+        if ($mask & self::PUT_MASK) {
             $_array[] = self::PUT;
         }
-        if ( $mask & self::PATCH_MASK )
-        {
+        if ($mask & self::PATCH_MASK) {
             $_array[] = self::PATCH;
         }
-        if ( $mask & self::DELETE_MASK )
-        {
+        if ($mask & self::DELETE_MASK) {
             $_array[] = self::DELETE;
         }
-        if ( $mask & self::OPTIONS_MASK )
-        {
+        if ($mask & self::OPTIONS_MASK) {
             $_array[] = self::OPTIONS;
         }
-        if ( $mask & self::HEAD_MASK )
-        {
+        if ($mask & self::HEAD_MASK) {
             $_array[] = self::HEAD;
         }
-        if ( $mask & self::COPY_MASK )
-        {
+        if ($mask & self::COPY_MASK) {
             $_array[] = self::COPY;
         }
-        if ( $mask & self::TRACE_MASK )
-        {
+        if ($mask & self::TRACE_MASK) {
             $_array[] = self::TRACE;
         }
-        if ( $mask & self::CONNECT_MASK )
-        {
+        if ($mask & self::CONNECT_MASK) {
             $_array[] = self::CONNECT;
         }
 

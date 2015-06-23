@@ -1,255 +1,51 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm)
- *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-namespace DreamFactory\Rave\Testing;
+namespace DreamFactory\Core\Testing;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Contracts\ServiceRequestInterface;
-use DreamFactory\Rave\Enums\ContentTypes;
+use DreamFactory\Core\Components\InternalServiceRequest;
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
+use \Exception;
 
 /**
  * Class TestServiceRequest
  *
- * @package DreamFactory\Rave\Utility
  */
 class TestServiceRequest implements ServiceRequestInterface
 {
-    /**
-     * @var string
-     */
-    protected $apiVersion = '2.0';
-    /**
-     * @var string
-     */
-    protected $method = Verbs::GET;
-    /**
-     * @var array
-     */
-    protected $query = [ ];
-    /**
-     * @var array
-     */
-    protected $headers = [ ];
-    /**
-     * @var null|string
-     */
-    protected $content = null;
-    /**
-     * @var null|string
-     */
-    protected $contentType = ContentTypes::PHP_ARRAY;
-    /**
-     * @var array
-     */
-    protected $contentAsArray = [ ];
+    use InternalServiceRequest;
 
-    public function __construct( $method = Verbs::GET, $query = [ ], $headers = [ ] )
+    /**
+     * @var int, see ServiceRequestorTypes
+     */
+    protected $requestorType = ServiceRequestorTypes::API;
+
+    public function __construct($method = Verbs::GET, $parameters = [], $headers = [])
     {
-        $this->setMethod( $method );
-        $this->setQuery( $query );
-        $this->setHeaders( $headers );
+        $this->setMethod($method);
+        $this->setParameters($parameters);
+        $this->setHeaders($headers);
     }
 
     /**
-     * @param $verb
+     * {@inheritdoc}
+     */
+    public function getRequestorType()
+    {
+        return $this->requestorType;
+    }
+
+    /**
+     * @param integer $type , see ServiceRequestorTypes
      *
-     * @return $this
-     * @throws \Exception
+     * @throws Exception
      */
-    public function setMethod( $verb )
+    public function setRequestorType($type)
     {
-        if ( !Verbs::contains( $verb ) )
-        {
-            throw new \Exception( "Invalid method '$verb'" );
+        if (ServiceRequestorTypes::contains($type)) {
+            $this->requestorType = $type;
         }
 
-        $this->method = $verb;
-
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getMethod()
-    {
-        return $this->method;
-    }
-
-    /**
-     * @param array $parameters
-     *
-     * @return $this
-     */
-    public function setQuery( array $parameters )
-    {
-        $this->query = $parameters;
-
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function query( $key = null, $default = null )
-    {
-        if ( null === $key )
-        {
-            return $this->query;
-        }
-        else
-        {
-        return ArrayUtils::get( $this->query, $key, $default );
-    }
-    }
-
-    /**
-     * @param mixed $key
-     * @param bool  $default
-     *
-     * @return mixed
-     */
-    public function queryBool( $key, $default = false )
-    {
-        return ArrayUtils::getBool( $this->query, $key, $default );
-    }
-
-    /**
-     * @param mixed $data
-     * @param int   $type
-     *
-     * @return $this
-     */
-    public function setContent( $data, $type = ContentTypes::PHP_ARRAY )
-    {
-        $this->content = $data;
-        $this->contentType = $type;
-
-        switch ( $type )
-        {
-            case ContentTypes::PHP_ARRAY:
-                $this->contentAsArray = $data;
-                break;
-            case ContentTypes::JSON:
-                $this->contentAsArray = json_decode( $data, true );
-                break;
-        }
-
-        return $this;
-    }
-
-    /**
-     * @param null $key
-     * @param null $default
-     *
-     * @return array|mixed
-     */
-    public function getPayloadData( $key = null, $default = null )
-    {
-        if ( null === $key )
-        {
-            return $this->contentAsArray;
-        }
-        else
-        {
-            return ArrayUtils::get( $this->contentAsArray, $key, $default );
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getContent()
-    {
-        return $this->content;
-    }
-
-    /**
-     * @param array $headers
-     *
-     * @return $this
-     */
-    public function setHeaders( array $headers )
-    {
-        $this->headers = $headers;
-
-        return $this;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getHeader( $key = null, $default = null )
-    {
-        if ( null === $key )
-        {
-            return $this->headers;
-        }
-        else
-        {
-            return ArrayUtils::get( $this->headers, $key, $default );
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getFile( $key = null, $default = null )
-    {
-        //Todo:Experiment Request::file()...
-        return null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getApiVersion()
-    {
-        if ( empty( $this->apiVersion ) )
-        {
-            $this->setApiVersion();
-        }
-
-        return $this->apiVersion;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function setApiVersion( $version = null )
-    {
-        if ( empty( $version ) )
-        {
-            $this->apiVersion = static::API_VERSION;
-        }
-        else
-        {
-            if ( substr( strtolower( $version ), 0, 1 ) === 'v' )
-            {
-                $version = substr( $version, 1 );
-            }
-            if ( strpos( $version, '.' ) === false )
-            {
-                $version = $version . '.0';
-            }
-            $this->apiVersion = $version;
-        }
+        throw new Exception('Invalid service requestor type provided.');
     }
 }

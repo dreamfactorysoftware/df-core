@@ -1,41 +1,23 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm)
- *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-namespace DreamFactory\Rave\Components;
+namespace DreamFactory\Core\Components;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Rave\Enums\ContentTypes;
-use DreamFactory\Rave\Enums\VerbsMask;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Contracts\RequestHandlerInterface;
+use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Contracts\ResourceInterface;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
 
 /**
  * Class RestHandler
  *
- * @package DreamFactory\Rave\Components
+ * @package DreamFactory\Core\Components
  */
-abstract class RestHandler
+abstract class RestHandler implements RequestHandlerInterface
 {
     //*************************************************************************
     //	Constants
@@ -79,17 +61,9 @@ abstract class RestHandler
      */
     protected $originalAction = null;
     /**
-     * @var string Native format of output of service, null for php, otherwise json, xml, etc.
+     * @var int|null Native data format of this service - DataFormats enum value.
      */
-    protected $nativeFormat = ContentTypes::PHP_ARRAY;
-    /**
-     * @var int|null Default output format, either null (native), or DataFormats enum value.
-     */
-    protected $outputFormat = ContentTypes::JSON;
-    /**
-     * @var string If set, prompt browser to download response as a file.
-     */
-    protected $outputAsFile = null;
+    protected $nativeFormat = DataFormats::PHP_ARRAY;
     /**
      * @var string Resource name.
      */
@@ -134,23 +108,22 @@ abstract class RestHandler
      *
      *    The result will be that processRequest() will dispatch a PUT, PATCH, or MERGE request to the POST handler.
      */
-    protected $verbAliases = array();
-    /**
-     * @var ServiceResponseInterface Response object implementing the ServiceResponseInterface.
-     */
-    protected $response = null;
+    protected $verbAliases = [];
     /**
      * @var ServiceRequestInterface Request object implementing the ServiceRequestInterface.
      */
     protected $request = null;
+    /**
+     * @var ServiceResponseInterface Response object implementing the ServiceResponseInterface.
+     */
+    protected $response = null;
 
     /**
      * @param array $settings
      */
-    public function __construct( $settings = array() )
+    public function __construct($settings = [])
     {
-        foreach ( $settings as $key => $value )
-        {
+        foreach ($settings as $key => $value) {
             $this->{$key} = $value;
         }
     }
@@ -160,7 +133,6 @@ abstract class RestHandler
      */
     protected function preProcess()
     {
-
     }
 
     /**
@@ -168,92 +140,89 @@ abstract class RestHandler
      */
     protected function postProcess()
     {
-
     }
 
     /**
      * @param ServiceRequestInterface $request
      * @param null                    $resource
-     * @param int                     $outputFormat
      *
      * @return ServiceResponseInterface
      * @throws BadRequestException
      * @throws InternalServerErrorException
      */
-    public function handleRequest( ServiceRequestInterface $request, $resource = null, $outputFormat = ContentTypes::JSON )
+    public function handleRequest(ServiceRequestInterface $request, $resource = null)
     {
-        $this->setRequest( $request );
-        $this->setAction( $request->getMethod() );
-        $this->setResourceMembers( $resource );
-        $this->setResponseFormat( $outputFormat );
+        $this->setRequest($request);
+        $this->setAction($request->getMethod());
+        $this->setResourceMembers($resource);
 
-        //  Perform any pre-request processing
-        $this->preProcess();
+        $resources = $this->getResources();
+        if (!empty($resources) && !empty($this->resource)) {
+            $this->response = $this->handleResource($resources);
+        } else {
+            //  Perform any pre-request processing
+            $this->preProcess();
 
-        $this->response = ( empty( $this->resource ) ) ? $this->processRequest() : $this->handleResource();
+            $this->response = $this->processRequest();
 
-        //	Inherent failure?
-        if ( false === $this->response )
-        {
-            $message =
-                $this->action .
-                ' requests' .
-                ( !empty( $this->resourcePath ) ? ' for resource "' . $this->resourcePath . '"' : ' without a resource' ) .
-                ' are not currently supported by the "' .
-                $this->name .
-                '" service.';
-
-            throw new BadRequestException( $message );
+            if (false !== $this->response) {
+                //  Perform any post-request processing
+                $this->postProcess();
+            }
         }
 
-        //  Perform any post-request processing
-        $this->postProcess();
+        //	Inherent failure?
+        if (false === $this->response) {
+            $what = (!empty($this->resourcePath) ? " for resource '{$this->resourcePath}'" : ' without a resource');
+            $message =
+                ucfirst($this->action) . " requests $what are not currently supported by the '{$this->name}' service.";
+
+            throw new BadRequestException($message);
+        }
 
         //  Perform any response processing
         return $this->respond();
     }
 
     /**
+     * @param array $resources
+     *
      * @return bool|mixed
      * @throws BadRequestException
      * @throws InternalServerErrorException
      * @throws NotFoundException
      */
-    protected function handleResource()
+    protected function handleResource(array $resources)
     {
-        //  Fall through is to process just like a no-resource request
-        $resources = $this->getResources();
-        if ( !empty( $resources ) && !empty( $this->resource ) )
-        {
-            $found = ArrayUtils::findByKeyValue( $resources, 'name', $this->resource );
-            if ( isset( $found, $found['class_name'] ) )
-            {
-                $className = $found['class_name'];
+        $found = ArrayUtils::findByKeyValue($resources, 'name', $this->resource);
+        if (isset($found, $found['class_name'])) {
+            $className = $found['class_name'];
 
-                if ( !class_exists( $className ) )
-                {
-                    throw new InternalServerErrorException( 'Service configuration class name lookup failed for resource ' . $this->resourcePath );
-                }
-
-                /** @var RestHandler $resource */
-                $resource = $this->instantiateResource( $className, $found );
-
-                $newPath = $this->resourceArray;
-                array_shift( $newPath );
-                $newPath = implode( '/', $newPath );
-
-                return $resource->handleRequest( $this->request, $newPath, $this->outputFormat );
+            if (!class_exists($className)) {
+                throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
+                    $this->resourcePath);
             }
 
-            throw new NotFoundException( "Resource '{$this->resource}' not found for service '{$this->name}'." );
+            /** @var ResourceInterface $resource */
+            $resource = $this->instantiateResource($className, $found);
+
+            $newPath = $this->resourceArray;
+            array_shift($newPath);
+            $newPath = implode('/', $newPath);
+
+            return $resource->handleRequest($this->request, $newPath);
         }
 
-        return $this->processRequest();
+        throw new NotFoundException("Resource '{$this->resource}' not found for service '{$this->name}'.");
     }
 
-    protected function instantiateResource( $class, $info = [ ] )
+    protected function instantiateResource($class, $info = [])
     {
-        return new $class( $info );
+        /** @var ResourceInterface $obj */
+        $obj = new $class($info);
+        $obj->setParent($this);
+
+        return $obj;
     }
 
     /**
@@ -263,44 +232,36 @@ abstract class RestHandler
     protected function processRequest()
     {
         //	Now all actions must be HTTP verbs
-        if ( !Verbs::contains( $this->action ) )
-        {
-            throw new BadRequestException( 'The action "' . $this->action . '" is not supported.' );
+        if (!Verbs::contains($this->action)) {
+            throw new BadRequestException('The action "' . $this->action . '" is not supported.');
         }
 
         $methodToCall = false;
 
         //	Check verb aliases as closures
-        if ( true === $this->autoDispatch && null !== ( $alias = ArrayUtils::get( $this->verbAliases, $this->action ) )
-        )
-        {
+        if (true === $this->autoDispatch && null !== ($alias = ArrayUtils::get($this->verbAliases, $this->action))) {
             //	A closure?
-            if ( !in_array( $alias, Verbs::getDefinedConstants() ) && is_callable( $alias ) )
-            {
+            if (!in_array($alias, Verbs::getDefinedConstants()) && is_callable($alias)) {
                 $methodToCall = $alias;
             }
         }
 
         //  Not an alias, build a dispatch method if needed
-        if ( !$methodToCall )
-        {
+        if (!$methodToCall) {
             //	If we have a dedicated handler method, call it
-            $method = str_ireplace( static::ACTION_TOKEN, $this->action, $this->autoDispatchPattern );
+            $method = str_ireplace(static::ACTION_TOKEN, $this->action, $this->autoDispatchPattern);
 
-            if ( $this->autoDispatch && method_exists( $this, $method ) )
-            {
-                $methodToCall = array( $this, $method );
+            if ($this->autoDispatch && method_exists($this, $method)) {
+                $methodToCall = [$this, $method];
             }
         }
 
-        if ( $methodToCall )
-        {
-            $result = call_user_func( $methodToCall );
+        if ($methodToCall) {
+            $result = call_user_func($methodToCall);
 
             //  Only GETs trigger after the call
-            if ( Verbs::GET == $this->action )
-            {
-                $this->triggerActionEvent( $result, null, null, true );
+            if (Verbs::GET == $this->action) {
+                $this->triggerActionEvent($result, null, null, true);
             }
 
             return $result;
@@ -325,7 +286,7 @@ abstract class RestHandler
      *
      * @return $this
      */
-    protected function setRequest( ServiceRequestInterface $request )
+    protected function setRequest(ServiceRequestInterface $request)
     {
         $this->request = $request;
 
@@ -339,16 +300,14 @@ abstract class RestHandler
      *
      * @return $this
      */
-    protected function setAction( $action )
+    protected function setAction($action)
     {
-        $this->action = trim( strtoupper( $action ) );
+        $this->action = trim(strtoupper($action));
 
         //	Check verb aliases, set correct action allowing for closures
-        if ( null !== ( $alias = ArrayUtils::get( $this->verbAliases, $this->action ) ) )
-        {
+        if (null !== ($alias = ArrayUtils::get($this->verbAliases, $this->action))) {
             //	A closure?
-            if ( in_array( $alias, Verbs::getDefinedConstants() ) || !is_callable( $alias ) )
-            {
+            if (in_array($alias, Verbs::getDefinedConstants()) || !is_callable($alias)) {
                 //	Set original and work with alias
                 $this->originalAction = $this->action;
                 $this->action = $alias;
@@ -371,9 +330,9 @@ abstract class RestHandler
      *
      * @return $this
      */
-    public function overrideAction( $action )
+    public function overrideAction($action)
     {
-        $this->action = trim( strtoupper( $action ) );
+        $this->action = trim(strtoupper($action));
 
         return $this;
     }
@@ -401,20 +360,18 @@ abstract class RestHandler
      *
      * @return $this
      */
-    protected function setResourceMembers( $resourcePath = null )
+    protected function setResourceMembers($resourcePath = null)
     {
         $this->resourcePath = $resourcePath;
-        $this->resourceArray = ( !empty( $this->resourcePath ) ) ? explode( '/', $this->resourcePath ) : array();
+        $this->resourceArray = (!empty($this->resourcePath)) ? explode('/', $this->resourcePath) : [];
 
-        if ( empty( $this->resource ) )
-        {
-            if ( null !== ( $resource = ArrayUtils::get( $this->resourceArray, 0 ) ) )
-            {
+        if (empty($this->resource)) {
+            if (null !== ($resource = ArrayUtils::get($this->resourceArray, 0))) {
                 $this->resource = $resource;
             }
         }
 
-        $this->resourceId = ArrayUtils::get( $this->resourceArray, 1 );
+        $this->resourceId = ArrayUtils::get($this->resourceArray, 1);
 
         return $this;
     }
@@ -424,44 +381,41 @@ abstract class RestHandler
      *
      * @param int $outputFormat
      */
-    protected function setResponseFormat( $outputFormat = null )
+    protected function setNativeFormat($outputFormat = null)
     {
-        $this->outputFormat = $outputFormat;
+        $this->nativeFormat = $outputFormat;
     }
 
     /**
-     * @param array      $resources
-     * @param array|null $properties
-     * @param bool       $wrap
+     * @param array       $records
+     * @param string|null $identifier
+     * @param array|null  $fields
+     * @param string|null $wrapper
      *
      * @return array
      */
-    protected static function makeResourceList( array $resources, $properties = null, $wrap = true )
+    protected static function makeResourceList(array $records, $identifier = null, $fields = null, $wrapper = null)
     {
-        $resourceList = array();
+        $data = [];
 
-        if ( empty( $properties ) || ( is_string( $properties ) && ( 0 === strcasecmp( 'false', $properties ) ) ) )
-        {
-            $resourceList = array_column( $resources, 'name' );
-        }
-        elseif ( ( true === $properties ) || ( is_string( $properties ) && ( 0 === strcasecmp( 'true', $properties ) ) ) )
-        {
-            $resourceList = array_values( $resources );
-        }
-        else
-        {
-            foreach ( $resources as $resource )
-            {
-                if ( is_string( $properties ) )
-                {
-                    $properties = explode( ',', $properties );
-                }
+        if (empty($fields)) {
+            if (empty($identifier)) {
+                $identifier = 'name';
+            }
+            $data = array_column($records, $identifier);
+        } elseif ('*' === $fields) {
+            $data = array_values($records);
+        } else {
+            if (is_string($fields)) {
+                $fields = explode(',', $fields);
+            }
 
-                $resourceList[] = array_intersect_key( $resource, array_flip( $properties ) );
+            foreach ($records as $record) {
+                $data[] = array_intersect_key($record, array_flip($fields));
             }
         }
 
-        return ( $wrap ) ? array( "resource" => $resourceList ) : $resourceList;
+        return ($wrapper) ? [$wrapper => $data] : $data;
     }
 
     /**
@@ -470,35 +424,11 @@ abstract class RestHandler
      *
      * @return mixed
      */
-    protected function getPayloadData( $key = null, $default = null )
+    protected function getPayloadData($key = null, $default = null)
     {
-        $data = $this->request->getPayloadData( $key, $default );
+        $data = $this->request->getPayloadData($key, $default);
 
         return $data;
-    }
-
-    /**
-     * @param null $key
-     * @param null $default
-     *
-     * @return mixed
-     */
-    protected function getQueryData( $key = null, $default = null )
-    {
-        $data = $this->request->query( $key, $default );
-
-        return $data;
-    }
-
-    /**
-     * @param      $key
-     * @param bool $default
-     *
-     * @return bool
-     */
-    protected function getQueryBool( $key, $default = false )
-    {
-        return $this->request->queryBool( $key, $default );
     }
 
     /**
@@ -508,41 +438,23 @@ abstract class RestHandler
      */
     protected function getResources()
     {
-        return [ ];
-    }
-
-    /**
-     * @param mixed $include_properties Use boolean, comma-delimited string, or array of properties
-     *
-     * @return ServiceResponseInterface
-     */
-    public function listResources( $include_properties = null )
-    {
-        $resources = $this->getResources();
-        if ( !empty( $resources ) )
-        {
-            return static::makeResourceList( $resources, $include_properties, true );
-        }
-
-        return false;
+        return [];
     }
 
     /**
      * Handles GET action
      *
-     * @return false|ServiceResponseInterface
+     * @return mixed
      */
     protected function handleGET()
     {
-        $includeProperties = $this->request->query( 'include_properties' );
-
-        return $this->listResources( $includeProperties );
+        return false;
     }
 
     /**
      * Handles POST action
      *
-     * @return false|ServiceResponseInterface
+     * @return mixed
      */
     protected function handlePOST()
     {
@@ -552,7 +464,7 @@ abstract class RestHandler
     /**
      * Handles PUT action
      *
-     * @return false|ServiceResponseInterface
+     * @return mixed
      */
     protected function handlePUT()
     {
@@ -562,7 +474,7 @@ abstract class RestHandler
     /**
      * Handles PATCH action
      *
-     * @return false|ServiceResponseInterface
+     * @return mixed
      */
     protected function handlePATCH()
     {
@@ -572,7 +484,7 @@ abstract class RestHandler
     /**
      * Handles DELETE action
      *
-     * @return false|ServiceResponseInterface
+     * @return mixed
      */
     protected function handleDELETE()
     {
@@ -583,33 +495,8 @@ abstract class RestHandler
      * Triggers the appropriate event for the action /service/resource_path.
      *
      */
-    protected function triggerActionEvent( &$result, $eventName = null, $event = null, $isPostProcess = false )
+    protected function triggerActionEvent(&$result, $eventName = null, $event = null, $isPostProcess = false)
     {
-        // TODO figure this out for RAVE
-    }
-
-    /**
-     * @param string $operation
-     * @param string $resource
-     *
-     * @return bool
-     */
-    public function checkPermission( $operation, $resource = null )
-    {
-        // TODO figure this out for RAVE
-        return true;
-    }
-
-    /**
-     * @param string $resource
-     *
-     * @return string
-     */
-    public function getPermissions( $resource = null )
-    {
-        // TODO figure this out for RAVE
-        return VerbsMask::maskToArray(
-            VerbsMask::NONE_MASK | VerbsMask::GET_MASK | VerbsMask::POST_MASK | VerbsMask::PUT_MASK | VerbsMask::PATCH_MASK | VerbsMask::DELETE_MASK
-        );
+        // TODO figure this out
     }
 }

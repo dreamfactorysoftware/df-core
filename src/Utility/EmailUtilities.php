@@ -1,61 +1,34 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm)
- *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-namespace DreamFactory\Rave\Utility;
+namespace DreamFactory\Core\Utility;
 
 use App;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\BadRequestException;
 
 class EmailUtilities
 {
-    public static function sanitizeAndValidateEmails( $emails, $return_format = '' )
+    public static function sanitizeAndValidateEmails($emails, $return_format = '')
     {
-        if ( is_array( $emails ) )
-        {
-            if ( isset( $emails[0] ) ) // multiple
+        if (is_array($emails)) {
+            if (isset($emails[0])) // multiple
             {
                 $out = array();
-                foreach ( $emails as $info )
-                {
-                    if ( is_array( $info ) )
-                    {
-                        $email = ArrayUtils::get( $info, 'email' );
-                        $email = filter_var( $email, FILTER_SANITIZE_EMAIL );
-                        if ( false === filter_var( $email, FILTER_VALIDATE_EMAIL ) )
-                        {
-                            throw new BadRequestException( "Invalid email - '$email'." );
+                foreach ($emails as $info) {
+                    if (is_array($info)) {
+                        $email = ArrayUtils::get($info, 'email');
+                        $email = filter_var($email, FILTER_SANITIZE_EMAIL);
+                        if (false === filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                            throw new BadRequestException("Invalid email - '$email'.");
                         }
-                        if ( empty( $email ) )
-                        {
-                            throw new BadRequestException( 'Email can not be empty.' );
+                        if (empty($email)) {
+                            throw new BadRequestException('Email can not be empty.');
                         }
-                        $name = ArrayUtils::get( $info, 'name' );
-                        if ( empty( $name ) )
-                        {
+                        $name = ArrayUtils::get($info, 'name');
+                        if (empty($name)) {
                             $out[] = $email;
-                        }
-                        else
-                        {
-                            switch ( $return_format )
-                            {
+                        } else {
+                            switch ($return_format) {
                                 case 'swift':
                                     $out[$email] = $name;
                                     break;
@@ -66,41 +39,32 @@ class EmailUtilities
                                     $out[] = $info;
                             }
                         }
-                    }
-                    else // simple email addresses
+                    } else // simple email addresses
                     {
-                        $info = filter_var( $info, FILTER_SANITIZE_EMAIL );
-                        if ( false === filter_var( $info, FILTER_VALIDATE_EMAIL ) )
-                        {
-                            throw new BadRequestException( "Invalid email - '$info'." );
+                        $info = filter_var($info, FILTER_SANITIZE_EMAIL);
+                        if (false === filter_var($info, FILTER_VALIDATE_EMAIL)) {
+                            throw new BadRequestException("Invalid email - '$info'.");
                         }
                         $out[] = $info;
                     }
                 }
-            }
-            else // single pair
+            } else // single pair
             {
-                $email = ArrayUtils::get( $emails, 'email' );
-                $email = filter_var( $email, FILTER_SANITIZE_EMAIL );
-                if ( false === filter_var( $email, FILTER_VALIDATE_EMAIL ) )
-                {
-                    throw new BadRequestException( "Invalid email - '$email'." );
+                $email = ArrayUtils::get($emails, 'email');
+                $email = filter_var($email, FILTER_SANITIZE_EMAIL);
+                if (false === filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                    throw new BadRequestException("Invalid email - '$email'.");
                 }
-                if ( empty( $email ) )
-                {
-                    throw new BadRequestException( 'Email can not be empty.' );
+                if (empty($email)) {
+                    throw new BadRequestException('Email can not be empty.');
                 }
-                $name = ArrayUtils::get( $emails, 'name' );
-                if ( empty( $name ) )
-                {
+                $name = ArrayUtils::get($emails, 'name');
+                if (empty($name)) {
                     $out = $email;
-                }
-                else
-                {
-                    switch ( $return_format )
-                    {
+                } else {
+                    switch ($return_format) {
                         case 'swift':
-                            $out = array( $email => $name );
+                            $out = array($email => $name);
                             break;
                         case 'wrapped': // rfc2822
                             $out = $name . '<' . $email . '>';
@@ -110,14 +74,11 @@ class EmailUtilities
                     }
                 }
             }
-        }
-        else
-        {
+        } else {
             // simple single email
-            $emails = filter_var( $emails, FILTER_SANITIZE_EMAIL );
-            if ( false === filter_var( $emails, FILTER_VALIDATE_EMAIL ) )
-            {
-                throw new BadRequestException( "Invalid email - '$emails'." );
+            $emails = filter_var($emails, FILTER_SANITIZE_EMAIL);
+            if (false === filter_var($emails, FILTER_VALIDATE_EMAIL)) {
+                throw new BadRequestException("Invalid email - '$emails'.");
             }
             $out = $emails;
         }
@@ -133,17 +94,14 @@ class EmailUtilities
      *
      * @return string
      */
-    public static function applyDataToView( $view, $data )
+    public static function applyDataToView($view, $data)
     {
         // do placeholder replacement, currently {xxx}
-        if ( !empty( $data ) )
-        {
-            foreach ( $data as $name => $value )
-            {
-                if ( is_string( $value ) )
-                {
+        if (!empty($data)) {
+            foreach ($data as $name => $value) {
+                if (is_string($value)) {
                     // replace {xxx} in subject
-                    $view = str_replace( '{' . $name . '}', $value, $view );
+                    $view = str_replace('{' . $name . '}', $value, $view);
                 }
             }
         }

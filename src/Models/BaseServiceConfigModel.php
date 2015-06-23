@@ -1,42 +1,17 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm)
- *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-namespace DreamFactory\Rave\Models;
+namespace DreamFactory\Core\Models;
 
-use Crypt;
-use DreamFactory\Rave\Contracts\ServiceConfigHandlerInterface;
+use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
+use DreamFactory\Core\SqlDbCore\ColumnSchema;
 
 /**
  * Class BaseServiceConfigModel
  *
- * @package DreamFactory\Rave\Models
+ * @package DreamFactory\Core\Models
  */
 abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfigHandlerInterface
 {
-    /**
-     * Lists the config params (fields) that need to be encrypted
-     *
-     * @var array
-     */
-    protected $encrypted = [ ];
-
     /**
      * @var string
      */
@@ -45,7 +20,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     /**
      * @var array
      */
-    protected $fillable = [ 'service_id' ];
+    protected $fillable = ['service_id'];
 
     /**
      * @var bool
@@ -62,24 +37,21 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
      *
      * @return array
      */
-    public static function getConfig( $id )
+    public static function getConfig($id)
     {
-        $model = static::find( $id );
+        $model = static::find($id);
 
-        if ( !empty( $model ) )
-        {
+        if (!empty($model)) {
             return $model->toArray();
-        }
-        else
-        {
-            return [ ];
+        } else {
+            return [];
         }
     }
 
     /**
      * {@inheritdoc}
      */
-    public static function validateConfig( $config )
+    public static function validateConfig($config)
     {
         return true;
     }
@@ -87,16 +59,27 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     /**
      * {@inheritdoc}
      */
-    public static function setConfig( $id, $config )
+    public static function setConfig($id, $config)
     {
-        $config['service_id'] = $id;
-        static::create( $config );
+        $model = static::find($id);
+        if (!empty($model)) {
+            $model->update($config);
+        } else {
+            //Making sure service_id is the first item in the config.
+            //This way service_id will be set first and is available
+            //for use right away. This helps setting an auto-generated
+            //field that may depend on parent data. See OAuthConfig->setAttribute.
+            $config = array_reverse($config, true);
+            $config['service_id'] = $id;
+            $config = array_reverse($config, true);
+            static::create($config);
+        }
     }
 
     /**
      * {@inheritdoc}
      */
-    public static function removeConfig( $id )
+    public static function removeConfig($id)
     {
         // deleting is not necessary here due to cascading on_delete relationship in database
     }
@@ -112,44 +95,25 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     /**
      * {@inheritdoc}
      */
-    public function getAttribute( $key )
+    public static function getConfigSchema()
     {
-        if ( in_array( $key, $this->encrypted ) && !empty( $this->attributes[$key] ) )
-        {
-            return Crypt::decrypt( $this->attributes[$key] );
-        }
+        $model = new static;
 
-        return parent::getAttribute( $key );
-    }
+        $schema = $model->getTableSchema();
+        if ($schema) {
+            $out = [];
+            foreach ($schema->columns as $name => $column) {
+                if ('service_id' === $name) {
+                    continue;
+                }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function setAttribute( $key, $value )
-    {
-        if ( in_array( $key, $this->encrypted ) )
-        {
-            $value = Crypt::encrypt( $value );
-        }
-
-        parent::setAttribute( $key, $value );
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function attributesToArray()
-    {
-        $attributes = parent::attributesToArray();
-
-        foreach ( $attributes as $key => $value )
-        {
-            if ( in_array( $key, $this->encrypted ) && !empty( $this->attributes[$key] ) )
-            {
-                $attributes[$key] = Crypt::decrypt( $value );
+                /** @var ColumnSchema $column */
+                $out[$name] = $column->toArray();
             }
+
+            return $out;
         }
 
-        return $attributes;
+        return null;
     }
 }

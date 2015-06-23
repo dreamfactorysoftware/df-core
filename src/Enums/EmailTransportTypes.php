@@ -1,26 +1,8 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm) Common
- *
- * DreamFactory Rave(tm) Common <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-namespace DreamFactory\Rave\Enums;
+namespace DreamFactory\Core\Enums;
 
 use DreamFactory\Library\Utility\Enums\FactoryEnum;
-use DreamFactory\Rave\Exceptions\NotImplementedException;
+use DreamFactory\Core\Exceptions\NotImplementedException;
 
 /**
  * Various Email Transport types
@@ -68,19 +50,17 @@ class EmailTransportTypes extends FactoryEnum
      * @throws NotImplementedException
      * @return string
      */
-    public static function toNumeric( $name = null )
+    public static function toNumeric($name = null)
     {
-        if ( empty( $name ) )
-        {
+        if (empty($name)) {
             return self::SERVER_DEFAULT;
         }
 
-        if ( !in_array( strtoupper( $name ), array_keys( array_change_key_case( static::$_strings ) ) ) )
-        {
-            throw new NotImplementedException( 'The transport type "' . $name . '" is not supported.' );
+        if (!in_array(strtoupper($name), array_keys(array_change_key_case(static::$_strings)))) {
+            throw new NotImplementedException('The transport type "' . $name . '" is not supported.');
         }
 
-        return static::defines( strtoupper( $name ), true );
+        return static::defines(strtoupper($name), true);
     }
 
     /**
@@ -89,18 +69,16 @@ class EmailTransportTypes extends FactoryEnum
      * @throws NotImplementedException
      * @return string
      */
-    public static function toString( $numericLevel = self::SERVER_DEFAULT )
+    public static function toString($numericLevel = self::SERVER_DEFAULT)
     {
-        if ( !is_numeric( $numericLevel ) )
-        {
-            throw new \InvalidArgumentException( 'The transport type "' . $numericLevel . '" is not numeric.' );
+        if (!is_numeric($numericLevel)) {
+            throw new \InvalidArgumentException('The transport type "' . $numericLevel . '" is not numeric.');
         }
 
-        if ( !in_array( $numericLevel, static::$_strings ) )
-        {
-            throw new NotImplementedException( 'The transport type "' . $numericLevel . '" is not supported.' );
+        if (!in_array($numericLevel, static::$_strings)) {
+            throw new NotImplementedException('The transport type "' . $numericLevel . '" is not supported.');
         }
 
-        return static::nameOf( $numericLevel );
+        return static::nameOf($numericLevel);
     }
 }

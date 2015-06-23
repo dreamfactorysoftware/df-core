@@ -1,25 +1,5 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm)
- *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
-namespace DreamFactory\Rave\Contracts;
-
+namespace DreamFactory\Core\Contracts;
 
 interface FileSystemInterface
 {
@@ -32,7 +12,7 @@ interface FileSystemInterface
      *
      * @return array
      */
-    public function listContainers( $include_properties = false );
+    public function listContainers($include_properties = false);
 
     /**
      * Check if a container exists
@@ -41,7 +21,7 @@ interface FileSystemInterface
      *
      * @return boolean
      */
-    public function containerExists( $container );
+    public function containerExists($container);
 
     /**
      * Gets all properties of a particular container, if options are false,
@@ -55,7 +35,13 @@ interface FileSystemInterface
      *
      * @return array
      */
-    public function getContainer( $container, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false );
+    public function getContainer(
+        $container,
+        $include_files = true,
+        $include_folders = true,
+        $full_tree = false,
+        $include_properties = false
+    );
 
     /**
      * Create a container using properties, where at least name is required
@@ -65,7 +51,7 @@ interface FileSystemInterface
      *
      * @return array
      */
-    public function createContainer( $container, $check_exist = false );
+    public function createContainer($container, $check_exist = false);
 
     /**
      * Create multiple containers using array of properties, where at least name is required
@@ -75,7 +61,7 @@ interface FileSystemInterface
      *
      * @return array
      */
-    public function createContainers( $containers, $check_exist = false );
+    public function createContainers($containers, $check_exist = false);
 
     /**
      * Update a container with some properties
@@ -85,7 +71,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function updateContainerProperties( $container, $properties = array() );
+    public function updateContainerProperties($container, $properties = array());
 
     /**
      * Delete a container and all of its content
@@ -95,7 +81,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function deleteContainer( $container, $force = false );
+    public function deleteContainer($container, $force = false);
 
     /**
      * Delete multiple containers and all of their content
@@ -105,7 +91,7 @@ interface FileSystemInterface
      *
      * @return array
      */
-    public function deleteContainers( $containers, $force = false );
+    public function deleteContainers($containers, $force = false);
 
     /**
      * @param string $container
@@ -113,7 +99,7 @@ interface FileSystemInterface
      *
      * @return bool
      */
-    public function folderExists( $container, $path );
+    public function folderExists($container, $path);
 
     /**
      * Gets all properties of a particular folder, if options are false,
@@ -128,7 +114,14 @@ interface FileSystemInterface
      *
      * @return array
      */
-    public function getFolder( $container, $path, $include_files = true, $include_folders = true, $full_tree = false, $include_properties = false );
+    public function getFolder(
+        $container,
+        $path,
+        $include_files = true,
+        $include_folders = true,
+        $full_tree = false,
+        $include_properties = false
+    );
 
     /**
      * @param string $container
@@ -137,7 +130,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function createFolder( $container, $path, $properties = array() );
+    public function createFolder($container, $path, $properties = array());
 
     /**
      * @param string       $container
@@ -146,7 +139,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function updateFolderProperties( $container, $path, $properties = array() );
+    public function updateFolderProperties($container, $path, $properties = array());
 
     /**
      * @param string $container
@@ -157,7 +150,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function copyFolder( $container, $dest_path, $src_container, $src_path, $check_exist = false );
+    public function copyFolder($container, $dest_path, $src_container, $src_path, $check_exist = false);
 
     /**
      * @param string $container
@@ -166,10 +159,9 @@ interface FileSystemInterface
      * @param bool   $force If true, delete folder content as well,
      *                      otherwise return error when content present.
      *
-     * @throws BadRequestException
      * @return array
      */
-    public function deleteFolders( $container, $folders, $root = '', $force = false );
+    public function deleteFolders($container, $folders, $root = '', $force = false);
 
     /**
      * @param string $container
@@ -178,7 +170,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function deleteFolder( $container, $path, $force = false );
+    public function deleteFolder($container, $path, $force = false);
 
     /**
      * @param string $container
@@ -186,7 +178,7 @@ interface FileSystemInterface
      *
      * @return bool
      */
-    public function fileExists( $container, $path );
+    public function fileExists($container, $path);
 
     /**
      * @param string $container
@@ -196,7 +188,7 @@ interface FileSystemInterface
      *
      * @return string
      */
-    public function getFileContent( $container, $path, $local_file = null, $content_as_base = true );
+    public function getFileContent($container, $path, $local_file = null, $content_as_base = true);
 
     /**
      * @param string $container
@@ -206,7 +198,7 @@ interface FileSystemInterface
      *
      * @return array
      */
-    public function getFileProperties( $container, $path, $include_content = false, $content_as_base = true );
+    public function getFileProperties($container, $path, $include_content = false, $content_as_base = true);
 
     /**
      * @param string $container
@@ -215,7 +207,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function streamFile( $container, $path, $download = false );
+    public function streamFile($container, $path, $download = false);
 
     /**
      * @param string $container
@@ -224,7 +216,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function updateFileProperties( $container, $path, $properties = array() );
+    public function updateFileProperties($container, $path, $properties = array());
 
     /**
      * @param string  $container
@@ -235,7 +227,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function writeFile( $container, $path, $content, $content_is_base = true, $check_exist = false );
+    public function writeFile($container, $path, $content, $content_is_base = true, $check_exist = false);
 
     /**
      * @param string $container
@@ -245,7 +237,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function moveFile( $container, $path, $local_path, $check_exist = false );
+    public function moveFile($container, $path, $local_path, $check_exist = false);
 
     /**
      * @param string $container
@@ -256,7 +248,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function copyFile( $container, $dest_path, $sc_container, $src_path, $check_exist = false );
+    public function copyFile($container, $dest_path, $sc_container, $src_path, $check_exist = false);
 
     /**
      * @param string $container
@@ -264,7 +256,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function deleteFile( $container, $path );
+    public function deleteFile($container, $path);
 
     /**
      * @param string $container
@@ -273,7 +265,7 @@ interface FileSystemInterface
      *
      * @return array
      */
-    public function deleteFiles( $container, $files, $root = null );
+    public function deleteFiles($container, $files, $root = null);
 
     /**
      * @param string      $container
@@ -284,7 +276,7 @@ interface FileSystemInterface
      *
      * @return array
      */
-    public function extractZipFile( $container, $path, $zip, $clean = false, $drop_path = null );
+    public function extractZipFile($container, $path, $zip, $clean = false, $drop_path = null);
 
     /**
      * @param string           $container
@@ -295,5 +287,5 @@ interface FileSystemInterface
      *
      * @return string Zip File Name created/updated
      */
-    public function getFolderAsZip( $container, $path, $zip = null, $zipFileName = null, $overwrite = false );
+    public function getFolderAsZip($container, $path, $zip = null, $zipFileName = null, $overwrite = false);
 }

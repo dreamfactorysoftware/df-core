@@ -1,521 +1,143 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm)
- *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-namespace DreamFactory\Rave\Models;
+namespace DreamFactory\Core\Models;
 
-use DB;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
  * Class BaseSystemModel
  *
- * @package DreamFactory\Rave\Models
+ * @package DreamFactory\Core\Models
  */
 class BaseSystemModel extends BaseModel
 {
-    protected static $pk = 'id';
-
     /**
-     * @param       $records
-     * @param array $params
+     * The name of the "created at" column.
      *
-     * @return array|mixed
-     * @throws BadRequestException
-     * @throws \Exception
+     * @var string
      */
-    public static function bulkCreate( $records, $params = [ ] )
-    {
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'There are no record sets in the request.' );
-        }
-
-        $singleRow = ( 1 === count( $records ) ) ? true : false;
-        $response = array();
-        $transaction = false;
-        $errors = array();
-        $rollback = ArrayUtils::getBool( $params, 'rollback' );
-        $continue = ArrayUtils::getBool( $params, 'continue' );
-
-        try
-        {
-            //	Start a transaction
-            if ( !$singleRow && $rollback )
-            {
-                DB::beginTransaction();
-                $transaction = true;
-            }
-
-            foreach ( $records as $key => $record )
-            {
-                try
-                {
-                    $response[$key] = static::createInternal( $record, $params );
-                }
-                catch ( \Exception $ex )
-                {
-                    if ( $singleRow )
-                    {
-                        throw $ex;
-                    }
-
-                    if ( $rollback && $transaction )
-                    {
-                        DB::rollBack();
-                        throw $ex;
-                    }
-
-                    // track the index of the error and copy error to results
-                    $errors[] = $key;
-                    $response[$key] = $ex->getMessage();
-                    if ( !$continue )
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-        catch ( \Exception $ex )
-        {
-            throw $ex;
-        }
-
-        if ( !empty( $errors ) )
-        {
-            $msg = array( 'errors' => $errors, 'record' => $response );
-            throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
-        }
-
-        //	Commit
-        if ( $transaction )
-        {
-            try
-            {
-                DB::commit();
-            }
-            catch ( \Exception $ex )
-            {
-                throw $ex;
-            }
-        }
-
-        return $singleRow ? current( $response ) : array( 'record' => $response );
-    }
-
-    public static function updateById( $id, $record, $params = [ ] )
-    {
-        ArrayUtils::set( $record, static::$pk, $id );
-
-        return static::bulkUpdate( array( $record ), $params );
-    }
-
-    public static function updateByIds( $ids, $record, $params = [ ] )
-    {
-        if ( !is_array( $ids ) )
-        {
-            $ids = explode( ",", $ids );
-        }
-
-        $records = [ ];
-
-        foreach ( $ids as $id )
-        {
-            ArrayUtils::set( $record, static::$pk, $id );
-            $records[] = $record;
-        }
-
-        return static::bulkUpdate( $records, $params );
-    }
+    const CREATED_AT = 'created_date';
 
     /**
-     * @param       $records
-     * @param array $params
+     * The name of the "updated at" column.
      *
-     * @return array|mixed
-     * @throws BadRequestException
-     * @throws \Exception
+     * @var string
      */
-    public static function bulkUpdate( $records, $params = [ ] )
+    const UPDATED_AT = 'last_modified_date';
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function selectById($id, array $related = [], array $fields = ['*'])
     {
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'There is no record in the request.' );
-        }
+        $fields = static::cleanFields($fields);
+        $response = parent::selectById($id, $related, $fields);
 
-        $response = array();
-        $transaction = null;
-        $errors = array();
-        $singleRow = ( 1 === count( $records ) ) ? true : false;
-        $rollback = ArrayUtils::getBool( $params, 'rollback' );
-        $continue = ArrayUtils::getBool( $params, 'continue' );
-
-        try
-        {
-            //	Start a transaction
-            if ( !$singleRow && $rollback )
-            {
-                DB::beginTransaction();
-                $transaction = true;
-            }
-
-            foreach ( $records as $key => $record )
-            {
-                try
-                {
-                    $id = ArrayUtils::get( $record, static::$pk );
-                    $response[$key] = static::updateInternal( $id, $record, $params );
-                }
-                catch ( \Exception $ex )
-                {
-                    if ( $singleRow )
-                    {
-                        throw $ex;
-                    }
-
-                    if ( $rollback && $transaction )
-                    {
-                        DB::rollBack();
-                        throw $ex;
-                    }
-
-                    // track the index of the error and copy error to results
-                    $errors[] = $key;
-                    $response[$key] = $ex->getMessage();
-                    if ( !$continue )
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-        catch ( \Exception $ex )
-        {
-            throw $ex;
-        }
-
-        if ( !empty( $errors ) )
-        {
-            $msg = array( 'errors' => $errors, 'record' => $response );
-            throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
-        }
-
-        //	Commit
-        if ( $transaction )
-        {
-            try
-            {
-                DB::commit();
-            }
-            catch ( \Exception $ex )
-            {
-                throw $ex;
-            }
-        }
-
-        return $singleRow ? current( $response ) : array( 'record' => $response );
-    }
-
-    public static function deleteById( $id, $params = [ ] )
-    {
-        $records = array( array() );
-
-        foreach ( $records as $key => $record )
-        {
-            ArrayUtils::set( $records[$key], static::$pk, $id );
-        }
-
-        return static::bulkDelete( $records, $params );
-    }
-
-    public static function deleteByIds( $ids, $params = [ ] )
-    {
-        if ( !is_array( $ids ) )
-        {
-            $ids = explode( ",", $ids );
-        }
-
-        $records = [ ];
-
-        foreach ( $ids as $id )
-        {
-            $record = [ ];
-            ArrayUtils::set( $record, static::$pk, $id );
-            $records[] = $record;
-        }
-
-        return static::bulkDelete( $records, $params );
+        return static::cleanResult($response, $fields);
     }
 
     /**
-     * @param       $records
-     * @param array $params
+     * {@inheritdoc}
+     */
+    public static function selectByIds($ids, array $related = [], array $criteria = [])
+    {
+        $criteria = static::cleanCriteria($criteria);
+        $response = parent::selectByIds($ids, $related, $criteria);
+
+        return static::cleanResult($response, ArrayUtils::get($criteria, 'select'));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function selectByRequest(array $criteria = [], array $related = [])
+    {
+        $criteria = static::cleanCriteria($criteria);
+        $response = parent::selectByRequest($criteria, $related);
+
+        return static::cleanResult($response, ArrayUtils::get($criteria, 'select'));
+    }
+
+    /**
+     * Removes 'config' from select criteria if supplied as it chokes the model.
      *
-     * @return array|mixed
-     * @throws BadRequestException
-     * @throws \Exception
-     */
-    public static function bulkDelete( $records, $params = [ ] )
-    {
-        if ( empty( $records ) )
-        {
-            throw new BadRequestException( 'There is no record in the request.' );
-        }
-
-        $response = array();
-        $transaction = null;
-        $errors = array();
-        $singleRow = ( 1 === count( $records ) ) ? true : false;
-        $rollback = ArrayUtils::getBool( $params, 'rollback' );
-        $continue = ArrayUtils::getBool( $params, 'continue' );
-
-        try
-        {
-            //	Start a transaction
-            if ( !$singleRow && $rollback )
-            {
-                DB::beginTransaction();
-                $transaction = true;
-            }
-
-            foreach ( $records as $key => $record )
-            {
-                try
-                {
-                    $id = ArrayUtils::get( $record, static::$pk );
-                    $response[$key] = static::deleteInternal( $id, $record, $params );
-                }
-                catch ( \Exception $ex )
-                {
-                    if ( $singleRow )
-                    {
-                        throw $ex;
-                    }
-
-                    if ( $rollback && $transaction )
-                    {
-                        DB::rollBack();
-                        throw $ex;
-                    }
-
-                    // track the index of the error and copy error to results
-                    $errors[] = $key;
-                    $response[$key] = $ex->getMessage();
-                    if ( !$continue )
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-        catch ( \Exception $ex )
-        {
-            throw $ex;
-        }
-
-        if ( !empty( $errors ) )
-        {
-            $msg = array( 'errors' => $errors, 'record' => $response );
-            throw new BadRequestException( "Batch Error: Not all parts of the request were successful.", null, null, $msg );
-        }
-
-        //	Commit
-        if ( $transaction )
-        {
-            try
-            {
-                DB::commit();
-            }
-            catch ( \Exception $ex )
-            {
-                throw $ex;
-            }
-        }
-
-        return $singleRow ? current( $response ) : array( 'record' => $response );
-    }
-
-    /**
-     * @param       $record
-     * @param array $params
+     * @param array $criteria
      *
      * @return array
      */
-    protected static function createInternal( $record, $params = [ ] )
+    protected static function cleanCriteria(array $criteria)
     {
-        try
-        {
-            $model = static::create( $record );
-            static::createExtras($model, $record );
-        }
-        catch ( \PDOException $e )
-        {
-            throw $e;
-        }
+        $fields = ArrayUtils::get($criteria, 'select');
+        ArrayUtils::set($criteria, 'select', static::cleanFields($fields));
 
-        return static::buildResult( $model, $params );
+        return $criteria;
     }
 
     /**
-     * @param       $id
-     * @param       $record
-     * @param array $params
+     * Removes 'config' from field list if supplied as it chokes the model.
+     *
+     * @param mixed $fields
      *
      * @return array
-     * @throws BadRequestException
-     * @throws InternalServerErrorException
      */
-    public static function updateInternal( $id, $record, $params = [ ] )
+    public static function cleanFields($fields)
     {
-        if ( empty( $record ) )
-        {
-            throw new BadRequestException( 'There are no fields in the record to create . ' );
+        if (!is_array($fields)) {
+            $fields = explode(',', $fields);
         }
 
-        if ( empty( $id ) )
-        {
-            //Todo:perform logging below
-            //Log::error( 'Update request with no id supplied: ' . print_r( $record, true ) );
-            throw new BadRequestException( 'Identifying field "id" can not be empty for update request . ' );
+        //If config is requested add id and type as they are need to pull config.
+        if (in_array('config', $fields)) {
+            $fields[] = 'id';
+            $fields[] = 'type';
         }
 
-        $model = static::find( $id );
-
-        if ( !$model instanceof Model )
-        {
-            throw new ModelNotFoundException( 'No model found for ' . $id );
+        //Removing config from field list as it is not a real column in the table.
+        if (in_array('config', $fields)) {
+            $key = array_keys($fields, 'config');
+            unset($fields[$key[0]]);
         }
 
-        $pk = $model->primaryKey;
-        //	Remove the PK from the record since this is an update
-        ArrayUtils::remove( $record, $pk );
-
-        try
-        {
-            $model->update( $record );
-            static::updateExtras($model, $record );
-
-            return static::buildResult( $model, $params );
-        }
-        catch ( \Exception $ex )
-        {
-            throw new InternalServerErrorException( 'Failed to update resource: ' . $ex->getMessage() );
-        }
+        return $fields;
     }
 
     /**
-     * @param       $id
-     * @param       $record
-     * @param array $params
+     * If fields is not '*' (all) then remove the empty 'config' property.
+     *
+     * @param array $response
+     * @param mixed $fields
      *
      * @return array
-     * @throws BadRequestException
-     * @throws InternalServerErrorException
      */
-    public static function deleteInternal( $id, $record, $params = [ ] )
+    protected static function cleanResult(array $response, $fields)
     {
-        if ( empty( $record ) )
-        {
-            throw new BadRequestException( 'There are no fields in the record to create . ' );
+        if (!is_array($fields)) {
+            $fields = explode(',', $fields);
         }
 
-        if ( empty( $id ) )
-        {
-            //Todo:perform logging below
-            //Log::error( 'Update request with no id supplied: ' . print_r( $record, true ) );
-            throw new BadRequestException( 'Identifying field "id" can not be empty for update request . ' );
-        }
+        //config is only available when both id and type is present. Therefore only show config if id and type is there.
+        if (ArrayUtils::get($fields, 0) !== '*' && (!in_array('type', $fields) || !in_array('id', $fields))) {
+            $result = [];
 
-        $model = static::find( $id );
-
-        if ( !$model instanceof Model )
-        {
-            throw new ModelNotFoundException( 'No model found for ' . $id );
-        }
-
-        try
-        {
-            static::deleteExtras($model, $record );
-            $model->delete();
-            $result = static::buildResult( $model, $params );
+            if (ArrayUtils::isArrayNumeric($response)) {
+                foreach ($response as $r) {
+                    if (isset($r['config'])) {
+                        unset($r['config']);
+                    }
+                    $result[] = $r;
+                }
+            } else {
+                foreach ($response as $k => $v) {
+                    if ('config' === $k) {
+                        unset($response[$k]);
+                    }
+                }
+                $result = $response;
+            }
 
             return $result;
         }
-        catch ( \Exception $ex )
-        {
-            throw new InternalServerErrorException( 'Failed to delete resource: ' . $ex->getMessage() );
-        }
-    }
 
-    /**
-     * @param       $model
-     * @param array $params
-     *
-     * @return array
-     */
-    public static function buildResult( $model, $params = [ ] )
-    {
-        $pk = $model->primaryKey;
-        $fields = ArrayUtils::get( $params, 'fields', $pk );
-        $related = ArrayUtils::get( $params, 'related' );
-
-        $fieldsArray = explode( ",", $fields );
-
-        $result = array();
-        foreach ( $fieldsArray as $f )
-        {
-            $result[$f] = $model->{$f};
-        }
-
-        if ( !empty( $related ) )
-        {
-            //Todo: implement this.
-        }
-
-        $extras = static::buildExtras($model, $params );
-        $result = array_merge($result, $extras);
-
-
-        return $result;
-    }
-
-    protected static function createExtras( Model $model, $record )
-    {
-
-    }
-
-    protected static function updateExtras( Model $model, $record )
-    {
-
-    }
-
-    protected static function deleteExtras( Model $model, $record = [] )
-    {
-
-    }
-
-    protected static function buildExtras( Model $model, $params = [] )
-    {
-        return [];
+        return $response;
     }
 }

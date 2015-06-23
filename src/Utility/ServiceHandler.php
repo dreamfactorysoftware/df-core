@@ -1,108 +1,91 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm)
- *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-namespace DreamFactory\Rave\Utility;
+namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Rave\Enums\ContentTypes;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Models\Service;
-use DreamFactory\Rave\Services\SystemManager;
+use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Services\BaseRestService;
 
 /**
  * Class ServiceHandler
  *
- * @package DreamFactory\Rave\Utility
+ * @package DreamFactory\Core\Utility
  */
 class ServiceHandler
 {
     /**
-     * @param $apiName
+     * @param $name
      *
-     * @return mixed
+     * @return BaseRestService
+     * @throws ForbiddenException
      * @throws NotFoundException
      */
-    public static function getService( $apiName )
+    public static function getService($name)
     {
-        $apiName = strtolower( trim( $apiName ) );
+        $name = strtolower(trim($name));
 
-        if ( 'system' == $apiName )
-        {
-            $settings = [
-                'name'        => 'system',
-                'label'       => 'System Manager',
-                'description' => 'Handles all system resources and configuration'
-            ];
+        $service = Service::whereName($name)->get()->first();
 
-            return new SystemManager( $settings );
+        if (empty($service)) {
+            throw new NotFoundException("Could not find a service for $name");
         }
 
-        $service = Service::whereName( $apiName )->whereIsActive(1)->get()->first();
-        if ( $service instanceof Service )
-        {
-            $serviceClass = $service->serviceType()->first()->class_name;
-            $settings = $service->toArray();
+        return static::getServiceInternal($service);
+    }
 
-            return new $serviceClass( $settings );
-        }
-        elseif(Service::whereName( $apiName )->get()->first() instanceof Service)
-        {
-            $msg = $apiName." service is inactive.";
-        }
-        else
-        {
-            $msg = "Could not find a service for " . $apiName;
+    public static function getServiceById($id)
+    {
+        $service = Service::find($id);
+
+        if (empty($service)) {
+            throw new NotFoundException("Could not find a service for ID $id");
         }
 
-        throw new NotFoundException( $msg );
+        return static::getServiceInternal($service);
+    }
+
+    protected static function getServiceInternal($service)
+    {
+        if ($service instanceof Service) {
+            if ($service->is_active) {
+                $serviceClass = $service->serviceType()->first()->class_name;
+                $settings = $service->toArray();
+
+                return new $serviceClass($settings);
+            }
+
+            throw new ForbiddenException("Service $service->name is inactive.");
+        }
+
+        throw new NotFoundException("Could not find a service for $service->name.");
     }
 
     /**
      * @param null|string $version
-     * @param      $service
-     * @param null $resource
-     * @param int  $outputFormat
+     * @param             $service
+     * @param null        $resource
      *
      * @return mixed
      * @throws NotFoundException
      */
-    public static function processRequest( $version, $service, $resource = null, $outputFormat = ContentTypes::JSON )
+    public static function processRequest($version, $service, $resource = null)
     {
         $request = new ServiceRequest();
         $request->setApiVersion($version);
 
-        return self::getService( $service )->handleRequest( $request, $resource, $outputFormat );
+        return self::getService($service)->handleRequest($request, $resource);
     }
 
     /**
+     * @param bool $include_properties
+     *
      * @return array
      */
-    public static function listServices()
+    public static function listServices($include_properties = false)
     {
-        $system = [[
-            'name'        => 'system',
-            'label'       => 'System Manager'
-        ]];
+        $services = Service::available($include_properties);
 
-        $services = array_merge( $system, Service::available());
-
-        return array( 'service' => $services );
-
+        return ['service' => $services];
     }
 }

@@ -1,42 +1,15 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm)
- *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-namespace DreamFactory\Rave\Testing;
+namespace DreamFactory\Core\Testing;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\HttpStatusCodes;
 
 abstract class FileServiceTestCase extends TestCase
 {
-    const CONTAINER_1 = 'rave-test-container-1';
-    const CONTAINER_2 = 'rave-test-container-2';
-    const CONTAINER_3 = 'rave-test-container-3';
-    const CONTAINER_4 = 'rave-test-container-4';
-
-    protected $service = '';
-
-    public function setUp()
-    {
-        parent::setUp();
-        $this->setService();
-    }
-
-    protected abstract function setService();
+    const CONTAINER_1 = 'df-test-container-1';
+    const CONTAINER_2 = 'df-test-container-2';
+    const CONTAINER_3 = 'df-test-container-3';
+    const CONTAINER_4 = 'df-test-container-4';
 
     /************************************************
      * Testing POST
@@ -44,24 +17,41 @@ abstract class FileServiceTestCase extends TestCase
 
     public function testPOSTContainer()
     {
-        $rs = $this->addContainer(array("container"=>array(array("name"=>static::CONTAINER_1), array("name"=>static::CONTAINER_2))));
+        $rs =
+            $this->addContainer(array(
+                "container" => array(
+                    array("name" => static::CONTAINER_1),
+                    array("name" => static::CONTAINER_2)
+                )
+            ));
+
+        $content = json_encode($rs->getContent());
 
         $this->assertEquals(
-            '{"container":[{"name":"'.static::CONTAINER_1.'","path":"'.static::CONTAINER_1.'"},{"name":"'.static::CONTAINER_2.'","path":"'.static::CONTAINER_2.'"}]}',
-            $rs->getContent()
+            '{"container":[{"name":"' .
+            static::CONTAINER_1 .
+            '","path":"' .
+            static::CONTAINER_1 .
+            '"},{"name":"' .
+            static::CONTAINER_2 .
+            '","path":"' .
+            static::CONTAINER_2 .
+            '"}]}',
+            $content
         );
     }
 
     public function testPOSTContainerWithCheckExist()
     {
-        $payload = '{"name":"'.static::CONTAINER_2.'"}';
+        $payload = '{"name":"' . static::CONTAINER_2 . '"}';
 
-        $rs = $this->callWithPayload(Verbs::POST, $this->prefix, $payload);
-        $this->assertEquals('{"name":"'.static::CONTAINER_2.'","path":"'.static::CONTAINER_2.'"}', $rs->getContent());
+        $rs = $this->makeRequest(Verbs::POST, null, [], $payload);
+        $content = json_encode($rs->getContent());
+        $this->assertEquals('{"name":"' . static::CONTAINER_2 . '","path":"' . static::CONTAINER_2 . '"}', $content);
 
-        $rs = $this->callWithPayload(Verbs::POST, $this->prefix."?check_exist=true", $payload);
-        $this->assertResponseStatus(400);
-        $this->assertContains("Container '".static::CONTAINER_2."' already exists.", $rs->getContent());
+        $this->setExpectedException('\DreamFactory\Core\Exceptions\BadRequestException',
+            "Container '" . static::CONTAINER_2 . "' already exists.");
+        $this->makeRequest(Verbs::POST, null, ['check_exist' => 'true'], $payload);
     }
 
     public function testPOSTFolderAndFile()
@@ -78,25 +68,42 @@ abstract class FileServiceTestCase extends TestCase
             ']' .
             '}';
 
-        $rs = $this->callWithPayload( Verbs::POST, $this->prefix . "/".static::CONTAINER_1."/", $payload );
+        $rs = $this->makeRequest(Verbs::POST, static::CONTAINER_1, [], $payload);
+        $content = json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES);
 
-        $expected = '{"folder":[{"name":"f1","path":"'.static::CONTAINER_1.'/f1"},{"name":"f2","path":"'.static::CONTAINER_1.'/f2"}],"file":[{"name":"file1.txt","path":"'.static::CONTAINER_1.'/file1.txt"},{"name":"file2.txt","path":"'.static::CONTAINER_1.'/file2.txt"}]}';
+        $expected =
+            '{"folder":[{"name":"f1","path":"' .
+            static::CONTAINER_1 .
+            '/f1"},{"name":"f2","path":"' .
+            static::CONTAINER_1 .
+            '/f2"}],"file":[{"name":"file1.txt","path":"' .
+            static::CONTAINER_1 .
+            '/file1.txt"},{"name":"file2.txt","path":"' .
+            static::CONTAINER_1 .
+            '/file2.txt"}]}';
 
-        $this->assertEquals($expected, $rs->getContent());
+        $this->assertEquals($expected, $content);
     }
 
     public function testPOSTZipFileFromUrl()
     {
-        $rs = $this->call(Verbs::POST, $this->prefix."/".static::CONTAINER_1."/f1/?url=".urlencode('http://rave.local/testfiles.zip'));
+        $rs = $this->makeRequest(Verbs::POST, static::CONTAINER_1 . '/f1/', ['url' => 'http://df.local/testfiles.zip']);
+        $content = json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES);
 
-        $this->assertEquals('{"file":[{"name":"testfiles.zip","path":"'.static::CONTAINER_1.'/f1/testfiles.zip"}]}', $rs->getContent());
+        $this->assertEquals('{"file":[{"name":"testfiles.zip","path":"' . static::CONTAINER_1 . '/f1/testfiles.zip"}]}',
+            $content);
     }
 
     public function testPOSTZipFileFromUrlWithExtractAndClean()
     {
-        $rs = $this->call(Verbs::POST, $this->prefix."/".static::CONTAINER_1."/f2/?url=".urlencode('http://rave.local/testfiles.zip')."&extract=true&clean=true");
+        $rs = $this->makeRequest(
+            Verbs::POST,
+            static::CONTAINER_1 . '/f2/',
+            ['url' => 'http://df.local/testfiles.zip', 'extract' => 'true', 'clean' => 'true']
+        );
+        $content = json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES);
 
-        $this->assertEquals('{"folder":{"name":"f2","path":"'.static::CONTAINER_1.'/f2/"}}', $rs->getContent());
+        $this->assertEquals('{"folder":{"name":"f2","path":"' . static::CONTAINER_1 . '/f2/"}}', $content);
     }
 
     /************************************************
@@ -105,19 +112,20 @@ abstract class FileServiceTestCase extends TestCase
 
     public function testGETFolderAndFile()
     {
-        $rs = $this->call(Verbs::GET, $this->prefix."/".static::CONTAINER_1."/");
+        $rs = $this->makeRequest(Verbs::GET, static::CONTAINER_1);
+        $content = json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES);
 
-        $this->assertContains('"path":"'.static::CONTAINER_1.'/f1/"', $rs->getContent());
-        $this->assertContains('"path":"'.static::CONTAINER_1.'/f2/"', $rs->getContent());
-        $this->assertContains('"path":"'.static::CONTAINER_1.'/file1.txt"', $rs->getContent());
-        $this->assertContains('"path":"'.static::CONTAINER_1.'/file2.txt"', $rs->getContent());
+        $this->assertContains('"path":"' . static::CONTAINER_1 . '/f1/"', $content);
+        $this->assertContains('"path":"' . static::CONTAINER_1 . '/f2/"', $content);
+        $this->assertContains('"path":"' . static::CONTAINER_1 . '/file1.txt"', $content);
+        $this->assertContains('"path":"' . static::CONTAINER_1 . '/file2.txt"', $content);
     }
 
     public function testGETContainers()
     {
-        $rs = $this->call(Verbs::GET, $this->prefix);
+        $rs = $this->makeRequest(Verbs::GET);
+        $data = $rs->getContent();
 
-        $data = json_decode($rs->getContent(), true);
         $names = array_column($data['resource'], 'name');
         $paths = array_column($data['resource'], 'path');
 
@@ -127,9 +135,9 @@ abstract class FileServiceTestCase extends TestCase
 
     public function testGETContainerAsAccessComponents()
     {
-        $rs = $this->call(Verbs::GET, $this->prefix."?as_access_components=true");
+        $rs = $this->makeRequest(Verbs::GET, null, ['as_access_components' => 'true']);
 
-        $data = json_decode($rs->getContent(), true);
+        $data = $rs->getContent();
         $resources = $data['resource'];
 
         $this->assertTrue(
@@ -142,10 +150,11 @@ abstract class FileServiceTestCase extends TestCase
 
     public function testGETContainerIncludeProperties()
     {
-        $rs = $this->call(Verbs::GET, $this->prefix."?include_properties=true");
+        $rs = $this->makeRequest(Verbs::GET, null, ['include_properties' => 'true']);
+        $content = json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES);
 
-        $this->assertContains('"container":', $rs->getContent());
-        $this->assertContains('"last_modified":', $rs->getContent());
+        $this->assertContains('"container":', $content);
+        $this->assertContains('"last_modified":', $content);
     }
 
     /************************************************
@@ -154,85 +163,103 @@ abstract class FileServiceTestCase extends TestCase
 
     public function testDELETEfile()
     {
-        $rs1 = $this->call(Verbs::DELETE, $this->prefix."/".static::CONTAINER_1."/file1.txt");
-        $rs2 = $this->call(Verbs::DELETE, $this->prefix."/".static::CONTAINER_1."/file2.txt");
+        $rs1 = $this->makeRequest(Verbs::DELETE, static::CONTAINER_1 . "/file1.txt");
+        $rs2 = $this->makeRequest(Verbs::DELETE, static::CONTAINER_1 . "/file2.txt");
 
-        $this->assertEquals('{"file":[{"path":"'.static::CONTAINER_1.'/file1.txt"}]}', $rs1->getContent());
-        $this->assertEquals('{"file":[{"path":"'.static::CONTAINER_1.'/file2.txt"}]}', $rs2->getContent());
+        $this->assertEquals('{"file":[{"path":"' . static::CONTAINER_1 . '/file1.txt"}]}',
+            json_encode($rs1->getContent(), JSON_UNESCAPED_SLASHES));
+        $this->assertEquals('{"file":[{"path":"' . static::CONTAINER_1 . '/file2.txt"}]}',
+            json_encode($rs2->getContent(), JSON_UNESCAPED_SLASHES));
     }
 
     public function testDELETEZipFile()
     {
-        $rs = $this->call(Verbs::DELETE, $this->prefix."/".static::CONTAINER_1."/f1/testfiles.zip");
-        $this->assertEquals('{"file":[{"path":"'.static::CONTAINER_1.'/f1/testfiles.zip"}]}', $rs->getContent());
+        $rs = $this->makeRequest(Verbs::DELETE, static::CONTAINER_1 . "/f1/testfiles.zip");
+        $this->assertEquals('{"file":[{"path":"' . static::CONTAINER_1 . '/f1/testfiles.zip"}]}',
+            json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES));
     }
 
     public function testDELETEFolderByForce()
     {
-        $rs = $this->call(Verbs::DELETE, $this->prefix."/".static::CONTAINER_1."/f2/testfiles/?force=1");
-        $this->assertEquals('{"folder":[{"path":"'.static::CONTAINER_1.'/f2/testfiles/"}]}', $rs->getContent());
+        $rs = $this->makeRequest(Verbs::DELETE, static::CONTAINER_1 . "/f2/testfiles/", ['force' => 'true']);
+        $this->assertEquals('{"folder":[{"path":"' . static::CONTAINER_1 . '/f2/testfiles/"}]}',
+            json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES));
     }
 
     public function testDELETEfolder()
     {
-        $rs1 = $this->call(Verbs::DELETE, $this->prefix."/".static::CONTAINER_1."/f1/");
-        $rs2 = $this->call(Verbs::DELETE, $this->prefix."/".static::CONTAINER_1."/f2/");
+        $rs1 = $this->makeRequest(Verbs::DELETE, static::CONTAINER_1 . "/f1/");
+        $rs2 = $this->makeRequest(Verbs::DELETE, static::CONTAINER_1 . "/f2/");
 
-        $this->assertEquals('{"folder":[{"path":"'.static::CONTAINER_1.'/f1/"}]}', $rs1->getContent());
-        $this->assertEquals('{"folder":[{"path":"'.static::CONTAINER_1.'/f2/"}]}', $rs2->getContent());
+        $this->assertEquals('{"folder":[{"path":"' . static::CONTAINER_1 . '/f1/"}]}',
+            json_encode($rs1->getContent(), JSON_UNESCAPED_SLASHES));
+        $this->assertEquals('{"folder":[{"path":"' . static::CONTAINER_1 . '/f2/"}]}',
+            json_encode($rs2->getContent(), JSON_UNESCAPED_SLASHES));
     }
 
     public function testDELETEContainerWithNames()
     {
-        $rs = $this->call(Verbs::DELETE, $this->prefix."?names=".static::CONTAINER_1.",".static::CONTAINER_2);
+        $rs = $this->makeRequest(Verbs::DELETE, null, ['names' => static::CONTAINER_1 . ',' . static::CONTAINER_2]);
 
-        $expected = '{"container":[{"name":"'.static::CONTAINER_1.'"},{"name":"'.static::CONTAINER_2.'"}]}';
+        $expected = '{"container":[{"name":"' . static::CONTAINER_1 . '"},{"name":"' . static::CONTAINER_2 . '"}]}';
 
-        $this->assertEquals($expected, $rs->getContent());
+        $this->assertEquals($expected, json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES));
     }
 
     public function testDELETEContainersWithPayload()
     {
-        $this->addContainer(array("container"=>array(array("name"=>static::CONTAINER_1), array("name"=>static::CONTAINER_2))));
+        $this->addContainer(array(
+            "container" => array(
+                array("name" => static::CONTAINER_1),
+                array("name" => static::CONTAINER_2)
+            )
+        ));
 
-        $payload = '{"container":[{"name":"'.static::CONTAINER_1.'"},{"name":"'.static::CONTAINER_2.'"}]}';
+        $payload = '{"container":[{"name":"' . static::CONTAINER_1 . '"},{"name":"' . static::CONTAINER_2 . '"}]}';
 
-        $rs = $this->callWithPayload(Verbs::DELETE, $this->prefix."", $payload);
+        $rs = $this->makeRequest(Verbs::DELETE, null, [], $payload);
 
-        $expected = '{"container":[{"name":"'.static::CONTAINER_1.'"},{"name":"'.static::CONTAINER_2.'"}]}';
+        $expected = '{"container":[{"name":"' . static::CONTAINER_1 . '"},{"name":"' . static::CONTAINER_2 . '"}]}';
 
-        $this->assertEquals($expected, $rs->getContent());
+        $this->assertEquals($expected, json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES));
     }
 
     public function testDeleteContainerWithPathOnUrl()
     {
-        $this->addContainer(array("container"=>array(array("name"=>static::CONTAINER_3))));
+        $this->addContainer(array("container" => array(array("name" => static::CONTAINER_3))));
 
-        $rs = $this->call(Verbs::DELETE, $this->prefix."/".static::CONTAINER_3."/");
+        $rs = $this->makeRequest(Verbs::DELETE, static::CONTAINER_3 . "/");
 
-        $this->assertEquals('{"name":"'.static::CONTAINER_3.'"}', $rs->getContent());
+        $this->assertEquals('{"name":"' . static::CONTAINER_3 . '"}',
+            json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES));
     }
 
     public function testDELETEContainerWithPayload()
     {
-        $this->addContainer(array("name"=>static::CONTAINER_4));
+        $this->addContainer(array("name" => static::CONTAINER_4));
 
-        $payload = '{"name":"'.static::CONTAINER_4.'"}';
+        $payload = '{"name":"' . static::CONTAINER_4 . '"}';
 
-        $rs = $this->callWithPayload(Verbs::DELETE, $this->prefix, $payload);
+        $rs = $this->makeRequest(Verbs::DELETE, null, [], $payload);
 
-        $this->assertEquals('{"name":"'.static::CONTAINER_4.'","path":"'.static::CONTAINER_4.'"}', $rs->getContent());
+        $this->assertEquals('{"name":"' . static::CONTAINER_4 . '","path":"' . static::CONTAINER_4 . '"}',
+            json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES));
     }
 
     /************************************************
      * Helper methods.
      ************************************************/
 
+    /**
+     * @param array $containers
+     *
+     * @return \Illuminate\Http\Response
+     */
     protected function addContainer(array $containers)
     {
         $payload = json_encode($containers);
 
-        $rs = $this->callWithPayload(Verbs::POST, $this->prefix, $payload);
+        $rs = $this->makeRequest(Verbs::POST, null, [], $payload);
 
         return $rs;
     }

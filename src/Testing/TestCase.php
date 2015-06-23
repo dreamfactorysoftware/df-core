@@ -1,44 +1,34 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm)
- *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-namespace DreamFactory\Rave\Testing;
+namespace DreamFactory\Core\Testing;
 
-use DreamFactory\Rave\Models\Service;
+use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Utility\ServiceHandler;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\TestCase as LaravelTestCase;
 use Artisan;
-use DB;
+use DreamFactory\Core\Services\BaseRestService;
 
 class TestCase extends LaravelTestCase
 {
-    /**
-     * URL prefix rest/ api, api/v1, api/v2 etc.
-     *
-     * @var string
-     */
-    protected $prefix = 'rest';
-
     /**
      * A flag to make sure that the stage() method gets to run one time only.
      *
      * @var bool
      */
     protected static $staged = false;
+
+    /**
+     * Provide the service id/name that you want to run
+     * the test cases on.
+     *
+     * @var mixed null
+     */
+    protected $serviceId = null;
+
+    /** @var BaseRestService null */
+    protected $service = null;
 
     /**
      * Runs before every test class.
@@ -57,10 +47,27 @@ class TestCase extends LaravelTestCase
     {
         parent::setUp();
 
-        if ( false === static::$staged )
-        {
+        Model::unguard(false);
+
+        if (false === static::$staged) {
             $this->stage();
             static::$staged = true;
+        }
+
+        $this->setService();
+    }
+
+    /**
+     * Sets up the service based on
+     */
+    protected function setService()
+    {
+        if (!empty($this->serviceId)) {
+            if (is_numeric($this->serviceId)) {
+                $this->service = static::getServiceById($this->serviceId);
+            } else {
+                $this->service = static::getService($this->serviceId);
+            }
         }
     }
 
@@ -75,8 +82,8 @@ class TestCase extends LaravelTestCase
      */
     public function stage()
     {
-        Artisan::call( 'migrate', ['--path' => 'vendor/dreamfactory/rave/database/migrations/'] );
-        Artisan::call( 'db:seed', ['--class' => 'DreamFactory\\Rave\\Database\\Seeds\\DatabaseSeeder'] );
+        Artisan::call('migrate');
+        Artisan::call('db:seed');
     }
 
     /**
@@ -88,7 +95,7 @@ class TestCase extends LaravelTestCase
     {
         $app = require __DIR__ . '/../../../../../bootstrap/app.php';
 
-        $app->make( 'Illuminate\Contracts\Console\Kernel' )->bootstrap();
+        $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 
         return $app;
     }
@@ -100,9 +107,9 @@ class TestCase extends LaravelTestCase
      *
      * @return \Illuminate\Http\Response
      */
-    protected function callWithPayload( $verb, $url, $payload )
+    protected function callWithPayload($verb, $url, $payload)
     {
-        $rs = $this->call( $verb, $url, [ ], [ ], [ ], [ ], $payload );
+        $rs = $this->call($verb, $url, [], [], [], [], $payload);
 
         return $rs;
     }
@@ -114,8 +121,70 @@ class TestCase extends LaravelTestCase
      *
      * @return bool
      */
-    protected function serviceExists( $serviceName )
+    protected function serviceExists($serviceName)
     {
         return Service::whereName($serviceName)->exists();
+    }
+
+    /**
+     * @param $name
+     *
+     * @return BaseRestService
+     */
+    public static function getService($name)
+    {
+        return ServiceHandler::getService($name);
+    }
+
+    /**
+     * @param $id
+     *
+     * @return mixed
+     */
+    public static function getServiceById($id)
+    {
+        return ServiceHandler::getServiceById($id);
+    }
+
+    /**
+     * @param       $verb
+     * @param       $resource
+     * @param array $query
+     * @param null  $payload
+     * @param array $header
+     *
+     * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
+     */
+    protected function makeRequest($verb, $resource = null, $query = [], $payload = null, $header = [])
+    {
+        $request = new TestServiceRequest($verb, $query, $header);
+        $request->setApiVersion('v1');
+
+        if (!empty($payload)) {
+            if (is_array($payload)) {
+                $request->setContent($payload);
+            } else {
+                $request->setContent($payload, DataFormats::JSON);
+            }
+        }
+
+        return $this->handleRequest($request, $resource);
+    }
+
+    /**
+     * @param TestServiceRequest $request
+     * @param null               $resource
+     *
+     * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
+     * @throws InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    protected function handleRequest(TestServiceRequest $request, $resource = null)
+    {
+        if (empty($this->service)) {
+            throw new InternalServerErrorException('No service is setup to process request on. Please set the serviceId. It can be an Id or Name.');
+        }
+
+        return $this->service->handleRequest($request, $resource);
     }
 }

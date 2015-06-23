@@ -1,33 +1,13 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm)
- *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-namespace DreamFactory\Rave\Resources;
+namespace DreamFactory\Core\Resources;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Rave\Utility\DbUtilities;
-use DreamFactory\Rave\Exceptions\BadRequestException;
-use DreamFactory\Rave\Exceptions\NotFoundException;
-use DreamFactory\Rave\Exceptions\InternalServerErrorException;
-use DreamFactory\Rave\Exceptions\RestException;
-use DreamFactory\Rave\Services\BaseDbService;
+use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Utility\DbUtilities;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\NotFoundException;
 
 abstract class BaseDbSchemaResource extends BaseDbResource
 {
@@ -54,7 +34,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @throws NotFoundException
      * @throws BadRequestException
      */
-    public function correctTableName( &$name )
+    public function correctTableName(&$name)
     {
     }
 
@@ -64,11 +44,14 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      *
      * @throws BadRequestException
      */
-    protected function validateSchemaAccess( $table = null, $action = null )
+    protected function validateSchemaAccess($table, $action = null)
     {
-        $resource = static::RESOURCE_NAME;
+        if (empty($table)) {
+            throw new BadRequestException('Table name can not be empty.');
+        }
+
         $this->correctTableName($table);
-        $this->service->validateResourceAccess( $resource, $table, $action );
+        $this->checkPermission($action, $table);
     }
 
     /**
@@ -77,34 +60,22 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handleGET()
     {
-        $options = $this->request->query();
-        $payload = $this->request->getPayloadData();
-
-        $refresh = ArrayUtils::getBool( $options, 'refresh' );
-        if ( empty( $this->resource ) )
-        {
-            $tables = ArrayUtils::get( $options, 'names' );
-            if ( empty( $tables ) )
-            {
-                $tables = ArrayUtils::get( $payload, 'table' );
+        $refresh = $this->request->getParameterAsBool('refresh');
+        if (empty($this->resource)) {
+            $tables = $this->request->getParameter('names');
+            if (empty($tables)) {
+                $tables = $this->request->getPayloadData('table');
             }
 
-            if ( !empty( $tables ) )
-            {
-                $result = array( 'table' => $this->describeTables( $tables, $refresh ) );
-            }
-            else
-            {
+            if (!empty($tables)) {
+                $result = ['table' => $this->describeTables($tables, $refresh)];
+            } else {
                 $result = parent::handleGET();
             }
-        }
-        elseif ( empty( $this->resourceId ) )
-        {
-            $result = $this->describeTable( $this->resource, $refresh );
-        }
-        else
-        {
-            $result = $this->describeField( $this->resource, $this->resourceId, $refresh );
+        } elseif (empty($this->resourceId)) {
+            $result = $this->describeTable($this->resource, $refresh);
+        } else {
+            $result = $this->describeField($this->resource, $this->resourceId, $refresh);
         }
 
         return $result;
@@ -116,32 +87,22 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handlePOST()
     {
-        $options = $this->request->query();
         $payload = $this->request->getPayloadData();
-
-        $checkExist = ArrayUtils::getBool( $options, 'check_exist' );
-        $returnSchema = ArrayUtils::getBool( $options, 'return_schema' );
-        if ( empty( $this->resource ) )
-        {
-            $tables = ArrayUtils::get( $payload, 'table', $payload );
-            if ( empty( $tables ) )
-            {
-                throw new BadRequestException( 'No data in schema create request.' );
+        $checkExist = $this->request->getParameterAsBool('check_exist');
+        $returnSchema = $this->request->getParameterAsBool('return_schema');
+        if (empty($this->resource)) {
+            $tables = ArrayUtils::get($payload, 'table', $payload);
+            if (empty($tables)) {
+                throw new BadRequestException('No data in schema create request.');
             }
 
-            $result = array( 'table' => $this->createTables( $tables, $checkExist, $returnSchema ) );
-        }
-        elseif ( empty( $this->resourceId ) )
-        {
-            $result = $this->createTable( $this->resource, $payload, $checkExist, $returnSchema );
-        }
-        elseif ( empty( $payload ) )
-        {
-            throw new BadRequestException( 'No data in schema create request.' );
-        }
-        else
-        {
-            $result = $this->createField( $this->resource, $this->resourceId, $payload, $checkExist, $returnSchema );
+            $result = ['table' => $this->createTables($tables, $checkExist, $returnSchema)];
+        } elseif (empty($this->resourceId)) {
+            $result = $this->createTable($this->resource, $payload, $checkExist, $returnSchema);
+        } elseif (empty($payload)) {
+            throw new BadRequestException('No data in schema create request.');
+        } else {
+            $result = $this->createField($this->resource, $this->resourceId, $payload, $checkExist, $returnSchema);
         }
 
         return $result;
@@ -153,31 +114,21 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handlePUT()
     {
-        $options = $this->request->query();
         $payload = $this->request->getPayloadData();
-
-        $returnSchema = ArrayUtils::getBool( $options, 'return_schema' );
-        if ( empty( $this->resource ) )
-        {
-            $tables = ArrayUtils::get( $payload, 'table', $payload );
-            if ( empty( $tables ) )
-            {
-                throw new BadRequestException( 'No data in schema update request.' );
+        $returnSchema = $this->request->getParameterAsBool('return_schema');
+        if (empty($this->resource)) {
+            $tables = ArrayUtils::get($payload, 'table', $payload);
+            if (empty($tables)) {
+                throw new BadRequestException('No data in schema update request.');
             }
 
-            $result = array( 'table' => $this->updateTables( $tables, true, $returnSchema ) );
-        }
-        elseif ( empty( $this->resourceId ) )
-        {
-            $result = $this->updateTable( $this->resource, $payload, true, $returnSchema );
-        }
-        elseif ( empty( $payload ) )
-        {
-            throw new BadRequestException( 'No data in schema update request.' );
-        }
-        else
-        {
-            $result = $this->updateField( $this->resource, $this->resourceId, $payload, true, $returnSchema );
+            $result = ['table' => $this->updateTables($tables, true, $returnSchema)];
+        } elseif (empty($this->resourceId)) {
+            $result = $this->updateTable($this->resource, $payload, true, $returnSchema);
+        } elseif (empty($payload)) {
+            throw new BadRequestException('No data in schema update request.');
+        } else {
+            $result = $this->updateField($this->resource, $this->resourceId, $payload, true, $returnSchema);
         }
 
         return $result;
@@ -189,31 +140,21 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handlePATCH()
     {
-        $options = $this->request->query();
         $payload = $this->request->getPayloadData();
-
-        $returnSchema = ArrayUtils::getBool( $options, 'return_schema' );
-        if ( empty( $this->resource ) )
-        {
-            $tables = ArrayUtils::get( $payload, 'table', $payload );
-            if ( empty( $tables ) )
-            {
-                throw new BadRequestException( 'No data in schema update request.' );
+        $returnSchema = $this->request->getParameterAsBool('return_schema');
+        if (empty($this->resource)) {
+            $tables = ArrayUtils::get($payload, 'table', $payload);
+            if (empty($tables)) {
+                throw new BadRequestException('No data in schema update request.');
             }
 
-            $result = array( 'table' => $this->updateTables( $tables, false, $returnSchema ) );
-        }
-        elseif ( empty( $this->resourceId ) )
-        {
-            $result = $this->updateTable( $this->resource, $options, false, $returnSchema );
-        }
-        elseif ( empty( $payload ) )
-        {
-            throw new BadRequestException( 'No data in schema update request.' );
-        }
-        else
-        {
-            $result = $this->updateField( $this->resource, $this->resourceId, $payload, false, $returnSchema );
+            $result = ['table' => $this->updateTables($tables, false, $returnSchema)];
+        } elseif (empty($this->resourceId)) {
+            $result = $this->updateTable($this->resource, $payload, false, $returnSchema);
+        } elseif (empty($payload)) {
+            throw new BadRequestException('No data in schema update request.');
+        } else {
+            $result = $this->updateField($this->resource, $this->resourceId, $payload, false, $returnSchema);
         }
 
         return $result;
@@ -225,37 +166,29 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handleDELETE()
     {
-        $options = $this->request->query();
         $payload = $this->request->getPayloadData();
 
-        if ( empty( $this->resource ) )
-        {
-            $tables = ArrayUtils::get( $options, 'names' );
-            if ( empty( $tables ) )
-            {
-                $tables = ArrayUtils::get( $payload, 'table' );
+        if (empty($this->resource)) {
+            $tables = $this->request->getParameter('names');
+            if (empty($tables)) {
+                $tables = ArrayUtils::get($payload, 'table');
             }
 
-            if ( empty( $tables ) )
-            {
-                throw new BadRequestException( 'No data in schema delete request.' );
+            if (empty($tables)) {
+                throw new BadRequestException('No data in schema delete request.');
             }
 
-            $result = $this->deleteTables( $tables );
+            $result = $this->deleteTables($tables);
 
-            $result = array( 'table' => $result );
-        }
-        elseif ( empty( $this->resourceId ) )
-        {
-            $this->deleteTable( $this->resource );
+            $result = ['table' => $result];
+        } elseif (empty($this->resourceId)) {
+            $this->deleteTable($this->resource);
 
-            $result = array( 'success' => true );
-        }
-        else
-        {
-            $this->deleteField( $this->resource, $this->resourceId );
+            $result = ['success' => true];
+        } else {
+            $this->deleteField($this->resource, $this->resourceId);
 
-            $result = array( 'success' => true );
+            $result = ['success' => true];
         }
 
         return $result;
@@ -269,17 +202,13 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return boolean
      * @throws \Exception
      */
-    public function doesTableExist( $table_name )
+    public function doesTableExist($table_name)
     {
-        try
-        {
-            $this->correctTableName( $table_name );
+        try {
+            $this->correctTableName($table_name);
 
             return true;
-        }
-        catch ( \Exception $ex )
-        {
-
+        } catch (\Exception $ex) {
         }
 
         return false;
@@ -294,7 +223,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    public function describeTables( $tables, $refresh = false )
+    public function describeTables($tables, $refresh = false)
     {
         $tables = DbUtilities::validateAsArray(
             $tables,
@@ -303,13 +232,12 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             'The request contains no valid table names or properties.'
         );
 
-        $out = array();
-        foreach ( $tables as $table )
-        {
-            $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
-            $this->validateSchemaAccess( $name, Verbs::GET );
+        $out = [];
+        foreach ($tables as $table) {
+            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            $this->validateSchemaAccess($name, Verbs::GET);
 
-            $out[] = $this->describeTable( $table, $refresh );
+            $out[] = $this->describeTable($table, $refresh);
         }
 
         return $out;
@@ -324,7 +252,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function describeTable( $table, $refresh = false );
+    abstract public function describeTable($table, $refresh = false);
 
     /**
      * Get any properties related to the table field
@@ -336,7 +264,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function describeField( $table, $field, $refresh = false );
+    abstract public function describeField($table, $field, $refresh = false);
 
     /**
      * Create one or more tables by array of table properties
@@ -348,7 +276,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    public function createTables( $tables, $check_exist = false, $return_schema = false )
+    public function createTables($tables, $check_exist = false, $return_schema = false)
     {
         $tables = DbUtilities::validateAsArray(
             $tables,
@@ -357,11 +285,10 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             'The request contains no valid table names or properties.'
         );
 
-        $out = array();
-        foreach ( $tables as $table )
-        {
-            $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
-            $out[] = $this->createTable( $name, $table, $check_exist, $return_schema );
+        $out = [];
+        foreach ($tables as $table) {
+            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            $out[] = $this->createTable($name, $table, $check_exist, $return_schema);
         }
 
         return $out;
@@ -375,7 +302,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @param bool   $check_exist
      * @param bool   $return_schema Return a refreshed copy of the schema from the database
      */
-    abstract public function createTable( $table, $properties = array(), $check_exist = false, $return_schema = false );
+    abstract public function createTable($table, $properties = [], $check_exist = false, $return_schema = false);
 
     /**
      * Create a single table field by name and additional properties
@@ -386,7 +313,13 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @param bool   $check_exist
      * @param bool   $return_schema Return a refreshed copy of the schema from the database
      */
-    abstract public function createField( $table, $field, $properties = array(), $check_exist = false, $return_schema = false );
+    abstract public function createField(
+        $table,
+        $field,
+        $properties = [],
+        $check_exist = false,
+        $return_schema = false
+    );
 
     /**
      * Update one or more tables by array of table properties
@@ -397,7 +330,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      *
      * @return array
      */
-    public function updateTables( $tables, $allow_delete_fields = false, $return_schema = false )
+    public function updateTables($tables, $allow_delete_fields = false, $return_schema = false)
     {
         $tables = DbUtilities::validateAsArray(
             $tables,
@@ -407,19 +340,15 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         );
 
         // update tables allows for create as well
-        $out = array();
-        foreach ( $tables as $table )
-        {
-            $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
-            if ( $this->doesTableExist( $name ) )
-            {
-                $this->validateSchemaAccess( $name, Verbs::PATCH );
-                $out[] = $this->updateTable( $name, $table, $allow_delete_fields, $return_schema );
-            }
-            else
-            {
-                $this->validateSchemaAccess( null, Verbs::POST );
-                $out[] = $this->createTable( $name, $table, false, $return_schema );
+        $out = [];
+        foreach ($tables as $table) {
+            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            if ($this->doesTableExist($name)) {
+                $this->validateSchemaAccess($name, Verbs::PATCH);
+                $out[] = $this->updateTable($name, $table, $allow_delete_fields, $return_schema);
+            } else {
+                $this->validateSchemaAccess(null, Verbs::POST);
+                $out[] = $this->createTable($name, $table, false, $return_schema);
             }
         }
 
@@ -437,7 +366,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function updateTable( $table, $properties, $allow_delete_fields = false, $return_schema = false );
+    abstract public function updateTable($table, $properties, $allow_delete_fields = false, $return_schema = false);
 
     /**
      * Update properties related to the table
@@ -451,7 +380,13 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function updateField( $table, $field, $properties, $allow_delete_parts = false, $return_schema = false );
+    abstract public function updateField(
+        $table,
+        $field,
+        $properties,
+        $allow_delete_parts = false,
+        $return_schema = false
+    );
 
     /**
      * Delete multiple tables and all of their contents
@@ -462,7 +397,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    public function deleteTables( $tables, $check_empty = false )
+    public function deleteTables($tables, $check_empty = false)
     {
         $tables = DbUtilities::validateAsArray(
             $tables,
@@ -471,12 +406,11 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             'The request contains no valid table names or properties.'
         );
 
-        $out = array();
-        foreach ( $tables as $table )
-        {
-            $name = ( is_array( $table ) ) ? ArrayUtils::get( $table, 'name' ) : $table;
-            $this->validateSchemaAccess( $name, Verbs::DELETE );
-            $out[] = $this->deleteTable( $table, $check_empty );
+        $out = [];
+        foreach ($tables as $table) {
+            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            $this->validateSchemaAccess($name, Verbs::DELETE);
+            $out[] = $this->deleteTable($table, $check_empty);
         }
 
         return $out;
@@ -491,7 +425,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @throws \Exception
      * @return array
      */
-    abstract public function deleteTable( $table, $check_empty = false );
+    abstract public function deleteTable($table, $check_empty = false);
 
     /**
      * Delete a table field
@@ -502,6 +436,451 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @throws \Exception
      * @return array
      */
-    abstract public function deleteField( $table, $field );
+    abstract public function deleteField($table, $field);
 
+    public function getApiDocInfo()
+    {
+        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $_base = parent::getApiDocInfo();
+
+        $_commonResponses = ApiDocUtilities::getCommonResponses();
+
+        $_apis = [
+            [
+                'path'        => $path,
+                'description' => 'Operations available for SQL DB Schemas.',
+                'operations'  => [
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'getSchemasList() - List resources available for database schema.',
+                        'nickname'         => 'getSchemasList',
+                        'type'             => 'ComponentList',
+                        'event_name'       => $eventPath . '.list',
+                        'parameters'       => [
+                            [
+                                'name'          => 'refresh',
+                                'description'   => 'Refresh any cached copy of the schema list.',
+                                'allowMultiple' => false,
+                                'type'          => 'boolean',
+                                'paramType'     => 'query',
+                                'required'      => false,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'See listed operations for each resource available.',
+                    ],
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'getSchemas() - List resources available for database schema.',
+                        'nickname'         => 'getSchemas',
+                        'type'             => 'Resources',
+                        'event_name'       => $eventPath . '.list',
+                        'parameters'       => [
+                            [
+                                'name'          => 'fields',
+                                'description'   => 'Return all or specified properties available for each resource.',
+                                'allowMultiple' => true,
+                                'type'          => 'string',
+                                'paramType'     => 'query',
+                                'required'      => true,
+                                'default'       => '*',
+                            ],
+                            [
+                                'name'          => 'refresh',
+                                'description'   => 'Refresh any cached copy of the schema list.',
+                                'allowMultiple' => false,
+                                'type'          => 'boolean',
+                                'paramType'     => 'query',
+                                'required'      => false,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'See listed operations for each resource available.',
+                    ],
+                    [
+                        'method'           => 'POST',
+                        'summary'          => 'createTables() - Create one or more tables.',
+                        'nickname'         => 'createTables',
+                        'type'             => 'Resources',
+                        'event_name'       => $eventPath . '.create',
+                        'parameters'       => [
+                            [
+                                'name'          => 'tables',
+                                'description'   => 'Array of table definitions.',
+                                'allowMultiple' => false,
+                                'type'          => 'TableSchemas',
+                                'paramType'     => 'body',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'Post data should be a single table definition or an array of table definitions.',
+                    ],
+                    [
+                        'method'           => 'PUT',
+                        'summary'          => 'replaceTables() - Update (replace) one or more tables.',
+                        'nickname'         => 'replaceTables',
+                        'event_name'       => $eventPath . '.alter',
+                        'type'             => 'Resources',
+                        'parameters'       => [
+                            [
+                                'name'          => 'tables',
+                                'description'   => 'Array of table definitions.',
+                                'allowMultiple' => false,
+                                'type'          => 'TableSchemas',
+                                'paramType'     => 'body',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'Post data should be a single table definition or an array of table definitions.',
+                    ],
+                    [
+                        'method'           => 'PATCH',
+                        'summary'          => 'updateTables() - Update (patch) one or more tables.',
+                        'nickname'         => 'updateTables',
+                        'event_name'       => $eventPath . '.alter',
+                        'type'             => 'Resources',
+                        'parameters'       => [
+                            [
+                                'name'          => 'tables',
+                                'description'   => 'Array of table definitions.',
+                                'allowMultiple' => false,
+                                'type'          => 'TableSchemas',
+                                'paramType'     => 'body',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'Post data should be a single table definition or an array of table definitions.',
+                    ],
+                ],
+            ],
+            [
+                'path'        => $path . '/{table_name}',
+                'description' => 'Operations for per table administration.',
+                'operations'  => [
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'describeTable() - Retrieve table definition for the given table.',
+                        'nickname'         => 'describeTable',
+                        'event_name'       => [
+                            $eventPath . '.{table_name}.describe',
+                            $eventPath . '.table_described'
+                        ],
+                        'type'             => 'TableSchema',
+                        'parameters'       => [
+                            [
+                                'name'          => 'table_name',
+                                'description'   => 'Name of the table to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'refresh',
+                                'description'   => 'Refresh any cached copy of the schema.',
+                                'allowMultiple' => false,
+                                'type'          => 'boolean',
+                                'paramType'     => 'query',
+                                'required'      => false,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'This describes the table, its fields and relations to other tables.',
+                    ],
+                    [
+                        'method'           => 'POST',
+                        'summary'          => 'createTable() - Create a table with the given properties and fields.',
+                        'nickname'         => 'createTable',
+                        'type'             => 'Success',
+                        'event_name'       => [
+                            $eventPath . '.{table_name}.create',
+                            $eventPath . '.table_created'
+                        ],
+                        'parameters'       => [
+                            [
+                                'name'          => 'table_name',
+                                'description'   => 'Name of the table to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'schema',
+                                'description'   => 'Array of table properties and fields definitions.',
+                                'allowMultiple' => false,
+                                'type'          => 'TableSchema',
+                                'paramType'     => 'body',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'Post data should be an array of field properties for a single record or an array of fields.',
+                    ],
+                    [
+                        'method'           => 'PUT',
+                        'summary'          => 'replaceTable() - Update (replace) a table with the given properties.',
+                        'nickname'         => 'replaceTable',
+                        'type'             => 'Success',
+                        'event_name'       => [
+                            $eventPath . '.{table_name}.alter',
+                            $eventPath . '.table_altered'
+                        ],
+                        'parameters'       => [
+                            [
+                                'name'          => 'table_name',
+                                'description'   => 'Name of the table to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'schema',
+                                'description'   => 'Array of field definitions.',
+                                'allowMultiple' => false,
+                                'type'          => 'TableSchema',
+                                'paramType'     => 'body',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'Post data should be an array of field properties for a single record or an array of fields.',
+                    ],
+                    [
+                        'method'           => 'PATCH',
+                        'summary'          => 'updateTable() - Update (patch) a table with the given properties.',
+                        'nickname'         => 'updateTable',
+                        'type'             => 'Success',
+                        'event_name'       => [
+                            $eventPath . '.{table_name}.alter',
+                            $eventPath . '.table_altered'
+                        ],
+                        'parameters'       => [
+                            [
+                                'name'          => 'table_name',
+                                'description'   => 'Name of the table to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'schema',
+                                'description'   => 'Array of field definitions.',
+                                'allowMultiple' => false,
+                                'type'          => 'TableSchema',
+                                'paramType'     => 'body',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'Post data should be an array of field properties for a single record or an array of fields.',
+                    ],
+                    [
+                        'method'           => 'DELETE',
+                        'summary'          => 'deleteTable() - Delete (aka drop) the given table.',
+                        'nickname'         => 'deleteTable',
+                        'type'             => 'Success',
+                        'event_name'       => [$eventPath . '.{table_name}.drop', $eventPath . '.table_dropped'],
+                        'parameters'       => [
+                            [
+                                'name'          => 'table_name',
+                                'description'   => 'Name of the table to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'Careful, this drops the database table and all of its contents.',
+                    ],
+                ],
+            ],
+            [
+                'path'        => $path . '/{table_name}/{field_name}',
+                'description' => 'Operations for single field administration.',
+                'operations'  => [
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'describeField() - Retrieve the definition of the given field for the given table.',
+                        'nickname'         => 'describeField',
+                        'type'             => 'FieldSchema',
+                        'event_name'       => [
+                            $eventPath . '.{table_name}.{field_name}.describe',
+                            $eventPath . '.{table_name}.field_described'
+                        ],
+                        'parameters'       => [
+                            [
+                                'name'          => 'table_name',
+                                'description'   => 'Name of the table to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'field_name',
+                                'description'   => 'Name of the field to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'refresh',
+                                'description'   => 'Refresh any cached copy of the schema.',
+                                'allowMultiple' => false,
+                                'type'          => 'boolean',
+                                'paramType'     => 'query',
+                                'required'      => false,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'This describes the field and its properties.',
+                    ],
+                    [
+                        'method'           => 'PUT',
+                        'summary'          => 'replaceField() - Update one record by identifier.',
+                        'nickname'         => 'replaceField',
+                        'type'             => 'Success',
+                        'event_name'       => [
+                            $eventPath . '.{table_name}.{field_name}.alter',
+                            $eventPath . '.{table_name}.field_altered'
+                        ],
+                        'parameters'       => [
+                            [
+                                'name'          => 'table_name',
+                                'description'   => 'Name of the table to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'field_name',
+                                'description'   => 'Name of the field to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'properties',
+                                'description'   => 'Array of field properties.',
+                                'allowMultiple' => false,
+                                'type'          => 'FieldSchema',
+                                'paramType'     => 'body',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'Post data should be an array of field properties for the given field.',
+                    ],
+                    [
+                        'method'           => 'PATCH',
+                        'summary'          => 'updateField() - Update one record by identifier.',
+                        'nickname'         => 'updateField',
+                        'type'             => 'Success',
+                        'event_name'       => [
+                            $eventPath . '.{table_name}.{field_name}.alter',
+                            $eventPath . '.{table_name}.field_altered'
+                        ],
+                        'parameters'       => [
+                            [
+                                'name'          => 'table_name',
+                                'description'   => 'Name of the table to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'field_name',
+                                'description'   => 'Name of the field to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'properties',
+                                'description'   => 'Array of field properties.',
+                                'allowMultiple' => false,
+                                'type'          => 'FieldSchema',
+                                'paramType'     => 'body',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'Post data should be an array of field properties for the given field.',
+                    ],
+                    [
+                        'method'           => 'DELETE',
+                        'summary'          => 'deleteField() - Remove the given field from the given table.',
+                        'nickname'         => 'deleteField',
+                        'type'             => 'Success',
+                        'event_name'       => [
+                            $eventPath . '.{table_name}.{field_name}.drop',
+                            $eventPath . '.{table_name}.field_dropped'
+                        ],
+                        'parameters'       => [
+                            [
+                                'name'          => 'table_name',
+                                'description'   => 'Name of the table to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                            [
+                                'name'          => 'field_name',
+                                'description'   => 'Name of the field to perform operations on.',
+                                'allowMultiple' => false,
+                                'type'          => 'string',
+                                'paramType'     => 'path',
+                                'required'      => true,
+                            ],
+                        ],
+                        'responseMessages' => $_commonResponses,
+                        'notes'            => 'Careful, this drops the database table field/column and all of its contents.',
+                    ],
+                ],
+            ],
+        ];
+
+        $_models = [
+            'Tables' => [
+                'id'         => 'Tables',
+                'properties' => [
+                    'table' => [
+                        'type'        => 'array',
+                        'description' => 'Array of tables and their properties.',
+                        'items'       => [
+                            '$ref' => 'Table',
+                        ],
+                    ],
+                ],
+            ],
+            'Table'  => [
+                'id'         => 'Table',
+                'properties' => [
+                    'name' => [
+                        'type'        => 'string',
+                        'description' => 'Name of the table.',
+                    ],
+                ],
+            ],
+        ];
+
+        $_base['apis'] = array_merge($_base['apis'], $_apis);
+        $_base['models'] = array_merge($_base['models'], $_models);
+
+        return $_base;
+    }
 }

@@ -1,154 +1,159 @@
 <?php
-/**
- * This file is part of the DreamFactory Rave(tm)
- *
- * DreamFactory Rave(tm) <http://github.com/dreamfactorysoftware/rave>
- * Copyright 2012-2014 DreamFactory Software, Inc. <support@dreamfactory.com>
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
 
-namespace DreamFactory\Rave\Utility;
+namespace DreamFactory\Core\Utility;
 
-use Illuminate\Http\Response;
-use DreamFactory\Rave\Components\RaveResponse;
-use DreamFactory\Rave\Contracts\HttpStatusCodeInterface;
-use DreamFactory\Rave\Enums\HttpStatusCodes;
-use DreamFactory\Rave\Contracts\ServiceResponseInterface;
-use DreamFactory\Rave\Enums\ContentTypes;
-use DreamFactory\Rave\Exceptions\RaveException;
+use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Components\DfResponse;
+use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
+use DreamFactory\Core\Enums\HttpStatusCodes;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Exceptions\DfException;
 
 /**
  * Class ResponseFactory
  *
- * @package DreamFactory\Rave\Utility
+ * @package DreamFactory\Core\Utility
  */
 class ResponseFactory
 {
     /**
-     * @param mixed  $content
-     * @param string $contentType
-     * @param int    $statusCode
+     * @param mixed $content
+     * @param int $format
+     * @param int $status
+     * @param string|null $content_type
      *
      * @return ServiceResponse
      */
-    public static function create( $content, $contentType, $statusCode = ServiceResponseInterface::HTTP_OK )
-    {
-        return new ServiceResponse( $content, $contentType, $statusCode );
+    public static function create(
+        $content,
+        $format = DataFormats::PHP_ARRAY,
+        $status = ServiceResponseInterface::HTTP_OK,
+        $content_type = null
+    ){
+        return new ServiceResponse($content, $format, $status, $content_type);
     }
 
     /**
      * @param ServiceResponseInterface $response
-     * @param int                      $format
+     * @param null|string|array        $accepts
      *
      * @return array|mixed|string
+     * @throws BadRequestException
      */
-    public static function sendResponse( ServiceResponseInterface $response, $format = ContentTypes::JSON )
+    public static function sendResponse(ServiceResponseInterface $response, $accepts = null)
     {
-        $result = $response->getContent();
-        $code = $response->getStatusCode();
-        $responseType = $response->getContentType();
-
-        if ( empty( $result ) && empty( $responseType ) )
-        {
-            //No content and type specified. (File stream already handled by service)
-            return;
+        if (empty($accepts)) {
+            $accepts = array_map('trim', explode(',', \Request::header('ACCEPT')));
         }
 
-        if ( $result instanceof \Exception )
-        {
-            $result = self::makeExceptionContent( $result );
-            $format = ContentTypes::JSON;
-            $code = ( $result['error']['code'] ) ?: $code;
+        $content = $response->getContent();
+        $format = $response->getContentFormat();
+
+        if (empty($content) && is_null($format)) {
+            // No content and type specified. (File stream already handled by service)
+            return null;
         }
 
-        switch ( $format )
-        {
-            case ContentTypes::JSON:
-                if ( ContentTypes::PHP_ARRAY === $responseType )
-                {
-                    //$result = DataFormatter::arrayToJson($result);
-                    //Symfony Response object automatically converts this.
+        $status = $response->getStatusCode();
+        //  In case the status code is not a valid HTTP Status code
+        if (!in_array($status, HttpStatusCodes::getDefinedConstants())) {
+            //  Do necessary translation here. Default is Internal server error.
+            $status = HttpStatusCodeInterface::HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        if ($content instanceof \Exception) {
+            $status =
+                ($content instanceof RestException) ? $content->getStatusCode()
+                    : ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
+            $content = self::makeExceptionContent($content);
+            $format = DataFormats::PHP_ARRAY;
+        }
+
+        // check if the current content type is acceptable for return
+        $contentType = $response->getContentType();
+        if (empty($contentType)) {
+            $contentType = DataFormats::toMimeType($format, null);
+        }
+
+        // see if we match an accepts type, if so, go with it.
+        $accepts = ArrayUtils::clean($accepts);
+        if (!empty($contentType) && static::acceptedContentType($accepts, $contentType)) {
+            return DfResponse::create($content, $status, ["Content-Type" => $contentType]);
+        }
+
+        // we don't have an acceptable content type, see if we can convert the content.
+        $acceptsAny = false;
+        foreach ($accepts as $acceptType) {
+            $acceptFormat = DataFormats::fromMimeType($acceptType, null);
+            $mimeType = (false !== strpos($acceptType, ';')) ? trim(strstr($acceptType, ';', true)) : $acceptType;
+            if (is_null($acceptFormat)) {
+                if ('*/*' === $mimeType) {
+                    $acceptsAny = true;
                 }
-                $contentType = 'application/json; charset=utf-8';
-                break;
+                continue;
+            }
 
-            case ContentTypes::XML:
-                if ( ContentTypes::XML !== $responseType )
-                {
-                    //Perform data conversion as needed here
-                }
-                $contentType = 'application/xml';
-                $result = '<?xml version="1.0" ?>' . "<dfapi>\n$result</dfapi>";
-                break;
-
-            case ContentTypes::CSV:
-                if ( ContentTypes::CSV !== $responseType )
-                {
-                    //Perform data conversion as needed here
-                }
-                $contentType = 'text/csv';
-                break;
-
-            default:
-                $contentType = 'application/octet-stream';
-                break;
+            if (false !== $reformatted = DataFormatter::reformatData($content, $format, $acceptFormat)) {
+                return DfResponse::create($reformatted, $status, ["Content-Type" => $acceptType]);
+            }
         }
 
-        //In case if the status code is not a valid HTTP Status code
-        if ( !in_array( $code, HttpStatusCodes::getDefinedConstants() ) )
-        {
-            //do necessary translation here. Default is Internal server error.
-            $code = HttpStatusCodeInterface::HTTP_INTERNAL_SERVER_ERROR;
+        if ($acceptsAny) {
+            $contentType = (empty($contentType)) ? DataFormats::toMimeType($format) : $contentType;
+
+            return DfResponse::create($content, $status, ["Content-Type" => $contentType]);
         }
 
-        $ro = RaveResponse::create( $result, $code );
-        $ro->headers->set( "Content-Type", $contentType );
-        return $ro;
+        throw new BadRequestException('Content in response can not be resolved to acceptable content type.');
+    }
+
+    protected static function acceptedContentType(array $accepts, $content_type)
+    {
+        // see if we match an accepts type, if so, go with it.
+        if (!empty($content_type)) {
+            foreach ($accepts as $acceptType) {
+                $mimeType = (false !== strpos($acceptType, ';')) ? trim(strstr($acceptType, ';', true)) : $acceptType;
+                if ((0 === strcasecmp($mimeType, $content_type)) || ('*/*' === $mimeType)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
-     * @param $exception
+     * @param \Exception $exception
      *
      * @return array
      */
-    protected static function makeExceptionContent( $exception )
+    protected static function makeExceptionContent(\Exception $exception)
     {
-        $code = ( $exception->getCode() ) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-        $context = ( $exception instanceof RaveException ) ? $exception->getContext() : null;
+        $code = ($exception->getCode()) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
+        $context = ($exception instanceof DfException) ? $exception->getContext() : null;
         $errorInfo['context'] = $context;
-        $errorInfo['message'] = htmlentities( $exception->getMessage() );
+        $errorInfo['message'] = htmlentities($exception->getMessage());
         $errorInfo['code'] = $code;
 
-        if ( "local" === env( "APP_ENV" ) )
-        {
+        if ("local" === env("APP_ENV")) {
             $trace = $exception->getTraceAsString();
-            $trace = str_replace(array("\n", "#", "):"), array("", "<br><br>|#", "):<br>|---->"), $trace);
+            $trace = str_replace(["\n", "#", "):"], ["", "<br><br>|#", "):<br>|---->"], $trace);
             $traceArray = explode("<br>", $trace);
-            foreach($traceArray as $k=>$v)
-            {
-                if(empty($v))
-                {
+            foreach ($traceArray as $k => $v) {
+                if (empty($v)) {
                     $traceArray[$k] = '|';
                 }
             }
             $errorInfo['trace'] = $traceArray;
         }
 
-        $result = array(
+        $result = [
             //Todo: $errorInfo used to be wrapped inside an array. May need to account for that for backward compatibility.
             'error' => $errorInfo
-        );
+        ];
 
         return $result;
     }

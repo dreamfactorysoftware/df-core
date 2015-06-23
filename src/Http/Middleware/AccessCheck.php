@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Http\Middleware;
 
 use \Auth;
 use \Closure;
+use DreamFactory\Core\Enums\HttpStatusCodes;
 use \JWTAuth;
 use Illuminate\Routing\Router;
 use DreamFactory\Core\Enums\VerbsMask;
@@ -16,6 +17,7 @@ use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Utility\CacheUtilities;
 use Tymon\JWTAuth\Payload;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class AccessCheck
 {
@@ -94,11 +96,16 @@ class AccessCheck
             }
         } elseif (!empty($token)) {
             //JWT supplied meaning an authenticated user session/token.
-            JWTAuth::setToken($token);
-            /** @type Payload $payload */
-            $payload = JWTAuth::getPayload();
-            $userId = $payload->get('user_id');
-            Session::setSessionData($appId, $userId);
+            try {
+                JWTAuth::setToken($token);
+                /** @type Payload $payload */
+                $payload = JWTAuth::getPayload();
+                $userId = $payload->get('user_id');
+                Session::setSessionData($appId, $userId);
+            }
+            catch(TokenExpiredException $e){
+                return static::getException(new UnauthorizedException($e->getMessage()), $request);
+            }
         } elseif (!empty($apiKey)) {
             //Just Api Key is supplied. No authenticated session
             Session::setSessionData($appId);

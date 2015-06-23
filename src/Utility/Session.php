@@ -344,8 +344,8 @@ class Session
 
     public static function setSessionData($appId = null, $userId = null)
     {
-        $appInfo = CacheUtilities::getAppInfo($appId);
-        $userInfo = CacheUtilities::getUserInfo($userId);
+        $appInfo = ($appId)? CacheUtilities::getAppInfo($appId) : null;
+        $userInfo = ($userId)? CacheUtilities::getUserInfo($userId) : null;
 
         $roleId = null;
         if (!empty($userId) && !empty($appId)) {
@@ -359,7 +359,7 @@ class Session
         Session::setUserInfo($userInfo);
         Session::put('app_id', $appId);
 
-        $roleInfo = CacheUtilities::getRoleInfo($roleId);
+        $roleInfo = ($roleId)? CacheUtilities::getRoleInfo($roleId) : null;
         if (!empty($roleInfo)) {
             Session::put('role.id', $roleId);
             Session::put('role.name', $roleInfo['name']);

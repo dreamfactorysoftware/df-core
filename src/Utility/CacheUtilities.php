@@ -116,9 +116,10 @@ class CacheUtilities
         $cacheKey = 'user:' . $id;
         try {
             $result = Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
-                $user = User::with('user_lookup_by_user_id')->findOrFail($id);
+                $user = User::with('user_lookup_by_user_id')->whereId($id)->whereIsActive(true)->firstOrFail();
                 $userInfo = $user->toArray();
                 ArrayUtils::set($userInfo, 'is_sys_admin', $user->is_sys_admin);
+
                 return $userInfo;
             });
 
@@ -151,21 +152,20 @@ class CacheUtilities
         $cacheKey = 'role:' . $id;
         try {
             $result = \Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
-                $roleInfo =  Role::with(
+                $roleInfo = Role::with(
                     [
                         'role_lookup_by_role_id',
                         'role_service_access_by_role_id',
                         'service_by_role_service_access'
                     ]
-                )
-                ->findOrFail($id)
-                ->toArray();
+                )->whereId($id)->whereIsActive(true)->firstOrFail()->toArray();
 
                 $services = ArrayUtils::get($roleInfo, 'service_by_role_service_access');
                 unset($roleInfo['service_by_role_service_access']);
 
-                foreach($roleInfo['role_service_access_by_role_id'] as $key => $value){
-                    $serviceName = ArrayUtils::findByKeyValue($services, 'id', ArrayUtils::get($value, 'service_id'), 'name');
+                foreach ($roleInfo['role_service_access_by_role_id'] as $key => $value) {
+                    $serviceName =
+                        ArrayUtils::findByKeyValue($services, 'id', ArrayUtils::get($value, 'service_id'), 'name');
                     $roleInfo['role_service_access_by_role_id'][$key]['service'] = $serviceName;
                 }
 
@@ -201,7 +201,7 @@ class CacheUtilities
         $cacheKey = 'app:' . $id;
         try {
             $result = Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
-                return App::with('app_lookup_by_app_id')->findOrFail($id)->toArray();
+                return App::with('app_lookup_by_app_id')->whereId($id)->whereIsActive(true)->firstOrFail()->toArray();
             });
 
             if (is_null($result)) {

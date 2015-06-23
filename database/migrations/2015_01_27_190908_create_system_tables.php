@@ -528,18 +528,15 @@ class CreateSystemTables extends Migration
 
         // JSON Web Token to system resources map
         Schema::create(
-            'token_resource_map',
+            'token_map',
             function (Blueprint $t){
                 $t->increments('id');
                 $t->integer('user_id')->unsigned();
                 $t->foreign('user_id')->references('id')->on('user')->onDelete('cascade');
-                $t->integer('app_id')->unsigned();
-                $t->foreign('app_id')->references('id')->on('app')->onDelete('cascade');
-                $t->integer('role_id')->unsigned()->nullable();
-                $t->foreign('role_id')->references('id')->on('role')->onDelete('cascade');
                 $t->text('token');
                 $t->boolean('forever')->default(0);
-                $t->integer('refresh_count')->unsigned()->default(0);
+                $t->timestamp('created_date');
+                $t->timestamp('last_modified_date');
             }
         );
     }
@@ -554,7 +551,7 @@ class CreateSystemTables extends Migration
         // Drop created tables in reverse order
 
         // JSON Web Token to system resources map
-        Schema::dropIfExists('token_resource_map');
+        Schema::dropIfExists('token_map');
         // App relationship for user
         Schema::dropIfExists('user_to_app_to_role');
         // Service Docs

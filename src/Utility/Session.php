@@ -349,7 +349,7 @@ class Session
 
         $roleId = null;
         if (!empty($userId) && !empty($appId)) {
-            $roleId = CacheUtilities::getRoleIdByAppIAndUserId($appId, $userId);
+            $roleId = CacheUtilities::getRoleIdByAppIdAndUserId($appId, $userId);
         }
 
         if (empty($roleId) && !empty($appInfo)) {

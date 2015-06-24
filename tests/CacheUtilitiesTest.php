@@ -46,7 +46,7 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
         $user = User::create($temp);
         \DreamFactory\Core\Models\UserAppRole::create(['user_id' => $user->id, 'app_id' => $app->id, 'role_id' => $role->id]);
 
-        $roleId = CacheUtilities::getRoleIdByAppIAndUserId($app->id, $user->id);
+        $roleId = CacheUtilities::getRoleIdByAppIdAndUserId($app->id, $user->id);
 
         $this->assertEquals($role->id, $roleId);
     }
@@ -71,6 +71,13 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
     {
         $user = User::firstOrFail();
         $info = CacheUtilities::getUserInfo($user->id);
+
+        $this->assertNotEquals(null, $info);
+    }
+
+    public function testServiceInfo()
+    {
+        $info = CacheUtilities::getServiceInfo('user');
 
         $this->assertNotEquals(null, $info);
     }

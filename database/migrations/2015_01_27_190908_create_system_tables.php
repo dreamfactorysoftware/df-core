@@ -530,13 +530,11 @@ class CreateSystemTables extends Migration
         Schema::create(
             'token_map',
             function (Blueprint $t){
-                $t->increments('id');
                 $t->integer('user_id')->unsigned();
                 $t->foreign('user_id')->references('id')->on('user')->onDelete('cascade');
                 $t->text('token');
-                $t->boolean('forever')->default(0);
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->integer('iat')->unsigned();
+                $t->integer('exp')->unsigned();
             }
         );
     }

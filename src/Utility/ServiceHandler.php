@@ -6,6 +6,7 @@ use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
  * Class ServiceHandler
@@ -24,41 +25,29 @@ class ServiceHandler
     public static function getService($name)
     {
         $name = strtolower(trim($name));
+        $serviceInfo = CacheUtilities::getServiceInfo($name);
+        $serviceClass = ArrayUtils::get($serviceInfo, 'class_name');
 
-        $service = Service::whereName($name)->get()->first();
-
-        if (empty($service)) {
-            throw new NotFoundException("Could not find a service for $name");
-        }
-
-        return static::getServiceInternal($service);
+        return new $serviceClass($serviceInfo);
     }
 
     public static function getServiceById($id)
     {
+        /** @type Service $service */
         $service = Service::find($id);
 
         if (empty($service)) {
             throw new NotFoundException("Could not find a service for ID $id");
         }
 
-        return static::getServiceInternal($service);
-    }
-
-    protected static function getServiceInternal($service)
-    {
-        if ($service instanceof Service) {
-            if ($service->is_active) {
-                $serviceClass = $service->serviceType()->first()->class_name;
-                $settings = $service->toArray();
-
-                return new $serviceClass($settings);
-            }
-
+        if (!$service->is_active) {
             throw new ForbiddenException("Service $service->name is inactive.");
         }
 
-        throw new NotFoundException("Could not find a service for $service->name.");
+        $serviceClass = $service->serviceType()->first()->class_name;
+        $settings = $service->toArray();
+
+        return new $serviceClass($settings);
     }
 
     /**

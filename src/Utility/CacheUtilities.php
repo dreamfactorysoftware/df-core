@@ -4,8 +4,11 @@ namespace DreamFactory\Core\Utility;
 
 use \Cache;
 use \Config;
+use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Lookup;
 use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -102,6 +105,49 @@ class CacheUtilities
     }
 
     /**
+     * Returns service info cached, or reads from db if not present.
+     * Pass in a key to return a portion/index of the cached data.
+     *
+     * @param string      $name
+     * @param null|string $key
+     * @param null        $default
+     *
+     * @return mixed|null
+     */
+    public static function getServiceInfo($name, $key = null, $default = null)
+    {
+        $cacheKey = 'service:' . $name;
+        $result = \Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($name){
+            /** @type Service $service */
+            $service =
+                Service::with(['service_type_by_type'])->whereName($name)->first(['id', 'type', 'is_active']);
+
+            if (empty($service)) {
+                throw new NotFoundException("Could not find a service for $name");
+            }
+
+            if (!$service->is_active) {
+                throw new ForbiddenException("Service $service->name is inactive.");
+            }
+
+            $settings = ['id' => $service->id, 'config' => $service->config, 'type' => $service->type];
+            $settings['class_name'] = $service->getRelation('service_type_by_type')->class_name;
+
+            return $settings;
+        });
+
+        if (is_null($result)) {
+            return $default;
+        }
+
+        if (is_null($key)) {
+            return $result;
+        }
+
+        return ArrayUtils::get($result, $key, $default);
+    }
+
+    /**
      * Returns user info cached, or reads from db if not present.
      * Pass in a key to return a portion/index of the cached data.
      *
@@ -114,19 +160,23 @@ class CacheUtilities
     public static function getUserInfo($id, $key = null, $default = null)
     {
         $cacheKey = 'user:' . $id;
-        try {
-            $result = Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
-                $user = User::with('user_lookup_by_user_id')->whereId($id)->whereIsActive(true)->firstOrFail();
-                $userInfo = $user->toArray();
-                ArrayUtils::set($userInfo, 'is_sys_admin', $user->is_sys_admin);
-
-                return $userInfo;
-            });
-
-            if (is_null($result)) {
-                return $default;
+        $result = Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
+            $user = User::with('user_lookup_by_user_id')->whereId($id)->first();
+            if (empty($user)) {
+                throw new NotFoundException("User not found.");
             }
-        } catch (ModelNotFoundException $ex) {
+
+            if (!$user->is_active) {
+                throw new ForbiddenException("User is not active.");
+            }
+
+            $userInfo = $user->toArray();
+            ArrayUtils::set($userInfo, 'is_sys_admin', $user->is_sys_admin);
+
+            return $userInfo;
+        });
+
+        if (is_null($result)) {
             return $default;
         }
 
@@ -152,14 +202,23 @@ class CacheUtilities
         $cacheKey = 'role:' . $id;
         try {
             $result = \Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
-                $roleInfo = Role::with(
+                $role = Role::with(
                     [
                         'role_lookup_by_role_id',
                         'role_service_access_by_role_id',
                         'service_by_role_service_access'
                     ]
-                )->whereId($id)->whereIsActive(true)->firstOrFail()->toArray();
+                )->whereId($id)->first();
 
+                if (empty($role)) {
+                    throw new NotFoundException("Role not found.");
+                }
+
+                if (!$role->is_active) {
+                    throw new ForbiddenException("Role is not active.");
+                }
+
+                $roleInfo = $role->toArray();
                 $services = ArrayUtils::get($roleInfo, 'service_by_role_service_access');
                 unset($roleInfo['service_by_role_service_access']);
 
@@ -201,7 +260,17 @@ class CacheUtilities
         $cacheKey = 'app:' . $id;
         try {
             $result = Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($id){
-                return App::with('app_lookup_by_app_id')->whereId($id)->whereIsActive(true)->firstOrFail()->toArray();
+                $app = App::with('app_lookup_by_app_id')->whereId($id)->first();
+
+                if (empty($app)) {
+                    throw new NotFoundException("App not found.");
+                }
+
+                if (!$app->is_active) {
+                    throw new ForbiddenException("App is not active.");
+                }
+
+                return $app->toArray();
             });
 
             if (is_null($result)) {
@@ -322,7 +391,7 @@ class CacheUtilities
      *
      * @return null|int The role id or null for admin
      */
-    public static function getRoleIdByAppIAndUserId($app_id, $user_id)
+    public static function getRoleIdByAppIdAndUserId($app_id, $user_id)
     {
         if (empty(static::$appIdUserIdToRoleIdMap)) {
             static::$appIdUserIdToRoleIdMap = Cache::get('appIdUserIdToRoleIdMap', []);

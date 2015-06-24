@@ -35,7 +35,7 @@ class Registrar implements RegistrarContract
      */
     public function create(array $data)
     {
-        $currentUser = Session::getUser();
+        $currentUser = Session::user();
 
         if (!$currentUser->is_sys_admin) {
             //If current user is not an admin then new user cannot be an admin either.

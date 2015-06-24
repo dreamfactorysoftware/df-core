@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Resources;
 
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -49,9 +50,8 @@ class UserPasswordResource extends BaseRestResource
         $oldPassword = $this->getPayloadData('old_password');
         $newPassword = $this->getPayloadData('new_password');
 
-        if (!empty($oldPassword) && \Auth::check()) {
-            $user = \Auth::user();
-
+        if (!empty($oldPassword) && Session::isAuthenticated()) {
+            $user = Session::user();
             return static::changePassword($user, $oldPassword, $newPassword);
         }
 
@@ -218,9 +218,10 @@ class UserPasswordResource extends BaseRestResource
 
         if ($login) {
             static::userLogin($email, $newPassword);
+            return ['success' => true, 'session_token' => Session::getSessionToken()];
         }
 
-        return array('success' => true);
+        return ['success' => true];
     }
 
     /**
@@ -280,9 +281,10 @@ class UserPasswordResource extends BaseRestResource
 
         if ($login) {
             static::userLogin($email, $newPassword);
+            return ['success' => true, 'session_token' => Session::getSessionToken()];
         }
 
-        return array('success' => true);
+        return ['success' => true];
     }
 
     /**
@@ -298,7 +300,10 @@ class UserPasswordResource extends BaseRestResource
     {
         try {
             $credentials = ['email' => $email, 'password' => $password];
-            \Auth::attempt($credentials);
+            if(\Auth::attempt($credentials, false, false)){
+                $user = \Auth::getLastAttempted();
+                Session::setUserInfoWithJWT($user);
+            }
         } catch (\Exception $ex) {
             throw new InternalServerErrorException("Password set, but failed to create a session.\n{$ex->getMessage()}");
         }

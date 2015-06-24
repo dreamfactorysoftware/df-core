@@ -5,6 +5,8 @@ namespace DreamFactory\Core\Resources\System;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
+use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Scalar;
 
 class Environment extends BaseRestResource
 {
@@ -14,25 +16,22 @@ class Environment extends BaseRestResource
     {
         $result = [];
 
+        $result['platform'] = [
+            'version_current'   => '2.0.0',
+            'version_latest'    => '2.0.0',
+            'upgrade_available' => false,
+            'is_hosted'         => false,
+        ];
+
         if (SessionUtilities::isSysAdmin()) {
             $result['server'] = [
-                'server_os' => 'tbi'
+                'server_os' => strtolower(php_uname('s')),
+                'release'   => php_uname('r'),
+                'version'   => php_uname('v'),
+                'host'      => php_uname('n'),
+                'machine'   => php_uname('m'),
             ];
-
-            $result['release'] = [
-                'id'          => 'tbi',
-                'release'     => 'tbi',
-                'codename'    => 'tbi',
-                'description' => 'tbi'
-            ];
-
-            $result['platform'] = [
-                'is_hosted'           => 'tbi',
-                'is_private'          => 'tbi',
-                'dfi_version_current' => 'tbi',
-                'dfi_version_latest'  => 'tbi',
-                'upgrade_available'   => 'tbi'
-            ];
+            $result['php'] = static::getPhpInfo();
         }
 
         $oauth = static::getOAuthServices();
@@ -127,8 +126,7 @@ class Environment extends BaseRestResource
      *
      * @return array
      */
-    /*
-    protected function _getPhpInfo()
+    protected static function getPhpInfo()
     {
         $_html = null;
         $_info = array();
@@ -140,33 +138,25 @@ class Environment extends BaseRestResource
         $_html = \ob_get_contents();
         \ob_end_clean();
 
-        if ( preg_match_all( $_pattern, $_html, $_matches, PREG_SET_ORDER ) )
-        {
-            foreach ( $_matches as $_match )
-            {
-                $_keys = array_keys( $_info );
-                $_lastKey = end( $_keys );
+        if (preg_match_all($_pattern, $_html, $_matches, PREG_SET_ORDER)) {
+            foreach ($_matches as $_match) {
+                $_keys = array_keys($_info);
+                $_lastKey = end($_keys);
 
-                if ( strlen( $_match[1] ) )
-                {
+                if (strlen($_match[1])) {
                     $_info[$_match[1]] = array();
-                }
-                elseif ( isset( $_match[3] ) )
-                {
-                    $_info[$_lastKey][$_match[2]] = isset( $_match[4] ) ? array($_match[3], $_match[4]) : $_match[3];
-                }
-                else
-                {
+                } elseif (isset($_match[3])) {
+                    $_info[$_lastKey][$_match[2]] = isset($_match[4]) ? array($_match[3], $_match[4]) : $_match[3];
+                } else {
                     $_info[$_lastKey][] = $_match[2];
                 }
 
-                unset( $_keys, $_match );
+                unset($_keys, $_match);
             }
         }
 
-        return $this->_cleanPhpInfo( $_info );
+        return static::cleanPhpInfo($_info);
     }
-    */
 
     /**
      * @param array $info
@@ -175,61 +165,51 @@ class Environment extends BaseRestResource
      *
      * @return array
      */
-    /*
-    protected function _cleanPhpInfo( $info, $recursive = false )
+    protected static function cleanPhpInfo($info, $recursive = false)
     {
         static $_excludeKeys = array('directive', 'variable',);
 
         $_clean = array();
 
         //  Remove images and move nested args to root
-        if ( !$recursive && isset( $info[0], $info[0][0] ) && is_array( $info[0] ) )
-        {
+        if (!$recursive && isset($info[0], $info[0][0]) && is_array($info[0])) {
             $info['general'] = array();
 
-            foreach ( $info[0] as $_key => $_value )
-            {
-                if ( is_numeric( $_key ) || in_array( strtolower( $_key ), $_excludeKeys ) )
-                {
+            foreach ($info[0] as $_key => $_value) {
+                if (is_numeric($_key) || in_array(strtolower($_key), $_excludeKeys)) {
                     continue;
                 }
 
                 $info['general'][$_key] = $_value;
-                unset( $info[0][$_key] );
+                unset($info[0][$_key]);
             }
 
-            unset( $info[0] );
+            unset($info[0]);
         }
 
-        foreach ( $info as $_key => $_value )
-        {
-            if ( in_array( strtolower( $_key ), $_excludeKeys ) )
-            {
+        foreach ($info as $_key => $_value) {
+            if (in_array(strtolower($_key), $_excludeKeys)) {
                 continue;
             }
 
-            $_key = strtolower( str_replace( ' ', '_', $_key ) );
+            $_key = strtolower(str_replace(' ', '_', $_key));
 
-            if ( is_array( $_value ) && 2 == count( $_value ) && isset( $_value[0], $_value[1] ) )
-            {
-                $_v1 = Option::get( $_value, 0 );
+            if (is_array($_value) && 2 == count($_value) && isset($_value[0], $_value[1])) {
+                $_v1 = ArrayUtils::get($_value, 0);
 
-                if ( $_v1 == '<i>no value</i>' )
-                {
+                if ($_v1 == '<i>no value</i>') {
                     $_v1 = null;
                 }
 
-                if ( Scalar::in( strtolower( $_v1 ), 'on', 'off', '0', '1' ) )
-                {
-                    $_v1 = Option::getBool( $_value, 0 );
+                if (Scalar::in(strtolower($_v1), 'on', 'off', '0', '1')) {
+                    $_v1 = ArrayUtils::getBool($_value, 0);
                 }
 
                 $_value = $_v1;
             }
 
-            if ( is_array( $_value ) )
-            {
-                $_value = $this->_cleanPhpInfo( $_value, true );
+            if (is_array($_value)) {
+                $_value = static::cleanPhpInfo($_value, true);
             }
 
             $_clean[$_key] = $_value;
@@ -237,8 +217,6 @@ class Environment extends BaseRestResource
 
         return $_clean;
     }
-    */
-
     /*
     public function getApiDocInfo()
     {

@@ -13,11 +13,6 @@ class DfServiceProvider extends BaseServiceProvider
                 __DIR__ . '/../config/df.php' => config_path(),
             ]
         );
-
-        include __DIR__ . '/Http/Routes.php';
-
-        $router = $this->app['router'];
-        $router->middleware('access_check', 'DreamFactory\Core\Http\Middleware\AccessCheck');
     }
 
     public function register()

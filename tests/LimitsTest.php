@@ -23,7 +23,7 @@
 
 use Illuminate\Support\Facades\Config;
 
-class LimitsTest extends \DreamFactory\Rave\Testing\TestCase
+class LimitsTest extends \DreamFactory\Core\Testing\TestCase
 {
 
     // Configurations for various possible combos
@@ -209,7 +209,7 @@ class LimitsTest extends \DreamFactory\Rave\Testing\TestCase
         $this->call( "GET", "api/apiName" );
         $response = $this->call( "GET", "api/apiName" );
 
-        $this->assertEquals( 200, $response->getStatusCode() );
+        $this->assertEquals( 400, $response->getStatusCode() );
     }
 
     private function _checkLimits( array $limits )

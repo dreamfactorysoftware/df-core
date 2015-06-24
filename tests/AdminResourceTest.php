@@ -52,8 +52,8 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $user = $this->user1;
         $this->makeRequest(Verbs::POST, 'user', ['fields' => '*', 'related' => 'user_lookup_by_user_id'], [$user]);
 
-        Auth::attempt(['email' => $user['email'], 'password' => $user['password']]);
-        $user = Auth::user();
+        Auth::attempt(['email' => $user['email'], 'password' => $user['password']], false, false);
+        $user = Auth::getLastAttempted();
         \DreamFactory\Core\Utility\Session::setUserInfoWithJWT($user);
 
         //Using a new instance here. Prev instance is set for user resource.
@@ -194,7 +194,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         );
         $content = $rs->getContent();
         $this->assertTrue($content['success']);
-        $this->assertTrue(Auth::check());
+        $this->assertTrue(\DreamFactory\Core\Utility\Session::isAuthenticated());
 
         $userModel = User::find($user['id']);
         $this->assertEquals('y', $userModel->confirm_code);

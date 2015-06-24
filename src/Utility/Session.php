@@ -303,18 +303,18 @@ class Session
     public static function setUserInfoWithJWT($user)
     {
         $userInfo = null;
-        if($user instanceof User)
-        {
+        if ($user instanceof User) {
             $userInfo = $user->toArray();
             ArrayUtils::set($userInfo, 'is_sys_admin', $user->is_sys_admin);
         }
 
-        if(!empty($userInfo))
-        {
+        if (!empty($userInfo)) {
             $token = static::makeJWTByUserId(ArrayUtils::get($userInfo, 'id'));
             static::setSessionToken($token);
+
             return static::setUserInfo($userInfo);
         }
+
         return false;
     }
 
@@ -344,8 +344,8 @@ class Session
 
     public static function setSessionData($appId = null, $userId = null)
     {
-        $appInfo = ($appId)? CacheUtilities::getAppInfo($appId) : null;
-        $userInfo = ($userId)? CacheUtilities::getUserInfo($userId) : null;
+        $appInfo = ($appId) ? CacheUtilities::getAppInfo($appId) : null;
+        $userInfo = ($userId) ? CacheUtilities::getUserInfo($userId) : null;
 
         $roleId = null;
         if (!empty($userId) && !empty($appId)) {
@@ -359,7 +359,7 @@ class Session
         Session::setUserInfo($userInfo);
         Session::put('app_id', $appId);
 
-        $roleInfo = ($roleId)? CacheUtilities::getRoleInfo($roleId) : null;
+        $roleInfo = ($roleId) ? CacheUtilities::getRoleInfo($roleId) : null;
         if (!empty($roleInfo)) {
             Session::put('role.id', $roleId);
             Session::put('role.name', $roleInfo['name']);
@@ -391,7 +391,7 @@ class Session
         }
 
         $sessionData = [
-            'session_id'      => session('session_id'),
+            'session_token'   => session('session_token'),
             'id'              => session('user.id'),
             'name'            => session('user.display_name'),
             'first_name'      => session('user.first_name'),
@@ -409,6 +409,18 @@ class Session
         }
 
         return $sessionData;
+    }
+
+    /**
+     * @return User|null
+     */
+    public static function user()
+    {
+        if (static::isAuthenticated()) {
+            return User::find(static::getCurrentUserId());
+        }
+
+        return null;
     }
 
     /**
@@ -431,14 +443,6 @@ class Session
         return static::get('role.id');
     }
 
-    /**
-     * @return User|null
-     */
-    public static function getUser()
-    {
-        return \Auth::user();
-    }
-
     public static function isAuthenticated()
     {
         $userId = static::getCurrentUserId();
@@ -448,12 +452,12 @@ class Session
 
     public static function getSessionToken()
     {
-        return \Session::get('session_id');
+        return \Session::get('session_token');
     }
 
     public static function setSessionToken($token)
     {
-        \Session::set('session_id', $token);
+        \Session::set('session_token', $token);
     }
 
     /**

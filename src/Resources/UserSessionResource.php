@@ -91,8 +91,8 @@ class UserSessionResource extends BaseRestResource
             $credentials['is_sys_admin'] = 1;
         }
 
-        if (\Auth::attempt($credentials, $remember)) {
-            $user = \Auth::user();
+        if (\Auth::attempt($credentials, $remember, false)) {
+            $user = \Auth::getLastAttempted();
             $user->update(['last_login_date' => Carbon::now()->toDateTimeString()]);
             Session::setUserInfoWithJWT($user);
             return Session::getPublicInfo();

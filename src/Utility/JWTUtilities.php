@@ -92,12 +92,15 @@ class JWTUtilities
     public static function invalidate($token)
     {
         \JWTAuth::setToken($token);
-        /** @type Payload $payload */
-        $payload = \JWTAuth::getPayload();
-        $userId = $payload->get('user_id');
-        $exp = $payload->get('exp');
+        $payload = \JWTAuth::manager()->getJWTProvider()->decode($token);
+        $userId = ArrayUtils::get($payload, 'user_id');
+        $exp = ArrayUtils::get($payload, 'exp');
         static::removeTokenMap($userId, $exp);
-        \JWTAuth::invalidate();
+        try {
+            \JWTAuth::invalidate();
+        } catch (TokenExpiredException $e){
+            //If the token is expired already then do nothing here. The token map is already removed above.
+        }
     }
 
     public static function clearAllExpiredTokenMaps()

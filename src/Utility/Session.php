@@ -411,7 +411,6 @@ class Session
         }
 
         $sessionData = [
-            'session_id'   => session('session_token'),
             'session_token'   => session('session_token'),
             'session_id'      => session('session_token'), // temp for compatibility with 1.x
             'id'              => session('user.id'),

@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use \Cache;
+use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Utility\CacheUtilities;
 
@@ -48,12 +49,16 @@ class Role extends BaseSystemModel
 
         static::saved(
             function (Role $role){
+                if(!$role->is_active) {
+                    JWTUtilities::invalidateTokenByRoleId($role->id);
+                }
                 Role::clearCache($role);
             }
         );
 
         static::deleting(
             function (Role $role){
+                JWTUtilities::invalidateTokenByRoleId($role->id);
                 Role::clearCache($role);
             }
         );

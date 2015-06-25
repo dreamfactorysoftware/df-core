@@ -23,6 +23,7 @@ namespace DreamFactory\Core\Utility;
 use Carbon\Carbon;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Library\Utility\ArrayUtils;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Facades\JWTFactory;
@@ -108,6 +109,45 @@ class JWTUtilities
         $now = Carbon::now()->format('U');
 
         return \DB::table('token_map')->where('exp', '<', $now)->delete();
+    }
+
+    public static function invalidateTokenByUserId($userId)
+    {
+        $maps = \DB::table('token_map')->where('user_id', $userId)->get();
+
+        if(!empty($maps) && is_array($maps)) {
+            foreach($maps as $map){
+                try{
+                    \JWTAuth::invalidate($map->token);
+                } catch (TokenExpiredException $e){
+                    //If the token is expired already then do nothing here.
+                }
+            }
+        }
+
+        return \DB::table('token_map')->where('user_id', $userId)->delete();
+    }
+
+    public static function invalidateTokenByRoleId($roleId)
+    {
+        $userAppRole = UserAppRole::whereRoleId($roleId)->get('user_id');
+
+        if(!empty($userAppRole) && is_array($userAppRole)){
+            foreach($userAppRole as $uar){
+                static::invalidateTokenByUserId($uar->user_id);
+            }
+        }
+    }
+
+    public static function invalidateTokenByAppId($appId)
+    {
+        $userAppRole = UserAppRole::whereAppId($appId)->get('user_id');
+
+        if(!empty($userAppRole) && is_array($userAppRole)){
+            foreach($userAppRole as $uar){
+                static::invalidateTokenByUserId($uar->user_id);
+            }
+        }
     }
 
     /**

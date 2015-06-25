@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Enums\AppTypes;
+use DreamFactory\Core\Utility\JWTUtilities;
 
 /**
  * App
@@ -114,4 +115,22 @@ class App extends BaseSystemModel
 
         return $launchUrl;
     }
+
+    public static function boot()
+    {
+        static::saved(
+            function(App $app){
+                if(!$app->is_active){
+                    JWTUtilities::invalidateTokenByAppId($app->id);
+                }
+            }
+        );
+
+        static::deleted(
+            function(App $app){
+                JWTUtilities::invalidateTokenByAppId($app->id);
+            }
+        );
+    }
+
 }

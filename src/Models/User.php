@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -259,5 +260,24 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
 
         $this->attributes['password'] = $password;
+    }
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::saved(
+            function(User $user){
+                if(!$user->is_active){
+                    JWTUtilities::invalidateTokenByUserId($user->id);
+                }
+            }
+        );
+
+        static::deleted(
+            function(User $user){
+                JWTUtilities::invalidateTokenByUserId($user->id);
+            }
+        );
     }
 }

@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Utility\CacheUtilities;
+use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Utility\Session;
 use Carbon\Carbon;
@@ -43,6 +44,12 @@ class UserSessionResource extends BaseRestResource
         ];
 
         return $this->handleLogin($credentials, boolval($this->getPayloadData('remember_me')));
+    }
+
+    protected function handlePUT()
+    {
+        JWTUtilities::refreshToken();
+        return Session::getPublicInfo();
     }
 
     /**

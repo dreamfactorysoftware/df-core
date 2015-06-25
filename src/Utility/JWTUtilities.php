@@ -21,6 +21,10 @@
 namespace DreamFactory\Core\Utility;
 
 use Carbon\Carbon;
+use DreamFactory\Core\Exceptions\UnauthorizedException;
+use DreamFactory\Core\Models\User;
+use DreamFactory\Library\Utility\ArrayUtils;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Facades\JWTFactory;
 use Tymon\JWTAuth\Token;
 use Tymon\JWTAuth\Payload;
@@ -39,7 +43,7 @@ class JWTUtilities
             $forever = false;
         }
 
-        $claims = ['sub' => $userId,'user_id' => $userId, 'forever' => $forever];
+        $claims = ['sub' => $userId, 'user_id' => $userId, 'forever' => $forever];
         /** @type Payload $payload */
         $payload = JWTFactory::make($claims);
         /** @type Token $token */
@@ -48,6 +52,38 @@ class JWTUtilities
         static::setTokenMap($payload, $tokenValue);
 
         return $tokenValue;
+    }
+
+    /**
+     * @return string
+     * @throws \DreamFactory\Core\Exceptions\UnauthorizedException
+     */
+    public static function refreshToken()
+    {
+        $token = Session::getSessionToken();
+        try {
+            $newToken = \JWTAuth::refresh($token);
+            $payload = \JWTAuth::getPayload($newToken);
+            $userId = $payload->get('user_id');
+            $user = User::find($userId);
+            $userInfo = $user->toArray();
+            ArrayUtils::set($userInfo, 'is_sys_admin', $user->is_sys_admin);
+            Session::setSessionToken($newToken);
+            Session::setUserInfo($userInfo);
+            static::setTokenMap($payload, $newToken);
+        } catch (TokenExpiredException $e) {
+            $payloadArray = \JWTAuth::manager()->getJWTProvider()->decode($token);
+            $forever = boolval(ArrayUtils::get($payloadArray, 'forever'));
+            if ($forever) {
+                $userId = ArrayUtils::get($payloadArray, 'user_id');
+                $user = User::find($userId);
+                Session::setUserInfoWithJWT($user, $forever);
+            } else {
+                throw new UnauthorizedException($e->getMessage());
+            }
+        }
+
+        return Session::getSessionToken();
     }
 
     /**
@@ -62,14 +98,15 @@ class JWTUtilities
         $exp = $payload->get('exp');
         static::removeTokenMap($userId, $exp);
         \JWTAuth::invalidate();
-
     }
 
     public static function clearAllExpiredTokenMaps()
     {
         $now = Carbon::now()->format('U');
+
         return \DB::table('token_map')->where('exp', '<', $now)->delete();
     }
+
     /**
      * @param $userId
      * @param $exp

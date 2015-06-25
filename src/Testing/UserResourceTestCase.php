@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Testing;
 
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Utility\Session;
 use Illuminate\Support\Arr;
 use Auth;
 use Hash;
@@ -236,7 +237,7 @@ class UserResourceTestCase extends TestCase
         $rs = $this->makeRequest(Verbs::PATCH, static::RESOURCE . '/' . $user['id'], [], $payload);
         $content = $rs->getContent();
 
-        $this->assertTrue(Auth::attempt(['email' => $user['email'], 'password' => '1234']));
+        $this->assertTrue(Session::authenticate(['email' => $user['email'], 'password' => '1234']));
         $this->assertTrue($this->adminCheck([$content]));
     }
 

@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Utility;
 
 use \Request;
+use Carbon\Carbon;
 use Illuminate\Routing\Router;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -11,10 +12,6 @@ use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\User;
-use Tymon\JWTAuth\Facades\JWTAuth;
-use Tymon\JWTAuth\Facades\JWTFactory;
-use Tymon\JWTAuth\Token;
-use Tymon\JWTAuth\Payload;
 
 class Session
 {
@@ -281,26 +278,49 @@ class Session
         return null;
     }
 
-    public static function makeJWTByUserId($userId)
+    /**
+     * @param array $credentials
+     * @param bool  $remember
+     * @param bool  $login
+     *
+     * @return bool
+     * @throws \Exception
+     */
+    public static function authenticate(array $credentials, $remember=false, $login=true)
     {
-        $claims = ['user_id' => $userId];
-        /** @type Payload $payload */
-        $payload = JWTFactory::make($claims);
-        /** @type Token $token */
-        $token = JWTAuth::encode($payload);
-        $tokenValue = $token->get();
+        if (\Auth::attempt($credentials, false, false)) {
+            if($login) {
+                $user = \Auth::getLastAttempted();
+                $user->update(['last_login_date' => Carbon::now()->toDateTimeString()]);
+                Session::setUserInfoWithJWT($user, $remember);
+            }
+            return true;
+        } else {
+            return false;
+        }
+    }
 
-        return $tokenValue;
+    /**
+     * @return bool
+     */
+    public static function logout()
+    {
+        $token = static::getSessionToken();
+        if(empty($token)){
+            return false;
+        }
+        JWTUtilities::invalidate($token);
     }
 
     /**
      * Sets basic info of the user in session with JWT when authenticated.
      *
      * @param  array|User $user
+     * @param bool        $forever
      *
      * @return bool
      */
-    public static function setUserInfoWithJWT($user)
+    public static function setUserInfoWithJWT($user, $forever = false)
     {
         $userInfo = null;
         if ($user instanceof User) {
@@ -309,7 +329,7 @@ class Session
         }
 
         if (!empty($userInfo)) {
-            $token = static::makeJWTByUserId(ArrayUtils::get($userInfo, 'id'));
+            $token = JWTUtilities::makeJWTByUserId(ArrayUtils::get($userInfo, 'id'), $forever);
             static::setSessionToken($token);
 
             return static::setUserInfo($userInfo);
@@ -391,6 +411,7 @@ class Session
         }
 
         $sessionData = [
+            'session_id'   => session('session_token'),
             'session_token'   => session('session_token'),
             'id'              => session('user.id'),
             'name'            => session('user.display_name'),

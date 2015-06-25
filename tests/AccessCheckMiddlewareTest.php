@@ -4,6 +4,7 @@ use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Utility\Session;
+use DreamFactory\Core\Utility\JWTUtilities;
 use Illuminate\Support\Arr;
 
 class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
@@ -16,7 +17,7 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
     public function testSysAdmin()
     {
         $user = User::find(1);
-        $token = Session::makeJWTByUserId($user->id);
+        $token = JWTUtilities::makeJWTByUserId($user->id);
 
         $this->call(Verbs::GET, '/api/v2/system', [], [], [], ['HTTP_X_DREAMFACTORY_SESSION_TOKEN' => $token]);
 
@@ -68,7 +69,7 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
         $apiKey = $app->api_key;
 
         $myUser = User::find($userId);
-        $token = Session::makeJWTByUserId($myUser->id);
+        $token = JWTUtilities::makeJWTByUserId($myUser->id);
         $this->call(
             Verbs::GET, '/api/v2/system',
             [],

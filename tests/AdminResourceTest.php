@@ -4,6 +4,7 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 use Illuminate\Support\Arr;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Utility\Session;
 
 class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
 {
@@ -52,9 +53,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $user = $this->user1;
         $this->makeRequest(Verbs::POST, 'user', ['fields' => '*', 'related' => 'user_lookup_by_user_id'], [$user]);
 
-        Auth::attempt(['email' => $user['email'], 'password' => $user['password']], false, false);
-        $user = Auth::getLastAttempted();
-        \DreamFactory\Core\Utility\Session::setUserInfoWithJWT($user);
+        Session::authenticate(['email' => $user['email'], 'password' => $user['password']]);
 
         //Using a new instance here. Prev instance is set for user resource.
         $this->service = ServiceHandler::getService('system');
@@ -71,9 +70,12 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
 
         $rs = $this->makeRequest(Verbs::POST, static::RESOURCE . '/session', [], $payload);
         $content = $rs->getContent();
+        $token = $content['session_token'];
+        $tokenMap = DB::table('token_map')->where('token', $token)->get();
 
         $this->assertEquals($user['first_name'], $content['first_name']);
-        $this->assertTrue(!empty($content['session_id']));
+        $this->assertTrue(!empty($token));
+        $this->assertTrue(!empty($tokenMap));
     }
 
     public function testSessionBadPatchRequest()
@@ -91,13 +93,16 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $payload = ['email' => $user['email'], 'password' => $this->user1['password']];
         $rs = $this->makeRequest(Verbs::POST, static::RESOURCE . '/session', [], $payload);
         $content = $rs->getContent();
+        $token = $content['session_token'];
+        $tokenMap = DB::table('token_map')->where('token', $token)->get();
+        $this->assertTrue(!empty($token));
+        $this->assertTrue(!empty($tokenMap));
 
-        $this->assertTrue(!empty($content['session_id']));
-
-        $rs = $this->makeRequest(Verbs::DELETE, static::RESOURCE . '/session');
+        $rs = $this->makeRequest(Verbs::DELETE, static::RESOURCE . '/session', ['session_token' => $token]);
         $content = $rs->getContent();
-
+        $tokenMap = DB::table('token_map')->where('token', $token)->get();
         $this->assertTrue($content['success']);
+        $this->assertTrue(empty($tokenMap));
 
         $this->setExpectedException('\DreamFactory\Core\Exceptions\NotFoundException');
         $this->makeRequest(Verbs::GET, static::RESOURCE . '/session');
@@ -123,21 +128,34 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
     {
         $user = $this->createUser(1);
 
-        $this->makeRequest(Verbs::POST, static::RESOURCE . '/session', [],
-            ['email' => $user['email'], 'password' => $this->user1['password']]);
-        $rs =
-            $this->makeRequest(Verbs::POST, static::RESOURCE . '/password', [],
-                ['old_password' => $this->user1['password'], 'new_password' => '123456']);
+        $this->makeRequest(
+            Verbs::POST,
+            static::RESOURCE . '/session',
+            [],
+            ['email' => $user['email'], 'password' => $this->user1['password']]
+        );
+        $rs = $this->makeRequest(
+            Verbs::POST,
+            static::RESOURCE . '/password',
+            [],
+            ['old_password' => $this->user1['password'], 'new_password' => '123456']
+        );
         $content = $rs->getContent();
         $this->assertTrue($content['success']);
 
         $this->makeRequest(Verbs::DELETE, static::RESOURCE . '/session');
 
-        $rs =
-            $this->makeRequest(Verbs::POST, static::RESOURCE . '/session', [],
-                ['email' => $user['email'], 'password' => '123456']);
+        $rs = $this->makeRequest(
+            Verbs::POST,
+            static::RESOURCE . '/session',
+            [],
+            ['email' => $user['email'], 'password' => '123456']
+        );
         $content = $rs->getContent();
-        $this->assertTrue(!empty($content['session_id']));
+        $token = $content['session_token'];
+        $tokenMap = DB::table('token_map')->where('token', $token)->get();
+        $this->assertTrue(!empty($token));
+        $this->assertTrue(!empty($tokenMap));
     }
 
     public function testPasswordResetUsingSecurityQuestion()
@@ -167,7 +185,10 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
             $this->makeRequest(Verbs::POST, static::RESOURCE . '/session', [],
                 ['email' => $user['email'], 'password' => '778877']);
         $content = $rs->getContent();
-        $this->assertTrue(!empty($content['session_id']));
+        $token = $content['session_token'];
+        $tokenMap = DB::table('token_map')->where('token', $token)->get();
+        $this->assertTrue(!empty($token));
+        $this->assertTrue(!empty($tokenMap));
     }
 
     public function testPasswordResetUsingConfirmationCode()
@@ -199,10 +220,12 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $userModel = User::find($user['id']);
         $this->assertEquals('y', $userModel->confirm_code);
 
-        $rs =
-            $this->makeRequest(Verbs::POST, static::RESOURCE . '/session', [],
+        $rs = $this->makeRequest(Verbs::POST, static::RESOURCE . '/session', [],
                 ['email' => $user['email'], 'password' => '778877']);
         $content = $rs->getContent();
-        $this->assertTrue(!empty($content['session_id']));
+        $token = $content['session_token'];
+        $tokenMap = DB::table('token_map')->where('token', $token)->get();
+        $this->assertTrue(!empty($token));
+        $this->assertTrue(!empty($tokenMap));
     }
 }

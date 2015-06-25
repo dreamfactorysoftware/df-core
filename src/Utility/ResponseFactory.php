@@ -157,4 +157,18 @@ class ResponseFactory
 
         return $result;
     }
+
+    /**
+     * @param \Exception               $e
+     * @param \Illuminate\Http\Request $request
+     *
+     * @return array|mixed|string
+     */
+    public static function getException($e, $request)
+    {
+        $response = ResponseFactory::create($e);
+        $accepts = explode(',', $request->header('ACCEPT'));
+
+        return ResponseFactory::sendResponse($response, $accepts);
+    }
 }

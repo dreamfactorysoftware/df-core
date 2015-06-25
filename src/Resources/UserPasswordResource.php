@@ -300,12 +300,9 @@ class UserPasswordResource extends BaseRestResource
     {
         try {
             $credentials = ['email' => $email, 'password' => $password];
-            if(\Auth::attempt($credentials, false, false)){
-                $user = \Auth::getLastAttempted();
-                Session::setUserInfoWithJWT($user);
-            }
+            Session::authenticate($credentials);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Password set, but failed to create a session.\n{$ex->getMessage()}");
+            throw new InternalServerErrorException("Password set, but failed to login.\n{$ex->getMessage()}");
         }
 
         return true;

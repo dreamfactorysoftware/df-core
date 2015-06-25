@@ -52,7 +52,7 @@ class UserSessionResource extends BaseRestResource
      */
     protected function handleDELETE()
     {
-        \Auth::logout();
+        Session::logout();
 
         //Clear everything in session.
         Session::flush();
@@ -91,10 +91,7 @@ class UserSessionResource extends BaseRestResource
             $credentials['is_sys_admin'] = 1;
         }
 
-        if (\Auth::attempt($credentials, $remember, false)) {
-            $user = \Auth::getLastAttempted();
-            $user->update(['last_login_date' => Carbon::now()->toDateTimeString()]);
-            Session::setUserInfoWithJWT($user);
+        if (Session::authenticate($credentials, $remember)) {
             return Session::getPublicInfo();
         } else {
             throw new UnauthorizedException('Invalid credentials supplied.');

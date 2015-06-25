@@ -20,6 +20,7 @@
 
 namespace DreamFactory\Core\Utility;
 
+use Carbon\Carbon;
 use Tymon\JWTAuth\Facades\JWTFactory;
 use Tymon\JWTAuth\Token;
 use Tymon\JWTAuth\Payload;
@@ -38,7 +39,7 @@ class JWTUtilities
             $forever = false;
         }
 
-        $claims = ['user_id' => $userId, 'forever' => $forever];
+        $claims = ['sub' => $userId,'user_id' => $userId, 'forever' => $forever];
         /** @type Payload $payload */
         $payload = JWTFactory::make($claims);
         /** @type Token $token */
@@ -64,6 +65,11 @@ class JWTUtilities
 
     }
 
+    public static function clearAllExpiredTokenMaps()
+    {
+        $now = Carbon::now()->format('U');
+        return \DB::table('token_map')->where('exp', '<', $now)->delete();
+    }
     /**
      * @param $userId
      * @param $exp

@@ -46,6 +46,12 @@ class UserSessionResource extends BaseRestResource
         return $this->handleLogin($credentials, boolval($this->getPayloadData('remember_me')));
     }
 
+    /**
+     * Refreshes current JWT.
+     *
+     * @return array
+     * @throws \DreamFactory\Core\Exceptions\UnauthorizedException
+     */
     protected function handlePUT()
     {
         JWTUtilities::refreshToken();

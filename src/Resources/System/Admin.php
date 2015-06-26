@@ -5,19 +5,19 @@ namespace DreamFactory\Core\Resources\System;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Models\BaseSystemModel;
+use DreamFactory\Core\Models\User;
 
 class Admin extends BaseSystemResource
 {
     protected $resources = [
         Password::RESOURCE_NAME => [
             'name'       => Password::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Core\\Resources\\System\\Password',
+            'class_name' => Password::class,
             'label'      => 'Password'
         ],
         Session::RESOURCE_NAME  => [
             'name'       => Session::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Core\\Resources\\System\\Session',
+            'class_name' => Session::class,
             'label'      => 'Session'
         ]
     ];
@@ -84,7 +84,7 @@ class Admin extends BaseSystemResource
      */
     protected function retrieveById($id, array $related = [])
     {
-        /** @var BaseSystemModel $modelClass */
+        /** @var User $modelClass */
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
         $fields = ArrayUtils::get($criteria, 'select');

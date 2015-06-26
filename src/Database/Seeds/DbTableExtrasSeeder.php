@@ -1,90 +1,109 @@
 <?php
 namespace DreamFactory\Core\Database\Seeds;
 
+use DreamFactory\Core\Models\App;
+use DreamFactory\Core\Models\AppGroup;
+use DreamFactory\Core\Models\AppLookup;
+use DreamFactory\Core\Models\DbTableExtras;
+use DreamFactory\Core\Models\EmailTemplate;
+use DreamFactory\Core\Models\EventScript;
+use DreamFactory\Core\Models\EventSubscriber;
+use DreamFactory\Core\Models\Lookup;
+use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\RoleLookup;
+use DreamFactory\Core\Models\RoleServiceAccess;
+use DreamFactory\Core\Models\ScriptType;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Models\ServiceDoc;
+use DreamFactory\Core\Models\ServiceType;
+use DreamFactory\Core\Models\Setting;
+use DreamFactory\Core\Models\SystemResource;
+use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Models\UserAppRole;
+use DreamFactory\Core\Models\UserLookup;
 
 class DbTableExtrasSeeder extends BaseModelSeeder
 {
-    protected $modelClass = 'DreamFactory\\Core\\Models\\DbTableExtras';
+    protected $modelClass = DbTableExtras::class;
 
-    protected $recordIdentifier = 'table';
+    protected $recordIdentifier = ['service_id','table'];
 
     protected $records = [
         [
             'table' => 'user',
-            'model' => '\\DreamFactory\\Core\\Models\\User',
+            'model' => User::class,
         ],
         [
             'table' => 'user_lookup',
-            'model' => '\\DreamFactory\\Core\\Models\\UserLookup',
+            'model' => UserLookup::class,
         ],
         [
             'table' => 'user_to_app_to_role',
-            'model' => '\\DreamFactory\\Core\\Models\\UserAppRole',
+            'model' => UserAppRole::class,
         ],
         [
             'table' => 'service',
-            'model' => '\\DreamFactory\\Core\\Models\\Service',
+            'model' => Service::class,
         ],
         [
             'table' => 'service_type',
-            'model' => '\\DreamFactory\\Core\\Models\\ServiceType',
+            'model' => ServiceType::class,
         ],
         [
             'table' => 'service_doc',
-            'model' => '\\DreamFactory\\Core\\Models\\ServiceDoc',
+            'model' => ServiceDoc::class,
         ],
         [
             'table' => 'role',
-            'model' => '\\DreamFactory\\Core\\Models\\Role',
+            'model' => Role::class,
         ],
         [
             'table' => 'role_service_access',
-            'model' => '\\DreamFactory\\Core\\Models\\RoleServiceAccess',
+            'model' => RoleServiceAccess::class,
         ],
         [
             'table' => 'role_lookup',
-            'model' => '\\DreamFactory\\Core\\Models\\RoleLookup',
+            'model' => RoleLookup::class,
         ],
         [
             'table' => 'app',
-            'model' => '\\DreamFactory\\Core\\Models\\App',
+            'model' => App::class,
         ],
         [
             'table' => 'app_lookup',
-            'model' => '\\DreamFactory\\Core\\Models\\AppLookup',
+            'model' => AppLookup::class,
         ],
         [
             'table' => 'app_group',
-            'model' => '\\DreamFactory\\Core\\Models\\AppGroup',
+            'model' => AppGroup::class,
         ],
         [
             'table' => 'system_resource',
-            'model' => '\\DreamFactory\\Core\\Models\\SystemResource',
+            'model' => SystemResource::class,
         ],
         [
             'table' => 'script_type',
-            'model' => '\\DreamFactory\\Core\\Models\\ScriptType',
+            'model' => ScriptType::class,
         ],
         [
             'table' => 'event_script',
-            'model' => '\\DreamFactory\\Core\\Models\\EventScript',
+            'model' => EventScript::class,
         ],
         [
             'table' => 'event_subscriber',
-            'model' => '\\DreamFactory\\Core\\Models\\EventSubscriber',
+            'model' => EventSubscriber::class,
         ],
         [
             'table' => 'email_template',
-            'model' => '\\DreamFactory\\Core\\Models\\EmailTemplate',
+            'model' => EmailTemplate::class,
         ],
         [
             'table' => 'system_setting',
-            'model' => '\\DreamFactory\\Core\\Models\\Setting',
+            'model' => Setting::class,
         ],
         [
             'table' => 'system_lookup',
-            'model' => '\\DreamFactory\\Core\\Models\\Lookup',
+            'model' => Lookup::class,
         ]
     ];
 

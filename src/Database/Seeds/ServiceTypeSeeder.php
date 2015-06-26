@@ -1,14 +1,28 @@
 <?php
 namespace DreamFactory\Core\Database\Seeds;
 
+use DreamFactory\Core\Models\EmailServiceConfig;
+use DreamFactory\Core\Models\FilePublicPath;
+use DreamFactory\Core\Models\ScriptConfig;
+use DreamFactory\Core\Models\ServiceType;
+use DreamFactory\Core\Services\Email\Local;
+use DreamFactory\Core\Services\Email\MailGun;
+use DreamFactory\Core\Services\Email\Mandrill;
+use DreamFactory\Core\Services\Email\Smtp;
+use DreamFactory\Core\Services\Event;
+use DreamFactory\Core\Services\LocalFileService;
+use DreamFactory\Core\Services\Script;
+use DreamFactory\Core\Services\Swagger;
+use DreamFactory\Core\Services\System;
+
 class ServiceTypeSeeder extends BaseModelSeeder
 {
-    protected $modelClass = 'DreamFactory\\Core\\Models\\ServiceType';
+    protected $modelClass = ServiceType::class;
 
     protected $records = [
         [
             'name'           => 'system',
-            'class_name'     => 'DreamFactory\\Core\\Services\\System',
+            'class_name'     => System::class,
             'config_handler' => null,
             'label'          => 'System Management Service',
             'description'    => 'Service supporting management of the system.',
@@ -17,7 +31,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
         ],
         [
             'name'           => 'swagger',
-            'class_name'     => 'DreamFactory\\Core\\Services\\Swagger',
+            'class_name'     => Swagger::class,
             'config_handler' => null,
             'label'          => 'Swagger API Docs',
             'description'    => 'API documenting and testing service using Swagger specifications.',
@@ -26,7 +40,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
         ],
         [
             'name'           => 'event',
-            'class_name'     => 'DreamFactory\\Core\\Services\\Event',
+            'class_name'     => Event::class,
             'config_handler' => null,
             'label'          => 'Event Service',
             'description'    => 'Service that allows clients to subscribe to system broadcast events.',
@@ -35,8 +49,8 @@ class ServiceTypeSeeder extends BaseModelSeeder
         ],
         [
             'name'           => 'script',
-            'class_name'     => 'DreamFactory\\Core\\Services\\Script',
-            'config_handler' => 'DreamFactory\\Core\\Models\\ScriptConfig',
+            'class_name'     => Script::class,
+            'config_handler' => ScriptConfig::class,
             'label'          => 'Custom Scripting Service',
             'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
             'group'          => 'script',
@@ -44,8 +58,8 @@ class ServiceTypeSeeder extends BaseModelSeeder
         ],
         [
             'name'           => 'local_file',
-            'class_name'     => 'DreamFactory\\Core\\Services\\LocalFileService',
-            'config_handler' => 'DreamFactory\\Core\\Models\\FilePublicPath',
+            'class_name'     => LocalFileService::class,
+            'config_handler' => FilePublicPath::class,
             'label'          => 'Local File Service',
             'description'    => 'File service supporting the local file system.',
             'group'          => 'file',
@@ -53,8 +67,8 @@ class ServiceTypeSeeder extends BaseModelSeeder
         ],
         [
             'name'           => 'local_email',
-            'class_name'     => 'DreamFactory\\Core\\Services\\Email\\Local',
-            'config_handler' => 'DreamFactory\\Core\\Models\\EmailServiceConfig',
+            'class_name'     => Local::class,
+            'config_handler' => EmailServiceConfig::class,
             'label'          => 'Local Email Service',
             'description'    => 'Local email service using system configuration.',
             'group'          => 'email',
@@ -62,8 +76,8 @@ class ServiceTypeSeeder extends BaseModelSeeder
         ],
         [
             'name'           => 'smtp_email',
-            'class_name'     => 'DreamFactory\\Core\\Services\\Email\\Smtp',
-            'config_handler' => 'DreamFactory\\Core\\Models\\EmailServiceConfig',
+            'class_name'     => Smtp::class,
+            'config_handler' => EmailServiceConfig::class,
             'label'          => 'SMTP Email Service',
             'description'    => 'SMTP-based email service',
             'group'          => 'email',
@@ -71,8 +85,8 @@ class ServiceTypeSeeder extends BaseModelSeeder
         ],
         [
             'name'           => 'mailgun_email',
-            'class_name'     => 'DreamFactory\\Core\\Services\\Email\\Mailgun',
-            'config_handler' => 'DreamFactory\\Core\\Models\\EmailServiceConfig',
+            'class_name'     => MailGun::class,
+            'config_handler' => EmailServiceConfig::class,
             'label'          => 'Mailgun Email Service',
             'description'    => 'Mailgun email service',
             'group'          => 'email',
@@ -80,8 +94,8 @@ class ServiceTypeSeeder extends BaseModelSeeder
         ],
         [
             'name'           => 'mandrill_email',
-            'class_name'     => 'DreamFactory\\Core\\Services\\Email\\Mandrill',
-            'config_handler' => 'DreamFactory\\Core\\Models\\EmailServiceConfig',
+            'class_name'     => Mandrill::class,
+            'config_handler' => EmailServiceConfig::class,
             'label'          => 'Mandrill Email Service',
             'description'    => 'Mandrill email service',
             'group'          => 'email',

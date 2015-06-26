@@ -18,17 +18,17 @@ class Event extends BaseRestResource
     protected $resources = [
         EventScript::RESOURCE_NAME    => [
             'name'       => EventScript::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Core\\Resources\\System\\EventScript',
+            'class_name' => EventScript::class,
             'label'      => 'Scripts',
         ],
         ProcessEvent::RESOURCE_NAME   => [
             'name'       => ProcessEvent::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Core\\Resources\\System\\ProcessEvent',
+            'class_name' => ProcessEvent::class,
             'label'      => 'Process Events',
         ],
         BroadcastEvent::RESOURCE_NAME => [
             'name'       => BroadcastEvent::RESOURCE_NAME,
-            'class_name' => 'DreamFactory\\Core\\Resources\\System\\BroadcastEvent',
+            'class_name' => BroadcastEvent::class,
             'label'      => 'Broadcast Events',
         ],
     ];

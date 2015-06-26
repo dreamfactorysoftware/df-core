@@ -15,12 +15,12 @@ class DatabaseSeeder extends Seeder
     {
         Model::unguard();
 
-        $this->call('DreamFactory\\Core\\Database\\Seeds\\ServiceTypeSeeder');
-        $this->call('DreamFactory\\Core\\Database\\Seeds\\SystemResourceSeeder');
-        $this->call('DreamFactory\\Core\\Database\\Seeds\\ScriptTypeSeeder');
-        $this->call('DreamFactory\\Core\\Database\\Seeds\\ServiceSeeder');
-        $this->call('DreamFactory\\Core\\Database\\Seeds\\AdminSeeder');
-        $this->call('DreamFactory\\Core\\Database\\Seeds\\DbTableExtrasSeeder');
-        $this->call('DreamFactory\\Core\\Database\\Seeds\\RoleAndAppSeeder');
+        $this->call(ServiceTypeSeeder::class);
+        $this->call(SystemResourceSeeder::class);
+        $this->call(ScriptTypeSeeder::class);
+        $this->call(ServiceSeeder::class);
+        $this->call(AdminSeeder::class);
+        $this->call(DbTableExtrasSeeder::class);
+        $this->call(AppSeeder::class);
     }
 }

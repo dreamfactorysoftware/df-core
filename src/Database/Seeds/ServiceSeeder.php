@@ -1,9 +1,11 @@
 <?php
 namespace DreamFactory\Core\Database\Seeds;
 
+use DreamFactory\Core\Models\Service;
+
 class ServiceSeeder extends BaseModelSeeder
 {
-    protected $modelClass = 'DreamFactory\\Core\\Models\\Service';
+    protected $modelClass = Service::class;
 
     protected $records = [
         [

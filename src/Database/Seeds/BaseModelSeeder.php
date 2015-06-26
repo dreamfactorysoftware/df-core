@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Database\Seeds;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Core\Models\BaseModel;
 use Illuminate\Database\Seeder;
 
@@ -34,15 +33,33 @@ class BaseModelSeeder extends Seeder
         $modelName = $this->modelClass;
         $created = [];
         $updated = [];
+        $extras = $this->getRecordExtras();
         foreach ($this->records as $record) {
-            $name = ArrayUtils::get($record, $this->recordIdentifier);
-            if (empty($name)) {
-                throw new \Exception("Invalid seeder record. No value for {$this->recordIdentifier}.");
-            }
+            $record = array_merge($record, $extras);
 
-            if (!$modelName::where($this->recordIdentifier, $record[$this->recordIdentifier])->exists()) {
+            /** @type \Illuminate\Database\Eloquent\Builder $builder */
+            $builder = null;
+            $name = '';
+            if (!is_array($this->recordIdentifier)) {
+                $name = ArrayUtils::get($record, $this->recordIdentifier);
+                if (empty($name)) {
+                    throw new \Exception("Invalid seeder record. No value for {$this->recordIdentifier}.");
+                }
+                $builder = $modelName::where($this->recordIdentifier, $name);
+            } else {
+                foreach ($this->recordIdentifier as $identifier) {
+                    $id = ArrayUtils::get($record, $identifier);
+                    if (empty($id)) {
+                        throw new \Exception("Invalid seeder record. No value for $identifier.");
+                    }
+                    $builder =
+                        (!$builder) ? $modelName::where($identifier, $id) : $builder->where($identifier, $id);
+                    $name .= (empty($name)) ? $id : ':' . $id;
+                }
+            }
+            if (!$builder->exists()) {
                 // seed the record
-                $modelName::create(array_merge($record, $this->getRecordExtras()));
+                $modelName::create($record);
                 $created[] = $name;
             } elseif ($this->allowUpdate) {
                 // update an existing record

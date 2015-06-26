@@ -10,6 +10,7 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
     public function tearDown()
     {
         User::whereEmail('john@dreamfactory.com')->delete();
+        Role::whereName('test_role')->delete();
     }
 
     public function testAppIdFromApiKey()
@@ -31,7 +32,7 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
     public function testRoleIdFromApiKeyUserId()
     {
         $app = App::firstOrFail();
-        $role = Role::firstOrFail();
+        $role = Role::create(['name'=>'test_role', 'is_active'=>true]);
 
         $temp = [
             'name'              => 'John Doe',
@@ -61,7 +62,7 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
 
     public function testRoleInfo()
     {
-        $role = Role::firstOrFail();
+        $role = Role::create(['name'=>'test_role', 'is_active'=>true]);
         $info = CacheUtilities::getRoleInfo($role->id);
 
         $this->assertNotEquals(null, $info);

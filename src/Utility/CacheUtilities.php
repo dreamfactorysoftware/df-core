@@ -119,19 +119,18 @@ class CacheUtilities
         $cacheKey = 'service:' . $name;
         $result = \Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($name){
             /** @type Service $service */
-            $service =
-                Service::with(['service_type_by_type'])->whereName($name)->first(['id', 'type', 'is_active']);
+            $service = Service::whereName($name)->first(['id','name','label','description','is_active','type']);
 
             if (empty($service)) {
                 throw new NotFoundException("Could not find a service for $name");
             }
 
             if (!$service->is_active) {
-                throw new ForbiddenException("Service $service->name is inactive.");
+                throw new ForbiddenException("Service $name is inactive.");
             }
 
-            $settings = ['id' => $service->id, 'config' => $service->config, 'type' => $service->type];
-            $settings['class_name'] = $service->getRelation('service_type_by_type')->class_name;
+            $settings = $service->toArray();
+            $settings['class_name'] = $service->serviceType()->first(['class_name'])->class_name;
 
             return $settings;
         });

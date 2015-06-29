@@ -58,8 +58,7 @@ class Environment extends BaseRestResource
 
         foreach ($oauth as $o) {
             $services[$o['type']][] = [
-                'name' => $o['name'],
-                'url'  => '//' . \Request::getHost() . static::OAUTH_ROUTE . $o['name']
+                'name' => $o['name']
             ];
         }
 

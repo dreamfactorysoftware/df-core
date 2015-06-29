@@ -2,17 +2,14 @@
 
 namespace DreamFactory\Core\Resources;
 
-use DreamFactory\Core\Models\App;
-use DreamFactory\Core\Models\Role;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
-use DreamFactory\Core\Utility\CacheUtilities;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\JWTUtilities;
+use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Utility\Session;
-use Carbon\Carbon;
 
 class UserSessionResource extends BaseRestResource
 {
@@ -33,17 +30,43 @@ class UserSessionResource extends BaseRestResource
      * Authenticates valid user.
      *
      * @return array
-     * @throws NotFoundException
-     * @throws UnauthorizedException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\UnauthorizedException
      */
     protected function handlePOST()
     {
-        $credentials = [
-            'email'    => $this->getPayloadData('email'),
-            'password' => $this->getPayloadData('password')
-        ];
+        $serviceName = $this->getPayloadData('service');
+        if(empty($serviceName)){
+            $serviceName = $this->request->getParameter('service');
+        }
+        if (!empty($serviceName)) {
+            $service = ServiceHandler::getService($serviceName);
+            $serviceModel = Service::find($service->getServiceId());
+            $serviceType = $serviceModel->serviceType()->first();
+            $serviceGroup = $serviceType->group;
 
-        return $this->handleLogin($credentials, boolval($this->getPayloadData('remember_me')));
+            if (!in_array($serviceGroup, ['oauth', 'ldap'])) {
+                throw new BadRequestException('Invalid login service provided. Please use an OAuth or AD/Ldap service.');
+            }
+
+            if ($serviceGroup === 'ldap') {
+                $credentials = [
+                    'username' => $this->getPayloadData('username'),
+                    'password' => $this->getPayloadData('password')
+                ];
+
+                return $service->handleLogin($credentials, $this->getPayloadData('remember_me'));
+            } elseif ($serviceGroup === 'oauth') {
+                return $service->handleLogin($this->request->getDriver());
+            }
+        } else {
+            $credentials = [
+                'email'    => $this->getPayloadData('email'),
+                'password' => $this->getPayloadData('password')
+            ];
+
+            return $this->handleLogin($credentials, boolval($this->getPayloadData('remember_me')));
+        }
     }
 
     /**
@@ -55,6 +78,7 @@ class UserSessionResource extends BaseRestResource
     protected function handlePUT()
     {
         JWTUtilities::refreshToken();
+
         return Session::getPublicInfo();
     }
 

@@ -12,6 +12,7 @@ use DreamFactory\Core\Events\ServicePostProcess;
 use DreamFactory\Core\Events\ServicePreProcess;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Class BaseRestService
@@ -104,6 +105,8 @@ class BaseRestService extends RestHandler implements ServiceInterface
     protected function respond()
     {
         if ($this->response instanceof ServiceResponseInterface) {
+            return $this->response;
+        } elseif ($this->response instanceof RedirectResponse){
             return $this->response;
         }
 

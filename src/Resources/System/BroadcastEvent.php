@@ -2,7 +2,7 @@
 
 namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Core\Services\Swagger;
+use DreamFactory\Core\Components\ApiDocManager;
 
 /**
  * Class BroadcastEvent
@@ -26,6 +26,6 @@ class BroadcastEvent extends BaseEvent
 
     protected function getEventMap()
     {
-        return Swagger::getBroadcastEventMap();
+        return ApiDocManager::getBroadcastEventMap();
     }
 }

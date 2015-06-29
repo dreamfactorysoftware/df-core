@@ -2,7 +2,7 @@
 
 namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Core\Services\Swagger;
+use DreamFactory\Core\Components\ApiDocManager;
 
 /**
  * Class ProcessEvent
@@ -26,6 +26,6 @@ class ProcessEvent extends BaseEvent
 
     protected function getEventMap()
     {
-        return Swagger::getProcessEventMap();
+        return ApiDocManager::getProcessEventMap();
     }
 }

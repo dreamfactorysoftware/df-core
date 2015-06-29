@@ -4,8 +4,10 @@ namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Resources\BaseRestResource;
+use DreamFactory\Core\User\Services\User;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Scalar;
 
 class Environment extends BaseRestResource
@@ -38,6 +40,7 @@ class Environment extends BaseRestResource
         $ldap = static::getAdLdapServices();
 
         $auth = [
+            'login_api' => static::getLoginApi(),
             'oauth' => $oauth,
             'ldap'  => $ldap
         ];
@@ -45,6 +48,21 @@ class Environment extends BaseRestResource
         $result['authentication'] = $auth;
 
         return $result;
+    }
+
+    protected static function getLoginApi()
+    {
+        $adminApi = ['path' => 'system/admin/session', 'verb' => Verbs::POST];
+        $userApi = ['path' => 'user/session', 'verb' => Verbs::POST];
+
+        if(class_exists(User::class)){
+            return [
+                'admin' => $adminApi,
+                'user' => $userApi
+            ];
+        }
+
+        return ['admin' => $adminApi];
     }
 
     protected static function getOAuthServices()
@@ -58,8 +76,7 @@ class Environment extends BaseRestResource
 
         foreach ($oauth as $o) {
             $services[$o['type']][] = [
-                'name' => $o['name'],
-                'url'  => '//' . \Request::getHost() . static::OAUTH_ROUTE . $o['name']
+                'name' => $o['name']
             ];
         }
 

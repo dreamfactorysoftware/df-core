@@ -108,12 +108,24 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
                 }
 
                 /** @var ColumnSchema $column */
-                $out[$name] = $column->toArray();
+                $temp = $column->toArray();
+                static::prepareConfigSchemaField($temp);
+                $out[$name] = $temp;
             }
 
             return $out;
         }
 
         return null;
+    }
+
+    /**
+     * @param array $schema
+     */
+    protected static function prepareConfigSchemaField(array &$schema)
+    {
+        // clear out server-specific info
+        unset($schema['php_type']);
+        unset($schema['pdo_type']);
     }
 }

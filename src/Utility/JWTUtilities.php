@@ -130,7 +130,7 @@ class JWTUtilities
 
     public static function invalidateTokenByRoleId($roleId)
     {
-        $userAppRole = UserAppRole::whereRoleId($roleId)->get('user_id');
+        $userAppRole = UserAppRole::whereRoleId($roleId)->get(['user_id']);
 
         if(!empty($userAppRole) && is_array($userAppRole)){
             foreach($userAppRole as $uar){
@@ -141,7 +141,7 @@ class JWTUtilities
 
     public static function invalidateTokenByAppId($appId)
     {
-        $userAppRole = UserAppRole::whereAppId($appId)->get('user_id');
+        $userAppRole = UserAppRole::whereAppId($appId)->get(['user_id']);
 
         if(!empty($userAppRole) && is_array($userAppRole)){
             foreach($userAppRole as $uar){

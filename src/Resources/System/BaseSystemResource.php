@@ -63,6 +63,9 @@ class BaseSystemResource extends BaseRestResource
         }
 
         if (!empty($this->resource) && !empty($payload)) {
+            if(ArrayUtils::isArrayNumeric($payload)){
+                throw new BadRequestException('Update by id accepts a single record. Array supplied.');
+            }
             // single records passed in which don't use the record wrapper, so wrap it
             $payload = [static::RECORD_WRAPPER => [$payload]];
         } elseif (ArrayUtils::isArrayNumeric($payload)) {

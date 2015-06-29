@@ -134,12 +134,13 @@ class BaseModel extends Model
     /**
      * @param       $records
      * @param array $params
+     * @param bool  $singlePayload
      *
      * @return array|mixed
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkCreate($records, $params = [])
+    public static function bulkCreate($records, $params = [], $singlePayload = false)
     {
         if (empty($records)) {
             throw new BadRequestException('There are no record sets in the request.');
@@ -199,7 +200,7 @@ class BaseModel extends Model
             }
         }
 
-        return $singleRow ? current($response) : ['record' => $response];
+        return $singlePayload ? current($response) : ['record' => $response];
     }
 
     /**
@@ -219,13 +220,22 @@ class BaseModel extends Model
         return static::buildResult($model, $params);
     }
 
+    /**
+     * @param       $id
+     * @param       $record
+     * @param array $params
+     *
+     * @return array|mixed
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \Exception
+     */
     public static function createById($id, $record, $params = [])
     {
         $m = new static;
         $pk = $m->getPrimaryKey();
         ArrayUtils::set($record, $pk, $id);
 
-        return static::bulkCreate([$record], $params);
+        return static::bulkCreate([$record], $params, true);
     }
 
     /**
@@ -281,15 +291,33 @@ class BaseModel extends Model
         return $updated;
     }
 
+    /**
+     * @param       $id
+     * @param       $record
+     * @param array $params
+     *
+     * @return array|mixed
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \Exception
+     */
     public static function updateById($id, $record, $params = [])
     {
         $m = new static;
         $pk = $m->getPrimaryKey();
         ArrayUtils::set($record, $pk, $id);
 
-        return static::bulkUpdate([$record], $params);
+        return static::bulkUpdate([$record], $params, true);
     }
 
+    /**
+     * @param       $ids
+     * @param       $record
+     * @param array $params
+     *
+     * @return array|mixed
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \Exception
+     */
     public static function updateByIds($ids, $record, $params = [])
     {
         if (!is_array($ids)) {
@@ -311,12 +339,13 @@ class BaseModel extends Model
     /**
      * @param       $records
      * @param array $params
+     * @param bool  $singlePayload
      *
      * @return array|mixed
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkUpdate($records, $params = [])
+    public static function bulkUpdate($records, $params = [], $singlePayload = false)
     {
         if (empty($records)) {
             throw new BadRequestException('There is no record in the request.');
@@ -379,7 +408,7 @@ class BaseModel extends Model
             }
         }
 
-        return $singleRow ? current($response) : ['record' => $response];
+        return $singlePayload ? current($response) : ['record' => $response];
     }
 
     /**
@@ -422,6 +451,14 @@ class BaseModel extends Model
         }
     }
 
+    /**
+     * @param       $id
+     * @param array $params
+     *
+     * @return array|mixed
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \Exception
+     */
     public static function deleteById($id, $params = [])
     {
         $records = [[]];
@@ -432,9 +469,17 @@ class BaseModel extends Model
             ArrayUtils::set($records[$key], $pk, $id);
         }
 
-        return static::bulkDelete($records, $params);
+        return static::bulkDelete($records, $params, true);
     }
 
+    /**
+     * @param       $ids
+     * @param array $params
+     *
+     * @return array|mixed
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \Exception
+     */
     public static function deleteByIds($ids, $params = [])
     {
         if (!is_array($ids)) {
@@ -457,12 +502,13 @@ class BaseModel extends Model
     /**
      * @param       $records
      * @param array $params
+     * @param bool  $singlePayload
      *
      * @return array|mixed
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkDelete($records, $params = [])
+    public static function bulkDelete($records, $params = [], $singlePayload = false)
     {
         if (empty($records)) {
             throw new BadRequestException('There is no record in the request.');
@@ -525,7 +571,7 @@ class BaseModel extends Model
             }
         }
 
-        return $singleRow ? current($response) : ['record' => $response];
+        return $singlePayload ? current($response) : ['record' => $response];
     }
 
     /**

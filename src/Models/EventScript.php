@@ -14,7 +14,7 @@ namespace DreamFactory\Core\Models;
  * @method static \Illuminate\Database\Query\Builder|EventScript whereName($value)
  * @method static \Illuminate\Database\Query\Builder|EventScript whereType($value)
  */
-class EventScript extends BaseSystemModel
+class EventScript extends BaseModel
 {
     /**
      * @const string The private cache file
@@ -25,11 +25,29 @@ class EventScript extends BaseSystemModel
      */
     const CACHE_TTL = 1440;
 
+    /**
+     * The name of the "created at" column.
+     *
+     * @var string
+     */
+    const CREATED_AT = 'created_date';
+
+    /**
+     * The name of the "updated at" column.
+     *
+     * @var string
+     */
+    const UPDATED_AT = 'last_modified_date';
+
     protected $table = 'event_script';
+
+    protected $primaryKey = 'name';
 
     protected $fillable = ['name', 'type', 'content', 'config', 'is_active', 'affects_process'];
 
     protected $casts = ['is_active' => 'boolean', 'affects_process' => 'boolean'];
+
+    public $incrementing = false;
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

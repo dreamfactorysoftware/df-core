@@ -185,8 +185,7 @@ class CreateSystemTables extends Migration
         Schema::create(
             'event_script',
             function (Blueprint $t){
-                $t->increments('id');
-                $t->string('name', 80)->unique();
+                $t->string('name', 80)->primary();
                 $t->string('label')->nullable();
                 $t->string('type');
                 $t->foreign('type')->references('name')->on('script_type')->onDelete('cascade');

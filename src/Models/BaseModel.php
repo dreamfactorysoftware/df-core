@@ -219,6 +219,15 @@ class BaseModel extends Model
         return static::buildResult($model, $params);
     }
 
+    public static function createById($id, $record, $params = [])
+    {
+        $m = new static;
+        $pk = $m->getPrimaryKey();
+        ArrayUtils::set($record, $pk, $id);
+
+        return static::bulkCreate([$record], $params);
+    }
+
     /**
      * Update the model in the database.
      *
@@ -564,8 +573,8 @@ class BaseModel extends Model
      */
     public static function buildResult($model, $params = [])
     {
-        $id = $model->id;
         $pk = $model->primaryKey;
+        $id = $model->{$pk};
         $fields = ArrayUtils::get($params, 'fields', $pk);
         $related = ArrayUtils::get($params, 'related');
 
@@ -778,7 +787,7 @@ class BaseModel extends Model
                         //Foreign key field is null therefore delete the child record.
                         $model->delete();
                         continue;
-                    } elseif (!empty($fkId) && $fkId !== $this->id && (null !== $parent = static::find($fkId))) {
+                    } elseif (!empty($fkId) && $fkId !== $this->{$this->primaryKey} && (null !== $parent = static::find($fkId))) {
                         //Foreign key field is set but the id belongs to a different parent than this parent.
                         //There the child is adopted by the supplied parent id (foreign key).
                         $relatedData = [$relationName => [$d]];

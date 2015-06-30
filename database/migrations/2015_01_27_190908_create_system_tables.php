@@ -186,7 +186,6 @@ class CreateSystemTables extends Migration
             'event_script',
             function (Blueprint $t){
                 $t->string('name', 80)->primary();
-                $t->string('label')->nullable();
                 $t->string('type');
                 $t->foreign('type')->references('name')->on('script_type')->onDelete('cascade');
                 $t->boolean('is_active')->default(0);

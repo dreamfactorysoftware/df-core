@@ -22,7 +22,7 @@ class Config extends BaseSystemResource
 
         parent::__construct($settings);
 
-        $this->model = 'DreamFactory\Core\Models\Config';
+        $this->model = \DreamFactory\Core\Models\Config::class;
     }
 
     public function getApiDocInfo()

@@ -50,7 +50,7 @@ class ServiceType extends BaseModel
 
     public function getConfigSchemaAttribute()
     {
-        if (is_subclass_of($this->config_handler, 'DreamFactory\Core\Contracts\ServiceConfigHandlerInterface')) {
+        if (is_subclass_of($this->config_handler, ServiceConfigHandlerInterface::class)) {
             /** @var ServiceConfigHandlerInterface $handler */
             $handler = $this->config_handler;
 

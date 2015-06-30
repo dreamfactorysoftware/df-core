@@ -24,11 +24,7 @@ class ApiDocManager
     /**
      * @const string A cached process-handling events list derived from API Docs
      */
-    const PROCESS_EVENT_CACHE_KEY = 'process_events';
-    /**
-     * @const string A cached broadcast events list derived from API Docs
-     */
-    const BROADCAST_EVENT_CACHE_KEY = 'broadcast_events';
+    const EVENT_CACHE_KEY = 'events';
     /**
      * @const integer How long a swagger cache will live, 1440 = 24 minutes (default session timeout).
      */
@@ -41,11 +37,7 @@ class ApiDocManager
     /**
      * @var array The process-handling event map
      */
-    protected static $processEventMap = false;
-    /**
-     * @var array The broadcast event map
-     */
-    protected static $broadcastEventMap = false;
+    protected static $eventMap = false;
 
     //*************************************************************************
     //	Methods
@@ -65,11 +57,11 @@ class ApiDocManager
         //  Build event mapping from services in database
 
         //	Initialize the event map
-        static::$processEventMap = static::$processEventMap ?: [];
-        static::$broadcastEventMap = static::$broadcastEventMap ?: [];
+        $processEventMap = [];
+        $broadcastEventMap = [];
 
         //  Pull any custom swagger docs
-        $_result = Service::with(
+        $result = Service::with(
             [
                 'serviceDocs' => function ($query){
                     $query->where('format', ApiDocFormatTypes::SWAGGER);
@@ -78,70 +70,41 @@ class ApiDocManager
         )->get();
 
         //	Spin through services and pull the configs
-        $_services = [];
-        foreach ($_result as $_service) {
-            $_apiName = $_service->name;
-            $_content = static::getStoredContentForService($_service);
+        $services = [];
+        foreach ($result as $service) {
+            $apiName = $service->name;
+            $content = static::getStoredContentForService($service);
 
-            if (empty($_content)) {
-                \Log::info('  * No Swagger content found for service "' . $_apiName . '"');
+            if (empty($content)) {
+                \Log::info('  * No Swagger content found for service "' . $apiName . '"');
                 continue;
             }
 
-            if (!isset(static::$processEventMap[$_apiName]) ||
-                !is_array(static::$processEventMap[$_apiName]) ||
-                empty(static::$processEventMap[$_apiName])
-            ) {
-                static::$processEventMap[$_apiName] = [];
-            }
-
-            if (!isset(static::$broadcastEventMap[$_apiName]) ||
-                !is_array(static::$broadcastEventMap[$_apiName]) ||
-                empty(static::$broadcastEventMap[$_apiName])
-            ) {
-                static::$broadcastEventMap[$_apiName] = [];
-            }
-
-            $_serviceEvents = static::_parseSwaggerEvents($_apiName, $_content);
+            $serviceEvents = static::_parseSwaggerEvents($apiName, $content);
 
             // build main services list
-            $_services[] = [
-                'path'        => '/' . $_apiName,
-                'description' => $_service->description
+            $services[] = [
+                'path'        => '/' . $apiName,
+                'description' => $service->description
             ];
 
             //	Parse the events while we get the chance...
-            static::$processEventMap[$_apiName] = array_merge(
-                ArrayUtils::clean(static::$processEventMap[$_apiName]),
-                $_serviceEvents['script']
-            );
-            static::$broadcastEventMap[$_apiName] = array_merge(
-                ArrayUtils::clean(static::$broadcastEventMap[$_apiName]),
-                $_serviceEvents['subscribe']
-            );
+            $processEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'process', []);
+            $broadcastEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'broadcast', []);
 
-            unset($_content, $_filePath, $_service, $_serviceEvents);
+            unset($content, $filePath, $service, $serviceEvents);
         }
 
+        static::$eventMap = ['process' => $processEventMap, 'broadcast' => $broadcastEventMap];
         //	Write event cache file
         if (false === CacheUtilities::put(
-                static::PROCESS_EVENT_CACHE_KEY,
-                static::$processEventMap,
+                static::EVENT_CACHE_KEY,
+                static::$eventMap,
                 static::CACHE_TTL
             )
         ) {
-            \Log::error('  * System error creating swagger script-able event cache file: ' .
-                static::PROCESS_EVENT_CACHE_KEY);
-        }
-
-        if (false === CacheUtilities::put(
-                static::BROADCAST_EVENT_CACHE_KEY,
-                static::$broadcastEventMap,
-                static::CACHE_TTL
-            )
-        ) {
-            \Log::error('  * System error creating swagger subscribe-able event cache file: ' .
-                static::BROADCAST_EVENT_CACHE_KEY);
+            \Log::error('  * System error creating swagger event cache file: ' .
+                static::EVENT_CACHE_KEY);
         }
 
         \Log::info('Event cache build process complete');
@@ -193,8 +156,9 @@ class ApiDocManager
         $broadcastEvents = [];
         $eventCount = 0;
 
-        foreach (ArrayUtils::get($data, 'apis', []) as $_ixApi => $api) {
-            $apiProcessEvents = $apiBroadcastEvents = [];
+        foreach (ArrayUtils::get($data, 'apis', []) as $ixApi => $api) {
+            $apiProcessEvents = [];
+            $apiBroadcastEvents = [];
 
             if (null === ($path = ArrayUtils::get($api, 'path'))) {
                 \Log::notice('  * Missing "path" in Swagger definition: ' . $apiName);
@@ -207,31 +171,31 @@ class ApiDocManager
                 trim($path, '/')
             );
 
-            foreach (ArrayUtils::get($api, 'operations', []) as $_ixOps => $_operation) {
-                if (null !== ($_eventNames = ArrayUtils::get($_operation, 'event_name'))) {
-                    $_method = strtolower(ArrayUtils::get($_operation, 'method', Verbs::GET));
-                    $_eventsThrown = [];
+            foreach (ArrayUtils::get($api, 'operations', []) as $ixOps => $operation) {
+                if (null !== ($eventNames = ArrayUtils::get($operation, 'event_name'))) {
+                    $method = strtolower(ArrayUtils::get($operation, 'method', Verbs::GET));
+                    $eventsThrown = [];
 
-                    if (is_string($_eventNames) && false !== strpos($_eventNames, ',')) {
-                        $_eventNames = explode(',', $_eventNames);
+                    if (is_string($eventNames) && false !== strpos($eventNames, ',')) {
+                        $eventNames = explode(',', $eventNames);
 
                         //  Clean up any spaces...
-                        foreach ($_eventNames as &$_tempEvent) {
-                            $_tempEvent = trim($_tempEvent);
+                        foreach ($eventNames as &$tempEvent) {
+                            $tempEvent = trim($tempEvent);
                         }
                     }
 
-                    if (empty($_eventNames)) {
-                        $_eventNames = [];
-                    } else if (!is_array($_eventNames)) {
-                        $_eventNames = [$_eventNames];
+                    if (empty($eventNames)) {
+                        $eventNames = [];
+                    } else if (!is_array($eventNames)) {
+                        $eventNames = [$eventNames];
                     }
 
                     //  Set into master record
-                    $data['apis'][$_ixApi]['operations'][$_ixOps]['event_name'] = $_eventNames;
+                    $data['apis'][$ixApi]['operations'][$ixOps]['event_name'] = $eventNames;
 
-                    foreach ($_eventNames as $_ixEventNames => $_templateEventName) {
-                        $_eventName = str_replace(
+                    foreach ($eventNames as $ixEventNames => $templateEventName) {
+                        $eventName = str_replace(
                             [
                                 '{api_name}',
                                 $apiName . '.' . $apiName . '.',
@@ -241,25 +205,25 @@ class ApiDocManager
                             [
                                 $apiName,
                                 'system.' . $apiName . '.',
-                                $_method,
-                                $_method,
+                                $method,
+                                $method,
                             ],
-                            $_templateEventName
+                            $templateEventName
                         );
 
-                        $_eventsThrown[] = $_eventName;
+                        $eventsThrown[] = $eventName;
 
                         //  Set actual name in swagger file
-                        $data['apis'][$_ixApi]['operations'][$_ixOps]['event_name'][$_ixEventNames] = $_eventName;
+                        $data['apis'][$ixApi]['operations'][$ixOps]['event_name'][$ixEventNames] = $eventName;
 
                         $eventCount++;
                     }
 
-                    $apiBroadcastEvents[$_method] = $_eventsThrown;
-                    $apiProcessEvents[$_method] = ["$path.$_method.pre_process", "$path.$_method.post_process"];
+                    $apiBroadcastEvents[$method] = $eventsThrown;
+                    $apiProcessEvents[$method] = ["$path.$method.pre_process", "$path.$method.post_process"];
                 }
 
-                unset($_operation, $_eventsThrown);
+                unset($operation, $eventsThrown);
             }
 
             $processEvents[str_ireplace('{api_name}', $apiName, $path)] = $apiProcessEvents;
@@ -270,7 +234,7 @@ class ApiDocManager
 
         \Log::debug('  * Discovered ' . $eventCount . ' event(s).');
 
-        return ['script' => $processEvents, 'subscribe' => $broadcastEvents];
+        return ['process' => $processEvents, 'broadcast' => $broadcastEvents];
     }
 
     /**
@@ -278,41 +242,20 @@ class ApiDocManager
      *
      * @return array
      */
-    public static function getProcessEventMap()
+    public static function getEventMap()
     {
-        if (!empty(static::$processEventMap)) {
-            return static::$processEventMap;
+        if (!empty(static::$eventMap)) {
+            return static::$eventMap;
         }
 
-        static::$processEventMap = CacheUtilities::get(static::PROCESS_EVENT_CACHE_KEY);
+        static::$eventMap = CacheUtilities::get(static::EVENT_CACHE_KEY);
 
         //	If we still have no event map, build it.
-        if (empty(static::$processEventMap)) {
+        if (empty(static::$eventMap)) {
             static::buildEventMaps();
         }
 
-        return static::$processEventMap;
-    }
-
-    /**
-     * Retrieves the cached event map or triggers a rebuild
-     *
-     * @return array
-     */
-    public static function getBroadcastEventMap()
-    {
-        if (!empty(static::$broadcastEventMap)) {
-            return static::$broadcastEventMap;
-        }
-
-        static::$broadcastEventMap = CacheUtilities::get(static::BROADCAST_EVENT_CACHE_KEY);
-
-        //	If we still have no event map, build it.
-        if (empty(static::$broadcastEventMap)) {
-            static::buildEventMaps();
-        }
-
-        return static::$broadcastEventMap;
+        return static::$eventMap;
     }
 
     /**
@@ -320,8 +263,8 @@ class ApiDocManager
      */
     public static function clearCache()
     {
-        CacheUtilities::forget(static::PROCESS_EVENT_CACHE_KEY);
-        CacheUtilities::forget(static::BROADCAST_EVENT_CACHE_KEY);
+        static::$eventMap = [];
+        CacheUtilities::forget(static::EVENT_CACHE_KEY);
 
         // rebuild swagger cache
         static::buildEventMaps();

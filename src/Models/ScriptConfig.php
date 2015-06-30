@@ -39,7 +39,7 @@ class ScriptConfig extends BaseServiceConfigModel
      */
     public function scriptType()
     {
-        return $this->belongsTo('DreamFactory\Core\Models\ScriptType', 'type', 'name');
+        return $this->belongsTo(ScriptType::class, 'type', 'name');
     }
 
     /**

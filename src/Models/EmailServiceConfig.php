@@ -51,7 +51,7 @@ class EmailServiceConfig extends BaseServiceConfigModel
      */
     public function parameter()
     {
-        return $this->hasMany('DreamFactory\Core\Models\EmailServiceParameterConfig', 'service_id');
+        return $this->hasMany(EmailServiceParameterConfig::class, 'service_id');
     }
 
     /**

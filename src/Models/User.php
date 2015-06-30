@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Utility\JWTUtilities;
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -223,6 +224,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 throw new ForbiddenException('Not allowed to delete an admin user.');
             } elseif (ArrayUtils::getBool($params, 'admin') && !$model->is_sys_admin) {
                 throw new BadRequestException('Cannot delete a non-admin user.');
+            } elseif (Session::getCurrentUserId() === $model->id){
+                throw new ForbiddenException('Cannot delete your account.');
             }
 
             $result = static::buildResult($model, $params);

@@ -481,6 +481,14 @@ class Session
         \Session::set('session_token', $token);
     }
 
+    public static function setApiKey($apiKey){
+        \Session::set('api_key', $apiKey);
+    }
+
+    public static function getApiKey(){
+        return \Session::get('api_key');
+    }
+
     /**
      * @return bool
      */

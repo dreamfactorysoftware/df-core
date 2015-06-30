@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Handlers\Events;
 
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Models\EventScript;
@@ -25,14 +24,10 @@ class ServiceEventHandler
      */
     public function subscribe($events)
     {
-        $events->listen('DreamFactory\Core\Events\ServicePreProcess',
-            'DreamFactory\Core\Handlers\Events\ServiceEventHandler@onServicePreProcess');
-        $events->listen('DreamFactory\Core\Events\ServicePostProcess',
-            'DreamFactory\Core\Handlers\Events\ServiceEventHandler@onServicePostProcess');
-        $events->listen('DreamFactory\Core\Events\ResourcePreProcess',
-            'DreamFactory\Core\Handlers\Events\ServiceEventHandler@onResourcePreProcess');
-        $events->listen('DreamFactory\Core\Events\ResourcePostProcess',
-            'DreamFactory\Core\Handlers\Events\ServiceEventHandler@onResourcePostProcess');
+        $events->listen(ServicePreProcess::class, static::class . '@onServicePreProcess');
+        $events->listen(ServicePostProcess::class, static::class . '@onServicePostProcess');
+        $events->listen(ResourcePreProcess::class, static::class . '@onResourcePreProcess');
+        $events->listen(ResourcePostProcess::class, static::class . '@onResourcePostProcess');
     }
 
     /**

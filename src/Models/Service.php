@@ -95,7 +95,7 @@ class Service extends BaseSystemModel
      */
     public function serviceType()
     {
-        return $this->belongsTo('DreamFactory\Core\Models\ServiceType', 'type', 'name');
+        return $this->belongsTo(ServiceType::class, 'type', 'name');
     }
 
     /**
@@ -103,7 +103,7 @@ class Service extends BaseSystemModel
      */
     public function serviceDocs()
     {
-        return $this->hasMany('DreamFactory\Core\Models\ServiceDoc', 'service_id', 'id');
+        return $this->hasMany(ServiceDoc::class, 'service_id', 'id');
     }
 
     /**

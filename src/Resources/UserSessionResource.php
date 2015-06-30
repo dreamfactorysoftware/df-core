@@ -57,7 +57,13 @@ class UserSessionResource extends BaseRestResource
 
                 return $service->handleLogin($credentials, $this->getPayloadData('remember_me'));
             } elseif ($serviceGroup === 'oauth') {
-                return $service->handleLogin($this->request->getDriver());
+                $oauthCallback = $this->request->getParameterAsBool('oauth_callback');
+
+                if(!empty($oauthCallback)) {
+                    return $service->handleOAuthCallback();
+                } else {
+                    return $service->handleLogin();
+                }
             }
         } else {
             $credentials = [

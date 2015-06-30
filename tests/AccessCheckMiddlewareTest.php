@@ -52,7 +52,7 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
         $this->service = ServiceHandler::getService('system');
         $rs = $this->makeRequest(Verbs::POST, 'role', [], [$role]);
         $data = $rs->getContent();
-        $roleId = Arr::get($data, 'id');
+        $roleId = Arr::get($data, 'record.0.id');
         $app->role_id = $roleId;
         $app->save();
 
@@ -88,12 +88,12 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
         $this->service = ServiceHandler::getService('system');
         $rs = $this->makeRequest(Verbs::POST, 'user', [], [$user]);
         $data = $rs->getContent();
-        $userId = Arr::get($data, 'id');
+        $userId = Arr::get($data, 'record.0.id');
 
         $this->service = ServiceHandler::getService('system');
         $rs = $this->makeRequest(Verbs::POST, 'role', [], [$role]);
         $data = $rs->getContent();
-        $roleId = Arr::get($data, 'id');
+        $roleId = Arr::get($data, 'record.0.id');
 
         \DreamFactory\Core\Models\UserAppRole::create(['user_id' => $userId, 'app_id' => 1, 'role_id' => $roleId]);
         $app = App::find(1);

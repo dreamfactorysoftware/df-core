@@ -114,17 +114,20 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
     public function testPOSTCreateRolesWithFieldsAndRelated()
     {
-        $response =
-            $this->makeRequest(Verbs::POST, self::RESOURCE,
-                ['fields' => 'name,id', 'related' => 'role_lookup_by_role_id'], [$this->role3]);
+        $response = $this->makeRequest(
+            Verbs::POST,
+            self::RESOURCE,
+            ['fields' => 'name,id', 'related' => 'role_lookup_by_role_id'],
+            [$this->role3]
+        );
         $content = $response->getContent();
 
-        static::$roleIds[] = ArrayUtils::get($content, 'id');
+        static::$roleIds[] = Arr::get($content, 'record.0.id');
 
-        $this->assertEquals(ArrayUtils::get($this->role3, 'name'), ArrayUtils::get($content, 'name'));
+        $this->assertEquals(ArrayUtils::get($this->role3, 'name'), Arr::get($content, 'record.0.name'));
         $this->assertEquals(
             Arr::get($this->role3, 'role_lookup_by_role_id.0.name'),
-            Arr::get($content, 'role_lookup_by_role_id.0.name')
+            Arr::get($content, 'record.0.role_lookup_by_role_id.0.name')
         );
     }
 
@@ -140,7 +143,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role1]);
         $c = $rs->getContent();
 
-        $this->assertTrue(ArrayUtils::get($c, 'id') === static::$roleIds[0]);
+        $this->assertTrue(Arr::get($c, 'record.0.id') === static::$roleIds[0]);
 
         $updatedRole = $this->getRole(static::$roleIds[0]);
 
@@ -167,6 +170,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         );
 
         $c = $rs->getContent();
+        $c = $c['record'][0];
 
         $this->assertTrue(ArrayUtils::get($c, 'id') === static::$roleIds[0]);
 
@@ -187,7 +191,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role2]);
         $c = $rs->getContent();
 
-        $this->assertTrue(ArrayUtils::get($c, 'id') === static::$roleIds[1]);
+        $this->assertTrue(Arr::get($c, 'record.0.id') === static::$roleIds[1]);
 
         $updatedRole = $this->getRole(static::$roleIds[1]);
 
@@ -203,7 +207,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role2]);
         $c = $rs->getContent();
 
-        $this->assertTrue(ArrayUtils::get($c, 'id') === static::$roleIds[1]);
+        $this->assertTrue(Arr::get($c, 'record.0.id') === static::$roleIds[1]);
 
         $updatedRole = $this->getRole(static::$roleIds[1]);
 
@@ -220,7 +224,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role2]);
         $c = $rs->getContent();
 
-        $this->assertTrue(ArrayUtils::get($c, 'id') === static::$roleIds[1]);
+        $this->assertTrue(Arr::get($c, 'record.0.id') === static::$roleIds[1]);
 
         $updatedRole = $this->getRole(static::$roleIds[1]);
         $otherRole = $this->getRole(static::$roleIds[0]);

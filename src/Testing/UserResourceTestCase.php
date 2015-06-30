@@ -105,16 +105,19 @@ class UserResourceTestCase extends TestCase
     {
         $payload = json_encode([$this->user3], JSON_UNESCAPED_SLASHES);
 
-        $rs =
-            $this->makeRequest(Verbs::POST, static::RESOURCE, ['fields' => '*', 'related' => 'user_lookup_by_user_id'],
-                $payload);
+        $rs = $this->makeRequest(
+            Verbs::POST,
+            static::RESOURCE,
+            ['fields' => '*', 'related' => 'user_lookup_by_user_id'],
+            $payload
+        );
         $data = $rs->getContent();
 
-        $this->assertEquals(Arr::get($this->user3, 'email'), Arr::get($data, 'email'));
-        $this->assertEquals(3, count(Arr::get($data, 'user_lookup_by_user_id')));
-        $this->assertEquals('**********', Arr::get($data, 'user_lookup_by_user_id.1.value'));
-        $this->assertEquals('**********', Arr::get($data, 'user_lookup_by_user_id.2.value'));
-        $this->assertTrue($this->adminCheck([$data]));
+        $this->assertEquals(Arr::get($this->user3, 'email'), Arr::get($data, 'record.0.email'));
+        $this->assertEquals(3, count(Arr::get($data, 'record.0.user_lookup_by_user_id')));
+        $this->assertEquals('**********', Arr::get($data, 'record.0.user_lookup_by_user_id.1.value'));
+        $this->assertEquals('**********', Arr::get($data, 'record.0.user_lookup_by_user_id.2.value'));
+        $this->assertTrue($this->adminCheck($data));
     }
 
     /************************************************
@@ -282,9 +285,11 @@ class UserResourceTestCase extends TestCase
     {
         $user = $this->createUser(2);
 
-        $rs =
-            $this->makeRequest(Verbs::GET, static::RESOURCE . '/' . $user['id'],
-                ['related' => 'user_lookup_by_user_id']);
+        $rs = $this->makeRequest(
+            Verbs::GET,
+            static::RESOURCE . '/' . $user['id'],
+            ['related' => 'user_lookup_by_user_id']
+        );
         $data = $rs->getContent();
 
         $this->assertEquals($user['name'], $data['name']);
@@ -428,11 +433,16 @@ class UserResourceTestCase extends TestCase
     {
         $user = $this->{'user' . $num};
         $payload = json_encode([$user], JSON_UNESCAPED_SLASHES);
-        $rs =
-            $this->makeRequest(Verbs::POST, static::RESOURCE, ['fields' => '*', 'related' => 'user_lookup_by_user_id'],
-                $payload);
+        $rs = $this->makeRequest(
+            Verbs::POST,
+            static::RESOURCE,
+            ['fields' => '*', 'related' => 'user_lookup_by_user_id'],
+            $payload
+        );
 
-        return $rs->getContent();
+        $data = $rs->getContent();
+
+        return Arr::get($data, 'record.0');
     }
 
     protected function deleteUser($num)

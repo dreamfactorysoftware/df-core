@@ -12,8 +12,9 @@ use DreamFactory\Library\Utility\Scalar;
 
 class Environment extends BaseRestResource
 {
-    const OAUTH_ROUTE = '/dsp/oauth/login/';
-
+    /**
+     * @return array
+     */
     protected function handleGET()
     {
         $result = [];
@@ -36,35 +37,55 @@ class Environment extends BaseRestResource
             $result['php'] = static::getPhpInfo();
         }
 
-        $oauth = static::getOAuthServices();
-        $ldap = static::getAdLdapServices();
+        $login = static::getLoginApi();
 
-        $auth = [
-            'login_api' => static::getLoginApi(),
-            'oauth' => $oauth,
-            'ldap'  => $ldap
-        ];
-
-        $result['authentication'] = $auth;
+        $result['authentication'] = $login;
 
         return $result;
     }
 
+    /**
+     * @return array
+     */
     protected static function getLoginApi()
     {
-        $adminApi = ['path' => 'system/admin/session', 'verb' => Verbs::POST];
-        $userApi = ['path' => 'user/session', 'verb' => Verbs::POST];
+        $adminApi = [
+            'path'    => 'system/admin/session',
+            'verb'    => Verbs::POST,
+            'payload' => [
+                'email'       => 'string',
+                'password'    => 'string',
+                'remember_me' => 'bool'
+            ]
+        ];
+        $userApi = [
+            'path'    => 'user/session',
+            'verb'    => Verbs::POST,
+            'payload' => [
+                'email'       => 'string',
+                'password'    => 'string',
+                'remember_me' => 'bool'
+            ]
+        ];
 
-        if(class_exists(User::class)){
+        if (class_exists(User::class)) {
+            $oauth = static::getOAuthServices();
+            $ldap = static::getAdLdapServices();
+
             return [
-                'admin' => $adminApi,
-                'user' => $userApi
+                'admin'  => $adminApi,
+                'user'   => $userApi,
+                'oauth'  => $oauth,
+                'adldap' => $ldap
             ];
         }
 
         return ['admin' => $adminApi];
     }
 
+    /**
+     * @return array
+     */
     protected static function getOAuthServices()
     {
         $oauth = Service::whereIn(
@@ -75,14 +96,19 @@ class Environment extends BaseRestResource
         $services = [];
 
         foreach ($oauth as $o) {
-            $services[$o['type']][] = [
-                'name' => $o['name']
+            $services[] = [
+                'path' => 'user/session?service=' . strtolower($o['name']),
+                'verb' => Verbs::POST,
+                'type' => $o['type']
             ];
         }
 
         return $services;
     }
 
+    /**
+     * @return array
+     */
     protected static function getAdLdapServices()
     {
         $ldap = Service::whereIn(
@@ -93,7 +119,15 @@ class Environment extends BaseRestResource
         $services = [];
 
         foreach ($ldap as $l) {
-            $services[$l['type']][] = ['name' => $l['name']];
+            $services[] = [
+                'path'    => 'user/session?service=' . strtolower($l['name']),
+                'verb'    => Verbs::POST,
+                'payload' => [
+                    'username'    => 'string',
+                    'password'    => 'string',
+                    'remember_me' => 'bool'
+                ]
+            ];
         }
 
         return $services;

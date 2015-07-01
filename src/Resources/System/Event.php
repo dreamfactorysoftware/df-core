@@ -3,10 +3,8 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Components\ApiDocManager;
-use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Models\EventScript;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Utility\ResponseFactory;
@@ -20,15 +18,6 @@ use DreamFactory\Library\Utility\Inflector;
  */
 class Event extends BaseRestResource
 {
-    //*************************************************************************
-    //	Members
-    //*************************************************************************
-
-    /**
-     * @var BaseSystemModel $modelClass
-     */
-    protected $model = EventScript::class;
-
     //*************************************************************************
     //	Methods
     //*************************************************************************
@@ -52,10 +41,8 @@ class Event extends BaseRestResource
                     foreach ($apis as $path => &$operations) {
                         foreach ($operations as $method => &$events) {
                             foreach ($events as $eventKey) {
-                                if ((0 === strcasecmp($event, $eventKey)))
-                                {
-                                    switch ($type)
-                                    {
+                                if ((0 === strcasecmp($event, $eventKey))) {
+                                    switch ($type) {
                                         case 'process':
                                             return true;
                                         case 'broadcast':
@@ -160,15 +147,13 @@ class Event extends BaseRestResource
             $related = [];
         }
 
-        $modelClass = $this->model;
-
         //	Single script by name
         $fields = ['*'];
         if (null !== ($value = $this->request->getParameter('fields'))) {
             $fields = explode(',', $value);
         }
 
-        $foundModel = $modelClass::with($related)->find($this->resource, $fields);
+        $foundModel = EventScript::with($related)->find($this->resource, $fields);
         if ($foundModel) {
             $data = $foundModel->toArray();
         }
@@ -198,36 +183,12 @@ class Event extends BaseRestResource
             throw new BadRequestException('No record detected in request.');
         }
 
-        $modelClass = $this->model;
         $record['affects_process'] = static::affectsProcess($this->resource);
-        $result = $modelClass::createById($this->resource, $record, $this->request->getParameters());
-
-        $response = ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
-
-        return $response;
-    }
-
-    /**
-     * Handles PATCH action
-     *
-     * @return \DreamFactory\Core\Utility\ServiceResponse
-     * @throws BadRequestException
-     * @throws \Exception
-     */
-    protected function handlePATCH()
-    {
-        if (empty($this->resource)) {
-            return false;
+        if (EventScript::whereName($this->resource)->exists()) {
+            $result = EventScript::updateById($this->resource, $record, $this->request->getParameters());
+        } else {
+            $result = EventScript::createById($this->resource, $record, $this->request->getParameters());
         }
-
-        $record = $this->getPayloadData();
-        if (empty($record)) {
-            throw new BadRequestException('No record detected in request.');
-        }
-
-        $modelClass = $this->model;
-        unset($record['affects_process']);
-        $result = $modelClass::updateById($this->resource, $record, $this->request->getParameters());
 
         return $result;
     }
@@ -245,8 +206,7 @@ class Event extends BaseRestResource
             return false;
         }
 
-        $modelClass = $this->model;
-        $result = $modelClass::deleteById($this->resource, $this->request->getParameters());
+        $result = EventScript::deleteById($this->resource, $this->request->getParameters());
 
         return $result;
     }
@@ -574,13 +534,10 @@ class Event extends BaseRestResource
 
         $models = [];
 
-        if (!empty($this->model) && class_exists($this->model)) {
-            /** @type BaseSystemModel $model */
-            $model = new $this->model;
-            $temp = $model->toApiDocsModel('EventScript');
-            if ($temp) {
-                $models = array_merge($models, $temp);
-            }
+        $model = new EventScript;
+        $temp = $model->toApiDocsModel('EventScript');
+        if ($temp) {
+            $models = array_merge($models, $temp);
         }
 
         return ['apis' => $apis, 'models' => $models];

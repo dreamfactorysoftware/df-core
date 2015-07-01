@@ -12,8 +12,6 @@ use DreamFactory\Library\Utility\Scalar;
 
 class Environment extends BaseRestResource
 {
-    const OAUTH_ROUTE = '/dsp/oauth/login/';
-
     /**
      * @return array
      */

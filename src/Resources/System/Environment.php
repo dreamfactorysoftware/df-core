@@ -91,15 +91,17 @@ class Environment extends BaseRestResource
         $oauth = Service::whereIn(
             'type',
             ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google']
-        )->whereIsActive(1)->get(['name', 'type'])->toArray();
+        )->whereIsActive(1)->get(['id', 'name', 'type']);
 
         $services = [];
 
         foreach ($oauth as $o) {
+            $config = $o->getConfigAttribute();
             $services[] = [
-                'path' => 'user/session?service=' . strtolower($o['name']),
-                'verb' => Verbs::POST,
-                'type' => $o['type']
+                'path' => 'user/session?service=' . strtolower($o->name),
+                'verb' => [Verbs::GET, Verbs::POST],
+                'type' => $o->type,
+                'icon_class' => $config['icon_class']
             ];
         }
 

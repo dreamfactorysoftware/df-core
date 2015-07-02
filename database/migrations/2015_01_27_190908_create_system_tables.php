@@ -392,6 +392,7 @@ class CreateSystemTables extends Migration
                 $t->longText('header');
                 $t->integer('method')->default(0);
                 $t->integer('max_age')->default(3600);
+                $t->boolean('enabled')->default(true);
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();

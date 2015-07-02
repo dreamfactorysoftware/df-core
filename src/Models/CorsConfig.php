@@ -20,13 +20,14 @@ class CorsConfig extends BaseSystemModel
     /**
      * @var array
      */
-    protected $fillable = ['path', 'origin', 'header', 'method', 'max_age'];
+    protected $fillable = ['path', 'origin', 'header', 'method', 'max_age', 'enabled'];
 
     /**
      * @var array
      */
     protected $casts = [
-        'method' => 'integer'
+        'method'  => 'integer',
+        'enabled' => 'boolean'
     ];
 
     /**

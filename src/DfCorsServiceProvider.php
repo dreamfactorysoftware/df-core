@@ -73,7 +73,7 @@ class DfCorsServiceProvider extends CorsServiceProvider
      */
     protected function getPath()
     {
-        $cors = CorsConfig::all()->toArray();
+        $cors = CorsConfig::whereEnabled(true)->get();
         $path = [];
 
         if (!empty($cors)) {

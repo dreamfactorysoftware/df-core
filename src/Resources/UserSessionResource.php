@@ -16,13 +16,27 @@ class UserSessionResource extends BaseRestResource
     const RESOURCE_NAME = 'session';
 
     /**
-     * Gets basic user session data.
+     * Gets basic user session data and performs OAuth login redirect.
      *
      * @return array
-     * @throws NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\UnauthorizedException
      */
     protected function handleGET()
     {
+        $serviceName = $this->request->getParameter('service');
+        if(!empty($serviceName)){
+            $service = ServiceHandler::getService($serviceName);
+            $serviceModel = Service::find($service->getServiceId());
+            $serviceType = $serviceModel->serviceType()->first();
+            $serviceGroup = $serviceType->group;
+
+            if ($serviceGroup !== 'oauth') {
+                throw new BadRequestException('Invalid login service provided. Please use an OAuth service.');
+            }
+            return $service->handleLogin($this->request->getDriver());
+
+        }
         return Session::getPublicInfo();
     }
 
@@ -62,7 +76,7 @@ class UserSessionResource extends BaseRestResource
                 if(!empty($oauthCallback)) {
                     return $service->handleOAuthCallback();
                 } else {
-                    return $service->handleLogin();
+                    return $service->handleLogin($this->request->getDriver());
                 }
             }
         } else {

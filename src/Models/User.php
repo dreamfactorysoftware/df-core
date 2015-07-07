@@ -127,6 +127,23 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     }
 
     /**
+     * @param $email
+     */
+    public function setEmailAttribute($email)
+    {
+        if ($this->exists && !empty($email)) {
+            $provider = (!empty($this->oauth_provider)) ? $this->oauth_provider : $this->adldap;
+            if (!empty($provider)) {
+                list($emailId, $domain) = explode('@', $email);
+                $emailId .= '+' . $provider;
+                $email = $emailId . '@' . $domain;
+            }
+        }
+
+        $this->attributes['email'] = $email;
+    }
+
+    /**
      * {@inheritdoc}
      */
     protected static function createInternal($record, $params = [])
@@ -224,7 +241,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 throw new ForbiddenException('Not allowed to delete an admin user.');
             } elseif (ArrayUtils::getBool($params, 'admin') && !$model->is_sys_admin) {
                 throw new BadRequestException('Cannot delete a non-admin user.');
-            } elseif (Session::getCurrentUserId() === $model->id){
+            } elseif (Session::getCurrentUserId() === $model->id) {
                 throw new ForbiddenException('Cannot delete your account.');
             }
 
@@ -270,15 +287,15 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         parent::boot();
 
         static::saved(
-            function(User $user){
-                if(!$user->is_active){
+            function (User $user){
+                if (!$user->is_active) {
                     JWTUtilities::invalidateTokenByUserId($user->id);
                 }
             }
         );
 
         static::deleted(
-            function(User $user){
+            function (User $user){
                 JWTUtilities::invalidateTokenByUserId($user->id);
             }
         );

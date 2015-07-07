@@ -11,7 +11,7 @@ class LookupKeysTest extends \DreamFactory\Core\Testing\TestCase
     protected $sytemLookup = [
         ['name' => 'host', 'value' => 'localhost'],
         ['name' => 'username', 'value' => 'jdoe'],
-        ['name' => 'password', 'value' => '1234', 'private' => 1]
+        ['name' => 'password', 'value' => '1234', 'private' => true]
     ];
 
     public function tearDown()

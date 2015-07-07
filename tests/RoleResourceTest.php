@@ -12,7 +12,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
     protected $role1 = [
         'name'                           => 'Test role 1',
         'description'                    => 'A test role',
-        'is_active'                      => 1,
+        'is_active'                      => true,
         'role_service_access_by_role_id' => [
             [
                 'service_id'     => 2,
@@ -25,12 +25,12 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
             [
                 'name'    => 'test1_1',
                 'value'   => '1231',
-                'private' => 0
+                'private' => false
             ],
             [
                 'name'    => 'test2_1',
                 'value'   => '12341',
-                'private' => 1
+                'private' => true
             ]
         ]
 
@@ -39,7 +39,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
     protected $role2 = [
         'name'                           => 'Test role 2',
         'description'                    => 'A test role',
-        'is_active'                      => 1,
+        'is_active'                      => true,
         'role_service_access_by_role_id' => [
             [
                 'service_id'     => 2,
@@ -52,12 +52,12 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
             [
                 'name'    => 'test1_2',
                 'value'   => '1232',
-                'private' => 0
+                'private' => false
             ],
             [
                 'name'    => 'test2_2',
                 'value'   => '12342',
-                'private' => 1
+                'private' => true
             ]
         ]
     ];
@@ -65,7 +65,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
     protected $role3 = [
         'name'                           => 'Test role 3',
         'description'                    => 'A test role',
-        'is_active'                      => 1,
+        'is_active'                      => true,
         'role_service_access_by_role_id' => [
             [
                 'service_id'     => 2,
@@ -78,12 +78,12 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
             [
                 'name'    => 'test1_3',
                 'value'   => '1233',
-                'private' => 0
+                'private' => false
             ],
             [
                 'name'    => 'test2_3',
                 'value'   => '12343',
-                'private' => 1
+                'private' => true
             ]
         ]
     ];

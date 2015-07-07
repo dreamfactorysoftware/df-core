@@ -12,7 +12,7 @@ class AppSeeder extends BaseModelSeeder
             'name'        => 'admin',
             'api_key'     => '6498a8ad1beb9d84d63035c5d1120c007fad6de706734db9689f8996707e0f7d',
             'description' => 'Default Admin Application',
-            'is_active'   => 1,
+            'is_active'   => true,
             'type'        => 3,
             'path'        => 'dreamfactory/app/index.html'
         ],

@@ -16,7 +16,7 @@ class FileServiceLocalTest extends \DreamFactory\Core\Testing\FileServiceTestCas
                     "name"        => "files",
                     "label"       => "Local file service",
                     "description" => "Local file service for unit test",
-                    "is_active"   => 1,
+                    "is_active"   => true,
                     "type"        => "local_file"
                 ]
             );

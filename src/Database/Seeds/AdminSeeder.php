@@ -23,8 +23,8 @@ class AdminSeeder extends Seeder
                     'name'         => 'DF Admin',
                     'email'        => 'dfadmin@' . gethostname() . '.com',
                     'password'     => 'Dream123!',
-                    'is_sys_admin' => 1,
-                    'is_active'    => 1
+                    'is_sys_admin' => true,
+                    'is_active'    => true
                 ]
             );
 

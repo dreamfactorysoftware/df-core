@@ -27,7 +27,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'label'          => 'System Management Service',
             'description'    => 'Service supporting management of the system.',
             'group'          => 'system',
-            'singleton'      => 1
+            'singleton'      => true
         ],
         [
             'name'           => 'swagger',
@@ -36,7 +36,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'label'          => 'Swagger API Docs',
             'description'    => 'API documenting and testing service using Swagger specifications.',
             'group'          => 'api_doc',
-            'singleton'      => 1
+            'singleton'      => true
         ],
         [
             'name'           => 'event',
@@ -45,7 +45,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'label'          => 'Event Service',
             'description'    => 'Service that allows clients to subscribe to system broadcast events.',
             'group'          => 'event',
-            'singleton'      => 1
+            'singleton'      => true
         ],
         [
             'name'           => 'script',
@@ -54,7 +54,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'label'          => 'Custom Scripting Service',
             'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
             'group'          => 'script',
-            'singleton'      => 0
+            'singleton'      => false
         ],
         [
             'name'           => 'local_file',
@@ -63,7 +63,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'label'          => 'Local File Service',
             'description'    => 'File service supporting the local file system.',
             'group'          => 'file',
-            'singleton'      => 1
+            'singleton'      => true
         ],
         [
             'name'           => 'local_email',
@@ -72,7 +72,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'label'          => 'Local Email Service',
             'description'    => 'Local email service using system configuration.',
             'group'          => 'email',
-            'singleton'      => 1
+            'singleton'      => true
         ],
         [
             'name'           => 'smtp_email',
@@ -81,7 +81,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'label'          => 'SMTP Email Service',
             'description'    => 'SMTP-based email service',
             'group'          => 'email',
-            'singleton'      => 0
+            'singleton'      => false
         ],
         [
             'name'           => 'mailgun_email',
@@ -90,7 +90,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'label'          => 'Mailgun Email Service',
             'description'    => 'Mailgun email service',
             'group'          => 'email',
-            'singleton'      => 0
+            'singleton'      => false
         ],
         [
             'name'           => 'mandrill_email',
@@ -99,7 +99,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'label'          => 'Mandrill Email Service',
             'description'    => 'Mandrill email service',
             'group'          => 'email',
-            'singleton'      => 0
+            'singleton'      => false
         ]
     ];
 }

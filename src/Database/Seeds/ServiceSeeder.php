@@ -12,28 +12,37 @@ class ServiceSeeder extends BaseModelSeeder
             'name'        => 'system',
             'label'       => 'System Management',
             'description' => 'Service for managing system resources.',
-            'is_active'   => 1,
+            'is_active'   => true,
             'type'        => 'system',
-            'mutable'     => 0,
-            'deletable'   => 0
+            'mutable'     => false,
+            'deletable'   => false
         ],
         [
             'name'        => 'api_docs',
             'label'       => 'Live API Docs',
             'description' => 'API documenting and testing service.',
-            'is_active'   => 1,
+            'is_active'   => true,
             'type'        => 'swagger',
-            'mutable'     => 0,
-            'deletable'   => 0
+            'mutable'     => false,
+            'deletable'   => false
         ],
         [
             'name'        => 'event',
             'label'       => 'Events',
             'description' => 'Service for displaying and subscribing to broadcast system events.',
-            'is_active'   => 1,
+            'is_active'   => true,
             'type'        => 'event',
-            'mutable'     => 0,
-            'deletable'   => 0
+            'mutable'     => false,
+            'deletable'   => false
+        ],
+        [
+            'name'        => 'files',
+            'label'       => 'Files',
+            'description' => 'Service for accessing local file storage.',
+            'is_active'   => true,
+            'type'        => 'local_file',
+            'mutable'     => false,
+            'deletable'   => false
         ]
     ];
 }

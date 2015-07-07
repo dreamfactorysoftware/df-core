@@ -22,7 +22,7 @@ class UserResourceTestCase extends TestCase
         'password'          => 'test1234',
         'security_question' => 'Make of your first car?',
         'security_answer'   => 'mazda',
-        'is_active'         => 1
+        'is_active'         => true
     ];
 
     protected $user2 = [
@@ -31,17 +31,17 @@ class UserResourceTestCase extends TestCase
         'last_name'              => 'Doe',
         'email'                  => 'jadoe@dreamfactory.com',
         'password'               => 'test1234',
-        'is_active'              => 1,
+        'is_active'              => true,
         'user_lookup_by_user_id' => [
             [
                 'name'    => 'test',
                 'value'   => '1234',
-                'private' => 0
+                'private' => false
             ],
             [
                 'name'    => 'test2',
                 'value'   => '5678',
-                'private' => 1
+                'private' => true
             ]
         ]
     ];
@@ -52,22 +52,22 @@ class UserResourceTestCase extends TestCase
         'last_name'              => 'Doe',
         'email'                  => 'ddoe@dreamfactory.com',
         'password'               => 'test1234',
-        'is_active'              => 1,
+        'is_active'              => true,
         'user_lookup_by_user_id' => [
             [
                 'name'    => 'test',
                 'value'   => '1234',
-                'private' => 0
+                'private' => false
             ],
             [
                 'name'    => 'test2',
                 'value'   => '5678',
-                'private' => 1
+                'private' => true
             ],
             [
                 'name'    => 'test3',
                 'value'   => '56789',
-                'private' => 1
+                'private' => true
             ]
         ]
     ];
@@ -152,7 +152,7 @@ class UserResourceTestCase extends TestCase
         $this->assertEquals('1234', Arr::get($content, 'user_lookup_by_user_id.0.value'));
 
         Arr::set($content, 'user_lookup_by_user_id.0.name', 'my_param');
-        Arr::set($content, 'user_lookup_by_user_id.1', ['name' => 'param2', 'value' => 'secret', 'private' => 1]);
+        Arr::set($content, 'user_lookup_by_user_id.1', ['name' => 'param2', 'value' => 'secret', 'private' => true]);
 
         $rs = $this->makeRequest(
             Verbs::PATCH,
@@ -178,7 +178,7 @@ class UserResourceTestCase extends TestCase
         $payload = json_encode(
             [
                 [
-                    'is_active'              => 0,
+                    'is_active'              => false,
                     'user_lookup_by_user_id' => [
                         [
                             'name'  => 'common',

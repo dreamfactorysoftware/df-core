@@ -40,7 +40,7 @@ class CacheUtilitiesTest extends \DreamFactory\Core\Testing\TestCase
             'last_name'         => 'Doe',
             'email'             => 'john@dreamfactory.com',
             'password'          => 'test1234',
-            'is_active'         => 1
+            'is_active'         => true
         ];
 
         /** @type User $user */

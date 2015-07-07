@@ -103,14 +103,14 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
         if ($schema) {
             $out = [];
             foreach ($schema->columns as $name => $column) {
-                if ('service_id' === $name) {
+                /** @var ColumnSchema $column */
+                if (('service_id' === $name) || $column->autoIncrement){
                     continue;
                 }
 
-                /** @var ColumnSchema $column */
                 $temp = $column->toArray();
                 static::prepareConfigSchemaField($temp);
-                $out[$name] = $temp;
+                $out[] = $temp;
             }
 
             return $out;
@@ -125,7 +125,6 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     protected static function prepareConfigSchemaField(array &$schema)
     {
         // clear out server-specific info
-        unset($schema['php_type']);
-        unset($schema['pdo_type']);
+        unset($schema['php_type'],$schema['pdo_type'],$schema['db_type'],$schema['auto_increment'],$schema['is_index']);
     }
 }

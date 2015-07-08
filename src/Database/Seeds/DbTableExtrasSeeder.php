@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Database\Seeds;
 use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\AppGroup;
 use DreamFactory\Core\Models\AppLookup;
+use DreamFactory\Core\Models\AppToAppGroup;
 use DreamFactory\Core\Models\DbTableExtras;
 use DreamFactory\Core\Models\EmailTemplate;
 use DreamFactory\Core\Models\EventScript;
@@ -76,6 +77,10 @@ class DbTableExtrasSeeder extends BaseModelSeeder
         [
             'table' => 'app_group',
             'model' => AppGroup::class,
+        ],
+        [
+            'table' => 'app_to_app_group',
+            'model' => AppToAppGroup::class
         ],
         [
             'table' => 'system_resource',

@@ -29,6 +29,7 @@ class CreateSystemTables extends Migration
                 $t->string('security_question')->nullable();
                 $t->longText('security_answer')->nullable();
                 $t->string('confirm_code')->nullable();
+                $t->integer('default_app_id')->nullable();
                 $t->rememberToken();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');

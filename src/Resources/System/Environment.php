@@ -24,6 +24,7 @@ class Environment extends BaseRestResource
             'version_latest'    => '2.0.0',
             'upgrade_available' => false,
             'is_hosted'         => false,
+            'host'              => php_uname('n'),
         ];
 
         if (SessionUtilities::isSysAdmin()) {
@@ -91,16 +92,18 @@ class Environment extends BaseRestResource
         $oauth = Service::whereIn(
             'type',
             ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google']
-        )->whereIsActive(1)->get(['id', 'name', 'type']);
+        )->whereIsActive(1)->get(['id', 'name', 'type', 'label']);
 
         $services = [];
 
         foreach ($oauth as $o) {
             $config = $o->getConfigAttribute();
             $services[] = [
-                'path' => 'user/session?service=' . strtolower($o->name),
-                'verb' => [Verbs::GET, Verbs::POST],
-                'type' => $o->type,
+                'path'       => 'user/session?service=' . strtolower($o->name),
+                'name'       => $o->name,
+                'label'      => $o->label,
+                'verb'       => [Verbs::GET, Verbs::POST],
+                'type'       => $o->type,
                 'icon_class' => $config['icon_class']
             ];
         }
@@ -116,13 +119,15 @@ class Environment extends BaseRestResource
         $ldap = Service::whereIn(
             'type',
             ['ldap', 'adldap']
-        )->whereIsActive(1)->get(['name', 'type'])->toArray();
+        )->whereIsActive(1)->get(['name', 'type', 'label']);
 
         $services = [];
 
         foreach ($ldap as $l) {
             $services[] = [
-                'path'    => 'user/session?service=' . strtolower($l['name']),
+                'path'    => 'user/session?service=' . strtolower($l->name),
+                'name'    => $l->name,
+                'label'   => $l->label,
                 'verb'    => Verbs::POST,
                 'payload' => [
                     'username'    => 'string',

@@ -374,6 +374,7 @@ class CreateSystemTables extends Migration
             function (Blueprint $t){
                 $t->string('db_version', 32)->primary();
                 $t->boolean('login_with_user_name')->default(0);
+                $t->integer('default_app_id')->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();

@@ -13,6 +13,7 @@ use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Core\Models\Config as SystemConfig;
 
 class Environment extends BaseRestResource
 {
@@ -107,8 +108,8 @@ class Environment extends BaseRestResource
         }
 
         if (empty($defaultAppId)) {
-            $systemConfig = \DB::table('system_config')->first(['default_app_id']);
-            $defaultAppId = ($systemConfig) ? $systemConfig->default_app_id : null;
+            $systemConfig = SystemConfig::first(['default_app_id']);
+            $defaultAppId = (!empty($systemConfig))? $systemConfig->default_app_id : null;
         }
 
         $inGroups = [];

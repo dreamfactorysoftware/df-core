@@ -354,10 +354,11 @@ class CreateSystemTables extends Migration
                 $t->string('table');
                 $t->string('field');
                 $t->string('label')->nullable();
+                $t->string('extra_type')->nullable();
                 $t->text('description')->nullable();
                 $t->text('picklist')->nullable();
                 $t->text('validation')->nullable();
-                $t->boolean('extra_type')->nullable();
+                $t->text('client_info')->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();

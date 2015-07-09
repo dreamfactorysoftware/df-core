@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Resources;
 
+use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
@@ -31,7 +32,7 @@ class UserSessionResource extends BaseRestResource
             $serviceType = $serviceModel->serviceType()->first();
             $serviceGroup = $serviceType->group;
 
-            if ($serviceGroup !== 'oauth') {
+            if ($serviceGroup !== ServiceTypeGroups::OAUTH) {
                 throw new BadRequestException('Invalid login service provided. Please use an OAuth service.');
             }
             return $service->handleLogin($this->request->getDriver());
@@ -59,7 +60,7 @@ class UserSessionResource extends BaseRestResource
             $serviceType = $serviceModel->serviceType()->first();
             $serviceGroup = $serviceType->group;
 
-            if (!in_array($serviceGroup, ['oauth', 'ldap'])) {
+            if (!in_array($serviceGroup, [ServiceTypeGroups::OAUTH, ServiceTypeGroups::LDAP])) {
                 throw new BadRequestException('Invalid login service provided. Please use an OAuth or AD/Ldap service.');
             }
 
@@ -70,7 +71,7 @@ class UserSessionResource extends BaseRestResource
                 ];
 
                 return $service->handleLogin($credentials, $this->getPayloadData('remember_me'));
-            } elseif ($serviceGroup === 'oauth') {
+            } elseif ($serviceGroup === ServiceTypeGroups::OAUTH) {
                 $oauthCallback = $this->request->getParameterAsBool('oauth_callback');
 
                 if(!empty($oauthCallback)) {

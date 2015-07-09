@@ -45,10 +45,12 @@ class Environment extends BaseRestResource
 
         $login = static::getLoginApi();
         $apps = static::getApps();
+        $groupedApps = ArrayUtils::get($apps, 0);
+        $noGroupApps = ArrayUtils::get($apps, 1);
 
         $result['authentication'] = $login;
-        $result['app_group'] = ArrayUtils::get($apps, 0, []);
-        $result['no_group_app'] = ArrayUtils::get($apps, 1, []);
+        $result['app_group'] = (count($groupedApps)>0)? $groupedApps : [];
+        $result['no_group_app'] = (count($noGroupApps)>0)? $noGroupApps : [];
 
         return $result;
     }
@@ -75,21 +77,17 @@ class Environment extends BaseRestResource
                 foreach ($userAppRoles as $uar) {
                     $appIds[] = $uar->app_id;
                 }
+                $appIdsString = implode(',', $appIds);
+                $typeStirng = implode(',', [AppTypes::PATH, AppTypes::URL]);
+
                 $appGroups = AppGroupModel::with(
                     [
-                        'app_by_app_to_app_group' => function ($q) use ($appIds){
-                            $q->whereIn('app.id', $appIds)
-                                ->OrWhere('role_id', '>', 0)
-                                ->whereIsActive(1)
-                                ->whereIn('type', [AppTypes::PATH, AppTypes::URL]);
+                        'app_by_app_to_app_group' => function ($q) use ($appIdsString, $typeStirng){
+                            $q->whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type IN ($typeStirng)");
                         }
                     ]
                 )->get();
-                $apps = AppModel::whereIn('id', $appIds)
-                    ->OrWhere('role_id', '>', 0)
-                    ->whereIsActive(1)
-                    ->whereIn('type', [AppTypes::PATH, AppTypes::URL])
-                    ->get();
+                $apps = AppModel::whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type IN ($typeStirng)")->get();
             }
         } else {
             $appGroups = AppGroupModel::with(

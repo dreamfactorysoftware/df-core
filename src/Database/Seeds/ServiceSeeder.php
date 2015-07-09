@@ -37,7 +37,7 @@ class ServiceSeeder extends BaseModelSeeder
         ],
         [
             'name'        => 'files',
-            'label'       => 'Files',
+            'label'       => 'Local File Storage',
             'description' => 'Service for accessing local file storage.',
             'is_active'   => true,
             'type'        => 'local_file',

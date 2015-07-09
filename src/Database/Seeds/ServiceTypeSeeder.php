@@ -35,7 +35,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'config_handler' => null,
             'label'          => 'Swagger API Docs',
             'description'    => 'API documenting and testing service using Swagger specifications.',
-            'group'          => 'API Docs',
+            'group'          => 'API Doc',
             'singleton'      => true
         ],
         [
@@ -62,7 +62,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'config_handler' => FilePublicPath::class,
             'label'          => 'Local File Service',
             'description'    => 'File service supporting the local file system.',
-            'group'          => 'Files',
+            'group'          => 'File',
             'singleton'      => true
         ],
         [

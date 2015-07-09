@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Components\ConnectionAdapter;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -112,8 +113,11 @@ class BaseModel extends Model
                     $newModels[] = new $relatedModel($record);
                 }
 
-                if (RelationSchema::HAS_MANY === $model->getReferencingType($name)) {
+                $relationType = $model->getReferencingType($name);
+                if (RelationSchema::HAS_MANY === $relationType) {
                     $model->getHasManyByRelationName($name)->saveMany($newModels);
+                } else {
+                    throw new NotImplementedException('Creating related record of relation type "'.$relationType.'" is not supported.');
                 }
             }
 

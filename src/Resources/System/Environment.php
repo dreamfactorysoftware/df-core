@@ -2,7 +2,11 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Enums\AppTypes;
+use DreamFactory\Core\Models\App;
+use DreamFactory\Core\Models\AppGroup;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\User\Services\User;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
@@ -24,6 +28,7 @@ class Environment extends BaseRestResource
             'version_latest'    => '2.0.0',
             'upgrade_available' => false,
             'is_hosted'         => false,
+            'host'              => php_uname('n'),
         ];
 
         if (SessionUtilities::isSysAdmin()) {
@@ -38,10 +43,118 @@ class Environment extends BaseRestResource
         }
 
         $login = static::getLoginApi();
+        $apps = static::getApps();
 
         $result['authentication'] = $login;
+        $result['app_group'] = ArrayUtils::get($apps, 0, []);
+        $result['no_group_app'] = ArrayUtils::get($apps, 1, []);
 
         return $result;
+    }
+
+    protected static function getApps()
+    {
+        if (SessionUtilities::isAuthenticated()) {
+            $user = SessionUtilities::user();
+            $defaultAppId = $user->default_app_id;
+
+            if (SessionUtilities::isSysAdmin()) {
+                $appGroups = AppGroup::with(
+                    [
+                        'app_by_app_to_app_group' => function ($q){
+                            $q->whereIsActive(1)->whereIn('type', [AppTypes::PATH, AppTypes::URL]);
+                        }
+                    ]
+                )->get();
+                $apps = App::whereIsActive(1)->whereIn('type', [AppTypes::PATH, AppTypes::URL])->get();
+            } else {
+                $userId = $user->id;
+                $userAppRoles = UserAppRole::whereUserId($userId)->whereNotNull('role_id')->get(['app_id']);
+                $appIds = [];
+                foreach ($userAppRoles as $uar) {
+                    $appIds[] = $uar->app_id;
+                }
+                $appGroups = AppGroup::with(
+                    [
+                        'app_by_app_to_app_group' => function ($q) use ($appIds){
+                            $q->whereIn('app.id', $appIds)
+                                ->OrWhere('role_id', '>', 0)
+                                ->whereIsActive(1)
+                                ->whereIn('type', [AppTypes::PATH, AppTypes::URL]);
+                        }
+                    ]
+                )->get();
+                $apps = App::whereIn('id', $appIds)
+                    ->OrWhere('role_id', '>', 0)
+                    ->whereIsActive(1)
+                    ->whereIn('type', [AppTypes::PATH, AppTypes::URL])
+                    ->get();
+            }
+        } else {
+            $appGroups = AppGroup::with(
+                [
+                    'app_by_app_to_app_group' => function ($q){
+                        $q->where('role_id', '>', 0)
+                            ->whereIsActive(1)
+                            ->whereIn('type', [AppTypes::PATH, AppTypes::URL]);
+                    }
+                ]
+            )->get();
+            $apps = App::whereIsActive(1)
+                ->where('role_id', '>', 0)
+                ->whereIn('type', [AppTypes::PATH, AppTypes::URL])
+                ->get();
+        }
+
+        if (empty($defaultAppId)) {
+            $systemConfig = \DB::table('system_config')->first(['default_app_id']);
+            $defaultAppId = $systemConfig->default_app_id;
+        }
+
+        $inGroups = [];
+        $groupedApps = [];
+        $noGroupedApps = [];
+
+        foreach ($appGroups as $appGroup) {
+            $appArray = $appGroup->getRelation('app_by_app_to_app_group')->toArray();
+            if (!empty($appArray)) {
+                $appInfo = [];
+                foreach ($appArray as $app) {
+                    $inGroups[] = $app['id'];
+                    $appInfo[] = static::makeAppInfo($app, $defaultAppId);
+                }
+
+                $groupedApps[] = [
+                    'id'          => $appGroup->id,
+                    'name'        => $appGroup->name,
+                    'description' => $appGroup->description,
+                    'app'         => $appInfo
+                ];
+            }
+        }
+
+        foreach ($apps as $app) {
+            if (!in_array($app->id, $inGroups)) {
+                $noGroupedApps[] = static::makeAppInfo($app->toArray(), $defaultAppId);
+            }
+        }
+
+        return [$groupedApps, $noGroupedApps];
+    }
+
+    protected static function makeAppInfo(array $app, $defaultAppId)
+    {
+        return [
+            'id'                      => $app['id'],
+            'name'                    => $app['name'],
+            'description'             => $app['description'],
+            'url'                     => $app['url'],
+            'path'                    => $app['path'],
+            'is_default'              => ($defaultAppId === $app['id']) ? true : false,
+            'allow_fullscreen_toggle' => $app['allow_fullscreen_toggle'],
+            'requires_fullscreen'     => $app['requires_fullscreen'],
+            'toggle_location'         => $app['toggle_location']
+        ];
     }
 
     /**
@@ -91,16 +204,18 @@ class Environment extends BaseRestResource
         $oauth = Service::whereIn(
             'type',
             ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google']
-        )->whereIsActive(1)->get(['id', 'name', 'type']);
+        )->whereIsActive(1)->get(['id', 'name', 'type', 'label']);
 
         $services = [];
 
         foreach ($oauth as $o) {
             $config = $o->getConfigAttribute();
             $services[] = [
-                'path' => 'user/session?service=' . strtolower($o->name),
-                'verb' => [Verbs::GET, Verbs::POST],
-                'type' => $o->type,
+                'path'       => 'user/session?service=' . strtolower($o->name),
+                'name'       => $o->name,
+                'label'      => $o->label,
+                'verb'       => [Verbs::GET, Verbs::POST],
+                'type'       => $o->type,
                 'icon_class' => $config['icon_class']
             ];
         }
@@ -116,17 +231,20 @@ class Environment extends BaseRestResource
         $ldap = Service::whereIn(
             'type',
             ['ldap', 'adldap']
-        )->whereIsActive(1)->get(['name', 'type'])->toArray();
+        )->whereIsActive(1)->get(['name', 'type', 'label']);
 
         $services = [];
 
         foreach ($ldap as $l) {
             $services[] = [
-                'path'    => 'user/session?service=' . strtolower($l['name']),
+                'path'    => 'user/session?service=' . strtolower($l->name),
+                'name'    => $l->name,
+                'label'   => $l->label,
                 'verb'    => Verbs::POST,
                 'payload' => [
                     'username'    => 'string',
                     'password'    => 'string',
+                    'service'     => $l->name,
                     'remember_me' => 'bool'
                 ]
             ];

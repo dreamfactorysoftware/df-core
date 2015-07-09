@@ -33,7 +33,8 @@ class Config extends BaseSystemModel
         'password_email_template_id',
         'api_key',
         'allow_guest_access',
-        'guest_role_id'
+        'guest_role_id',
+        'default_app_id'
     ];
 
     public static function boot()

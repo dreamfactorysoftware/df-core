@@ -3,9 +3,9 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Enums\AppTypes;
-use DreamFactory\Core\Models\App;
-use DreamFactory\Core\Models\AppGroup;
-use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Models\App as AppModel;
+use DreamFactory\Core\Models\AppGroup as AppGroupModel;
+use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\User\Services\User;
@@ -59,14 +59,14 @@ class Environment extends BaseRestResource
             $defaultAppId = $user->default_app_id;
 
             if (SessionUtilities::isSysAdmin()) {
-                $appGroups = AppGroup::with(
+                $appGroups = AppGroupModel::with(
                     [
                         'app_by_app_to_app_group' => function ($q){
                             $q->whereIsActive(1)->whereIn('type', [AppTypes::PATH, AppTypes::URL]);
                         }
                     ]
                 )->get();
-                $apps = App::whereIsActive(1)->whereIn('type', [AppTypes::PATH, AppTypes::URL])->get();
+                $apps = AppModel::whereIsActive(1)->whereIn('type', [AppTypes::PATH, AppTypes::URL])->get();
             } else {
                 $userId = $user->id;
                 $userAppRoles = UserAppRole::whereUserId($userId)->whereNotNull('role_id')->get(['app_id']);
@@ -74,7 +74,7 @@ class Environment extends BaseRestResource
                 foreach ($userAppRoles as $uar) {
                     $appIds[] = $uar->app_id;
                 }
-                $appGroups = AppGroup::with(
+                $appGroups = AppGroupModel::with(
                     [
                         'app_by_app_to_app_group' => function ($q) use ($appIds){
                             $q->whereIn('app.id', $appIds)
@@ -84,14 +84,14 @@ class Environment extends BaseRestResource
                         }
                     ]
                 )->get();
-                $apps = App::whereIn('id', $appIds)
+                $apps = AppModel::whereIn('id', $appIds)
                     ->OrWhere('role_id', '>', 0)
                     ->whereIsActive(1)
                     ->whereIn('type', [AppTypes::PATH, AppTypes::URL])
                     ->get();
             }
         } else {
-            $appGroups = AppGroup::with(
+            $appGroups = AppGroupModel::with(
                 [
                     'app_by_app_to_app_group' => function ($q){
                         $q->where('role_id', '>', 0)
@@ -100,7 +100,7 @@ class Environment extends BaseRestResource
                     }
                 ]
             )->get();
-            $apps = App::whereIsActive(1)
+            $apps = AppModel::whereIsActive(1)
                 ->where('role_id', '>', 0)
                 ->whereIn('type', [AppTypes::PATH, AppTypes::URL])
                 ->get();
@@ -108,7 +108,7 @@ class Environment extends BaseRestResource
 
         if (empty($defaultAppId)) {
             $systemConfig = \DB::table('system_config')->first(['default_app_id']);
-            $defaultAppId = $systemConfig->default_app_id;
+            $defaultAppId = ($systemConfig) ? $systemConfig->default_app_id : null;
         }
 
         $inGroups = [];
@@ -201,7 +201,7 @@ class Environment extends BaseRestResource
      */
     protected static function getOAuthServices()
     {
-        $oauth = Service::whereIn(
+        $oauth = ServiceModel::whereIn(
             'type',
             ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google']
         )->whereIsActive(1)->get(['id', 'name', 'type', 'label']);
@@ -228,7 +228,7 @@ class Environment extends BaseRestResource
      */
     protected static function getAdLdapServices()
     {
-        $ldap = Service::whereIn(
+        $ldap = ServiceModel::whereIn(
             'type',
             ['ldap', 'adldap']
         )->whereIsActive(1)->get(['name', 'type', 'label']);

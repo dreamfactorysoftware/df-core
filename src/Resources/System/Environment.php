@@ -78,16 +78,18 @@ class Environment extends BaseRestResource
                     $appIds[] = $uar->app_id;
                 }
                 $appIdsString = implode(',', $appIds);
-                $typeStirng = implode(',', [AppTypes::PATH, AppTypes::URL]);
+                $appIdsString = (empty($appIdsString))? '-1' : $appIdsString;
+                $typeString = implode(',', [AppTypes::PATH, AppTypes::URL]);
+                $typeString = (empty($typeString))? '-1' : $typeString;
 
                 $appGroups = AppGroupModel::with(
                     [
-                        'app_by_app_to_app_group' => function ($q) use ($appIdsString, $typeStirng){
-                            $q->whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type IN ($typeStirng)");
+                        'app_by_app_to_app_group' => function ($q) use ($appIdsString, $typeString){
+                            $q->whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type IN ($typeString)");
                         }
                     ]
                 )->get();
-                $apps = AppModel::whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type IN ($typeStirng)")->get();
+                $apps = AppModel::whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type IN ($typeString)")->get();
             }
         } else {
             $appGroups = AppGroupModel::with(

@@ -7,7 +7,6 @@ use DreamFactory\Core\Models\App as AppModel;
 use DreamFactory\Core\Models\AppGroup as AppGroupModel;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
-use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\User\Services\User;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -15,7 +14,7 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Core\Models\Config as SystemConfig;
 
-class Environment extends BaseRestResource
+class Environment extends BaseSystemResource
 {
     /**
      * @return array
@@ -49,8 +48,8 @@ class Environment extends BaseRestResource
         $noGroupApps = ArrayUtils::get($apps, 1);
 
         $result['authentication'] = $login;
-        $result['app_group'] = (count($groupedApps)>0)? $groupedApps : [];
-        $result['no_group_app'] = (count($noGroupApps)>0)? $noGroupApps : [];
+        $result['app_group'] = (count($groupedApps) > 0) ? $groupedApps : [];
+        $result['no_group_app'] = (count($noGroupApps) > 0) ? $noGroupApps : [];
 
         return $result;
     }
@@ -78,9 +77,9 @@ class Environment extends BaseRestResource
                     $appIds[] = $uar->app_id;
                 }
                 $appIdsString = implode(',', $appIds);
-                $appIdsString = (empty($appIdsString))? '-1' : $appIdsString;
+                $appIdsString = (empty($appIdsString)) ? '-1' : $appIdsString;
                 $typeString = implode(',', [AppTypes::PATH, AppTypes::URL]);
-                $typeString = (empty($typeString))? '-1' : $typeString;
+                $typeString = (empty($typeString)) ? '-1' : $typeString;
 
                 $appGroups = AppGroupModel::with(
                     [
@@ -89,7 +88,9 @@ class Environment extends BaseRestResource
                         }
                     ]
                 )->get();
-                $apps = AppModel::whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type IN ($typeString)")->get();
+                $apps =
+                    AppModel::whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type IN ($typeString)")
+                        ->get();
             }
         } else {
             $appGroups = AppGroupModel::with(
@@ -109,7 +110,7 @@ class Environment extends BaseRestResource
 
         if (empty($defaultAppId)) {
             $systemConfig = SystemConfig::first(['default_app_id']);
-            $defaultAppId = (!empty($systemConfig))? $systemConfig->default_app_id : null;
+            $defaultAppId = (!empty($systemConfig)) ? $systemConfig->default_app_id : null;
         }
 
         $inGroups = [];

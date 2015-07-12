@@ -64,7 +64,7 @@ class UserSessionResource extends BaseRestResource
                 throw new BadRequestException('Invalid login service provided. Please use an OAuth or AD/Ldap service.');
             }
 
-            if ($serviceGroup === 'ldap') {
+            if ($serviceGroup === ServiceTypeGroups::LDAP) {
                 $credentials = [
                     'username' => $this->getPayloadData('username'),
                     'password' => $this->getPayloadData('password')

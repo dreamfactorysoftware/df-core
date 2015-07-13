@@ -65,11 +65,11 @@ class Environment extends BaseRestResource
                 $appGroups = AppGroupModel::with(
                     [
                         'app_by_app_to_app_group' => function ($q){
-                            $q->whereIsActive(1)->whereIn('type', [AppTypes::PATH, AppTypes::URL]);
+                            $q->whereIsActive(1)->whereNotIn('type', [AppTypes::NONE]);
                         }
                     ]
                 )->get();
-                $apps = AppModel::whereIsActive(1)->whereIn('type', [AppTypes::PATH, AppTypes::URL])->get();
+                $apps = AppModel::whereIsActive(1)->whereNotIn('type', [AppTypes::NONE])->get();
             } else {
                 $userId = $user->id;
                 $userAppRoles = UserAppRole::whereUserId($userId)->whereNotNull('role_id')->get(['app_id']);
@@ -79,17 +79,17 @@ class Environment extends BaseRestResource
                 }
                 $appIdsString = implode(',', $appIds);
                 $appIdsString = (empty($appIdsString))? '-1' : $appIdsString;
-                $typeString = implode(',', [AppTypes::PATH, AppTypes::URL]);
+                $typeString = implode(',', [AppTypes::NONE]);
                 $typeString = (empty($typeString))? '-1' : $typeString;
 
                 $appGroups = AppGroupModel::with(
                     [
                         'app_by_app_to_app_group' => function ($q) use ($appIdsString, $typeString){
-                            $q->whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type IN ($typeString)");
+                            $q->whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type NOT IN ($typeString)");
                         }
                     ]
                 )->get();
-                $apps = AppModel::whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type IN ($typeString)")->get();
+                $apps = AppModel::whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type NOT IN ($typeString)")->get();
             }
         } else {
             $appGroups = AppGroupModel::with(
@@ -97,13 +97,13 @@ class Environment extends BaseRestResource
                     'app_by_app_to_app_group' => function ($q){
                         $q->where('role_id', '>', 0)
                             ->whereIsActive(1)
-                            ->whereIn('type', [AppTypes::PATH, AppTypes::URL]);
+                            ->whereNotIn('type', [AppTypes::NONE]);
                     }
                 ]
             )->get();
             $apps = AppModel::whereIsActive(1)
                 ->where('role_id', '>', 0)
-                ->whereIn('type', [AppTypes::PATH, AppTypes::URL])
+                ->whereNotIn('type', [AppTypes::NONE])
                 ->get();
         }
 
@@ -149,8 +149,7 @@ class Environment extends BaseRestResource
             'id'                      => $app['id'],
             'name'                    => $app['name'],
             'description'             => $app['description'],
-            'url'                     => $app['url'],
-            'path'                    => $app['path'],
+            'url'                     => $app['launch_url'],
             'is_default'              => ($defaultAppId === $app['id']) ? true : false,
             'allow_fullscreen_toggle' => $app['allow_fullscreen_toggle'],
             'requires_fullscreen'     => $app['requires_fullscreen'],

@@ -24,9 +24,14 @@ class BaseCustomModel extends BaseSystemModel
     public function getValueAttribute($value)
     {
         if (!is_array($value)) {
-            $value = json_decode($value, true);
+            $decodedValue = json_decode($value, true);
         }
 
-        return $value;
+        //Not a JSON string.
+        if (!empty($value) && empty($decodedValue)) {
+            $decodedValue = $value;
+        }
+
+        return $decodedValue;
     }
 }

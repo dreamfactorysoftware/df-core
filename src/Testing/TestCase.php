@@ -4,11 +4,11 @@ namespace DreamFactory\Core\Testing;
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ServiceHandler;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\TestCase as LaravelTestCase;
 use Artisan;
-use DreamFactory\Core\Services\BaseRestService;
 
 class TestCase extends LaravelTestCase
 {
@@ -41,8 +41,6 @@ class TestCase extends LaravelTestCase
         echo "\n------------------------------------------------------------------------------\n";
         echo "Running test: " . get_called_class() . "\n";
         echo "------------------------------------------------------------------------------\n\n";
-
-        static::$wrapper = \Config::get('df.resources_wrapper');
     }
 
     /**
@@ -60,6 +58,9 @@ class TestCase extends LaravelTestCase
         }
 
         $this->setService();
+
+        $config = $this->app->make('Config');
+        static::$wrapper = $config::get('df.resources_wrapper');
     }
 
     /**

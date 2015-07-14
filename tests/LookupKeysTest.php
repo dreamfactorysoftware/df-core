@@ -8,7 +8,7 @@ use DreamFactory\Core\Models\App;
 
 class LookupKeysTest extends \DreamFactory\Core\Testing\TestCase
 {
-    protected $sytemLookup = [
+    protected $systemLookup = [
         ['name' => 'host', 'value' => 'localhost'],
         ['name' => 'username', 'value' => 'jdoe'],
         ['name' => 'password', 'value' => '1234', 'private' => true]
@@ -16,7 +16,7 @@ class LookupKeysTest extends \DreamFactory\Core\Testing\TestCase
 
     public function tearDown()
     {
-        foreach ($this->sytemLookup as $sl) {
+        foreach ($this->systemLookup as $sl) {
             Lookup::whereName($sl['name'])->delete();
         }
 
@@ -25,7 +25,7 @@ class LookupKeysTest extends \DreamFactory\Core\Testing\TestCase
 
     public function testSystemLookup()
     {
-        Lookup::create($this->sytemLookup[0]);
+        Lookup::create($this->systemLookup[0]);
 
         $this->call(Verbs::GET, '/api/v2/system/environment');
 
@@ -37,10 +37,10 @@ class LookupKeysTest extends \DreamFactory\Core\Testing\TestCase
         $app = App::find(1);
         $apiKey = $app->api_key;
 
-        Lookup::create($this->sytemLookup[0]);
+        Lookup::create($this->systemLookup[0]);
 
         $this->call(Verbs::GET, '/api/v2/system/environment?api_key=' . $apiKey);
 
-        $this->assertEquals(Arr::get($this->sytemLookup, '0.value'), Session::get('lookup.host'));
+        $this->assertEquals(Arr::get($this->systemLookup, '0.value'), Session::get('lookup.host'));
     }
 }

@@ -126,8 +126,8 @@ abstract class FileServiceTestCase extends TestCase
         $rs = $this->makeRequest(Verbs::GET);
         $data = $rs->getContent();
 
-        $names = array_column($data['resource'], 'name');
-        $paths = array_column($data['resource'], 'path');
+        $names = array_column($data[static::$wrapper], 'name');
+        $paths = array_column($data[static::$wrapper], 'path');
 
         $this->assertTrue((in_array(static::CONTAINER_1, $names) && in_array(static::CONTAINER_2, $names)));
         $this->assertTrue((in_array(static::CONTAINER_1, $paths) && in_array(static::CONTAINER_2, $paths)));
@@ -138,7 +138,7 @@ abstract class FileServiceTestCase extends TestCase
         $rs = $this->makeRequest(Verbs::GET, null, ['as_access_components' => 'true']);
 
         $data = $rs->getContent();
-        $resources = $data['resource'];
+        $resources = $data[static::$wrapper];
 
         $this->assertTrue(
             in_array("", $resources) &&

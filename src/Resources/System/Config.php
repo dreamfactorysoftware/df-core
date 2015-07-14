@@ -307,8 +307,8 @@ HTML
             throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $records = $this->getPayloadData(self::RECORD_WRAPPER);
-        unset($records[0]['api_key']);
+        $records = $this->getPayloadData();
+        unset($records['api_key']);
 
         if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
@@ -317,10 +317,6 @@ HTML
         $this->triggerActionEvent($this->response);
 
         $modelClass = $this->model;
-        $result = $modelClass::bulkCreate($records, $this->request->getParameters());
-
-        $response = ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
-
-        return $response;
+        return $modelClass::create($records, $this->request->getParameters());
     }
 }

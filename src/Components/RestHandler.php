@@ -11,6 +11,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Contracts\ResourceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use \Config;
 
 /**
  * Class RestHandler
@@ -387,35 +388,41 @@ abstract class RestHandler implements RequestHandlerInterface
     }
 
     /**
-     * @param array       $records
+     * @param array       $resources
      * @param string|null $identifier
      * @param array|null  $fields
-     * @param string|null $wrapper
      *
      * @return array
      */
-    protected static function makeResourceList(array $records, $identifier = null, $fields = null, $wrapper = null)
+    protected static function cleanResources(array $resources, $identifier = null, $fields = null)
     {
         $data = [];
 
         if (empty($fields)) {
-            if (empty($identifier)) {
-                $identifier = 'name';
+            if (!empty($identifier)) {
+                $data = array_column($resources, $identifier);
+            } else {
+                $data = array_values($resources);
             }
-            $data = array_column($records, $identifier);
         } elseif ('*' === $fields) {
-            $data = array_values($records);
+            $data = array_values($resources);
         } else {
             if (is_string($fields)) {
                 $fields = explode(',', $fields);
             }
 
-            foreach ($records as $record) {
-                $data[] = array_intersect_key($record, array_flip($fields));
+            $fields = array_flip($fields);
+            foreach ($resources as $resource) {
+                $data[] = array_intersect_key($resource, $fields);
             }
         }
 
-        return ($wrapper) ? [$wrapper => $data] : $data;
+        if (Config::get('df.always_wrap_resources', false)) {
+            $wrapper = Config::get('df.resources_wrapper');
+            return ($wrapper) ? [$wrapper => $data] : $data;
+        }
+
+        return $data;
     }
 
     /**

@@ -20,10 +20,6 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 class ReadOnlySystemResource extends BaseRestResource
 {
     /**
-     *
-     */
-    const RECORD_WRAPPER = 'record';
-    /**
      * Default maximum records returned on filter request
      */
     const MAX_RECORDS_RETURNED = 1000;
@@ -60,16 +56,18 @@ class ReadOnlySystemResource extends BaseRestResource
             return $payload[$key];
         }
 
+//        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
         if (!empty($this->resource) && !empty($payload)) {
             // single records passed in which don't use the record wrapper, so wrap it
-            $payload = [static::RECORD_WRAPPER => [$payload]];
+            $payload = [$wrapper => [$payload]];
         } elseif (ArrayUtils::isArrayNumeric($payload)) {
             // import from csv, etc doesn't include a wrapper, so wrap it
-            $payload = [static::RECORD_WRAPPER => $payload];
+            $payload = [$wrapper => $payload];
         }
 
         if (empty($key)) {
-            $key = static::RECORD_WRAPPER;
+            $key = $wrapper;
         }
 
         return ArrayUtils::get($payload, $key);
@@ -108,9 +106,8 @@ class ReadOnlySystemResource extends BaseRestResource
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
         $data = $modelClass::selectByIds($ids, $related, $criteria);
-        $data = [self::RECORD_WRAPPER => $data];
 
-        return $data;
+        return static::cleanResources($data);
     }
 
     protected function retrieveByRecords(array $records, array $related = [])
@@ -139,9 +136,8 @@ class ReadOnlySystemResource extends BaseRestResource
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
         $data = $modelClass::selectByRequest($criteria, $related);
-        $data = [static::RECORD_WRAPPER => $data];
 
-        return $data;
+        return static::cleanResources($data);
     }
 
     /**
@@ -203,8 +199,10 @@ class ReadOnlySystemResource extends BaseRestResource
      */
     protected function handleGET()
     {
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
         $ids = $this->request->getParameter('ids');
-        $records = $this->getPayloadData(self::RECORD_WRAPPER);
+        $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
 
         $data = null;
 
@@ -231,8 +229,8 @@ class ReadOnlySystemResource extends BaseRestResource
         }
 
         if ($this->request->getParameterAsBool('include_count') === true) {
-            if (isset($data['record'])) {
-                $data['meta']['count'] = count($data['record']);
+            if (isset($data[$wrapper])) {
+                $data['meta']['count'] = count($data[$wrapper]);
             } elseif (!empty($data)) {
                 $data['meta']['count'] = 1;
             }
@@ -270,6 +268,9 @@ class ReadOnlySystemResource extends BaseRestResource
         $plural = Inflector::pluralize($name);
         $words = str_replace('_', ' ', $this->name);
         $pluralWords = Inflector::pluralize($words);
+//        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+
         $apis = [
             [
                 'path'        => $path,
@@ -451,7 +452,7 @@ class ReadOnlySystemResource extends BaseRestResource
             $plural . 'Request'  => [
                 'id'         => $plural . 'Request',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
@@ -471,7 +472,7 @@ class ReadOnlySystemResource extends BaseRestResource
             $plural . 'Response' => [
                 'id'         => $plural . 'Response',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [

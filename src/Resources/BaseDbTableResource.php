@@ -29,10 +29,6 @@ abstract class BaseDbTableResource extends BaseDbResource
      * Default maximum records returned on filter request
      */
     const MAX_RECORDS_RETURNED = 1000;
-    /**
-     * Default record wrapping tag for single or array of records
-     */
-    const RECORD_WRAPPER = 'record';
 
     //*************************************************************************
     //	Members
@@ -129,6 +125,8 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected function detectRequestMembers()
     {
+//        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
         // override - don't call parent class here
         $this->payload = $this->getPayloadData();
 
@@ -136,14 +134,14 @@ abstract class BaseDbTableResource extends BaseDbResource
             if (!empty($this->resourceId)) {
                 if (!empty($this->payload)) {
                     // fix wrapper on posted single record
-                    if (!isset($this->payload[static::RECORD_WRAPPER])) {
+                    if (!isset($this->payload[$wrapper])) {
                         // single records don't use the record wrapper, so wrap it
-                        $this->payload = [static::RECORD_WRAPPER => [$this->payload]];
+                        $this->payload = [$wrapper => [$this->payload]];
                     }
                 }
             } elseif (ArrayUtils::isArrayNumeric($this->payload)) {
                 // import from csv, etc doesn't include a wrapper, so wrap it
-                $this->payload = [static::RECORD_WRAPPER => $this->payload];
+                $this->payload = [$wrapper => $this->payload];
             } else {
                 if (!empty($this->payload)) {
                     switch ($this->request->getMethod()) {
@@ -152,9 +150,9 @@ abstract class BaseDbTableResource extends BaseDbResource
                         case Verbs::PATCH:
                         case Verbs::MERGE:
                             // fix wrapper on posted single record
-                            if (!isset($this->payload[static::RECORD_WRAPPER])) {
+                            if (!isset($this->payload[$wrapper])) {
                                 // stuff it back in for event
-                                $this->payload[static::RECORD_WRAPPER] = [$this->payload];
+                                $this->payload[$wrapper] = [$this->payload];
                             }
                             break;
                     }
@@ -243,12 +241,14 @@ abstract class BaseDbTableResource extends BaseDbResource
             return $_result;
         }
 
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
         $_ids = ArrayUtils::get($this->options, 'ids');
         if (!empty($_ids)) {
             //	Multiple resources by ID
             $_result = $this->retrieveRecordsByIds($this->resource, $_ids, $this->options);
         } else {
-            $_records = ArrayUtils::get($this->payload, static::RECORD_WRAPPER);
+            $_records = ($alwaysWrap ? ArrayUtils::get($this->payload, $wrapper) : $this->payload);
             if (!empty($_records)) {
                 // passing records to have them updated with new or more values, id field required
                 $_result = $this->retrieveRecords($this->resource, $_records, $this->options);
@@ -262,9 +262,12 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $_meta = ArrayUtils::get($_result, 'meta');
         unset($_result['meta']);
-        $_result = [static::RECORD_WRAPPER => $_result];
+        $_result = static::cleanResources($_result);
 
         if (!empty($_meta)) {
+            if (!isset($_result[$wrapper])) {
+                $_result = [$wrapper => $_result];
+            }
             $_result['meta'] = $_meta;
         }
 
@@ -288,7 +291,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $_records = ArrayUtils::get($this->payload, static::RECORD_WRAPPER);
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+        $_records = ($alwaysWrap ? ArrayUtils::get($this->payload, $wrapper) : $this->payload);
         if (empty($_records)) {
             throw new BadRequestException('No record(s) detected in request.');
         }
@@ -299,8 +304,11 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $_meta = ArrayUtils::get($_result, 'meta');
         unset($_result['meta']);
-        $_result = [static::RECORD_WRAPPER => $_result];
+        $_result = static::cleanResources($_result);
         if (!empty($_meta)) {
+            if (!isset($_result[$wrapper])) {
+                $_result = [$wrapper => $_result];
+            }
             $_result['meta'] = $_meta;
         }
 
@@ -318,7 +326,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             return false;
         }
 
-        $_records = ArrayUtils::get($this->payload, static::RECORD_WRAPPER);
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+        $_records = ($alwaysWrap ? ArrayUtils::get($this->payload, $wrapper) : $this->payload);
         if (empty($_records)) {
             throw new BadRequestException('No record(s) detected in request.');
         }
@@ -356,8 +366,11 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $_meta = ArrayUtils::get($_result, 'meta');
         unset($_result['meta']);
-        $_result = [static::RECORD_WRAPPER => $_result];
+        $_result = static::cleanResources($_result);
         if (!empty($_meta)) {
+            if (!isset($_result[$wrapper])){
+                $_result = [$wrapper => $_result];
+            }
             $_result['meta'] = $_meta;
         }
 
@@ -375,7 +388,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             return false;
         }
 
-        $_records = ArrayUtils::get($this->payload, static::RECORD_WRAPPER);
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+        $_records = ($alwaysWrap ? ArrayUtils::get($this->payload, $wrapper) : $this->payload);
         if (empty($_records)) {
             throw new BadRequestException('No record(s) detected in request.');
         }
@@ -412,8 +427,11 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $_meta = ArrayUtils::get($_result, 'meta');
         unset($_result['meta']);
-        $_result = [static::RECORD_WRAPPER => $_result];
+        $_result = static::cleanResources($_result);
         if (!empty($_meta)) {
+            if (!isset($_result[$wrapper])){
+                $_result = [$wrapper => $_result];
+            }
             $_result['meta'] = $_meta;
         }
 
@@ -437,11 +455,13 @@ abstract class BaseDbTableResource extends BaseDbResource
             return $this->deleteRecordById($this->resource, $this->resourceId, $this->options);
         }
 
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
         $_ids = ArrayUtils::get($this->options, 'ids');
         if (!empty($_ids)) {
             $_result = $this->deleteRecordsByIds($this->resource, $_ids, $this->options);
         } else {
-            $_records = ArrayUtils::get($this->payload, static::RECORD_WRAPPER);
+            $_records = ($alwaysWrap ? ArrayUtils::get($this->payload, $wrapper) : $this->payload);
             if (!empty($_records)) {
                 $_result = $this->deleteRecords($this->resource, $_records, $this->options);
             } else {
@@ -461,8 +481,11 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $_meta = ArrayUtils::get($_result, 'meta');
         unset($_result['meta']);
-        $_result = [static::RECORD_WRAPPER => $_result];
+        $_result = static::cleanResources($_result);
         if (!empty($_meta)) {
+            if (!isset($_result[$wrapper])) {
+                $_result = [$wrapper => $_result];
+            }
             $_result['meta'] = $_meta;
         }
 
@@ -552,7 +575,8 @@ abstract class BaseDbTableResource extends BaseDbResource
 
             $_context = null;
             if (!empty($_errors)) {
-                $_context = ['error' => $_errors, static::RECORD_WRAPPER => $_out];
+                $wrapper = \Config::get('df.resources_wrapper', 'resource');
+                $_context = ['error' => $_errors, $wrapper => $_out];
                 $_msg = 'Batch Error: Not all records could be created.';
             }
 
@@ -674,7 +698,8 @@ abstract class BaseDbTableResource extends BaseDbResource
 
             $_context = null;
             if (!empty($_errors)) {
-                $_context = ['error' => $_errors, static::RECORD_WRAPPER => $_out];
+                $wrapper = \Config::get('df.resources_wrapper', 'resource');
+                $_context = ['error' => $_errors, $wrapper => $_out];
                 $_msg = 'Batch Error: Not all records could be updated.';
             }
 
@@ -838,7 +863,8 @@ abstract class BaseDbTableResource extends BaseDbResource
 
             $_context = null;
             if (!empty($_errors)) {
-                $_context = ['error' => $_errors, static::RECORD_WRAPPER => $_out];
+                $wrapper = \Config::get('df.resources_wrapper', 'resource');
+                $_context = ['error' => $_errors, $wrapper => $_out];
                 $_msg = 'Batch Error: Not all records could be updated.';
             }
 
@@ -961,7 +987,8 @@ abstract class BaseDbTableResource extends BaseDbResource
 
             $_context = null;
             if (!empty($_errors)) {
-                $_context = ['error' => $_errors, static::RECORD_WRAPPER => $_out];
+                $wrapper = \Config::get('df.resources_wrapper', 'resource');
+                $_context = ['error' => $_errors, $wrapper => $_out];
                 $_msg = 'Batch Error: Not all records could be patched.';
             }
 
@@ -1123,7 +1150,8 @@ abstract class BaseDbTableResource extends BaseDbResource
 
             $_context = null;
             if (!empty($_errors)) {
-                $_context = ['error' => $_errors, static::RECORD_WRAPPER => $_out];
+                $wrapper = \Config::get('df.resources_wrapper', 'resource');
+                $_context = ['error' => $_errors, $wrapper => $_out];
                 $_msg = 'Batch Error: Not all records could be patched.';
             }
 
@@ -1323,7 +1351,8 @@ abstract class BaseDbTableResource extends BaseDbResource
 
             $_context = null;
             if (!empty($_errors)) {
-                $_context = ['error' => $_errors, static::RECORD_WRAPPER => $_out];
+                $wrapper = \Config::get('df.resources_wrapper', 'resource');
+                $_context = ['error' => $_errors, $wrapper => $_out];
                 $_msg = 'Batch Error: Not all records could be deleted.';
             }
 
@@ -1518,7 +1547,8 @@ abstract class BaseDbTableResource extends BaseDbResource
 
             $_context = null;
             if (!empty($_errors)) {
-                $_context = ['error' => $_errors, static::RECORD_WRAPPER => $_out];
+                $wrapper = \Config::get('df.resources_wrapper', 'resource');
+                $_context = ['error' => $_errors, $wrapper => $_out];
                 $_msg = 'Batch Error: Not all records could be retrieved.';
             }
 
@@ -2566,6 +2596,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $_base = parent::getApiDocInfo();
 
         $_commonResponses = ApiDocUtilities::getCommonResponses();
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
 
         $_apis = [
             [
@@ -4109,7 +4140,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             'RecordsRequest'      => [
                 'id'         => 'RecordsRequest',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of records.',
                         'items'       => [
@@ -4134,7 +4165,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             'IdsRecordRequest'    => [
                 'id'         => 'IdsRecordRequest',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'RecordRequest',
                         'description' => 'A single record, array of fields, used to modify existing records.',
                     ],
@@ -4167,7 +4198,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             'FilterRecordRequest' => [
                 'id'         => 'FilterRecordRequest',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'RecordRequest',
                         'description' => 'A single record, array of fields, used to modify existing records.',
                     ],
@@ -4187,7 +4218,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             'GetRecordsRequest'   => [
                 'id'         => 'GetRecordsRequest',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of records.',
                         'items'       => [
@@ -4222,7 +4253,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             'RecordsResponse'     => [
                 'id'         => 'RecordsResponse',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system user records.',
                         'items'       => [

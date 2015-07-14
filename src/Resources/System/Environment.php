@@ -32,6 +32,33 @@ class Environment extends BaseSystemResource
             'host'              => php_uname('n'),
         ];
 
+        $login = static::getLoginApi();
+        $apps = static::getApps();
+        $groupedApps = ArrayUtils::get($apps, 0);
+        $noGroupApps = ArrayUtils::get($apps, 1);
+
+        $result['authentication'] = $login;
+        $result['app_group'] = (count($groupedApps) > 0) ? $groupedApps : [];
+        $result['no_group_app'] = (count($noGroupApps) > 0) ? $noGroupApps : [];
+
+        /*
+         * Most API calls return a resource array or a single resource,
+         * If an array, shall we wrap it?, With what shall we wrap it?
+         */
+        $config = [
+            'always_wrap_resources' => \Config::get('df.always_wrap_resources'),
+            'resources_wrapper'     => \Config::get('df.resources_wrapper'),
+            'db'                    => [
+                /** The default number of records to return at once for database queries */
+                'max_records_returned' => \Config::get('df.db.max_records_returned'),
+                'time_format'          => \Config::get('df.db.time_format'),
+                'date_format'          => \Config::get('df.db.date_format'),
+                'datetime_format'      => \Config::get('df.db.datetime_format'),
+                'timestamp_format'     => \Config::get('df.db.timestamp_format'),
+            ],
+        ];
+        $result['config'] = $config;
+
         if (SessionUtilities::isSysAdmin()) {
             $result['server'] = [
                 'server_os' => strtolower(php_uname('s')),
@@ -42,15 +69,6 @@ class Environment extends BaseSystemResource
             ];
             $result['php'] = static::getPhpInfo();
         }
-
-        $login = static::getLoginApi();
-        $apps = static::getApps();
-        $groupedApps = ArrayUtils::get($apps, 0);
-        $noGroupApps = ArrayUtils::get($apps, 1);
-
-        $result['authentication'] = $login;
-        $result['app_group'] = (count($groupedApps) > 0) ? $groupedApps : [];
-        $result['no_group_app'] = (count($noGroupApps) > 0) ? $noGroupApps : [];
 
         return $result;
     }
@@ -78,9 +96,9 @@ class Environment extends BaseSystemResource
                     $appIds[] = $uar->app_id;
                 }
                 $appIdsString = implode(',', $appIds);
-                $appIdsString = (empty($appIdsString))? '-1' : $appIdsString;
+                $appIdsString = (empty($appIdsString)) ? '-1' : $appIdsString;
                 $typeString = implode(',', [AppTypes::NONE]);
-                $typeString = (empty($typeString))? '-1' : $typeString;
+                $typeString = (empty($typeString)) ? '-1' : $typeString;
 
                 $appGroups = AppGroupModel::with(
                     [
@@ -89,7 +107,9 @@ class Environment extends BaseSystemResource
                         }
                     ]
                 )->get();
-                $apps = AppModel::whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type NOT IN ($typeString)")->get();
+                $apps =
+                    AppModel::whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type NOT IN ($typeString)")
+                        ->get();
             }
         } else {
             $appGroups = AppGroupModel::with(
@@ -398,6 +418,9 @@ class Environment extends BaseSystemResource
         $plural = Inflector::pluralize($name);
         $words = str_replace('_', ' ', $this->name);
         $pluralWords = Inflector::pluralize($words);
+//        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+
         $apis = [
             [
                 'path'        => $path,
@@ -861,7 +884,7 @@ class Environment extends BaseSystemResource
             $plural . 'Request'  => [
                 'id'         => $plural . 'Request',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
@@ -881,7 +904,7 @@ class Environment extends BaseSystemResource
             $plural . 'Response' => [
                 'id'         => $plural . 'Response',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [

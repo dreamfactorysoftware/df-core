@@ -132,7 +132,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
     {
         $resources = $this->getResources();
         if (!empty($resources)) {
-            return static::makeResourceList($resources, 'name', $fields);
+            return static::cleanResources($resources, 'name', $fields);
         }
 
         return false;

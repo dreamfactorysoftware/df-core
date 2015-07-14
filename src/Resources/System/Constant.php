@@ -17,7 +17,7 @@ class Constant extends ReadOnlySystemResource
             }
         }
 
-        return ['resource' => $resources];
+        return $this->cleanResources($resources);
     }
 
     public function getApiDocInfo()

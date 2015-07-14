@@ -81,7 +81,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                 $resource['access'] = VerbsMask::maskToArray($this->getPermissions(ArrayUtils::get($resource, 'name')));
             }
 
-            return static::makeResourceList($resources, 'name', $fields, 'resource');
+            return static::cleanResources($resources, 'name', $fields);
         }
 
         return false;
@@ -139,6 +139,8 @@ class BaseRestService extends RestHandler implements ServiceInterface
 
     public function getApiDocInfo()
     {
+        $isWrapped = \Config::get('df.always_wrap_resources', false);
+        $wrapper = ($isWrapped) ? \Config::get('df.resources_wrapper'): null;
         /**
          * Some basic apis and models used in DSP REST interfaces
          */
@@ -157,7 +159,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                 'ComponentList' => [
                     'id'         => 'ComponentList',
                     'properties' => [
-                        'resource' => [
+                        $wrapper => [
                             'type'        => 'Array',
                             'description' => 'Array of accessible components available by this service.',
                             'items'       => [
@@ -178,7 +180,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                 'Resources'     => [
                     'id'         => 'Resources',
                     'properties' => [
-                        'resource' => [
+                        $wrapper => [
                             'type'        => 'Array',
                             'description' => 'Array of resources available by this service.',
                             'items'       => [

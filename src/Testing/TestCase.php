@@ -19,6 +19,9 @@ class TestCase extends LaravelTestCase
      */
     protected static $staged = false;
 
+    /** @var string resource array wrapper */
+    protected static $wrapper = null;
+
     /**
      * Provide the service id/name that you want to run
      * the test cases on.
@@ -38,6 +41,8 @@ class TestCase extends LaravelTestCase
         echo "\n------------------------------------------------------------------------------\n";
         echo "Running test: " . get_called_class() . "\n";
         echo "------------------------------------------------------------------------------\n\n";
+
+        static::$wrapper = \Config::get('df.resources_wrapper');
     }
 
     /**

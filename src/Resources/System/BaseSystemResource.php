@@ -22,10 +22,6 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 class BaseSystemResource extends BaseRestResource
 {
     /**
-     *
-     */
-    const RECORD_WRAPPER = 'record';
-    /**
      * Default maximum records returned on filter request
      */
     const MAX_RECORDS_RETURNED = 1000;
@@ -62,19 +58,21 @@ class BaseSystemResource extends BaseRestResource
             return $payload[$key];
         }
 
+//        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
         if (!empty($this->resource) && !empty($payload)) {
-            if(ArrayUtils::isArrayNumeric($payload)){
+            if (ArrayUtils::isArrayNumeric($payload)) {
                 throw new BadRequestException('Update by id accepts a single record. Array supplied.');
             }
             // single records passed in which don't use the record wrapper, so wrap it
-            $payload = [static::RECORD_WRAPPER => [$payload]];
+            $payload = [$wrapper => [$payload]];
         } elseif (ArrayUtils::isArrayNumeric($payload)) {
             // import from csv, etc doesn't include a wrapper, so wrap it
-            $payload = [static::RECORD_WRAPPER => $payload];
+            $payload = [$wrapper => $payload];
         }
 
         if (empty($key)) {
-            $key = static::RECORD_WRAPPER;
+            $key = $wrapper;
         }
 
         return ArrayUtils::get($payload, $key);
@@ -113,9 +111,8 @@ class BaseSystemResource extends BaseRestResource
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
         $data = $modelClass::selectByIds($ids, $related, $criteria);
-        $data = [self::RECORD_WRAPPER => $data];
 
-        return $data;
+        return static::cleanResources($data);
     }
 
     protected function retrieveByRecords(array $records, array $related = [])
@@ -144,9 +141,8 @@ class BaseSystemResource extends BaseRestResource
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
         $data = $modelClass::selectByRequest($criteria, $related);
-        $data = [static::RECORD_WRAPPER => $data];
 
-        return $data;
+        return static::cleanResources($data);
     }
 
     /**
@@ -208,8 +204,11 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handleGET()
     {
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+
         $ids = $this->request->getParameter('ids');
-        $records = $this->getPayloadData(self::RECORD_WRAPPER);
+        $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
 
         $data = null;
 
@@ -235,15 +234,15 @@ class BaseSystemResource extends BaseRestResource
             throw new NotFoundException("Record not found.");
         }
 
-        if ($this->request->getParameterAsBool('include_count') === true) {
-            if (isset($data['record'])) {
-                $data['meta']['count'] = count($data['record']);
+        if ($this->request->getParameterAsBool('include_count')) {
+            if (isset($data[$wrapper])) {
+                $data['meta']['count'] = count($data[$wrapper]);
             } elseif (!empty($data)) {
                 $data['meta']['count'] = 1;
             }
         }
 
-        if (!empty($data) && $this->request->getParameterAsBool('include_schema') === true) {
+        if (!empty($data) && $this->request->getParameterAsBool('include_schema')) {
             /** @var BaseSystemModel $model */
             $model = $this->getModel();
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
@@ -282,7 +281,9 @@ class BaseSystemResource extends BaseRestResource
             throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $records = $this->getPayloadData(self::RECORD_WRAPPER);
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+        $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
 
         if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
@@ -367,7 +368,9 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handlePATCH()
     {
-        $records = $this->getPayloadData(static::RECORD_WRAPPER);
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+        $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
         $ids = $this->request->getParameter('ids');
 
         if (empty($records)) {
@@ -455,7 +458,9 @@ class BaseSystemResource extends BaseRestResource
         } elseif (!empty($ids)) {
             $result = $this->deleteByIds($ids, $this->request->getParameters());
         } else {
-            $records = $this->getPayloadData(static::RECORD_WRAPPER);
+            $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+            $wrapper = \Config::get('df.resources_wrapper', 'resource');
+            $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
 
             if (empty($records)) {
                 throw new BadRequestException('No record(s) detected in request.');
@@ -490,6 +495,8 @@ class BaseSystemResource extends BaseRestResource
         $plural = Inflector::pluralize($name);
         $words = str_replace('_', ' ', $this->name);
         $pluralWords = Inflector::pluralize($words);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+
         $apis = [
             [
                 'path'        => $path,
@@ -953,7 +960,7 @@ class BaseSystemResource extends BaseRestResource
             $plural . 'Request'  => [
                 'id'         => $plural . 'Request',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
@@ -973,7 +980,7 @@ class BaseSystemResource extends BaseRestResource
             $plural . 'Response' => [
                 'id'         => $plural . 'Response',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [

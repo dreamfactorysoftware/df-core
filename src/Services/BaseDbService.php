@@ -73,7 +73,7 @@ abstract class BaseDbService extends BaseRestService
             }
         }
 
-        return ['resource' => $output];
+        return $this->cleanResources($output);
     }
 
     /**

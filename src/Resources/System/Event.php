@@ -135,7 +135,7 @@ class Event extends BaseRestResource
                 return $results;
             }
 
-            return ['resource' => $allEvents];
+            return $this->cleanResources($allEvents);
         }
 
         $data = null;

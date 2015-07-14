@@ -12,8 +12,8 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
 
     protected function adminCheck($records)
     {
-        if(isset($records['record'])){
-            $records = $records['record'];
+        if(isset($records[static::$wrapper])){
+            $records = $records[static::$wrapper];
         }
         foreach ($records as $user) {
             $userModel = \DreamFactory\Core\Models\User::find($user['id']);
@@ -37,8 +37,8 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE);
         $content = $rs->getContent();
 
-        $this->assertEquals(1, count($content['record']));
-        $this->assertEquals('DF Admin', Arr::get($content, 'record.0.name'));
+        $this->assertEquals(1, count($content[static::$wrapper]));
+        $this->assertEquals('DF Admin', Arr::get($content, static::$wrapper . '..0.name'));
     }
 
     /************************************************

@@ -190,7 +190,8 @@ class BaseModel extends Model
         }
 
         if (!empty($errors)) {
-            $msg = ['errors' => $errors, 'record' => $response];
+            $wrapper = \Config::get('df.resources_wrapper', 'resource');
+            $msg = ['errors' => $errors, $wrapper => $response];
             throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
                 $msg);
         }
@@ -204,7 +205,10 @@ class BaseModel extends Model
             }
         }
 
-        return $singlePayload ? current($response) : ['record' => $response];
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+
+        return $singlePayload ? current($response) : ($alwaysWrap ? [$wrapper => $response] : $response);
     }
 
     /**
@@ -398,7 +402,8 @@ class BaseModel extends Model
         }
 
         if (!empty($errors)) {
-            $msg = ['errors' => $errors, 'record' => $response];
+            $wrapper = \Config::get('df.resources_wrapper', 'resource');
+            $msg = ['errors' => $errors, $wrapper => $response];
             throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
                 $msg);
         }
@@ -412,7 +417,10 @@ class BaseModel extends Model
             }
         }
 
-        return $singlePayload ? current($response) : ['record' => $response];
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+
+        return $singlePayload ? current($response) : ($alwaysWrap ? [$wrapper => $response] : $response);
     }
 
     /**
@@ -561,7 +569,8 @@ class BaseModel extends Model
         }
 
         if (!empty($errors)) {
-            $msg = ['errors' => $errors, 'record' => $response];
+            $wrapper = \Config::get('df.resources_wrapper', 'resource');
+            $msg = ['errors' => $errors, $wrapper => $response];
             throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
                 $msg);
         }
@@ -575,7 +584,10 @@ class BaseModel extends Model
             }
         }
 
-        return $singlePayload ? current($response) : ['record' => $response];
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+
+        return $singlePayload ? current($response) : ($alwaysWrap ? [$wrapper => $response] : $response);
     }
 
     /**

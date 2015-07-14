@@ -12,6 +12,7 @@ use DreamFactory\Core\SqlDbCore\Schema;
 use DreamFactory\Core\SqlDbCore\TableSchema;
 use DreamFactory\Core\Components\Builder as DfBuilder;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Utility\Session as SessionUtility;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -97,7 +98,14 @@ class BaseModel extends Model
 
         try {
             /** @var BaseModel $model */
-            $model = parent::create($attributes);
+            $model = new static($attributes);
+
+            $userId = SessionUtility::getCurrentUserId();
+            if ($userId && static::isField('created_by_id')) {
+                $model->created_by_id = $userId;
+            }
+
+            $model->save();
 
             foreach ($relations as $name => $value) {
                 $relatedModel = $model->getReferencingModel($name);
@@ -117,7 +125,9 @@ class BaseModel extends Model
                 if (RelationSchema::HAS_MANY === $relationType) {
                     $model->getHasManyByRelationName($name)->saveMany($newModels);
                 } else {
-                    throw new NotImplementedException('Creating related record of relation type "'.$relationType.'" is not supported.');
+                    throw new NotImplementedException('Creating related record of relation type "' .
+                        $relationType .
+                        '" is not supported.');
                 }
             }
 
@@ -133,6 +143,15 @@ class BaseModel extends Model
         }
 
         return $model;
+    }
+
+    public static function isField($field)
+    {
+        $m = new static;
+        $tableSchema = $m->getTableSchema();
+        $columns = $tableSchema->getColumnNames();
+
+        return in_array($field, $columns);
     }
 
     /**
@@ -272,6 +291,10 @@ class BaseModel extends Model
         }
 
         try {
+            $userId = SessionUtility::getCurrentUserId();
+            if ($userId && static::isField('last_modified_by_id')) {
+                $this->last_modified_by_id = $userId;
+            }
             $updated = parent::update($attributes);
 
             if ($updated && $this->exists && count($relations) > 0) {
@@ -849,7 +872,10 @@ class BaseModel extends Model
                         //Foreign key field is null therefore delete the child record.
                         $model->delete();
                         continue;
-                    } elseif (!empty($fkId) && $fkId !== $this->{$this->primaryKey} && (null !== $parent = static::find($fkId))) {
+                    } elseif (!empty($fkId) &&
+                        $fkId !== $this->{$this->primaryKey} &&
+                        (null !== $parent = static::find($fkId))
+                    ) {
                         //Foreign key field is set but the id belongs to a different parent than this parent.
                         //There the child is adopted by the supplied parent id (foreign key).
                         $relatedData = [$relationName => [$d]];

@@ -224,7 +224,7 @@ class DataFormats extends FactoryEnum
             return $default;
         }
 
-        return static::$_contentTypeMap[$enum_value];
+        return (static::$_contentTypeMap[$enum_value])? : $default;
     }
 
     /**

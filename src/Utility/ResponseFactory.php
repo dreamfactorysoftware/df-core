@@ -20,9 +20,9 @@ use DreamFactory\Core\Exceptions\DfException;
 class ResponseFactory
 {
     /**
-     * @param mixed $content
-     * @param int $format
-     * @param int $status
+     * @param mixed       $content
+     * @param int         $format
+     * @param int         $status
      * @param string|null $content_type
      *
      * @return ServiceResponse
@@ -86,6 +86,7 @@ class ResponseFactory
 
         // we don't have an acceptable content type, see if we can convert the content.
         $acceptsAny = false;
+        $reformatted = false;
         foreach ($accepts as $acceptType) {
             $acceptFormat = DataFormats::fromMimeType($acceptType, null);
             $mimeType = (false !== strpos($acceptType, ';')) ? trim(strstr($acceptType, ';', true)) : $acceptType;
@@ -96,15 +97,15 @@ class ResponseFactory
                 continue;
             }
 
-            if (false !== $reformatted = DataFormatter::reformatData($content, $format, $acceptFormat)) {
-                return DfResponse::create($reformatted, $status, ["Content-Type" => $acceptType]);
-            }
+            $reformatted = DataFormatter::reformatData($content, $format, $acceptFormat);
         }
 
         if ($acceptsAny) {
-            $contentType = (empty($contentType)) ? DataFormats::toMimeType($format) : $contentType;
+            $contentType = (empty($contentType)) ? DataFormats::toMimeType($format, 'application/json') : $contentType;
 
             return DfResponse::create($content, $status, ["Content-Type" => $contentType]);
+        } else if (false !== $reformatted) {
+            return DfResponse::create($reformatted, $status, ["Content-Type" => $contentType]);
         }
 
         throw new BadRequestException('Content in response can not be resolved to acceptable content type.');

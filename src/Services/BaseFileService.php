@@ -416,18 +416,12 @@ abstract class BaseFileService extends BaseRestService
         $asAccessComp = $this->request->getParameterAsBool('as_access_components');
 
         if ($asAccessComp) {
-            $result = ["resource" => array_merge(["", "*"], $this->getResources())];
+            $result = array_merge(["", "*"], $this->getResources());
         } else {
             $result = $this->driver->listContainers($includeProperties);
-
-            if ($includeProperties) {
-                $result = ["container" => $result];
-            } else {
-                $result = ["resource" => $result];
-            }
         }
 
-        return $result;
+        return static::cleanResources($result);
     }
 
     /**

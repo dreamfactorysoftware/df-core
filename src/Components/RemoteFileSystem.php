@@ -16,6 +16,8 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
  */
 abstract class RemoteFileSystem implements FileSystemInterface
 {
+    protected $container = null;
+
     //*************************************************************************
     //	Methods
     //*************************************************************************
@@ -141,7 +143,8 @@ abstract class RemoteFileSystem implements FileSystemInterface
         if (!empty($path)) {
             $path = FileUtilities::fixFolderPath($path);
             $_shortName = FileUtilities::getNameFromPath($path);
-            $_out = ['container' => $container, 'name' => $_shortName, 'path' => $container . '/' . $path];
+            //$_out = ['container' => $container, 'name' => $_shortName, 'path' => $container . '/' . $path];
+            $_out = ['name' => $_shortName, 'path' => '/' . $path];
             if ($include_properties) {
                 // properties
                 if ($this->containerExists($container) && $this->blobExists($container, $path)) {
@@ -150,7 +153,8 @@ abstract class RemoteFileSystem implements FileSystemInterface
                 }
             }
         } else {
-            $_out = ['container' => $container, 'name' => $container, 'path' => $container];
+            //$_out = ['container' => $container, 'name' => $container, 'path' => $container];
+            $_out = ['name' => $container, 'path' => $container];
         }
 
         $_delimiter = ($full_tree) ? '' : '/';
@@ -166,7 +170,8 @@ abstract class RemoteFileSystem implements FileSystemInterface
             $_results = $this->listBlobs($container, $path, $_delimiter);
             foreach ($_results as $_data) {
                 $_fullPathName = ArrayUtils::get($_data, 'name');
-                $_data['path'] = $container . '/' . $_fullPathName;
+                //$_data['path'] = $container . '/' . $_fullPathName;
+                $_data['path'] = '/' . $_fullPathName;
                 $_data['name'] = rtrim(substr($_fullPathName, strlen($path)), '/');
                 if ('/' == substr($_fullPathName, -1)) {
                     // folders
@@ -436,7 +441,8 @@ abstract class RemoteFileSystem implements FileSystemInterface
         }
         $_blob = $this->getBlobProperties($container, $path);
         $_shortName = FileUtilities::getNameFromPath($path);
-        $_blob['path'] = $container . '/' . $path;
+        //$_blob['path'] = $container . '/' . $path;
+        $_blob['path'] = '/' . $path;
         $_blob['name'] = $_shortName;
         if ($include_content) {
             $data = $this->getBlobData($container, $path);
@@ -753,7 +759,30 @@ abstract class RemoteFileSystem implements FileSystemInterface
             }
         }
 
-        return ['folder' => ['name' => rtrim($path, DIRECTORY_SEPARATOR), 'path' => $container . '/' . $path]];
+        //return ['folder' => ['name' => rtrim($path, DIRECTORY_SEPARATOR), 'path' => $container . '/' . $path]];
+        return ['folder' => ['name' => rtrim($path, DIRECTORY_SEPARATOR), 'path' => '/' . $path]];
+    }
+
+    protected function listResource($includeProperties = false)
+    {
+        $out = [];
+
+        $result = $this->getFolder($this->container, '', true, true, false, $includeProperties);
+
+        $folders = ArrayUtils::get($result, 'folder', []);
+        $files = ArrayUtils::get($result, 'file', []);
+
+        foreach ($folders as $folder) {
+            $folder['path'] = trim($folder['path'], '/');
+            $out[] = $folder;
+        }
+
+        foreach ($files as $file) {
+            $file['path'] = trim($file['path'], '/');
+            $out[] = $file;
+        }
+
+        return $out;
     }
 
     /**

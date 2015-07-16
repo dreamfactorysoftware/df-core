@@ -83,10 +83,17 @@ abstract class BaseFileService extends BaseRestService
     {
         parent::setResourceMembers($resourcePath);
 
-        $this->container = ArrayUtils::get($this->resourceArray, 0);
+        //$this->container = ArrayUtils::get($this->resourceArray, 0);
 
-        if (!empty($this->container)) {
-            $temp = substr($this->resourcePath, strlen($this->container . '/'));
+        if (!empty($this->resource)) {
+            //$temp = substr($this->resourcePath, strlen($this->container . '/'));
+            if (count($this->resourceArray) === 2 && $this->resourceArray[1] === '') {
+                $temp = $this->resource . '/';
+            } else if (count($this->resourceArray) === 1) {
+                $temp = $this->resource;
+            } else {
+                $temp = $resourcePath;
+            }
             if (false !== $temp) {
                 if ($this->hasTrailingSlash($temp)) {
                     $this->folderPath = $temp;
@@ -127,11 +134,13 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handleGET()
     {
-        if (empty($this->container)) {
-            $result = $this->handleGetResource();
-        } elseif (empty($this->folderPath)) {
+//        if (empty($this->container)) {
+//            $result = $this->handleGetResource();
+//        } else
+
+        if (empty($this->folderPath)) {
             //Resource is a container
-            $result = $this->handleGetContainer();
+            $result = $this->handleGetResource();
         } elseif (empty($this->filePath)) {
             //Resource is a folder
             $result = $this->handleGetFolder();
@@ -153,23 +162,25 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handlePOST()
     {
-        if (empty($this->container)) {
-            // create one or more containers
-            $checkExist = $this->request->getParameterAsBool('check_exist', false);
-            $data = $this->request->getPayloadData();
-            $containers = ArrayUtils::get($data, 'container');
+//        if (empty($this->container)) {
+//            // create one or more containers
+//            $checkExist = $this->request->getParameterAsBool('check_exist', false);
+//            $data = $this->request->getPayloadData();
+//            $containers = ArrayUtils::get($data, 'container');
+//
+//            if (empty($containers)) {
+//                $containers = ArrayUtils::getDeep($data, 'containers', 'container');
+//            }
+//
+//            if (!empty($containers)) {
+//                $result = $this->driver->createContainers($containers, $checkExist);
+//                $result = ['container' => $result];
+//            } else {
+//                $result = $this->driver->createContainer($data, $checkExist);
+//            }
+//        } else
 
-            if (empty($containers)) {
-                $containers = ArrayUtils::getDeep($data, 'containers', 'container');
-            }
-
-            if (!empty($containers)) {
-                $result = $this->driver->createContainers($containers, $checkExist);
-                $result = ['container' => $result];
-            } else {
-                $result = $this->driver->createContainer($data, $checkExist);
-            }
-        } else if (empty($this->folderPath) || empty($this->filePath)) {
+        if (empty($this->folderPath) || empty($this->filePath)) {
             // create folders and files
             // possible file handling parameters
             $extract = $this->request->getParameterAsBool('extract', false);;
@@ -202,7 +213,8 @@ abstract class BaseFileService extends BaseRestService
                     'folder' => [
                         [
                             'name' => $folderNameHeader,
-                            'path' => $this->container . '/' . $fullPathName
+                            //'path' => $this->container . '/' . $fullPathName
+                            'path' => '/' . $fullPathName
                         ]
                     ]
                 ];
@@ -237,6 +249,7 @@ abstract class BaseFileService extends BaseRestService
                 if (empty($data)) {
                     // create folder from resource path
                     $this->driver->createFolder($this->container, $this->folderPath);
+                    //$result = ['folder' => [['path' => $this->container . '/' . $this->folderPath]]];
                     $result = ['folder' => [['path' => $this->container . '/' . $this->folderPath]]];
                 } else {
                     $result = $this->handleFolderContentFromData($data, $extract, $clean, $checkExist);
@@ -304,10 +317,12 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handlePATCH()
     {
-        if (empty($this->container)) {
-            // nothing?
-            $result = [];
-        } else if (empty($this->folderPath)) {
+//        if (empty($this->container)) {
+//            // nothing?
+//            $result = [];
+//        } else
+
+        if (empty($this->folderPath)) {
             // update container properties
             $content = $this->getPayloadData();
             $this->driver->updateContainerProperties($this->container, $content);
@@ -319,7 +334,8 @@ abstract class BaseFileService extends BaseRestService
             $result = [
                 'folder' => [
                     'name' => basename($this->folderPath),
-                    'path' => $this->container . '/' . $this->folderPath
+                    //'path' => $this->container . '/' . $this->folderPath
+                    'path' => '/' . $this->folderPath
                 ]
             ];
         } else {
@@ -329,7 +345,8 @@ abstract class BaseFileService extends BaseRestService
             $result = [
                 'file' => [
                     'name' => basename($this->filePath),
-                    'path' => $this->container . '/' . $this->filePath
+                    //'path' => $this->container . '/' . $this->filePath
+                    'path' => '/' . $this->filePath
                 ]
             ];
         }
@@ -348,37 +365,38 @@ abstract class BaseFileService extends BaseRestService
         $force = $this->request->getParameterAsBool('force', false);
         $content = $this->request->getPayloadData();
 
-        if (empty($this->container)) {
-            $containers = ArrayUtils::get($content, 'container');
-            if (empty($containers)) {
-                $containers = ArrayUtils::getDeep($content, 'containers', 'container');
-            }
-
-            if (empty($containers)) {
-                $namesStr = $this->request->getParameter('names', '');
-
-                if (!empty($namesStr)) {
-                    $names = explode(',', $namesStr);
-
-                    foreach ($names as $n) {
-                        $containers[] = ["name" => $n];
-                    }
-                }
-            }
-
-            if (!empty($containers)) {
-                // delete multiple containers
-                $result = $this->driver->deleteContainers($containers, $force);
-                $result = ['container' => $result];
-            } else {
-                $_name = ArrayUtils::get($content, 'name', trim(ArrayUtils::get($content, 'path'), '/'));
-                if (empty($_name)) {
-                    throw new BadRequestException('No name found for container in delete request.');
-                }
-                $this->driver->deleteContainer($_name, $force);
-                $result = ['name' => $_name, 'path' => $_name];
-            }
-        } else if (empty($this->folderPath)) {
+//        if (empty($this->container)) {
+//            $containers = ArrayUtils::get($content, 'container');
+//            if (empty($containers)) {
+//                $containers = ArrayUtils::getDeep($content, 'containers', 'container');
+//            }
+//
+//            if (empty($containers)) {
+//                $namesStr = $this->request->getParameter('names', '');
+//
+//                if (!empty($namesStr)) {
+//                    $names = explode(',', $namesStr);
+//
+//                    foreach ($names as $n) {
+//                        $containers[] = ["name" => $n];
+//                    }
+//                }
+//            }
+//
+//            if (!empty($containers)) {
+//                // delete multiple containers
+//                $result = $this->driver->deleteContainers($containers, $force);
+//                $result = ['container' => $result];
+//            } else {
+//                $_name = ArrayUtils::get($content, 'name', trim(ArrayUtils::get($content, 'path'), '/'));
+//                if (empty($_name)) {
+//                    throw new BadRequestException('No name found for container in delete request.');
+//                }
+//                $this->driver->deleteContainer($_name, $force);
+//                $result = ['name' => $_name, 'path' => $_name];
+//            }
+//        } else
+        if (empty($this->folderPath)) {
             // delete whole container
             // or just folders and files from the container
             if (empty($content)) {
@@ -392,14 +410,16 @@ abstract class BaseFileService extends BaseRestService
             // multi-file or folder delete via post data
             if (empty($content)) {
                 $this->driver->deleteFolder($this->container, $this->folderPath, $force);
-                $result = ['folder' => [['path' => $this->container . '/' . $this->folderPath]]];
+                //$result = ['folder' => [['path' => $this->container . '/' . $this->folderPath]]];
+                $result = ['folder' => [['path' => '/' . $this->folderPath]]];
             } else {
                 $result = $this->deleteFolderContent($content, $this->folderPath, $force);
             }
         } else {
             // delete file from permanent storage
             $this->driver->deleteFile($this->container, $this->filePath);
-            $result = ['file' => [['path' => $this->container . '/' . $this->filePath]]];
+            //$result = ['file' => [['path' => $this->container . '/' . $this->filePath]]];
+            $result = ['file' => [['path' => '/' . $this->filePath]]];
         }
 
         return $result;
@@ -611,7 +631,8 @@ abstract class BaseFileService extends BaseRestService
                 'file' => [
                     [
                         'name' => $dest_name,
-                        'path' => $this->container . '/' . $fullPathName
+                        //'path' => $this->container . '/' . $fullPathName
+                        'path' => '/' . $fullPathName
                     ]
                 ]
             ];
@@ -660,7 +681,8 @@ abstract class BaseFileService extends BaseRestService
                 'file' => [
                     [
                         'name' => $name,
-                        'path' => $this->container . '/' . $fullPathName
+                        //'path' => $this->container . '/' . $fullPathName
+                        'path' => '/' . $fullPathName
                     ]
                 ]
             ];
@@ -738,7 +760,8 @@ abstract class BaseFileService extends BaseRestService
                         $name = FileUtilities::getNameFromPath($srcPath);
                     }
                     $fullPathName = $this->folderPath . $name . '/';
-                    $out['folder'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
+                    //$out['folder'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
+                    $out['folder'][$key] = ['name' => $name, 'path' => '/' . $fullPathName];
                     try {
                         $this->driver->copyFolder($this->container, $fullPathName, $srcContainer, $srcPath, true);
                         $deleteSource = ArrayUtils::getBool($folder, 'delete_source');
@@ -755,9 +778,10 @@ abstract class BaseFileService extends BaseRestService
                     if ($isBase64) {
                         $content = base64_decode($content);
                     }
-                    $out['folder'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
+                    //$out['folder'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
+                    $out['folder'][$key] = ['name' => $name, 'path' => '/' . $fullPathName];
                     try {
-                        $this->driver->createFolder($this->container, $fullPathName, true, $content);
+                        $this->driver->createFolder($this->container, $fullPathName, true, $content, $checkExist);
                     } catch (\Exception $ex) {
                         $out['folder'][$key]['error'] = ['message' => $ex->getMessage()];
                     }
@@ -783,7 +807,8 @@ abstract class BaseFileService extends BaseRestService
                         $name = FileUtilities::getNameFromPath($srcPath);
                     }
                     $fullPathName = $this->folderPath . $name;
-                    $out['file'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
+                    //$out['file'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
+                    $out['file'][$key] = ['name' => $name, 'path' => '/' . $fullPathName];
                     try {
                         $this->driver->copyFile($this->container, $fullPathName, $srcContainer, $srcPath, true);
                         $deleteSource = ArrayUtils::getBool($file, 'delete_source');
@@ -795,7 +820,8 @@ abstract class BaseFileService extends BaseRestService
                     }
                 } elseif (isset($file['content'])) {
                     $fullPathName = $this->folderPath . $name;
-                    $out['file'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
+                    //$out['file'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
+                    $out['file'][$key] = ['name' => $name, 'path' => '/' . $fullPathName];
                     $content = ArrayUtils::get($file, 'content', '');
                     $isBase64 = ArrayUtils::getBool($file, 'is_base64');
                     if ($isBase64) {

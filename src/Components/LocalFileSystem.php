@@ -66,7 +66,7 @@ class LocalFileSystem implements FileSystemInterface
         foreach ($_files as $_file) {
             $_dir = $_root . $_file;
             // get file meta
-            if (is_dir($_dir)) {
+            if (is_dir($_dir) || is_file($_dir)) {
                 $_result = array('name' => $_file, 'path' => $_file);
                 if ($include_properties) {
                     $_temp = stat($_dir);
@@ -295,9 +295,9 @@ class LocalFileSystem implements FileSystemInterface
         $path = FileUtilities::fixFolderPath($path);
 
         $_out = array(
-            'container' => $container,
-            'name'      => empty($path) ? $container : basename($path),
-            'path'      => empty($path) ? $container : $container . '/' . $path,
+            //'container' => $container,
+            'name' => empty($path) ? $container : basename($path),
+            'path' => empty($path) ? $container : $container . '/' . $path,
         );
 
         if ($include_properties) {

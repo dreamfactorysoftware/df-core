@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Components\ConnectionAdapter;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -209,8 +210,7 @@ class BaseModel extends Model
         }
 
         if (!empty($errors)) {
-            $wrapper = \Config::get('df.resources_wrapper', 'resource');
-            $msg = ['errors' => $errors, $wrapper => $response];
+            $msg = ['errors' => $errors, ResourcesWrapper::getWrapper() => $response];
             throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
                 $msg);
         }
@@ -224,10 +224,7 @@ class BaseModel extends Model
             }
         }
 
-        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
-
-        return $singlePayload ? current($response) : ($alwaysWrap ? [$wrapper => $response] : $response);
+        return $singlePayload ? current($response) : $response;
     }
 
     /**
@@ -425,8 +422,7 @@ class BaseModel extends Model
         }
 
         if (!empty($errors)) {
-            $wrapper = \Config::get('df.resources_wrapper', 'resource');
-            $msg = ['errors' => $errors, $wrapper => $response];
+            $msg = ['errors' => $errors, ResourcesWrapper::getWrapper() => $response];
             throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
                 $msg);
         }
@@ -440,10 +436,7 @@ class BaseModel extends Model
             }
         }
 
-        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
-
-        return $singlePayload ? current($response) : ($alwaysWrap ? [$wrapper => $response] : $response);
+        return $singlePayload ? current($response) : $response;
     }
 
     /**
@@ -592,8 +585,7 @@ class BaseModel extends Model
         }
 
         if (!empty($errors)) {
-            $wrapper = \Config::get('df.resources_wrapper', 'resource');
-            $msg = ['errors' => $errors, $wrapper => $response];
+            $msg = ['errors' => $errors, ResourcesWrapper::getWrapper() => $response];
             throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
                 $msg);
         }
@@ -607,10 +599,7 @@ class BaseModel extends Model
             }
         }
 
-        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
-
-        return $singlePayload ? current($response) : ($alwaysWrap ? [$wrapper => $response] : $response);
+        return $singlePayload ? current($response) : $response;
     }
 
     /**

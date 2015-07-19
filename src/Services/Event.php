@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -59,7 +60,7 @@ class Event extends BaseRestService
         }
 
 //        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+        $wrapper = ResourcesWrapper::getWrapper();
         if (!empty($this->resource) && !empty($payload)) {
             // single records passed in which don't use the record wrapper, so wrap it
             $payload = [$wrapper => [$payload]];
@@ -84,7 +85,7 @@ class Event extends BaseRestService
     protected function handleGET()
     {
         $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+        $wrapper = ResourcesWrapper::getWrapper();
         $ids = $this->request->getParameter('ids');
         $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
 
@@ -113,7 +114,7 @@ class Event extends BaseRestService
             /** @var Collection $dataCol */
             $dataCol = $modelClass::with($related)->whereIn($pk, explode(',', $ids))->get();
             $data = $dataCol->toArray();
-            $data = static::cleanResources($data);
+            $data = ResourcesWrapper::cleanResources($data);
         } else if (!empty($records)) {
             $pk = $model->getPrimaryKey();
             $ids = [];
@@ -125,7 +126,7 @@ class Event extends BaseRestService
             /** @var Collection $dataCol */
             $dataCol = $modelClass::with($related)->whereIn($pk, $ids)->get();
             $data = $dataCol->toArray();
-            $data = static::cleanResources($data);
+            $data = ResourcesWrapper::cleanResources($data);
         } else {
             //	Build our criteria
             $criteria = [
@@ -170,7 +171,7 @@ class Event extends BaseRestService
             }
 
             $data = $model->selectByRequest($criteria, $related);
-            $data = static::cleanResources($data);
+            $data = ResourcesWrapper::cleanResources($data);
         }
 
         if (null === $data) {
@@ -206,7 +207,7 @@ class Event extends BaseRestService
         }
 
         $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+        $wrapper = ResourcesWrapper::getWrapper();
         $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
 
         if (empty($records)) {
@@ -241,7 +242,7 @@ class Event extends BaseRestService
     protected function handlePATCH()
     {
         $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+        $wrapper = ResourcesWrapper::getWrapper();
         $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
         $ids = $this->request->getParameter('ids');
         $modelClass = $this->getModel();
@@ -282,7 +283,7 @@ class Event extends BaseRestService
             $result = $modelClass::deleteByIds($ids, $this->request->getParameters());
         } else {
             $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-            $wrapper = \Config::get('df.resources_wrapper', 'resource');
+            $wrapper = ResourcesWrapper::getWrapper();
             $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
 
             if (empty($records)) {
@@ -312,7 +313,7 @@ class Event extends BaseRestService
     public function getApiDocInfo()
     {
 //        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+        $wrapper = ResourcesWrapper::getWrapper();
 
         $apis = [
             [

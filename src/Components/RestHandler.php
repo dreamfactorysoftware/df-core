@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Contracts\RequestHandlerInterface;
@@ -11,7 +13,6 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Contracts\ResourceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
-use \Config;
 
 /**
  * Class RestHandler
@@ -157,7 +158,7 @@ abstract class RestHandler implements RequestHandlerInterface
         $this->setAction($request->getMethod());
         $this->setResourceMembers($resource);
 
-        $resources = $this->getResources();
+        $resources = $this->getResources(true);
         if (!empty($resources) && !empty($this->resource)) {
             $this->response = $this->handleResource($resources);
         } else {
@@ -388,44 +389,6 @@ abstract class RestHandler implements RequestHandlerInterface
     }
 
     /**
-     * @param array       $resources
-     * @param string|null $identifier
-     * @param array|null  $fields
-     *
-     * @return array
-     */
-    protected static function cleanResources(array $resources, $identifier = null, $fields = null)
-    {
-        $data = [];
-
-        if (empty($fields)) {
-            if (!empty($identifier)) {
-                $data = array_column($resources, $identifier);
-            } else {
-                $data = array_values($resources);
-            }
-        } elseif ('*' === $fields) {
-            $data = array_values($resources);
-        } else {
-            if (is_string($fields)) {
-                $fields = explode(',', $fields);
-            }
-
-            $fields = array_flip($fields);
-            foreach ($resources as $resource) {
-                $data[] = array_intersect_key($resource, $fields);
-            }
-        }
-
-        if (Config::get('df.always_wrap_resources', false)) {
-            $wrapper = Config::get('df.resources_wrapper');
-            return ($wrapper) ? [$wrapper => $data] : $data;
-        }
-
-        return $data;
-    }
-
-    /**
      * @param null $key
      * @param null $default
      *
@@ -441,11 +404,52 @@ abstract class RestHandler implements RequestHandlerInterface
     /**
      * Implement to return the resource configuration for this REST handling object
      *
+     * @param $only_handlers
+     *
      * @return array Empty when not implemented, otherwise the array of resource information
      */
-    protected function getResources()
-    {
+    public function getResources(
+        /** @noinspection PhpUnusedParameterInspection */
+        $only_handlers = false
+    ){
         return [];
+    }
+
+    /**
+     * Returns the identifier of the supported resources
+     *
+     * @return string
+     * @throws BadRequestException
+     */
+    protected function getResourceIdentifier()
+    {
+        throw new BadRequestException('No known identifier for resources.');
+    }
+
+    /**
+     * @param string $operation
+     * @param string $resource
+     *
+     * @return bool
+     */
+    public function checkPermission(
+        /** @noinspection PhpUnusedParameterInspection */
+        $operation,
+        $resource = null
+    ){
+        return false;
+    }
+
+    /**
+     * @param string $resource
+     *
+     * @return string
+     */
+    public function getPermissions(
+        /** @noinspection PhpUnusedParameterInspection */
+        $resource = null
+    ){
+        return false;
     }
 
     /**
@@ -455,7 +459,20 @@ abstract class RestHandler implements RequestHandlerInterface
      */
     protected function handleGET()
     {
-        return false;
+        $fields = $this->request->getParameter(ApiOptions::FIELDS);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+
+        $resources = $this->getResources();
+        if (is_array($resources)) {
+//            foreach ($resources as &$resource) {
+//                $resource['access'] = VerbsMask::maskToArray($this->getPermissions(ArrayUtils::get($resource, $idField)));
+//            }
+
+            return ResourcesWrapper::cleanResources($resources, Verbs::GET, $fields, $idField, $asList);
+        }
+
+        return $resources;
     }
 
     /**
@@ -501,6 +518,10 @@ abstract class RestHandler implements RequestHandlerInterface
     /**
      * Triggers the appropriate event for the action /service/resource_path.
      *
+     * @param      $result
+     * @param null $eventName
+     * @param null $event
+     * @param bool $isPostProcess
      */
     protected function triggerActionEvent(&$result, $eventName = null, $event = null, $isPostProcess = false)
     {

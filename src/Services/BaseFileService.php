@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\FileUtilities;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
@@ -117,7 +118,7 @@ abstract class BaseFileService extends BaseRestService
     protected function handleResource(array $resources)
     {
         //  Fall through is to process just like a no-resource request
-        $resources = $this->getResources();
+        $resources = $this->getResources(true);
         if ((false !== $resources) && !empty($this->resource)) {
             if (in_array($this->resource, $resources)) {
                 return $this->processRequest();
@@ -441,7 +442,7 @@ abstract class BaseFileService extends BaseRestService
             $result = $this->driver->listContainers($includeProperties);
         }
 
-        return static::cleanResources($result);
+        return ResourcesWrapper::cleanResources($result);
     }
 
     /**
@@ -550,9 +551,11 @@ abstract class BaseFileService extends BaseRestService
     }
 
     /**
+     * @param $only_handlers
+     *
      * @return array
      */
-    protected function getResources()
+    public function getResources($only_handlers = false)
     {
         $containers = $this->driver->listContainers();
         $resources = [];
@@ -924,7 +927,7 @@ abstract class BaseFileService extends BaseRestService
                         'summary'          => 'getAccessComponents() - List all role accessible components.',
                         'nickname'         => 'getAccessComponents',
                         'notes'            => 'List the names of all the role accessible components.',
-                        'type'             => 'ComponentList',
+                        'type'             => 'ResourceList',
                         'event_name'       => [$eventPath . '.list'],
                         'parameters'       => [
                             [

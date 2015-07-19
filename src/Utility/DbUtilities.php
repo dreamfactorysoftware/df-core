@@ -150,7 +150,7 @@ class DbUtilities
         }
 
         $_results =
-            DbTableExtras::where('service_id', $service_id)
+            DbFieldExtras::where('service_id', $service_id)
                 ->where('table', $table_name)
                 ->whereIn('field', $_values)
                 ->get()

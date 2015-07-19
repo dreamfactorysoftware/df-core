@@ -2,6 +2,9 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Utility\ResourcesWrapper;
+
 class Constant extends ReadOnlySystemResource
 {
     protected function handleGET()
@@ -17,7 +20,7 @@ class Constant extends ReadOnlySystemResource
             }
         }
 
-        return $this->cleanResources($resources);
+        return ResourcesWrapper::cleanResources($resources);
     }
 
     public function getApiDocInfo()
@@ -36,20 +39,7 @@ class Constant extends ReadOnlySystemResource
                         'nickname'         => 'getConstants',
                         'type'             => 'Constants',
                         'event_name'       => $eventPath . '.list',
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            => 'Returns an object containing every enumerated type and its constant values',
                     ],
                 ],
@@ -74,20 +64,7 @@ class Constant extends ReadOnlySystemResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            => 'Returns , all fields and no relations are returned.',
                     ],
                 ],

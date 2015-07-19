@@ -5,11 +5,15 @@ namespace DreamFactory\Core\Resources;
 use DreamFactory\Core\Components\RestHandler;
 use DreamFactory\Core\Contracts\RequestHandlerInterface;
 use DreamFactory\Core\Contracts\ResourceInterface;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\Inflector;
 
 /**
  * Class BaseRestResource
@@ -18,10 +22,18 @@ use DreamFactory\Core\Utility\Session;
  */
 class BaseRestResource extends RestHandler implements ResourceInterface
 {
+    //*************************************************************************
+    //	Members
+    //*************************************************************************
+
     /**
      * @var RestHandler Object that requested this handler, null if this is the Service.
      */
     protected $parent = null;
+
+    //*************************************************************************
+    //	Methods
+    //*************************************************************************
 
     /**
      * @return RequestHandlerInterface
@@ -123,50 +135,100 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         return Session::getServicePermissions($this->getServiceName(), $path, $requestType);
     }
 
-    /**
-     * @param mixed $fields Use '*', comma-delimited string, or array of properties
-     *
-     * @return boolean|array
-     */
-    public function listResources($fields = null)
-    {
-        $resources = $this->getResources();
-        if (!empty($resources)) {
-            return static::cleanResources($resources, 'name', $fields);
-        }
-
-        return false;
-    }
-
-    /**
-     * Handles GET action
-     *
-     * @return mixed
-     */
-    protected function handleGET()
-    {
-        $fields = $this->request->getParameter('fields');
-
-        return $this->listResources($fields);
-    }
-
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-
-        /**
-         * Some basic apis and models used in DSP REST interfaces
-         */
+        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $name = Inflector::camelize($this->name);
+        $plural = Inflector::pluralize($name);
+        $words = str_replace('_', ' ', $this->name);
+        $pluralWords = Inflector::pluralize($words);
+        $wrapper = ResourcesWrapper::getWrapper();
 
         return [
             'apis'   => [
                 [
                     'path'        => $path,
-                    'operations'  => [],
-                    'description' => 'No operations currently defined for this resource.',
+                    'description' => "Operations for $words administration.",
+                    'operations'  => [
+                        [
+                            'method'           => 'GET',
+                            'summary'          => 'get' . $plural . 'List() - List all ' . $pluralWords . ' identifiers.',
+                            'nickname'         => 'get' . $plural . 'List',
+                            'notes'            => 'Return only a list of the resource identifiers.',
+                            'type'             => $plural .'List',
+                            'event_name'       => [$eventPath . '.list'],
+                            'parameters'       => [
+                                ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
+                                ApiOptions::documentOption(ApiOptions::FIELDS),
+                                ApiOptions::documentOption(ApiOptions::REFRESH),
+                            ],
+                            'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        ],
+                        [
+                            'method'           => 'GET',
+                            'summary'          => 'get' . $plural . '() - List all ' . $pluralWords . '.',
+                            'nickname'         => 'get' . $plural,
+                            'notes'            => 'List the resources available on this service. ',
+                            'type'             => $plural . 'Response',
+                            'event_name'       => [$eventPath . '.list'],
+                            'parameters'       => [
+                                ApiOptions::documentOption(ApiOptions::FIELDS),
+                                ApiOptions::documentOption(ApiOptions::REFRESH),
+                            ],
+                            'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        ],
+                    ],
                 ],
             ],
-            'models' => []
+            'models'       => [
+                $name . 'List' => [
+                    'id'         => $name . 'List',
+                    'properties' => [
+                        $wrapper => [
+                            'type'        => 'array',
+                            'description' => 'Array of '. $words.' identifiers available by this resource.',
+                            'items'       => [
+                                'type' => 'string',
+                            ],
+                        ],
+                    ],
+                ],
+                $name . 'Response'     => [
+                    'id'         => $name . 'Response',
+                    'properties' => [
+                        '_id_'    => [
+                            'type'        => 'string',
+                            'description' => 'Identifier of the resource.',
+                        ],
+                        '_other_' => [
+                            'type'        => 'string',
+                            'description' => 'Other property of the resource.',
+                        ],
+                    ],
+                ],
+                $plural . 'Response'    => [
+                    'id'         => $plural . 'Response',
+                    'properties' => [
+                        $wrapper => [
+                            'type'        => 'array',
+                            'description' => 'Array of '. $pluralWords.' available by this resource.',
+                            'items'       => [
+                                '$ref' => $name . 'Response',
+                            ],
+                        ],
+                    ],
+                ],
+                'Success'      => [
+                    'id'         => 'Success',
+                    'properties' => [
+                        'success' => [
+                            'type'        => 'boolean',
+                            'description' => 'True when API call was successful, false or error otherwise.',
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 }

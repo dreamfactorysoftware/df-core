@@ -25,7 +25,7 @@ class Admin extends BaseSystemResource
     /**
      * {@inheritdoc}
      */
-    public function getResources()
+    public function getResources($only_handlers = false)
     {
         return $this->resources;
     }

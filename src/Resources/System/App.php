@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\App as AppModel;
 
@@ -17,7 +18,7 @@ class App extends BaseSystemResource
     protected function handlePATCH()
     {
         if (!empty($this->resource)) {
-            if (true === $this->request->getParameterAsBool('regenerate')) {
+            if ($this->request->getParameterAsBool(ApiOptions::REGENERATE)) {
                 /** @var AppModel $appClass */
                 $appClass = $this->model;
                 $app = $appClass::find($this->resource)->first();

@@ -121,8 +121,9 @@ class Service extends BaseSystemModel
     /**
      * @return array
      */
-    public static function available($include_properties = false)
+    public static function available()
     {
+        // need to cache this possibly
         return static::lists('name');
     }
 

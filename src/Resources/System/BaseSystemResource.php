@@ -2,6 +2,9 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
@@ -47,35 +50,15 @@ class BaseSystemResource extends BaseRestResource
         $this->model = ArrayUtils::get($settings, "model_name", $this->model); // could be statically set
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function getPayloadData($key = null, $default = null)
+    protected function getResourceIdentifier()
     {
-        $payload = parent::getPayloadData();
-
-        if (null !== $key && !empty($payload[$key])) {
-            return $payload[$key];
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
+        if ($modelClass) {
+            return $modelClass::getPrimaryKeyStatic();
         }
 
-//        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
-        if (!empty($this->resource) && !empty($payload)) {
-            if (ArrayUtils::isArrayNumeric($payload)) {
-                throw new BadRequestException('Update by id accepts a single record. Array supplied.');
-            }
-            // single records passed in which don't use the record wrapper, so wrap it
-            $payload = [$wrapper => [$payload]];
-        } elseif (ArrayUtils::isArrayNumeric($payload)) {
-            // import from csv, etc doesn't include a wrapper, so wrap it
-            $payload = [$wrapper => $payload];
-        }
-
-        if (empty($key)) {
-            $key = $wrapper;
-        }
-
-        return ArrayUtils::get($payload, $key);
+        throw new BadRequestException('No known identifier for resources.');
     }
 
     /**
@@ -112,7 +95,7 @@ class BaseSystemResource extends BaseRestResource
         $criteria = $this->getSelectionCriteria();
         $data = $modelClass::selectByIds($ids, $related, $criteria);
 
-        return static::cleanResources($data);
+        return $data;
     }
 
     protected function retrieveByRecords(array $records, array $related = [])
@@ -120,10 +103,7 @@ class BaseSystemResource extends BaseRestResource
         /** @var BaseSystemModel $model */
         $model = $this->getModel();
         $pk = $model->getPrimaryKey();
-        $ids = [];
-        foreach ($records as $record) {
-            $ids[] = ArrayUtils::get($record, $pk);
-        }
+        $ids = array_column($records, $pk);
 
         return $this->retrieveByIds($ids, $related);
     }
@@ -142,7 +122,7 @@ class BaseSystemResource extends BaseRestResource
         $criteria = $this->getSelectionCriteria();
         $data = $modelClass::selectByRequest($criteria, $related);
 
-        return static::cleanResources($data);
+        return $data;
     }
 
     /**
@@ -156,17 +136,17 @@ class BaseSystemResource extends BaseRestResource
             'params' => []
         ];
 
-        if (null !== ($value = $this->request->getParameter('fields'))) {
+        if (null !== ($value = $this->request->getParameter(ApiOptions::FIELDS))) {
             $criteria['select'] = explode(',', $value);
         } else {
             $criteria['select'] = ['*'];
         }
 
-        if (null !== ($value = $this->request->getPayloadData('params'))) {
+        if (null !== ($value = $this->request->getPayloadData(ApiOptions::PARAMS))) {
             $criteria['params'] = $value;
         }
 
-        if (null !== ($value = $this->request->getParameter('filter'))) {
+        if (null !== ($value = $this->request->getParameter(ApiOptions::FILTER))) {
             $criteria['condition'] = $value;
 
             //	Add current user ID into parameter array if in condition, but not specified.
@@ -177,7 +157,7 @@ class BaseSystemResource extends BaseRestResource
             }
         }
 
-        $value = intval($this->request->getParameter('limit'));
+        $value = intval($this->request->getParameter(ApiOptions::LIMIT));
         $maxAllowed = intval(\Config::get('df.db_max_records_returned', self::MAX_RECORDS_RETURNED));
         if (($value < 1) || ($value > $maxAllowed)) {
             // impose a limit to protect server
@@ -185,11 +165,11 @@ class BaseSystemResource extends BaseRestResource
         }
         $criteria['limit'] = $value;
 
-        if (null !== ($value = $this->request->getParameter('offset'))) {
+        if (null !== ($value = $this->request->getParameter(ApiOptions::OFFSET))) {
             $criteria['offset'] = $value;
         }
 
-        if (null !== ($value = $this->request->getParameter('order'))) {
+        if (null !== ($value = $this->request->getParameter(ApiOptions::ORDER))) {
             $criteria['order'] = $value;
         }
 
@@ -204,51 +184,51 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handleGET()
     {
-        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
-
-        $ids = $this->request->getParameter('ids');
-        $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
-
         $data = null;
 
-        $related = $this->request->getParameter('related');
+        $related = $this->request->getParameter(ApiOptions::RELATED);
         if (!empty($related)) {
             $related = explode(',', $related);
         } else {
             $related = [];
         }
 
-        //	Single resource by ID
+        $meta = [];
         if (!empty($this->resource)) {
+            //	Single resource by ID
             $data = $this->retrieveById($this->resource, $related);
-        } else if (!empty($ids)) {
+        } else if (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $data = $this->retrieveByIds($ids, $related);
-        } else if (!empty($records)) {
-            $data = $this->retrieveByRecords($records, $related);
+        } else if (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
+            if (isset($records[0]) && is_array($records[0])) {
+                $data = $this->retrieveByRecords($records, $related);
+            } else {
+                // this may be a list of ids
+                $data = $this->retrieveByIds($ids, $related);
+            }
         } else {
             $data = $this->retrieveByRequest($related);
-        }
-
-        if (empty($data)) {
-            throw new NotFoundException("Record not found.");
-        }
-
-        if ($this->request->getParameterAsBool('include_count')) {
-            if (isset($data[$wrapper])) {
-                $data['meta']['count'] = count($data[$wrapper]);
-            } elseif (!empty($data)) {
-                $data['meta']['count'] = 1;
+            if ($this->request->getParameterAsBool(ApiOptions::INCLUDE_COUNT)) {
+                $meta['count'] = count($data);
             }
         }
 
-        if (!empty($data) && $this->request->getParameterAsBool('include_schema')) {
+        if ($this->request->getParameterAsBool(ApiOptions::INCLUDE_SCHEMA)) {
             /** @var BaseSystemModel $model */
             $model = $this->getModel();
-            $data['meta']['schema'] = $model->getTableSchema()->toArray();
+            $meta['schema'] = $model->getTableSchema()->toArray();
         }
 
-        return ResponseFactory::create($data, $this->nativeFormat);
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $fields = $this->request->getParameter(ApiOptions::FIELDS);
+        $data = ResourcesWrapper::cleanResources($data, Verbs::GET, $fields, $id, $asList, !empty($meta));
+
+        if (!empty($meta)) {
+            $data['meta'] = $meta;
+        }
+
+        return $data;
     }
 
     /**
@@ -261,7 +241,7 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function bulkCreate(array $records, array $params = [])
     {
-        /** @var BaseSystemModel $model */
+        /** @var BaseSystemModel $modelClass */
         $modelClass = $this->model;
         $result = $modelClass::bulkCreate($records, $params);
 
@@ -281,9 +261,7 @@ class BaseSystemResource extends BaseRestResource
             throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
-        $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
 
         if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
@@ -293,9 +271,12 @@ class BaseSystemResource extends BaseRestResource
 
         $result = $this->bulkCreate($records, $this->request->getParameters());
 
-        $response = ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $fields = $this->request->getParameter(ApiOptions::FIELDS);
+        $result = ResourcesWrapper::cleanResources($result, Verbs::POST, $fields, $id, $asList);
 
-        return $response;
+        return ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
     }
 
     /**
@@ -368,24 +349,26 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handlePATCH()
     {
-        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
-        $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
-        $ids = $this->request->getParameter('ids');
-
-        if (empty($records)) {
-            throw new BadRequestException('No record(s) detected in request.');
-        }
-
         $this->triggerActionEvent($this->response);
 
         if (!empty($this->resource)) {
-            $result = $this->updateById($this->resource, $records[0], $this->request->getParameters());
-        } elseif (!empty($ids)) {
+            $result = $this->updateById($this->resource, $this->getPayloadData(), $this->request->getParameters());
+        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
+            $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+            if (empty($records)) {
+                throw new BadRequestException('No record(s) detected in request.');
+            }
             $result = $this->updateByIds($ids, $records[0], $this->request->getParameters());
-        } else {
+        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
             $result = $this->bulkUpdate($records, $this->request->getParameters());
+        } else {
+            throw new BadRequestException('No record(s) detected in request.');
         }
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $fields = $this->request->getParameter(ApiOptions::FIELDS);
+        $result = ResourcesWrapper::cleanResources($result, Verbs::PATCH, $fields, $id, $asList);
 
         return $result;
     }
@@ -451,23 +434,26 @@ class BaseSystemResource extends BaseRestResource
     protected function handleDELETE()
     {
         $this->triggerActionEvent($this->response);
-        $ids = $this->request->getParameter('ids');
 
         if (!empty($this->resource)) {
             $result = $this->deleteById($this->resource, $this->request->getParameters());
-        } elseif (!empty($ids)) {
+        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $result = $this->deleteByIds($ids, $this->request->getParameters());
-        } else {
-            $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-            $wrapper = \Config::get('df.resources_wrapper', 'resource');
-            $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
-
-            if (empty($records)) {
-                throw new BadRequestException('No record(s) detected in request.');
+        } elseif ($records = ResourcesWrapper::unwrapResources($this->getPayloadData())) {
+            if (isset($records[0]) && is_array($records[0])) {
+                $result = $this->bulkDelete($records, $this->request->getParameters());
+            } else {
+                // this may be a list of ids
+                $result = $this->deleteByIds($records, $this->request->getParameters());
             }
-
-            $result = $this->bulkDelete($records, $this->request->getParameters());
+        } else {
+            throw new BadRequestException('No record(s) detected in request.');
         }
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $fields = $this->request->getParameter(ApiOptions::FIELDS);
+        $result = ResourcesWrapper::cleanResources($result, Verbs::DELETE, $fields, $id, $asList);
 
         return $result;
     }
@@ -495,118 +481,34 @@ class BaseSystemResource extends BaseRestResource
         $plural = Inflector::pluralize($name);
         $words = str_replace('_', ' ', $this->name);
         $pluralWords = Inflector::pluralize($words);
-        $wrapper = \Config::get('df.resources_wrapper', 'resource');
+        $wrapper = ResourcesWrapper::getWrapper();
 
         $apis = [
             [
                 'path'        => $path,
+                'description' => "Operations for $words administration.",
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralWords . '.',
                         'nickname'         => 'get' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => $eventPath . '.list',
+                        'event_name'       => [$eventPath . '.list'],
                         'consumes'         => ['application/json', 'application/xml', 'text/csv'],
                         'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [
-                            [
-                                'name'          => 'ids',
-                                'description'   => 'Comma-delimited list of the identifiers of the records to retrieve.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'filter',
-                                'description'   => 'SQL-like filter to limit the records to retrieve.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'limit',
-                                'description'   => 'Set to limit the filter results.',
-                                'allowMultiple' => false,
-                                'type'          => 'integer',
-                                'format'        => 'int32',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'order',
-                                'description'   => 'SQL-like order containing field and direction for filter results.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'offset',
-                                'description'   => 'Set to offset the filter results to a particular record count.',
-                                'allowMultiple' => false,
-                                'type'          => 'integer',
-                                'format'        => 'int32',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to retrieve for each record.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to retrieve for each record.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'include_count',
-                                'description'   => 'Include the total number of filter results in returned metadata.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'include_schema',
-                                'description'   => 'Include the schema of the table queried in returned metadata.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'file',
-                                'description'   => 'Download the results of the request as a file.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::FILTER),
+                            ApiOptions::documentOption(ApiOptions::LIMIT),
+                            ApiOptions::documentOption(ApiOptions::ORDER),
+                            ApiOptions::documentOption(ApiOptions::OFFSET),
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
+                            ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
+                            ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
+                            ApiOptions::documentOption(ApiOptions::FILE),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
                             'By default, all records up to the maximum are returned. <br>' .
@@ -632,22 +534,8 @@ class BaseSystemResource extends BaseRestResource
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                             [
                                 'name'          => 'X-HTTP-METHOD',
                                 'description'   => 'Override request using POST to tunnel other http request, such as DELETE.',
@@ -658,20 +546,7 @@ class BaseSystemResource extends BaseRestResource
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'Post data should be a single record or an array of records (shown). ' .
                             'By default, only the id property of the record affected is returned on success, ' .
@@ -694,37 +569,11 @@ class BaseSystemResource extends BaseRestResource
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'Post data should be a single record or an array of records (shown). ' .
                             'By default, only the id property of the record is returned on success, ' .
@@ -738,14 +587,6 @@ class BaseSystemResource extends BaseRestResource
                         'event_name'       => $eventPath . '.delete',
                         'parameters'       => [
                             [
-                                'name'          => 'ids',
-                                'description'   => 'Comma-delimited list of the identifiers of the records to delete.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
                                 'name'          => 'force',
                                 'description'   => 'Set force to true to delete all records in this table, otherwise \'ids\' parameter is required.',
                                 'allowMultiple' => false,
@@ -754,37 +595,11 @@ class BaseSystemResource extends BaseRestResource
                                 'required'      => false,
                                 'default'       => false,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'By default, only the id property of the record deleted is returned on success. ' .
                             'Use \'fields\' and \'related\' to return more properties of the deleted records. <br>' .
@@ -792,7 +607,6 @@ class BaseSystemResource extends BaseRestResource
                             'use the POST request with X-HTTP-METHOD = DELETE header and post records or ids.',
                     ],
                 ],
-                'description' => "Operations for $words administration.",
             ],
             [
                 'path'        => $path . '/{id}',
@@ -812,37 +626,10 @@ class BaseSystemResource extends BaseRestResource
                                 'paramType'     => 'path',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related records to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                     ],
                     [
@@ -868,37 +655,10 @@ class BaseSystemResource extends BaseRestResource
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related records to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'Post data should be an array of fields to update for a single record. <br>' .
                             'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
@@ -918,37 +678,10 @@ class BaseSystemResource extends BaseRestResource
                                 'paramType'     => 'path',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related records to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
                     ],
                 ],
@@ -997,7 +730,7 @@ class BaseSystemResource extends BaseRestResource
                 'id'         => 'Metadata',
                 'properties' => [
                     'schema' => [
-                        'type'        => 'Array',
+                        'type'        => 'array',
                         'description' => 'Array of table schema.',
                         'items'       => [
                             'type' => 'string',

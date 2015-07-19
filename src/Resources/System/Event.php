@@ -227,7 +227,7 @@ class Event extends BaseRestResource
                         'method'           => 'GET',
                         'summary'          => 'get' . $name . 'Events() - Retrieve list of events.',
                         'nickname'         => 'get' . $name . 'Events',
-                        'type'             => 'ComponentList',
+                        'type'             => 'ResourceList',
                         'event_name'       => $eventPath . '.list',
                         'consumes'         => ['application/json', 'application/xml', 'text/csv'],
                         'produces'         => ['application/json', 'application/xml', 'text/csv'],

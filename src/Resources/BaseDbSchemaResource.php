@@ -2,6 +2,8 @@
 
 namespace DreamFactory\Core\Resources;
 
+use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Utility\ApiDocUtilities;
@@ -60,15 +62,17 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     protected function handleGET()
     {
-        $refresh = $this->request->getParameterAsBool('refresh');
+        $fields = $this->request->getParameter(ApiOptions::FIELDS);
+        $refresh = $this->request->getParameterAsBool(ApiOptions::REFRESH);
         if (empty($this->resource)) {
-            $tables = $this->request->getParameter('names');
+            $tables = $this->request->getParameter(ApiOptions::IDS);
             if (empty($tables)) {
-                $tables = $this->request->getPayloadData('table');
+                $tables = ResourcesWrapper::unwrapResources($this->request->getPayloadData());
             }
 
             if (!empty($tables)) {
-                $result = ['table' => $this->describeTables($tables, $refresh)];
+                $result = $this->describeTables($tables, $refresh);
+                $result = ResourcesWrapper::cleanResources($result, Verbs::GET, $fields );
             } else {
                 $result = parent::handleGET();
             }
@@ -89,20 +93,21 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     {
         $payload = $this->request->getPayloadData();
         $checkExist = $this->request->getParameterAsBool('check_exist');
-        $returnSchema = $this->request->getParameterAsBool('return_schema');
+        $fields = $this->request->getParameter(ApiOptions::FIELDS);
         if (empty($this->resource)) {
-            $tables = ArrayUtils::get($payload, 'table', $payload);
+            $tables = ResourcesWrapper::unwrapResources($payload);
             if (empty($tables)) {
                 throw new BadRequestException('No data in schema create request.');
             }
 
-            $result = ['table' => $this->createTables($tables, $checkExist, $returnSchema)];
+            $result = $this->createTables($tables, $checkExist, !empty($fields));
+            $result = ResourcesWrapper::cleanResources($result, Verbs::POST, $fields);
         } elseif (empty($this->resourceId)) {
-            $result = $this->createTable($this->resource, $payload, $checkExist, $returnSchema);
+            $result = $this->createTable($this->resource, $payload, $checkExist, !empty($fields));
         } elseif (empty($payload)) {
             throw new BadRequestException('No data in schema create request.');
         } else {
-            $result = $this->createField($this->resource, $this->resourceId, $payload, $checkExist, $returnSchema);
+            $result = $this->createField($this->resource, $this->resourceId, $payload, $checkExist, !empty($fields));
         }
 
         return $result;
@@ -115,20 +120,21 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     protected function handlePUT()
     {
         $payload = $this->request->getPayloadData();
-        $returnSchema = $this->request->getParameterAsBool('return_schema');
+        $fields = $this->request->getParameter(ApiOptions::FIELDS);
         if (empty($this->resource)) {
-            $tables = ArrayUtils::get($payload, 'table', $payload);
+            $tables = ResourcesWrapper::unwrapResources($payload);
             if (empty($tables)) {
                 throw new BadRequestException('No data in schema update request.');
             }
 
-            $result = ['table' => $this->updateTables($tables, true, $returnSchema)];
+            $result = $this->updateTables($tables, true, !empty($fields));
+            $result = ResourcesWrapper::cleanResources($result, Verbs::PUT, $fields);
         } elseif (empty($this->resourceId)) {
-            $result = $this->updateTable($this->resource, $payload, true, $returnSchema);
+            $result = $this->updateTable($this->resource, $payload, true, !empty($fields));
         } elseif (empty($payload)) {
             throw new BadRequestException('No data in schema update request.');
         } else {
-            $result = $this->updateField($this->resource, $this->resourceId, $payload, true, $returnSchema);
+            $result = $this->updateField($this->resource, $this->resourceId, $payload, true, !empty($fields));
         }
 
         return $result;
@@ -141,20 +147,21 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     protected function handlePATCH()
     {
         $payload = $this->request->getPayloadData();
-        $returnSchema = $this->request->getParameterAsBool('return_schema');
+        $fields = $this->request->getParameter(ApiOptions::FIELDS);
         if (empty($this->resource)) {
-            $tables = ArrayUtils::get($payload, 'table', $payload);
+            $tables = ResourcesWrapper::unwrapResources($payload);
             if (empty($tables)) {
                 throw new BadRequestException('No data in schema update request.');
             }
 
-            $result = ['table' => $this->updateTables($tables, false, $returnSchema)];
+            $result = $this->updateTables($tables, false, !empty($fields));
+            $result = ResourcesWrapper::cleanResources($result, Verbs::PATCH, $fields);
         } elseif (empty($this->resourceId)) {
-            $result = $this->updateTable($this->resource, $payload, false, $returnSchema);
+            $result = $this->updateTable($this->resource, $payload, false, !empty($fields));
         } elseif (empty($payload)) {
             throw new BadRequestException('No data in schema update request.');
         } else {
-            $result = $this->updateField($this->resource, $this->resourceId, $payload, false, $returnSchema);
+            $result = $this->updateField($this->resource, $this->resourceId, $payload, false, !empty($fields));
         }
 
         return $result;
@@ -167,11 +174,11 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     protected function handleDELETE()
     {
         $payload = $this->request->getPayloadData();
-
+        $fields = $this->request->getParameter(ApiOptions::FIELDS);
         if (empty($this->resource)) {
-            $tables = $this->request->getParameter('names');
+            $tables = $this->request->getParameter(ApiOptions::IDS);
             if (empty($tables)) {
-                $tables = ArrayUtils::get($payload, 'table');
+                $tables = ResourcesWrapper::unwrapResources($payload);
             }
 
             if (empty($tables)) {
@@ -179,8 +186,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             }
 
             $result = $this->deleteTables($tables);
-
-            $result = ['table' => $result];
+            $result = ResourcesWrapper::cleanResources($result, Verbs::DELETE, $fields);
         } elseif (empty($this->resourceId)) {
             $this->deleteTable($this->resource);
 
@@ -455,7 +461,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'method'           => 'GET',
                         'summary'          => 'getSchemasList() - List resources available for database schema.',
                         'nickname'         => 'getSchemasList',
-                        'type'             => 'ComponentList',
+                        'type'             => 'ResourceList',
                         'event_name'       => $eventPath . '.list',
                         'parameters'       => [
                             [
@@ -854,11 +860,12 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             ],
         ];
 
+        $wrapper = ResourcesWrapper::getWrapper();
         $_models = [
             'Tables' => [
                 'id'         => 'Tables',
                 'properties' => [
-                    'table' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of tables and their properties.',
                         'items'       => [

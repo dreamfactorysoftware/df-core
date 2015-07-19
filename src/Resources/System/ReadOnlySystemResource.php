@@ -12,7 +12,7 @@ use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Models\BaseSystemModel;
-use DreamFactory\Core\Utility\Session;
+use DreamFactory\Core\Utility\Session as SessionUtility;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -150,7 +150,7 @@ class ReadOnlySystemResource extends BaseRestResource
             //	Add current user ID into parameter array if in condition, but not specified.
             if (false !== stripos($value, ':user_id')) {
                 if (!isset($criteria['params'][':user_id'])) {
-                    $criteria['params'][':user_id'] = Session::getCurrentUserId();
+                    $criteria['params'][':user_id'] = SessionUtility::getCurrentUserId();
                 }
             }
         }

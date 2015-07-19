@@ -26,7 +26,7 @@ class ResourcesWrapper
      * @return array
      */
     public static function cleanResources(
-        array $resources,
+        $resources,
         $verb = Verbs::GET,
         $fields = null,
         $identifier = null,

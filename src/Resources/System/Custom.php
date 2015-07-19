@@ -16,6 +16,6 @@ class Custom extends BaseSystemResource
     {
         $data = parent::retrieveById($id, $related);
 
-        return (array_key_exists('value', $data)) ? $data['value'] : null;
+        return (array_key_exists('value', $data)) ? $data['value'] : [];
     }
 }

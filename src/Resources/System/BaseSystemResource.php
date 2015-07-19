@@ -68,6 +68,7 @@ class BaseSystemResource extends BaseRestResource
      * @param array   $related
      *
      * @return array
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     protected function retrieveById($id, array $related = [])
     {
@@ -75,7 +76,9 @@ class BaseSystemResource extends BaseRestResource
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
         $fields = ArrayUtils::get($criteria, 'select');
-        $data = $modelClass::selectById($id, $related, $fields);
+        if (null === $data = $modelClass::selectById($id, $related, $fields)) {
+            throw new NotFoundException('Record not found');
+        }
 
         return $data;
     }

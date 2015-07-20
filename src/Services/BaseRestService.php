@@ -13,6 +13,7 @@ use DreamFactory\Core\Events\ServicePreProcess;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\Enums\Verbs;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -94,10 +95,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
     }
 
     /**
-     * @param string $operation
-     * @param string $resource
-     *
-     * @return bool
+     * {@inheritdoc}
      */
     public function checkPermission($operation, $resource = null)
     {
@@ -106,15 +104,33 @@ class BaseRestService extends RestHandler implements ServiceInterface
     }
 
     /**
-     * @param string $resource
-     *
-     * @return string
+     * {@inheritdoc}
      */
     public function getPermissions($resource = null)
     {
         $requestType = ($this->request) ? $this->request->getRequestorType() : ServiceRequestorTypes::API;
 
         return Session::getServicePermissions($this->name, $resource, $requestType);
+    }
+
+    protected function getAccessList()
+    {
+        if (!empty($this->getPermissions())) {
+            return ['','*'];
+        }
+        return [];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function handleGET()
+    {
+        if ($this->request->getParameterAsBool(ApiOptions::AS_ACCESS_LIST)) {
+            return ResourcesWrapper::cleanResources($this->getAccessList());
+        }
+
+        return parent::handleGET();
     }
 
     public function getApiDocInfo()

@@ -77,6 +77,10 @@ class ApiOptions extends FactoryEnum
     /**
      * @var string
      */
+    const INCLUDE_ACCESS = 'include_access';
+    /**
+     * @var string
+     */
     const INCLUDE_COUNT = 'include_count';
     /**
      * @var string
@@ -109,6 +113,7 @@ class ApiOptions extends FactoryEnum
         self::OFFSET         => 'integer',
         self::CONTINUES      => 'boolean',
         self::ROLLBACK       => 'boolean',
+        self::INCLUDE_ACCESS => 'boolean',
         self::INCLUDE_COUNT  => 'boolean',
         self::INCLUDE_SCHEMA => 'boolean',
         self::AS_LIST        => 'boolean',
@@ -129,6 +134,7 @@ class ApiOptions extends FactoryEnum
         self::CONTINUES      => 'In batch scenarios where supported, continue processing even after one action fails. Default behavior is to halt and return results up to the first point of failure.',
         self::ROLLBACK       => 'In batch scenarios where supported, rollback all actions if one action fails. Default behavior is to halt and return results up to the first point of failure.',
         self::RELATED        => 'Comma-delimited list of related names to retrieve for each resource.',
+        self::INCLUDE_ACCESS => 'Include the access permissions for the returned resource.',
         self::INCLUDE_COUNT  => 'Include the total number of filter results in returned metadata.',
         self::INCLUDE_SCHEMA => 'Include the schema of the table queried in returned metadata.',
         self::FILE           => 'Download the results of the request as a file.',

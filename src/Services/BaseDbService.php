@@ -24,45 +24,45 @@ abstract class BaseDbService extends BaseRestService
     /**
      * {@inheritdoc}
      */
-    public function getResources($only_handlers = false)
+    public function getAccessList()
     {
-        if (!$only_handlers) {
-            if ($this->request->getParameterAsBool(ApiOptions::AS_ACCESS_LIST)) {
-                $refresh = $this->request->getParameterAsBool(ApiOptions::REFRESH);
-                $schema = $this->request->getParameter(ApiOptions::SCHEMA, '');
+        $output = parent::getAccessList();
+        $refresh = $this->request->getParameterAsBool(ApiOptions::REFRESH);
+        $schema = $this->request->getParameter(ApiOptions::SCHEMA, '');
 
-                $output = [];
-                $access = $this->getPermissions();
-                if (!empty($access)) {
-                    $output[] = '';
-                    $output[] = '*';
-                }
-                foreach ($this->resources as $resourceInfo) {
-                    $className = $resourceInfo['class_name'];
+        $access = $this->getPermissions();
+        if (!empty($access)) {
+            $output[] = '';
+            $output[] = '*';
+        }
+        foreach ($this->resources as $resourceInfo) {
+            $className = $resourceInfo['class_name'];
 
-                    if (!class_exists($className)) {
-                        throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
-                            $this->resourcePath);
-                    }
+            if (!class_exists($className)) {
+                throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
+                    $this->resourcePath);
+            }
 
-                    /** @var BaseDbResource $resource */
-                    $resource = $this->instantiateResource($className, $resourceInfo);
-                    $access = $this->getPermissions($resource->name);
-                    if (!empty($access)) {
-                        $output[] = $resource->name . '/';
-                        $output[] = $resource->name . '/*';
+            /** @var BaseDbResource $resource */
+            $resource = $this->instantiateResource($className, $resourceInfo);
+            $access = $this->getPermissions($resource->name);
+            if (!empty($access)) {
+                $output[] = $resource->name . '/';
+                $output[] = $resource->name . '/*';
 
-                        $results = $resource->listAccessComponents($schema, $refresh);
-                        $output = array_merge($output, $results);
-                    }
-                }
-
-                return $output;
-            } else {
-                return array_values($this->resources);
+                $results = $resource->listAccessComponents($schema, $refresh);
+                $output = array_merge($output, $results);
             }
         }
 
-        return $this->resources;
+        return $output;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getResources($only_handlers = false)
+    {
+        return ($only_handlers) ? $this->resources : array_values($this->resources);
     }
 }

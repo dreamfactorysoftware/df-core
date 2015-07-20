@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -404,7 +405,7 @@ abstract class RestHandler implements RequestHandlerInterface
     /**
      * Implement to return the resource configuration for this REST handling object
      *
-     * @param $only_handlers
+     * @param boolean $only_handlers
      *
      * @return array Empty when not implemented, otherwise the array of resource information
      */
@@ -459,15 +460,21 @@ abstract class RestHandler implements RequestHandlerInterface
      */
     protected function handleGET()
     {
-        $fields = $this->request->getParameter(ApiOptions::FIELDS);
-        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
-        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-
         $resources = $this->getResources();
         if (is_array($resources)) {
-//            foreach ($resources as &$resource) {
-//                $resource['access'] = VerbsMask::maskToArray($this->getPermissions(ArrayUtils::get($resource, $idField)));
-//            }
+            $includeAccess = $this->request->getParameterAsBool(ApiOptions::INCLUDE_ACCESS);
+            $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+            $fields = $this->request->getParameter(ApiOptions::FIELDS);
+            if (!$asList && $includeAccess) {
+                foreach ($resources as &$resource) {
+                    if (is_array($resource)) {
+                        $name = ArrayUtils::get($resource, $idField);
+                        $resource['access'] =
+                            VerbsMask::maskToArray($this->getPermissions($name));
+                    }
+                }
+            }
 
             return ResourcesWrapper::cleanResources($resources, Verbs::GET, $fields, $idField, $asList);
         }

@@ -127,7 +127,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
     protected function handleGET()
     {
         if ($this->request->getParameterAsBool(ApiOptions::AS_ACCESS_LIST)) {
-            return ResourcesWrapper::cleanResources($this->getAccessList());
+            return ResourcesWrapper::wrapResources($this->getAccessList());
         }
 
         return parent::handleGET();

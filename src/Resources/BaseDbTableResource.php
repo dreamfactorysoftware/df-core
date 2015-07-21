@@ -253,32 +253,27 @@ abstract class BaseDbTableResource extends BaseDbResource
             return $_result;
         }
 
-        $_ids = ArrayUtils::get($this->options, 'ids');
-        if (!empty($_ids)) {
+        if (!empty($_ids = ArrayUtils::get($this->options, 'ids'))) {
             //	Multiple resources by ID
             $_result = $this->retrieveRecordsByIds($this->resource, $_ids, $this->options);
+        } elseif (!empty($_records = ResourcesWrapper::unwrapResources($this->payload))) {
+            // passing records to have them updated with new or more values, id field required
+            $_result = $this->retrieveRecords($this->resource, $_records, $this->options);
         } else {
-            $_records = ResourcesWrapper::unwrapResources($this->payload);
-            if (!empty($_records)) {
-                // passing records to have them updated with new or more values, id field required
-                $_result = $this->retrieveRecords($this->resource, $_records, $this->options);
-            } else {
-                $_filter = ArrayUtils::get($this->options, 'filter');
-                $_params = ArrayUtils::get($this->options, 'params', []);
+            $_filter = ArrayUtils::get($this->options, 'filter');
+            $_params = ArrayUtils::get($this->options, 'params', []);
 
-                $_result = $this->retrieveRecordsByFilter($this->resource, $_filter, $_params, $this->options);
-            }
+            $_result = $this->retrieveRecordsByFilter($this->resource, $_filter, $_params, $this->options);
         }
 
         $_meta = ArrayUtils::get($_result, 'meta');
         unset($_result['meta']);
-        $_result = ResourcesWrapper::cleanResources($_result);
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $_result = ResourcesWrapper::cleanResources($_result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($_meta));
 
         if (!empty($_meta)) {
-            $wrapper = ResourcesWrapper::getWrapper();
-            if (!isset($_result[$wrapper])) {
-                $_result = [$wrapper => $_result];
-            }
             $_result['meta'] = $_meta;
         }
 
@@ -313,12 +308,12 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $_meta = ArrayUtils::get($_result, 'meta');
         unset($_result['meta']);
-        $_result = ResourcesWrapper::cleanResources($_result);
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $_result = ResourcesWrapper::cleanResources($_result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($_meta));
+
         if (!empty($_meta)) {
-            $wrapper = ResourcesWrapper::getWrapper();
-            if (!isset($_result[$wrapper])) {
-                $_result = [$wrapper => $_result];
-            }
             $_result['meta'] = $_meta;
         }
 
@@ -374,12 +369,12 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $_meta = ArrayUtils::get($_result, 'meta');
         unset($_result['meta']);
-        $_result = ResourcesWrapper::cleanResources($_result);
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $_result = ResourcesWrapper::cleanResources($_result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($_meta));
+
         if (!empty($_meta)) {
-            $wrapper = ResourcesWrapper::getWrapper();
-            if (!isset($_result[$wrapper])) {
-                $_result = [$wrapper => $_result];
-            }
             $_result['meta'] = $_meta;
         }
 
@@ -434,12 +429,12 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $_meta = ArrayUtils::get($_result, 'meta');
         unset($_result['meta']);
-        $_result = ResourcesWrapper::cleanResources($_result);
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $_result = ResourcesWrapper::cleanResources($_result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($_meta));
+
         if (!empty($_meta)) {
-            $wrapper = ResourcesWrapper::getWrapper();
-            if (!isset($_result[$wrapper])) {
-                $_result = [$wrapper => $_result];
-            }
             $_result['meta'] = $_meta;
         }
 
@@ -487,12 +482,12 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $_meta = ArrayUtils::get($_result, 'meta');
         unset($_result['meta']);
-        $_result = ResourcesWrapper::cleanResources($_result);
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $_result = ResourcesWrapper::cleanResources($_result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($_meta));
+
         if (!empty($_meta)) {
-            $wrapper = ResourcesWrapper::getWrapper();
-            if (!isset($_result[$wrapper])) {
-                $_result = [$wrapper => $_result];
-            }
             $_result['meta'] = $_meta;
         }
 

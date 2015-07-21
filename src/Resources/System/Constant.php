@@ -20,7 +20,7 @@ class Constant extends ReadOnlySystemResource
             }
         }
 
-        return ResourcesWrapper::cleanResources($resources);
+        return ResourcesWrapper::wrapResources($resources);
     }
 
     public function getApiDocInfo()

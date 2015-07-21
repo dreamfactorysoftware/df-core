@@ -99,6 +99,16 @@ class ApiOptions extends FactoryEnum
      */
     const SCHEMA = 'schema';
 
+
+    //*************************************************************************
+    //	Common Option Values
+    //*************************************************************************
+    /**
+     * @var string
+     */
+    const FIELDS_ALL = '*';
+
+
     public static $aliasMap = [
         self::FIELDS => ['select'],
         self::FILTER => ['where'],

@@ -476,7 +476,7 @@ abstract class RestHandler implements RequestHandlerInterface
                 }
             }
 
-            return ResourcesWrapper::cleanResources($resources, Verbs::GET, $fields, $idField, $asList);
+            return ResourcesWrapper::cleanResources($resources, $asList, $idField, $fields);
         }
 
         return $resources;

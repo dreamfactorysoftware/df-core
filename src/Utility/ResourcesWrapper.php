@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Utility;
 
 use \Config;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 
@@ -16,64 +17,66 @@ class ResourcesWrapper
     }
 
     /**
-     * @param array       $resources
-     * @param string      $verb
-     * @param array|null  $fields
-     * @param string|null $identifier
-     * @param boolean     $as_list
-     * @param boolean     $force_wrap
+     * @param array             $resources
+     * @param boolean           $as_list
+     * @param string|array|null $identifier
+     * @param string|array|null $fields
+     * @param boolean           $force_wrap
      *
      * @return array
      */
     public static function cleanResources(
         $resources,
-        $verb = Verbs::GET,
-        $fields = null,
-        $identifier = null,
         $as_list = false,
+        $identifier = null,
+        $fields = null,
         $force_wrap = false
     ){
-        if (!ArrayUtils::isArrayNumeric($resources)) {
-            // avoid single resources or already wrapped resources
-            return $resources;
-        }
-        if (empty($fields)) {
+        // avoid single resources or already wrapped resources
+        if (ArrayUtils::isArrayNumeric($resources)) {
             // may already be a simple list
-            if (is_string($identifier)) {
-                $identifier = explode(',', $identifier);
-                $identifier = isset($identifier[0]) ? $identifier[0] : null;
-            }
-            if (is_array(ArrayUtils::get($resources, 0)) && !empty($identifier)) {
+            if (is_array(ArrayUtils::get($resources, 0))) {
+                if (is_string($identifier)) {
+                    $identifier = explode(',', $identifier);
+                } elseif (!is_array($identifier)) {
+                    $identifier = [];
+                }
+                $identifier = array_values($identifier);
                 if ($as_list) {
-                    // only take the first one
-                    $resources = array_column($resources, $identifier);
-                } elseif (Verbs::GET !== $verb) {
-                    // by default GET returns everything
-                    if (is_string($identifier)) {
-                        $identifier = explode(',', $identifier);
+                    if (1 == count($identifier)) {
+                        $resources = array_column($resources, $identifier[0]);
+                    } else {
+                        foreach ($resources as &$resource) {
+                            $out = '';
+                            foreach ($identifier as $idField) {
+                                if (!empty($out)) {
+                                    $out .= ',';
+                                }
+                                $out .= ArrayUtils::get($resource, $idField, '');
+                            }
+                            $resource = '(' . $out . ')';
+                        }
                     }
-                    $identifier = array_flip($identifier);
+                } elseif (empty($fields)) {
+                    if (is_array($identifier) && !empty($identifier)) {
+                        $identifier = array_flip($identifier);
 
-                    $data = [];
-                    foreach ($resources as $resource) {
-                        $data[] = array_intersect_key($resource, $identifier);
+                        foreach ($resources as &$resource) {
+                            $resource = array_intersect_key($resource, $identifier);
+                        }
                     }
-
-                    $resources = $data;
+                } elseif (ApiOptions::FIELDS_ALL !== $fields) {
+                    if (is_string($fields)) {
+                        $fields = explode(',', $fields);
+                    } elseif (!is_array($fields)) {
+                        $fields = [];
+                    }
+                    $fields = array_flip(array_values($fields));
+                    foreach ($resources as &$resource) {
+                        $resource = array_intersect_key($resource, $fields);
+                    }
                 }
             }
-        } elseif ('*' !== $fields) {
-            if (is_string($fields)) {
-                $fields = explode(',', $fields);
-            }
-
-            $fields = array_flip($fields);
-            $data = [];
-            foreach ($resources as $resource) {
-                $data[] = array_intersect_key($resource, $fields);
-            }
-
-            $resources = $data;
         }
 
         return static::wrapResources($resources, $force_wrap);

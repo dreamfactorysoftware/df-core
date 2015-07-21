@@ -219,8 +219,7 @@ class ReadOnlySystemResource extends BaseRestResource
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
         $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
-        $fields = $this->request->getParameter(ApiOptions::FIELDS);
-        $data = ResourcesWrapper::cleanResources($data, Verbs::GET, $fields, $id, $asList, !empty($meta));
+        $data = ResourcesWrapper::cleanResources($data, $asList, $id, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
             $data['meta'] = $meta;

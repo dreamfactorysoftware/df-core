@@ -442,7 +442,7 @@ abstract class BaseFileService extends BaseRestService
             $result = $this->driver->listContainers($includeProperties);
         }
 
-        return ResourcesWrapper::cleanResources($result);
+        return ResourcesWrapper::wrapResources($result);
     }
 
     /**

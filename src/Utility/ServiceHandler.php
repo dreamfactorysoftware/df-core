@@ -72,6 +72,6 @@ class ServiceHandler
      */
     public static function listServices()
     {
-        return ResourcesWrapper::cleanResources(Service::available());
+        return ResourcesWrapper::wrapResources(Service::available());
     }
 }

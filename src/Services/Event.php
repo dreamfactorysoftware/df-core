@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
@@ -114,7 +115,7 @@ class Event extends BaseRestService
             /** @var Collection $dataCol */
             $dataCol = $modelClass::with($related)->whereIn($pk, explode(',', $ids))->get();
             $data = $dataCol->toArray();
-            $data = ResourcesWrapper::cleanResources($data);
+            $data = ResourcesWrapper::wrapResources($data);
         } else if (!empty($records)) {
             $pk = $model->getPrimaryKey();
             $ids = [];
@@ -126,7 +127,7 @@ class Event extends BaseRestService
             /** @var Collection $dataCol */
             $dataCol = $modelClass::with($related)->whereIn($pk, $ids)->get();
             $data = $dataCol->toArray();
-            $data = ResourcesWrapper::cleanResources($data);
+            $data = ResourcesWrapper::wrapResources($data);
         } else {
             //	Build our criteria
             $criteria = [
@@ -171,11 +172,7 @@ class Event extends BaseRestService
             }
 
             $data = $model->selectByRequest($criteria, $related);
-            $data = ResourcesWrapper::cleanResources($data);
-        }
-
-        if (null === $data) {
-            throw new NotFoundException("Record not found.");
+            $data = ResourcesWrapper::wrapResources($data);
         }
 
         if ($this->request->getParameterAsBool('include_count') === true) {
@@ -206,9 +203,7 @@ class Event extends BaseRestService
             throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = ResourcesWrapper::getWrapper();
-        $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
 
         if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
@@ -219,9 +214,11 @@ class Event extends BaseRestService
         $model = $this->getModel();
         $result = $model::bulkCreate($records, $this->request->getParameters());
 
-        $response = ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
-        return $response;
+        return ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
     }
 
     /**
@@ -241,25 +238,27 @@ class Event extends BaseRestService
      */
     protected function handlePATCH()
     {
-        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-        $wrapper = ResourcesWrapper::getWrapper();
-        $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
-        $ids = $this->request->getParameter('ids');
         $modelClass = $this->getModel();
-
-        if (empty($records)) {
-            throw new BadRequestException('No record(s) detected in request.');
-        }
 
         $this->triggerActionEvent($this->response);
 
         if (!empty($this->resource)) {
-            $result = $modelClass::updateById($this->resource, $records[0], $this->request->getParameters());
-        } elseif (!empty($ids)) {
+            $result = $modelClass::updateById($this->resource, $this->getPayloadData(), $this->request->getParameters());
+        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
+            $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+            if (empty($records)) {
+                throw new BadRequestException('No record(s) detected in request.');
+            }
             $result = $modelClass::updateByIds($ids, $records[0], $this->request->getParameters());
-        } else {
+        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
             $result = $modelClass::bulkUpdate($records, $this->request->getParameters());
+        } else {
+            throw new BadRequestException('No record(s) detected in request.');
         }
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
         return $result;
     }
@@ -274,23 +273,26 @@ class Event extends BaseRestService
     protected function handleDELETE()
     {
         $this->triggerActionEvent($this->response);
-        $ids = $this->request->getParameter('ids');
         $modelClass = $this->getModel();
 
         if (!empty($this->resource)) {
             $result = $modelClass::deleteById($this->resource, $this->request->getParameters());
-        } elseif (!empty($ids)) {
+        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $result = $modelClass::deleteByIds($ids, $this->request->getParameters());
-        } else {
-            $alwaysWrap = \Config::get('df.always_wrap_resources', false);
-            $wrapper = ResourcesWrapper::getWrapper();
-            $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
-
-            if (empty($records)) {
-                throw new BadRequestException('No record(s) detected in request.');
+        } elseif ($records = ResourcesWrapper::unwrapResources($this->getPayloadData())) {
+            if (isset($records[0]) && is_array($records[0])) {
+                $result = $modelClass::bulkDelete($records, $this->request->getParameters());
+            } else {
+                // this may be a list of ids
+                $result = $modelClass::deleteByIds($records, $this->request->getParameters());
             }
-            $result = $modelClass::bulkDelete($records, $this->request->getParameters());
+        } else {
+            throw new BadRequestException('No record(s) detected in request.');
         }
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
         return $result;
     }
@@ -303,11 +305,11 @@ class Event extends BaseRestService
      */
     protected function getModel()
     {
-        if (empty($this->model)) {
+        if (empty($this->model) || !class_exists($this->model)) {
             throw new ModelNotFoundException();
         }
 
-        return $this->model;
+        return new $this->model;
     }
 
     public function getApiDocInfo()

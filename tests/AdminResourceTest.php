@@ -38,7 +38,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $content = $rs->getContent();
 
         $this->assertEquals(1, count($content[static::$wrapper]));
-        $this->assertEquals('DF Admin', Arr::get($content, static::$wrapper . '..0.name'));
+        $this->assertEquals('DF Admin', Arr::get($content, static::$wrapper . '.0.name'));
     }
 
     /************************************************

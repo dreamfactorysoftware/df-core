@@ -30,11 +30,6 @@ abstract class BaseDbService extends BaseRestService
         $refresh = $this->request->getParameterAsBool(ApiOptions::REFRESH);
         $schema = $this->request->getParameter(ApiOptions::SCHEMA, '');
 
-        $access = $this->getPermissions();
-        if (!empty($access)) {
-            $output[] = '';
-            $output[] = '*';
-        }
         foreach ($this->resources as $resourceInfo) {
             $className = $resourceInfo['class_name'];
 

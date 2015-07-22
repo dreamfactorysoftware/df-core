@@ -26,8 +26,8 @@ class Environment extends BaseSystemResource
         $result = [];
 
         $result['platform'] = [
-            'version_current'   => '2.0.0',
-            'version_latest'    => '2.0.0',
+            'version_current'   => \Config::get('df.api_version'),
+            'version_latest'    => \Config::get('df.api_version'),
             'upgrade_available' => false,
             'is_hosted'         => false,
             'host'              => php_uname('n'),
@@ -448,18 +448,18 @@ class Environment extends BaseSystemResource
             'EnvironmentResponse' => [
                 'id'         => 'EnvironmentResponse',
                 'properties' => [
-                    'platform' => [
+                    'platform'       => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
                             '$ref' => $name . 'Response',
                         ],
                     ],
-                    'authentication'   => [
+                    'authentication' => [
                         'type'        => 'Metadata',
                         'description' => 'Array of metadata returned for GET requests.',
                     ],
-                    'app_group'   => [
+                    'app_group'      => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
@@ -473,11 +473,11 @@ class Environment extends BaseSystemResource
                             '$ref' => $name . 'Response',
                         ],
                     ],
-                    'config'   => [
+                    'config'         => [
                         'type'        => 'Metadata',
                         'description' => 'Array of metadata returned for GET requests.',
                     ],
-                    'server'   => [
+                    'server'         => [
                         'type'        => 'Metadata',
                         'description' => 'Array of metadata returned for GET requests.',
                     ],

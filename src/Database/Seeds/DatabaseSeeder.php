@@ -19,7 +19,7 @@ class DatabaseSeeder extends Seeder
         $this->call(SystemResourceSeeder::class);
         $this->call(ScriptTypeSeeder::class);
         $this->call(ServiceSeeder::class);
-        $this->call(AdminSeeder::class);
+        //$this->call(AdminSeeder::class);
         $this->call(DbTableExtrasSeeder::class);
         $this->call(AppSeeder::class);
     }

@@ -531,7 +531,7 @@ abstract class BaseFileService extends BaseRestService
                     $clean,
                     $checkExist
                 );
-                $out[$key] = $tmp['file'];
+                $out[$key] = $tmp;
             } else {
                 $err[] = $name;
             }

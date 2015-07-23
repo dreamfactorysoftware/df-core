@@ -434,8 +434,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
         }
         $blob = $this->getBlobProperties($container, $path);
         $shortName = FileUtilities::getNameFromPath($path);
-        //$blob['path'] = $container . '/' . $path;
-        $blob['path'] = '/' . $path;
+        $blob['path'] = $path;
         $blob['name'] = $shortName;
         if ($include_content) {
             $data = $this->getBlobData($container, $path);
@@ -752,7 +751,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
             }
         }
 
-        return ['name' => rtrim($path, DIRECTORY_SEPARATOR), 'path' => '/' . $path];
+        return ['name' => rtrim($path, DIRECTORY_SEPARATOR), 'path' => $path];
     }
 
     protected function listResource($includeProperties = false)

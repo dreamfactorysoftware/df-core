@@ -107,7 +107,7 @@ abstract class BaseFileService extends BaseRestService
 
     protected function getResourceIdentifier()
     {
-        return 'name';
+        return 'path';
     }
 
     /**
@@ -172,8 +172,8 @@ abstract class BaseFileService extends BaseRestService
                 $result = $this->driver->getFolder(
                     $this->container,
                     $this->folderPath,
-                    $this->request->getParameter('include_files', true),
-                    $this->request->getParameter('include_folders', true),
+                    $this->request->getParameterAsBool('include_files', true),
+                    $this->request->getParameterAsBool('include_folders', true),
                     $this->request->getParameterAsBool('full_tree', false)
                 );
 
@@ -721,7 +721,7 @@ abstract class BaseFileService extends BaseRestService
                         'type'             => 'ResourceList',
                         'event_name'       => [$this->name . '.list'],
                         'parameters'       => [
-                            ApiOptions::documentOption(ApiOptions::AS_LIST),
+                            ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
                             ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
                             ApiOptions::documentOption(ApiOptions::ID_FIELD),
                             ApiOptions::documentOption(ApiOptions::ID_TYPE),

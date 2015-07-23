@@ -91,14 +91,14 @@ class DbUtilities
      */
     public static function getPrimaryKeys($avail_fields, $names_only = false)
     {
-        $_keys = [];
-        foreach ($avail_fields as $_info) {
-            if ($_info['is_primary_key']) {
-                $_keys[] = ($names_only ? $_info['name'] : $_info);
+        $keys = [];
+        foreach ($avail_fields as $info) {
+            if ($info['is_primary_key']) {
+                $keys[] = ($names_only ? $info['name'] : $info);
             }
         }
 
-        return $_keys;
+        return $keys;
     }
 
     /**
@@ -112,6 +112,10 @@ class DbUtilities
      */
     public static function getSchemaExtrasForTables($service_id, $table_names, $include_fields = true, $select = '*')
     {
+        if (empty($table_names)) {
+            return [];
+        }
+
         if (empty($service_id)) {
             throw new \InvalidArgumentException('Invalid service id.');
         }
@@ -141,22 +145,26 @@ class DbUtilities
      */
     public static function getSchemaExtrasForFields($service_id, $table_name, $field_names, $select = '*')
     {
+        if (empty($field_names)) {
+            return [];
+        }
+
         if (empty($service_id)) {
             throw new \InvalidArgumentException('Invalid service id.');
         }
 
-        if (false === $_values = static::validateAsArray($field_names, ',', true)) {
+        if (false === $values = static::validateAsArray($field_names, ',', true)) {
             throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
         }
 
-        $_results =
+        $results =
             DbFieldExtras::where('service_id', $service_id)
                 ->where('table', $table_name)
-                ->whereIn('field', $_values)
+                ->whereIn('field', $values)
                 ->get()
                 ->toArray();
 
-        return $_results;
+        return $results;
     }
 
     /**
@@ -172,98 +180,98 @@ class DbUtilities
 //            return;
 //        }
 //
-//        $_tables = array();
-//        foreach ( $labels as $_label )
+//        $tables = array();
+//        foreach ( $labels as $label )
 //        {
-//            $_tables[] = ArrayUtils::get( $_label, 'table' );
+//            $tables[] = ArrayUtils::get( $label, 'table' );
 //        }
 //
-//        $_tables = array_unique( $_tables );
-//        $_oldRows = static::getSchemaExtrasForTables( $service_id, $_tables );
+//        $tables = array_unique( $tables );
+//        $oldRows = static::getSchemaExtrasForTables( $service_id, $tables );
 //
 //        try
 //        {
-//            $_db = Pii::db();
+//            $db = Pii::db();
 //
-//            $_inserts = $_updates = array();
+//            $inserts = $updates = array();
 //
-//            foreach ( $labels as $_label )
+//            foreach ( $labels as $label )
 //            {
-//                $_table = ArrayUtils::get( $_label, 'table' );
-//                $_field = ArrayUtils::get( $_label, 'field' );
-//                $_id = null;
-//                foreach ( $_oldRows as $_row )
+//                $table = ArrayUtils::get( $label, 'table' );
+//                $field = ArrayUtils::get( $label, 'field' );
+//                $id = null;
+//                foreach ( $oldRows as $row )
 //                {
-//                    if ( ( ArrayUtils::get( $_row, 'table' ) == $_table ) && ( ArrayUtils::get( $_row, 'field' ) == $_field ) )
+//                    if ( ( ArrayUtils::get( $row, 'table' ) == $table ) && ( ArrayUtils::get( $row, 'field' ) == $field ) )
 //                    {
-//                        $_id = ArrayUtils::get( $_row, 'id' );
+//                        $id = ArrayUtils::get( $row, 'id' );
 //                    }
 //                }
 //
-//                if ( empty( $_id ) )
+//                if ( empty( $id ) )
 //                {
-//                    $_inserts[] = $_label;
+//                    $inserts[] = $label;
 //                }
 //                else
 //                {
-//                    $_updates[$_id] = $_label;
+//                    $updates[$id] = $label;
 //                }
 //            }
 //
-//            $_transaction = null;
+//            $transaction = null;
 //
 //            try
 //            {
-//                $_transaction = $_db->beginTransaction();
+//                $transaction = $db->beginTransaction();
 //            }
-//            catch ( \Exception $_ex )
+//            catch ( \Exception $ex )
 //            {
 //                //	No transaction support
-//                $_transaction = false;
+//                $transaction = false;
 //            }
 //
 //            try
 //            {
-//                $_command = new \Command( $_db );
+//                $command = new \Command( $db );
 //
-//                if ( !empty( $_inserts ) )
+//                if ( !empty( $inserts ) )
 //                {
-//                    foreach ( $_inserts as $_insert )
+//                    foreach ( $inserts as $insert )
 //                    {
-//                        $_command->reset();
-//                        $_insert['service_id'] = $service_id;
-//                        $_command->insert( 'df_sys_schema_extras', $_insert );
+//                        $command->reset();
+//                        $insert['service_id'] = $service_id;
+//                        $command->insert( 'df_sys_schema_extras', $insert );
 //                    }
 //                }
 //
-//                if ( !empty( $_updates ) )
+//                if ( !empty( $updates ) )
 //                {
-//                    foreach ( $_updates as $_id => $_update )
+//                    foreach ( $updates as $id => $update )
 //                    {
-//                        $_command->reset();
-//                        $_update['service_id'] = $service_id;
-//                        $_command->update( 'df_sys_schema_extras', $_update, 'id = :id', array(':id' => $_id) );
+//                        $command->reset();
+//                        $update['service_id'] = $service_id;
+//                        $command->update( 'df_sys_schema_extras', $update, 'id = :id', array(':id' => $id) );
 //                    }
 //                }
 //
-//                if ( $_transaction )
+//                if ( $transaction )
 //                {
-//                    $_transaction->commit();
+//                    $transaction->commit();
 //                }
 //            }
-//            catch ( \Exception $_ex )
+//            catch ( \Exception $ex )
 //            {
-//                Log::error( 'Exception storing schema updates: ' . $_ex->getMessage() );
+//                Log::error( 'Exception storing schema updates: ' . $ex->getMessage() );
 //
-//                if ( $_transaction )
+//                if ( $transaction )
 //                {
-//                    $_transaction->rollback();
+//                    $transaction->rollback();
 //                }
 //            }
 //        }
-//        catch ( \Exception $_ex )
+//        catch ( \Exception $ex )
 //        {
-//            Log::error( 'Failed to update df_sys_schema_extras. ' . $_ex->getMessage() );
+//            Log::error( 'Failed to update df_sys_schema_extras. ' . $ex->getMessage() );
 //        }
     }
 
@@ -276,37 +284,37 @@ class DbUtilities
     {
 //        try
 //        {
-//            $_db = Pii::db();
-//            $_params = array();
-//            $_where = array('and');
+//            $db = Pii::db();
+//            $params = array();
+//            $where = array('and');
 //
 //            if ( empty( $service_id ) )
 //            {
-//                $_where[] = 'service_id IS NULL';
+//                $where[] = 'service_id IS NULL';
 //            }
 //            else
 //            {
-//                $_where[] = 'service_id = :id';
-//                $_params[':id'] = $service_id;
+//                $where[] = 'service_id = :id';
+//                $params[':id'] = $service_id;
 //            }
 //
-//            if ( false === $_values = static::validateAsArray( $table_names, ',', true ) )
+//            if ( false === $values = static::validateAsArray( $table_names, ',', true ) )
 //            {
 //                throw new \InvalidArgumentException( 'Invalid table list. ' . $table_names );
 //            }
 //
-//            $_where[] = array('in', 'table', $_values);
+//            $where[] = array('in', 'table', $values);
 //
 //            if ( !$include_fields )
 //            {
-//                $_where[] = "field = ''";
+//                $where[] = "field = ''";
 //            }
 //
-//            $_db->createCommand()->delete( 'df_sys_schema_extras', $_where, $_params );
+//            $db->createCommand()->delete( 'df_sys_schema_extras', $where, $params );
 //        }
-//        catch ( \Exception $_ex )
+//        catch ( \Exception $ex )
 //        {
-//            Log::error( 'Failed to delete from df_sys_schema_extras. ' . $_ex->getMessage() );
+//            Log::error( 'Failed to delete from df_sys_schema_extras. ' . $ex->getMessage() );
 //        }
     }
 
@@ -319,35 +327,35 @@ class DbUtilities
     {
 //        try
 //        {
-//            $_db = Pii::db();
-//            $_params = array();
-//            $_where = array('and');
+//            $db = Pii::db();
+//            $params = array();
+//            $where = array('and');
 //
 //            if ( empty( $service_id ) )
 //            {
-//                $_where[] = 'service_id IS NULL';
+//                $where[] = 'service_id IS NULL';
 //            }
 //            else
 //            {
-//                $_where[] = 'service_id = :id';
-//                $_params[':id'] = $service_id;
+//                $where[] = 'service_id = :id';
+//                $params[':id'] = $service_id;
 //            }
 //
-//            $_where[] = 'table = :tn';
-//            $_params[':tn'] = $table_name;
+//            $where[] = 'table = :tn';
+//            $params[':tn'] = $table_name;
 //
-//            if ( false === $_values = static::validateAsArray( $field_names, ',', true ) )
+//            if ( false === $values = static::validateAsArray( $field_names, ',', true ) )
 //            {
 //                throw new \InvalidArgumentException( 'Invalid field list. ' . $field_names );
 //            }
 //
-//            $_where[] = array('in', 'field', $_values);
+//            $where[] = array('in', 'field', $values);
 //
-//            $_db->createCommand()->delete( 'df_sys_schema_extras', $_where, $_params );
+//            $db->createCommand()->delete( 'df_sys_schema_extras', $where, $params );
 //        }
-//        catch ( \Exception $_ex )
+//        catch ( \Exception $ex )
 //        {
-//            Log::error( 'Failed to delete from df_sys_schema_extras. ' . $_ex->getMessage() );
+//            Log::error( 'Failed to delete from df_sys_schema_extras. ' . $ex->getMessage() );
 //        }
     }
 
@@ -362,12 +370,12 @@ class DbUtilities
             return [];
         }
 
-        $_new = [];
-        foreach ($original as $_label) {
-            $_new[ArrayUtils::get($_label, 'field')] = $_label;
+        $new = [];
+        foreach ($original as $label) {
+            $new[ArrayUtils::get($label, 'field')] = $label;
         }
 
-        return $_new;
+        return $new;
     }
 
     /**
@@ -475,9 +483,9 @@ class DbUtilities
             case 'date':
             case 'datetime':
             case 'timestamp':
-                $_cfgFormat = static::getDateTimeFormat($type);
+                $cfgFormat = static::getDateTimeFormat($type);
 
-                return static::formatDateTime($_cfgFormat, $value);
+                return static::formatDateTime($cfgFormat, $value);
         }
 
         return $value;
@@ -508,16 +516,16 @@ class DbUtilities
         if (!empty($out_format)) {
             $in_value = (is_string($in_value) || is_null($in_value)) ? $in_value : strval($in_value);
             if (!empty($in_format)) {
-                if (false === $_date = \DateTime::createfromFormat($in_format, $in_value)) {
+                if (false === $date = \DateTime::createfromFormat($in_format, $in_value)) {
                     Log::error("Failed to format datetime from '$in_value'' to '$in_format'");
 
                     return $in_value;
                 }
             } else {
-                $_date = new \DateTime($in_value);
+                $date = new \DateTime($in_value);
             }
 
-            return $_date->format($out_format);
+            return $date->format($out_format);
         }
 
         return $in_value;
@@ -525,9 +533,9 @@ class DbUtilities
 
     public static function findRecordByNameValue($data, $field, $value)
     {
-        foreach ($data as $_record) {
-            if (ArrayUtils::get($_record, $field) === $value) {
-                return $_record;
+        foreach ($data as $record) {
+            if (ArrayUtils::get($record, $field) === $value) {
+                return $record;
             }
         }
 
@@ -562,12 +570,12 @@ class DbUtilities
             }
 
             // glean desired fields from record
-            $_out = [];
-            foreach ($include as $_key) {
-                $_out[$_key] = ArrayUtils::get($record, $_key);
+            $out = [];
+            foreach ($include as $key) {
+                $out[$key] = ArrayUtils::get($record, $key);
             }
 
-            return $_out;
+            return $out;
         }
 
         return $record;
@@ -582,12 +590,12 @@ class DbUtilities
      */
     protected static function cleanRecords($records, $include = '*', $id_field = null)
     {
-        $_out = [];
-        foreach ($records as $_record) {
-            $_out[] = static::cleanRecord($_record, $include, $id_field);
+        $out = [];
+        foreach ($records as $record) {
+            $out[] = static::cleanRecord($record, $include, $id_field);
         }
 
-        return $_out;
+        return $out;
     }
 
     /**
@@ -604,14 +612,14 @@ class DbUtilities
      */
     protected static function recordsAsIds($records, $ids_info, $extras = null, $on_create = false, $remove = false)
     {
-        $_out = [];
+        $out = [];
         if (!empty($records)) {
-            foreach ($records as $_record) {
-                $_out[] = static::checkForIds($_record, $ids_info, $extras, $on_create, $remove);
+            foreach ($records as $record) {
+                $out[] = static::checkForIds($record, $ids_info, $extras, $on_create, $remove);
             }
         }
 
-        return $_out;
+        return $out;
     }
 
     /**
@@ -634,24 +642,24 @@ class DbUtilities
         }
 
         if (count($id_field) > 1) {
-            $_ids = [];
-            foreach ($id_field as $_field) {
-                $_id = ArrayUtils::get($record, $_field, null, $remove);
-                if (empty($_id)) {
-                    throw new BadRequestException("Identifying field '$_field' can not be empty for record.");
+            $ids = [];
+            foreach ($id_field as $field) {
+                $id = ArrayUtils::get($record, $field, null, $remove);
+                if (empty($id)) {
+                    throw new BadRequestException("Identifying field '$field' can not be empty for record.");
                 }
-                $_ids[$_field] = $_id;
+                $ids[$field] = $id;
             }
 
-            return $_ids;
+            return $ids;
         } else {
-            $_field = $id_field[0];
-            $_id = ArrayUtils::get($record, $_field, null, $remove);
-            if (empty($_id)) {
-                throw new BadRequestException("Identifying field '$_field' can not be empty for record.");
+            $field = $id_field[0];
+            $id = ArrayUtils::get($record, $field, null, $remove);
+            if (empty($id)) {
+                throw new BadRequestException("Identifying field '$field' can not be empty for record.");
             }
 
-            return ($include_field) ? [$_field => $_id] : $_id;
+            return ($include_field) ? [$field => $id] : $id;
         }
     }
 
@@ -672,23 +680,23 @@ class DbUtilities
             $id_field = array_map('trim', explode(',', trim($id_field, ',')));
         }
 
-        $_out = [];
-        foreach ($ids as $_id) {
-            $_ids = [];
-            if ((count($id_field) > 1) && (count($_id) > 1)) {
-                foreach ($id_field as $_index => $_field) {
-                    $_search = ($field_included) ? $_field : $_index;
-                    $_ids[$_field] = ArrayUtils::get($_id, $_search);
+        $out = [];
+        foreach ($ids as $id) {
+            $ids = [];
+            if ((count($id_field) > 1) && (count($id) > 1)) {
+                foreach ($id_field as $index => $field) {
+                    $search = ($field_included) ? $field : $index;
+                    $ids[$field] = ArrayUtils::get($id, $search);
                 }
             } else {
-                $_field = $id_field[0];
-                $_ids[$_field] = $_id;
+                $field = $id_field[0];
+                $ids[$field] = $id;
             }
 
-            $_out[] = $_ids;
+            $out[] = $ids;
         }
 
-        return $_out;
+        return $out;
     }
 
     /**
@@ -703,8 +711,8 @@ class DbUtilities
                 $id_field = array_map('trim', explode(',', trim($id_field, ',')));
             }
 
-            foreach ($id_field as $_name) {
-                unset($record[$_name]);
+            foreach ($id_field as $name) {
+                unset($record[$name]);
             }
         }
     }
@@ -725,9 +733,9 @@ class DbUtilities
             $id_field = array_map('trim', explode(',', trim($id_field, ',')));
         }
 
-        foreach ($id_field as $_field) {
-            $_temp = ArrayUtils::get($record, $_field);
-            if (empty($_temp)) {
+        foreach ($id_field as $field) {
+            $temp = ArrayUtils::get($record, $field);
+            if (empty($temp)) {
                 return false;
             }
         }
@@ -755,9 +763,9 @@ class DbUtilities
             $id_field = array_map('trim', explode(',', trim($id_field, ',')));
         }
 
-        foreach ($id_field as $_key => $_name) {
-            if (false !== array_search($_name, $fields)) {
-                unset($fields[$_key]);
+        foreach ($id_field as $key => $name) {
+            if (false !== array_search($name, $fields)) {
+                unset($fields[$key]);
             }
         }
 
@@ -777,12 +785,12 @@ class DbUtilities
             return [];
         }
 
-        foreach ($first_array as $_key => $_first) {
-            $_firstId = ArrayUtils::get($_first, $id_field);
-            foreach ($second_array as $_second) {
-                $_secondId = ArrayUtils::get($_second, $id_field);
-                if ($_firstId == $_secondId) {
-                    $first_array[$_key] = array_merge($_first, $_second);
+        foreach ($first_array as $key => $first) {
+            $firstId = ArrayUtils::get($first, $id_field);
+            foreach ($second_array as $second) {
+                $secondId = ArrayUtils::get($second, $id_field);
+                if ($firstId == $secondId) {
+                    $first_array[$key] = array_merge($first, $second);
                 }
             }
         }
@@ -802,12 +810,12 @@ class DbUtilities
             return $value;
         }
 
-        $_end = strlen($value) - 1;
+        $end = strlen($value) - 1;
         // filter string values should be wrapped in matching quotes
-        if (((0 === strpos($value, '"')) && ($_end === strrpos($value, '"'))) ||
-            ((0 === strpos($value, "'")) && ($_end === strrpos($value, "'")))
+        if (((0 === strpos($value, '"')) && ($end === strrpos($value, '"'))) ||
+            ((0 === strpos($value, "'")) && ($end === strrpos($value, "'")))
         ) {
-            return substr($value, 1, $_end - 1);
+            return substr($value, 1, $end - 1);
         }
 
         // check for boolean or null values
@@ -840,9 +848,9 @@ class DbUtilities
             return $record;
         }
 
-        foreach ($record as $_field => $_value) {
-//            Session::replaceLookups( $_value );
-            $record[$_field] = $_value;
+        foreach ($record as $field => $value) {
+//            Session::replaceLookups( $value );
+            $record[$field] = $value;
         }
 
         return $record;

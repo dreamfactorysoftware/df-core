@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\CacheUtilities;
+use League\Flysystem\Exception;
 
 /**
  * ApiDocManager
@@ -73,26 +74,28 @@ class ApiDocManager
         $services = [];
         foreach ($result as $service) {
             $apiName = $service->name;
-            $content = static::getStoredContentForService($service);
+            try {
+                if (empty($content = static::getStoredContentForService($service))) {
+                    throw new \Exception('  * No event content found for service.');
+                    continue;
+                }
 
-            if (empty($content)) {
-                \Log::info('  * No Swagger content found for service "' . $apiName . '"');
-                continue;
+                $serviceEvents = static::_parseSwaggerEvents($apiName, $content);
+
+                // build main services list
+                $services[] = [
+                    'path'        => '/' . $apiName,
+                    'description' => $service->description
+                ];
+
+                //	Parse the events while we get the chance...
+                $processEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'process', []);
+                $broadcastEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'broadcast', []);
+
+                unset($content, $filePath, $service, $serviceEvents);
+            } catch (\Exception $ex) {
+                \Log::error("  * System error building event map for service '$apiName'.\n{$ex->getMessage()}");
             }
-
-            $serviceEvents = static::_parseSwaggerEvents($apiName, $content);
-
-            // build main services list
-            $services[] = [
-                'path'        => '/' . $apiName,
-                'description' => $service->description
-            ];
-
-            //	Parse the events while we get the chance...
-            $processEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'process', []);
-            $broadcastEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'broadcast', []);
-
-            unset($content, $filePath, $service, $serviceEvents);
         }
 
         static::$eventMap = ['process' => $processEventMap, 'broadcast' => $broadcastEventMap];

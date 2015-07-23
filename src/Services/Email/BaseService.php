@@ -65,9 +65,9 @@ abstract class BaseService extends BaseRestService
 
     protected function setParameters($config)
     {
-        $parameters = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', []));
+        $this->parameters = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', []));
 
-        foreach ($parameters as $params) {
+        foreach ($this->parameters as $params) {
             $this->parameters[$params['name']] = ArrayUtils::get($params, 'value');
         }
     }
@@ -101,6 +101,7 @@ abstract class BaseService extends BaseRestService
         if (empty($templateData) && empty($data)) {
             throw new BadRequestException('No valid data in request.');
         }
+
 
         $data = array_merge(ArrayUtils::clean(ArrayUtils::get($templateData, 'defaults', [], true)), $data);
         $data = array_merge($this->parameters, $templateData, $data);

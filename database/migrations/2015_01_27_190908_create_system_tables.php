@@ -407,20 +407,26 @@ class CreateSystemTables extends Migration
 
         //Email service config table
         Schema::create(
-            'email_config',
+            'smtp_config',
             function (Blueprint $t){
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('driver');
                 $t->string('host')->nullable();
                 $t->string('port')->nullable();
                 $t->string('encryption')->default('tls');
                 $t->longText('username')->nullable(); //encrypted
                 $t->longText('password')->nullable(); //encrypted
-                $t->string('command')->default('/usr/sbin/sendmail -bs');
-                $t->longText('key')->nullable(); //encrypted
-                $t->longText('secret')->nullable(); //encrypted
+            }
+        );
+
+        //Email service config table
+        Schema::create(
+            'cloud_email_config',
+            function (Blueprint $t){
+                $t->integer('service_id')->unsigned()->primary();
+                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->string('domain')->nullable();
+                $t->longText('secret'); //encrypted
             }
         );
 

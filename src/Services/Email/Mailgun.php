@@ -12,6 +12,17 @@ class MailGun extends BaseService
         $domain = ArrayUtils::get($config, 'domain');
         $key = ArrayUtils::get($config, 'key');
 
-        $this->transport = new MailgunTransport($key, $domain);
+        $this->transport = static::getTransport($domain, $key);
+    }
+
+    /**
+     * @param $domain
+     * @param $key
+     *
+     * @return \Illuminate\Mail\Transport\MailgunTransport
+     */
+    public static function getTransport($domain, $key)
+    {
+        return new MailgunTransport($key, $domain);
     }
 }

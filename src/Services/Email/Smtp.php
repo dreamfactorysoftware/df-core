@@ -15,6 +15,20 @@ class Smtp extends BaseService
         $username = ArrayUtils::get($config, 'username');
         $password = ArrayUtils::get($config, 'password');
 
+        $this->transport = static::getTransport($host, $port, $encryption, $username, $password);
+    }
+
+    /**
+     * @param $host
+     * @param $port
+     * @param $encryption
+     * @param $username
+     * @param $password
+     *
+     * @return \Swift_SmtpTransport
+     */
+    public static function getTransport($host, $port, $encryption, $username, $password)
+    {
         $transport = SmtpTransport::newInstance($host, $port);
 
         if (!empty($encryption)) {
@@ -26,6 +40,6 @@ class Smtp extends BaseService
             $transport->setPassword($password);
         }
 
-        $this->transport = $transport;
+        return $transport;
     }
 }

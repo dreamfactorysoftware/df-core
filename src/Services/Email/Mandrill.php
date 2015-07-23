@@ -10,6 +10,11 @@ class Mandrill extends BaseService
     protected function setTransport($config)
     {
         $key = ArrayUtils::get($config, 'key');
-        $this->transport = new MandrillTransport($key);
+        $this->transport = static::getTransport($key);
+    }
+
+    public static function getTransport($key)
+    {
+        return new MandrillTransport($key);
     }
 }

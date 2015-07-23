@@ -2,26 +2,18 @@
 
 namespace DreamFactory\Core\Models;
 
-class EmailServiceConfig extends BaseServiceConfigModel
+class CloudEmailConfig extends BaseServiceConfigModel
 {
-    protected $table = 'email_config';
+    protected $table = 'smtp_config';
 
     protected $fillable = [
         'service_id',
-        'driver',
-        'host',
-        'port',
-        'encryption',
-        'username',
-        'password',
-        'command',
-        'parameters',
-        'key',
+        'domain',
         'secret',
-        'domain'
+        'parameters'
     ];
 
-    protected $encrypted = ['username', 'password', 'key', 'secret'];
+    protected $encrypted = ['secret'];
 
     protected $appends = ['parameters'];
 
@@ -32,7 +24,7 @@ class EmailServiceConfig extends BaseServiceConfigModel
         parent::boot();
 
         static::created(
-            function (EmailServiceConfig $emailConfig){
+            function (CloudEmailConfig $emailConfig){
                 if (!empty($emailConfig->parameters)) {
                     $params = [];
                     foreach ($emailConfig->parameters as $param) {

@@ -220,19 +220,17 @@ abstract class BaseFileService extends BaseRestService
             $clean = $this->request->getParameterAsBool('clean', false);
             $checkExist = $this->request->getParameterAsBool('check_exist', false);
 
-            $fileNameHeader = $this->request->getHeader('HTTP_X_FILE_NAME');
-            $folderNameHeader = $this->request->getHeader('HTTP_X_FOLDER_NAME');
+            $fileNameHeader = $this->request->getHeader('X-File-Name');
+            $folderNameHeader = $this->request->getHeader('X-Folder-Name');
             $fileUrl = filter_var($this->request->getParameter('url', ''), FILTER_SANITIZE_URL);
 
             if (!empty($fileNameHeader)) {
                 // html5 single posting for file create
-                $content = $this->request->getPayloadData();
-                $contentType = $this->request->getHeader('CONTENT_TYPE', '');
                 $result = $this->handleFileContent(
                     $this->folderPath,
                     $fileNameHeader,
-                    $content,
-                    $contentType,
+                    $this->request->getContent(),
+                    $this->request->getContentType(),
                     $extract,
                     $clean,
                     $checkExist
@@ -288,15 +286,13 @@ abstract class BaseFileService extends BaseRestService
             $path = dirname($this->filePath);
             $files = $this->request->getFile('files');
             if (empty($files)) {
-                $contentType = $this->request->getHeader('CONTENT_TYPE', '');
                 // direct load from posted data as content
                 // or possibly xml or json post of file properties create, copy or move
-                $content = $this->getPayloadData();
                 $result = $this->handleFileContent(
                     $path,
                     $name,
-                    $content,
-                    $contentType,
+                    $this->request->getContent(),
+                    $this->request->getContentType(),
                     $extract,
                     $clean,
                     $checkExist
@@ -313,13 +309,11 @@ abstract class BaseFileService extends BaseRestService
                 }
                 $error = $file['error'];
                 if (UPLOAD_ERR_OK == $error) {
-                    $tmpName = $file["tmp_name"];
-                    $contentType = $file['type'];
                     $result = $this->handleFile(
                         $path,
                         $name,
-                        $tmpName,
-                        $contentType,
+                        $file["tmp_name"],
+                        $file['type'],
                         $extract,
                         $clean,
                         $checkExist

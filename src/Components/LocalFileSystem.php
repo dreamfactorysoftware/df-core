@@ -60,24 +60,24 @@ class LocalFileSystem implements FileSystemInterface
      */
     public function listContainers($include_properties = false)
     {
-        $_out = array();
-        $_root = FileUtilities::fixFolderPath(static::asFullPath('', false));
-        $_files = array_diff(scandir($_root), array('.', '..', '.private'));
-        foreach ($_files as $_file) {
-            $_dir = $_root . $_file;
+        $out = [];
+        $root = FileUtilities::fixFolderPath(static::asFullPath('', false));
+        $files = array_diff(scandir($root), ['.', '..', '.private']);
+        foreach ($files as $file) {
+            $dir = $root . $file;
             // get file meta
-            if (is_dir($_dir) || is_file($_dir)) {
-                $_result = array('name' => $_file, 'path' => $_file);
+            if (is_dir($dir) || is_file($dir)) {
+                $result = ['name' => $file, 'path' => $file];
                 if ($include_properties) {
-                    $_temp = stat($_dir);
-                    $_result['last_modified'] = gmdate(static::TIMESTAMP_FORMAT, ArrayUtils::get($_temp, 'mtime', 0));
+                    $temp = stat($dir);
+                    $result['last_modified'] = gmdate(static::TIMESTAMP_FORMAT, ArrayUtils::get($temp, 'mtime', 0));
                 }
 
-                $_out[] = $_result;
+                $out[] = $result;
             }
         }
 
-        return $_out;
+        return $out;
     }
 
     /**
@@ -89,31 +89,36 @@ class LocalFileSystem implements FileSystemInterface
      */
     public function containerExists($container)
     {
-        $_dir = static::addContainerToName($container, '');
+        $dir = static::addContainerToName($container, '');
 
-        return is_dir($_dir);
+        return is_dir($dir);
     }
 
     /**
-     * Gets all properties of a particular container, if options are false,
-     * otherwise include content from the container
+     * Gets content of a particular container
      *
      * @param string $container Container name
      * @param bool   $include_files
      * @param bool   $include_folders
      * @param bool   $full_tree
-     * @param bool   $include_properties
      *
      * @return array
      */
-    public function getContainer(
-        $container,
-        $include_files = true,
-        $include_folders = true,
-        $full_tree = false,
-        $include_properties = false
-    ){
-        return $this->getFolder($container, '', $include_files, $include_folders, $full_tree, $include_properties);
+    public function getContainer($container, $include_files = true, $include_folders = true, $full_tree = false)
+    {
+        return $this->getFolder($container, '', $include_files, $include_folders, $full_tree);
+    }
+
+    /**
+     * Gets all properties of a particular container
+     *
+     * @param string $container Container name
+     *
+     * @return array
+     */
+    public function getContainerProperties($container)
+    {
+        return $this->getFolderProperties($container, '');
     }
 
     /**
@@ -126,27 +131,27 @@ class LocalFileSystem implements FileSystemInterface
      * @throws BadRequestException
      * @return array
      */
-    public function createContainer($properties = array(), $check_exist = false)
+    public function createContainer($properties = [], $check_exist = false)
     {
-        $_container = ArrayUtils::get($properties, 'name', ArrayUtils::get($properties, 'path'));
-        if (empty($_container)) {
+        $container = ArrayUtils::get($properties, 'name', ArrayUtils::get($properties, 'path'));
+        if (empty($container)) {
             throw new BadRequestException('No name found for container in create request.');
         }
         // does this folder already exist?
-        if ($this->folderExists($_container, '')) {
+        if ($this->folderExists($container, '')) {
             if ($check_exist) {
-                throw new BadRequestException("Container '$_container' already exists.");
+                throw new BadRequestException("Container '$container' already exists.");
             }
         } else {
             // create the container
-            $_dir = static::addContainerToName($_container, '');
+            $dir = static::addContainerToName($container, '');
 
-            if (!mkdir($_dir, 0777, true)) {
+            if (!mkdir($dir, 0777, true)) {
                 throw new InternalServerErrorException('Failed to create container.');
             }
         }
 
-        return array('name' => $_container, 'path' => $_container);
+        return ['name' => $container, 'path' => $container];
 
 //            $properties = (empty($properties)) ? '' : json_encode($properties);
 //            $result = file_put_contents($key, $properties);
@@ -163,24 +168,24 @@ class LocalFileSystem implements FileSystemInterface
      *
      * @return array
      */
-    public function createContainers($containers = array(), $check_exist = false)
+    public function createContainers($containers = [], $check_exist = false)
     {
         if (empty($containers)) {
-            return array();
+            return [];
         }
 
-        $_out = array();
-        foreach ($containers as $_key => $_folder) {
+        $out = [];
+        foreach ($containers as $key => $folder) {
             try {
                 // path is full path, name is relative to root, take either
-                $_out[$_key] = $this->createContainer($_folder, $check_exist);
+                $out[$key] = $this->createContainer($folder, $check_exist);
             } catch (\Exception $ex) {
                 // error whole batch here?
-                $_out[$_key]['error'] = array('message' => $ex->getMessage(), 'code' => $ex->getCode());
+                $out[$key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
             }
         }
 
-        return $_out;
+        return $out;
     }
 
     /**
@@ -192,7 +197,7 @@ class LocalFileSystem implements FileSystemInterface
      * @throws NotFoundException
      * @return void
      */
-    public function updateContainerProperties($container, $properties = array())
+    public function updateContainerProperties($container, $properties = [])
     {
         // does this folder exist?
         if (!$this->folderExists($container, '')) {
@@ -218,8 +223,8 @@ class LocalFileSystem implements FileSystemInterface
      */
     public function deleteContainer($container, $force = false)
     {
-        $_dir = static::addContainerToName($container, '');
-        if (!rmdir($_dir)) {
+        $dir = static::addContainerToName($container, '');
+        if (!rmdir($dir)) {
             throw new InternalServerErrorException('Failed to delete container.');
         }
     }
@@ -238,20 +243,20 @@ class LocalFileSystem implements FileSystemInterface
         if (!empty($containers)) {
             if (!isset($containers[0])) {
                 // single folder, make into array
-                $containers = array($containers);
+                $containers = [$containers];
             }
-            foreach ($containers as $_key => $_folder) {
+            foreach ($containers as $key => $folder) {
                 try {
                     // path is full path, name is relative to root, take either
-                    $_name = ArrayUtils::get($_folder, 'name', trim(ArrayUtils::get($_folder, 'path'), '/'));
-                    if (!empty($_name)) {
-                        $this->deleteContainer($_name, $force);
+                    $name = ArrayUtils::get($folder, 'name', trim(ArrayUtils::get($folder, 'path'), '/'));
+                    if (!empty($name)) {
+                        $this->deleteContainer($name, $force);
                     } else {
                         throw new BadRequestException('No name found for container in delete request.');
                     }
                 } catch (\Exception $ex) {
                     // error whole batch here?
-                    $containers[$_key]['error'] = array('message' => $ex->getMessage(), 'code' => $ex->getCode());
+                    $containers[$key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
                 }
             }
         }
@@ -268,9 +273,9 @@ class LocalFileSystem implements FileSystemInterface
     public function folderExists($container, $path)
     {
         $path = FileUtilities::fixFolderPath($path);
-        $_dir = static::addContainerToName($container, $path);
+        $dir = static::addContainerToName($container, $path);
 
-        return is_dir($_dir);
+        return is_dir($dir);
     }
 
     /**
@@ -279,52 +284,33 @@ class LocalFileSystem implements FileSystemInterface
      * @param bool   $include_files
      * @param bool   $include_folders
      * @param bool   $full_tree
-     * @param bool   $include_properties
      *
      * @throws NotFoundException
      * @return array
      */
-    public function getFolder(
-        $container,
-        $path,
-        $include_files = true,
-        $include_folders = true,
-        $full_tree = false,
-        $include_properties = false
-    ){
+    public function getFolder($container, $path, $include_files = true, $include_folders = true, $full_tree = false)
+    {
         $path = FileUtilities::fixFolderPath($path);
-
-        $_out = array(
-            //'container' => $container,
-            'name' => empty($path) ? $container : basename($path),
-            'path' => empty($path) ? $container : $container . '/' . $path,
-        );
-
-        if ($include_properties) {
-            $_dirPath = static::addContainerToName($container, $path);
-            $_temp = stat($_dirPath);
-            $_out['last_modified'] = gmdate(static::TIMESTAMP_FORMAT, ArrayUtils::get($_temp, 'mtime', 0));
-        }
-
-        $_delimiter = ($full_tree) ? '' : DIRECTORY_SEPARATOR;
-        $_files = array();
-        $_folders = array();
-        $_dirPath = FileUtilities::fixFolderPath(static::asFullPath(''));
-        if (is_dir($_dirPath)) {
-            $_localizer = $container . '/' . $path;
-            $_results = static::listTree($_dirPath, $container . '/' . $path, $_delimiter);
-            foreach ($_results as $_data) {
-                $_fullPathName = $_data['path'];
-                $_data['name'] = rtrim(substr($_fullPathName, strlen($_localizer)), '/');
-                if ('/' == substr($_fullPathName, -1, 1)) {
+        $delimiter = ($full_tree) ? '' : DIRECTORY_SEPARATOR;
+        $resources = [];
+        $dirPath = FileUtilities::fixFolderPath(static::asFullPath(''));
+        if (is_dir($dirPath)) {
+            $localizer = $path;
+            $results = static::listTree($dirPath, $path, $delimiter);
+            foreach ($results as $data) {
+                $fullPathName = $data['path'];
+                $data['name'] = rtrim(substr($fullPathName, strlen($localizer)), '/');
+                if ('/' == substr($fullPathName, -1, 1)) {
                     // folders
                     if ($include_folders) {
-                        $_folders[] = $_data;
+                        $data['type'] = 'folder';
+                        $resources[] = $data;
                     }
                 } else {
                     // files
                     if ($include_files) {
-                        $_files[] = $_data;
+                        $data['type'] = 'file';
+                        $resources[] = $data;
                     }
                 }
             }
@@ -335,10 +321,25 @@ class LocalFileSystem implements FileSystemInterface
             // container root doesn't really exist until first write creates it
         }
 
-        $_out['folder'] = $_folders;
-        $_out['file'] = $_files;
+        return $resources;
+    }
 
-        return $_out;
+    /**
+     * @param string $container
+     * @param string $path
+     *
+     * @throws NotFoundException
+     * @return array
+     */
+    public function getFolderProperties($container, $path)
+    {
+        $path = FileUtilities::fixFolderPath($path);
+        $out = ['name' => basename($path), 'path' => $path];
+        $dirPath = static::addContainerToName($container, $path);
+        $temp = stat($dirPath);
+        $out['last_modified'] = gmdate(static::TIMESTAMP_FORMAT, ArrayUtils::get($temp, 'mtime', 0));
+
+        return $out;
     }
 
     /**
@@ -353,7 +354,7 @@ class LocalFileSystem implements FileSystemInterface
      * @throws BadRequestException
      * @return void
      */
-    public function createFolder($container, $path, $is_public = true, $properties = array(), $check_exist = true)
+    public function createFolder($container, $path, $is_public = true, $properties = [], $check_exist = true)
     {
         if (empty($path)) {
             throw new BadRequestException("Invalid empty path.");
@@ -371,10 +372,10 @@ class LocalFileSystem implements FileSystemInterface
 
         // create the folder
         $this->checkContainerForWrite($container); // need to be able to write to storage
-        $_dir = static::addContainerToName($container, $path);
+        $dir = static::addContainerToName($container, $path);
 
-        if (false === @mkdir($_dir, 0777, true)) {
-            \Log::error('Unable to create directory: ' . $_dir);
+        if (false === @mkdir($dir, 0777, true)) {
+            \Log::error('Unable to create directory: ' . $dir);
             throw new InternalServerErrorException('Failed to create folder: ' . $path);
         }
 //            $properties = (empty($properties)) ? '' : json_encode($properties);
@@ -427,7 +428,7 @@ class LocalFileSystem implements FileSystemInterface
      * @throws NotFoundException
      * @return void
      */
-    public function updateFolderProperties($container, $path, $properties = array())
+    public function updateFolderProperties($container, $path, $properties = [])
     {
         $path = FileUtilities::fixFolderPath($path);
         // does this folder exist?
@@ -453,8 +454,8 @@ class LocalFileSystem implements FileSystemInterface
      */
     public function deleteFolder($container, $path, $force = false)
     {
-        $_dir = static::addContainerToName($container, $path);
-        FileUtilities::deleteTree($_dir, $force);
+        $dir = static::addContainerToName($container, $path);
+        FileUtilities::deleteTree($dir, $force);
     }
 
     /**
@@ -473,22 +474,22 @@ class LocalFileSystem implements FileSystemInterface
         foreach ($folders as $key => $folder) {
             try {
                 // path is full path, name is relative to root, take either
-                $_path = ArrayUtils::get($folder, 'path');
-                if (!empty($_path)) {
-                    $_dir = static::asFullPath($_path);
-                    FileUtilities::deleteTree($_dir, $force);
+                $path = ArrayUtils::get($folder, 'path');
+                if (!empty($path)) {
+                    $dir = static::asFullPath($path);
+                    FileUtilities::deleteTree($dir, $force);
                 } else {
-                    $_name = ArrayUtils::get($folder, 'name');
-                    if (!empty($_name)) {
-                        $_path = $root . $_name;
-                        $this->deleteFolder($container, $_path, $force);
+                    $name = ArrayUtils::get($folder, 'name');
+                    if (!empty($name)) {
+                        $path = $root . $name;
+                        $this->deleteFolder($container, $path, $force);
                     } else {
                         throw new BadRequestException('No path or name found for folder in delete request.');
                     }
                 }
             } catch (\Exception $ex) {
                 // error whole batch here?
-                $folders[$key]['error'] = array('message' => $ex->getMessage(), 'code' => $ex->getCode());
+                $folders[$key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
             }
         }
 
@@ -520,18 +521,18 @@ class LocalFileSystem implements FileSystemInterface
      */
     public function getFileContent($container, $path, $local_file = '', $content_as_base = true)
     {
-        $_file = static::addContainerToName($container, $path);
-        if (!is_file($_file)) {
+        $file = static::addContainerToName($container, $path);
+        if (!is_file($file)) {
             throw new NotFoundException("File '$path' does not exist in storage.");
         }
-        $_data = file_get_contents($_file);
-        if (false === $_data) {
+        $data = file_get_contents($file);
+        if (false === $data) {
             throw new InternalServerErrorException('Failed to retrieve file content.');
         }
         if (!empty($local_file)) {
             // write to local or temp file
-            $_result = file_put_contents($local_file, $_data);
-            if (false === $_result) {
+            $result = file_put_contents($local_file, $data);
+            if (false === $result) {
                 throw new InternalServerErrorException('Failed to put file content as local file.');
             }
 
@@ -539,10 +540,10 @@ class LocalFileSystem implements FileSystemInterface
         } else {
             // get content as raw or encoded as base64 for transport
             if ($content_as_base) {
-                $_data = base64_encode($_data);
+                $data = base64_encode($data);
             }
 
-            return $_data;
+            return $data;
         }
     }
 
@@ -561,29 +562,29 @@ class LocalFileSystem implements FileSystemInterface
         if (!$this->fileExists($container, $path)) {
             throw new NotFoundException("File '$path' does not exist in storage.");
         }
-        $_file = static::addContainerToName($container, $path);
-        $_shortName = FileUtilities::getNameFromPath($path);
-        $_ext = FileUtilities::getFileExtension($_file);
-        $_temp = stat($_file);
-        $_data = array(
+        $file = static::addContainerToName($container, $path);
+        $shortName = FileUtilities::getNameFromPath($path);
+        $ext = FileUtilities::getFileExtension($file);
+        $temp = stat($file);
+        $data = [
             'path'           => $container . '/' . $path,
-            'name'           => $_shortName,
-            'content_type'   => FileUtilities::determineContentType($_ext, '', $_file),
-            'last_modified'  => gmdate('D, d M Y H:i:s \G\M\T', ArrayUtils::get($_temp, 'mtime', 0)),
-            'content_length' => ArrayUtils::get($_temp, 'size', 0)
-        );
+            'name'           => $shortName,
+            'content_type'   => FileUtilities::determineContentType($ext, '', $file),
+            'last_modified'  => gmdate('D, d M Y H:i:s \G\M\T', ArrayUtils::get($temp, 'mtime', 0)),
+            'content_length' => ArrayUtils::get($temp, 'size', 0)
+        ];
         if ($include_content) {
-            $_contents = file_get_contents($_file);
-            if (false === $_contents) {
+            $contents = file_get_contents($file);
+            if (false === $contents) {
                 throw new InternalServerErrorException('Failed to retrieve file properties.');
             }
             if ($content_as_base) {
-                $_contents = base64_encode($_contents);
+                $contents = base64_encode($contents);
             }
-            $_data['content'] = $_contents;
+            $data['content'] = $contents;
         }
 
-        return $_data;
+        return $data;
     }
 
     /**
@@ -595,13 +596,13 @@ class LocalFileSystem implements FileSystemInterface
      */
     public function streamFile($container, $path, $download = false)
     {
-        $_file = static::addContainerToName($container, $path);
+        $file = static::addContainerToName($container, $path);
 
-        if (!is_file($_file)) {
+        if (!is_file($file)) {
             throw new NotFoundException("The specified file '" . $path . "' was not found in storage.");
         }
 
-        FileUtilities::sendFile($_file, $download);
+        FileUtilities::sendFile($file, $download);
     }
 
     /**
@@ -611,7 +612,7 @@ class LocalFileSystem implements FileSystemInterface
      *
      * @return void
      */
-    public function updateFileProperties($container, $path, $properties = array())
+    public function updateFileProperties($container, $path, $properties = [])
     {
     }
 
@@ -635,9 +636,9 @@ class LocalFileSystem implements FileSystemInterface
             }
         }
         // does this folder's parent exist?
-        $_parent = FileUtilities::getParentFolder($path);
-        if (!empty($_parent) && (!$this->folderExists($container, $_parent))) {
-            throw new NotFoundException("Folder '$_parent' does not exist.");
+        $parent = FileUtilities::getParentFolder($path);
+        if (!empty($parent) && (!$this->folderExists($container, $parent))) {
+            throw new NotFoundException("Folder '$parent' does not exist.");
         }
 
         // create the file
@@ -645,9 +646,9 @@ class LocalFileSystem implements FileSystemInterface
         if ($content_is_base) {
             $content = base64_decode($content);
         }
-        $_file = static::addContainerToName($container, $path);
-        $_result = file_put_contents($_file, $content);
-        if (false === $_result) {
+        $file = static::addContainerToName($container, $path);
+        $result = file_put_contents($file, $content);
+        if (false === $result) {
             throw new InternalServerErrorException('Failed to create file.');
         }
     }
@@ -676,15 +677,15 @@ class LocalFileSystem implements FileSystemInterface
             }
         }
         // does this file's parent folder exist?
-        $_parent = FileUtilities::getParentFolder($path);
-        if (!empty($_parent) && (!$this->folderExists($container, $_parent))) {
-            throw new NotFoundException("Folder '$_parent' does not exist.");
+        $parent = FileUtilities::getParentFolder($path);
+        if (!empty($parent) && (!$this->folderExists($container, $parent))) {
+            throw new NotFoundException("Folder '$parent' does not exist.");
         }
 
         // create the file
         $this->checkContainerForWrite($container); // need to be able to write to storage
-        $_file = static::addContainerToName($container, $path);
-        if (!rename($local_path, $_file)) {
+        $file = static::addContainerToName($container, $path);
+        if (!rename($local_path, $file)) {
             throw new InternalServerErrorException("Failed to move file '$path'");
         }
     }
@@ -713,17 +714,17 @@ class LocalFileSystem implements FileSystemInterface
             }
         }
         // does this file's parent folder exist?
-        $_parent = FileUtilities::getParentFolder($dest_path);
-        if (!empty($_parent) && (!$this->folderExists($container, $_parent))) {
-            throw new NotFoundException("Folder '$_parent' does not exist.");
+        $parent = FileUtilities::getParentFolder($dest_path);
+        if (!empty($parent) && (!$this->folderExists($container, $parent))) {
+            throw new NotFoundException("Folder '$parent' does not exist.");
         }
 
         // create the file
         $this->checkContainerForWrite($container); // need to be able to write to storage
-        $_file = static::addContainerToName($src_container, $dest_path);
-        $_srcFile = static::addContainerToName($container, $src_path);
-        $_result = copy($_srcFile, $_file);
-        if (!$_result) {
+        $file = static::addContainerToName($src_container, $dest_path);
+        $srcFile = static::addContainerToName($container, $src_path);
+        $result = copy($srcFile, $file);
+        if (!$result) {
             throw new InternalServerErrorException('Failed to copy file.');
         }
     }
@@ -738,11 +739,11 @@ class LocalFileSystem implements FileSystemInterface
      */
     public function deleteFile($container, $path)
     {
-        $_file = static::addContainerToName($container, $path);
-        if (!is_file($_file)) {
-            throw new BadRequestException("'$_file' is not a valid filename.");
+        $file = static::addContainerToName($container, $path);
+        if (!is_file($file)) {
+            throw new BadRequestException("'$file' is not a valid filename.");
         }
-        if (!unlink($_file)) {
+        if (!unlink($file)) {
             throw new InternalServerErrorException('Failed to delete file.');
         }
     }
@@ -758,30 +759,30 @@ class LocalFileSystem implements FileSystemInterface
     public function deleteFiles($container, $files, $root = '')
     {
         $root = FileUtilities::fixFolderPath($root);
-        foreach ($files as $_key => $_fileInfo) {
+        foreach ($files as $key => $fileInfo) {
             try {
                 // path is full path, name is relative to root, take either
-                $_path = ArrayUtils::get($_fileInfo, 'path');
-                if (!empty($_path)) {
-                    $_file = static::asFullPath($_path, true);
-                    if (!is_file($_file)) {
-                        throw new BadRequestException("'$_path' is not a valid file.");
+                $path = ArrayUtils::get($fileInfo, 'path');
+                if (!empty($path)) {
+                    $file = static::asFullPath($path, true);
+                    if (!is_file($file)) {
+                        throw new BadRequestException("'$path' is not a valid file.");
                     }
-                    if (!unlink($_file)) {
-                        throw new InternalServerErrorException("Failed to delete file '$_path'.");
+                    if (!unlink($file)) {
+                        throw new InternalServerErrorException("Failed to delete file '$path'.");
                     }
                 } else {
-                    $_name = ArrayUtils::get($_fileInfo, 'name');
-                    if (!empty($_name)) {
-                        $_path = $root . $_name;
-                        $this->deleteFile($container, $_path);
+                    $name = ArrayUtils::get($fileInfo, 'name');
+                    if (!empty($name)) {
+                        $path = $root . $name;
+                        $this->deleteFile($container, $path);
                     } else {
                         throw new BadRequestException('No path or name found for file in delete request.');
                     }
                 }
             } catch (\Exception $ex) {
                 // error whole batch here?
-                $files[$_key]['error'] = array('message' => $ex->getMessage(), 'code' => $ex->getCode());
+                $files[$key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
             }
         }
 
@@ -801,28 +802,28 @@ class LocalFileSystem implements FileSystemInterface
      */
     public function getFolderAsZip($container, $path, $zip = null, $zipFileName = '', $overwrite = false)
     {
-        $_root = static::addContainerToName($container, '');
-        if (!is_dir($_root)) {
-            throw new BadRequestException("Can not find directory '$_root'.");
+        $root = static::addContainerToName($container, '');
+        if (!is_dir($root)) {
+            throw new BadRequestException("Can not find directory '$root'.");
         }
-        $_needClose = false;
+        $needClose = false;
         if (!isset($zip)) {
-            $_needClose = true;
+            $needClose = true;
             $zip = new \ZipArchive();
             if (empty($zipFileName)) {
-                $_temp = basename($path);
-                if (empty($_temp)) {
-                    $_temp = $container;
+                $temp = basename($path);
+                if (empty($temp)) {
+                    $temp = $container;
                 }
-                $_tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-                $zipFileName = $_tempDir . $_temp . '.zip';
+                $tempDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                $zipFileName = $tempDir . $temp . '.zip';
             }
             if (true !== $zip->open($zipFileName, ($overwrite ? \ZipArchive::OVERWRITE : \ZipArchive::CREATE))) {
                 throw new InternalServerErrorException("Can not create zip file for directory '$path'.");
             }
         }
-        FileUtilities::addTreeToZip($zip, $_root, rtrim($path, '/'));
-        if ($_needClose) {
+        FileUtilities::addTreeToZip($zip, $root, rtrim($path, '/'));
+        if ($needClose) {
             $zip->close();
         }
 
@@ -844,39 +845,37 @@ class LocalFileSystem implements FileSystemInterface
         if ($clean) {
             try {
                 // clear out anything in this directory
-                $_dir = static::addContainerToName($container, $path);
-                FileUtilities::deleteTree($_dir, true, false);
+                $dir = static::addContainerToName($container, $path);
+                FileUtilities::deleteTree($dir, true, false);
             } catch (\Exception $ex) {
                 throw new InternalServerErrorException("Could not clean out existing directory $path.\n{$ex->getMessage()}");
             }
         }
         for ($i = 0; $i < $zip->numFiles; $i++) {
-            $_name = $zip->getNameIndex($i);
-            if (empty($_name)) {
+            $name = $zip->getNameIndex($i);
+            if (empty($name)) {
                 continue;
             }
             if (!empty($drop_path)) {
-                $_name = str_ireplace($drop_path, '', $_name);
+                $name = str_ireplace($drop_path, '', $name);
             }
-            $fullPathName = $path . $_name;
+            $fullPathName = $path . $name;
             if ('/' === substr($fullPathName, -1)) {
-                $this->createFolder($container, $fullPathName, true, array(), false);
+                $this->createFolder($container, $fullPathName, true, [], false);
             } else {
                 $parent = FileUtilities::getParentFolder($fullPathName);
                 if (!empty($parent)) {
-                    $this->createFolder($container, $parent, true, array(), false);
+                    $this->createFolder($container, $parent, true, [], false);
                 }
                 $content = $zip->getFromIndex($i);
                 $this->writeFile($container, $fullPathName, $content);
             }
         }
 
-        return array(
-            'folder' => array(
-                'name' => rtrim($path, DIRECTORY_SEPARATOR),
-                'path' => $container . DIRECTORY_SEPARATOR . $path
-            )
-        );
+        return [
+            'name' => rtrim($path, DIRECTORY_SEPARATOR),
+            'path' => $container . DIRECTORY_SEPARATOR . $path
+        ];
     }
 
     /**
@@ -950,31 +949,31 @@ class LocalFileSystem implements FileSystemInterface
     public static function listTree($root, $prefix = '', $delimiter = '')
     {
         $dir = $root . ((!empty($prefix)) ? $prefix : '');
-        $out = array();
+        $out = [];
         if (is_dir($dir)) {
-            $files = array_diff(scandir($dir), array('.', '..'));
+            $files = array_diff(scandir($dir), ['.', '..']);
             foreach ($files as $file) {
                 $key = $dir . $file;
                 $local = ((!empty($prefix)) ? $prefix : '') . $file;
                 // get file meta
                 if (is_dir($key)) {
                     $stat = stat($key);
-                    $out[] = array(
+                    $out[] = [
                         'path'          => str_replace(DIRECTORY_SEPARATOR, '/', $local) . '/',
                         'last_modified' => gmdate('D, d M Y H:i:s \G\M\T', ArrayUtils::get($stat, 'mtime', 0))
-                    );
+                    ];
                     if (empty($delimiter)) {
                         $out = array_merge($out, static::listTree($root, $local . DIRECTORY_SEPARATOR));
                     }
                 } elseif (is_file($key)) {
                     $stat = stat($key);
                     $ext = FileUtilities::getFileExtension($key);
-                    $out[] = array(
+                    $out[] = [
                         'path'           => str_replace(DIRECTORY_SEPARATOR, '/', $local),
                         'content_type'   => FileUtilities::determineContentType($ext, '', $key),
                         'last_modified'  => gmdate('D, d M Y H:i:s \G\M\T', ArrayUtils::get($stat, 'mtime', 0)),
                         'content_length' => ArrayUtils::get($stat, 'size', 0)
-                    );
+                    ];
                 } else {
                     error_log($key);
                 }

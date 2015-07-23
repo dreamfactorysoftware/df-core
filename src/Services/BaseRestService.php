@@ -160,7 +160,8 @@ class BaseRestService extends RestHandler implements ServiceInterface
                             'parameters'       => [
                                 ApiOptions::documentOption(ApiOptions::AS_LIST),
                                 ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
-                                ApiOptions::documentOption(ApiOptions::FIELDS),
+                                ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                                ApiOptions::documentOption(ApiOptions::ID_TYPE),
                                 ApiOptions::documentOption(ApiOptions::REFRESH),
                             ],
                             'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),

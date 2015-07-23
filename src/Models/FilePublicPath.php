@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Exceptions\BadRequestException;
+
 class FilePublicPath extends BaseServiceConfigModel
 {
     protected $table = 'file_public_path';
@@ -8,6 +10,23 @@ class FilePublicPath extends BaseServiceConfigModel
     protected $fillable = ['service_id', 'public_path', 'container'];
 
     protected $casts = ['public_path' => 'array'];
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function validateConfig($config, $create = true)
+    {
+        $validator = static::makeValidator($config, [
+            'container' => 'required'
+        ], $create);
+
+        if ($validator->fails()) {
+            $messages = $validator->messages()->getMessages();
+            throw new BadRequestException('Validation failed.', null, null, $messages);
+        }
+
+        return true;
+    }
 
     /**
      * @param array $schema

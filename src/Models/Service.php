@@ -168,7 +168,7 @@ class Service extends BaseSystemModel
         $serviceCfg = $this->getConfigHandler();
         if (!empty($serviceCfg)) {
             if ($this->exists) {
-                if ($serviceCfg::validateConfig($this->config)) {
+                if ($serviceCfg::validateConfig($this->config, false)) {
                     $serviceCfg::setConfig($this->getKey(), $this->config);
                 }
             } else {

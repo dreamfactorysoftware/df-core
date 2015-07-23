@@ -118,7 +118,7 @@ class DataFormats extends FactoryEnum
     /**
      * @var array A hash of enum values against file extensions
      */
-    protected static $_extensionMap = [
+    protected static $extensionMap = [
         self::CSV           => 'csv',
         self::TSV           => 'tsv',
         self::PSV           => 'psv',
@@ -142,7 +142,7 @@ class DataFormats extends FactoryEnum
         self::RAW           => null,
     ];
 
-    protected static $_contentTypeMap = [
+    protected static $contentTypeMap = [
         self::CSV           => 'text/csv',
         self::TSV           => 'text/tab-separated-values',
         self::PSV           => 'application/octet-stream',
@@ -216,7 +216,7 @@ class DataFormats extends FactoryEnum
             throw new \InvalidArgumentException('The content type "' . $enum_value . '" is not numeric.');
         }
 
-        if (!array_key_exists($enum_value, static::$_contentTypeMap)) {
+        if (!array_key_exists($enum_value, static::$contentTypeMap)) {
             if ($throw_if_not_found) {
                 throw new NotImplementedException('The content type "' . $enum_value . '" is not supported.');
             }
@@ -224,7 +224,7 @@ class DataFormats extends FactoryEnum
             return $default;
         }
 
-        return (static::$_contentTypeMap[$enum_value])? : $default;
+        return (static::$contentTypeMap[$enum_value])? : $default;
     }
 
     /**
@@ -244,7 +244,7 @@ class DataFormats extends FactoryEnum
         }
 
         $mime_type = (false !== strpos($mime_type, ';')) ? trim(strstr($mime_type, ';', true)) : $mime_type;
-        if (false === $_pos = array_search(strtolower($mime_type), static::$_contentTypeMap)) {
+        if (false === $pos = array_search(strtolower($mime_type), static::$contentTypeMap)) {
             if ($throw_if_not_found) {
                 throw new NotImplementedException('The MIME type "' . $mime_type . '" is not supported.');
             }
@@ -252,7 +252,7 @@ class DataFormats extends FactoryEnum
             return $default;
         }
 
-        return $_pos;
+        return $pos;
     }
 
     /**
@@ -271,7 +271,7 @@ class DataFormats extends FactoryEnum
             throw new \InvalidArgumentException('The content type "' . $enum_value . '" is not numeric.');
         }
 
-        if (!array_key_exists($enum_value, static::$_extensionMap)) {
+        if (!array_key_exists($enum_value, static::$extensionMap)) {
             if ($throw_if_not_found) {
                 throw new NotImplementedException('The content type "' . $enum_value . '" is not supported.');
             }
@@ -279,7 +279,7 @@ class DataFormats extends FactoryEnum
             return $default;
         }
 
-        return static::$_extensionMap[$enum_value];
+        return static::$extensionMap[$enum_value];
     }
 
     /**
@@ -298,7 +298,7 @@ class DataFormats extends FactoryEnum
             throw new \InvalidArgumentException('The file extension "' . $extension . '" is not a string.');
         }
 
-        if (false === $_pos = array_search(strtolower($extension), static::$_extensionMap)) {
+        if (false === $pos = array_search(strtolower($extension), static::$extensionMap)) {
             if ($throw_if_not_found) {
                 throw new NotImplementedException('The file extension "' . $extension . '" is not supported.');
             }
@@ -306,6 +306,6 @@ class DataFormats extends FactoryEnum
             return $default;
         }
 
-        return static::$_extensionMap[$_pos];
+        return static::$extensionMap[$pos];
     }
 }

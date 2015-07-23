@@ -143,45 +143,49 @@ HTML;
      */
     public function getSwaggerForService($name)
     {
-        $_cachePath = $name . '.json';
+        $cachePath = $name . '.json';
 
-        if (null === $_content = CacheUtilities::getByServiceId($this->id, $_cachePath)) {
+        if (null === $content = CacheUtilities::getByServiceId($this->id, $cachePath)) {
             $service = Service::whereName($name)->get()->first();
             if (empty($service)) {
-                throw new NotFoundException("Could not find a service for '$name''");
+                throw new NotFoundException("Service '$name' not found.");
             }
 
-            $_content = ApiDocManager::getStoredContentForService($service);
-
-            if (empty($_content)) {
-                throw new NotFoundException("No Swagger content found for service '$name'");
-            }
-
-            $_baseSwagger = [
+            $content = [
                 'swaggerVersion' => static::SWAGGER_VERSION,
                 'apiVersion'     => \Config::get('df.api_version', static::API_VERSION),
                 'basePath'       => url('/api/v2'),
             ];
 
-            $_content = array_merge($_baseSwagger, $_content);
-            $_content = json_encode($_content, JSON_UNESCAPED_SLASHES);
+            try {
+                $result = ApiDocManager::getStoredContentForService($service);
 
-            // replace service type placeholder with api name for this service instance
-            $_content = str_replace('{api_name}', $name, $_content);
+                if (empty($result)) {
+                    throw new NotFoundException("No Swagger content found.");
+                }
 
-            // cache it for later access
-            if (false ===
-                CacheUtilities::putByServiceId($this->id, $_cachePath, $_content, static::SWAGGER_CACHE_TTL)
-            ) {
-                \Log::error("  * System error creating swagger cache file: $name.json");
+                $content = array_merge($content, $result);
+                $content = json_encode($content, JSON_UNESCAPED_SLASHES);
+
+                // replace service type placeholder with api name for this service instance
+                $content = str_replace('{api_name}', $name, $content);
+
+                // cache it for later access
+                if (false ===
+                    CacheUtilities::putByServiceId($this->id, $cachePath, $content, static::SWAGGER_CACHE_TTL)
+                ) {
+                    throw new \Exception("  * System error creating swagger cache file.");
+                }
+
+                // Add to this the queried service's keys for clearing later.
+                $key = CacheUtilities::makeKeyFromTypeAndId('service', $this->id, $cachePath);
+                CacheUtilities::addKeysByTypeAndId('service', $service->id, $key);
+            } catch (\Exception $ex) {
+                \Log::error("  * System error creating swagger file for service '$name'.\n{$ex->getMessage()}");
             }
-
-            // Add to this the queried service's keys for clearing later.
-            $key = CacheUtilities::makeKeyFromTypeAndId('service', $this->id, $_cachePath);
-            CacheUtilities::addKeysByTypeAndId('service', $service->id, $key);
         }
 
-        return $_content;
+        return $content;
     }
 
     /**

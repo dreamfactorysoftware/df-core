@@ -455,11 +455,11 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
-        $_base = parent::getApiDocInfo();
+        $base = parent::getApiDocInfo();
 
-        $_commonResponses = ApiDocUtilities::getCommonResponses();
+        $commonResponses = ApiDocUtilities::getCommonResponses();
 
-        $_apis = [
+        $apis = [
             [
                 'path'        => $path,
                 'description' => 'Operations available for SQL DB Schemas.',
@@ -480,7 +480,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'See listed operations for each resource available.',
                     ],
                     [
@@ -508,7 +508,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'See listed operations for each resource available.',
                     ],
                     [
@@ -527,7 +527,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'Post data should be a single table definition or an array of table definitions.',
                     ],
                     [
@@ -546,7 +546,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'Post data should be a single table definition or an array of table definitions.',
                     ],
                     [
@@ -565,7 +565,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'Post data should be a single table definition or an array of table definitions.',
                     ],
                 ],
@@ -601,7 +601,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'This describes the table, its fields and relations to other tables.',
                     ],
                     [
@@ -631,7 +631,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'Post data should be an array of field properties for a single record or an array of fields.',
                     ],
                     [
@@ -661,7 +661,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'Post data should be an array of field properties for a single record or an array of fields.',
                     ],
                     [
@@ -691,7 +691,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'Post data should be an array of field properties for a single record or an array of fields.',
                     ],
                     [
@@ -710,7 +710,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'Careful, this drops the database table and all of its contents.',
                     ],
                 ],
@@ -754,7 +754,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'This describes the field and its properties.',
                     ],
                     [
@@ -792,7 +792,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'Post data should be an array of field properties for the given field.',
                     ],
                     [
@@ -830,7 +830,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'Post data should be an array of field properties for the given field.',
                     ],
                     [
@@ -860,7 +860,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'Careful, this drops the database table field/column and all of its contents.',
                     ],
                 ],
@@ -868,7 +868,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         ];
 
         $wrapper = ResourcesWrapper::getWrapper();
-        $_models = [
+        $models = [
             'Tables' => [
                 'id'         => 'Tables',
                 'properties' => [
@@ -892,9 +892,9 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             ],
         ];
 
-        $_base['apis'] = array_merge($_base['apis'], $_apis);
-        $_base['models'] = array_merge($_base['models'], $_models);
+        $base['apis'] = array_merge($base['apis'], $apis);
+        $base['models'] = array_merge($base['models'], $models);
 
-        return $_base;
+        return $base;
     }
 }

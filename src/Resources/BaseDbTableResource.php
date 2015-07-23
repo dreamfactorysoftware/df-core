@@ -51,23 +51,23 @@ abstract class BaseDbTableResource extends BaseDbResource
     /**
      * @var boolean
      */
-    protected $_useBlendFormat = true;
+    protected $useBlendFormat = true;
     /**
      * @var string
      */
-    protected $_transactionTable = null;
+    protected $transactionTable = null;
     /**
      * @var array
      */
-    protected $_batchIds = [];
+    protected $batchIds = [];
     /**
      * @var array
      */
-    protected $_batchRecords = [];
+    protected $batchRecords = [];
     /**
      * @var array
      */
-    protected $_rollbackRecords = [];
+    protected $rollbackRecords = [];
 
     //*************************************************************************
     //	Methods
@@ -203,9 +203,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             }
 
             // Add server side filtering properties
-//        if ( null != $_ssFilters = Session::getServiceFilters( $this->getRequestedAction(), $this->name, $this->resource ) )
+//        if ( null != $ssFilters = Session::getServiceFilters( $this->getRequestedAction(), $this->name, $this->resource ) )
 //        {
-//            $this->payload['ss_filters'] = $_ssFilters;
+//            $this->payload['ss_filters'] = $ssFilters;
 //        }
         }
     }
@@ -247,39 +247,39 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         if (!empty($this->resourceId)) {
             //	Single resource by ID
-            $_result = $this->retrieveRecordById($this->resource, $this->resourceId, $this->options);
-            $this->triggerActionEvent($_result);
+            $result = $this->retrieveRecordById($this->resource, $this->resourceId, $this->options);
+            $this->triggerActionEvent($result);
 
-            return $_result;
+            return $result;
         }
 
-        if (!empty($_ids = ArrayUtils::get($this->options, 'ids'))) {
+        if (!empty($ids = ArrayUtils::get($this->options, 'ids'))) {
             //	Multiple resources by ID
-            $_result = $this->retrieveRecordsByIds($this->resource, $_ids, $this->options);
-        } elseif (!empty($_records = ResourcesWrapper::unwrapResources($this->payload))) {
+            $result = $this->retrieveRecordsByIds($this->resource, $ids, $this->options);
+        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->payload))) {
             // passing records to have them updated with new or more values, id field required
-            $_result = $this->retrieveRecords($this->resource, $_records, $this->options);
+            $result = $this->retrieveRecords($this->resource, $records, $this->options);
         } else {
-            $_filter = ArrayUtils::get($this->options, 'filter');
-            $_params = ArrayUtils::get($this->options, 'params', []);
+            $filter = ArrayUtils::get($this->options, 'filter');
+            $params = ArrayUtils::get($this->options, 'params', []);
 
-            $_result = $this->retrieveRecordsByFilter($this->resource, $_filter, $_params, $this->options);
+            $result = $this->retrieveRecordsByFilter($this->resource, $filter, $params, $this->options);
         }
 
-        $_meta = ArrayUtils::get($_result, 'meta');
-        unset($_result['meta']);
+        $meta = ArrayUtils::get($result, 'meta');
+        unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
         $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
-        $_result = ResourcesWrapper::cleanResources($_result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($_meta));
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
-        if (!empty($_meta)) {
-            $_result['meta'] = $_meta;
+        if (!empty($meta)) {
+            $result['meta'] = $meta;
         }
 
-        $this->triggerActionEvent($_result);
+        $this->triggerActionEvent($result);
 
-        return $_result;
+        return $result;
     }
 
     /**
@@ -297,27 +297,27 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $_records = ResourcesWrapper::unwrapResources($this->payload);
-        if (empty($_records)) {
+        $records = ResourcesWrapper::unwrapResources($this->payload);
+        if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
         }
 
         $this->triggerActionEvent($this->response);
 
-        $_result = $this->createRecords($this->resource, $_records, $this->options);
+        $result = $this->createRecords($this->resource, $records, $this->options);
 
-        $_meta = ArrayUtils::get($_result, 'meta');
-        unset($_result['meta']);
+        $meta = ArrayUtils::get($result, 'meta');
+        unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
         $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
-        $_result = ResourcesWrapper::cleanResources($_result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($_meta));
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
-        if (!empty($_meta)) {
-            $_result['meta'] = $_meta;
+        if (!empty($meta)) {
+            $result['meta'] = $meta;
         }
 
-        return $_result;
+        return $result;
     }
 
     /**
@@ -331,54 +331,54 @@ abstract class BaseDbTableResource extends BaseDbResource
             return false;
         }
 
-        $_records = ResourcesWrapper::unwrapResources($this->payload);
-        if (empty($_records)) {
+        $records = ResourcesWrapper::unwrapResources($this->payload);
+        if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
         }
 
         $this->triggerActionEvent($this->response);
 
         if (!empty($this->resourceId)) {
-            $_record = ArrayUtils::get($_records, 0, $_records);
+            $record = ArrayUtils::get($records, 0, $records);
 
-            return $this->updateRecordById($this->resource, $_record, $this->resourceId, $this->options);
+            return $this->updateRecordById($this->resource, $record, $this->resourceId, $this->options);
         }
 
-        $_ids = ArrayUtils::get($this->options, 'ids');
+        $ids = ArrayUtils::get($this->options, 'ids');
 
-        if (!empty($_ids)) {
-            $_record = ArrayUtils::get($_records, 0, $_records);
+        if (!empty($ids)) {
+            $record = ArrayUtils::get($records, 0, $records);
 
-            $_result = $this->updateRecordsByIds($this->resource, $_record, $_ids, $this->options);
+            $result = $this->updateRecordsByIds($this->resource, $record, $ids, $this->options);
         } else {
-            $_filter = ArrayUtils::get($this->options, 'filter');
-            if (!empty($_filter)) {
-                $_record = ArrayUtils::get($_records, 0, $_records);
-                $_params = ArrayUtils::get($this->options, 'params', []);
-                $_result = $this->updateRecordsByFilter(
+            $filter = ArrayUtils::get($this->options, 'filter');
+            if (!empty($filter)) {
+                $record = ArrayUtils::get($records, 0, $records);
+                $params = ArrayUtils::get($this->options, 'params', []);
+                $result = $this->updateRecordsByFilter(
                     $this->resource,
-                    $_record,
-                    $_filter,
-                    $_params,
+                    $record,
+                    $filter,
+                    $params,
                     $this->options
                 );
             } else {
-                $_result = $this->updateRecords($this->resource, $_records, $this->options);
+                $result = $this->updateRecords($this->resource, $records, $this->options);
             }
         }
 
-        $_meta = ArrayUtils::get($_result, 'meta');
-        unset($_result['meta']);
+        $meta = ArrayUtils::get($result, 'meta');
+        unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
         $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
-        $_result = ResourcesWrapper::cleanResources($_result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($_meta));
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
-        if (!empty($_meta)) {
-            $_result['meta'] = $_meta;
+        if (!empty($meta)) {
+            $result['meta'] = $meta;
         }
 
-        return $_result;
+        return $result;
     }
 
     /**
@@ -392,53 +392,53 @@ abstract class BaseDbTableResource extends BaseDbResource
             return false;
         }
 
-        $_records = ResourcesWrapper::unwrapResources($this->payload);
-        if (empty($_records)) {
+        $records = ResourcesWrapper::unwrapResources($this->payload);
+        if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
         }
 
         $this->triggerActionEvent($this->response);
 
         if (!empty($this->resourceId)) {
-            $_record = ArrayUtils::get($_records, 0, $_records);
+            $record = ArrayUtils::get($records, 0, $records);
 
-            return $this->patchRecordById($this->resource, $_record, $this->resourceId, $this->options);
+            return $this->patchRecordById($this->resource, $record, $this->resourceId, $this->options);
         }
 
-        $_ids = ArrayUtils::get($this->options, 'ids');
+        $ids = ArrayUtils::get($this->options, 'ids');
 
-        if (!empty($_ids)) {
-            $_record = ArrayUtils::get($_records, 0, $_records);
-            $_result = $this->patchRecordsByIds($this->resource, $_record, $_ids, $this->options);
+        if (!empty($ids)) {
+            $record = ArrayUtils::get($records, 0, $records);
+            $result = $this->patchRecordsByIds($this->resource, $record, $ids, $this->options);
         } else {
-            $_filter = ArrayUtils::get($this->options, 'filter');
-            if (!empty($_filter)) {
-                $_record = ArrayUtils::get($_records, 0, $_records);
-                $_params = ArrayUtils::get($this->options, 'params', []);
-                $_result = $this->patchRecordsByFilter(
+            $filter = ArrayUtils::get($this->options, 'filter');
+            if (!empty($filter)) {
+                $record = ArrayUtils::get($records, 0, $records);
+                $params = ArrayUtils::get($this->options, 'params', []);
+                $result = $this->patchRecordsByFilter(
                     $this->resource,
-                    $_record,
-                    $_filter,
-                    $_params,
+                    $record,
+                    $filter,
+                    $params,
                     $this->options
                 );
             } else {
-                $_result = $this->patchRecords($this->resource, $_records, $this->options);
+                $result = $this->patchRecords($this->resource, $records, $this->options);
             }
         }
 
-        $_meta = ArrayUtils::get($_result, 'meta');
-        unset($_result['meta']);
+        $meta = ArrayUtils::get($result, 'meta');
+        unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
         $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
-        $_result = ResourcesWrapper::cleanResources($_result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($_meta));
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
-        if (!empty($_meta)) {
-            $_result['meta'] = $_meta;
+        if (!empty($meta)) {
+            $result['meta'] = $meta;
         }
 
-        return $_result;
+        return $result;
     }
 
     /**
@@ -458,18 +458,18 @@ abstract class BaseDbTableResource extends BaseDbResource
             return $this->deleteRecordById($this->resource, $this->resourceId, $this->options);
         }
 
-        $_ids = ArrayUtils::get($this->options, 'ids');
-        if (!empty($_ids)) {
-            $_result = $this->deleteRecordsByIds($this->resource, $_ids, $this->options);
+        $ids = ArrayUtils::get($this->options, 'ids');
+        if (!empty($ids)) {
+            $result = $this->deleteRecordsByIds($this->resource, $ids, $this->options);
         } else {
-            $_records = ResourcesWrapper::unwrapResources($this->payload);
-            if (!empty($_records)) {
-                $_result = $this->deleteRecords($this->resource, $_records, $this->options);
+            $records = ResourcesWrapper::unwrapResources($this->payload);
+            if (!empty($records)) {
+                $result = $this->deleteRecords($this->resource, $records, $this->options);
             } else {
-                $_filter = ArrayUtils::get($this->options, 'filter');
-                if (!empty($_filter)) {
-                    $_params = ArrayUtils::get($this->options, 'params', []);
-                    $_result = $this->deleteRecordsByFilter($this->resource, $_filter, $_params, $this->options);
+                $filter = ArrayUtils::get($this->options, 'filter');
+                if (!empty($filter)) {
+                    $params = ArrayUtils::get($this->options, 'params', []);
+                    $result = $this->deleteRecordsByFilter($this->resource, $filter, $params, $this->options);
                 } else {
                     if (!ArrayUtils::getBool($this->options, 'force')) {
                         throw new BadRequestException('No filter or records given for delete request.');
@@ -480,18 +480,18 @@ abstract class BaseDbTableResource extends BaseDbResource
             }
         }
 
-        $_meta = ArrayUtils::get($_result, 'meta');
-        unset($_result['meta']);
+        $meta = ArrayUtils::get($result, 'meta');
+        unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
         $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
-        $_result = ResourcesWrapper::cleanResources($_result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($_meta));
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
-        if (!empty($_meta)) {
-            $_result['meta'] = $_meta;
+        if (!empty($meta)) {
+            $result['meta'] = $meta;
         }
 
-        return $_result;
+        return $result;
     }
 
     // Handle table record operations
@@ -508,95 +508,95 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
-        $_isSingle = (1 == count($records));
-        $_fields = ArrayUtils::get($extras, 'fields');
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
-        $_rollback = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $_continue = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
-        if ($_rollback && $_continue) {
+        $isSingle = (1 == count($records));
+        $fields = ArrayUtils::get($extras, 'fields');
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
         $this->initTransaction($table);
 
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
 
-        $extras['ids_info'] = $_idsInfo;
-        $extras['id_fields'] = $_idFields;
-        $extras['fields_info'] = $_fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($_fields, $_idFields);
+        $extras['ids_info'] = $idsInfo;
+        $extras['id_fields'] = $idFields;
+        $extras['fields_info'] = $fieldsInfo;
+        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
 
-        $_out = [];
-        $_errors = [];
+        $out = [];
+        $errors = [];
         try {
-            foreach ($records as $_index => $_record) {
+            foreach ($records as $index => $record) {
                 try {
-                    if (false === $_id = $this->checkForIds($_record, $_idsInfo, $extras, true)) {
-                        throw new BadRequestException("Required id field(s) not found in record $_index: " .
-                            print_r($_record, true));
+                    if (false === $id = $this->checkForIds($record, $idsInfo, $extras, true)) {
+                        throw new BadRequestException("Required id field(s) not found in record $index: " .
+                            print_r($record, true));
                     }
 
-                    $_result = $this->addToTransaction($_record, $_id, $extras, $_rollback, $_continue, $_isSingle);
-                    if (isset($_result)) {
+                    $result = $this->addToTransaction($record, $id, $extras, $rollback, $continue, $isSingle);
+                    if (isset($result)) {
                         // operation performed, take output
-                        $_out[$_index] = $_result;
+                        $out[$index] = $result;
                     }
-                } catch (\Exception $_ex) {
-                    if ($_isSingle || $_rollback || !$_continue) {
-                        if (0 !== $_index) {
+                } catch (\Exception $ex) {
+                    if ($isSingle || $rollback || !$continue) {
+                        if (0 !== $index) {
                             // first error, don't worry about batch just throw it
                             // mark last error and index for batch results
-                            $_errors[] = $_index;
-                            $_out[$_index] = $_ex->getMessage();
+                            $errors[] = $index;
+                            $out[$index] = $ex->getMessage();
                         }
 
-                        throw $_ex;
+                        throw $ex;
                     }
 
                     // mark error and index for batch results
-                    $_errors[] = $_index;
-                    $_out[$_index] = $_ex->getMessage();
+                    $errors[] = $index;
+                    $out[$index] = $ex->getMessage();
                 }
             }
 
-            if (!empty($_errors)) {
+            if (!empty($errors)) {
                 throw new BadRequestException();
             }
 
-            $_result = $this->commitTransaction($extras);
-            if (isset($_result)) {
+            $result = $this->commitTransaction($extras);
+            if (isset($result)) {
                 // operation performed, take output, override earlier
-                $_out = $_result;
+                $out = $result;
             }
 
-            return $_out;
-        } catch (\Exception $_ex) {
-            $_msg = $_ex->getMessage();
+            return $out;
+        } catch (\Exception $ex) {
+            $msg = $ex->getMessage();
 
-            $_context = null;
-            if (!empty($_errors)) {
+            $context = null;
+            if (!empty($errors)) {
                 $wrapper = ResourcesWrapper::getWrapper();
-                $_context = ['error' => $_errors, $wrapper => $_out];
-                $_msg = 'Batch Error: Not all records could be created.';
+                $context = ['error' => $errors, $wrapper => $out];
+                $msg = 'Batch Error: Not all records could be created.';
             }
 
-            if ($_rollback) {
+            if ($rollback) {
                 $this->rollbackTransaction();
 
-                $_msg .= " All changes rolled back.";
+                $msg .= " All changes rolled back.";
             }
 
-            if ($_ex instanceof RestException) {
-                $_context = (empty($_temp)) ? $_context : $_temp;
-                $_ex->setContext($_context);
-                $_ex->setMessage($_msg);
-                throw $_ex;
+            if ($ex instanceof RestException) {
+                $context = (empty($temp)) ? $context : $temp;
+                $ex->setContext($context);
+                $ex->setMessage($msg);
+                throw $ex;
             }
 
-            throw new InternalServerErrorException("Failed to create records in '$table'.\n$_msg", null, null,
-                $_context);
+            throw new InternalServerErrorException("Failed to create records in '$table'.\n$msg", null, null,
+                $context);
         }
     }
 
@@ -610,11 +610,11 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function createRecord($table, $record, $extras = [])
     {
-        $_records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
+        $records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
 
-        $_results = $this->createRecords($table, $_records, $extras);
+        $results = $this->createRecords($table, $records, $extras);
 
-        return $_results[0];
+        return $results[0];
     }
 
     /**
@@ -629,97 +629,97 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
-        $_fields = ArrayUtils::get($extras, 'fields');
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
-        $_isSingle = (1 == count($records));
-        $_rollback = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $_continue = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
-        if ($_rollback && $_continue) {
+        $fields = ArrayUtils::get($extras, 'fields');
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $isSingle = (1 == count($records));
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
         $this->initTransaction($table);
 
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
-        if (empty($_idsInfo)) {
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
+        if (empty($idsInfo)) {
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-        $extras['ids_info'] = $_idsInfo;
-        $extras['id_fields'] = $_idFields;
-        $extras['fields_info'] = $_fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($_fields, $_idFields);
+        $extras['ids_info'] = $idsInfo;
+        $extras['id_fields'] = $idFields;
+        $extras['fields_info'] = $fieldsInfo;
+        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
 
-        $_out = [];
-        $_errors = [];
+        $out = [];
+        $errors = [];
         try {
-            foreach ($records as $_index => $_record) {
+            foreach ($records as $index => $record) {
                 try {
-                    if (false === $_id = $this->checkForIds($_record, $_idsInfo, $extras)) {
-                        throw new BadRequestException("Required id field(s) not found in record $_index: " .
-                            print_r($_record, true));
+                    if (false === $id = $this->checkForIds($record, $idsInfo, $extras)) {
+                        throw new BadRequestException("Required id field(s) not found in record $index: " .
+                            print_r($record, true));
                     }
 
-                    $_result = $this->addToTransaction($_record, $_id, $extras, $_rollback, $_continue, $_isSingle);
-                    if (isset($_result)) {
+                    $result = $this->addToTransaction($record, $id, $extras, $rollback, $continue, $isSingle);
+                    if (isset($result)) {
                         // operation performed, take output
-                        $_out[$_index] = $_result;
+                        $out[$index] = $result;
                     }
-                } catch (\Exception $_ex) {
-                    if ($_isSingle || $_rollback || !$_continue) {
-                        if (0 !== $_index) {
+                } catch (\Exception $ex) {
+                    if ($isSingle || $rollback || !$continue) {
+                        if (0 !== $index) {
                             // first error, don't worry about batch just throw it
                             // mark last error and index for batch results
-                            $_errors[] = $_index;
-                            $_out[$_index] = $_ex->getMessage();
+                            $errors[] = $index;
+                            $out[$index] = $ex->getMessage();
                         }
 
-                        throw $_ex;
+                        throw $ex;
                     }
 
                     // mark error and index for batch results
-                    $_errors[] = $_index;
-                    $_out[$_index] = $_ex->getMessage();
+                    $errors[] = $index;
+                    $out[$index] = $ex->getMessage();
                 }
             }
 
-            if (!empty($_errors)) {
+            if (!empty($errors)) {
                 throw new BadRequestException();
             }
 
-            $_result = $this->commitTransaction($extras);
-            if (isset($_result)) {
-                $_out = $_result;
+            $result = $this->commitTransaction($extras);
+            if (isset($result)) {
+                $out = $result;
             }
 
-            return $_out;
-        } catch (\Exception $_ex) {
-            $_msg = $_ex->getMessage();
+            return $out;
+        } catch (\Exception $ex) {
+            $msg = $ex->getMessage();
 
-            $_context = null;
-            if (!empty($_errors)) {
+            $context = null;
+            if (!empty($errors)) {
                 $wrapper = ResourcesWrapper::getWrapper();
-                $_context = ['error' => $_errors, $wrapper => $_out];
-                $_msg = 'Batch Error: Not all records could be updated.';
+                $context = ['error' => $errors, $wrapper => $out];
+                $msg = 'Batch Error: Not all records could be updated.';
             }
 
-            if ($_rollback) {
+            if ($rollback) {
                 $this->rollbackTransaction();
 
-                $_msg .= " All changes rolled back.";
+                $msg .= " All changes rolled back.";
             }
 
-            if ($_ex instanceof RestException) {
-                $_context = (empty($_temp)) ? $_context : $_temp;
-                $_ex->setContext($_context);
-                $_ex->setMessage($_msg);
-                throw $_ex;
+            if ($ex instanceof RestException) {
+                $context = (empty($temp)) ? $context : $temp;
+                $ex->setContext($context);
+                $ex->setMessage($msg);
+                throw $ex;
             }
 
-            throw new InternalServerErrorException("Failed to update records in '$table'.\n$_msg", null, null,
-                $_context);
+            throw new InternalServerErrorException("Failed to update records in '$table'.\n$msg", null, null,
+                $context);
         }
     }
 
@@ -733,11 +733,11 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function updateRecord($table, $record, $extras = [])
     {
-        $_records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
+        $records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
 
-        $_results = $this->updateRecords($table, $_records, $extras);
+        $results = $this->updateRecords($table, $records, $extras);
 
-        return ArrayUtils::get($_results, 0, []);
+        return ArrayUtils::get($results, 0, []);
     }
 
     /**
@@ -754,25 +754,25 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
 
-        $_fields = ArrayUtils::get($extras, 'fields');
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, 'fields');
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
 
         // slow, but workable for now, maybe faster than merging individuals
         $extras['fields'] = '';
-        $_records = $this->retrieveRecordsByFilter($table, $filter, $params, $extras);
-        unset($_records['meta']);
+        $records = $this->retrieveRecordsByFilter($table, $filter, $params, $extras);
+        unset($records['meta']);
 
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
-        if (empty($_idsInfo)) {
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
+        if (empty($idsInfo)) {
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-        $_ids = static::recordsAsIds($_records, $_idsInfo);
-        $extras['fields'] = $_fields;
+        $ids = static::recordsAsIds($records, $idsInfo);
+        $extras['fields'] = $fields;
 
-        return $this->updateRecordsByIds($table, $record, $_ids, $extras);
+        return $this->updateRecordsByIds($table, $record, $ids, $extras);
     }
 
     /**
@@ -791,100 +791,100 @@ abstract class BaseDbTableResource extends BaseDbResource
         $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
         $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
-        $_fields = ArrayUtils::get($extras, 'fields');
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
-        $_isSingle = (1 == count($ids));
-        $_rollback = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $_continue = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
-        if ($_rollback && $_continue) {
+        $fields = ArrayUtils::get($extras, 'fields');
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $isSingle = (1 == count($ids));
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
         $this->initTransaction($table);
 
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
-        if (empty($_idsInfo)) {
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
+        if (empty($idsInfo)) {
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-        $extras['ids_info'] = $_idsInfo;
-        $extras['id_fields'] = $_idFields;
-        $extras['fields_info'] = $_fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($_fields, $_idFields);
+        $extras['ids_info'] = $idsInfo;
+        $extras['id_fields'] = $idFields;
+        $extras['fields_info'] = $fieldsInfo;
+        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
 
-        static::removeIds($record, $_idFields);
+        static::removeIds($record, $idFields);
         $extras['updates'] = $record;
 
-        $_out = [];
-        $_errors = [];
+        $out = [];
+        $errors = [];
         try {
-            foreach ($ids as $_index => $_id) {
+            foreach ($ids as $index => $id) {
                 try {
-                    if (false === $_id = $this->checkForIds($_id, $_idsInfo, $extras, true)) {
-                        throw new BadRequestException("Required id field(s) not valid in request $_index: " .
-                            print_r($_id, true));
+                    if (false === $id = $this->checkForIds($id, $idsInfo, $extras, true)) {
+                        throw new BadRequestException("Required id field(s) not valid in request $index: " .
+                            print_r($id, true));
                     }
 
-                    $_result = $this->addToTransaction(null, $_id, $extras, $_rollback, $_continue, $_isSingle);
-                    if (isset($_result)) {
+                    $result = $this->addToTransaction(null, $id, $extras, $rollback, $continue, $isSingle);
+                    if (isset($result)) {
                         // operation performed, take output
-                        $_out[$_index] = $_result;
+                        $out[$index] = $result;
                     }
-                } catch (\Exception $_ex) {
-                    if ($_isSingle || $_rollback || !$_continue) {
-                        if (0 !== $_index) {
+                } catch (\Exception $ex) {
+                    if ($isSingle || $rollback || !$continue) {
+                        if (0 !== $index) {
                             // first error, don't worry about batch just throw it
                             // mark last error and index for batch results
-                            $_errors[] = $_index;
-                            $_out[$_index] = $_ex->getMessage();
+                            $errors[] = $index;
+                            $out[$index] = $ex->getMessage();
                         }
 
-                        throw $_ex;
+                        throw $ex;
                     }
 
                     // mark error and index for batch results
-                    $_errors[] = $_index;
-                    $_out[$_index] = $_ex->getMessage();
+                    $errors[] = $index;
+                    $out[$index] = $ex->getMessage();
                 }
             }
 
-            if (!empty($_errors)) {
+            if (!empty($errors)) {
                 throw new BadRequestException();
             }
 
-            $_result = $this->commitTransaction($extras);
-            if (isset($_result)) {
-                $_out = $_result;
+            $result = $this->commitTransaction($extras);
+            if (isset($result)) {
+                $out = $result;
             }
 
-            return $_out;
-        } catch (\Exception $_ex) {
-            $_msg = $_ex->getMessage();
+            return $out;
+        } catch (\Exception $ex) {
+            $msg = $ex->getMessage();
 
-            $_context = null;
-            if (!empty($_errors)) {
+            $context = null;
+            if (!empty($errors)) {
                 $wrapper = ResourcesWrapper::getWrapper();
-                $_context = ['error' => $_errors, $wrapper => $_out];
-                $_msg = 'Batch Error: Not all records could be updated.';
+                $context = ['error' => $errors, $wrapper => $out];
+                $msg = 'Batch Error: Not all records could be updated.';
             }
 
-            if ($_rollback) {
+            if ($rollback) {
                 $this->rollbackTransaction();
 
-                $_msg .= " All changes rolled back.";
+                $msg .= " All changes rolled back.";
             }
 
-            if ($_ex instanceof RestException) {
-                $_context = (empty($_temp)) ? $_context : $_temp;
-                $_ex->setContext($_context);
-                $_ex->setMessage($_msg);
-                throw $_ex;
+            if ($ex instanceof RestException) {
+                $context = (empty($temp)) ? $context : $temp;
+                $ex->setContext($context);
+                $ex->setMessage($msg);
+                throw $ex;
             }
 
-            throw new InternalServerErrorException("Failed to update records in '$table'.\n$_msg", null, null,
-                $_context);
+            throw new InternalServerErrorException("Failed to update records in '$table'.\n$msg", null, null,
+                $context);
         }
     }
 
@@ -901,9 +901,9 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
-        $_results = $this->updateRecordsByIds($table, $record, $id, $extras);
+        $results = $this->updateRecordsByIds($table, $record, $id, $extras);
 
-        return ArrayUtils::get($_results, 0, []);
+        return ArrayUtils::get($results, 0, []);
     }
 
     /**
@@ -918,97 +918,97 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
-        $_fields = ArrayUtils::get($extras, 'fields');
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
-        $_isSingle = (1 == count($records));
-        $_rollback = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $_continue = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
-        if ($_rollback && $_continue) {
+        $fields = ArrayUtils::get($extras, 'fields');
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $isSingle = (1 == count($records));
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
         $this->initTransaction($table);
 
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
-        if (empty($_idsInfo)) {
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
+        if (empty($idsInfo)) {
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-        $extras['ids_info'] = $_idsInfo;
-        $extras['id_fields'] = $_idFields;
-        $extras['fields_info'] = $_fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($_fields, $_idFields);
+        $extras['ids_info'] = $idsInfo;
+        $extras['id_fields'] = $idFields;
+        $extras['fields_info'] = $fieldsInfo;
+        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
 
-        $_out = [];
-        $_errors = [];
+        $out = [];
+        $errors = [];
         try {
-            foreach ($records as $_index => $_record) {
+            foreach ($records as $index => $record) {
                 try {
-                    if (false === $_id = $this->checkForIds($_record, $_idsInfo, $extras)) {
-                        throw new BadRequestException("Required id field(s) not found in record $_index: " .
-                            print_r($_record, true));
+                    if (false === $id = $this->checkForIds($record, $idsInfo, $extras)) {
+                        throw new BadRequestException("Required id field(s) not found in record $index: " .
+                            print_r($record, true));
                     }
 
-                    $_result = $this->addToTransaction($_record, $_id, $extras, $_rollback, $_continue, $_isSingle);
-                    if (isset($_result)) {
+                    $result = $this->addToTransaction($record, $id, $extras, $rollback, $continue, $isSingle);
+                    if (isset($result)) {
                         // operation performed, take output
-                        $_out[$_index] = $_result;
+                        $out[$index] = $result;
                     }
-                } catch (\Exception $_ex) {
-                    if ($_isSingle || $_rollback || !$_continue) {
-                        if (0 !== $_index) {
+                } catch (\Exception $ex) {
+                    if ($isSingle || $rollback || !$continue) {
+                        if (0 !== $index) {
                             // first error, don't worry about batch just throw it
                             // mark last error and index for batch results
-                            $_errors[] = $_index;
-                            $_out[$_index] = $_ex->getMessage();
+                            $errors[] = $index;
+                            $out[$index] = $ex->getMessage();
                         }
 
-                        throw $_ex;
+                        throw $ex;
                     }
 
                     // mark error and index for batch results
-                    $_errors[] = $_index;
-                    $_out[$_index] = $_ex->getMessage();
+                    $errors[] = $index;
+                    $out[$index] = $ex->getMessage();
                 }
             }
 
-            if (!empty($_errors)) {
+            if (!empty($errors)) {
                 throw new BadRequestException();
             }
 
-            $_result = $this->commitTransaction($extras);
-            if (isset($_result)) {
-                $_out = $_result;
+            $result = $this->commitTransaction($extras);
+            if (isset($result)) {
+                $out = $result;
             }
 
-            return $_out;
-        } catch (\Exception $_ex) {
-            $_msg = $_ex->getMessage();
+            return $out;
+        } catch (\Exception $ex) {
+            $msg = $ex->getMessage();
 
-            $_context = null;
-            if (!empty($_errors)) {
+            $context = null;
+            if (!empty($errors)) {
                 $wrapper = ResourcesWrapper::getWrapper();
-                $_context = ['error' => $_errors, $wrapper => $_out];
-                $_msg = 'Batch Error: Not all records could be patched.';
+                $context = ['error' => $errors, $wrapper => $out];
+                $msg = 'Batch Error: Not all records could be patched.';
             }
 
-            if ($_rollback) {
+            if ($rollback) {
                 $this->rollbackTransaction();
 
-                $_msg .= " All changes rolled back.";
+                $msg .= " All changes rolled back.";
             }
 
-            if ($_ex instanceof RestException) {
-                $_context = (empty($_temp)) ? $_context : $_temp;
-                $_ex->setContext($_context);
-                $_ex->setMessage($_msg);
-                throw $_ex;
+            if ($ex instanceof RestException) {
+                $context = (empty($temp)) ? $context : $temp;
+                $ex->setContext($context);
+                $ex->setMessage($msg);
+                throw $ex;
             }
 
-            throw new InternalServerErrorException("Failed to patch records in '$table'.\n$_msg", null, null,
-                $_context);
+            throw new InternalServerErrorException("Failed to patch records in '$table'.\n$msg", null, null,
+                $context);
         }
     }
 
@@ -1022,11 +1022,11 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function patchRecord($table, $record, $extras = [])
     {
-        $_records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
+        $records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
 
-        $_results = $this->patchRecords($table, $_records, $extras);
+        $results = $this->patchRecords($table, $records, $extras);
 
-        return ArrayUtils::get($_results, 0, []);
+        return ArrayUtils::get($results, 0, []);
     }
 
     /**
@@ -1043,25 +1043,25 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
 
-        $_fields = ArrayUtils::get($extras, 'fields');
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, 'fields');
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
 
         // slow, but workable for now, maybe faster than merging individuals
         $extras['fields'] = '';
-        $_records = $this->retrieveRecordsByFilter($table, $filter, $params, $extras);
-        unset($_records['meta']);
+        $records = $this->retrieveRecordsByFilter($table, $filter, $params, $extras);
+        unset($records['meta']);
 
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
-        if (empty($_idsInfo)) {
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
+        if (empty($idsInfo)) {
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-        $_ids = static::recordsAsIds($_records, $_idsInfo);
-        $extras['fields'] = $_fields;
+        $ids = static::recordsAsIds($records, $idsInfo);
+        $extras['fields'] = $fields;
 
-        return $this->patchRecordsByIds($table, $record, $_ids, $extras);
+        return $this->patchRecordsByIds($table, $record, $ids, $extras);
     }
 
     /**
@@ -1078,100 +1078,100 @@ abstract class BaseDbTableResource extends BaseDbResource
         $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
         $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
-        $_fields = ArrayUtils::get($extras, 'fields');
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
-        $_isSingle = (1 == count($ids));
-        $_rollback = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $_continue = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
-        if ($_rollback && $_continue) {
+        $fields = ArrayUtils::get($extras, 'fields');
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $isSingle = (1 == count($ids));
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
         $this->initTransaction($table);
 
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
-        if (empty($_idsInfo)) {
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
+        if (empty($idsInfo)) {
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-        $extras['ids_info'] = $_idsInfo;
-        $extras['id_fields'] = $_idFields;
-        $extras['fields_info'] = $_fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($_fields, $_idFields);
+        $extras['ids_info'] = $idsInfo;
+        $extras['id_fields'] = $idFields;
+        $extras['fields_info'] = $fieldsInfo;
+        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
 
-        static::removeIds($record, $_idFields);
+        static::removeIds($record, $idFields);
         $extras['updates'] = $record;
 
-        $_out = [];
-        $_errors = [];
+        $out = [];
+        $errors = [];
         try {
-            foreach ($ids as $_index => $_id) {
+            foreach ($ids as $index => $id) {
                 try {
-                    if (false === $_id = $this->checkForIds($_id, $_idsInfo, $extras, true)) {
-                        throw new BadRequestException("Required id field(s) not valid in request $_index: " .
-                            print_r($_id, true));
+                    if (false === $id = $this->checkForIds($id, $idsInfo, $extras, true)) {
+                        throw new BadRequestException("Required id field(s) not valid in request $index: " .
+                            print_r($id, true));
                     }
 
-                    $_result = $this->addToTransaction(null, $_id, $extras, $_rollback, $_continue, $_isSingle);
-                    if (isset($_result)) {
+                    $result = $this->addToTransaction(null, $id, $extras, $rollback, $continue, $isSingle);
+                    if (isset($result)) {
                         // operation performed, take output
-                        $_out[$_index] = $_result;
+                        $out[$index] = $result;
                     }
-                } catch (\Exception $_ex) {
-                    if ($_isSingle || $_rollback || !$_continue) {
-                        if (0 !== $_index) {
+                } catch (\Exception $ex) {
+                    if ($isSingle || $rollback || !$continue) {
+                        if (0 !== $index) {
                             // first error, don't worry about batch just throw it
                             // mark last error and index for batch results
-                            $_errors[] = $_index;
-                            $_out[$_index] = $_ex->getMessage();
+                            $errors[] = $index;
+                            $out[$index] = $ex->getMessage();
                         }
 
-                        throw $_ex;
+                        throw $ex;
                     }
 
                     // mark error and index for batch results
-                    $_errors[] = $_index;
-                    $_out[$_index] = $_ex->getMessage();
+                    $errors[] = $index;
+                    $out[$index] = $ex->getMessage();
                 }
             }
 
-            if (!empty($_errors)) {
+            if (!empty($errors)) {
                 throw new BadRequestException();
             }
 
-            $_result = $this->commitTransaction($extras);
-            if (isset($_result)) {
-                $_out = $_result;
+            $result = $this->commitTransaction($extras);
+            if (isset($result)) {
+                $out = $result;
             }
 
-            return $_out;
-        } catch (\Exception $_ex) {
-            $_msg = $_ex->getMessage();
+            return $out;
+        } catch (\Exception $ex) {
+            $msg = $ex->getMessage();
 
-            $_context = null;
-            if (!empty($_errors)) {
+            $context = null;
+            if (!empty($errors)) {
                 $wrapper = ResourcesWrapper::getWrapper();
-                $_context = ['error' => $_errors, $wrapper => $_out];
-                $_msg = 'Batch Error: Not all records could be patched.';
+                $context = ['error' => $errors, $wrapper => $out];
+                $msg = 'Batch Error: Not all records could be patched.';
             }
 
-            if ($_rollback) {
+            if ($rollback) {
                 $this->rollbackTransaction();
 
-                $_msg .= " All changes rolled back.";
+                $msg .= " All changes rolled back.";
             }
 
-            if ($_ex instanceof RestException) {
-                $_context = (empty($_temp)) ? $_context : $_temp;
-                $_ex->setContext($_context);
-                $_ex->setMessage($_msg);
-                throw $_ex;
+            if ($ex instanceof RestException) {
+                $context = (empty($temp)) ? $context : $temp;
+                $ex->setContext($context);
+                $ex->setMessage($msg);
+                throw $ex;
             }
 
-            throw new InternalServerErrorException("Failed to patch records in '$table'.\n$_msg", null, null,
-                $_context);
+            throw new InternalServerErrorException("Failed to patch records in '$table'.\n$msg", null, null,
+                $context);
         }
     }
 
@@ -1188,9 +1188,9 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
-        $_results = $this->patchRecordsByIds($table, $record, $id, $extras);
+        $results = $this->patchRecordsByIds($table, $record, $id, $extras);
 
-        return ArrayUtils::get($_results, 0, []);
+        return ArrayUtils::get($results, 0, []);
     }
 
     /**
@@ -1205,20 +1205,20 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
-        if (empty($_idsInfo)) {
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
+        if (empty($idsInfo)) {
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-        $_ids = [];
-        foreach ($records as $_record) {
-            $_ids[] = static::checkForIds($_record, $_idsInfo, $extras);
+        $ids = [];
+        foreach ($records as $record) {
+            $ids[] = static::checkForIds($record, $idsInfo, $extras);
         }
 
-        return $this->deleteRecordsByIds($table, $_ids, $extras);
+        return $this->deleteRecordsByIds($table, $ids, $extras);
     }
 
     /**
@@ -1233,9 +1233,9 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
-        $_results = $this->deleteRecords($table, [$record], $extras);
+        $results = $this->deleteRecords($table, [$record], $extras);
 
-        return ArrayUtils::get($_results, 0, []);
+        return ArrayUtils::get($results, 0, []);
     }
 
     /**
@@ -1249,25 +1249,25 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function deleteRecordsByFilter($table, $filter, $params = [], $extras = [])
     {
-        $_fields = ArrayUtils::get($extras, 'fields');
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, 'fields');
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
 
         // slow, but workable for now, maybe faster than deleting individuals
         $extras['fields'] = '';
-        $_records = $this->retrieveRecordsByFilter($table, $filter, $params, $extras);
-        unset($_records['meta']);
+        $records = $this->retrieveRecordsByFilter($table, $filter, $params, $extras);
+        unset($records['meta']);
 
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
-        if (empty($_idsInfo)) {
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
+        if (empty($idsInfo)) {
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-        $_ids = static::recordsAsIds($_records, $_idsInfo, $extras);
-        $extras['fields'] = $_fields;
+        $ids = static::recordsAsIds($records, $idsInfo, $extras);
+        $extras['fields'] = $fields;
 
-        return $this->deleteRecordsByIds($table, $_ids, $extras);
+        return $this->deleteRecordsByIds($table, $ids, $extras);
     }
 
     /**
@@ -1282,97 +1282,97 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
-        $_fields = ArrayUtils::get($extras, 'fields');
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
-        $_isSingle = (1 == count($ids));
-        $_rollback = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $_continue = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
-        if ($_rollback && $_continue) {
+        $fields = ArrayUtils::get($extras, 'fields');
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $isSingle = (1 == count($ids));
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
         $this->initTransaction($table);
 
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
-        if (empty($_idsInfo)) {
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
+        if (empty($idsInfo)) {
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-        $extras['ids_info'] = $_idsInfo;
-        $extras['id_fields'] = $_idFields;
-        $extras['fields_info'] = $_fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($_fields, $_idFields);
+        $extras['ids_info'] = $idsInfo;
+        $extras['id_fields'] = $idFields;
+        $extras['fields_info'] = $fieldsInfo;
+        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
 
-        $_out = [];
-        $_errors = [];
+        $out = [];
+        $errors = [];
         try {
-            foreach ($ids as $_index => $_id) {
+            foreach ($ids as $index => $id) {
                 try {
-                    if (false === $_id = $this->checkForIds($_id, $_idsInfo, $extras, true)) {
-                        throw new BadRequestException("Required id field(s) not valid in request $_index: " .
-                            print_r($_id, true));
+                    if (false === $id = $this->checkForIds($id, $idsInfo, $extras, true)) {
+                        throw new BadRequestException("Required id field(s) not valid in request $index: " .
+                            print_r($id, true));
                     }
 
-                    $_result = $this->addToTransaction(null, $_id, $extras, $_rollback, $_continue, $_isSingle);
-                    if (isset($_result)) {
+                    $result = $this->addToTransaction(null, $id, $extras, $rollback, $continue, $isSingle);
+                    if (isset($result)) {
                         // operation performed, take output
-                        $_out[$_index] = $_result;
+                        $out[$index] = $result;
                     }
-                } catch (\Exception $_ex) {
-                    if ($_isSingle || $_rollback || !$_continue) {
-                        if (0 !== $_index) {
+                } catch (\Exception $ex) {
+                    if ($isSingle || $rollback || !$continue) {
+                        if (0 !== $index) {
                             // first error, don't worry about batch just throw it
                             // mark last error and index for batch results
-                            $_errors[] = $_index;
-                            $_out[$_index] = $_ex->getMessage();
+                            $errors[] = $index;
+                            $out[$index] = $ex->getMessage();
                         }
 
-                        throw $_ex;
+                        throw $ex;
                     }
 
                     // mark error and index for batch results
-                    $_errors[] = $_index;
-                    $_out[$_index] = $_ex->getMessage();
+                    $errors[] = $index;
+                    $out[$index] = $ex->getMessage();
                 }
             }
 
-            if (!empty($_errors)) {
+            if (!empty($errors)) {
                 throw new BadRequestException();
             }
 
-            $_result = $this->commitTransaction($extras);
-            if (isset($_result)) {
-                $_out = $_result;
+            $result = $this->commitTransaction($extras);
+            if (isset($result)) {
+                $out = $result;
             }
 
-            return $_out;
-        } catch (\Exception $_ex) {
-            $_msg = $_ex->getMessage();
+            return $out;
+        } catch (\Exception $ex) {
+            $msg = $ex->getMessage();
 
-            $_context = null;
-            if (!empty($_errors)) {
+            $context = null;
+            if (!empty($errors)) {
                 $wrapper = ResourcesWrapper::getWrapper();
-                $_context = ['error' => $_errors, $wrapper => $_out];
-                $_msg = 'Batch Error: Not all records could be deleted.';
+                $context = ['error' => $errors, $wrapper => $out];
+                $msg = 'Batch Error: Not all records could be deleted.';
             }
 
-            if ($_rollback) {
+            if ($rollback) {
                 $this->rollbackTransaction();
 
-                $_msg .= " All changes rolled back.";
+                $msg .= " All changes rolled back.";
             }
 
-            if ($_ex instanceof RestException) {
-                $_context = (empty($_temp)) ? $_context : $_temp;
-                $_ex->setContext($_context);
-                $_ex->setMessage($_msg);
-                throw $_ex;
+            if ($ex instanceof RestException) {
+                $context = (empty($temp)) ? $context : $temp;
+                $ex->setContext($context);
+                $ex->setMessage($msg);
+                throw $ex;
             }
 
-            throw new InternalServerErrorException("Failed to delete records from '$table'.\n$_msg", null, null,
-                $_context);
+            throw new InternalServerErrorException("Failed to delete records from '$table'.\n$msg", null, null,
+                $context);
         }
     }
 
@@ -1386,9 +1386,9 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function deleteRecordById($table, $id, $extras = [])
     {
-        $_results = $this->deleteRecordsByIds($table, $id, $extras);
+        $results = $this->deleteRecordsByIds($table, $id, $extras);
 
-        return ArrayUtils::get($_results, 0, []);
+        return ArrayUtils::get($results, 0, []);
     }
 
     /**
@@ -1403,10 +1403,10 @@ abstract class BaseDbTableResource extends BaseDbResource
     public function truncateTable($table, $extras = [])
     {
         // todo faster way?
-        $_records = $this->retrieveRecordsByFilter($table, null, null, $extras);
+        $records = $this->retrieveRecordsByFilter($table, null, null, $extras);
 
-        if (!empty($_records)) {
-            $this->deleteRecords($table, $_records, $extras);
+        if (!empty($records)) {
+            $this->deleteRecords($table, $records, $extras);
         }
 
         return ['success' => true];
@@ -1435,21 +1435,21 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
 
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
-        if (empty($_idsInfo)) {
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
+        if (empty($idsInfo)) {
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-        $_ids = [];
-        foreach ($records as $_record) {
-            $_ids[] = static::checkForIds($_record, $_idsInfo, $extras);
+        $ids = [];
+        foreach ($records as $record) {
+            $ids[] = static::checkForIds($record, $idsInfo, $extras);
         }
 
-        return $this->retrieveRecordsByIds($table, $_ids, $extras);
+        return $this->retrieveRecordsByIds($table, $ids, $extras);
     }
 
     /**
@@ -1464,9 +1464,9 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
-        $_results = $this->retrieveRecords($table, [$record], $extras);
+        $results = $this->retrieveRecords($table, [$record], $extras);
 
-        return ArrayUtils::get($_results, 0, []);
+        return ArrayUtils::get($results, 0, []);
     }
 
     /**
@@ -1481,89 +1481,89 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
-        $_fields = ArrayUtils::get($extras, 'fields');
-        $_idFields = ArrayUtils::get($extras, 'id_field');
-        $_idTypes = ArrayUtils::get($extras, 'id_type');
-        $_isSingle = (1 == count($ids));
-        $_continue = ($_isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        $fields = ArrayUtils::get($extras, 'fields');
+        $idFields = ArrayUtils::get($extras, 'id_field');
+        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $isSingle = (1 == count($ids));
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
 
         $this->initTransaction($table);
 
-        $_fieldsInfo = $this->getFieldsInfo($table);
-        $_idsInfo = $this->getIdsInfo($table, $_fieldsInfo, $_idFields, $_idTypes);
-        if (empty($_idsInfo)) {
+        $fieldsInfo = $this->getFieldsInfo($table);
+        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
+        if (empty($idsInfo)) {
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-        $extras['single'] = $_isSingle;
-        $extras['ids_info'] = $_idsInfo;
-        $extras['id_fields'] = $_idFields;
-        $extras['fields_info'] = $_fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($_fields, $_idFields);
+        $extras['single'] = $isSingle;
+        $extras['ids_info'] = $idsInfo;
+        $extras['id_fields'] = $idFields;
+        $extras['fields_info'] = $fieldsInfo;
+        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
 
-        $_out = [];
-        $_errors = [];
+        $out = [];
+        $errors = [];
         try {
-            foreach ($ids as $_index => $_id) {
+            foreach ($ids as $index => $id) {
                 try {
-                    if (false === $_id = $this->checkForIds($_id, $_idsInfo, $extras, true)) {
-                        throw new BadRequestException("Required id field(s) not valid in request $_index: " .
-                            print_r($_id, true));
+                    if (false === $id = $this->checkForIds($id, $idsInfo, $extras, true)) {
+                        throw new BadRequestException("Required id field(s) not valid in request $index: " .
+                            print_r($id, true));
                     }
 
-                    $_result = $this->addToTransaction(null, $_id, $extras, false, $_continue, $_isSingle);
-                    if (isset($_result)) {
+                    $result = $this->addToTransaction(null, $id, $extras, false, $continue, $isSingle);
+                    if (isset($result)) {
                         // operation performed, take output
-                        $_out[$_index] = $_result;
+                        $out[$index] = $result;
                     }
-                } catch (\Exception $_ex) {
-                    if ($_isSingle || !$_continue) {
-                        if (0 !== $_index) {
+                } catch (\Exception $ex) {
+                    if ($isSingle || !$continue) {
+                        if (0 !== $index) {
                             // first error, don't worry about batch just throw it
                             // mark last error and index for batch results
-                            $_errors[] = $_index;
-                            $_out[$_index] = $_ex->getMessage();
+                            $errors[] = $index;
+                            $out[$index] = $ex->getMessage();
                         }
 
-                        throw $_ex;
+                        throw $ex;
                     }
 
                     // mark error and index for batch results
-                    $_errors[] = $_index;
-                    $_out[$_index] = $_ex->getMessage();
+                    $errors[] = $index;
+                    $out[$index] = $ex->getMessage();
                 }
             }
 
-            if (!empty($_errors)) {
+            if (!empty($errors)) {
                 throw new BadRequestException();
             }
 
-            $_result = $this->commitTransaction($extras);
-            if (isset($_result)) {
-                $_out = $_result;
+            $result = $this->commitTransaction($extras);
+            if (isset($result)) {
+                $out = $result;
             }
 
-            return $_out;
-        } catch (\Exception $_ex) {
-            $_msg = $_ex->getMessage();
+            return $out;
+        } catch (\Exception $ex) {
+            $msg = $ex->getMessage();
 
-            $_context = null;
-            if (!empty($_errors)) {
+            $context = null;
+            if (!empty($errors)) {
                 $wrapper = ResourcesWrapper::getWrapper();
-                $_context = ['error' => $_errors, $wrapper => $_out];
-                $_msg = 'Batch Error: Not all records could be retrieved.';
+                $context = ['error' => $errors, $wrapper => $out];
+                $msg = 'Batch Error: Not all records could be retrieved.';
             }
 
-            if ($_ex instanceof RestException) {
-                $_temp = $_ex->getContext();
-                $_context = (empty($_temp)) ? $_context : $_temp;
-                $_ex->setContext($_context);
-                $_ex->setMessage($_msg);
-                throw $_ex;
+            if ($ex instanceof RestException) {
+                $temp = $ex->getContext();
+                $context = (empty($temp)) ? $context : $temp;
+                $ex->setContext($context);
+                $ex->setMessage($msg);
+                throw $ex;
             }
 
-            throw new InternalServerErrorException("Failed to retrieve records from '$table'.\n$_msg", null, null,
-                $_context);
+            throw new InternalServerErrorException("Failed to retrieve records from '$table'.\n$msg", null, null,
+                $context);
         }
     }
 
@@ -1577,9 +1577,9 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function retrieveRecordById($table, $id, $extras = [])
     {
-        $_results = $this->retrieveRecordsByIds($table, $id, $extras);
+        $results = $this->retrieveRecordsByIds($table, $id, $extras);
 
-        return ArrayUtils::get($_results, 0, []);
+        return ArrayUtils::get($results, 0, []);
     }
 
     /**
@@ -1697,12 +1697,12 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected function getIdFieldsFromInfo($id_info)
     {
-        $_fields = [];
-        foreach ($id_info as $_info) {
-            $_fields[] = ArrayUtils::get($_info, 'name');
+        $fields = [];
+        foreach ($id_info as $info) {
+            $fields[] = ArrayUtils::get($info, 'name');
         }
 
-        return $_fields;
+        return $fields;
     }
 
     /**
@@ -1716,66 +1716,66 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected function checkForIds(&$record, $ids_info, $extras = null, $on_create = false, $remove = false)
     {
-        $_id = null;
+        $id = null;
         if (!empty($ids_info)) {
             if (1 == count($ids_info)) {
-                $_info = $ids_info[0];
-                $_name = ArrayUtils::get($_info, 'name');
+                $info = $ids_info[0];
+                $name = ArrayUtils::get($info, 'name');
                 if (is_array($record)) {
-                    $_value = ArrayUtils::get($record, $_name);
+                    $value = ArrayUtils::get($record, $name);
                     if ($remove) {
-                        unset($record[$_name]);
+                        unset($record[$name]);
                     }
                 } else {
-                    $_value = $record;
+                    $value = $record;
                 }
-                if (!empty($_value)) {
-                    $_type = ArrayUtils::get($_info, 'type');
-                    switch ($_type) {
+                if (!empty($value)) {
+                    $type = ArrayUtils::get($info, 'type');
+                    switch ($type) {
                         case 'int':
-                            $_value = intval($_value);
+                            $value = intval($value);
                             break;
                         case 'string':
-                            $_value = strval($_value);
+                            $value = strval($value);
                             break;
                     }
-                    $_id = $_value;
+                    $id = $value;
                 } else {
-                    $_required = ArrayUtils::getBool($_info, 'required');
+                    $required = ArrayUtils::getBool($info, 'required');
                     // could be passed in as a parameter affecting all records
-                    $_param = ArrayUtils::get($extras, $_name);
-                    if ($on_create && $_required && empty($_param)) {
+                    $param = ArrayUtils::get($extras, $name);
+                    if ($on_create && $required && empty($param)) {
                         return false;
                     }
                 }
             } else {
-                $_id = [];
-                foreach ($ids_info as $_info) {
-                    $_name = ArrayUtils::get($_info, 'name');
+                $id = [];
+                foreach ($ids_info as $info) {
+                    $name = ArrayUtils::get($info, 'name');
                     if (is_array($record)) {
-                        $_value = ArrayUtils::get($record, $_name);
+                        $value = ArrayUtils::get($record, $name);
                         if ($remove) {
-                            unset($record[$_name]);
+                            unset($record[$name]);
                         }
                     } else {
-                        $_value = $record;
+                        $value = $record;
                     }
-                    if (!empty($_value)) {
-                        $_type = ArrayUtils::get($_info, 'type');
-                        switch ($_type) {
+                    if (!empty($value)) {
+                        $type = ArrayUtils::get($info, 'type');
+                        switch ($type) {
                             case 'int':
-                                $_value = intval($_value);
+                                $value = intval($value);
                                 break;
                             case 'string':
-                                $_value = strval($_value);
+                                $value = strval($value);
                                 break;
                         }
-                        $_id[$_name] = $_value;
+                        $id[$name] = $value;
                     } else {
-                        $_required = ArrayUtils::getBool($_info, 'required');
+                        $required = ArrayUtils::getBool($info, 'required');
                         // could be passed in as a parameter affecting all records
-                        $_param = ArrayUtils::get($extras, $_name);
-                        if ($on_create && $_required && empty($_param)) {
+                        $param = ArrayUtils::get($extras, $name);
+                        if ($on_create && $required && empty($param)) {
                             return false;
                         }
                     }
@@ -1783,8 +1783,8 @@ abstract class BaseDbTableResource extends BaseDbResource
             }
         }
 
-        if (!empty($_id)) {
-            return $_id;
+        if (!empty($id)) {
+            return $id;
         } elseif ($on_create) {
             return [];
         }
@@ -1805,59 +1805,59 @@ abstract class BaseDbTableResource extends BaseDbResource
     protected function parseRecord($record, $fields_info, $filter_info = null, $for_update = false, $old_record = null)
     {
 //        $record = DataFormat::arrayKeyLower( $record );
-        $_parsed = (empty($fields_info)) ? $record : [];
+        $parsed = (empty($fields_info)) ? $record : [];
         if (!empty($fields_info)) {
-            $_keys = array_keys($record);
-            $_values = array_values($record);
-            foreach ($fields_info as $_fieldInfo) {
+            $keys = array_keys($record);
+            $values = array_values($record);
+            foreach ($fields_info as $fieldInfo) {
 //            $name = strtolower( ArrayUtils::get( $field_info, 'name', '' ) );
-                $_name = ArrayUtils::get($_fieldInfo, 'name', '');
-                $_type = ArrayUtils::get($_fieldInfo, 'type');
-                $_pos = array_search($_name, $_keys);
-                if (false !== $_pos) {
-                    $_fieldVal = ArrayUtils::get($_values, $_pos);
+                $name = ArrayUtils::get($fieldInfo, 'name', '');
+                $type = ArrayUtils::get($fieldInfo, 'type');
+                $pos = array_search($name, $keys);
+                if (false !== $pos) {
+                    $fieldVal = ArrayUtils::get($values, $pos);
                     // due to conversion from XML to array, null or empty xml elements have the array value of an empty array
-                    if (is_array($_fieldVal) && empty($_fieldVal)) {
-                        $_fieldVal = null;
+                    if (is_array($fieldVal) && empty($fieldVal)) {
+                        $fieldVal = null;
                     }
 
                     /** validations **/
 
-                    $_validations = ArrayUtils::get($_fieldInfo, 'validation');
+                    $validations = ArrayUtils::get($fieldInfo, 'validation');
 
-                    if (!static::validateFieldValue($_name, $_fieldVal, $_validations, $for_update, $_fieldInfo)) {
-                        unset($_keys[$_pos]);
-                        unset($_values[$_pos]);
+                    if (!static::validateFieldValue($name, $fieldVal, $validations, $for_update, $fieldInfo)) {
+                        unset($keys[$pos]);
+                        unset($values[$pos]);
                         continue;
                     }
 
-                    $_parsed[$_name] = $_fieldVal;
-                    unset($_keys[$_pos]);
-                    unset($_values[$_pos]);
+                    $parsed[$name] = $fieldVal;
+                    unset($keys[$pos]);
+                    unset($values[$pos]);
                 }
 
                 // add or override for specific fields
-                switch ($_type) {
+                switch ($type) {
                     case 'timestamp_on_create':
                         if (!$for_update) {
-                            $_parsed[$_name] = time();
+                            $parsed[$name] = time();
                         }
                         break;
                     case 'timestamp_on_update':
-                        $_parsed[$_name] = time();
+                        $parsed[$name] = time();
                         break;
                     case 'user_id_on_create':
                         if (!$for_update) {
                             $userId = 1; // TODO Session::getCurrentUserId();
                             if (isset($userId)) {
-                                $_parsed[$_name] = $userId;
+                                $parsed[$name] = $userId;
                             }
                         }
                         break;
                     case 'user_id_on_update':
                         $userId = 1; // TODO Session::getCurrentUserId();
                         if (isset($userId)) {
-                            $_parsed[$_name] = $userId;
+                            $parsed[$name] = $userId;
                         }
                         break;
                 }
@@ -1865,10 +1865,10 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         if (!empty($filter_info)) {
-            $this->validateRecord($_parsed, $filter_info, $for_update, $old_record);
+            $this->validateRecord($parsed, $filter_info, $for_update, $old_record);
         }
 
-        return $_parsed;
+        return $parsed;
     }
 
     /**
@@ -1881,44 +1881,44 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected function validateRecord($record, $filter_info, $for_update = false, $old_record = null)
     {
-        $_filters = ArrayUtils::get($filter_info, 'filters');
+        $filters = ArrayUtils::get($filter_info, 'filters');
 
-        if (empty($_filters) || empty($record)) {
+        if (empty($filters) || empty($record)) {
             return;
         }
 
-        $_combiner = ArrayUtils::get($filter_info, 'filter_op', 'and');
-        foreach ($_filters as $_filter) {
-            $_filterField = ArrayUtils::get($_filter, 'name');
-            $_operator = ArrayUtils::get($_filter, 'operator');
-            $_filterValue = ArrayUtils::get($_filter, 'value');
-            $_filterValue = static::interpretFilterValue($_filterValue);
-            $_foundInRecord = (is_array($record)) ? array_key_exists($_filterField, $record) : false;
-            $_recordValue = ArrayUtils::get($record, $_filterField);
-            $_foundInOld = (is_array($old_record)) ? array_key_exists($_filterField, $old_record) : false;
-            $_oldValue = ArrayUtils::get($old_record, $_filterField);
-            $_compareFound = ($_foundInRecord || ($for_update && $_foundInOld));
-            $_compareValue = $_foundInRecord ? $_recordValue : ($for_update ? $_oldValue : null);
+        $combiner = ArrayUtils::get($filter_info, 'filter_op', 'and');
+        foreach ($filters as $filter) {
+            $filterField = ArrayUtils::get($filter, 'name');
+            $operator = ArrayUtils::get($filter, 'operator');
+            $filterValue = ArrayUtils::get($filter, 'value');
+            $filterValue = static::interpretFilterValue($filterValue);
+            $foundInRecord = (is_array($record)) ? array_key_exists($filterField, $record) : false;
+            $recordValue = ArrayUtils::get($record, $filterField);
+            $foundInOld = (is_array($old_record)) ? array_key_exists($filterField, $old_record) : false;
+            $oldValue = ArrayUtils::get($old_record, $filterField);
+            $compareFound = ($foundInRecord || ($for_update && $foundInOld));
+            $compareValue = $foundInRecord ? $recordValue : ($for_update ? $oldValue : null);
 
-            $_reason = null;
-            if ($for_update && !$_compareFound) {
+            $reason = null;
+            if ($for_update && !$compareFound) {
                 // not being set, filter on update will check old record
                 continue;
             }
 
-            if (!static::compareByOperator($_operator, $_compareFound, $_compareValue, $_filterValue)) {
-                $_reason = "Denied access to some of the requested fields.";
+            if (!static::compareByOperator($operator, $compareFound, $compareValue, $filterValue)) {
+                $reason = "Denied access to some of the requested fields.";
             }
 
-            switch (strtolower($_combiner)) {
+            switch (strtolower($combiner)) {
                 case 'and':
-                    if (!empty($_reason)) {
+                    if (!empty($reason)) {
                         // any reason is a good reason to bail
-                        throw new ForbiddenException($_reason);
+                        throw new ForbiddenException($reason);
                     }
                     break;
                 case 'or':
-                    if (empty($_reason)) {
+                    if (empty($reason)) {
                         // at least one was successful
                         return;
                     }
@@ -1990,36 +1990,36 @@ abstract class BaseDbTableResource extends BaseDbResource
     protected static function validateFieldValue($name, $value, $validations, $for_update = false, $field_info = null)
     {
         if (is_array($validations)) {
-            foreach ($validations as $_key => $_config) {
-                $_onFail = ArrayUtils::get($_config, 'on_fail');
-                $_throw = true;
-                $_msg = null;
-                if (!empty($_onFail)) {
-                    if (0 == strcasecmp($_onFail, 'ignore_field')) {
-                        $_throw = false;
+            foreach ($validations as $key => $config) {
+                $onFail = ArrayUtils::get($config, 'on_fail');
+                $throw = true;
+                $msg = null;
+                if (!empty($onFail)) {
+                    if (0 == strcasecmp($onFail, 'ignore_field')) {
+                        $throw = false;
                     } else {
-                        $_msg = $_onFail;
+                        $msg = $onFail;
                     }
                 }
 
-                switch ($_key) {
+                switch ($key) {
                     case 'api_read_only':
-                        if ($_throw) {
-                            if (empty($_msg)) {
-                                $_msg = "Field '$name' is read only.";
+                        if ($throw) {
+                            if (empty($msg)) {
+                                $msg = "Field '$name' is read only.";
                             }
-                            throw new BadRequestException($_msg);
+                            throw new BadRequestException($msg);
                         }
 
                         return false;
                         break;
                     case 'create_only':
                         if ($for_update) {
-                            if ($_throw) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' can only be set during record creation.";
+                            if ($throw) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' can only be set during record creation.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
 
                             return false;
@@ -2027,11 +2027,11 @@ abstract class BaseDbTableResource extends BaseDbResource
                         break;
                     case 'not_null':
                         if (is_null($value)) {
-                            if ($_throw) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value can not be null.";
+                            if ($throw) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value can not be null.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
 
                             return false;
@@ -2039,11 +2039,11 @@ abstract class BaseDbTableResource extends BaseDbResource
                         break;
                     case 'not_empty':
                         if (!is_null($value) && empty($value)) {
-                            if ($_throw) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value can not be empty.";
+                            if ($throw) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value can not be empty.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
 
                             return false;
@@ -2051,11 +2051,11 @@ abstract class BaseDbTableResource extends BaseDbResource
                         break;
                     case 'not_zero':
                         if (!is_null($value) && empty($value)) {
-                            if ($_throw) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value can not be empty.";
+                            if ($throw) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value can not be empty.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
 
                             return false;
@@ -2063,85 +2063,85 @@ abstract class BaseDbTableResource extends BaseDbResource
                         break;
                     case 'email':
                         if (!empty($value) && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
-                            if ($_throw) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value must be a valid email address.";
+                            if ($throw) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value must be a valid email address.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
 
                             return false;
                         }
                         break;
                     case 'url':
-                        $_sections = ArrayUtils::clean(ArrayUtils::get($_config, 'sections'));
-                        $_flags = 0;
-                        foreach ($_sections as $_format) {
-                            switch (strtolower($_format)) {
+                        $sections = ArrayUtils::clean(ArrayUtils::get($config, 'sections'));
+                        $flags = 0;
+                        foreach ($sections as $format) {
+                            switch (strtolower($format)) {
                                 case 'path':
-                                    $_flags &= FILTER_FLAG_PATH_REQUIRED;
+                                    $flags &= FILTER_FLAG_PATH_REQUIRED;
                                     break;
                                 case 'query':
-                                    $_flags &= FILTER_FLAG_QUERY_REQUIRED;
+                                    $flags &= FILTER_FLAG_QUERY_REQUIRED;
                                     break;
                             }
                         }
-                        if (!empty($value) && !filter_var($value, FILTER_VALIDATE_URL, $_flags)) {
-                            if ($_throw) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value must be a valid URL.";
+                        if (!empty($value) && !filter_var($value, FILTER_VALIDATE_URL, $flags)) {
+                            if ($throw) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value must be a valid URL.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
 
                             return false;
                         }
                         break;
                     case 'int':
-                        $_min = ArrayUtils::getDeep($_config, 'range', 'min');
-                        $_max = ArrayUtils::getDeep($_config, 'range', 'max');
-                        $_formats = ArrayUtils::clean(ArrayUtils::get($_config, 'formats'));
+                        $min = ArrayUtils::getDeep($config, 'range', 'min');
+                        $max = ArrayUtils::getDeep($config, 'range', 'max');
+                        $formats = ArrayUtils::clean(ArrayUtils::get($config, 'formats'));
 
-                        $_options = [];
-                        if (is_int($_min)) {
-                            $_options['min_range'] = $_min;
+                        $options = [];
+                        if (is_int($min)) {
+                            $options['min_range'] = $min;
                         }
-                        if (is_int($_max)) {
-                            $_options['max_range'] = $_max;
+                        if (is_int($max)) {
+                            $options['max_range'] = $max;
                         }
-                        $_flags = 0;
-                        foreach ($_formats as $_format) {
-                            switch (strtolower($_format)) {
+                        $flags = 0;
+                        foreach ($formats as $format) {
+                            switch (strtolower($format)) {
                                 case 'hex':
-                                    $_flags &= FILTER_FLAG_ALLOW_HEX;
+                                    $flags &= FILTER_FLAG_ALLOW_HEX;
                                     break;
                                 case 'octal':
-                                    $_flags &= FILTER_FLAG_ALLOW_OCTAL;
+                                    $flags &= FILTER_FLAG_ALLOW_OCTAL;
                                     break;
                             }
                         }
-                        $_options = ['options' => $_options, 'flags' => $_flags];
-                        if (!is_null($value) && false === filter_var($value, FILTER_VALIDATE_INT, $_options)) {
-                            if ($_throw) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value is not in the valid range.";
+                        $options = ['options' => $options, 'flags' => $flags];
+                        if (!is_null($value) && false === filter_var($value, FILTER_VALIDATE_INT, $options)) {
+                            if ($throw) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value is not in the valid range.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
 
                             return false;
                         }
                         break;
                     case 'float':
-                        $_decimal = ArrayUtils::get($_config, 'decimal', '.');
-                        $_options['decimal'] = $_decimal;
-                        $_options = ['options' => $_options];
-                        if (!is_null($value) && !filter_var($value, FILTER_VALIDATE_FLOAT, $_options)) {
-                            if ($_throw) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value is not an acceptable float value.";
+                        $decimal = ArrayUtils::get($config, 'decimal', '.');
+                        $options['decimal'] = $decimal;
+                        $options = ['options' => $options];
+                        if (!is_null($value) && !filter_var($value, FILTER_VALIDATE_FLOAT, $options)) {
+                            if ($throw) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value is not an acceptable float value.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
 
                             return false;
@@ -2149,83 +2149,83 @@ abstract class BaseDbTableResource extends BaseDbResource
                         break;
                     case 'boolean':
                         if (!is_null($value) && !filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE)) {
-                            if ($_throw) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value is not an acceptable boolean value.";
+                            if ($throw) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value is not an acceptable boolean value.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
 
                             return false;
                         }
                         break;
                     case 'match':
-                        $_regex = ArrayUtils::get($_config, 'regexp');
-                        if (empty($_regex)) {
+                        $regex = ArrayUtils::get($config, 'regexp');
+                        if (empty($regex)) {
                             throw new InternalServerErrorException("Invalid validation configuration: Field '$name' has no 'regexp'.");
                         }
 
-                        $_regex = base64_decode($_regex);
-                        $_options = ['regexp' => $_regex];
-                        if (!empty($value) && !filter_var($value, FILTER_VALIDATE_REGEXP, $_options)) {
-                            if ($_throw) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value is invalid.";
+                        $regex = base64_decode($regex);
+                        $options = ['regexp' => $regex];
+                        if (!empty($value) && !filter_var($value, FILTER_VALIDATE_REGEXP, $options)) {
+                            if ($throw) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value is invalid.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
 
                             return false;
                         }
                         break;
                     case 'picklist':
-                        $_values = ArrayUtils::get($field_info, 'value');
-                        if (empty($_values)) {
+                        $values = ArrayUtils::get($field_info, 'value');
+                        if (empty($values)) {
                             throw new InternalServerErrorException("Invalid validation configuration: Field '$name' has no 'value' in schema settings.");
                         }
 
-                        if (!empty($value) && (false === array_search($value, $_values))) {
-                            if ($_throw) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value is invalid.";
+                        if (!empty($value) && (false === array_search($value, $values))) {
+                            if ($throw) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value is invalid.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
 
                             return false;
                         }
                         break;
                     case 'multi_picklist':
-                        $_values = ArrayUtils::get($field_info, 'value');
-                        if (empty($_values)) {
+                        $values = ArrayUtils::get($field_info, 'value');
+                        if (empty($values)) {
                             throw new InternalServerErrorException("Invalid validation configuration: Field '$name' has no 'value' in schema settings.");
                         }
 
                         if (!empty($value)) {
-                            $_delimiter = ArrayUtils::get($_config, 'delimiter', ',');
-                            $_min = ArrayUtils::get($_config, 'min', 1);
-                            $_max = ArrayUtils::get($_config, 'max');
-                            $value = DbUtilities::validateAsArray($value, $_delimiter, true);
-                            $_count = count($value);
-                            if ($_count < $_min) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value does not contain enough selections.";
+                            $delimiter = ArrayUtils::get($config, 'delimiter', ',');
+                            $min = ArrayUtils::get($config, 'min', 1);
+                            $max = ArrayUtils::get($config, 'max');
+                            $value = DbUtilities::validateAsArray($value, $delimiter, true);
+                            $count = count($value);
+                            if ($count < $min) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value does not contain enough selections.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
-                            if (!empty($_max) && ($_count > $_max)) {
-                                if (empty($_msg)) {
-                                    $_msg = "Field '$name' value contains too many selections.";
+                            if (!empty($max) && ($count > $max)) {
+                                if (empty($msg)) {
+                                    $msg = "Field '$name' value contains too many selections.";
                                 }
-                                throw new BadRequestException($_msg);
+                                throw new BadRequestException($msg);
                             }
-                            foreach ($value as $_item) {
-                                if (false === array_search($_item, $_values)) {
-                                    if ($_throw) {
-                                        if (empty($_msg)) {
-                                            $_msg = "Field '$name' value is invalid.";
+                            foreach ($value as $item) {
+                                if (false === array_search($item, $values)) {
+                                    if ($throw) {
+                                        if (empty($msg)) {
+                                            $msg = "Field '$name' value is invalid.";
                                         }
-                                        throw new BadRequestException($_msg);
+                                        throw new BadRequestException($msg);
                                     }
 
                                     return false;
@@ -2276,12 +2276,12 @@ abstract class BaseDbTableResource extends BaseDbResource
             }
 
             // glean desired fields from record
-            $_out = [];
-            foreach ($include as $_key) {
-                $_out[$_key] = ArrayUtils::get($record, $_key);
+            $out = [];
+            foreach ($include as $key) {
+                $out[$key] = ArrayUtils::get($record, $key);
             }
 
-            return $_out;
+            return $out;
         }
 
         return $record;
@@ -2296,12 +2296,12 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected static function cleanRecords($records, $include = '*', $id_field = null)
     {
-        $_out = [];
-        foreach ($records as $_record) {
-            $_out[] = static::cleanRecord($_record, $include, $id_field);
+        $out = [];
+        foreach ($records as $record) {
+            $out[] = static::cleanRecord($record, $include, $id_field);
         }
 
-        return $_out;
+        return $out;
     }
 
     /**
@@ -2318,14 +2318,14 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected static function recordsAsIds($records, $ids_info, $extras = null, $on_create = false, $remove = false)
     {
-        $_out = [];
+        $out = [];
         if (!empty($records)) {
-            foreach ($records as $_record) {
-                $_out[] = static::checkForIds($_record, $ids_info, $extras, $on_create, $remove);
+            foreach ($records as $record) {
+                $out[] = static::checkForIds($record, $ids_info, $extras, $on_create, $remove);
             }
         }
 
-        return $_out;
+        return $out;
     }
 
     /**
@@ -2348,30 +2348,30 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         if (count($id_field) > 1) {
-            $_ids = [];
-            foreach ($id_field as $_field) {
-                $_id = ArrayUtils::get($record, $_field);
+            $ids = [];
+            foreach ($id_field as $field) {
+                $id = ArrayUtils::get($record, $field);
                 if ($remove) {
-                    unset($record[$_field]);
+                    unset($record[$field]);
                 }
-                if (empty($_id)) {
-                    throw new BadRequestException("Identifying field '$_field' can not be empty for record.");
+                if (empty($id)) {
+                    throw new BadRequestException("Identifying field '$field' can not be empty for record.");
                 }
-                $_ids[$_field] = $_id;
+                $ids[$field] = $id;
             }
 
-            return $_ids;
+            return $ids;
         } else {
-            $_field = $id_field[0];
-            $_id = ArrayUtils::get($record, $_field);
+            $field = $id_field[0];
+            $id = ArrayUtils::get($record, $field);
             if ($remove) {
-                unset($record[$_field]);
+                unset($record[$field]);
             }
-            if (empty($_id)) {
-                throw new BadRequestException("Identifying field '$_field' can not be empty for record.");
+            if (empty($id)) {
+                throw new BadRequestException("Identifying field '$field' can not be empty for record.");
             }
 
-            return ($include_field) ? [$_field => $_id] : $_id;
+            return ($include_field) ? [$field => $id] : $id;
         }
     }
 
@@ -2392,23 +2392,23 @@ abstract class BaseDbTableResource extends BaseDbResource
             $id_field = array_map('trim', explode(',', trim($id_field, ',')));
         }
 
-        $_out = [];
-        foreach ($ids as $_id) {
-            $_ids = [];
-            if ((count($id_field) > 1) && (count($_id) > 1)) {
-                foreach ($id_field as $_index => $_field) {
-                    $_search = ($field_included) ? $_field : $_index;
-                    $_ids[$_field] = ArrayUtils::get($_id, $_search);
+        $out = [];
+        foreach ($ids as $id) {
+            $ids = [];
+            if ((count($id_field) > 1) && (count($id) > 1)) {
+                foreach ($id_field as $index => $field) {
+                    $search = ($field_included) ? $field : $index;
+                    $ids[$field] = ArrayUtils::get($id, $search);
                 }
             } else {
-                $_field = $id_field[0];
-                $_ids[$_field] = $_id;
+                $field = $id_field[0];
+                $ids[$field] = $id;
             }
 
-            $_out[] = $_ids;
+            $out[] = $ids;
         }
 
-        return $_out;
+        return $out;
     }
 
     /**
@@ -2423,8 +2423,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                 $id_field = array_map('trim', explode(',', trim($id_field, ',')));
             }
 
-            foreach ($id_field as $_name) {
-                unset($record[$_name]);
+            foreach ($id_field as $name) {
+                unset($record[$name]);
             }
         }
     }
@@ -2445,9 +2445,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             $id_field = array_map('trim', explode(',', trim($id_field, ',')));
         }
 
-        foreach ($id_field as $_field) {
-            $_temp = ArrayUtils::get($record, $_field);
-            if (empty($_temp)) {
+        foreach ($id_field as $field) {
+            $temp = ArrayUtils::get($record, $field);
+            if (empty($temp)) {
                 return false;
             }
         }
@@ -2475,9 +2475,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             $id_field = array_map('trim', explode(',', trim($id_field, ',')));
         }
 
-        foreach ($id_field as $_key => $_name) {
-            if (false !== array_search($_name, $fields)) {
-                unset($fields[$_key]);
+        foreach ($id_field as $key => $name) {
+            if (false !== array_search($name, $fields)) {
+                unset($fields[$key]);
             }
         }
 
@@ -2497,12 +2497,12 @@ abstract class BaseDbTableResource extends BaseDbResource
             return [];
         }
 
-        foreach ($first_array as $_key => $_first) {
-            $_firstId = ArrayUtils::get($_first, $id_field);
-            foreach ($second_array as $_second) {
-                $_secondId = ArrayUtils::get($_second, $id_field);
-                if ($_firstId == $_secondId) {
-                    $first_array[$_key] = array_merge($_first, $_second);
+        foreach ($first_array as $key => $first) {
+            $firstId = ArrayUtils::get($first, $id_field);
+            foreach ($second_array as $second) {
+                $secondId = ArrayUtils::get($second, $id_field);
+                if ($firstId == $secondId) {
+                    $first_array[$key] = array_merge($first, $second);
                 }
             }
         }
@@ -2522,12 +2522,12 @@ abstract class BaseDbTableResource extends BaseDbResource
             return $value;
         }
 
-        $_end = strlen($value) - 1;
+        $end = strlen($value) - 1;
         // filter string values should be wrapped in matching quotes
-        if (((0 === strpos($value, '"')) && ($_end === strrpos($value, '"'))) ||
-            ((0 === strpos($value, "'")) && ($_end === strrpos($value, "'")))
+        if (((0 === strpos($value, '"')) && ($end === strrpos($value, '"'))) ||
+            ((0 === strpos($value, "'")) && ($end === strrpos($value, "'")))
         ) {
-            return substr($value, 1, $_end - 1);
+            return substr($value, 1, $end - 1);
         }
 
         // check for boolean or null values
@@ -2561,9 +2561,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             return $record;
         }
 
-        foreach ($record as $_field => $_value) {
-//            Session::replaceLookups( $_value );
-            $record[$_field] = $_value;
+        foreach ($record as $field => $value) {
+//            Session::replaceLookups( $value );
+            $record[$field] = $value;
         }
 
         return $record;
@@ -2595,12 +2595,12 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
-        $_base = parent::getApiDocInfo();
+        $base = parent::getApiDocInfo();
 
-        $_commonResponses = ApiDocUtilities::getCommonResponses();
+        $commonResponses = ApiDocUtilities::getCommonResponses();
         $wrapper = ResourcesWrapper::getWrapper();
 
-        $_apis = [
+        $apis = [
             [
                 'path'        => $path,
                 'description' => 'Operations available for SQL DB Tables.',
@@ -2614,7 +2614,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'parameters'       => [
                             ApiOptions::documentOption(ApiOptions::REFRESH),
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'See listed operations for each resource available.',
                     ],
                     [
@@ -2627,7 +2627,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                             ApiOptions::documentOption(ApiOptions::FIELDS),
                             ApiOptions::documentOption(ApiOptions::REFRESH),
                         ],
-                        'responseMessages' => $_commonResponses,
+                        'responseMessages' => $commonResponses,
                         'notes'            => 'See listed operations for each resource available.',
                     ],
                 ],
@@ -2674,7 +2674,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                                 ApiOptions::documentOption(ApiOptions::FILE),
                             ],
-                            'responseMessages' => $_commonResponses,
+                            'responseMessages' => $commonResponses,
                         ],
                         [
                             'method'           => 'GET',
@@ -2709,7 +2709,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                                     ApiOptions::documentOption(ApiOptions::FILE),
                                 ],
-                            'responseMessages' => $_commonResponses,
+                            'responseMessages' => $commonResponses,
                         ],
                         [
                             'method'           => 'POST',
@@ -2757,7 +2757,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     'required'      => true,
                                 ],
                             ],
-                            'responseMessages' => $_commonResponses,
+                            'responseMessages' => $commonResponses,
                         ],
                         [
                             'method'           => 'GET',
@@ -2793,7 +2793,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                                     ApiOptions::documentOption(ApiOptions::FILE),
                                 ],
-                            'responseMessages' => $_commonResponses,
+                            'responseMessages' => $commonResponses,
                         ],
                         [
                             'method'           => 'POST',
@@ -2841,7 +2841,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'required'      => false,
                                     ],
                                 ],
-                            'responseMessages' => $_commonResponses,
+                            'responseMessages' => $commonResponses,
                         ],
                         [
                             'method'           => 'PUT',
@@ -2887,7 +2887,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     ApiOptions::documentOption(ApiOptions::CONTINUES),
                                     ApiOptions::documentOption(ApiOptions::ROLLBACK),
                                 ],
-                            'responseMessages' => $_commonResponses,
+                            'responseMessages' => $commonResponses,
                         ],
                         [
                             'method'     => 'PUT',
@@ -2922,7 +2922,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     ApiOptions::documentOption(ApiOptions::FIELDS),
                                     [
                                     ],
-                                    'responseMessages' => $_commonResponses,
+                                    'responseMessages' => $commonResponses,
                                 ],
                             [
                                 'method'           => 'PUT',
@@ -2961,7 +2961,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         ApiOptions::documentOption(ApiOptions::CONTINUES),
                                         ApiOptions::documentOption(ApiOptions::ROLLBACK),
                                     ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                             [
                                 'method'           => 'PATCH',
@@ -3002,7 +3002,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         ApiOptions::documentOption(ApiOptions::CONTINUES),
                                         ApiOptions::documentOption(ApiOptions::ROLLBACK),
                                     ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                             [
                                 'method'           => 'PATCH',
@@ -3039,7 +3039,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         ApiOptions::documentOption(ApiOptions::FILTER),
                                         ApiOptions::documentOption(ApiOptions::FIELDS),
                                     ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                             [
                                 'method'           => 'PATCH',
@@ -3078,7 +3078,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         ApiOptions::documentOption(ApiOptions::CONTINUES),
                                         ApiOptions::documentOption(ApiOptions::ROLLBACK),
                                     ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                             [
                                 'method'           => 'DELETE',
@@ -3118,7 +3118,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         ApiOptions::documentOption(ApiOptions::CONTINUES),
                                         ApiOptions::documentOption(ApiOptions::ROLLBACK),
                                     ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                             [
                                 'method'           => 'DELETE',
@@ -3164,7 +3164,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         ApiOptions::documentOption(ApiOptions::FILTER),
                                         ApiOptions::documentOption(ApiOptions::FIELDS),
                                     ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                             [
                                 'method'           => 'DELETE',
@@ -3204,7 +3204,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         ApiOptions::documentOption(ApiOptions::CONTINUES),
                                         ApiOptions::documentOption(ApiOptions::ROLLBACK),
                                     ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                         ],
                     ],
@@ -3246,7 +3246,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     ApiOptions::documentOption(ApiOptions::ID_TYPE),
                                     ApiOptions::documentOption(ApiOptions::FIELDS),
                                 ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                             [
                                 'method'           => 'POST',
@@ -3289,7 +3289,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     ApiOptions::documentOption(ApiOptions::ID_TYPE),
                                     ApiOptions::documentOption(ApiOptions::FIELDS),
                                 ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                             [
                                 'method'           => 'PUT',
@@ -3332,7 +3332,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     ApiOptions::documentOption(ApiOptions::ID_TYPE),
                                     ApiOptions::documentOption(ApiOptions::FIELDS),
                                 ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                             [
                                 'method'           => 'PATCH',
@@ -3375,7 +3375,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     ApiOptions::documentOption(ApiOptions::ID_TYPE),
                                     ApiOptions::documentOption(ApiOptions::FIELDS),
                                 ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                             [
                                 'method'           => 'DELETE',
@@ -3408,14 +3408,14 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     ApiOptions::documentOption(ApiOptions::ID_TYPE),
                                     ApiOptions::documentOption(ApiOptions::FIELDS),
                                 ],
-                                'responseMessages' => $_commonResponses,
+                                'responseMessages' => $commonResponses,
                             ],
                         ],
                 ],
             ],
         ];
 
-        $_commonProperties = [
+        $commonProperties = [
             'id' => [
                 'type'        => 'integer',
                 'format'      => 'int32',
@@ -3423,7 +3423,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             ],
         ];
 
-        $_models = [
+        $models = [
             'Tables'              => [
                 'id'         => 'Tables',
                 'properties' => [
@@ -3448,7 +3448,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             'RecordRequest'       => [
                 'id'         => 'RecordRequest',
                 'properties' =>
-                    $_commonProperties
+                    $commonProperties
             ],
             'RecordsRequest'      => [
                 'id'         => 'RecordsRequest',
@@ -3561,7 +3561,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             ],
             'RecordResponse'      => [
                 'id'         => 'RecordResponse',
-                'properties' => $_commonProperties
+                'properties' => $commonProperties
             ],
             'RecordsResponse'     => [
                 'id'         => 'RecordsResponse',
@@ -3598,9 +3598,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             ]
         ];
 
-        $_base['apis'] = array_merge($_base['apis'], $_apis);
-        $_base['models'] = array_merge($_base['models'], $_models);
+        $base['apis'] = array_merge($base['apis'], $apis);
+        $base['models'] = array_merge($base['models'], $models);
 
-        return $_base;
+        return $base;
     }
 }

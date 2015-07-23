@@ -567,7 +567,7 @@ class LocalFileSystem implements FileSystemInterface
         $ext = FileUtilities::getFileExtension($file);
         $temp = stat($file);
         $data = [
-            'path'           => $container . '/' . $path,
+            'path'           => $path,
             'name'           => $shortName,
             'content_type'   => FileUtilities::determineContentType($ext, '', $file),
             'last_modified'  => gmdate('D, d M Y H:i:s \G\M\T', ArrayUtils::get($temp, 'mtime', 0)),
@@ -874,7 +874,8 @@ class LocalFileSystem implements FileSystemInterface
 
         return [
             'name' => rtrim($path, DIRECTORY_SEPARATOR),
-            'path' => $container . DIRECTORY_SEPARATOR . $path
+            'path' => $path,
+            'type' => 'file'
         ];
     }
 

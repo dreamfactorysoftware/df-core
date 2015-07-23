@@ -436,7 +436,7 @@ class CreateSystemTables extends Migration
             function (Blueprint $t){
                 $t->increments('id');
                 $t->integer('service_id')->unsigned();
-                $t->foreign('service_id')->references('service_id')->on('email_config')->onDelete('cascade');
+                $t->foreign('service_id')->references('service_id')->on('service')->onDelete('cascade');
                 $t->string('name');
                 $t->mediumText('value')->nullable();
                 $t->boolean('active')->default(1);

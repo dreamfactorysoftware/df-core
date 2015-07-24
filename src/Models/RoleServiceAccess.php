@@ -6,16 +6,16 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 /**
  * RoleServiceAccess
  *
- * @property integer    $id
- * @property integer    $role_id
- * @property integer    $service_id
- * @property string     $component
- * @property integer    $verb_mask
- * @property integer    $requestor_mask
- * @property array      $filters
- * @property string     $filter_op
- * @property string     $created_date
- * @property string     $last_modified_date
+ * @property integer $id
+ * @property integer $role_id
+ * @property integer $service_id
+ * @property string  $component
+ * @property integer $verb_mask
+ * @property integer $requestor_mask
+ * @property array   $filters
+ * @property string  $filter_op
+ * @property string  $created_date
+ * @property string  $last_modified_date
  * @method static \Illuminate\Database\Query\Builder|RoleServiceAccess whereId($value)
  * @method static \Illuminate\Database\Query\Builder|RoleServiceAccess whereRoleId($value)
  * @method static \Illuminate\Database\Query\Builder|RoleServiceAccess whereServiceId($value)
@@ -28,7 +28,12 @@ class RoleServiceAccess extends BaseSystemModel
 
     protected $guarded = ['id'];
 
-    protected $casts = ['filters' => 'array'];
+    protected $casts = ['filters'        => 'array',
+                        'verb_mask'      => 'integer',
+                        'requestor_mask' => 'integer',
+                        'role_id'        => 'integer',
+                        'service_id'     => 'integer'
+    ];
 
     public static function boot()
     {

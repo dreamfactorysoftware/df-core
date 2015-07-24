@@ -1,6 +1,4 @@
-<?php
-
-namespace DreamFactory\Core\Utility;
+<?php namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\FileSystem;

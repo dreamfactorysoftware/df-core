@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -20,10 +22,6 @@ class Event extends BaseRestService
     //	Constants
     //*************************************************************************
 
-    /**
-     *
-     */
-    const RECORD_WRAPPER = 'record';
     /**
      * Default maximum records returned on filter request
      */
@@ -62,16 +60,18 @@ class Event extends BaseRestService
             return $payload[$key];
         }
 
+//        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = ResourcesWrapper::getWrapper();
         if (!empty($this->resource) && !empty($payload)) {
             // single records passed in which don't use the record wrapper, so wrap it
-            $payload = [static::RECORD_WRAPPER => [$payload]];
+            $payload = [$wrapper => [$payload]];
         } elseif (ArrayUtils::isArrayNumeric($payload)) {
             // import from csv, etc doesn't include a wrapper, so wrap it
-            $payload = [static::RECORD_WRAPPER => $payload];
+            $payload = [$wrapper => $payload];
         }
 
         if (empty($key)) {
-            $key = static::RECORD_WRAPPER;
+            $key = $wrapper;
         }
 
         return ArrayUtils::get($payload, $key);
@@ -85,8 +85,10 @@ class Event extends BaseRestService
      */
     protected function handleGET()
     {
+        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = ResourcesWrapper::getWrapper();
         $ids = $this->request->getParameter('ids');
-        $records = $this->getPayloadData(self::RECORD_WRAPPER);
+        $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
 
         $data = null;
 
@@ -113,7 +115,7 @@ class Event extends BaseRestService
             /** @var Collection $dataCol */
             $dataCol = $modelClass::with($related)->whereIn($pk, explode(',', $ids))->get();
             $data = $dataCol->toArray();
-            $data = [self::RECORD_WRAPPER => $data];
+            $data = ResourcesWrapper::wrapResources($data);
         } else if (!empty($records)) {
             $pk = $model->getPrimaryKey();
             $ids = [];
@@ -125,7 +127,7 @@ class Event extends BaseRestService
             /** @var Collection $dataCol */
             $dataCol = $modelClass::with($related)->whereIn($pk, $ids)->get();
             $data = $dataCol->toArray();
-            $data = [self::RECORD_WRAPPER => $data];
+            $data = ResourcesWrapper::wrapResources($data);
         } else {
             //	Build our criteria
             $criteria = [
@@ -170,16 +172,12 @@ class Event extends BaseRestService
             }
 
             $data = $model->selectByRequest($criteria, $related);
-            $data = [static::RECORD_WRAPPER => $data];
-        }
-
-        if (null === $data) {
-            throw new NotFoundException("Record not found.");
+            $data = ResourcesWrapper::wrapResources($data);
         }
 
         if ($this->request->getParameterAsBool('include_count') === true) {
-            if (isset($data['record'])) {
-                $data['meta']['count'] = count($data['record']);
+            if (isset($data[$wrapper])) {
+                $data['meta']['count'] = count($data[$wrapper]);
             } elseif (!empty($data)) {
                 $data['meta']['count'] = 1;
             }
@@ -205,7 +203,7 @@ class Event extends BaseRestService
             throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $records = $this->getPayloadData(self::RECORD_WRAPPER);
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
 
         if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
@@ -216,9 +214,11 @@ class Event extends BaseRestService
         $model = $this->getModel();
         $result = $model::bulkCreate($records, $this->request->getParameters());
 
-        $response = ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
-        return $response;
+        return ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
     }
 
     /**
@@ -238,23 +238,27 @@ class Event extends BaseRestService
      */
     protected function handlePATCH()
     {
-        $records = $this->getPayloadData(static::RECORD_WRAPPER);
-        $ids = $this->request->getParameter('ids');
         $modelClass = $this->getModel();
-
-        if (empty($records)) {
-            throw new BadRequestException('No record(s) detected in request.');
-        }
 
         $this->triggerActionEvent($this->response);
 
         if (!empty($this->resource)) {
-            $result = $modelClass::updateById($this->resource, $records[0], $this->request->getParameters());
-        } elseif (!empty($ids)) {
+            $result = $modelClass::updateById($this->resource, $this->getPayloadData(), $this->request->getParameters());
+        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
+            $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+            if (empty($records)) {
+                throw new BadRequestException('No record(s) detected in request.');
+            }
             $result = $modelClass::updateByIds($ids, $records[0], $this->request->getParameters());
-        } else {
+        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
             $result = $modelClass::bulkUpdate($records, $this->request->getParameters());
+        } else {
+            throw new BadRequestException('No record(s) detected in request.');
         }
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
         return $result;
     }
@@ -269,21 +273,26 @@ class Event extends BaseRestService
     protected function handleDELETE()
     {
         $this->triggerActionEvent($this->response);
-        $ids = $this->request->getParameter('ids');
         $modelClass = $this->getModel();
 
         if (!empty($this->resource)) {
             $result = $modelClass::deleteById($this->resource, $this->request->getParameters());
-        } elseif (!empty($ids)) {
+        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $result = $modelClass::deleteByIds($ids, $this->request->getParameters());
-        } else {
-            $records = $this->getPayloadData(static::RECORD_WRAPPER);
-
-            if (empty($records)) {
-                throw new BadRequestException('No record(s) detected in request.');
+        } elseif ($records = ResourcesWrapper::unwrapResources($this->getPayloadData())) {
+            if (isset($records[0]) && is_array($records[0])) {
+                $result = $modelClass::bulkDelete($records, $this->request->getParameters());
+            } else {
+                // this may be a list of ids
+                $result = $modelClass::deleteByIds($records, $this->request->getParameters());
             }
-            $result = $modelClass::bulkDelete($records, $this->request->getParameters());
+        } else {
+            throw new BadRequestException('No record(s) detected in request.');
         }
+
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
         return $result;
     }
@@ -296,15 +305,18 @@ class Event extends BaseRestService
      */
     protected function getModel()
     {
-        if (empty($this->model)) {
+        if (empty($this->model) || !class_exists($this->model)) {
             throw new ModelNotFoundException();
         }
 
-        return $this->model;
+        return new $this->model;
     }
 
     public function getApiDocInfo()
     {
+//        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
+        $wrapper = ResourcesWrapper::getWrapper();
+
         $apis = [
             [
                 'path'        => '/' . $this->name,
@@ -768,7 +780,7 @@ class Event extends BaseRestService
             'SubscribersRequest'  => [
                 'id'         => 'SubscribersRequest',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
@@ -788,7 +800,7 @@ class Event extends BaseRestService
             'SubscribersResponse' => [
                 'id'         => 'SubscribersResponse',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [

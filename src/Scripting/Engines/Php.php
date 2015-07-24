@@ -33,7 +33,7 @@ class Php implements ScriptingEngineInterface
      * @internal param \DreamFactory\Core\Events\EventDispatcher $dispatcher
      * @return mixed
      */
-    public function executeString($script, $identifier, $data, array $engineArguments = [])
+    public function executeString($script, $identifier, array &$data = [], array $engineArguments = [])
     {
         // TODO: Implement executeString() method.
     }
@@ -48,7 +48,7 @@ class Php implements ScriptingEngineInterface
      *
      * @return mixed
      */
-    public function executeScript($path, $identifier, $data, array $engineArguments = [])
+    public function executeScript($path, $identifier, array &$data = [], array $engineArguments = [])
     {
         // TODO: Implement executeScript() method.
     }

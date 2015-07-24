@@ -65,9 +65,9 @@ abstract class BaseService extends BaseRestService
 
     protected function setParameters($config)
     {
-        $parameters = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', []));
+        $this->parameters = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', []));
 
-        foreach ($parameters as $params) {
+        foreach ($this->parameters as $params) {
             $this->parameters[$params['name']] = ArrayUtils::get($params, 'value');
         }
     }

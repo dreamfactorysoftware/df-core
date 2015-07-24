@@ -113,16 +113,17 @@ class Service extends BaseSystemModel
      */
     public static function getTypeByName($name)
     {
-        $_typeRec = static::whereName($name)->get(['type'])->first();
+        $typeRec = static::whereName($name)->get(['type'])->first();
 
-        return (isset($_typeRec, $_typeRec['type'])) ? $_typeRec['type'] : null;
+        return (isset($typeRec, $typeRec['type'])) ? $typeRec['type'] : null;
     }
 
     /**
      * @return array
      */
-    public static function available($include_properties = false)
+    public static function available()
     {
+        // need to cache this possibly
         return static::lists('name');
     }
 
@@ -167,7 +168,7 @@ class Service extends BaseSystemModel
         $serviceCfg = $this->getConfigHandler();
         if (!empty($serviceCfg)) {
             if ($this->exists) {
-                if ($serviceCfg::validateConfig($this->config)) {
+                if ($serviceCfg::validateConfig($this->config, false)) {
                     $serviceCfg::setConfig($this->getKey(), $this->config);
                 }
             } else {

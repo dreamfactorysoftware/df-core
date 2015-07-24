@@ -31,17 +31,19 @@ interface FileSystemInterface
      * @param bool   $include_files
      * @param bool   $include_folders
      * @param bool   $full_tree
-     * @param bool   $include_properties
      *
      * @return array
      */
-    public function getContainer(
-        $container,
-        $include_files = true,
-        $include_folders = true,
-        $full_tree = false,
-        $include_properties = false
-    );
+    public function getContainer($container, $include_files = true, $include_folders = true, $full_tree = false);
+
+    /**
+     * Gets all properties of a particular container
+     *
+     * @param string $container Container name
+     *
+     * @return array
+     */
+    public function getContainerProperties($container);
 
     /**
      * Create a container using properties, where at least name is required
@@ -71,7 +73,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function updateContainerProperties($container, $properties = array());
+    public function updateContainerProperties($container, $properties = []);
 
     /**
      * Delete a container and all of its content
@@ -102,26 +104,27 @@ interface FileSystemInterface
     public function folderExists($container, $path);
 
     /**
-     * Gets all properties of a particular folder, if options are false,
-     * otherwise include content from the folder
+     * Gets all resources with properties of a particular folder
      *
      * @param string $container
      * @param string $path
      * @param bool   $include_files
      * @param bool   $include_folders
      * @param bool   $full_tree
-     * @param bool   $include_properties
      *
      * @return array
      */
-    public function getFolder(
-        $container,
-        $path,
-        $include_files = true,
-        $include_folders = true,
-        $full_tree = false,
-        $include_properties = false
-    );
+    public function getFolder($container, $path, $include_files = true, $include_folders = true, $full_tree = false);
+
+    /**
+     * Gets all properties of a particular folder
+     *
+     * @param string $container
+     * @param string $path
+     *
+     * @return array
+     */
+    public function getFolderProperties($container, $path);
 
     /**
      * @param string $container
@@ -130,7 +133,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function createFolder($container, $path, $properties = array());
+    public function createFolder($container, $path, $properties = []);
 
     /**
      * @param string       $container
@@ -139,7 +142,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function updateFolderProperties($container, $path, $properties = array());
+    public function updateFolderProperties($container, $path, $properties = []);
 
     /**
      * @param string $container
@@ -216,7 +219,7 @@ interface FileSystemInterface
      *
      * @return void
      */
-    public function updateFileProperties($container, $path, $properties = array());
+    public function updateFileProperties($container, $path, $properties = []);
 
     /**
      * @param string  $container

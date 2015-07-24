@@ -1,9 +1,9 @@
 <?php
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Core\Utility\CacheUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\User;
-use DreamFactory\Core\Utility\Session;
 use Validator;
 use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 
@@ -20,9 +20,11 @@ class Registrar implements RegistrarContract
     public function validator(array $data)
     {
         return Validator::make($data, [
-            'name'     => 'required|max:255',
-            'email'    => 'required|email|max:255|unique:user',
-            'password' => 'required|confirmed|min:6',
+            'name'       => 'required|max:255',
+            'first_name' => 'required',
+            'last_name'  => 'required',
+            'email'      => 'required|email|max:255|unique:user',
+            'password'   => 'required|confirmed|min:6',
         ]);
     }
 
@@ -31,28 +33,33 @@ class Registrar implements RegistrarContract
      *
      * @param  array $data
      *
-     * @return User
+     * @return User|false
      */
     public function create(array $data)
     {
-        $currentUser = Session::user();
+        $adminExists = User::whereIsActive(1)->whereIsSysAdmin(1)->exists();
 
-        if (!$currentUser->is_sys_admin) {
-            //If current user is not an admin then new user cannot be an admin either.
-            ArrayUtils::set($data, 'is_sys_admin', 0);
+        if (!$adminExists) {
+            $user = User::create([
+                'name'       => ArrayUtils::get($data, 'name'),
+                'first_name' => ArrayUtils::get($data, 'first_name'),
+                'last_name'  => ArrayUtils::get($data, 'last_name'),
+                'is_active'  => 1,
+                'email'      => ArrayUtils::get($data, 'email')
+            ]);
+
+            $user->password = ArrayUtils::get($data, 'password');
+            $user->is_sys_admin = 1;
+            $user->save();
+
+            //TODO: Perform user registration here.
+
+            //Reset admin_exists flag in cache.
+            CacheUtilities::resetAdminExists();
+
+            return $user;
         }
 
-        $user = User::create([
-            'name'         => ArrayUtils::get($data, 'name'),
-            'first_name'   => ArrayUtils::get($data, 'first_name'),
-            'last_name'    => ArrayUtils::get($data, 'last_name'),
-            'is_sys_admin' => ArrayUtils::getBool($data, 'is_sys_admin'),
-            'email'        => ArrayUtils::get($data, 'email')
-        ]);
-
-        $user->password = ArrayUtils::get($data, 'password');
-        $user->save();
-
-        return $user;
+        return false;
     }
 }

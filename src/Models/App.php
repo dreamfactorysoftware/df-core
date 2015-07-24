@@ -91,10 +91,10 @@ class App extends BaseSystemModel
         switch ($this->type) {
             case AppTypes::STORAGE_SERVICE:
                 if (!empty($this->storage_service_id)) {
-                    /** @var $_service Service */
-                    $_service = Service::whereId($this->storage_service_id)->first();
-                    if (!empty($_service)) {
-                        $launchUrl .= $_service->name . '/';
+                    /** @var $service Service */
+                    $service = Service::whereId($this->storage_service_id)->first();
+                    if (!empty($service)) {
+                        $launchUrl .= $service->name . '/';
                         if (!empty($this->storage_container)) {
                             $launchUrl .= $this->storage_container . '/';
                         }

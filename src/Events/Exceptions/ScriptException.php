@@ -15,7 +15,7 @@ class ScriptException extends InternalServerErrorException
     /**
      * @var string The buffered output at the time of the exception
      */
-    protected $_output;
+    protected $output;
 
     //*************************************************************************
     //	Methods
@@ -30,7 +30,7 @@ class ScriptException extends InternalServerErrorException
      */
     public function __construct($message = null, $output = null, $code = null, $previous = null, $context = null)
     {
-        $this->_output = $output;
+        $this->output = $output;
 
         parent::__construct($message, $code, $previous, $context);
     }
@@ -40,6 +40,6 @@ class ScriptException extends InternalServerErrorException
      */
     public function getOutput()
     {
-        return $this->_output;
+        return $this->output;
     }
 }

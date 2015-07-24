@@ -2,8 +2,10 @@
 
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\FileUtilities;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
@@ -24,11 +26,6 @@ abstract class BaseFileService extends BaseRestService
      */
     protected $driver = null;
     /**
-     * @var array Array of private path strings
-     */
-    public $publicPaths = [];
-
-    /**
      * @var string Storage container name
      */
     protected $container = null;
@@ -42,6 +39,10 @@ abstract class BaseFileService extends BaseRestService
      * @var string Full file path of the resource
      */
     protected $filePath = null;
+    /**
+     * @var array Array of private path strings
+     */
+    public $publicPaths = [];
 
     //*************************************************************************
     //	Methods
@@ -83,10 +84,14 @@ abstract class BaseFileService extends BaseRestService
     {
         parent::setResourceMembers($resourcePath);
 
-        $this->container = ArrayUtils::get($this->resourceArray, 0);
-
-        if (!empty($this->container)) {
-            $temp = substr($this->resourcePath, strlen($this->container . '/'));
+        if (!empty($this->resource)) {
+            if (count($this->resourceArray) === 2 && $this->resourceArray[1] === '') {
+                $temp = $this->resource . '/';
+            } else if (count($this->resourceArray) === 1) {
+                $temp = $this->resource;
+            } else {
+                $temp = $resourcePath;
+            }
             if (false !== $temp) {
                 if ($this->hasTrailingSlash($temp)) {
                     $this->folderPath = $temp;
@@ -100,6 +105,11 @@ abstract class BaseFileService extends BaseRestService
         return $this;
     }
 
+    protected function getResourceIdentifier()
+    {
+        return 'path';
+    }
+
     /**
      * @param array $resources
      *
@@ -110,7 +120,7 @@ abstract class BaseFileService extends BaseRestService
     protected function handleResource(array $resources)
     {
         //  Fall through is to process just like a no-resource request
-        $resources = $this->getResources();
+        $resources = $this->getResources(true);
         if ((false !== $resources) && !empty($this->resource)) {
             if (in_array($this->resource, $resources)) {
                 return $this->processRequest();
@@ -120,6 +130,19 @@ abstract class BaseFileService extends BaseRestService
         throw new NotFoundException("Resource '{$this->resource}' not found for service '{$this->name}'.");
     }
 
+    protected function getAccessList()
+    {
+        $list = parent::getAccessList();
+
+        $result = $this->driver->getFolder($this->container, '', false, true, true);
+        foreach (array_column($result, 'path') as $resource) {
+            $list[] = $resource;
+            $list[] = $resource . '*';
+        }
+
+        return $list;
+    }
+
     /**
      * Handles GET actions.
      *
@@ -127,17 +150,54 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handleGET()
     {
-        if (empty($this->container)) {
-            $result = $this->handleGetResource();
-        } elseif (empty($this->folderPath)) {
-            //Resource is a container
-            $result = $this->handleGetContainer();
-        } elseif (empty($this->filePath)) {
-            //Resource is a folder
-            $result = $this->handleGetFolder();
+        if (empty($this->folderPath) && empty($this->filePath) &&
+            $this->request->getParameterAsBool(ApiOptions::AS_ACCESS_LIST)
+        ) {
+            return ResourcesWrapper::wrapResources($this->getAccessList());
+        }
+
+        if (empty($this->filePath)) {
+            //Resource is the root/container or a folder
+            if ($this->request->getParameterAsBool('zip')) {
+                $zipFileName = $this->driver->getFolderAsZip($this->container, $this->folderPath);
+                FileUtilities::sendFile($zipFileName, true);
+                unlink($zipFileName);
+
+                // output handled by file handler, short the response here
+                $this->setNativeFormat(null);
+                $result = null;
+            } elseif ($this->request->getParameterAsBool('include_properties')){
+                $result = $this->driver->getFolderProperties($this->container, $this->folderPath);
+            } else {
+                $result = $this->driver->getFolder(
+                    $this->container,
+                    $this->folderPath,
+                    $this->request->getParameterAsBool('include_files', true),
+                    $this->request->getParameterAsBool('include_folders', true),
+                    $this->request->getParameterAsBool('full_tree', false)
+                );
+
+                $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+                $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+                $fields = $this->request->getParameter(ApiOptions::FIELDS, ApiOptions::FIELDS_ALL);
+
+                $result = ResourcesWrapper::cleanResources($result, $asList, $idField, $fields, true);
+            }
         } else {
             //Resource is a file
-            $result = $this->handleGetFile();
+            if ($this->request->getParameterAsBool('include_properties', false)) {
+                // just properties of the file itself
+                $content = $this->request->getParameterAsBool('content', false);
+                $result = $this->driver->getFileProperties($this->container, $this->filePath, $content);
+            } else {
+                $download = $this->request->getParameterAsBool('download', false);
+                // stream the file, exits processing
+                $this->streamFile($this->container, $this->filePath, $download);
+
+                // output handled by file handler, short the response here
+                $this->setNativeFormat(null);
+                $result = null;
+            }
         }
 
         return $result;
@@ -153,42 +213,24 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handlePOST()
     {
-        if (empty($this->container)) {
-            // create one or more containers
-            $checkExist = $this->request->getParameterAsBool('check_exist', false);
-            $data = $this->request->getPayloadData();
-            $containers = ArrayUtils::get($data, 'container');
-
-            if (empty($containers)) {
-                $containers = ArrayUtils::getDeep($data, 'containers', 'container');
-            }
-
-            if (!empty($containers)) {
-                $result = $this->driver->createContainers($containers, $checkExist);
-                $result = ['container' => $result];
-            } else {
-                $result = $this->driver->createContainer($data, $checkExist);
-            }
-        } else if (empty($this->folderPath) || empty($this->filePath)) {
+        if (empty($this->filePath)) {
             // create folders and files
             // possible file handling parameters
             $extract = $this->request->getParameterAsBool('extract', false);;
             $clean = $this->request->getParameterAsBool('clean', false);
             $checkExist = $this->request->getParameterAsBool('check_exist', false);
 
-            $fileNameHeader = $this->request->getHeader('HTTP_X_FILE_NAME');
-            $folderNameHeader = $this->request->getHeader('HTTP_X_FOLDER_NAME');
+            $fileNameHeader = $this->request->getHeader('X-File-Name');
+            $folderNameHeader = $this->request->getHeader('X-Folder-Name');
             $fileUrl = filter_var($this->request->getParameter('url', ''), FILTER_SANITIZE_URL);
 
             if (!empty($fileNameHeader)) {
                 // html5 single posting for file create
-                $content = $this->request->getPayloadData();
-                $contentType = $this->request->getHeader('CONTENT_TYPE', '');
                 $result = $this->handleFileContent(
                     $this->folderPath,
                     $fileNameHeader,
-                    $content,
-                    $contentType,
+                    $this->request->getContent(),
+                    $this->request->getContentType(),
                     $extract,
                     $clean,
                     $checkExist
@@ -198,14 +240,7 @@ abstract class BaseFileService extends BaseRestService
                 $fullPathName = $this->folderPath . $folderNameHeader;
                 $content = $this->request->getPayloadData();
                 $this->driver->createFolder($this->container, $fullPathName, $content);
-                $result = [
-                    'folder' => [
-                        [
-                            'name' => $folderNameHeader,
-                            'path' => $this->container . '/' . $fullPathName
-                        ]
-                    ]
-                ];
+                $result = ['name' => $folderNameHeader, 'path' => $fullPathName];
             } elseif (!empty($fileUrl)) {
                 // upload a file from a url, could be expandable zip
                 $tmpName = null;
@@ -233,13 +268,12 @@ abstract class BaseFileService extends BaseRestService
                 $result = $this->handleFolderContentFromFiles($files, $extract, $clean, $checkExist);
             } else {
                 // possibly xml or json post either of files or folders to create, copy or move
-                $data = $this->getPayloadData();
-                if (empty($data)) {
+                if (!empty($data = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
+                    $result = $this->handleFolderContentFromData($data, $extract, $clean, $checkExist);
+                } else {
                     // create folder from resource path
                     $this->driver->createFolder($this->container, $this->folderPath);
-                    $result = ['folder' => [['path' => $this->container . '/' . $this->folderPath]]];
-                } else {
-                    $result = $this->handleFolderContentFromData($data, $extract, $clean, $checkExist);
+                    $result = ['name' => basename($this->folderPath), 'path' => $this->folderPath];
                 }
             }
         } else {
@@ -252,15 +286,13 @@ abstract class BaseFileService extends BaseRestService
             $path = dirname($this->filePath);
             $files = $this->request->getFile('files');
             if (empty($files)) {
-                $contentType = $this->request->getHeader('CONTENT_TYPE', '');
                 // direct load from posted data as content
                 // or possibly xml or json post of file properties create, copy or move
-                $content = $this->getPayloadData();
                 $result = $this->handleFileContent(
                     $path,
                     $name,
-                    $content,
-                    $contentType,
+                    $this->request->getContent(),
+                    $this->request->getContentType(),
                     $extract,
                     $clean,
                     $checkExist
@@ -277,13 +309,11 @@ abstract class BaseFileService extends BaseRestService
                 }
                 $error = $file['error'];
                 if (UPLOAD_ERR_OK == $error) {
-                    $tmpName = $file["tmp_name"];
-                    $contentType = $file['type'];
                     $result = $this->handleFile(
                         $path,
                         $name,
-                        $tmpName,
-                        $contentType,
+                        $file["tmp_name"],
+                        $file['type'],
                         $extract,
                         $clean,
                         $checkExist
@@ -304,37 +334,19 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handlePATCH()
     {
-        if (empty($this->container)) {
-            // nothing?
-            $result = [];
-        } else if (empty($this->folderPath)) {
+        $content = $this->getPayloadData();
+        if (empty($this->folderPath)) {
             // update container properties
-            $content = $this->getPayloadData();
             $this->driver->updateContainerProperties($this->container, $content);
-            $result = ['container' => ['name' => $this->container]];
         } else if (empty($this->filePath)) {
             // update folder properties
-            $content = $this->getPayloadData();
             $this->driver->updateFolderProperties($this->container, $this->folderPath, $content);
-            $result = [
-                'folder' => [
-                    'name' => basename($this->folderPath),
-                    'path' => $this->container . '/' . $this->folderPath
-                ]
-            ];
         } else {
             // update file properties?
-            $content = $this->getPayloadData();
             $this->driver->updateFileProperties($this->container, $this->filePath, $content);
-            $result = [
-                'file' => [
-                    'name' => basename($this->filePath),
-                    'path' => $this->container . '/' . $this->filePath
-                ]
-            ];
         }
 
-        return $result;
+        return ['success' => true];
     }
 
     /**
@@ -346,180 +358,27 @@ abstract class BaseFileService extends BaseRestService
     protected function handleDELETE()
     {
         $force = $this->request->getParameterAsBool('force', false);
-        $content = $this->request->getPayloadData();
 
-        if (empty($this->container)) {
-            $containers = ArrayUtils::get($content, 'container');
-            if (empty($containers)) {
-                $containers = ArrayUtils::getDeep($content, 'containers', 'container');
-            }
-
-            if (empty($containers)) {
-                $namesStr = $this->request->getParameter('names', '');
-
-                if (!empty($namesStr)) {
-                    $names = explode(',', $namesStr);
-
-                    foreach ($names as $n) {
-                        $containers[] = ["name" => $n];
-                    }
-                }
-            }
-
-            if (!empty($containers)) {
-                // delete multiple containers
-                $result = $this->driver->deleteContainers($containers, $force);
-                $result = ['container' => $result];
-            } else {
-                $_name = ArrayUtils::get($content, 'name', trim(ArrayUtils::get($content, 'path'), '/'));
-                if (empty($_name)) {
-                    throw new BadRequestException('No name found for container in delete request.');
-                }
-                $this->driver->deleteContainer($_name, $force);
-                $result = ['name' => $_name, 'path' => $_name];
-            }
-        } else if (empty($this->folderPath)) {
-            // delete whole container
-            // or just folders and files from the container
-            if (empty($content)) {
-                $this->driver->deleteContainer($this->container, $force);
-                $result = ['name' => $this->container];
-            } else {
+        if (empty($this->folderPath)) {
+            // delete just folders and files from the container
+            if (!empty($content = ResourcesWrapper::unwrapResources($this->request->getPayloadData()))) {
                 $result = $this->deleteFolderContent($content, '', $force);
+            } else {
+                throw new BadRequestException('No resources given for delete.');
             }
         } else if (empty($this->filePath)) {
             // delete directory of files and the directory itself
             // multi-file or folder delete via post data
-            if (empty($content)) {
-                $this->driver->deleteFolder($this->container, $this->folderPath, $force);
-                $result = ['folder' => [['path' => $this->container . '/' . $this->folderPath]]];
-            } else {
+            if (!empty($content = ResourcesWrapper::unwrapResources($this->request->getPayloadData()))) {
                 $result = $this->deleteFolderContent($content, $this->folderPath, $force);
+            } else {
+                $this->driver->deleteFolder($this->container, $this->folderPath, $force);
+                $result = ['name' => basename($this->folderPath), 'path' => $this->folderPath];
             }
         } else {
             // delete file from permanent storage
             $this->driver->deleteFile($this->container, $this->filePath);
-            $result = ['file' => [['path' => $this->container . '/' . $this->filePath]]];
-        }
-
-        return $result;
-    }
-
-    /**
-     * Handles getting resource/container list
-     *
-     * @return array
-     */
-    protected function handleGetResource()
-    {
-        $includeProperties = $this->request->getParameterAsBool('include_properties', false);
-        $asAccessComp = $this->request->getParameterAsBool('as_access_components');
-
-        if ($asAccessComp) {
-            $result = ["resource" => array_merge(["", "*"], $this->getResources())];
-        } else {
-            $result = $this->driver->listContainers($includeProperties);
-
-            if ($includeProperties) {
-                $result = ["container" => $result];
-            } else {
-                $result = ["resource" => $result];
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * Handles getting list of folders inside a container
-     *
-     * @return array|null
-     */
-    protected function handleGetContainer()
-    {
-        $includeProperties = $this->request->getParameterAsBool('include_properties', false);
-        $includeFolders = $this->request->getParameterAsBool('include_folders', true);
-        $includeFiles = $this->request->getParameterAsBool('include_files', true);
-        $fullTree = $this->request->getParameterAsBool('full_tree', false);
-        $asZip = $this->request->getParameterAsBool('zip');
-
-        if ($asZip) {
-            $zipFileName = $this->driver->getFolderAsZip($this->container, '');
-            FileUtilities::sendFile($zipFileName, true);
-            unlink($zipFileName);
-
-            // output handled by file handler, short the response here
-            $this->setNativeFormat(null);
-            $result = null;
-        } else {
-            $result = $this->driver->getContainer(
-                $this->container,
-                $includeFiles,
-                $includeFolders,
-                $fullTree,
-                $includeProperties
-            );
-        }
-
-        return $result;
-    }
-
-    /**
-     * Handles getting list of folders/files inside a folder
-     *
-     * @return array|null
-     */
-    protected function handleGetFolder()
-    {
-        $includeProperties = $this->request->getParameterAsBool('include_properties', false);
-        $includeFolders = $this->request->getParameterAsBool('include_folders', true);
-        $includeFiles = $this->request->getParameterAsBool('include_files', true);
-        $fullTree = $this->request->getParameterAsBool('full_tree', false);
-        $asZip = $this->request->getParameterAsBool('zip');
-
-        if ($asZip) {
-            $zipFileName = $this->driver->getFolderAsZip($this->container, $this->folderPath);
-            FileUtilities::sendFile($zipFileName, true);
-            unlink($zipFileName);
-
-            // output handled by file handler, short the response here
-            $this->setNativeFormat(null);
-            $result = null;
-        } else {
-            $result = $this->driver->getFolder(
-                $this->container,
-                $this->folderPath,
-                $includeFiles,
-                $includeFolders,
-                $fullTree,
-                $includeProperties
-            );
-        }
-
-        return $result;
-    }
-
-    /**
-     * Handles getting a file
-     *
-     * @return array|null
-     */
-    protected function handleGetFile()
-    {
-        $includeProperties = $this->request->getParameterAsBool('include_properties', false);
-
-        if ($includeProperties) {
-            // just properties of the file itself
-            $content = $this->request->getParameterAsBool('content', false);
-            $result = $this->driver->getFileProperties($this->container, $this->filePath, $content);
-        } else {
-            $download = $this->request->getParameterAsBool('download', false);
-            // stream the file, exits processing
-            $this->streamFile($this->container, $this->filePath, $download);
-
-            // output handled by file handler, short the response here
-            $this->setNativeFormat(null);
-            $result = null;
+            $result = ['name' => basename($this->filePath), 'path' => $this->filePath];
         }
 
         return $result;
@@ -533,21 +392,6 @@ abstract class BaseFileService extends BaseRestService
     public function streamFile($container, $path, $download = false)
     {
         $this->driver->streamFile($container, $path, $download);
-    }
-
-    /**
-     * @return array
-     */
-    protected function getResources()
-    {
-        $containers = $this->driver->listContainers();
-        $resources = [];
-
-        foreach ($containers as $container) {
-            $resources[] = ArrayUtils::get($container, "name");
-        }
-
-        return $resources;
     }
 
     /**
@@ -613,14 +457,7 @@ abstract class BaseFileService extends BaseRestService
             $fullPathName = FileUtilities::fixFolderPath($dest_path) . $dest_name;
             $this->driver->writeFile($this->container, $fullPathName, $content, false, $check_exist);
 
-            return [
-                'file' => [
-                    [
-                        'name' => $dest_name,
-                        'path' => $this->container . '/' . $fullPathName
-                    ]
-                ]
-            ];
+            return ['name' => $dest_name, 'path' => $fullPathName, 'type' => 'file'];
         }
     }
 
@@ -662,14 +499,7 @@ abstract class BaseFileService extends BaseRestService
             $fullPathName = FileUtilities::fixFolderPath($dest_path) . $name;
             $this->driver->moveFile($this->container, $fullPathName, $source_file, $check_exist);
 
-            return [
-                'file' => [
-                    [
-                        'name' => $name,
-                        'path' => $this->container . '/' . $fullPathName
-                    ]
-                ]
-            ];
+            return ['name' => $name, 'path' => $fullPathName, 'type' => 'file'];
         }
     }
 
@@ -701,7 +531,7 @@ abstract class BaseFileService extends BaseRestService
                     $clean,
                     $checkExist
                 );
-                $out[$key] = (isset($tmp['file']) ? $tmp['file'] : []);
+                $out[$key] = $tmp;
             } else {
                 $err[] = $name;
             }
@@ -711,7 +541,7 @@ abstract class BaseFileService extends BaseRestService
             throw new InternalServerErrorException($msg);
         }
 
-        return ['file' => $out];
+        return $out;
     }
 
     /**
@@ -724,94 +554,82 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handleFolderContentFromData($data, $extract = false, $clean = false, $checkExist = false)
     {
-        $out = ['folder' => [], 'file' => []];
-        $folders = ArrayUtils::get($data, 'folder');
-        if (empty($folders)) {
-            $folders = ArrayUtils::getDeep($data, 'folders', 'folder');
-        }
-        if (!empty($folders)) {
-            if (!isset($folders[0])) {
-                // single folder, make into array
-                $folders = [$folders];
-            }
-            foreach ($folders as $key => $folder) {
-                $name = ArrayUtils::get($folder, 'name', '');
-                $srcPath = ArrayUtils::get($folder, 'source_path');
-                if (!empty($srcPath)) {
-                    $srcContainer = ArrayUtils::get($folder, 'source_container', $this->container);
-                    // copy or move
-                    if (empty($name)) {
-                        $name = FileUtilities::getNameFromPath($srcPath);
-                    }
-                    $fullPathName = $this->folderPath . $name . '/';
-                    $out['folder'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
-                    try {
-                        $this->driver->copyFolder($this->container, $fullPathName, $srcContainer, $srcPath, true);
-                        $deleteSource = ArrayUtils::getBool($folder, 'delete_source');
-                        if ($deleteSource) {
-                            $this->driver->deleteFolder($this->container, $srcPath, true);
+        $out = [];
+        if (!empty($data)) {
+            foreach ($data as $key => $resource) {
+                switch (ArrayUtils::get($resource, 'type')) {
+                    case 'folder':
+                        $name = ArrayUtils::get($resource, 'name', '');
+                        $srcPath = ArrayUtils::get($resource, 'source_path');
+                        if (!empty($srcPath)) {
+                            $srcContainer = ArrayUtils::get($resource, 'source_container', $this->container);
+                            // copy or move
+                            if (empty($name)) {
+                                $name = FileUtilities::getNameFromPath($srcPath);
+                            }
+                            $fullPathName = $this->folderPath . $name . '/';
+                            $out['folder'][$key] = ['name' => $name, 'path' => $fullPathName, 'type' => 'folder'];
+                            try {
+                                $this->driver->copyFolder($this->container, $fullPathName, $srcContainer, $srcPath,
+                                    true);
+                                $deleteSource = ArrayUtils::getBool($resource, 'delete_source');
+                                if ($deleteSource) {
+                                    $this->driver->deleteFolder($this->container, $srcPath, true);
+                                }
+                            } catch (\Exception $ex) {
+                                $out[$key]['error'] = ['message' => $ex->getMessage()];
+                            }
+                        } else {
+                            $fullPathName = $this->folderPath . $name;
+                            $content = ArrayUtils::get($resource, 'content', '');
+                            $isBase64 = ArrayUtils::getBool($resource, 'is_base64');
+                            if ($isBase64) {
+                                $content = base64_decode($content);
+                            }
+                            $out[$key] = ['name' => $name, 'path' => $fullPathName, 'type' => 'folder'];
+                            try {
+                                $this->driver->createFolder($this->container, $fullPathName, true, $content,
+                                    $checkExist);
+                            } catch (\Exception $ex) {
+                                $out[$key]['error'] = ['message' => $ex->getMessage()];
+                            }
                         }
-                    } catch (\Exception $ex) {
-                        $out['folder'][$key]['error'] = ['message' => $ex->getMessage()];
-                    }
-                } else {
-                    $fullPathName = $this->folderPath . $name;
-                    $content = ArrayUtils::get($folder, 'content', '');
-                    $isBase64 = ArrayUtils::getBool($folder, 'is_base64');
-                    if ($isBase64) {
-                        $content = base64_decode($content);
-                    }
-                    $out['folder'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
-                    try {
-                        $this->driver->createFolder($this->container, $fullPathName, true, $content);
-                    } catch (\Exception $ex) {
-                        $out['folder'][$key]['error'] = ['message' => $ex->getMessage()];
-                    }
-                }
-            }
-        }
-        $files = ArrayUtils::get($data, 'file');
-        if (empty($files)) {
-            $files = ArrayUtils::getDeep($data, 'files', 'file');
-        }
-        if (!empty($files)) {
-            if (!isset($files[0])) {
-                // single file, make into array
-                $files = [$files];
-            }
-            foreach ($files as $key => $file) {
-                $name = ArrayUtils::get($file, 'name', '');
-                $srcPath = ArrayUtils::get($file, 'source_path');
-                if (!empty($srcPath)) {
-                    // copy or move
-                    $srcContainer = ArrayUtils::get($file, 'source_container', $this->container);
-                    if (empty($name)) {
-                        $name = FileUtilities::getNameFromPath($srcPath);
-                    }
-                    $fullPathName = $this->folderPath . $name;
-                    $out['file'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
-                    try {
-                        $this->driver->copyFile($this->container, $fullPathName, $srcContainer, $srcPath, true);
-                        $deleteSource = ArrayUtils::getBool($file, 'delete_source');
-                        if ($deleteSource) {
-                            $this->driver->deleteFile($this->container, $srcPath);
+                        break;
+                    case 'file':
+                        $name = ArrayUtils::get($resource, 'name', '');
+                        $srcPath = ArrayUtils::get($resource, 'source_path');
+                        if (!empty($srcPath)) {
+                            // copy or move
+                            $srcContainer = ArrayUtils::get($resource, 'source_container', $this->container);
+                            if (empty($name)) {
+                                $name = FileUtilities::getNameFromPath($srcPath);
+                            }
+                            $fullPathName = $this->folderPath . $name;
+                            $out[$key] = ['name' => $name, 'path' => $fullPathName, 'type' => 'file'];
+                            try {
+                                $this->driver->copyFile($this->container, $fullPathName, $srcContainer, $srcPath, true);
+                                $deleteSource = ArrayUtils::getBool($resource, 'delete_source');
+                                if ($deleteSource) {
+                                    $this->driver->deleteFile($this->container, $srcPath);
+                                }
+                            } catch (\Exception $ex) {
+                                $out[$key]['error'] = ['message' => $ex->getMessage()];
+                            }
+                        } elseif (isset($resource['content'])) {
+                            $fullPathName = $this->folderPath . $name;
+                            $out[$key] = ['name' => $name, 'path' => $fullPathName, 'type' => 'file'];
+                            $content = ArrayUtils::get($resource, 'content', '');
+                            $isBase64 = ArrayUtils::getBool($resource, 'is_base64');
+                            if ($isBase64) {
+                                $content = base64_decode($content);
+                            }
+                            try {
+                                $this->driver->writeFile($this->container, $fullPathName, $content);
+                            } catch (\Exception $ex) {
+                                $out[$key]['error'] = ['message' => $ex->getMessage()];
+                            }
                         }
-                    } catch (\Exception $ex) {
-                        $out['file'][$key]['error'] = ['message' => $ex->getMessage()];
-                    }
-                } elseif (isset($file['content'])) {
-                    $fullPathName = $this->folderPath . $name;
-                    $out['file'][$key] = ['name' => $name, 'path' => $this->container . '/' . $fullPathName];
-                    $content = ArrayUtils::get($file, 'content', '');
-                    $isBase64 = ArrayUtils::getBool($file, 'is_base64');
-                    if ($isBase64) {
-                        $content = base64_decode($content);
-                    }
-                    try {
-                        $this->driver->writeFile($this->container, $fullPathName, $content);
-                    } catch (\Exception $ex) {
-                        $out['file'][$key]['error'] = ['message' => $ex->getMessage()];
-                    }
+                        break;
                 }
             }
         }
@@ -828,28 +646,32 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function deleteFolderContent($data, $root = '', $force = false)
     {
-        $out = ['folder' => [], 'file' => []];
-        $folders = ArrayUtils::get($data, 'folder');
-        if (empty($folders)) {
-            $folders = ArrayUtils::getDeep($data, 'folders', 'folder');
-        }
-        if (!empty($folders)) {
-            if (!isset($folders[0])) {
-                // single folder, make into array
-                $folders = [$folders];
+        $root = FileUtilities::fixFolderPath($root);
+        $out = [];
+        if (!empty($data)) {
+            foreach ($data as $key => $resource) {
+                $path = ArrayUtils::get($resource, 'path');
+                $fullPath = $root . $path;
+                $name = ArrayUtils::get($resource, 'name');
+                switch (ArrayUtils::get($resource, 'type')) {
+                    case 'file':
+                        $out[$key] = ['name' => $name, 'path' => $path, 'type' => 'file'];
+                        try {
+                            $this->driver->deleteFile($this->container, $fullPath);
+                        } catch (\Exception $ex) {
+                            $out[$key]['error'] = ['message' => $ex->getMessage()];
+                        }
+                        break;
+                    case 'folder':
+                        $out[$key] = ['name' => $name, 'path' => $path, 'type' => 'folder'];
+                        try {
+                            $this->driver->deleteFolder($this->container, $fullPath, $force);
+                        } catch (\Exception $ex) {
+                            $out[$key]['error'] = ['message' => $ex->getMessage()];
+                        }
+                        break;
+                }
             }
-            $out['folder'] = $this->driver->deleteFolders($this->container, $folders, $root, $force);
-        }
-        $files = ArrayUtils::get($data, 'file');
-        if (empty($files)) {
-            $files = ArrayUtils::getDeep($data, 'files', 'file');
-        }
-        if (!empty($files)) {
-            if (!isset($files[0])) {
-                // single file, make into array
-                $files = [$files];
-            }
-            $out['files'] = $this->driver->deleteFiles($this->container, $files, $root);
         }
 
         return $out;
@@ -889,160 +711,33 @@ abstract class BaseFileService extends BaseRestService
         $base['apis'] = [
             [
                 'path'        => $path,
+                'description' => 'Operations available for File Storage Service.',
                 'operations'  => [
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'getResourceList() - List all resource names.',
+                        'nickname'         => 'getResourceList',
+                        'notes'            => 'Return only a list of the resource identifiers.',
+                        'type'             => 'ResourceList',
+                        'event_name'       => [$this->name . '.list'],
+                        'parameters'       => [
+                            ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
+                            ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
+                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                            ApiOptions::documentOption(ApiOptions::REFRESH),
+                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                    ],
                     [
                         'method'           => 'GET',
                         'summary'          => 'getResources() - List all resources.',
                         'nickname'         => 'getResources',
-                        'type'             => 'Resources',
-                        'event_name'       => [$eventPath . '.containers.list',],
+                        'type'             => 'ResourceList',
+                        'event_name'       => [$eventPath . '.list',],
                         'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            => 'List the names of the available containers in this storage. ',
-                    ],
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getAccessComponents() - List all role accessible components.',
-                        'nickname'         => 'getAccessComponents',
-                        'notes'            => 'List the names of all the role accessible components.',
-                        'type'             => 'ComponentList',
-                        'event_name'       => [$eventPath . '.list'],
+                        'notes'            => 'List the resources (folders and files) available in this storage. ',
                         'parameters'       => [
-                            [
-                                'name'          => 'as_access_components',
-                                'description'   => 'Return the names of all the accessible components.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => true,
-                                'default'       => true,
-                            ],
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                    ],
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getContainers() - List all containers, optionally with properties.',
-                        'nickname'         => 'getContainers',
-                        'type'             => 'ContainersResponse',
-                        'event_name'       => [$eventPath . '.containers.describe',],
-                        'parameters'       => [
-                            [
-                                'name'          => 'include_properties',
-                                'description'   => 'Return any properties of the container in the response.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => true,
-                                'defaultValue'  => true,
-                            ],
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            => 'List the names and any properties of the available containers in this storage.',
-                    ],
-                    [
-                        'method'           => 'POST',
-                        'summary'          => 'createContainers() - Create one or more containers.',
-                        'nickname'         => 'createContainers',
-                        'type'             => 'ContainersResponse',
-                        'event_name'       => [$eventPath . '.containers.create',],
-                        'parameters'       => [
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Array of containers to create.',
-                                'allowMultiple' => false,
-                                'type'          => 'ContainersRequest',
-                                'paramType'     => 'body',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'check_exist',
-                                'description'   => 'If true, the request fails when the container to create already exists.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                            [
-                                'name'          => 'X-HTTP-METHOD',
-                                'description'   => 'Override request using POST to tunnel other http request, such as DELETE.',
-                                'enum'          => ['GET', 'PUT', 'PATCH', 'DELETE'],
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'header',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            =>
-                            'Post data should be a single container definition or an array of container definitions. ' .
-                            'Alternatively, override the HTTP Method to pass containers to other actions.',
-                    ],
-                    [
-                        'method'           => 'DELETE',
-                        'summary'          => 'deleteContainers() - Delete one or more containers.',
-                        'nickname'         => 'deleteContainers',
-                        'type'             => 'ContainersResponse',
-                        'event_name'       => [$eventPath . '.containers.delete',],
-                        'parameters'       => [
-                            [
-                                'name'          => 'names',
-                                'description'   => 'List of containers to delete.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'force',
-                                'description'   => 'Set force to true to delete all containers, otherwise \'names\' parameter is required.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'default'       => false,
-                            ],
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            =>
-                            'Pass a comma-delimited list of container names to delete. ' .
-                            'Set \'force\' to true to delete all containers. ' .
-                            'Alternatively, to delete by container records or a large list of names, ' .
-                            'use the POST request with X-HTTP-METHOD = DELETE header and post containers.',
-                    ],
-                ],
-                'description' => 'Operations available for File Storage Service.',
-            ],
-            [
-                'path'        => $path . '/{container}/',
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getContainer() - List the container\'s content, including properties.',
-                        'nickname'         => 'getContainer',
-                        'type'             => 'ContainerResponse',
-                        'event_name'       => [
-                            $eventPath . '.{container}.describe',
-                            $eventPath . '.container_described'
-                        ],
-                        'parameters'       => [
-                            [
-                                'name'          => 'container',
-                                'description'   => 'The name of the container from which you want to retrieve contents.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'include_properties',
-                                'description'   => 'Include any properties of the container in the response.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
                             [
                                 'name'          => 'include_folders',
                                 'description'   => 'Include folders in the returned listing.',
@@ -1070,6 +765,26 @@ abstract class BaseFileService extends BaseRestService
                                 'required'      => false,
                                 'defaultValue'  => false,
                             ],
+                        ],
+                    ],
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'getResourcesAsZip() - Zip and return all content.',
+                        'nickname'         => 'getResourcesAsZip',
+                        'type'             => 'FileContent',
+                        'event_name'       => [$eventPath . '.zip',],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'notes'            => 'Zip and return all content in this storage. ',
+                        'parameters'       => [
+                            [
+                                'name'          => 'full_tree',
+                                'description'   => 'List the contents of all sub-folders as well.',
+                                'allowMultiple' => false,
+                                'type'          => 'boolean',
+                                'paramType'     => 'query',
+                                'required'      => false,
+                                'defaultValue'  => false,
+                            ],
                             [
                                 'name'          => 'zip',
                                 'description'   => 'Return the content of the folder as a zip file.',
@@ -1080,97 +795,39 @@ abstract class BaseFileService extends BaseRestService
                                 'defaultValue'  => false,
                             ],
                         ],
+                    ],
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'getContainerProperties() - List the container\'s content, including properties.',
+                        'nickname'         => 'getContainerProperties',
+                        'type'             => 'ContainerResponse',
+                        'event_name'       => [
+                            $eventPath . '.describe',
+                            $eventPath . '.described'
+                        ],
+                        'parameters'       => [
+                            [
+                                'name'          => 'include_properties',
+                                'description'   => 'Retrieve any properties of the container.',
+                                'allowMultiple' => false,
+                                'type'          => 'boolean',
+                                'paramType'     => 'query',
+                                'required'      => true,
+                                'defaultValue'  => true,
+                            ],
+                        ],
                         'responseMessages' => $commonResponses,
                         'notes'            =>
                             'Use \'include_properties\' to get properties of the container. ' .
                             'Use the \'include_folders\' and/or \'include_files\' to modify the listing.',
                     ],
                     [
-                        'method'           => 'POST',
-                        'summary'          => 'createContainer() - Create container and/or add content.',
-                        'nickname'         => 'createContainer',
-                        'type'             => 'ContainerResponse',
-                        'event_name'       => [$eventPath . '.{container}.create', $eventPath . '.container_created'],
-                        'parameters'       => [
-                            [
-                                'name'          => 'container',
-                                'description'   => 'The name of the container you want to put the contents.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Array of folders and/or files.',
-                                'allowMultiple' => false,
-                                'type'          => 'ContainerRequest',
-                                'paramType'     => 'body',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'url',
-                                'description'   => 'The full URL of the file to upload.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'extract',
-                                'description'   => 'Extract an uploaded zip file into the container.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                            [
-                                'name'          => 'clean',
-                                'description'   => 'Option when \'extract\' is true, clean the current folder before extracting files and folders.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                            [
-                                'name'          => 'check_exist',
-                                'description'   => 'If true, the request fails when the file or folder to create already exists.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                            [
-                                'name'          => 'X-HTTP-METHOD',
-                                'description'   => 'Override request using POST to tunnel other http request, such as DELETE.',
-                                'enum'          => ['GET', 'PUT', 'PATCH', 'DELETE'],
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'header',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responseMessages' => $commonResponses,
-                        'notes'            => 'Post data as an array of folders and/or files.',
-                    ],
-                    [
                         'method'           => 'PATCH',
                         'summary'          => 'updateContainerProperties() - Update properties of the container.',
                         'nickname'         => 'updateContainerProperties',
                         'type'             => 'Container',
-                        'event_name'       => [$eventPath . '.{container}.update', $eventPath . '.container_updated'],
+                        'event_name'       => [$eventPath . '.update', $eventPath . '.updated'],
                         'parameters'       => [
-                            [
-                                'name'          => 'container',
-                                'description'   => 'The name of the container you want to put the contents.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
                             [
                                 'name'          => 'body',
                                 'description'   => 'An array of container properties.',
@@ -1183,66 +840,18 @@ abstract class BaseFileService extends BaseRestService
                         'responseMessages' => $commonResponses,
                         'notes'            => 'Post data as an array of container properties.',
                     ],
-                    [
-                        'method'           => 'DELETE',
-                        'summary'          => 'deleteContainer() - Delete one container and/or its contents.',
-                        'nickname'         => 'deleteContainer',
-                        'type'             => 'ContainerResponse',
-                        'event_name'       => [$eventPath . '.{container}.delete', $eventPath . '.container_deleted'],
-                        'parameters'       => [
-                            [
-                                'name'          => 'container',
-                                'description'   => 'The name of the container you want to delete from.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'force',
-                                'description'   => 'Set to true to force delete on a non-empty container.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'content_only',
-                                'description'   => 'Set to true to only delete the content of the container.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responseMessages' => $commonResponses,
-                        'notes'            =>
-                            'Set \'content_only\' to true to delete the folders and files contained, but not the container. ' .
-                            'Set \'force\' to true to delete a non-empty container. ' .
-                            'Alternatively, to delete by a listing of folders and files, ' .
-                            'use the POST request with X-HTTP-METHOD = DELETE header and post listing.',
-                    ],
                 ],
-                'description' => 'Operations on containers.',
             ],
             [
-                'path'        => $path . '/{container}/{folder_path}/',
+                'path'        => $path . '/{folder_path}/',
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'getFolder() - List the folder\'s content, including properties.',
                         'nickname'         => 'getFolder',
                         'type'             => 'FolderResponse',
-                        'event_name'       => [$eventPath . '.{container}.{folder_path}.describe'],
+                        'event_name'       => [$eventPath . '.{folder_path}.describe'],
                         'parameters'       => [
-                            [
-                                'name'          => 'container',
-                                'description'   => 'The name of the container from which you want to retrieve contents.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
                             [
                                 'name'          => 'folder_path',
                                 'description'   => 'The path of the folder you want to retrieve. This can be a sub-folder, with each level separated by a \'/\'',
@@ -1303,23 +912,43 @@ abstract class BaseFileService extends BaseRestService
                             'Use the \'include_folders\' and/or \'include_files\' to modify the listing.',
                     ],
                     [
-                        'method'           => 'POST',
-                        'summary'          => 'createFolder() - Create a folder and/or add content.',
-                        'nickname'         => 'createFolder',
-                        'type'             => 'FolderResponse',
-                        'event_name'       => [
-                            $eventPath . '.{container}.{folder_path}.create',
-                            $eventPath . '.{container}.folder_created'
-                        ],
+                        'method'           => 'GET',
+                        'summary'          => 'getFolderProperties() - List the folder\'s properties.',
+                        'nickname'         => 'getFolderProperties',
+                        'type'             => 'Folder',
+                        'event_name'       => [$eventPath . '.{folder_path}.describe'],
                         'parameters'       => [
                             [
-                                'name'          => 'container',
-                                'description'   => 'The name of the container where you want to put the contents.',
+                                'name'          => 'folder_path',
+                                'description'   => 'The path of the folder you want to retrieve. This can be a sub-folder, with each level separated by a \'/\'',
                                 'allowMultiple' => false,
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
                             ],
+                            [
+                                'name'          => 'include_properties',
+                                'description'   => 'Return any properties of the folder in the response.',
+                                'allowMultiple' => false,
+                                'type'          => 'boolean',
+                                'paramType'     => 'query',
+                                'required'      => true,
+                                'defaultValue'  => true,
+                            ],
+                        ],
+                        'responseMessages' => $commonResponses,
+                        'notes'            => 'Use \'include_properties\' to get properties of the folder.',
+                    ],
+                    [
+                        'method'           => 'POST',
+                        'summary'          => 'createFolder() - Create a folder and/or add content.',
+                        'nickname'         => 'createFolder',
+                        'type'             => 'FolderResponse',
+                        'event_name'       => [
+                            $eventPath . '.{folder_path}.create',
+                            $eventPath . '.folder_created'
+                        ],
+                        'parameters'       => [
                             [
                                 'name'          => 'folder_path',
                                 'description'   => 'The path of the folder where you want to put the contents. This can be a sub-folder, with each level separated by a \'/\'',
@@ -1390,18 +1019,10 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'updateFolderProperties',
                         'type'             => 'Folder',
                         'event_name'       => [
-                            $eventPath . '.{container}.{folder_path}.update',
-                            $eventPath . '.{container}.folder_updated'
+                            $eventPath . '.{folder_path}.update',
+                            $eventPath . '.folder_updated'
                         ],
                         'parameters'       => [
-                            [
-                                'name'          => 'container',
-                                'description'   => 'The name of the container where you want to put the contents.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
                             [
                                 'name'          => 'folder_path',
                                 'description'   => 'The path of the folder you want to update. This can be a sub-folder, with each level separated by a \'/\'',
@@ -1428,18 +1049,10 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'deleteFolder',
                         'type'             => 'FolderResponse',
                         'event_name'       => [
-                            $eventPath . '.{container}.{folder_path}.delete',
-                            $eventPath . '.{container}.folder_deleted'
+                            $eventPath . '.{folder_path}.delete',
+                            $eventPath . '.folder_deleted'
                         ],
                         'parameters'       => [
-                            [
-                                'name'          => 'container',
-                                'description'   => 'The name of the container where the folder exists.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
                             [
                                 'name'          => 'folder_path',
                                 'description'   => 'The path of the folder where you want to delete contents. This can be a sub-folder, with each level separated by a \'/\'',
@@ -1476,7 +1089,7 @@ abstract class BaseFileService extends BaseRestService
                 'description' => 'Operations on folders.',
             ],
             [
-                'path'        => $path . '/{container}/{file_path}',
+                'path'        => $path . '/{file_path}',
                 'operations'  => [
                     [
                         'method'           => 'GET',
@@ -1484,18 +1097,43 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'getFile',
                         'type'             => 'FileResponse',
                         'event_name'       => [
-                            $eventPath . '.{container}.{file_path}.download',
-                            $eventPath . '.{container}.file_downloaded'
+                            $eventPath . '.{file_path}.download',
+                            $eventPath . '.file_downloaded'
                         ],
                         'parameters'       => [
                             [
-                                'name'          => 'container',
-                                'description'   => 'Name of the container where the file exists.',
+                                'name'          => 'file_path',
+                                'description'   => 'Path and name of the file to retrieve.',
                                 'allowMultiple' => false,
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
                             ],
+                            [
+                                'name'          => 'download',
+                                'description'   => 'Prompt the user to download the file from the browser.',
+                                'allowMultiple' => false,
+                                'type'          => 'boolean',
+                                'paramType'     => 'query',
+                                'required'      => false,
+                                'defaultValue'  => false,
+                            ],
+                        ],
+                        'responseMessages' => $commonResponses,
+                        'notes'            =>
+                            'By default, the file is streamed to the browser. ' .
+                            'Use the \'download\' parameter to prompt for download.',
+                    ],
+                    [
+                        'method'           => 'GET',
+                        'summary'          => 'getFileProperties() - Download the file properties.',
+                        'nickname'         => 'getFileProperties',
+                        'type'             => 'File',
+                        'event_name'       => [
+                            $eventPath . '.{file_path}.describe',
+                            $eventPath . '.file_described'
+                        ],
+                        'parameters'       => [
                             [
                                 'name'          => 'file_path',
                                 'description'   => 'Path and name of the file to retrieve.',
@@ -1522,20 +1160,9 @@ abstract class BaseFileService extends BaseRestService
                                 'required'      => false,
                                 'defaultValue'  => false,
                             ],
-                            [
-                                'name'          => 'download',
-                                'description'   => 'Prompt the user to download the file from the browser.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
                         ],
                         'responseMessages' => $commonResponses,
                         'notes'            =>
-                            'By default, the file is streamed to the browser. ' .
-                            'Use the \'download\' parameter to prompt for download. ' .
                             'Use the \'include_properties\' parameter (optionally add \'content\' to include base64 content) to list properties of the file.',
                     ],
                     [
@@ -1544,18 +1171,10 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'createFile',
                         'type'             => 'FileResponse',
                         'event_name'       => [
-                            $eventPath . '.{container}.{file_path}.create',
-                            $eventPath . '.{container}.file_created'
+                            $eventPath . '.{file_path}.create',
+                            $eventPath . '.file_created'
                         ],
                         'parameters'       => [
-                            [
-                                'name'          => 'container',
-                                'description'   => 'Name of the container where the file exists.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
                             [
                                 'name'          => 'file_path',
                                 'description'   => 'Path and name of the file to create.',
@@ -1590,18 +1209,10 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'replaceFile',
                         'type'             => 'FileResponse',
                         'event_name'       => [
-                            $eventPath . '.{container}.{file_path}.update',
-                            $eventPath . '.{container}.file_updated'
+                            $eventPath . '.{file_path}.update',
+                            $eventPath . '.file_updated'
                         ],
                         'parameters'       => [
-                            [
-                                'name'          => 'container',
-                                'description'   => 'Name of the container where the file exists.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
                             [
                                 'name'          => 'file_path',
                                 'description'   => 'Path and name of the file to update.',
@@ -1628,18 +1239,10 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'updateFileProperties',
                         'type'             => 'File',
                         'event_name'       => [
-                            $eventPath . '.{container}.{file_path}.update',
-                            $eventPath . '.{container}.file_updated'
+                            $eventPath . '.{file_path}.update',
+                            $eventPath . '.file_updated'
                         ],
                         'parameters'       => [
-                            [
-                                'name'          => 'container',
-                                'description'   => 'Name of the container where the file exists.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
                             [
                                 'name'          => 'file_path',
                                 'description'   => 'Path and name of the file to update.',
@@ -1666,18 +1269,10 @@ abstract class BaseFileService extends BaseRestService
                         'nickname'         => 'deleteFile',
                         'type'             => 'FileResponse',
                         'event_name'       => [
-                            $eventPath . '.{container}.{file_path}.delete',
-                            $eventPath . '.{container}.file_deleted'
+                            $eventPath . '.{file_path}.delete',
+                            $eventPath . '.file_deleted'
                         ],
                         'parameters'       => [
-                            [
-                                'name'          => 'container',
-                                'description'   => 'Name of the container where the file exists.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
                             [
                                 'name'          => 'file_path',
                                 'description'   => 'Path and name of the file to delete.',
@@ -1695,24 +1290,6 @@ abstract class BaseFileService extends BaseRestService
             ],
         ];
 
-        $commonContainer = [
-            'name'     => [
-                'type'        => 'string',
-                'description' => 'Identifier/Name for the container.',
-            ],
-            'path'     => [
-                'type'        => 'string',
-                'description' => 'Same as name for the container, for consistency.',
-            ],
-            'metadata' => [
-                'type'        => 'Array',
-                'description' => 'An array of name-value pairs.',
-                'items'       => [
-                    'type' => 'string',
-                ],
-            ],
-        ];
-
         $commonFolder = [
             'name'     => [
                 'type'        => 'string',
@@ -1720,10 +1297,10 @@ abstract class BaseFileService extends BaseRestService
             ],
             'path'     => [
                 'type'        => 'string',
-                'description' => 'Full path of the folder, from the service including container.',
+                'description' => 'Full path of the folder, from the service root.',
             ],
             'metadata' => [
-                'type'        => 'Array',
+                'type'        => 'array',
                 'description' => 'An array of name-value pairs.',
                 'items'       => [
                     'type' => 'string',
@@ -1738,14 +1315,14 @@ abstract class BaseFileService extends BaseRestService
             ],
             'path'         => [
                 'type'        => 'string',
-                'description' => 'Full path of the file, from the service including container.',
+                'description' => 'Full path of the file, from the service root.',
             ],
             'content_type' => [
                 'type'        => 'string',
                 'description' => 'The media type of the content of the file.',
             ],
             'metadata'     => [
-                'type'        => 'Array',
+                'type'        => 'array',
                 'description' => 'An array of name-value pairs.',
                 'items'       => [
                     'type' => 'string',
@@ -1754,11 +1331,11 @@ abstract class BaseFileService extends BaseRestService
         ];
 
         $models = [
-            'FileRequest'        => [
+            'FileRequest'    => [
                 'id'         => 'FileRequest',
                 'properties' => $commonFile,
             ],
-            'FileResponse'       => [
+            'FileResponse'   => [
                 'id'         => 'FileResponse',
                 'properties' => array_merge(
                     $commonFile,
@@ -1774,29 +1351,22 @@ abstract class BaseFileService extends BaseRestService
                     ]
                 ),
             ],
-            'FolderRequest'      => [
+            'FolderRequest'  => [
                 'id'         => 'FolderRequest',
                 'properties' => array_merge(
                     $commonFolder,
                     [
-                        'folder' => [
-                            'type'        => 'Array',
-                            'description' => 'An array of sub-folders to create.',
+                        'resource' => [
+                            'type'        => 'array',
+                            'description' => 'An array of resources to operate on.',
                             'items'       => [
-                                '$ref' => 'FolderRequest',
-                            ],
-                        ],
-                        'file'   => [
-                            'type'        => 'Array',
-                            'description' => 'An array of files to create.',
-                            'items'       => [
-                                '$ref' => 'FileRequest',
+                                '$ref' => 'ResourceRequest',
                             ],
                         ],
                     ]
                 ),
             ],
-            'FolderResponse'     => [
+            'FolderResponse' => [
                 'id'         => 'FolderResponse',
                 'properties' => array_merge(
                     $commonFolder,
@@ -1805,106 +1375,23 @@ abstract class BaseFileService extends BaseRestService
                             'type'        => 'string',
                             'description' => 'A GMT date timestamp of when the file was last modified.',
                         ],
-                        'folder'        => [
-                            'type'        => 'Array',
-                            'description' => 'An array of contained sub-folders.',
+                        'resources'     => [
+                            'type'        => 'array',
+                            'description' => 'An array of contained resources.',
                             'items'       => [
                                 '$ref' => 'FolderResponse',
                             ],
                         ],
-                        'file'          => [
-                            'type'        => 'Array',
-                            'description' => 'An array of contained files.',
-                            'items'       => [
-                                '$ref' => 'FileResponse',
-                            ],
-                        ],
                     ]
                 ),
             ],
-            'ContainerRequest'   => [
-                'id'         => 'ContainerRequest',
-                'properties' => array_merge(
-                    $commonContainer,
-                    [
-                        'folder' => [
-                            'type'        => 'Array',
-                            'description' => 'An array of folders to create.',
-                            'items'       => [
-                                '$ref' => 'FolderRequest',
-                            ],
-                        ],
-                        'file'   => [
-                            'type'        => 'Array',
-                            'description' => 'An array of files to create.',
-                            'items'       => [
-                                '$ref' => 'FileRequest',
-                            ],
-                        ],
-                    ]
-                ),
-            ],
-            'ContainerResponse'  => [
-                'id'         => 'ContainerResponse',
-                'properties' => array_merge(
-                    $commonContainer,
-                    [
-                        'last_modified' => [
-                            'type'        => 'string',
-                            'description' => 'A GMT date timestamp of when the container was last modified.',
-                        ],
-                        'folder'        => [
-                            'type'        => 'Array',
-                            'description' => 'An array of contained folders.',
-                            'items'       => [
-                                '$ref' => 'FolderResponse',
-                            ],
-                        ],
-                        'file'          => [
-                            'type'        => 'Array',
-                            'description' => 'An array of contained files.',
-                            'items'       => [
-                                '$ref' => 'FileResponse',
-                            ],
-                        ],
-                    ]
-                ),
-            ],
-            'File'               => [
+            'File'           => [
                 'id'         => 'File',
                 'properties' => $commonFile,
             ],
-            'Folder'             => [
+            'Folder'         => [
                 'id'         => 'Folder',
                 'properties' => $commonFolder,
-            ],
-            'Container'          => [
-                'id'         => 'Container',
-                'properties' => $commonContainer,
-            ],
-            'ContainersRequest'  => [
-                'id'         => 'ContainersRequest',
-                'properties' => [
-                    'container' => [
-                        'type'        => 'Array',
-                        'description' => 'An array of containers to modify.',
-                        'items'       => [
-                            '$ref' => 'Container',
-                        ],
-                    ],
-                ],
-            ],
-            'ContainersResponse' => [
-                'id'         => 'ContainersResponse',
-                'properties' => [
-                    'container' => [
-                        'type'        => 'Array',
-                        'description' => 'An array of containers.',
-                        'items'       => [
-                            '$ref' => 'Container',
-                        ],
-                    ],
-                ],
             ],
         ];
 

@@ -2,17 +2,20 @@
 
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Utility\ResourcesWrapper;
+
 abstract class BaseNoSqlDbService extends BaseDbService
 {
     public function getApiDocInfo()
     {
-        $_base = parent::getApiDocInfo();
+        $base = parent::getApiDocInfo();
+        $wrapper = ResourcesWrapper::getWrapper();
 
-        $_models = [
+        $models = [
             'TableSchemas' => [
                 'id'         => 'TableSchemas',
                 'properties' => [
-                    'table' => [
+                    $wrapper => [
                         'type'        => 'Array',
                         'description' => 'An array of table definitions.',
                         'items'       => [
@@ -94,8 +97,8 @@ abstract class BaseNoSqlDbService extends BaseDbService
             ],
         ];
 
-        $_base['models'] = array_merge($_base['models'], $_models);
+        $base['models'] = array_merge($base['models'], $models);
 
-        return $_base;
+        return $base;
     }
 }

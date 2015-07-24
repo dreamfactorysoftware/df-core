@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Resources\System;
 use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Resources\BaseRestResource;
+use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\CacheUtilities;
 use DreamFactory\Core\Utility\ServiceHandler;
 
@@ -52,20 +53,7 @@ class Cache extends BaseRestResource
                         'type'             => 'Success',
                         'event_name'       => $eventPath . '.delete',
                         'parameters'       => [],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            => 'This clears all cached information in the system. Doing so may impact the performance of the system.',
                     ],
                 ],
@@ -90,20 +78,7 @@ class Cache extends BaseRestResource
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            => 'This clears all cached information related to a particular service. Doing so may impact the performance of the service.',
                     ],
                 ],

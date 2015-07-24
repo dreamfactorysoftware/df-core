@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Database\Seeds;
 
 use DreamFactory\Core\Models\CorsConfig;
+use DreamFactory\Core\Models\SystemCustom;
 use DreamFactory\Core\Models\SystemResource;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Resources\System\Admin;
@@ -11,6 +12,7 @@ use DreamFactory\Core\Resources\System\Cache;
 use DreamFactory\Core\Resources\System\Config;
 use DreamFactory\Core\Resources\System\Constant;
 use DreamFactory\Core\Resources\System\Cors;
+use DreamFactory\Core\Resources\System\Custom;
 use DreamFactory\Core\Resources\System\EmailTemplate;
 use DreamFactory\Core\Resources\System\Environment;
 use DreamFactory\Core\Resources\System\Event;
@@ -139,5 +141,12 @@ class SystemResourceSeeder extends BaseModelSeeder
             'class_name'  => AppGroup::class,
             'model_name'  => \DreamFactory\Core\Models\AppGroup::class,
         ],
+        [
+            'name'        => 'custom',
+            'label'       => 'Custom Settings',
+            'description' => 'Allows for creating system-wide custom settings',
+            'class_name'  => Custom::class,
+            'model_name'  => SystemCustom::class
+        ]
     ];
 }

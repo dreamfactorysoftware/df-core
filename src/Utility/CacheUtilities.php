@@ -119,7 +119,7 @@ class CacheUtilities
         $cacheKey = 'service:' . $name;
         $result = \Cache::remember($cacheKey, Config::get('df.default_cache_ttl'), function () use ($name){
             /** @type Service $service */
-            $service = Service::whereName($name)->first(['id','name','label','description','is_active','type']);
+            $service = Service::whereName($name)->first(['id', 'name', 'label', 'description', 'is_active', 'type']);
 
             if (empty($service)) {
                 throw new NotFoundException("Could not find a service for $name");
@@ -713,5 +713,24 @@ class CacheUtilities
     public static function getKeysByUserId($id = null)
     {
         return static::getKeysByTypeAndId('user', $id);
+    }
+
+    /**
+     * @return boolean
+     */
+    public static function adminExists()
+    {
+        $adminExists = Cache::rememberForever('admin_exists', function (){
+            return User::whereIsActive(1)->whereIsSysAdmin(1)->exists();
+        });
+
+        return $adminExists;
+    }
+
+    public static function resetAdminExists()
+    {
+        Cache::forget('admin_exists');
+
+        return true;
     }
 }

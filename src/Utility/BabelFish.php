@@ -20,7 +20,7 @@ class BabelFish
      */
     public static function translate($from, $to, $subject, &$translated)
     {
-        $_result = true;
+        $result = true;
         $translated = $subject;
 
         if (!DataFormats::contains($from) || !DataFormats::contains($to)) {
@@ -37,14 +37,14 @@ class BabelFish
                     case DataFormats::JSON:
                         if (false === ($translated = json_encode($subject, JSON_UNESCAPED_SLASHES))) {
                             if (JSON_ERROR_NONE !== json_last_error()) {
-                                $_result = false;
+                                $result = false;
                                 $translated = $subject;
                             }
                         }
                         break;
 
                     default:
-                        $_result = false;
+                        $result = false;
                         break;
                 }
                 break;
@@ -58,22 +58,22 @@ class BabelFish
                         if (false === ($translated = json_decode($subject, (DataFormats::PHP_ARRAY == $from)))) {
                             if (JSON_ERROR_NONE !== json_last_error()) {
                                 $translated = $subject;
-                                $_result = false;
+                                $result = false;
                             }
                         }
                         break;
 
                     default:
-                        $_result = false;
+                        $result = false;
                         break;
                 }
                 break;
 
             default:
-                $_result = false;
+                $result = false;
                 break;
         }
 
-        return $_result;
+        return $result;
     }
 }

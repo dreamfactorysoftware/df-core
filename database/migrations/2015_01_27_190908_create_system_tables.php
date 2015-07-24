@@ -407,20 +407,26 @@ class CreateSystemTables extends Migration
 
         //Email service config table
         Schema::create(
-            'email_config',
+            'smtp_config',
             function (Blueprint $t){
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('driver');
-                $t->string('host')->nullable();
-                $t->string('port')->nullable();
+                $t->string('host');
+                $t->string('port')->default('587');
                 $t->string('encryption')->default('tls');
-                $t->longText('username')->nullable(); //encrypted
-                $t->longText('password')->nullable(); //encrypted
-                $t->string('command')->default('/usr/sbin/sendmail -bs');
-                $t->longText('key')->nullable(); //encrypted
-                $t->longText('secret')->nullable(); //encrypted
+                $t->longText('username'); //encrypted
+                $t->longText('password'); //encrypted
+            }
+        );
+
+        //Email service config table
+        Schema::create(
+            'cloud_email_config',
+            function (Blueprint $t){
+                $t->integer('service_id')->unsigned()->primary();
+                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->string('domain')->nullable();
+                $t->longText('key'); //encrypted
             }
         );
 
@@ -430,7 +436,7 @@ class CreateSystemTables extends Migration
             function (Blueprint $t){
                 $t->increments('id');
                 $t->integer('service_id')->unsigned();
-                $t->foreign('service_id')->references('service_id')->on('email_config')->onDelete('cascade');
+                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->string('name');
                 $t->mediumText('value')->nullable();
                 $t->boolean('active')->default(1);

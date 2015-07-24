@@ -73,26 +73,28 @@ class ApiDocManager
         $services = [];
         foreach ($result as $service) {
             $apiName = $service->name;
-            $content = static::getStoredContentForService($service);
+            try {
+                if (empty($content = static::getStoredContentForService($service))) {
+                    throw new \Exception('  * No event content found for service.');
+                    continue;
+                }
 
-            if (empty($content)) {
-                \Log::info('  * No Swagger content found for service "' . $apiName . '"');
-                continue;
+                $serviceEvents = static::parseSwaggerEvents($apiName, $content);
+
+                // build main services list
+                $services[] = [
+                    'path'        => '/' . $apiName,
+                    'description' => $service->description
+                ];
+
+                //	Parse the events while we get the chance...
+                $processEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'process', []);
+                $broadcastEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'broadcast', []);
+
+                unset($content, $filePath, $service, $serviceEvents);
+            } catch (\Exception $ex) {
+                \Log::error("  * System error building event map for service '$apiName'.\n{$ex->getMessage()}");
             }
-
-            $serviceEvents = static::_parseSwaggerEvents($apiName, $content);
-
-            // build main services list
-            $services[] = [
-                'path'        => '/' . $apiName,
-                'description' => $service->description
-            ];
-
-            //	Parse the events while we get the chance...
-            $processEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'process', []);
-            $broadcastEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'broadcast', []);
-
-            unset($content, $filePath, $service, $serviceEvents);
         }
 
         static::$eventMap = ['process' => $processEventMap, 'broadcast' => $broadcastEventMap];
@@ -150,7 +152,7 @@ class ApiDocManager
      *
      * @return array
      */
-    protected static function _parseSwaggerEvents($apiName, &$data)
+    protected static function parseSwaggerEvents($apiName, &$data)
     {
         $processEvents = [];
         $broadcastEvents = [];

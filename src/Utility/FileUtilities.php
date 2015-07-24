@@ -83,9 +83,9 @@ class FileUtilities
      */
     public static function url_exist($url)
     {
-        $_headers = @get_headers($url);
+        $headers = @get_headers($url);
 
-        if (empty($_headers) || 'HTTP/1.1 404 Not Found' == $_headers[0]) {
+        if (empty($headers) || 'HTTP/1.1 404 Not Found' == $headers[0]) {
             return false;
         }
 
@@ -144,12 +144,12 @@ class FileUtilities
     public static function sendFile($file, $download = false)
     {
         if (is_file($file)) {
-            $_ext = FileUtilities::getFileExtension($file);
-            $_disposition = ($download) ? 'attachment' : 'inline';
+            $ext = FileUtilities::getFileExtension($file);
+            $disposition = ($download) ? 'attachment' : 'inline';
             header('Last-Modified: ' . gmdate('D, d M Y H:i:s \G\M\T', filemtime($file)));
-            header('Content-Type: ' . FileUtilities::determineContentType($_ext, '', $file));
+            header('Content-Type: ' . FileUtilities::determineContentType($ext, '', $file));
             header('Content-Length:' . filesize($file));
-            header('Content-Disposition: ' . $_disposition . '; filename="' . basename($file) . '";');
+            header('Content-Disposition: ' . $disposition . '; filename="' . basename($file) . '";');
             header('Cache-Control: private'); // use this to open files directly
             header('Expires: 0');
             header('Pragma: public');
@@ -157,8 +157,8 @@ class FileUtilities
         } else {
             Log::debug('FileUtilities::downloadFile is_file call fail: ' . $file);
 
-            $_statusHeader = 'HTTP/1.1 404 The specified file ' . $file . ' does not exist.';
-            header($_statusHeader);
+            $statusHeader = 'HTTP/1.1 404 The specified file ' . $file . ' does not exist.';
+            header($statusHeader);
             header('Content-Type: text/html');
         }
     }
@@ -176,7 +176,7 @@ class FileUtilities
         /**
          * @var array of file extensions to mime types
          */
-        static $_mimeTypes = array(
+        static $mimeTypes = array(
             '123'         => 'application/vnd.lotus-1-2-3',
             '3dml'        => 'text/vnd.in3d.3dml',
             '3ds'         => 'image/x-3ds',
@@ -1191,7 +1191,7 @@ class FileUtilities
             if (0 === strcasecmp('dfpkg', $ext)) {
                 $mime = 'application/zip';
             } else {
-                $mime = ArrayUtils::get($_mimeTypes, $ext);
+                $mime = ArrayUtils::get($mimeTypes, $ext);
             }
         }
         if (empty($mime)) {
@@ -1259,9 +1259,9 @@ class FileUtilities
             @mkdir($dst);
             $files = array_diff(scandir($src), $skip);
             foreach ($files as $file) {
-                $_srcFile = static::fixFolderPath($src) . $file;
-                $_dstFile = static::fixFolderPath($dst) . $file;
-                static::copyTree($_srcFile, $_dstFile, $clean, $skip);
+                $srcFile = static::fixFolderPath($src) . $file;
+                $dstFile = static::fixFolderPath($dst) . $file;
+                static::copyTree($srcFile, $dstFile, $clean, $skip);
             }
         } else if (file_exists($src)) {
             copy($src, $dst);

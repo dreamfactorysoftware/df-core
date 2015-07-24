@@ -92,7 +92,7 @@ class UserResourceTestCase extends TestCase
             $this->makeRequest(Verbs::POST, static::RESOURCE, ['fields' => '*', 'related' => 'user_lookup_by_user_id'],
                 $payload);
         $content = $rs->getContent();
-        $data = Arr::get($content, 'record');
+        $data = Arr::get($content, static::$wrapper);
 
         $this->assertEquals(Arr::get($this->user1, 'email'), Arr::get($data, '0.email'));
         $this->assertEquals(Arr::get($this->user2, 'email'), Arr::get($data, '1.email'));
@@ -113,10 +113,10 @@ class UserResourceTestCase extends TestCase
         );
         $data = $rs->getContent();
 
-        $this->assertEquals(Arr::get($this->user3, 'email'), Arr::get($data, 'record.0.email'));
-        $this->assertEquals(3, count(Arr::get($data, 'record.0.user_lookup_by_user_id')));
-        $this->assertEquals('**********', Arr::get($data, 'record.0.user_lookup_by_user_id.1.value'));
-        $this->assertEquals('**********', Arr::get($data, 'record.0.user_lookup_by_user_id.2.value'));
+        $this->assertEquals(Arr::get($this->user3, 'email'), Arr::get($data, static::$wrapper . '.0.email'));
+        $this->assertEquals(3, count(Arr::get($data, static::$wrapper . '.0.user_lookup_by_user_id')));
+        $this->assertEquals('**********', Arr::get($data, static::$wrapper . '.0.user_lookup_by_user_id.1.value'));
+        $this->assertEquals('**********', Arr::get($data, static::$wrapper . '.0.user_lookup_by_user_id.2.value'));
         $this->assertTrue($this->adminCheck($data));
     }
 
@@ -195,7 +195,7 @@ class UserResourceTestCase extends TestCase
             $this->makeRequest(Verbs::PATCH, static::RESOURCE,
                 ['ids' => $ids, 'fields' => '*', 'related' => 'user_lookup_by_user_id'], $payload);
         $content = $rs->getContent();
-        $data = $content['record'];
+        $data = $content[static::$wrapper];
 
         foreach ($data as $user) {
             $this->assertEquals(0, $user['is_active']);
@@ -224,10 +224,10 @@ class UserResourceTestCase extends TestCase
                 $payload);
         $content = $rs->getContent();
 
-        $this->assertEquals($user1['first_name'], Arr::get($content, 'record.0.first_name'));
-        $this->assertEquals($user2['first_name'], Arr::get($content, 'record.1.first_name'));
-        $this->assertEquals($user3['first_name'], Arr::get($content, 'record.2.first_name'));
-        $this->assertTrue($this->adminCheck($content['record']));
+        $this->assertEquals($user1['first_name'], Arr::get($content, static::$wrapper . '.0.first_name'));
+        $this->assertEquals($user2['first_name'], Arr::get($content, static::$wrapper . '.1.first_name'));
+        $this->assertEquals($user3['first_name'], Arr::get($content, static::$wrapper . '.2.first_name'));
+        $this->assertTrue($this->adminCheck($content[static::$wrapper]));
     }
 
     public function testPATCHPassword()
@@ -274,10 +274,10 @@ class UserResourceTestCase extends TestCase
         $content = $rs->getContent();
 
         //Total 4 users including the default admin user that was seeded by the seeder.
-        $this->assertEquals(4, count($content['record']));
-        $this->assertTrue($this->adminCheck($content['record']));
+        $this->assertEquals(4, count($content[static::$wrapper]));
+        $this->assertTrue($this->adminCheck($content[static::$wrapper]));
 
-        $ids = implode(',', array_column($content['record'], 'id'));
+        $ids = implode(',', array_column($content[static::$wrapper], 'id'));
         $this->assertEquals(implode(',', array_column([['id' => 1], $user1, $user2, $user3], 'id')), $ids);
     }
 
@@ -310,11 +310,11 @@ class UserResourceTestCase extends TestCase
         $content = $rs->getContent();
 
         //Total 4 users including the default admin user that was seeded by the seeder.
-        $this->assertEquals(3, count($content['record']));
+        $this->assertEquals(3, count($content[static::$wrapper]));
 
-        $idsOut = implode(',', array_column($content['record'], 'id'));
+        $idsOut = implode(',', array_column($content[static::$wrapper], 'id'));
         $this->assertEquals($ids, $idsOut);
-        $this->assertTrue($this->adminCheck($content['record']));
+        $this->assertTrue($this->adminCheck($content[static::$wrapper]));
     }
 
     public function testGETByRecord()
@@ -330,11 +330,11 @@ class UserResourceTestCase extends TestCase
         $content = $rs->getContent();
 
         //Total 4 users including the default admin user that was seeded by the seeder.
-        $this->assertEquals(3, count($content['record']));
+        $this->assertEquals(3, count($content[static::$wrapper]));
 
-        $idsOut = implode(',', array_column($content['record'], 'id'));
+        $idsOut = implode(',', array_column($content[static::$wrapper], 'id'));
         $this->assertEquals($ids, $idsOut);
-        $this->assertTrue($this->adminCheck($content['record']));
+        $this->assertTrue($this->adminCheck($content[static::$wrapper]));
     }
 
     public function testGETByFilterFirstNameLastName()
@@ -345,7 +345,7 @@ class UserResourceTestCase extends TestCase
 
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['filter' => "first_name='Dan'"]);
         $content = $rs->getContent();
-        $data = $content['record'];
+        $data = $content[static::$wrapper];
         $firstNames = array_column($data, 'first_name');
 
         $this->assertTrue(in_array('Dan', $firstNames));
@@ -353,14 +353,14 @@ class UserResourceTestCase extends TestCase
 
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['filter' => "last_name='doe'"]);
         $content = $rs->getContent();
-        $data = $content['record'];
+        $data = $content[static::$wrapper];
         $firstNames = array_column($data, 'first_name');
         $lastNames = array_column($data, 'last_name');
 
         $this->assertTrue(in_array('Dan', $firstNames));
         $this->assertTrue(in_array('Doe', $lastNames));
         $this->assertEquals(3, count($data));
-        $this->assertTrue($this->adminCheck($content['record']));
+        $this->assertTrue($this->adminCheck($content[static::$wrapper]));
     }
 
     public function testGETWithLimitOffset()
@@ -372,27 +372,27 @@ class UserResourceTestCase extends TestCase
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['limit' => 3]);
         $content = $rs->getContent();
 
-        $this->assertEquals(3, count($content['record']));
+        $this->assertEquals(3, count($content[static::$wrapper]));
 
-        $idsOut = implode(',', array_column($content['record'], 'id'));
+        $idsOut = implode(',', array_column($content[static::$wrapper], 'id'));
         $this->assertEquals(implode(',', array_column([['id' => 1], $user1, $user2], 'id')), $idsOut);
 
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['limit' => 3, 'offset' => 1]);
         $content = $rs->getContent();
 
-        $this->assertEquals(3, count($content['record']));
+        $this->assertEquals(3, count($content[static::$wrapper]));
 
-        $idsOut = implode(',', array_column($content['record'], 'id'));
+        $idsOut = implode(',', array_column($content[static::$wrapper], 'id'));
         $this->assertEquals(implode(',', array_column([$user1, $user2, $user3], 'id')), $idsOut);
 
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['limit' => 2, 'offset' => 2]);
         $content = $rs->getContent();
 
-        $this->assertEquals(2, count($content['record']));
+        $this->assertEquals(2, count($content[static::$wrapper]));
 
-        $idsOut = implode(',', array_column($content['record'], 'id'));
+        $idsOut = implode(',', array_column($content[static::$wrapper], 'id'));
         $this->assertEquals(implode(',', array_column([$user2, $user3], 'id')), $idsOut);
-        $this->assertTrue($this->adminCheck($content['record']));
+        $this->assertTrue($this->adminCheck($content[static::$wrapper]));
     }
 
     public function testGETWithOrder()
@@ -404,25 +404,25 @@ class UserResourceTestCase extends TestCase
         $ids = implode(',', array_column([$user1, $user2, $user3], 'id'));
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['ids' => $ids, 'order' => 'first_name']);
         $content = $rs->getContent();
-        $data = $content['record'];
+        $data = $content[static::$wrapper];
         $firstNames = implode(',', array_column($data, 'first_name'));
 
         $this->assertEquals('Dan,Jane,John', $firstNames);
 
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['ids' => $ids, 'order' => 'first_name DESC']);
         $content = $rs->getContent();
-        $data = $content['record'];
+        $data = $content[static::$wrapper];
         $firstNames = implode(',', array_column($data, 'first_name'));
 
         $this->assertEquals('John,Jane,Dan', $firstNames);
 
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['ids' => $ids, 'order' => 'last_name,first_name DESC']);
         $content = $rs->getContent();
-        $data = $content['record'];
+        $data = $content[static::$wrapper];
         $firstNames = implode(',', array_column($data, 'first_name'));
 
         $this->assertEquals('John,Jane,Dan', $firstNames);
-        $this->assertTrue($this->adminCheck($content['record']));
+        $this->assertTrue($this->adminCheck($content[static::$wrapper]));
     }
 
     /************************************************
@@ -442,7 +442,7 @@ class UserResourceTestCase extends TestCase
 
         $data = $rs->getContent();
 
-        return Arr::get($data, 'record.0');
+        return Arr::get($data, static::$wrapper . '.0');
     }
 
     protected function deleteUser($num)

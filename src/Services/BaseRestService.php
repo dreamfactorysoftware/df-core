@@ -2,16 +2,18 @@
 
 namespace DreamFactory\Core\Services;
 
-use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Components\RestHandler;
 use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
-use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ServicePostProcess;
 use DreamFactory\Core\Events\ServicePreProcess;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\Enums\Verbs;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -21,6 +23,8 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
  */
 class BaseRestService extends RestHandler implements ServiceInterface
 {
+    const RESOURCE_IDENTIFIER = 'name';
+
     //*************************************************************************
     //	Members
     //*************************************************************************
@@ -69,44 +73,13 @@ class BaseRestService extends RestHandler implements ServiceInterface
     }
 
     /**
-     * @param mixed $fields Use '*', comma-delimited string, or array of properties
-     *
-     * @return boolean|array
-     */
-    public function listResources($fields = null)
-    {
-        $resources = $this->getResources();
-        if (!empty($resources)) {
-            foreach ($resources as &$resource) {
-                $resource['access'] = VerbsMask::maskToArray($this->getPermissions(ArrayUtils::get($resource, 'name')));
-            }
-
-            return static::makeResourceList($resources, 'name', $fields, 'resource');
-        }
-
-        return false;
-    }
-
-    /**
-     * Handles GET action
-     *
-     * @return mixed
-     */
-    protected function handleGET()
-    {
-        $fields = $this->request->getParameter('fields');
-
-        return $this->listResources($fields);
-    }
-
-    /**
      * @return ServiceResponseInterface
      */
     protected function respond()
     {
         if ($this->response instanceof ServiceResponseInterface) {
             return $this->response;
-        } elseif ($this->response instanceof RedirectResponse){
+        } elseif ($this->response instanceof RedirectResponse) {
             return $this->response;
         }
 
@@ -114,10 +87,15 @@ class BaseRestService extends RestHandler implements ServiceInterface
     }
 
     /**
-     * @param string $operation
-     * @param string $resource
-     *
-     * @return bool
+     * {@inheritdoc}
+     */
+    protected function getResourceIdentifier()
+    {
+        return static::RESOURCE_IDENTIFIER;
+    }
+
+    /**
+     * {@inheritdoc}
      */
     public function checkPermission($operation, $resource = null)
     {
@@ -126,9 +104,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
     }
 
     /**
-     * @param string $resource
-     *
-     * @return string
+     * {@inheritdoc}
      */
     public function getPermissions($resource = null)
     {
@@ -137,11 +113,34 @@ class BaseRestService extends RestHandler implements ServiceInterface
         return Session::getServicePermissions($this->name, $resource, $requestType);
     }
 
+    protected function getAccessList()
+    {
+        if (!empty($this->getPermissions())) {
+            return ['','*'];
+        }
+        return [];
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function handleGET()
+    {
+        if ($this->request->getParameterAsBool(ApiOptions::AS_ACCESS_LIST)) {
+            return ResourcesWrapper::wrapResources($this->getAccessList());
+        }
+
+        return parent::handleGET();
+    }
+
     public function getApiDocInfo()
     {
+        $wrapper = ResourcesWrapper::getWrapper();
+
         /**
          * Some basic apis and models used in DSP REST interfaces
          */
+
         return [
             'resourcePath' => '/' . $this->name,
             'produces'     => ['application/json', 'application/xml'],
@@ -149,15 +148,45 @@ class BaseRestService extends RestHandler implements ServiceInterface
             'apis'         => [
                 [
                     'path'        => '/' . $this->name,
-                    'operations'  => [],
-                    'description' => 'No operations currently defined for this service.',
+                    'description' => "Operations available for the {$this->label} service.",
+                    'operations'  => [
+                        [
+                            'method'           => 'GET',
+                            'summary'          => 'getResourceList() - List all resource names.',
+                            'nickname'         => 'getResourceList',
+                            'notes'            => 'Return only a list of the resource identifiers.',
+                            'type'             => 'ResourceList',
+                            'event_name'       => [$this->name . '.list'],
+                            'parameters'       => [
+                                ApiOptions::documentOption(ApiOptions::AS_LIST),
+                                ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
+                                ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                                ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                                ApiOptions::documentOption(ApiOptions::REFRESH),
+                            ],
+                            'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        ],
+                        [
+                            'method'           => 'GET',
+                            'summary'          => 'getResources() - List all resources.',
+                            'nickname'         => 'getResources',
+                            'notes'            => 'List the resources available on this service. ',
+                            'type'             => 'Resources',
+                            'event_name'       => [$this->name . '.list'],
+                            'parameters'       => [
+                                ApiOptions::documentOption(ApiOptions::FIELDS),
+                                ApiOptions::documentOption(ApiOptions::REFRESH),
+                            ],
+                            'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        ],
+                    ],
                 ],
             ],
             'models'       => [
-                'ComponentList' => [
-                    'id'         => 'ComponentList',
+                'ResourceList' => [
+                    'id'         => 'ResourceList',
                     'properties' => [
-                        'resource' => [
+                        $wrapper => [
                             'type'        => 'Array',
                             'description' => 'Array of accessible components available by this service.',
                             'items'       => [
@@ -166,19 +195,23 @@ class BaseRestService extends RestHandler implements ServiceInterface
                         ],
                     ],
                 ],
-                'Resource'      => [
+                'Resource'     => [
                     'id'         => 'Resource',
                     'properties' => [
-                        'name' => [
+                        '_id_'    => [
                             'type'        => 'string',
-                            'description' => 'Name of the resource.',
+                            'description' => 'Identifier of the resource.',
+                        ],
+                        '_other_' => [
+                            'type'        => 'string',
+                            'description' => 'Other property of the resource.',
                         ],
                     ],
                 ],
-                'Resources'     => [
+                'Resources'    => [
                     'id'         => 'Resources',
                     'properties' => [
-                        'resource' => [
+                        $wrapper => [
                             'type'        => 'Array',
                             'description' => 'Array of resources available by this service.',
                             'items'       => [
@@ -187,7 +220,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                         ],
                     ],
                 ],
-                'Success'       => [
+                'Success'      => [
                     'id'         => 'Success',
                     'properties' => [
                         'success' => [

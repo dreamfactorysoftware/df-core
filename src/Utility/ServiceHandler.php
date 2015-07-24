@@ -67,14 +67,11 @@ class ServiceHandler
     }
 
     /**
-     * @param bool $include_properties
      *
      * @return array
      */
-    public static function listServices($include_properties = false)
+    public static function listServices()
     {
-        $services = Service::available($include_properties);
-
-        return ['service' => $services];
+        return ResourcesWrapper::wrapResources(Service::available());
     }
 }

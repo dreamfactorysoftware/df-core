@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Services\Email;
 
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use Swift_SmtpTransport as SmtpTransport;
 use DreamFactory\Library\Utility\ArrayUtils;
 
@@ -15,6 +16,24 @@ class Smtp extends BaseService
         $username = ArrayUtils::get($config, 'username');
         $password = ArrayUtils::get($config, 'password');
 
+        $this->transport = static::getTransport($host, $port, $encryption, $username, $password);
+    }
+
+    /**
+     * @param $host
+     * @param $port
+     * @param $encryption
+     * @param $username
+     * @param $password
+     *
+     * @return \Swift_SmtpTransport
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
+    public static function getTransport($host, $port, $encryption, $username, $password)
+    {
+        if (empty($host) || empty($port) || empty($encryption) || empty($username) || empty($password)) {
+            throw new InternalServerErrorException("Missing one or more configuration for SMTP driver.");
+        }
         $transport = SmtpTransport::newInstance($host, $port);
 
         if (!empty($encryption)) {
@@ -26,6 +45,6 @@ class Smtp extends BaseService
             $transport->setPassword($password);
         }
 
-        $this->transport = $transport;
+        return $transport;
     }
 }

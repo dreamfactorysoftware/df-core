@@ -5,7 +5,6 @@ use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Contracts\ScriptingEngineInterface;
-use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Utility\ResponseFactory;
@@ -41,7 +40,7 @@ abstract class BaseEngineAdapter
     /**
      * @var ScriptingEngineInterface The engine
      */
-    protected $_engine;
+    protected $engine;
 
     //*************************************************************************
     //	Methods
@@ -55,7 +54,7 @@ abstract class BaseEngineAdapter
     public function __construct(array $settings = [])
     {
         //  Save off the engine
-        $this->_engine = ArrayUtils::get($settings, 'engine', $this->_engine);
+        $this->engine = ArrayUtils::get($settings, 'engine', $this->engine);
     }
 
     /**
@@ -67,7 +66,7 @@ abstract class BaseEngineAdapter
      */
     public static function startup($options = null)
     {
-        static::_initializeLibraryPaths(ArrayUtils::get($options, 'library_paths', []));
+        static::initializeLibraryPaths(ArrayUtils::get($options, 'library_paths', []));
     }
 
     /**
@@ -94,20 +93,20 @@ abstract class BaseEngineAdapter
     public static function loadScript($name, $script, $returnContents = true)
     {
         //  Already read, return script
-        if (null !== ($_script = ArrayUtils::get(static::$libraries, $name))) {
-            return $returnContents ? file_get_contents($_script) : $_script;
+        if (null !== ($script = ArrayUtils::get(static::$libraries, $name))) {
+            return $returnContents ? file_get_contents($script) : $script;
         }
 
-        $_script = ltrim($script, ' /');
+        $script = ltrim($script, ' /');
 
         //  Spin through paths and look for the script
-        foreach (static::$libraryPaths as $_path) {
-            $_check = $_path . '/' . $_script;
+        foreach (static::$libraryPaths as $path) {
+            $check = $path . '/' . $script;
 
-            if (is_file($_check) && is_readable($_check)) {
-                ArrayUtils::set(static::$libraries, $name, $_check);
+            if (is_file($check) && is_readable($check)) {
+                ArrayUtils::set(static::$libraries, $name, $check);
 
-                return $returnContents ? file_get_contents($_check) : $_check;
+                return $returnContents ? file_get_contents($check) : $check;
             }
         }
 
@@ -119,7 +118,7 @@ abstract class BaseEngineAdapter
      *
      * @throws ServiceUnavailableException
      */
-    protected static function _initializeLibraryPaths($libraryPaths = null)
+    protected static function initializeLibraryPaths($libraryPaths = null)
     {
         static::$libraryPaths = \Cache::get('scripting.library_paths', []);
         static::$libraries = \Cache::get('scripting.libraries', []);
@@ -189,7 +188,7 @@ abstract class BaseEngineAdapter
      */
     public static function addLibrary($name, $script)
     {
-        if (false === ($_path = static::loadScript($name, $script, false))) {
+        if (false === ($path = static::loadScript($name, $script, false))) {
             throw new \InvalidArgumentException('The script "' . $script . '" was not found.');
         }
     }
@@ -202,17 +201,17 @@ abstract class BaseEngineAdapter
      *
      * @return \stdClass|string
      */
-    protected static function _externalRequest($method, $url, $payload = [], $curlOptions = [])
+    protected static function externalRequest($method, $url, $payload = [], $curlOptions = [])
     {
         try {
-            $_result = Curl::request($method, $url, $payload, $curlOptions);
-        } catch (\Exception $_ex) {
-            $_result = ResponseFactory::create($_ex);
+            $result = Curl::request($method, $url, $payload, $curlOptions);
+        } catch (\Exception $ex) {
+            $result = ResponseFactory::create($ex);
 
-            Log::error('Exception: ' . $_ex->getMessage(), [], ['response' => $_result]);
+            Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
         }
 
-        return $_result;
+        return $result;
     }
 
     /**
@@ -245,7 +244,7 @@ abstract class BaseEngineAdapter
         }
 
         if ('https:/' == ($protocol = substr($path, 0, 7)) || 'http://' == $protocol) {
-            return static::_externalRequest($method, $path, $payload, $curlOptions);
+            return static::externalRequest($method, $path, $payload, $curlOptions);
         }
 
         $result = null;
@@ -302,10 +301,10 @@ abstract class BaseEngineAdapter
             //  Now set the request object and go...
             $service = ServiceHandler::getService($serviceName);
             $result = $service->handleRequest($request, $resource);
-        } catch (\Exception $_ex) {
-            $result = ResponseFactory::create($_ex);
+        } catch (\Exception $ex) {
+            $result = ResponseFactory::create($ex);
 
-            Log::error('Exception: ' . $_ex->getMessage(), [], ['response' => $result]);
+            Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
         }
 
         return $result;
@@ -322,14 +321,14 @@ abstract class BaseEngineAdapter
     protected static function getLibrary($id, $file = null)
     {
         if (null !== $file || array_key_exists($id, static::$libraries)) {
-            $_file = $file ?: static::$libraries[$id];
+            $file = $file ?: static::$libraries[$id];
 
             //  Find the library
-            foreach (static::$libraryPaths as $_name => $_path) {
-                $_filePath = $_path . DIRECTORY_SEPARATOR . $_file;
+            foreach (static::$libraryPaths as $name => $path) {
+                $filePath = $path . DIRECTORY_SEPARATOR . $file;
 
-                if (file_exists($_filePath) && is_readable($_filePath)) {
-                    return file_get_contents($_filePath, 'r');
+                if (file_exists($filePath) && is_readable($filePath)) {
+                    return file_get_contents($filePath, 'r');
                 }
             }
         }
@@ -342,53 +341,53 @@ abstract class BaseEngineAdapter
      */
     protected static function getExposedApi()
     {
-        static $_api;
+        static $api;
 
-        if (null !== $_api) {
-            return $_api;
+        if (null !== $api) {
+            return $api;
         }
 
-        $_api = new \stdClass();
+        $api = new \stdClass();
 
-        $_api->_call = function ($method, $path, $payload = null, $curlOptions = []){
+        $api->call = function ($method, $path, $payload = null, $curlOptions = []){
             return static::inlineRequest($method, $path, $payload, $curlOptions);
         };
 
-        $_api->get = function ($path, $payload = null, $curlOptions = []){
+        $api->get = function ($path, $payload = null, $curlOptions = []){
             return static::inlineRequest(Verbs::GET, $path, $payload, $curlOptions);
         };
 
-        $_api->put = function ($path, $payload = null, $curlOptions = []){
+        $api->put = function ($path, $payload = null, $curlOptions = []){
             return static::inlineRequest(Verbs::PUT, $path, $payload, $curlOptions);
         };
 
-        $_api->post = function ($path, $payload = null, $curlOptions = []){
+        $api->post = function ($path, $payload = null, $curlOptions = []){
             return static::inlineRequest(Verbs::POST, $path, $payload, $curlOptions);
         };
 
-        $_api->delete = function ($path, $payload = null, $curlOptions = []){
+        $api->delete = function ($path, $payload = null, $curlOptions = []){
             return static::inlineRequest(Verbs::DELETE, $path, $payload, $curlOptions);
         };
 
-        $_api->merge = function ($path, $payload = null, $curlOptions = []){
+        $api->merge = function ($path, $payload = null, $curlOptions = []){
             return static::inlineRequest(Verbs::MERGE, $path, $payload, $curlOptions);
         };
 
-        $_api->patch = function ($path, $payload = null, $curlOptions = []){
+        $api->patch = function ($path, $payload = null, $curlOptions = []){
             return static::inlineRequest(Verbs::PATCH, $path, $payload, $curlOptions);
         };
 
-        $_api->includeScript = function ($fileName){
-            $_fileName = storage_path(DIRECTORY_SEPARATOR . 'scripts') . DIRECTORY_SEPARATOR . $fileName;
+        $api->includeScript = function ($fileName){
+            $fileName = storage_path(DIRECTORY_SEPARATOR . 'scripts') . DIRECTORY_SEPARATOR . $fileName;
 
-            if (!file_exists($_fileName)) {
+            if (!file_exists($fileName)) {
                 return false;
             }
 
             return file_get_contents(storage_path(DIRECTORY_SEPARATOR . 'scripts') . DIRECTORY_SEPARATOR . $fileName);
         };
 
-        return $_api;
+        return $api;
     }
 
     public static function buildPlatformAccess($identifier)

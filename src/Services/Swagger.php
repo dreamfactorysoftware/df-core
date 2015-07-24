@@ -6,6 +6,7 @@ use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\CacheUtilities;
 use DreamFactory\Core\Utility\Session;
 
@@ -142,45 +143,49 @@ HTML;
      */
     public function getSwaggerForService($name)
     {
-        $_cachePath = $name . '.json';
+        $cachePath = $name . '.json';
 
-        if (null === $_content = CacheUtilities::getByServiceId($this->id, $_cachePath)) {
+        if (null === $content = CacheUtilities::getByServiceId($this->id, $cachePath)) {
             $service = Service::whereName($name)->get()->first();
             if (empty($service)) {
-                throw new NotFoundException("Could not find a service for '$name''");
+                throw new NotFoundException("Service '$name' not found.");
             }
 
-            $_content = ApiDocManager::getStoredContentForService($service);
-
-            if (empty($_content)) {
-                throw new NotFoundException("No Swagger content found for service '$name'");
-            }
-
-            $_baseSwagger = [
+            $content = [
                 'swaggerVersion' => static::SWAGGER_VERSION,
                 'apiVersion'     => \Config::get('df.api_version', static::API_VERSION),
                 'basePath'       => url('/api/v2'),
             ];
 
-            $_content = array_merge($_baseSwagger, $_content);
-            $_content = json_encode($_content, JSON_UNESCAPED_SLASHES);
+            try {
+                $result = ApiDocManager::getStoredContentForService($service);
 
-            // replace service type placeholder with api name for this service instance
-            $_content = str_replace('{api_name}', $name, $_content);
+                if (empty($result)) {
+                    throw new NotFoundException("No Swagger content found.");
+                }
 
-            // cache it for later access
-            if (false ===
-                CacheUtilities::putByServiceId($this->id, $_cachePath, $_content, static::SWAGGER_CACHE_TTL)
-            ) {
-                \Log::error("  * System error creating swagger cache file: $name.json");
+                $content = array_merge($content, $result);
+                $content = json_encode($content, JSON_UNESCAPED_SLASHES);
+
+                // replace service type placeholder with api name for this service instance
+                $content = str_replace('{api_name}', $name, $content);
+
+                // cache it for later access
+                if (false ===
+                    CacheUtilities::putByServiceId($this->id, $cachePath, $content, static::SWAGGER_CACHE_TTL)
+                ) {
+                    throw new \Exception("  * System error creating swagger cache file.");
+                }
+
+                // Add to this the queried service's keys for clearing later.
+                $key = CacheUtilities::makeKeyFromTypeAndId('service', $this->id, $cachePath);
+                CacheUtilities::addKeysByTypeAndId('service', $service->id, $key);
+            } catch (\Exception $ex) {
+                \Log::error("  * System error creating swagger file for service '$name'.\n{$ex->getMessage()}");
             }
-
-            // Add to this the queried service's keys for clearing later.
-            $key = CacheUtilities::makeKeyFromTypeAndId('service', $this->id, $_cachePath);
-            CacheUtilities::addKeysByTypeAndId('service', $service->id, $key);
         }
 
-        return $_content;
+        return $content;
     }
 
     /**
@@ -219,20 +224,7 @@ HTML;
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            => 'This returns the base Swagger file containing all API services.',
                     ],
                 ],
@@ -257,20 +249,7 @@ HTML;
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            => '',
                     ],
                 ],

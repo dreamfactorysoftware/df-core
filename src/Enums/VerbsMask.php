@@ -67,7 +67,7 @@ class VerbsMask extends Verbs
     /**
      * @var array A hash of level names
      */
-    protected static $_strings = array(
+    protected static $strings = array(
         self::GET     => self::GET_MASK,
         self::POST    => self::POST_MASK,
         self::PUT     => self::PUT_MASK,
@@ -97,11 +97,11 @@ class VerbsMask extends Verbs
         }
 
         $requestorType = strtoupper($requestorType);
-        if (!isset(static::$_strings[$requestorType])) {
+        if (!isset(static::$strings[$requestorType])) {
             throw new NotImplementedException('The verb "' . $requestorType . '" is not supported.');
         }
 
-        return static::$_strings[$requestorType];
+        return static::$strings[$requestorType];
     }
 
     /**
@@ -116,11 +116,11 @@ class VerbsMask extends Verbs
             throw new \InvalidArgumentException('The verb mask "' . $numericLevel . '" is not numeric.');
         }
 
-        if (false === $_verb = array_search($numericLevel, static::$_strings)) {
+        if (false === $verb = array_search($numericLevel, static::$strings)) {
             throw new NotImplementedException('The verb mask "' . $numericLevel . '" is not supported.');
         }
 
-        return $_verb;
+        return $verb;
     }
 
     /**
@@ -130,48 +130,48 @@ class VerbsMask extends Verbs
      */
     public static function arrayToMask($array)
     {
-        $_mask = self::NONE_MASK;
+        $mask = self::NONE_MASK;
 
         if (empty($array) || !is_array($array)) {
-            return $_mask;
+            return $mask;
         }
 
-        foreach ($array as $_verb) {
-            switch ($_verb) {
+        foreach ($array as $verb) {
+            switch ($verb) {
                 case self::GET:
-                    $_mask |= self::GET_MASK;
+                    $mask |= self::GET_MASK;
                     break;
                 case self::POST:
-                    $_mask |= self::POST_MASK;
+                    $mask |= self::POST_MASK;
                     break;
                 case self::PUT:
-                    $_mask |= self::PUT_MASK;
+                    $mask |= self::PUT_MASK;
                     break;
                 case self::PATCH:
-                    $_mask |= self::PATCH_MASK;
+                    $mask |= self::PATCH_MASK;
                     break;
                 case self::DELETE:
-                    $_mask |= self::DELETE_MASK;
+                    $mask |= self::DELETE_MASK;
                     break;
                 case self::OPTIONS:
-                    $_mask |= self::OPTIONS_MASK;
+                    $mask |= self::OPTIONS_MASK;
                     break;
                 case self::HEAD:
-                    $_mask |= self::HEAD_MASK;
+                    $mask |= self::HEAD_MASK;
                     break;
                 case self::COPY:
-                    $_mask |= self::COPY_MASK;
+                    $mask |= self::COPY_MASK;
                     break;
                 case self::TRACE:
-                    $_mask |= self::TRACE_MASK;
+                    $mask |= self::TRACE_MASK;
                     break;
                 case self::CONNECT:
-                    $_mask |= self::CONNECT_MASK;
+                    $mask |= self::CONNECT_MASK;
                     break;
             }
         }
 
-        return $_mask;
+        return $mask;
     }
 
     /**
@@ -181,43 +181,43 @@ class VerbsMask extends Verbs
      */
     public static function maskToArray($mask)
     {
-        $_array = array();
+        $array = array();
 
         if (empty($mask) || !is_int($mask)) {
-            return $_array;
+            return $array;
         }
 
         if ($mask & self::GET_MASK) {
-            $_array[] = self::GET;
+            $array[] = self::GET;
         }
         if ($mask & self::POST_MASK) {
-            $_array[] = self::POST;
+            $array[] = self::POST;
         }
         if ($mask & self::PUT_MASK) {
-            $_array[] = self::PUT;
+            $array[] = self::PUT;
         }
         if ($mask & self::PATCH_MASK) {
-            $_array[] = self::PATCH;
+            $array[] = self::PATCH;
         }
         if ($mask & self::DELETE_MASK) {
-            $_array[] = self::DELETE;
+            $array[] = self::DELETE;
         }
         if ($mask & self::OPTIONS_MASK) {
-            $_array[] = self::OPTIONS;
+            $array[] = self::OPTIONS;
         }
         if ($mask & self::HEAD_MASK) {
-            $_array[] = self::HEAD;
+            $array[] = self::HEAD;
         }
         if ($mask & self::COPY_MASK) {
-            $_array[] = self::COPY;
+            $array[] = self::COPY;
         }
         if ($mask & self::TRACE_MASK) {
-            $_array[] = self::TRACE;
+            $array[] = self::TRACE;
         }
         if ($mask & self::CONNECT_MASK) {
-            $_array[] = self::CONNECT;
+            $array[] = self::CONNECT;
         }
 
-        return $_array;
+        return $array;
     }
 }

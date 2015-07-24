@@ -18,20 +18,20 @@ abstract class BaseNoSqlDbSchemaResource extends BaseDbSchemaResource
      *
      * @return string
      */
-    protected static function _createRecordId($table)
+    protected static function createRecordId($table)
     {
-        $_randomTime = abs(time());
+        $randomTime = abs(time());
 
-        if ($_randomTime == 0) {
-            $_randomTime = 1;
+        if ($randomTime == 0) {
+            $randomTime = 1;
         }
 
-        $_random1 = rand(1, $_randomTime);
-        $_random2 = rand(1, 2000000000);
-        $_generateId = strtolower(md5($_random1 . $table . $_randomTime . $_random2));
-        $_randSmall = rand(10, 99);
+        $random1 = rand(1, $randomTime);
+        $random2 = rand(1, 2000000000);
+        $generateId = strtolower(md5($random1 . $table . $randomTime . $random2));
+        $randSmall = rand(10, 99);
 
-        return $_generateId . $_randSmall;
+        return $generateId . $randSmall;
     }
 
     /**

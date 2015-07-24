@@ -16,6 +16,8 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
  */
 abstract class RemoteFileSystem implements FileSystemInterface
 {
+    protected $container = null;
+
     //*************************************************************************
     //	Methods
     //*************************************************************************
@@ -44,25 +46,25 @@ abstract class RemoteFileSystem implements FileSystemInterface
      */
     public function createContainers($containers, $check_exist = false)
     {
-        $_out = [];
+        $out = [];
 
         if (!empty($containers)) {
             if (!isset($containers[0])) {
                 // single folder, make into array
                 $containers = [$containers];
             }
-            foreach ($containers as $_key => $_folder) {
+            foreach ($containers as $key => $folder) {
                 try {
                     // path is full path, name is relative to root, take either
-                    $_out[$_key] = $this->createContainer($_folder, $check_exist);
+                    $out[$key] = $this->createContainer($folder, $check_exist);
                 } catch (\Exception $ex) {
                     // error whole batch here?
-                    $_out[$_key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
+                    $out[$key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
                 }
             }
         }
 
-        return $_out;
+        return $out;
     }
 
     /**
@@ -81,18 +83,18 @@ abstract class RemoteFileSystem implements FileSystemInterface
                 // single folder, make into array
                 $containers = [$containers];
             }
-            foreach ($containers as $_key => $_folder) {
+            foreach ($containers as $key => $folder) {
                 try {
                     // path is full path, name is relative to root, take either
-                    $_name = ArrayUtils::get($_folder, 'name', trim(ArrayUtils::get($_folder, 'path'), '/'));
-                    if (!empty($_name)) {
-                        $this->deleteContainer($_name, $force);
+                    $name = ArrayUtils::get($folder, 'name', trim(ArrayUtils::get($folder, 'path'), '/'));
+                    if (!empty($name)) {
+                        $this->deleteContainer($name, $force);
                     } else {
                         throw new DfException('No name found for container in delete request.');
                     }
                 } catch (\Exception $ex) {
                     // error whole batch here?
-                    $containers[$_key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
+                    $containers[$key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
                 }
             }
         }
@@ -125,37 +127,14 @@ abstract class RemoteFileSystem implements FileSystemInterface
      * @param bool   $include_files
      * @param bool   $include_folders
      * @param bool   $full_tree
-     * @param bool   $include_properties
      *
      * @throws NotFoundException
      * @return array
      */
-    public function getFolder(
-        $container,
-        $path,
-        $include_files = true,
-        $include_folders = true,
-        $full_tree = false,
-        $include_properties = false
-    ){
-        if (!empty($path)) {
-            $path = FileUtilities::fixFolderPath($path);
-            $_shortName = FileUtilities::getNameFromPath($path);
-            $_out = ['container' => $container, 'name' => $_shortName, 'path' => $container . '/' . $path];
-            if ($include_properties) {
-                // properties
-                if ($this->containerExists($container) && $this->blobExists($container, $path)) {
-                    $properties = $this->getBlobProperties($container, $path);
-                    $_out = array_merge($properties, $_out);
-                }
-            }
-        } else {
-            $_out = ['container' => $container, 'name' => $container, 'path' => $container];
-        }
-
-        $_delimiter = ($full_tree) ? '' : '/';
-        $_files = [];
-        $_folders = [];
+    public function getFolder($container, $path, $include_files = true, $include_folders = true, $full_tree = false)
+    {
+        $delimiter = ($full_tree) ? '' : '/';
+        $resources = [];
         if ($this->containerExists($container)) {
             if (!empty($path)) {
                 if (!$this->blobExists($container, $path)) {
@@ -163,20 +142,22 @@ abstract class RemoteFileSystem implements FileSystemInterface
 //					throw new NotFoundException( "Folder '$path' does not exist in storage." );
                 }
             }
-            $_results = $this->listBlobs($container, $path, $_delimiter);
-            foreach ($_results as $_data) {
-                $_fullPathName = ArrayUtils::get($_data, 'name');
-                $_data['path'] = $container . '/' . $_fullPathName;
-                $_data['name'] = rtrim(substr($_fullPathName, strlen($path)), '/');
-                if ('/' == substr($_fullPathName, -1)) {
+            $results = $this->listBlobs($container, $path, $delimiter);
+            foreach ($results as $data) {
+                $fullPathName = ArrayUtils::get($data, 'name');
+                $data['path'] = $fullPathName;
+                $data['name'] = rtrim(substr($fullPathName, strlen($path)), '/');
+                if ('/' == substr($fullPathName, -1)) {
                     // folders
                     if ($include_folders) {
-                        $_folders[] = $_data;
+                        $data['type'] = 'folder';
+                        $resources[] = $data;
                     }
                 } else {
                     // files
                     if ($include_files) {
-                        $_files[] = $_data;
+                        $data['type'] = 'file';
+                        $resources[] = $data;
                     }
                 }
             }
@@ -187,10 +168,27 @@ abstract class RemoteFileSystem implements FileSystemInterface
             // container root doesn't really exist until first write creates it
         }
 
-        $_out['folder'] = $_folders;
-        $_out['file'] = $_files;
+        return $resources;
+    }
 
-        return $_out;
+    /**
+     * @param string $container
+     * @param string $path
+     *
+     * @throws NotFoundException
+     * @return array
+     */
+    public function getFolderProperties($container, $path)
+    {
+        $path = FileUtilities::fixFolderPath($path);
+        $shortName = FileUtilities::getNameFromPath($path);
+        $out = ['name' => $shortName, 'path' => $path];
+        if ($this->containerExists($container) && $this->blobExists($container, $path)) {
+            $properties = $this->getBlobProperties($container, $path);
+            $out = array_merge($properties, $out);
+        }
+
+        return $out;
     }
 
     /**
@@ -221,12 +219,12 @@ abstract class RemoteFileSystem implements FileSystemInterface
             return;
         }
         // does this folder's parent exist?
-        $_parent = FileUtilities::getParentFolder($path);
-        if (!empty($_parent) && (!$this->folderExists($container, $_parent))) {
+        $parent = FileUtilities::getParentFolder($path);
+        if (!empty($parent) && (!$this->folderExists($container, $parent))) {
             if ($check_exist) {
-                throw new NotFoundException("Folder '$_parent' does not exist.");
+                throw new NotFoundException("Folder '$parent' does not exist.");
             }
-            $this->createFolder($container, $_parent, $is_public, $properties, false);
+            $this->createFolder($container, $parent, $is_public, $properties, false);
         }
 
         // create the folder
@@ -259,23 +257,23 @@ abstract class RemoteFileSystem implements FileSystemInterface
             }
         }
         // does this file's parent folder exist?
-        $_parent = FileUtilities::getParentFolder($dest_path);
-        if (!empty($_parent) && (!$this->folderExists($container, $_parent))) {
-            throw new NotFoundException("Folder '$_parent' does not exist.");
+        $parent = FileUtilities::getParentFolder($dest_path);
+        if (!empty($parent) && (!$this->folderExists($container, $parent))) {
+            throw new NotFoundException("Folder '$parent' does not exist.");
         }
         // create the folder
         $this->checkContainerForWrite($container); // need to be able to write to storage
         $this->copyBlob($container, $dest_path, $src_container, $src_path);
         // now copy content of folder...
-        $_blobs = $this->listBlobs($src_container, $src_path);
-        if (!empty($_blobs)) {
-            foreach ($_blobs as $_blob) {
-                $_srcName = ArrayUtils::get($_blob, 'name');
-                if ((0 !== strcasecmp($src_path, $_srcName))) {
+        $blobs = $this->listBlobs($src_container, $src_path);
+        if (!empty($blobs)) {
+            foreach ($blobs as $blob) {
+                $srcName = ArrayUtils::get($blob, 'name');
+                if ((0 !== strcasecmp($src_path, $srcName))) {
                     // not self properties blob
-                    $_name = FileUtilities::getNameFromPath($_srcName);
-                    $_fullPathName = $dest_path . $_name;
-                    $this->copyBlob($container, $_fullPathName, $src_container, $_srcName);
+                    $name = FileUtilities::getNameFromPath($srcName);
+                    $fullPathName = $dest_path . $name;
+                    $this->copyBlob($container, $fullPathName, $src_container, $srcName);
                 }
             }
         }
@@ -314,17 +312,17 @@ abstract class RemoteFileSystem implements FileSystemInterface
     public function deleteFolder($container, $path, $force = false)
     {
         $path = rtrim($path, '/') . '/';
-        $_blobs = $this->listBlobs($container, $path);
-        if (!empty($_blobs)) {
-            if ((1 === count($_blobs)) && (0 === strcasecmp($path, $_blobs[0]['name']))) {
+        $blobs = $this->listBlobs($container, $path);
+        if (!empty($blobs)) {
+            if ((1 === count($blobs)) && (0 === strcasecmp($path, $blobs[0]['name']))) {
                 // only self properties blob
             } else {
                 if (!$force) {
                     throw new BadRequestException("Folder '$path' contains other files or folders.");
                 }
-                foreach ($_blobs as $_blob) {
-                    $_name = ArrayUtils::get($_blob, 'name');
-                    $this->deleteBlob($container, $_name);
+                foreach ($blobs as $blob) {
+                    $name = ArrayUtils::get($blob, 'name');
+                    $this->deleteBlob($container, $name);
                 }
             }
         }
@@ -344,26 +342,26 @@ abstract class RemoteFileSystem implements FileSystemInterface
     public function deleteFolders($container, $folders, $root = '', $force = false)
     {
         $root = FileUtilities::fixFolderPath($root);
-        foreach ($folders as $_key => $_folder) {
+        foreach ($folders as $key => $folder) {
             try {
                 // path is full path, name is relative to root, take either
-                $_path = ArrayUtils::get($_folder, 'path');
-                $_name = ArrayUtils::get($_folder, 'name');
-                if (!empty($_path)) {
-                    $_path = static::removeContainerFromPath($container, $_path);
-                } elseif (!empty($_name)) {
-                    $_path = $root . $_folder['name'];
+                $path = ArrayUtils::get($folder, 'path');
+                $name = ArrayUtils::get($folder, 'name');
+                if (!empty($path)) {
+                    $path = static::removeContainerFromPath($container, $path);
+                } elseif (!empty($name)) {
+                    $path = $root . $folder['name'];
                 } else {
                     throw new BadRequestException('No path or name found for folder in delete request.');
                 }
-                if (!empty($_path)) {
-                    $this->deleteFolder($container, $_path, $force);
+                if (!empty($path)) {
+                    $this->deleteFolder($container, $path, $force);
                 } else {
                     throw new BadRequestException('No path or name found for folder in delete request.');
                 }
             } catch (\Exception $ex) {
                 // error whole batch here?
-                $folders[$_key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
+                $folders[$key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
             }
         }
 
@@ -410,12 +408,12 @@ abstract class RemoteFileSystem implements FileSystemInterface
             return '';
         } else {
             // get content as raw or encoded as base64 for transport
-            $_data = $this->getBlobData($container, $path);
+            $data = $this->getBlobData($container, $path);
             if ($content_as_base) {
-                $_data = base64_encode($_data);
+                $data = base64_encode($data);
             }
 
-            return $_data;
+            return $data;
         }
     }
 
@@ -434,19 +432,19 @@ abstract class RemoteFileSystem implements FileSystemInterface
         if (!$this->containerExists($container) || !$this->blobExists($container, $path)) {
             throw new NotFoundException("File '$path' does not exist in storage.");
         }
-        $_blob = $this->getBlobProperties($container, $path);
-        $_shortName = FileUtilities::getNameFromPath($path);
-        $_blob['path'] = $container . '/' . $path;
-        $_blob['name'] = $_shortName;
+        $blob = $this->getBlobProperties($container, $path);
+        $shortName = FileUtilities::getNameFromPath($path);
+        $blob['path'] = $path;
+        $blob['name'] = $shortName;
         if ($include_content) {
             $data = $this->getBlobData($container, $path);
             if ($content_as_base) {
                 $data = base64_encode($data);
             }
-            $_blob['content'] = $data;
+            $blob['content'] = $data;
         }
 
-        return $_blob;
+        return $blob;
     }
 
     /**
@@ -459,8 +457,8 @@ abstract class RemoteFileSystem implements FileSystemInterface
      */
     public function streamFile($container, $path, $download = false)
     {
-        $_params = ($download) ? ['disposition' => 'attachment'] : [];
-        $this->streamBlob($container, $path, $_params);
+        $params = ($download) ? ['disposition' => 'attachment'] : [];
+        $this->streamBlob($container, $path, $params);
     }
 
     /**
@@ -504,9 +502,9 @@ abstract class RemoteFileSystem implements FileSystemInterface
             }
         }
         // does this folder's parent exist?
-        $_parent = FileUtilities::getParentFolder($path);
-        if (!empty($_parent) && (!$this->folderExists($container, $_parent))) {
-            throw new NotFoundException("Folder '$_parent' does not exist.");
+        $parent = FileUtilities::getParentFolder($path);
+        if (!empty($parent) && (!$this->folderExists($container, $parent))) {
+            throw new NotFoundException("Folder '$parent' does not exist.");
         }
 
         // create the file
@@ -514,9 +512,9 @@ abstract class RemoteFileSystem implements FileSystemInterface
         if ($content_is_base) {
             $content = base64_decode($content);
         }
-        $_ext = FileUtilities::getFileExtension($path);
-        $_mime = FileUtilities::determineContentType($_ext, $content);
-        $this->putBlobData($container, $path, $content, $_mime);
+        $ext = FileUtilities::getFileExtension($path);
+        $mime = FileUtilities::determineContentType($ext, $content);
+        $this->putBlobData($container, $path, $content, $mime);
     }
 
     /**
@@ -543,16 +541,16 @@ abstract class RemoteFileSystem implements FileSystemInterface
             }
         }
         // does this file's parent folder exist?
-        $_parent = FileUtilities::getParentFolder($path);
-        if (!empty($_parent) && (!$this->folderExists($container, $_parent))) {
-            throw new NotFoundException("Folder '$_parent' does not exist.");
+        $parent = FileUtilities::getParentFolder($path);
+        if (!empty($parent) && (!$this->folderExists($container, $parent))) {
+            throw new NotFoundException("Folder '$parent' does not exist.");
         }
 
         // create the file
         $this->checkContainerForWrite($container); // need to be able to write to storage
-        $_ext = FileUtilities::getFileExtension($path);
-        $_mime = FileUtilities::determineContentType($_ext, '', $local_path);
-        $this->putBlobFromFile($container, $path, $local_path, $_mime);
+        $ext = FileUtilities::getFileExtension($path);
+        $mime = FileUtilities::determineContentType($ext, '', $local_path);
+        $this->putBlobFromFile($container, $path, $local_path, $mime);
     }
 
     /**
@@ -579,9 +577,9 @@ abstract class RemoteFileSystem implements FileSystemInterface
             }
         }
         // does this file's parent folder exist?
-        $_parent = FileUtilities::getParentFolder($dest_path);
-        if (!empty($_parent) && (!$this->folderExists($container, $_parent))) {
-            throw new NotFoundException("Folder '$_parent' does not exist.");
+        $parent = FileUtilities::getParentFolder($dest_path);
+        if (!empty($parent) && (!$this->folderExists($container, $parent))) {
+            throw new NotFoundException("Folder '$parent' does not exist.");
         }
 
         // create the file
@@ -612,26 +610,26 @@ abstract class RemoteFileSystem implements FileSystemInterface
     public function deleteFiles($container, $files, $root = '')
     {
         $root = FileUtilities::fixFolderPath($root);
-        foreach ($files as $_key => $_file) {
+        foreach ($files as $key => $file) {
             try {
                 // path is full path, name is relative to root, take either
-                $_path = ArrayUtils::get($_file, 'path');
-                $_name = ArrayUtils::get($_file, 'name');
-                if (!empty($_path)) {
-                    $_path = static::removeContainerFromPath($container, $_path);
-                } elseif (!empty($_name)) {
-                    $_path = $root . $_name;
+                $path = ArrayUtils::get($file, 'path');
+                $name = ArrayUtils::get($file, 'name');
+                if (!empty($path)) {
+                    $path = static::removeContainerFromPath($container, $path);
+                } elseif (!empty($name)) {
+                    $path = $root . $name;
                 } else {
                     throw new BadRequestException('No path or name found for file in delete request.');
                 }
-                if (!empty($_path)) {
-                    $this->deleteFile($container, $_path);
+                if (!empty($path)) {
+                    $this->deleteFile($container, $path);
                 } else {
                     throw new BadRequestException('No path or name found for file in delete request.');
                 }
             } catch (\Exception $ex) {
                 // error whole batch here?
-                $files[$_key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
+                $files[$key]['error'] = ['message' => $ex->getMessage(), 'code' => $ex->getCode()];
             }
         }
 
@@ -653,13 +651,13 @@ abstract class RemoteFileSystem implements FileSystemInterface
     public function getFolderAsZip($container, $path, $zip = null, $zipFileName = '', $overwrite = false)
     {
         $path = FileUtilities::fixFolderPath($path);
-        $_delimiter = '';
+        $delimiter = '';
         if (!$this->containerExists($container)) {
             throw new BadRequestException("Can not find directory '$container'.");
         }
-        $_needClose = false;
+        $needClose = false;
         if (!isset($zip)) {
-            $_needClose = true;
+            $needClose = true;
             $zip = new \ZipArchive();
             if (empty($zipFileName)) {
                 $temp = basename($path);
@@ -674,27 +672,27 @@ abstract class RemoteFileSystem implements FileSystemInterface
             }
         }
 
-        $_results = $this->listBlobs($container, $path, $_delimiter);
-        foreach ($_results as $_blob) {
-            $_fullPathName = ArrayUtils::get($_blob, 'name');
-            $_shortName = substr_replace($_fullPathName, '', 0, strlen($path));
-            if (empty($_shortName)) {
+        $results = $this->listBlobs($container, $path, $delimiter);
+        foreach ($results as $blob) {
+            $fullPathName = ArrayUtils::get($blob, 'name');
+            $shortName = substr_replace($fullPathName, '', 0, strlen($path));
+            if (empty($shortName)) {
                 continue;
             }
-            if ('/' == substr($_fullPathName, strlen($_fullPathName) - 1)) {
+            if ('/' == substr($fullPathName, strlen($fullPathName) - 1)) {
                 // folders
-                if (!$zip->addEmptyDir($_shortName)) {
-                    throw new InternalServerErrorException("Can not include folder '$_shortName' in zip file.");
+                if (!$zip->addEmptyDir($shortName)) {
+                    throw new InternalServerErrorException("Can not include folder '$shortName' in zip file.");
                 }
             } else {
                 // files
-                $_content = $this->getBlobData($container, $_fullPathName);
-                if (!$zip->addFromString($_shortName, $_content)) {
-                    throw new InternalServerErrorException("Can not include file '$_shortName' in zip file.");
+                $content = $this->getBlobData($container, $fullPathName);
+                if (!$zip->addFromString($shortName, $content)) {
+                    throw new InternalServerErrorException("Can not include file '$shortName' in zip file.");
                 }
             }
         }
-        if ($_needClose) {
+        if ($needClose) {
             $zip->close();
         }
 
@@ -716,11 +714,11 @@ abstract class RemoteFileSystem implements FileSystemInterface
         if ($clean) {
             try {
                 // clear out anything in this directory
-                $_blobs = $this->listBlobs($container, $path);
-                if (!empty($_blobs)) {
-                    foreach ($_blobs as $_blob) {
-                        if ((0 !== strcasecmp($path, $_blob['name']))) { // not folder itself
-                            $this->deleteBlob($container, $_blob['name']);
+                $blobs = $this->listBlobs($container, $path);
+                if (!empty($blobs)) {
+                    foreach ($blobs as $blob) {
+                        if ((0 !== strcasecmp($path, $blob['name']))) { // not folder itself
+                            $this->deleteBlob($container, $blob['name']);
                         }
                     }
                 }
@@ -730,14 +728,14 @@ abstract class RemoteFileSystem implements FileSystemInterface
         }
         for ($i = 0; $i < $zip->numFiles; $i++) {
             try {
-                $_name = $zip->getNameIndex($i);
-                if (empty($_name)) {
+                $name = $zip->getNameIndex($i);
+                if (empty($name)) {
                     continue;
                 }
                 if (!empty($drop_path)) {
-                    $_name = str_ireplace($drop_path, '', $_name);
+                    $name = str_ireplace($drop_path, '', $name);
                 }
-                $fullPathName = $path . $_name;
+                $fullPathName = $path . $name;
                 if ('/' === substr($fullPathName, -1)) {
                     $this->createFolder($container, $fullPathName, true, [], false);
                 } else {
@@ -753,7 +751,29 @@ abstract class RemoteFileSystem implements FileSystemInterface
             }
         }
 
-        return ['folder' => ['name' => rtrim($path, DIRECTORY_SEPARATOR), 'path' => $container . '/' . $path]];
+        return ['name' => rtrim($path, DIRECTORY_SEPARATOR), 'path' => $path];
+    }
+
+    protected function listResource($includeProperties = false)
+    {
+        $out = [];
+
+        $result = $this->getFolder($this->container, '', true, true, false, $includeProperties);
+
+        $folders = ArrayUtils::get($result, 'folder', []);
+        $files = ArrayUtils::get($result, 'file', []);
+
+        foreach ($folders as $folder) {
+            $folder['path'] = trim($folder['path'], '/');
+            $out[] = $folder;
+        }
+
+        foreach ($files as $file) {
+            $file['path'] = trim($file['path'], '/');
+            $out[] = $file;
+        }
+
+        return $out;
     }
 
     /**

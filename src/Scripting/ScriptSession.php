@@ -24,11 +24,11 @@ class ScriptSession
     /**
      * @type \Cache
      */
-    protected $_store;
+    protected $store;
     /**
      * @type array|mixed
      */
-    protected $_data = [];
+    protected $data = [];
 
     //******************************************************************************
     //* Methods
@@ -40,9 +40,9 @@ class ScriptSession
      */
     public function __construct($id, $store)
     {
-        $this->_id = $id;
-        $this->_store = $store;
-        $this->_data = $store->get(sha1($id), []);
+        $this->id = $id;
+        $this->store = $store;
+        $this->data = $store->get(sha1($id), []);
     }
 
     /**
@@ -50,7 +50,7 @@ class ScriptSession
      */
     public function __destruct()
     {
-        $this->_store->add(sha1($this->_id), $this->_data, static::SCRIPT_SESSION_TTL);
+        $this->store->add(sha1($this->id), $this->data, static::SCRIPT_SESSION_TTL);
     }
 
     /**
@@ -59,7 +59,7 @@ class ScriptSession
      */
     public function set($key, $value)
     {
-        $this->_data[$key] = $value;
+        $this->data[$key] = $value;
     }
 
     /**
@@ -70,6 +70,6 @@ class ScriptSession
      */
     public function get($key, $defaultValue = null)
     {
-        return ArrayUtils::get($this->_data, $key, $defaultValue);
+        return ArrayUtils::get($this->data, $key, $defaultValue);
     }
 }

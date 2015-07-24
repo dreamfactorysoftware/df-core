@@ -1,32 +1,64 @@
 <?php
 namespace DreamFactory\Core\Models;
 
-use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Core\Exceptions\BadRequestException;
 
 class FilePublicPath extends BaseServiceConfigModel
 {
     protected $table = 'file_public_path';
 
-    protected $fillable = ['service_id', 'public_path'];
+    protected $fillable = ['service_id', 'public_path', 'container'];
 
-    public function setPublicPathAttribute($value)
+    protected $casts = ['public_path' => 'array'];
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function validateConfig($config, $create = true)
     {
-        if (is_array($value)) {
-            $value = ArrayUtils::clean($value, function ($item){
-                return trim($item, '/');
-            });
-            $value = json_encode($value, JSON_UNESCAPED_SLASHES);
+        $validator = static::makeValidator($config, [
+            'container' => 'required'
+        ], $create);
+
+        if ($validator->fails()) {
+            $messages = $validator->messages()->getMessages();
+            throw new BadRequestException('Validation failed.', null, null, $messages);
         }
 
-        $this->attributes['public_path'] = $value;
+        return true;
     }
 
-    public function getPublicPathAttribute($value)
+    /**
+     * @param array $schema
+     */
+    protected static function prepareConfigSchemaField(array &$schema)
     {
-        if (!is_array($value)) {
-            $value = json_decode($value, true);
-        }
+        parent::prepareConfigSchemaField($schema);
 
-        return $value;
+        switch ($schema['name']) {
+            case 'public_path':
+                $schema['type'] = 'array(string)';
+                $schema['description'] =
+                    'An array of paths to make public.' .
+                    ' All folders and files under these paths will be accessible by the server.';
+                break;
+            case 'container':
+                $values = [];
+                $defaultDiskName = \Config::get('filesystems.default');
+                $disks = \Config::get('filesystems.disks');
+
+                foreach ($disks as $disk) {
+                    $default = false;
+                    if ($defaultDiskName === $disk['driver']) {
+                        $default = true;
+                    }
+                    $values[] = ['name' => $disk['driver'], 'default' => $default];
+                }
+
+                $schema['type'] = 'picklist';
+                $schema['description'] = 'Select a disk configuration to use for local file service.';
+                $schema['values'] = $values;
+                break;
+        }
     }
 }

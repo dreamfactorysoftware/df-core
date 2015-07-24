@@ -2,14 +2,17 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\BaseRestResource;
-use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Models\BaseSystemModel;
-use DreamFactory\Core\Utility\Session as SessionUtilities;
+use DreamFactory\Core\Utility\Session as SessionUtility;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -19,10 +22,6 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
  */
 class ReadOnlySystemResource extends BaseRestResource
 {
-    /**
-     *
-     */
-    const RECORD_WRAPPER = 'record';
     /**
      * Default maximum records returned on filter request
      */
@@ -49,30 +48,15 @@ class ReadOnlySystemResource extends BaseRestResource
         $this->model = ArrayUtils::get($settings, "model_name", $this->model); // could be statically set
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    protected function getPayloadData($key = null, $default = null)
+    protected function getResourceIdentifier()
     {
-        $payload = parent::getPayloadData();
-
-        if (null !== $key && !empty($payload[$key])) {
-            return $payload[$key];
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = $this->model;
+        if ($modelClass) {
+            return $modelClass::getPrimaryKeyStatic();
         }
 
-        if (!empty($this->resource) && !empty($payload)) {
-            // single records passed in which don't use the record wrapper, so wrap it
-            $payload = [static::RECORD_WRAPPER => [$payload]];
-        } elseif (ArrayUtils::isArrayNumeric($payload)) {
-            // import from csv, etc doesn't include a wrapper, so wrap it
-            $payload = [static::RECORD_WRAPPER => $payload];
-        }
-
-        if (empty($key)) {
-            $key = static::RECORD_WRAPPER;
-        }
-
-        return ArrayUtils::get($payload, $key);
+        throw new BadRequestException('No known identifier for resources.');
     }
 
     /**
@@ -108,7 +92,6 @@ class ReadOnlySystemResource extends BaseRestResource
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
         $data = $modelClass::selectByIds($ids, $related, $criteria);
-        $data = [self::RECORD_WRAPPER => $data];
 
         return $data;
     }
@@ -118,10 +101,7 @@ class ReadOnlySystemResource extends BaseRestResource
         /** @var BaseSystemModel $model */
         $model = $this->getModel();
         $pk = $model->getPrimaryKey();
-        $ids = [];
-        foreach ($records as $record) {
-            $ids[] = ArrayUtils::get($record, $pk);
-        }
+        $ids = array_column($records, $pk);
 
         return $this->retrieveByIds($ids, $related);
     }
@@ -139,7 +119,6 @@ class ReadOnlySystemResource extends BaseRestResource
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
         $data = $modelClass::selectByRequest($criteria, $related);
-        $data = [static::RECORD_WRAPPER => $data];
 
         return $data;
     }
@@ -155,28 +134,28 @@ class ReadOnlySystemResource extends BaseRestResource
             'params' => []
         ];
 
-        if (null !== ($value = $this->request->getParameter('fields'))) {
+        if (null !== ($value = $this->request->getParameter(ApiOptions::FIELDS))) {
             $criteria['select'] = explode(',', $value);
         } else {
             $criteria['select'] = ['*'];
         }
 
-        if (null !== ($value = $this->request->getPayloadData('params'))) {
+        if (null !== ($value = $this->request->getPayloadData(ApiOptions::PARAMS))) {
             $criteria['params'] = $value;
         }
 
-        if (null !== ($value = $this->request->getParameter('filter'))) {
+        if (null !== ($value = $this->request->getParameter(ApiOptions::FILTER))) {
             $criteria['condition'] = $value;
 
             //	Add current user ID into parameter array if in condition, but not specified.
             if (false !== stripos($value, ':user_id')) {
                 if (!isset($criteria['params'][':user_id'])) {
-                    $criteria['params'][':user_id'] = SessionUtilities::getCurrentUserId();
+                    $criteria['params'][':user_id'] = SessionUtility::getCurrentUserId();
                 }
             }
         }
 
-        $value = intval($this->request->getParameter('limit'));
+        $value = intval($this->request->getParameter(ApiOptions::LIMIT));
         $maxAllowed = intval(\Config::get('df.db_max_records_returned', self::MAX_RECORDS_RETURNED));
         if (($value < 1) || ($value > $maxAllowed)) {
             // impose a limit to protect server
@@ -184,11 +163,11 @@ class ReadOnlySystemResource extends BaseRestResource
         }
         $criteria['limit'] = $value;
 
-        if (null !== ($value = $this->request->getParameter('offset'))) {
+        if (null !== ($value = $this->request->getParameter(ApiOptions::OFFSET))) {
             $criteria['offset'] = $value;
         }
 
-        if (null !== ($value = $this->request->getParameter('order'))) {
+        if (null !== ($value = $this->request->getParameter(ApiOptions::ORDER))) {
             $criteria['order'] = $value;
         }
 
@@ -203,48 +182,50 @@ class ReadOnlySystemResource extends BaseRestResource
      */
     protected function handleGET()
     {
-        $ids = $this->request->getParameter('ids');
-        $records = $this->getPayloadData(self::RECORD_WRAPPER);
-
         $data = null;
 
-        $related = $this->request->getParameter('related');
+        $related = $this->request->getParameter(ApiOptions::RELATED);
         if (!empty($related)) {
             $related = explode(',', $related);
         } else {
             $related = [];
         }
 
-        //	Single resource by ID
+        $meta = [];
         if (!empty($this->resource)) {
+            //	Single resource by ID
             $data = $this->retrieveById($this->resource, $related);
-        } else if (!empty($ids)) {
+        } else if (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $data = $this->retrieveByIds($ids, $related);
-        } else if (!empty($records)) {
-            $data = $this->retrieveByRecords($records, $related);
+        } else if (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
+            if (isset($records[0]) && is_array($records[0])) {
+                $data = $this->retrieveByRecords($records, $related);
+            } else {
+                // this may be a list of ids
+                $data = $this->retrieveByIds($ids, $related);
+            }
         } else {
             $data = $this->retrieveByRequest($related);
-        }
-
-        if (empty($data)) {
-            throw new NotFoundException("Record not found.");
-        }
-
-        if ($this->request->getParameterAsBool('include_count') === true) {
-            if (isset($data['record'])) {
-                $data['meta']['count'] = count($data['record']);
-            } elseif (!empty($data)) {
-                $data['meta']['count'] = 1;
+            if ($this->request->getParameterAsBool(ApiOptions::INCLUDE_COUNT)) {
+                $meta['count'] = count($data);
             }
         }
 
-        if (!empty($data) && $this->request->getParameterAsBool('include_schema') === true) {
+        if ($this->request->getParameterAsBool(ApiOptions::INCLUDE_SCHEMA)) {
             /** @var BaseSystemModel $model */
             $model = $this->getModel();
-            $data['meta']['schema'] = $model->getTableSchema()->toArray();
+            $meta['schema'] = $model->getTableSchema()->toArray();
         }
 
-        return ResponseFactory::create($data, $this->nativeFormat);
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $data = ResourcesWrapper::cleanResources($data, $asList, $id, ApiOptions::FIELDS_ALL, !empty($meta));
+
+        if (!empty($meta)) {
+            $data['meta'] = $meta;
+        }
+
+        return $data;
     }
 
     /**
@@ -270,116 +251,34 @@ class ReadOnlySystemResource extends BaseRestResource
         $plural = Inflector::pluralize($name);
         $words = str_replace('_', ' ', $this->name);
         $pluralWords = Inflector::pluralize($words);
+        $wrapper = ResourcesWrapper::getWrapper();
+
         $apis = [
             [
                 'path'        => $path,
+                'description' => "Operations for $words administration.",
                 'operations'  => [
                     [
                         'method'           => 'GET',
                         'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralWords . '.',
                         'nickname'         => 'get' . $plural,
                         'type'             => $plural . 'Response',
-                        'event_name'       => $eventPath . '.list',
+                        'event_name'       => [$eventPath . '.list'],
                         'consumes'         => ['application/json', 'application/xml', 'text/csv'],
                         'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [
-                            [
-                                'name'          => 'ids',
-                                'description'   => 'Comma-delimited list of the identifiers of the records to retrieve.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'filter',
-                                'description'   => 'SQL-like filter to limit the records to retrieve.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'limit',
-                                'description'   => 'Set to limit the filter results.',
-                                'allowMultiple' => false,
-                                'type'          => 'integer',
-                                'format'        => 'int32',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'order',
-                                'description'   => 'SQL-like order containing field and direction for filter results.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'offset',
-                                'description'   => 'Set to offset the filter results to a particular record count.',
-                                'allowMultiple' => false,
-                                'type'          => 'integer',
-                                'format'        => 'int32',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to retrieve for each record.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to retrieve for each record.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'include_count',
-                                'description'   => 'Include the total number of filter results in returned metadata.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'include_schema',
-                                'description'   => 'Include the schema of the table queried in returned metadata.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'file',
-                                'description'   => 'Download the results of the request as a file.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::FILTER),
+                            ApiOptions::documentOption(ApiOptions::LIMIT),
+                            ApiOptions::documentOption(ApiOptions::ORDER),
+                            ApiOptions::documentOption(ApiOptions::OFFSET),
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
+                            ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
+                            ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
+                            ApiOptions::documentOption(ApiOptions::FILE),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
                             'By default, all records up to the maximum are returned. <br>' .
@@ -389,7 +288,6 @@ class ReadOnlySystemResource extends BaseRestResource
                             'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                     ],
                 ],
-                'description' => "Operations for $words administration.",
             ],
             [
                 'path'        => $path . '/{id}',
@@ -409,37 +307,10 @@ class ReadOnlySystemResource extends BaseRestResource
                                 'paramType'     => 'path',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related records to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                     ],
                 ],
@@ -451,7 +322,7 @@ class ReadOnlySystemResource extends BaseRestResource
             $plural . 'Request'  => [
                 'id'         => $plural . 'Request',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
@@ -471,7 +342,7 @@ class ReadOnlySystemResource extends BaseRestResource
             $plural . 'Response' => [
                 'id'         => $plural . 'Response',
                 'properties' => [
-                    'record' => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
@@ -488,7 +359,7 @@ class ReadOnlySystemResource extends BaseRestResource
                 'id'         => 'Metadata',
                 'properties' => [
                     'schema' => [
-                        'type'        => 'Array',
+                        'type'        => 'array',
                         'description' => 'Array of table schema.',
                         'items'       => [
                             'type' => 'string',

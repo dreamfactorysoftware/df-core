@@ -33,10 +33,10 @@ class DfException extends \Exception
         if (null === $code && $message instanceof \Exception) {
             $context = $code;
 
-            $_exception = $message;
-            $message = $_exception->getMessage();
-            $code = $_exception->getCode();
-            $previous = $_exception->getPrevious();
+            $exception = $message;
+            $message = $exception->getMessage();
+            $code = $exception->getCode();
+            $previous = $exception->getPrevious();
         }
 
         $this->context = $context;

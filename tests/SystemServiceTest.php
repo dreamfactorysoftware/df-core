@@ -17,7 +17,7 @@ class SystemServiceTest extends \DreamFactory\Core\Testing\TestCase
     {
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE);
         $content = $rs->getContent();
-        $services = Arr::get($content, 'record');
+        $services = Arr::get($content, static::$wrapper);
 
         $first2 = Arr::get($services, '0.name');
         $first2 .= ',' . Arr::get($services, '1.name');

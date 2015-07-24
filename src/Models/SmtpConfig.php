@@ -2,26 +2,23 @@
 
 namespace DreamFactory\Core\Models;
 
-class EmailServiceConfig extends BaseServiceConfigModel
+use DreamFactory\Core\Exceptions\BadRequestException;
+
+class SmtpConfig extends BaseServiceConfigModel
 {
-    protected $table = 'email_config';
+    protected $table = 'smtp_config';
 
     protected $fillable = [
         'service_id',
-        'driver',
         'host',
         'port',
         'encryption',
         'username',
         'password',
-        'command',
-        'parameters',
-        'key',
-        'secret',
-        'domain'
+        'parameters'
     ];
 
-    protected $encrypted = ['username', 'password', 'key', 'secret'];
+    protected $encrypted = ['username', 'password'];
 
     protected $appends = ['parameters'];
 
@@ -32,7 +29,7 @@ class EmailServiceConfig extends BaseServiceConfigModel
         parent::boot();
 
         static::created(
-            function (EmailServiceConfig $emailConfig){
+            function (SmtpConfig $emailConfig){
                 if (!empty($emailConfig->parameters)) {
                     $params = [];
                     foreach ($emailConfig->parameters as $param) {
@@ -44,6 +41,25 @@ class EmailServiceConfig extends BaseServiceConfigModel
                 return true;
             }
         );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function validateConfig($config, $create = true)
+    {
+        $validator = static::makeValidator($config, [
+            'host'     => 'required',
+            'username' => 'required',
+            'password' => 'required'
+        ], $create);
+
+        if ($validator->fails()) {
+            $messages = $validator->messages()->getMessages();
+            throw new BadRequestException('Validation failed.', null, null, $messages);
+        }
+
+        return true;
     }
 
     /**

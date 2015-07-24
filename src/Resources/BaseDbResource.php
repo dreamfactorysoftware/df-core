@@ -6,6 +6,7 @@ use DreamFactory\Core\Services\BaseRestService;
 
 class BaseDbResource extends BaseRestResource
 {
+    const RESOURCE_IDENTIFIER = 'name';
     //*************************************************************************
     //	Members
     //*************************************************************************
@@ -18,6 +19,14 @@ class BaseDbResource extends BaseRestResource
     //*************************************************************************
     //	Methods
     //*************************************************************************
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getResourceIdentifier()
+    {
+        return static::RESOURCE_IDENTIFIER;
+    }
 
     /**
      * @param RequestHandlerInterface $parent

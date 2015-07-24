@@ -7,7 +7,7 @@ use DreamFactory\Library\Utility\FileSystem;
 use DreamFactory\Library\Utility\IfSet;
 use DreamFactory\Library\Utility\JsonFile;
 use DreamFactory\Core\Utility\CacheUtilities;
-use DreamFactory\Platform\Enums\EnterpriseDefaults;
+use DreamFactory\Library\Utility\Enums\EnterpriseDefaults;
 use Symfony\Component\HttpFoundation\Request;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 
@@ -101,7 +101,7 @@ final class Enterprise
     {
         static::_makeCacheKey();
 
-        if (DSP_DEBUG || !static::_reloadCache()) {
+        if (\Config::get('debug') || !static::_reloadCache()) {
             //  Discover where I am
             if (!static::_getClusterConfig()) {
                 static::debug('Not a DFE hosted instance. Resistance is NOT futile.');
@@ -615,9 +615,29 @@ final class Enterprise
         ];
     }
 
+    /**
+     * Return the Policy Limits or an empty array if there are none.  Currently only API hit limits are supported
+     *
+     * @return array|mixed
+     */
     public static function getPolicyLimits()
     {
         return static::isManagedInstace()? static::getConfig('limits') : [];
+    }
+
+    /**
+     * Return the Console API Key hash or null
+     *
+     * @return string|null
+     */
+    public static function getConsoleKey()
+    {
+        if (static::isManagedInstance() === true) {
+            $_env = static::getConfig('env');
+            return sha256($_env['cluster-id'] . $_env['instance-id']);
+        } else {
+            return null;
+        }
     }
 }
 

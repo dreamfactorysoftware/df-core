@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Services\Email;
 
 use DreamFactory\Core\Aws\Services\Ses;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use Swift_MailTransport as MailTransport;
 use Swift_SendmailTransport as SendmailTransport;
 
@@ -19,6 +20,9 @@ class Local extends BaseService
         switch ($driver) {
             case 'sendmail':
                 $command = \Config::get('mail.sendmail');
+                if (empty($command)) {
+                    throw new InternalServerErrorException('Missing Command for sendmail driver.');
+                }
                 $transport = SendmailTransport::newInstance($command);
 
                 break;
@@ -33,13 +37,15 @@ class Local extends BaseService
                 break;
             case 'mailgun':
                 $domain = \Config::get('services.mailgun.domain');
-                $secret = \Config::get('services.mailgun.secret');
-                $transport = MailGun::getTransport($domain, $secret);
+                $key = \Config::get('services.mailgun.secret');
+                $key = (!empty($key)) ?: \Config::get('services.mailgun.key');
+                $transport = MailGun::getTransport($domain, $key);
 
                 break;
             case 'mandrill':
-                $secret = \Config::get('services.mandrill.secret');
-                $transport = Mandrill::getTransport($secret);
+                $key = \Config::get('services.mandrill.secret');
+                $key = (!empty($key)) ?: \Config::get('services.mandrill.key');
+                $transport = Mandrill::getTransport($key);
                 break;
             case 'ses':
                 $key = \Config::get('services.ses.key');

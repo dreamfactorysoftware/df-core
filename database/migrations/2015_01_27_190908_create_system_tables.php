@@ -411,11 +411,11 @@ class CreateSystemTables extends Migration
             function (Blueprint $t){
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('host')->nullable();
-                $t->string('port')->nullable();
+                $t->string('host');
+                $t->string('port')->default('587');
                 $t->string('encryption')->default('tls');
-                $t->longText('username')->nullable(); //encrypted
-                $t->longText('password')->nullable(); //encrypted
+                $t->longText('username'); //encrypted
+                $t->longText('password'); //encrypted
             }
         );
 
@@ -426,7 +426,7 @@ class CreateSystemTables extends Migration
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->string('domain')->nullable();
-                $t->longText('secret'); //encrypted
+                $t->longText('key'); //encrypted
             }
         );
 

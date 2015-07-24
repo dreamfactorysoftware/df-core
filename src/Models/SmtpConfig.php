@@ -2,6 +2,8 @@
 
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Exceptions\BadRequestException;
+
 class SmtpConfig extends BaseServiceConfigModel
 {
     protected $table = 'smtp_config';
@@ -39,6 +41,25 @@ class SmtpConfig extends BaseServiceConfigModel
                 return true;
             }
         );
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function validateConfig($config, $create = true)
+    {
+        $validator = static::makeValidator($config, [
+            'host'     => 'required',
+            'username' => 'required',
+            'password' => 'required'
+        ], $create);
+
+        if ($validator->fails()) {
+            $messages = $validator->messages()->getMessages();
+            throw new BadRequestException('Validation failed.', null, null, $messages);
+        }
+
+        return true;
     }
 
     /**

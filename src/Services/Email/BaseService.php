@@ -102,7 +102,6 @@ abstract class BaseService extends BaseRestService
             throw new BadRequestException('No valid data in request.');
         }
 
-
         $data = array_merge(ArrayUtils::clean(ArrayUtils::get($templateData, 'defaults', [], true)), $data);
         $data = array_merge($this->parameters, $templateData, $data);
 

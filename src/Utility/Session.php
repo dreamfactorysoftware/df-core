@@ -61,11 +61,11 @@ class Session
         $component = null,
         $requestor = ServiceRequestorTypes::API
     ){
-        $_verb = VerbsMask::toNumeric(static::cleanAction($action));
+        $verb = VerbsMask::toNumeric(static::cleanAction($action));
 
-        $_mask = static::getServicePermissions($service, $component, $requestor);
+        $mask = static::getServicePermissions($service, $component, $requestor);
 
-        if (!($_verb & $_mask)) {
+        if (!($verb & $mask)) {
             $msg = ucfirst($action) . " access to ";
             if (!empty($component)) {
                 $msg .= "component '$component' of ";
@@ -204,75 +204,75 @@ class Session
             return [];
         }
 
-        if (null === ($_roleInfo = session('rsa.role'))) {
+        if (null === ($roleInfo = session('rsa.role'))) {
             // no role assigned
             return [];
         }
 
-        $_services = ArrayUtils::clean(ArrayUtils::get($_roleInfo, 'services'));
+        $services = ArrayUtils::clean(ArrayUtils::get($roleInfo, 'services'));
 
-        $_serviceAllowed = null;
-        $_serviceFound = false;
-        $_componentFound = false;
+        $serviceAllowed = null;
+        $serviceFound = false;
+        $componentFound = false;
         $action = VerbsMask::toNumeric(static::cleanAction($action));
 
-        foreach ($_services as $_svcInfo) {
-            $_tempService = ArrayUtils::get($_svcInfo, 'service');
-            if (null === $_tempVerbs = ArrayUtils::get($_svcInfo, 'verb_mask')) {
+        foreach ($services as $svcInfo) {
+            $tempService = ArrayUtils::get($svcInfo, 'service');
+            if (null === $tempVerbs = ArrayUtils::get($svcInfo, 'verb_mask')) {
                 //  Check for old verbs array
-                if (null !== $_temp = ArrayUtils::get($_svcInfo, 'verbs')) {
-                    $_tempVerbs = VerbsMask::arrayToMask($_temp);
+                if (null !== $temp = ArrayUtils::get($svcInfo, 'verbs')) {
+                    $tempVerbs = VerbsMask::arrayToMask($temp);
                 }
             }
 
-            if (0 == strcasecmp($service, $_tempService)) {
-                $_serviceFound = true;
-                $_tempComponent = ArrayUtils::get($_svcInfo, 'component');
+            if (0 == strcasecmp($service, $tempService)) {
+                $serviceFound = true;
+                $tempComponent = ArrayUtils::get($svcInfo, 'component');
                 if (!empty($component)) {
-                    if (0 == strcasecmp($component, $_tempComponent)) {
-                        $_componentFound = true;
-                        if ($_tempVerbs & $action) {
-                            $_filters = ArrayUtils::get($_svcInfo, 'filters');
-                            $_operator = ArrayUtils::get($_svcInfo, 'filter_op', 'AND');
-                            if (empty($_filters)) {
+                    if (0 == strcasecmp($component, $tempComponent)) {
+                        $componentFound = true;
+                        if ($tempVerbs & $action) {
+                            $filters = ArrayUtils::get($svcInfo, 'filters');
+                            $operator = ArrayUtils::get($svcInfo, 'filter_op', 'AND');
+                            if (empty($filters)) {
                                 return null;
                             }
 
-                            return ['filters' => $_filters, 'filter_op' => $_operator];
+                            return ['filters' => $filters, 'filter_op' => $operator];
                         }
-                    } elseif (empty($_tempComponent) || ('*' == $_tempComponent)) {
-                        if ($_tempVerbs & $action) {
-                            $_filters = ArrayUtils::get($_svcInfo, 'filters');
-                            $_operator = ArrayUtils::get($_svcInfo, 'filter_op', 'AND');
-                            if (empty($_filters)) {
+                    } elseif (empty($tempComponent) || ('*' == $tempComponent)) {
+                        if ($tempVerbs & $action) {
+                            $filters = ArrayUtils::get($svcInfo, 'filters');
+                            $operator = ArrayUtils::get($svcInfo, 'filter_op', 'AND');
+                            if (empty($filters)) {
                                 return null;
                             }
 
-                            $_serviceAllowed = ['filters' => $_filters, 'filter_op' => $_operator];
+                            $serviceAllowed = ['filters' => $filters, 'filter_op' => $operator];
                         }
                     }
                 } else {
-                    if (empty($_tempComponent) || ('*' == $_tempComponent)) {
-                        if ($_tempVerbs & $action) {
-                            $_filters = ArrayUtils::get($_svcInfo, 'filters');
-                            $_operator = ArrayUtils::get($_svcInfo, 'filter_op', 'AND');
-                            if (empty($_filters)) {
+                    if (empty($tempComponent) || ('*' == $tempComponent)) {
+                        if ($tempVerbs & $action) {
+                            $filters = ArrayUtils::get($svcInfo, 'filters');
+                            $operator = ArrayUtils::get($svcInfo, 'filter_op', 'AND');
+                            if (empty($filters)) {
                                 return null;
                             }
 
-                            $_serviceAllowed = ['filters' => $_filters, 'filter_op' => $_operator];
+                            $serviceAllowed = ['filters' => $filters, 'filter_op' => $operator];
                         }
                     }
                 }
             }
         }
 
-        if ($_componentFound) {
+        if ($componentFound) {
             // at least one service and component match was found, but not the right verb
 
             return null;
-        } elseif ($_serviceFound) {
-            return $_serviceAllowed;
+        } elseif ($serviceFound) {
+            return $serviceAllowed;
         }
 
         return null;

@@ -125,7 +125,7 @@ class ServiceTypes extends FactoryEnum
      *
      * @var array A map of classes for services
      */
-    protected static $_classMap = array(
+    protected static $classMap = array(
         self::USER                     => 'UserManager',
         self::PORTAL                   => 'PortalSvc',
         self::EMAIL                    => 'EmailSvc',
@@ -162,8 +162,8 @@ class ServiceTypes extends FactoryEnum
      */
     public static function getFileName($type)
     {
-        if (isset(static::$_classMap[$type])) {
-            return static::$_classMap[$type];
+        if (isset(static::$classMap[$type])) {
+            return static::$classMap[$type];
         }
 
         return false;

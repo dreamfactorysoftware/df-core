@@ -11,10 +11,10 @@ class Constant extends ReadOnlySystemResource
     {
         // todo need some fancy reflection of enum classes in the system we want to expose
         $resources = [];
-        if (empty($this->_resource)) {
+        if (empty($this->resource)) {
             $resources = [];
         } else {
-            switch ($this->_resource) {
+            switch ($this->resource) {
                 default;
                     break;
             }
@@ -27,9 +27,9 @@ class Constant extends ReadOnlySystemResource
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
-        $_constant = [];
+        $constant = [];
 
-        $_constant['apis'] = [
+        $constant['apis'] = [
             [
                 'path'        => $path,
                 'operations'  => [
@@ -72,7 +72,7 @@ class Constant extends ReadOnlySystemResource
             ],
         ];
 
-        $_constant['models'] = [
+        $constant['models'] = [
             'Constants' => [
                 'id'         => 'Constants',
                 'properties' => [
@@ -97,6 +97,6 @@ class Constant extends ReadOnlySystemResource
             ],
         ];
 
-        return $_constant;
+        return $constant;
     }
 }

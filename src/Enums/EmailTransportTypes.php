@@ -34,7 +34,7 @@ class EmailTransportTypes extends FactoryEnum
     /**
      * @var array A hash of names
      */
-    protected static $_strings = array(
+    protected static $strings = array(
         'Server Default' => self::SERVER_DEFAULT,
         'Server Command' => self::SERVER_COMMAND,
         'SMTP'           => self::SMTP,
@@ -56,7 +56,7 @@ class EmailTransportTypes extends FactoryEnum
             return self::SERVER_DEFAULT;
         }
 
-        if (!in_array(strtoupper($name), array_keys(array_change_key_case(static::$_strings)))) {
+        if (!in_array(strtoupper($name), array_keys(array_change_key_case(static::$strings)))) {
             throw new NotImplementedException('The transport type "' . $name . '" is not supported.');
         }
 
@@ -75,7 +75,7 @@ class EmailTransportTypes extends FactoryEnum
             throw new \InvalidArgumentException('The transport type "' . $numericLevel . '" is not numeric.');
         }
 
-        if (!in_array($numericLevel, static::$_strings)) {
+        if (!in_array($numericLevel, static::$strings)) {
             throw new NotImplementedException('The transport type "' . $numericLevel . '" is not supported.');
         }
 

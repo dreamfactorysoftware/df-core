@@ -526,7 +526,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
         $extras['fields_info'] = $fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
+        $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         $out = [];
         $errors = [];
@@ -650,7 +650,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
         $extras['fields_info'] = $fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
+        $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         $out = [];
         $errors = [];
@@ -812,7 +812,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
         $extras['fields_info'] = $fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
+        $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         static::removeIds($record, $idFields);
         $extras['updates'] = $record;
@@ -939,7 +939,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
         $extras['fields_info'] = $fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
+        $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         $out = [];
         $errors = [];
@@ -1099,7 +1099,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
         $extras['fields_info'] = $fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
+        $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         static::removeIds($record, $idFields);
         $extras['updates'] = $record;
@@ -1303,7 +1303,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
         $extras['fields_info'] = $fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
+        $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         $out = [];
         $errors = [];
@@ -1499,7 +1499,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
         $extras['fields_info'] = $fieldsInfo;
-        $extras['require_more'] = static::_requireMoreFields($fields, $idFields);
+        $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         $out = [];
         $errors = [];
@@ -1589,10 +1589,10 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected function initTransaction($handle = null)
     {
-        $this->_transactionTable = $handle;
-        $this->_batchRecords = [];
-        $this->_batchIds = [];
-        $this->_rollbackRecords = [];
+        $this->transactionTable = $handle;
+        $this->batchRecords = [];
+        $this->batchIds = [];
+        $this->rollbackRecords = [];
 
         return true;
     }
@@ -1621,10 +1621,10 @@ abstract class BaseDbTableResource extends BaseDbResource
         $single = false
     ){
         if (!empty($record)) {
-            $this->_batchRecords[] = $record;
+            $this->batchRecords[] = $record;
         }
         if (!empty($id)) {
-            $this->_batchIds[] = $id;
+            $this->batchIds[] = $id;
         }
 
         return null;
@@ -1647,7 +1647,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     protected function addToRollback($record)
     {
         if (!empty($record)) {
-            $this->_rollbackRecords[] = $record;
+            $this->rollbackRecords[] = $record;
         }
 
         return true;
@@ -2435,7 +2435,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      *
      * @return bool
      */
-    protected static function _containsIdFields($record, $id_field = null)
+    protected static function containsIdFields($record, $id_field = null)
     {
         if (empty($id_field)) {
             return false;
@@ -2461,7 +2461,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      *
      * @return bool
      */
-    protected static function _requireMoreFields($fields, $id_field = null)
+    protected static function requireMoreFields($fields, $id_field = null)
     {
         if (('*' == $fields) || empty($id_field)) {
             return true;

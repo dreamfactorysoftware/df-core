@@ -8,10 +8,10 @@ abstract class BaseNoSqlDbService extends BaseDbService
 {
     public function getApiDocInfo()
     {
-        $_base = parent::getApiDocInfo();
+        $base = parent::getApiDocInfo();
         $wrapper = ResourcesWrapper::getWrapper();
 
-        $_models = [
+        $models = [
             'TableSchemas' => [
                 'id'         => 'TableSchemas',
                 'properties' => [
@@ -97,8 +97,8 @@ abstract class BaseNoSqlDbService extends BaseDbService
             ],
         ];
 
-        $_base['models'] = array_merge($_base['models'], $_models);
+        $base['models'] = array_merge($base['models'], $models);
 
-        return $_base;
+        return $base;
     }
 }

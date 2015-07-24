@@ -280,9 +280,9 @@ class DataFormatter
      */
     public static function xmlToJson($xml_string)
     {
-        $_xml = static::xmlToObject($xml_string);
+        $xml = static::xmlToObject($xml_string);
 
-        return static::arrayToJson((array)$_xml);
+        return static::arrayToJson((array)$xml);
     }
 
     /**
@@ -293,9 +293,9 @@ class DataFormatter
      */
     public static function xmlToCsv($xml_string)
     {
-        $_xml = static::xmlToObject($xml_string);
+        $xml = static::xmlToObject($xml_string);
 
-        return static::arrayToCsv((array)$_xml);
+        return static::arrayToCsv((array)$xml);
     }
 
     /**
@@ -337,43 +337,43 @@ class DataFormatter
             return null;
         }
 
-        $_array = json_decode($json, true);
+        $array = json_decode($json, true);
 
         switch (json_last_error()) {
             case JSON_ERROR_NONE:
-                $_message = null;
+                $message = null;
                 break;
 
             case JSON_ERROR_STATE_MISMATCH:
-                $_message = 'Invalid or malformed JSON';
+                $message = 'Invalid or malformed JSON';
                 break;
 
             case JSON_ERROR_UTF8:
-                $_message = 'Malformed UTF-8 characters, possibly incorrectly encoded';
+                $message = 'Malformed UTF-8 characters, possibly incorrectly encoded';
                 break;
 
             case JSON_ERROR_DEPTH:
-                $_message = 'The maximum stack depth has been exceeded';
+                $message = 'The maximum stack depth has been exceeded';
                 break;
 
             case JSON_ERROR_CTRL_CHAR:
-                $_message = 'Control character error, possibly incorrectly encoded';
+                $message = 'Control character error, possibly incorrectly encoded';
                 break;
 
             case JSON_ERROR_SYNTAX:
-                $_message = 'Syntax error, malformed JSON';
+                $message = 'Syntax error, malformed JSON';
                 break;
 
             default:
-                $_message = 'Unknown error';
+                $message = 'Unknown error';
                 break;
         }
 
-        if (!empty($_message)) {
-            throw new \InvalidArgumentException('JSON Error: ' . $_message);
+        if (!empty($message)) {
+            throw new \InvalidArgumentException('JSON Error: ' . $message);
         }
 
-        return $_array;
+        return $array;
     }
 
     /**
@@ -404,29 +404,29 @@ class DataFormatter
     public static function csvToArray($csv)
     {
         // currently need to write out to file to use parser
-        $_tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        $_filename = $_tmpDir . 'csv_import' . time() . '.csv';
-        file_put_contents($_filename, $csv);
+        $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $filename = $tmpDir . 'csv_import' . time() . '.csv';
+        file_put_contents($filename, $csv);
 
         // assume first row is field header
-        $_result = [];
+        $result = [];
         ini_set('auto_detect_line_endings', true);
-        if (($_handle = fopen($_filename, "r")) !== false) {
-            $_headers = fgetcsv($_handle, null, ",");
-            while (false !== ($_row = fgetcsv($_handle))) {
-                $_new = [];
-                foreach ($_headers as $_key => $_value) {
-                    $_new[$_value] = ArrayUtils::get($_row, $_key);
+        if (($handle = fopen($filename, "r")) !== false) {
+            $headers = fgetcsv($handle, null, ",");
+            while (false !== ($row = fgetcsv($handle))) {
+                $new = [];
+                foreach ($headers as $key => $value) {
+                    $new[$value] = ArrayUtils::get($row, $key);
                 }
 
-                $_result[] = $_new;
+                $result[] = $new;
             }
 
-            fclose($_handle);
-            unlink($_filename);
+            fclose($handle);
+            unlink($filename);
         }
 
-        return $_result;
+        return $result;
     }
 
     /**
@@ -561,34 +561,34 @@ class DataFormatter
             return '';
         }
 
-        $_keys = array_keys(ArrayUtils::get($array, 0, []));
-        $_data = $array;
+        $keys = array_keys(ArrayUtils::get($array, 0, []));
+        $data = $array;
 
         // currently need to write out to file to use parser
-        $_tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        $_filename = $_tmpDir . 'csv_export' . time() . '.csv';
+        $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $filename = $tmpDir . 'csv_export' . time() . '.csv';
 
-        $_handle = fopen($_filename, 'w');
+        $handle = fopen($filename, 'w');
 
         // build header row
-        fputcsv($_handle, $_keys);
+        fputcsv($handle, $keys);
 
-        foreach ($_data as $_row) {
-            foreach ($_row as $_key => $_value) {
+        foreach ($data as $row) {
+            foreach ($row as $key => $value) {
                 // handle objects and array non-conformist to csv output
-                if (is_array($_value) || is_object($_value)) {
-                    $_row[$_key] = json_encode($_value);
+                if (is_array($value) || is_object($value)) {
+                    $row[$key] = json_encode($value);
                 }
             }
 
-            fputcsv($_handle, $_row);
+            fputcsv($handle, $row);
         }
 
-        fclose($_handle);
-        $_csv = file_get_contents($_filename);
-        unlink($_filename);
+        fclose($handle);
+        $csv = file_get_contents($filename);
+        unlink($filename);
 
-        return $_csv;
+        return $csv;
     }
 
     // other helpers
@@ -601,17 +601,17 @@ class DataFormatter
      */
     public static function jsonEncode($data, $prettyPrint = false)
     {
-        $_data = static::export($data);
+        $data = static::export($data);
 
         if (version_compare(PHP_VERSION, '5.4', '>=')) {
-            $_options = JSON_UNESCAPED_SLASHES | (false !== $prettyPrint ? JSON_PRETTY_PRINT : 0);
+            $options = JSON_UNESCAPED_SLASHES | (false !== $prettyPrint ? JSON_PRETTY_PRINT : 0);
 
-            return json_encode($_data, $_options);
+            return json_encode($data, $options);
         }
 
-        $_json = str_replace('\/', '/', json_encode($_data));
+        $json = str_replace('\/', '/', json_encode($data));
 
-        return $prettyPrint ? static::pretty_json($_json) : $_json;
+        return $prettyPrint ? static::pretty_json($json) : $json;
     }
 
     /**
@@ -636,13 +636,13 @@ class DataFormatter
             return $data;
         }
 
-        $_output = [];
+        $output = [];
 
-        foreach ($data as $_key => $_value) {
-            $_output[$_key] = static::export($_value);
+        foreach ($data as $key => $value) {
+            $output[$key] = static::export($value);
         }
 
-        return $_output;
+        return $output;
     }
 
     /**
@@ -656,60 +656,60 @@ class DataFormatter
      */
     public static function pretty_json($json)
     {
-        $_result = null;
-        $_pos = 0;
-        $_length = strlen($json);
-        $_indentString = '  ';
-        $_newLine = PHP_EOL;
-        $_lastChar = null;
-        $_outOfQuotes = true;
+        $result = null;
+        $pos = 0;
+        $length = strlen($json);
+        $indentString = '  ';
+        $newLine = PHP_EOL;
+        $lastChar = null;
+        $outOfQuotes = true;
 
-        for ($_i = 0; $_i < $_length; $_i++) {
+        for ($i = 0; $i < $length; $i++) {
             //	Grab the next character in the string.
-            $_char = $json[$_i];
+            $char = $json[$i];
 
             // Put spaces around colons
-            if ($_outOfQuotes && ':' == $_char && ' ' != $_lastChar) {
-                $_result .= ' ';
+            if ($outOfQuotes && ':' == $char && ' ' != $lastChar) {
+                $result .= ' ';
             }
 
-            if ($_outOfQuotes && ' ' != $_char && ':' == $_lastChar) {
-                $_result .= ' ';
+            if ($outOfQuotes && ' ' != $char && ':' == $lastChar) {
+                $result .= ' ';
             }
 
             // Are we inside a quoted string?
-            if ('"' == $_char && '\\' != $_lastChar) {
-                $_outOfQuotes = !$_outOfQuotes;
+            if ('"' == $char && '\\' != $lastChar) {
+                $outOfQuotes = !$outOfQuotes;
                 // If this character is the end of an element,
                 // output a new line and indent the next line.
-            } else if (($_char == '}' || $_char == ']') && $_outOfQuotes) {
-                $_result .= $_newLine;
-                $_pos--;
-                for ($_j = 0; $_j < $_pos; $_j++) {
-                    $_result .= $_indentString;
+            } else if (($char == '}' || $char == ']') && $outOfQuotes) {
+                $result .= $newLine;
+                $pos--;
+                for ($j = 0; $j < $pos; $j++) {
+                    $result .= $indentString;
                 }
             }
 
             //	Add the character to the result string.
-            $_result .= $_char;
+            $result .= $char;
 
             //	If the last character was the beginning of an element output a new line and indent the next line.
-            if ((',' == $_char || '{' == $_char || '[' == $_char) && $_outOfQuotes) {
-                $_result .= $_newLine;
+            if ((',' == $char || '{' == $char || '[' == $char) && $outOfQuotes) {
+                $result .= $newLine;
 
-                if ('{' == $_char || '[' == $_char) {
-                    $_pos++;
+                if ('{' == $char || '[' == $char) {
+                    $pos++;
                 }
 
-                for ($_j = 0; $_j < $_pos; $_j++) {
-                    $_result .= $_indentString;
+                for ($j = 0; $j < $pos; $j++) {
+                    $result .= $indentString;
                 }
             }
 
-            $_lastChar = $_char;
+            $lastChar = $char;
         }
 
-        return $_result;
+        return $result;
     }
 
     /**

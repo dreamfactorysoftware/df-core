@@ -9,7 +9,6 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\CacheUtilities;
-use League\Flysystem\Exception;
 
 /**
  * ApiDocManager
@@ -80,7 +79,7 @@ class ApiDocManager
                     continue;
                 }
 
-                $serviceEvents = static::_parseSwaggerEvents($apiName, $content);
+                $serviceEvents = static::parseSwaggerEvents($apiName, $content);
 
                 // build main services list
                 $services[] = [
@@ -153,7 +152,7 @@ class ApiDocManager
      *
      * @return array
      */
-    protected static function _parseSwaggerEvents($apiName, &$data)
+    protected static function parseSwaggerEvents($apiName, &$data)
     {
         $processEvents = [];
         $broadcastEvents = [];

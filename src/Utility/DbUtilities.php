@@ -723,7 +723,7 @@ class DbUtilities
      *
      * @return bool
      */
-    protected static function _containsIdFields($record, $id_field = null)
+    protected static function containsIdFields($record, $id_field = null)
     {
         if (empty($id_field)) {
             return false;
@@ -749,7 +749,7 @@ class DbUtilities
      *
      * @return bool
      */
-    protected static function _requireMoreFields($fields, $id_field = null)
+    protected static function requireMoreFields($fields, $id_field = null)
     {
         if (('*' == $fields) || empty($id_field)) {
             return true;

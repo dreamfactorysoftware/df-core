@@ -279,39 +279,39 @@ class Environment extends BaseSystemResource
 
 //    protected function handleGET()
 //    {
-//        $_release = null;
-//        $_phpInfo = $this->_getPhpInfo();
+//        $release = null;
+//        $phpInfo = $this->getPhpInfo();
 //
-//        if ( false !== ( $_raw = file( static::LSB_RELEASE ) ) && !empty( $_raw ) )
+//        if ( false !== ( $raw = file( static::LSB_RELEASE ) ) && !empty( $raw ) )
 //        {
-//            $_release = array();
+//            $release = array();
 //
-//            foreach ( $_raw as $_line )
+//            foreach ( $raw as $line )
 //            {
-//                $_fields = explode( '=', $_line );
-//                $_release[str_replace( 'distrib_', null, strtolower( $_fields[0] ) )] = trim( $_fields[1], PHP_EOL . '"' );
+//                $fields = explode( '=', $line );
+//                $release[str_replace( 'distrib_', null, strtolower( $fields[0] ) )] = trim( $fields[1], PHP_EOL . '"' );
 //            }
 //        }
 //
-//        $_response = array(
-//            'php_info' => $_phpInfo,
+//        $response = array(
+//            'php_info' => $phpInfo,
 //            'platform' => Config::getCurrentConfig(),
-//            'release'  => $_release,
+//            'release'  => $release,
 //            'server'   => array(
 //                'server_os' => strtolower( php_uname( 's' ) ),
 //                'uname'     => php_uname( 'a' ),
 //            ),
 //        );
 //
-//        array_multisort( $_response );
+//        array_multisort( $response );
 //
 //        //	Cache configuration
-//        Platform::storeSet( static::CACHE_KEY, $_response, static::CONFIG_CACHE_TTL );
+//        Platform::storeSet( static::CACHE_KEY, $response, static::CONFIG_CACHE_TTL );
 //
-//        $this->_response = $this->_response ? array_merge( $this->_response, $_response ) : $_response;
-//        unset( $_response );
+//        $this->response = $this->response ? array_merge( $this->response, $response ) : $response;
+//        unset( $response );
 //
-//        return $this->_response;
+//        return $this->response;
 //    }
 
     /**
@@ -321,34 +321,34 @@ class Environment extends BaseSystemResource
      */
     protected static function getPhpInfo()
     {
-        $_html = null;
-        $_info = array();
-        $_pattern =
+        $html = null;
+        $info = array();
+        $pattern =
             '#(?:<h2>(?:<a name=".*?">)?(.*?)(?:</a>)?</h2>)|(?:<tr(?: class=".*?")?><t[hd](?: class=".*?")?>(.*?)\s*</t[hd]>(?:<t[hd](?: class=".*?")?>(.*?)\s*</t[hd]>(?:<t[hd](?: class=".*?")?>(.*?)\s*</t[hd]>)?)?</tr>)#s';
 
         \ob_start();
         @\phpinfo();
-        $_html = \ob_get_contents();
+        $html = \ob_get_contents();
         \ob_end_clean();
 
-        if (preg_match_all($_pattern, $_html, $_matches, PREG_SET_ORDER)) {
-            foreach ($_matches as $_match) {
-                $_keys = array_keys($_info);
-                $_lastKey = end($_keys);
+        if (preg_match_all($pattern, $html, $matches, PREG_SET_ORDER)) {
+            foreach ($matches as $match) {
+                $keys = array_keys($info);
+                $lastKey = end($keys);
 
-                if (strlen($_match[1])) {
-                    $_info[$_match[1]] = array();
-                } elseif (isset($_match[3])) {
-                    $_info[$_lastKey][$_match[2]] = isset($_match[4]) ? array($_match[3], $_match[4]) : $_match[3];
+                if (strlen($match[1])) {
+                    $info[$match[1]] = array();
+                } elseif (isset($match[3])) {
+                    $info[$lastKey][$match[2]] = isset($match[4]) ? array($match[3], $match[4]) : $match[3];
                 } else {
-                    $_info[$_lastKey][] = $_match[2];
+                    $info[$lastKey][] = $match[2];
                 }
 
-                unset($_keys, $_match);
+                unset($keys, $match);
             }
         }
 
-        return static::cleanPhpInfo($_info);
+        return static::cleanPhpInfo($info);
     }
 
     /**
@@ -360,55 +360,55 @@ class Environment extends BaseSystemResource
      */
     protected static function cleanPhpInfo($info, $recursive = false)
     {
-        static $_excludeKeys = array('directive', 'variable',);
+        static $excludeKeys = array('directive', 'variable',);
 
-        $_clean = array();
+        $clean = array();
 
         //  Remove images and move nested args to root
         if (!$recursive && isset($info[0], $info[0][0]) && is_array($info[0])) {
             $info['general'] = array();
 
-            foreach ($info[0] as $_key => $_value) {
-                if (is_numeric($_key) || in_array(strtolower($_key), $_excludeKeys)) {
+            foreach ($info[0] as $key => $value) {
+                if (is_numeric($key) || in_array(strtolower($key), $excludeKeys)) {
                     continue;
                 }
 
-                $info['general'][$_key] = $_value;
-                unset($info[0][$_key]);
+                $info['general'][$key] = $value;
+                unset($info[0][$key]);
             }
 
             unset($info[0]);
         }
 
-        foreach ($info as $_key => $_value) {
-            if (in_array(strtolower($_key), $_excludeKeys)) {
+        foreach ($info as $key => $value) {
+            if (in_array(strtolower($key), $excludeKeys)) {
                 continue;
             }
 
-            $_key = strtolower(str_replace(' ', '_', $_key));
+            $key = strtolower(str_replace(' ', '_', $key));
 
-            if (is_array($_value) && 2 == count($_value) && isset($_value[0], $_value[1])) {
-                $_v1 = ArrayUtils::get($_value, 0);
+            if (is_array($value) && 2 == count($value) && isset($value[0], $value[1])) {
+                $v1 = ArrayUtils::get($value, 0);
 
-                if ($_v1 == '<i>no value</i>') {
-                    $_v1 = null;
+                if ($v1 == '<i>no value</i>') {
+                    $v1 = null;
                 }
 
-                if (Scalar::in(strtolower($_v1), 'on', 'off', '0', '1')) {
-                    $_v1 = ArrayUtils::getBool($_value, 0);
+                if (Scalar::in(strtolower($v1), 'on', 'off', '0', '1')) {
+                    $v1 = ArrayUtils::getBool($value, 0);
                 }
 
-                $_value = $_v1;
+                $value = $v1;
             }
 
-            if (is_array($_value)) {
-                $_value = static::cleanPhpInfo($_value, true);
+            if (is_array($value)) {
+                $value = static::cleanPhpInfo($value, true);
             }
 
-            $_clean[$_key] = $_value;
+            $clean[$key] = $value;
         }
 
-        return $_clean;
+        return $clean;
     }
 
     public function getApiDocInfo()

@@ -113,9 +113,9 @@ class Service extends BaseSystemModel
      */
     public static function getTypeByName($name)
     {
-        $_typeRec = static::whereName($name)->get(['type'])->first();
+        $typeRec = static::whereName($name)->get(['type'])->first();
 
-        return (isset($_typeRec, $_typeRec['type'])) ? $_typeRec['type'] : null;
+        return (isset($typeRec, $typeRec['type'])) ? $typeRec['type'] : null;
     }
 
     /**

@@ -15,7 +15,7 @@ class ApiDocUtilities
      */
     public static function getCommonResponses(array $codes = [])
     {
-        static $_commonResponses = [
+        static $commonResponses = [
             [
                 'code'    => 400,
                 'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
@@ -38,19 +38,19 @@ class ApiDocUtilities
             ],
         ];
 
-        $_response = $_commonResponses;
+        $response = $commonResponses;
 
         if (!empty($codes)) {
-            foreach ($codes as $_code) {
-                foreach ($_commonResponses as $_commonResponse) {
-                    if (!isset($_commonResponse['code']) || $_code != $_commonResponse['code']) {
-                        unset($_response[$_commonResponse['code']]);
+            foreach ($codes as $code) {
+                foreach ($commonResponses as $commonResponse) {
+                    if (!isset($commonResponse['code']) || $code != $commonResponse['code']) {
+                        unset($response[$commonResponse['code']]);
                     }
                 }
             }
         }
 
-        return $_response;
+        return $response;
     }
 
     /**

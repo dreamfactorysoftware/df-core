@@ -13,7 +13,7 @@ class EmailTemplate extends BaseSystemResource
         $name = Inflector::camelize($this->name);
         $lower = Inflector::camelize($this->name, null, false, true);
 
-        $_commonProperties = [
+        $commonProperties = [
             'id'          => [
                 'type'        => 'integer',
                 'format'      => 'int32',
@@ -77,7 +77,7 @@ class EmailTemplate extends BaseSystemResource
             ],
         ];
 
-        $_stampProperties = [
+        $stampProperties = [
             'created_date'       => [
                 'type'        => 'string',
                 'description' => 'Date this record was created.',
@@ -93,13 +93,13 @@ class EmailTemplate extends BaseSystemResource
         $models = [
             $name . 'Request'  => [
                 'id'         => $name . 'Request',
-                'properties' => $_commonProperties,
+                'properties' => $commonProperties,
             ],
             $name . 'Response' => [
                 'id'         => $name . 'Response',
                 'properties' => array_merge(
-                    $_commonProperties,
-                    $_stampProperties
+                    $commonProperties,
+                    $stampProperties
                 ),
             ],
             'EmailAddress'     => [

@@ -29,9 +29,9 @@ class Config extends BaseSystemResource
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
-        $_config = [];
+        $config = [];
 
-        $_config['apis'] = [
+        $config['apis'] = [
             [
                 'path'        => $path,
                 'operations'  => [
@@ -68,7 +68,7 @@ class Config extends BaseSystemResource
             ],
         ];
 
-        $_commonProperties = [
+        $commonProperties = [
             'editable_profile_fields' => [
                 'type'        => 'string',
                 'description' => 'Comma-delimited list of fields the user is allowed to edit.',
@@ -86,18 +86,18 @@ class Config extends BaseSystemResource
             ],
         ];
 
-        $_config['models'] = [
+        $config['models'] = [
             'ConfigRequest'  => [
                 'id'         => 'ConfigRequest',
-                'properties' => $_commonProperties,
+                'properties' => $commonProperties,
             ],
             'ConfigResponse' => [
                 'id'         => 'ConfigResponse',
-                'properties' => $_commonProperties,
+                'properties' => $commonProperties,
             ],
         ];
 
-        return $_config;
+        return $config;
     }
 
     protected function handlePOST()

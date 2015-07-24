@@ -33,11 +33,11 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
     /**
      * @var bool True if system version of V8Js supports module loading
      */
-    protected static $_moduleLoaderAvailable = false;
+    protected static $moduleLoaderAvailable = false;
     /**
      * @var \ReflectionClass
      */
-    protected static $_mirror;
+    protected static $mirror;
 
     //*************************************************************************
     //	Methods
@@ -67,14 +67,14 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
 
         //  Set up our script mappings for module loading
         /** @noinspection PhpUndefinedClassInspection */
-        $this->_engine = new \V8Js($name, $variables, $extensions, $reportUncaughtExceptions);
+        $this->engine = new \V8Js($name, $variables, $extensions, $reportUncaughtExceptions);
 
         /**
          * This is the callback for the exposed "require()" function in the sandbox
          */
-        if (static::$_moduleLoaderAvailable) {
+        if (static::$moduleLoaderAvailable) {
             /** @noinspection PhpUndefinedMethodInspection */
-            $this->_engine->setModuleLoader(
+            $this->engine->setModuleLoader(
                 function ($module){
                     return static::loadScriptingModule($module);
                 }
@@ -86,11 +86,11 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
 
         if ($logMemoryUsage) {
             /** @noinspection PhpUndefinedMethodInspection */
-            $_loadedExtensions = $this->_engine->getExtensions();
+            $loadedExtensions = $this->engine->getExtensions();
 
             Log::debug(
                 '  * engine created with the following extensions: ' .
-                (!empty($_loadedExtensions) ? implode(', ', array_keys($_loadedExtensions)) : '**NONE**')
+                (!empty($loadedExtensions) ? implode(', ', array_keys($loadedExtensions)) : '**NONE**')
             );
         }
     }
@@ -107,15 +107,15 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
         parent::startup($options);
 
         //	Find out if we have support for "require()"
-        $_mirror = new \ReflectionClass('\\V8Js');
+        $mirror = new \ReflectionClass('\\V8Js');
 
         /** @noinspection PhpUndefinedMethodInspection */
-        if (false !== (static::$_moduleLoaderAvailable = $_mirror->hasMethod('setModuleLoader'))) {
+        if (false !== (static::$moduleLoaderAvailable = $mirror->hasMethod('setModuleLoader'))) {
         }
 
         //  Register any extensions
         if (null !== $extensions = ArrayUtils::get($options, 'extensions', [], true)) {
-            static::_registerExtensions(ArrayUtils::clean($extensions));
+            static::registerExtensions(ArrayUtils::clean($extensions));
         }
     }
 
@@ -134,16 +134,16 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
         $data['__tag__'] = 'exposed_event';
 
         try {
-            $_runnerShell = $this->enrobeScript($script, $data, static::buildPlatformAccess($identifier));
+            $runnerShell = $this->enrobeScript($script, $data, static::buildPlatformAccess($identifier));
 
             /** @noinspection PhpUndefinedMethodInspection */
             /** @noinspection PhpUndefinedClassInspection */
-            $result = $this->_engine->executeString($_runnerShell, $identifier, \V8Js::FLAG_FORCE_ARRAY);
+            $result = $this->engine->executeString($runnerShell, $identifier, \V8Js::FLAG_FORCE_ARRAY);
 
             return $result;
         } /** @noinspection PhpUndefinedClassInspection */
-        catch (\V8JsException $_ex) {
-            $_message = $_ex->getMessage();
+        catch (\V8JsException $ex) {
+            $message = $ex->getMessage();
 
             /**
              * @note     V8JsTimeLimitException was released in a later version of the libv8 library than is supported by the current PECL v8js extension. Hence the check below.
@@ -151,20 +151,20 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
              */
 
             /** @noinspection PhpUndefinedClassInspection */
-            if (class_exists('\\V8JsTimeLimitException', false) && ($_ex instanceof \V8JsTimeLimitException)) {
-                /** @var \Exception $_ex */
-                Log::error($_message = "Timeout while running script '$identifier': $_message");
+            if (class_exists('\\V8JsTimeLimitException', false) && ($ex instanceof \V8JsTimeLimitException)) {
+                /** @var \Exception $ex */
+                Log::error($message = "Timeout while running script '$identifier': $message");
             } else {
                 /** @noinspection PhpUndefinedClassInspection */
-                if (class_exists('\\V8JsMemoryLimitException', false) && $_ex instanceof \V8JsMemoryLimitException) {
-                    Log::error($_message = "Out of memory while running script '$identifier': $_message");
+                if (class_exists('\\V8JsMemoryLimitException', false) && $ex instanceof \V8JsMemoryLimitException) {
+                    Log::error($message = "Out of memory while running script '$identifier': $message");
                 } else {
-                    Log::error($_message = "Exception executing javascript: $_message");
+                    Log::error($message = "Exception executing javascript: $message");
                 }
             }
         } /** @noinspection PhpUndefinedClassInspection */
-        catch (\V8JsScriptException $_ex) {
-            $_message = $_ex->getMessage();
+        catch (\V8JsScriptException $ex) {
+            $message = $ex->getMessage();
 
             /**
              * @note     V8JsTimeLimitException was released in a later version of the libv8 library than is supported by the current PECL v8js extension. Hence the check below.
@@ -172,15 +172,15 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
              */
 
             /** @noinspection PhpUndefinedClassInspection */
-            if (class_exists('\\V8JsTimeLimitException', false) && ($_ex instanceof \V8JsTimeLimitException)) {
-                /** @var \Exception $_ex */
-                Log::error($_message = "Timeout while running script '$identifier': $_message");
+            if (class_exists('\\V8JsTimeLimitException', false) && ($ex instanceof \V8JsTimeLimitException)) {
+                /** @var \Exception $ex */
+                Log::error($message = "Timeout while running script '$identifier': $message");
             } else {
                 /** @noinspection PhpUndefinedClassInspection */
-                if (class_exists('\\V8JsMemoryLimitException', false) && $_ex instanceof \V8JsMemoryLimitException) {
-                    Log::error($_message = "Out of memory while running script '$identifier': $_message");
+                if (class_exists('\\V8JsMemoryLimitException', false) && $ex instanceof \V8JsMemoryLimitException) {
+                    Log::error($message = "Out of memory while running script '$identifier': $message");
                 } else {
-                    Log::error($_message = "Exception executing javascript: $_message");
+                    Log::error($message = "Exception executing javascript: $message");
                 }
             }
         }
@@ -211,32 +211,32 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      */
     public static function loadScriptingModule($module)
     {
-        $_fullScriptPath = false;
+        $fullScriptPath = false;
 
         //  Remove any quotes from this passed in module
         $module = trim(str_replace(["'", '"'], null, $module), ' /');
 
         //  Check the configured script paths
-        if (null === ($_script = ArrayUtils::get(static::$libraries, $module))) {
-            $_script = $module;
+        if (null === ($script = ArrayUtils::get(static::$libraries, $module))) {
+            $script = $module;
         }
 
-        foreach (static::$libraryPaths as $_key => $_path) {
-            $_checkScriptPath = $_path . DIRECTORY_SEPARATOR . $_script;
+        foreach (static::$libraryPaths as $key => $path) {
+            $checkScriptPath = $path . DIRECTORY_SEPARATOR . $script;
 
-            if (is_file($_checkScriptPath) && is_readable($_checkScriptPath)) {
-                $_fullScriptPath = $_checkScriptPath;
+            if (is_file($checkScriptPath) && is_readable($checkScriptPath)) {
+                $fullScriptPath = $checkScriptPath;
                 break;
             }
         }
 
-        if (!$_script || !$_fullScriptPath) {
+        if (!$script || !$fullScriptPath) {
             throw new InternalServerErrorException(
                 'The module "' . $module . '" could not be found in any known locations.'
             );
         }
 
-        return file_get_contents($_fullScriptPath);
+        return file_get_contents($fullScriptPath);
     }
 
     /**
@@ -258,16 +258,16 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      *
      * @return array|bool
      */
-    protected static function _registerExtensions(array $extensions = [])
+    protected static function registerExtensions(array $extensions = [])
     {
-        $_registered = [];
+        $registered = [];
 
-        foreach ($extensions as $_module) {
+        foreach ($extensions as $module) {
             /** @noinspection PhpUndefinedClassInspection */
-            \V8Js::registerExtension($_module, static::loadScriptingModule($_module), [], false);
+            \V8Js::registerExtension($module, static::loadScriptingModule($module), [], false);
         }
 
-        return empty($_registered) ? false : $_registered;
+        return empty($registered) ? false : $registered;
     }
 
     /**
@@ -280,15 +280,15 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      */
     protected function enrobeScript($script, array &$data = [], array $platform = [])
     {
-//        $this->_engine->event = $data;
-        $this->_engine->platform = $platform;
+//        $this->engine->event = $data;
+        $this->engine->platform = $platform;
 
-        $_jsonEvent = json_encode($data, JSON_UNESCAPED_SLASHES);
+        $jsonEvent = json_encode($data, JSON_UNESCAPED_SLASHES);
 
         //  Load user libraries
         $requiredLibraries = \Cache::get('scripting.libraries.v8js.required', null);
 
-        $_enrobedScript = <<<JS
+        $enrobedScript = <<<JS
 
 //noinspection BadExpressionStatementJS
 {$requiredLibraries};
@@ -296,7 +296,7 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
 _wrapperResult = (function() {
 
     //noinspection JSUnresolvedVariable
-    var _event = {$_jsonEvent};
+    var _event = {$jsonEvent};
 
 	try	{
         //noinspection JSUnresolvedVariable
@@ -329,12 +329,12 @@ _wrapperResult = (function() {
 
 JS;
 
-        if (!static::$_moduleLoaderAvailable) {
-            $_enrobedScript =
-                \Cache::get('scripting.v8.extensions', static::loadScriptingModule('lodash')) . ';' . $_enrobedScript;
+        if (!static::$moduleLoaderAvailable) {
+            $enrobedScript =
+                \Cache::get('scripting.v8.extensions', static::loadScriptingModule('lodash')) . ';' . $enrobedScript;
         }
 
-        return $_enrobedScript;
+        return $enrobedScript;
     }
 
     /**
@@ -345,8 +345,8 @@ JS;
      */
     public function __call($name, $arguments)
     {
-        if ($this->_engine) {
-            return call_user_func_array([$this->_engine, $name], $arguments);
+        if ($this->engine) {
+            return call_user_func_array([$this->engine, $name], $arguments);
         }
 
         return null;

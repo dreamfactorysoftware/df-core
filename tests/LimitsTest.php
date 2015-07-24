@@ -3,8 +3,6 @@
  * Limits test
  */
 
-use Illuminate\Support\Facades\Config;
-
 class LimitsTest extends \DreamFactory\Core\Testing\TestCase
 {
 
@@ -140,17 +138,17 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
                 $this->dspApiServiceUser
             );
 
-        $this->_setTestMode();
+        $this->setTestMode();
 
         foreach ($limits as $key => $limit) {
-            $this->_setLimits($limit);
+            $this->setLimits($limit);
 
             $this->call("GET", "/api/v2/user/session");
 
-            $this->_checkLimits($limit['api']);
+            $this->checkLimits($limit['api']);
         }
 
-        $this->_unsetTestMode();
+        $this->unsetTestMode();
     }
 
     public function testOverLimit()
@@ -168,19 +166,19 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
                 $this->dspApiServiceUser
             );
 
-        $this->_setTestMode();
+        $this->setTestMode();
 
         foreach ($limits as $limit) {
-            $this->_setLimits($limit);
+            $this->setLimits($limit);
 
-            $this->_checkOverLimit('/api/v2/user/session');
+            $this->checkOverLimit('/api/v2/user/session');
 
             foreach ($limit as $key => $value) {
-                $this->_clearCache($key);
+                $this->clearCache($key);
             }
         }
 
-        $this->_unsetTestMode();
+        $this->unsetTestMode();
     }
 
     public function testNoLimits()
@@ -196,23 +194,23 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
         $this->assertEquals(401, $response->getStatusCode());
     }
 
-    private function _checkLimits(array $limits)
+    private function checkLimits(array $limits)
     {
         foreach ($limits as $key => $limit) {
             $this->assertEquals($limit['limit'], \Cache::get($key, 0), 'Test key: ' . $key);
 
-            $this->_clearCache($key);
+            $this->clearCache($key);
         }
     }
 
-    private function _setLimits(array $limits)
+    private function setLimits(array $limits)
     {
         \Config::set('api_limits', $limits);
     }
 
-    private function _checkOverLimit($path)
+    private function checkOverLimit($path)
     {
-        $response = $this->call("GET", $path);
+        $this->call("GET", $path);
 
         // Make a second call so it's now over the limit
         $response = $this->call("GET", $path);
@@ -220,19 +218,19 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
         $this->assertEquals(429, $response->getStatusCode());
     }
 
-    private function _clearCache($key)
+    private function clearCache($key)
     {
         // Make sure we're clean for the next iteration
 
         \Cache::forget($key);
     }
 
-    private function _setTestMode()
+    private function setTestMode()
     {
         \Config::set('api_limits_test', true);
     }
 
-    private function _unsetTestMode()
+    private function unsetTestMode()
     {
         \Config::set('api_limits_test', false);
     }

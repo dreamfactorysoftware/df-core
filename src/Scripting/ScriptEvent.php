@@ -34,7 +34,7 @@ class ScriptEvent
     /**
      * @var string The event schema for scripting events
      */
-    static protected $_eventTemplate = false;
+    static protected $eventTemplate = false;
 
     //*************************************************************************
     //	Methods
@@ -49,27 +49,27 @@ class ScriptEvent
      */
     public static function initialize($template = self::SCRIPT_EVENT_SCHEMA)
     {
-        if (false !== ($_eventTemplate = \Cache::get('scripting.event_schema', false))) {
-            return $_eventTemplate;
+        if (false !== ($eventTemplate = \Cache::get('scripting.event_schema', false))) {
+            return $eventTemplate;
         }
 
         //	Not cached, get it...
-        $_path = Platform::getLibraryConfigPath('/schema') . '/' . trim($template, ' /');
+        $path = Platform::getLibraryConfigPath('/schema') . '/' . trim($template, ' /');
 
-        if (is_file($_path) &&
-            is_readable($_path) &&
-            (false !== ($_eventTemplate = file_get_contents($_path)))
+        if (is_file($path) &&
+            is_readable($path) &&
+            (false !== ($eventTemplate = file_get_contents($path)))
         ) {
-            if (false !== ($_eventTemplate = json_decode($_eventTemplate, true)) &&
+            if (false !== ($eventTemplate = json_decode($eventTemplate, true)) &&
                 JSON_ERROR_NONE == json_last_error()
             ) {
-                \Cache::add('scripting.event_schema', $_eventTemplate, 86400);
+                \Cache::add('scripting.event_schema', $eventTemplate, 86400);
 
-                return $_eventTemplate;
+                return $eventTemplate;
             }
         }
 
-        \Log::notice('Scripting unavailable. Unable to load scripting event schema: ' . $_path);
+        \Log::notice('Scripting unavailable. Unable to load scripting event schema: ' . $path);
 
         return false;
     }
@@ -138,28 +138,28 @@ class ScriptEvent
         $includeDspConfig = true,
         $returnJson = false
     ){
-        static $_config = null;
+        static $config = null;
 
-        if (!$_config) {
-            $_config = ($includeDspConfig ? \Cache::get(Config::LAST_RESPONSE_CACHE_KEY, false) : false);
+        if (!$config) {
+            $config = ($includeDspConfig ? \Cache::get(Config::LAST_RESPONSE_CACHE_KEY, false) : false);
         }
 
         //	Clean up the event extras, remove data portion
-        $_eventExtras = $event->getData();
-        $_path = $dispatcher->getPathInfo(true);
+        $eventExtras = $event->getData();
+        $path = $dispatcher->getPathInfo(true);
 
         //	Clean up the trigger
-        $_trigger = false !== strpos($_path, 'rest', 0) || false !== strpos($_path, '/rest', 0) ? str_replace(
+        $trigger = false !== strpos($path, 'rest', 0) || false !== strpos($path, '/rest', 0) ? str_replace(
             ['/rest', 'rest'],
             null,
-            $_path
-        ) : $_path;
+            $path
+        ) : $path;
 
-        $_request = static::buildRequestArray($event);
-        $_response = $event->getResponseData();
+        $request = static::buildRequestArray($event);
+        $response = $event->getResponseData();
 
         //	Build the array
-        $_event = [
+        $event = [
             //  The event id
             'id'               => $event->getEventId(),
             //  The event name
@@ -173,11 +173,11 @@ class ScriptEvent
                 )
             ),
             //  The resource request that triggered this event
-            'trigger'          => $_trigger,
+            'trigger'          => $trigger,
             //  A slightly sanitized version of the actual HTTP request URI
-            'request_path'     => $_path,
+            'request_path'     => $path,
             //  Indicator useful to halt propagation of this event, not necessarly because of errors...
-            'stop_propagation' => ArrayUtils::get($_eventExtras, 'stop_propagation', false, true),
+            'stop_propagation' => ArrayUtils::get($eventExtras, 'stop_propagation', false, true),
             //	Dispatcher information
             'dispatcher_id'    => spl_object_hash($dispatcher),
             'dispatcher_type'  => Inflector::neutralize(get_class($dispatcher)),
@@ -186,9 +186,9 @@ class ScriptEvent
             //	An object that contains information about the current session and the configuration of this platform
             'platform'         => [
                 //  The DSP config
-                'config'  => $_config,
+                'config'  => $config,
                 //  The current user's session
-                'session' => static::_getCleanedSession(),
+                'session' => static::getCleanedSession(),
             ],
             /**
              * The inbound request payload as parsed by the handler for the route.
@@ -196,16 +196,16 @@ class ScriptEvent
              *
              * For REST events (pre an post process), this data is sourced from BasePlatformService::$requestPayload, Base
              */
-            'request'          => $_request,
+            'request'          => $request,
             /**
              * The outbound response received from the service after being processed.
              * Any changes to this property will be made in the response back to the requester.
              */
-            'response'         => $_response,
+            'response'         => $response,
             //	Metadata if any
         ];
 
-        return $returnJson ? json_encode($_event, JSON_UNESCAPED_SLASHES) : $_event;
+        return $returnJson ? json_encode($event, JSON_UNESCAPED_SLASHES) : $event;
     }
 
     /**
@@ -213,26 +213,26 @@ class ScriptEvent
      *
      * @return array
      */
-    protected static function _getCleanedSession()
+    protected static function getCleanedSession()
     {
         if (Pii::guest()) {
             return false;
         }
 
-        $_session = Session::getSessionData();
+        $session = Session::getSessionData();
 
-        if (isset($_session, $_session['allowed_apps'])) {
-            $_apps = [];
+        if (isset($session, $session['allowed_apps'])) {
+            $apps = [];
 
-            /** @var App $_app */
-            foreach ($_session['allowed_apps'] as $_app) {
-                $_apps[$_app->name] = $_app->getAttributes();
+            /** @var App $app */
+            foreach ($session['allowed_apps'] as $app) {
+                $apps[$app->name] = $app->getAttributes();
             }
 
-            $_session['allowed_apps'] = $_apps;
+            $session['allowed_apps'] = $apps;
         }
 
-        return $_session;
+        return $session;
     }
 
     /**
@@ -250,27 +250,27 @@ class ScriptEvent
             $event->stopPropagation();
         }
 
-        $_request = ArrayUtils::getDeep($exposedEvent, 'request', 'body');
-        $_response = ArrayUtils::get($exposedEvent, 'response', false);
+        $request = ArrayUtils::getDeep($exposedEvent, 'request', 'body');
+        $response = ArrayUtils::get($exposedEvent, 'response', false);
 
-        if (!$_response) {
+        if (!$response) {
 //            Log::debug( 'No response in exposed event' );
         }
 
-        if ($_request) {
+        if ($request) {
             if (!$event->isPostProcessScript()) {
-                $event->setData($_request);
+                $event->setData($request);
             }
 
-            $event->setRequestData($_request);
+            $event->setRequestData($request);
         }
 
-        if ($_response) {
+        if ($response) {
             if ($event->isPostProcessScript()) {
-                $event->setData($_response);
+                $event->setData($response);
             }
 
-            $event->setResponseData($_response);
+            $event->setResponseData($response);
         }
 
         return $event;
@@ -281,11 +281,11 @@ class ScriptEvent
      */
     public static function getEventTemplate()
     {
-        if (empty(static::$_eventTemplate)) {
+        if (empty(static::$eventTemplate)) {
             static::initialize();
         }
 
-        return static::$_eventTemplate;
+        return static::$eventTemplate;
     }
 
     /**
@@ -293,7 +293,7 @@ class ScriptEvent
      */
     public static function setEventTemplate($eventTemplate)
     {
-        static::$_eventTemplate = $eventTemplate;
+        static::$eventTemplate = $eventTemplate;
     }
 
     /**
@@ -303,25 +303,25 @@ class ScriptEvent
      */
     public static function buildRequestArray($event = null)
     {
-        $_reqObj = Pii::request(false);
-        $_data = $event ? (is_array($event) ? $event : $event->getRequestData()) : null;
+        $reqObj = Pii::request(false);
+        $data = $event ? (is_array($event) ? $event : $event->getRequestData()) : null;
 
-        $_request = [
-            'method'  => strtoupper($_reqObj->getMethod()),
-            'headers' => $_reqObj->headers->all(),
-            'cookies' => $_reqObj->cookies->all(),
-            'query'   => $_reqObj->query->all(),
-            'body'    => $_data,
+        $request = [
+            'method'  => strtoupper($reqObj->getMethod()),
+            'headers' => $reqObj->headers->all(),
+            'cookies' => $reqObj->cookies->all(),
+            'query'   => $reqObj->query->all(),
+            'body'    => $data,
             'files'   => false,
         ];
 
-        $_files = $_reqObj->files->all();
+        $files = $reqObj->files->all();
 
-        if (!empty($_files)) {
-            $_request['files'] = $_files;
+        if (!empty($files)) {
+            $request['files'] = $files;
         }
 
-        return $_request;
+        return $request;
     }
 }
 

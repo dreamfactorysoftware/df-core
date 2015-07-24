@@ -28,7 +28,7 @@ class ScriptEngineManager
     /**
      * @var array Array of running script engines
      */
-    protected static $_instances = [];
+    protected static $instances = [];
 
     //*************************************************************************
     //	Methods
@@ -51,12 +51,12 @@ class ScriptEngineManager
             throw new ServiceUnavailableException("Failed to find script engine class '$engineClass'.");
         }
 
-        $_engine = new $engineClass($script_config);
+        $engine = new $engineClass($script_config);
 
         //  Stuff it in our instances array
-        static::$_instances[spl_object_hash($_engine)] = $_engine;
+        static::$instances[spl_object_hash($engine)] = $engine;
 
-        return $_engine;
+        return $engine;
     }
 
     /**
@@ -66,10 +66,10 @@ class ScriptEngineManager
      */
     public static function destroy($engine)
     {
-        $_hash = spl_object_hash($engine);
+        $hash = spl_object_hash($engine);
 
-        if (isset(static::$_instances[$_hash])) {
-            unset(static::$_instances[$_hash]);
+        if (isset(static::$instances[$hash])) {
+            unset(static::$instances[$hash]);
         }
 
         unset($engine);
@@ -95,38 +95,38 @@ class ScriptEngineManager
         array &$data = [],
         &$output = null
     ){
-        $_engine = static::create($engine_config, $config);
+        $engine = static::create($engine_config, $config);
 
-        $_result = $_message = false;
+        $result = $message = false;
 
         try {
             //  Don't show output
             ob_start();
 
             if (is_file($script)) {
-                $_result = $_engine->executeScript($script, $identifier, $data, $config);
+                $result = $engine->executeScript($script, $identifier, $data, $config);
             } else {
-                $_result = $_engine->executeString($script, $identifier, $data, $config);
+                $result = $engine->executeString($script, $identifier, $data, $config);
             }
-        } catch (ScriptException $_ex) {
-            $_message = $_ex->getMessage();
+        } catch (ScriptException $ex) {
+            $message = $ex->getMessage();
 
-            Log::error($_message = "Exception executing javascript: $_message");
+            Log::error($message = "Exception executing javascript: $message");
         }
 
         //  Clean up
         $output = ob_get_clean();
-        static::destroy($_engine);
+        static::destroy($engine);
 
         if (boolval(\Config::get('df.log_script_memory_usage', false))) {
             Log::debug('Engine memory usage: ' . static::resizeBytes(memory_get_usage(true)));
         }
 
-        if (false !== $_message) {
-            throw new ScriptException($_message, $output);
+        if (false !== $message) {
+            throw new ScriptException($message, $output);
         }
 
-        return $_result;
+        return $result;
     }
 
     /**
@@ -139,10 +139,10 @@ class ScriptEngineManager
      */
     public static function resizeBytes($bytes)
     {
-        static $_units = ['b', 'kb', 'mb', 'gb', 'tb', 'pb'];
+        static $units = ['b', 'kb', 'mb', 'gb', 'tb', 'pb'];
 
         /** @noinspection PhpIllegalArrayKeyTypeInspection */
 
-        return @round($bytes / pow(1024, ($_i = floor(log($bytes, 1024)))), 2) . $_units[$_i];
+        return @round($bytes / pow(1024, ($i = floor(log($bytes, 1024)))), 2) . $units[$i];
     }
 }

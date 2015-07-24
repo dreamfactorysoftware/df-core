@@ -101,7 +101,7 @@ final class Enterprise
     {
         static::_makeCacheKey();
 
-        if (\Config::get('debug') || !static::_reloadCache()) {
+        if (config('app.debug') || !static::_reloadCache()) {
             //  Discover where I am
             if (!static::_getClusterConfig()) {
                 static::debug('Not a DFE hosted instance. Resistance is NOT futile.');
@@ -641,8 +641,3 @@ final class Enterprise
     }
 }
 
-//******************************************************************************
-//* Initialize the DFE integration
-//******************************************************************************
-
-Enterprise::initialize();

@@ -2,7 +2,8 @@
 namespace DreamFactory\Core\Database\Seeds;
 
 use DreamFactory\Core\Enums\ServiceTypeGroups;
-use DreamFactory\Core\Models\CloudEmailConfig;
+use DreamFactory\Core\Models\MailGunConfig;
+use DreamFactory\Core\Models\MandrillConfig;
 use DreamFactory\Core\Models\SmtpConfig;
 use DreamFactory\Core\Models\FilePublicPath;
 use DreamFactory\Core\Models\ScriptConfig;
@@ -88,7 +89,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
         [
             'name'           => 'mailgun_email',
             'class_name'     => MailGun::class,
-            'config_handler' => CloudEmailConfig::class,
+            'config_handler' => MailGunConfig::class,
             'label'          => 'Mailgun Email Service',
             'description'    => 'Mailgun email service',
             'group'          => ServiceTypeGroups::EMAIL,
@@ -97,7 +98,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
         [
             'name'           => 'mandrill_email',
             'class_name'     => Mandrill::class,
-            'config_handler' => CloudEmailConfig::class,
+            'config_handler' => MandrillConfig::class,
             'label'          => 'Mandrill Email Service',
             'description'    => 'Mandrill email service',
             'group'          => ServiceTypeGroups::EMAIL,

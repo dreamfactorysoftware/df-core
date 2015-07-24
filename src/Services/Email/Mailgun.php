@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Services\Email;
 
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Library\Utility\ArrayUtils;
 use Illuminate\Mail\Transport\MailgunTransport;
 
@@ -20,9 +21,14 @@ class MailGun extends BaseService
      * @param $key
      *
      * @return \Illuminate\Mail\Transport\MailgunTransport
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
     public static function getTransport($domain, $key)
     {
+        if (empty($domain) || empty($key)) {
+            throw new InternalServerErrorException('Missing one or more configuration for MailGun service.');
+        }
+
         return new MailgunTransport($key, $domain);
     }
 }

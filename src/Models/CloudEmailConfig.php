@@ -4,16 +4,16 @@ namespace DreamFactory\Core\Models;
 
 class CloudEmailConfig extends BaseServiceConfigModel
 {
-    protected $table = 'smtp_config';
+    protected $table = 'cloud_email_config';
 
     protected $fillable = [
         'service_id',
         'domain',
-        'secret',
+        'key',
         'parameters'
     ];
 
-    protected $encrypted = ['secret'];
+    protected $encrypted = ['key'];
 
     protected $appends = ['parameters'];
 

@@ -13,7 +13,7 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
     protected $dspOnly = [
         /* API Hits limits */
         'api' => [
-            'api.default' => ['limit' => 1, 'period' => 1]
+            'default' => ['limit' => 1, 'period' => 1]
         ]
 
     ];
@@ -22,8 +22,8 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
 
         /* API Hits limits */
         'api' => [
-            'api.default' => ['limit' => 1, 'period' => 1],
-            'api.role_2'  => ['limit' => 1, 'period' => 1]
+            'default' => ['limit' => 1, 'period' => 1],
+            'role_2'  => ['limit' => 1, 'period' => 1]
         ]
 
     ];
@@ -32,9 +32,9 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
 
         /* API Hits limits */
         'api' => [
-            'api.default' => ['limit' => 1, 'period' => 1],
-            'api.role_2'  => ['limit' => 1, 'period' => 1], /* replace roleName with the actual role name */
-            'api.user_1'  => ['limit' => 1, 'period' => 1]
+            'default' => ['limit' => 1, 'period' => 1],
+            'role_2'  => ['limit' => 1, 'period' => 1], /* replace roleName with the actual role name */
+            'user_1'  => ['limit' => 1, 'period' => 1]
         ]
 
     ];
@@ -43,10 +43,10 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
 
         /* API Hits limits */
         'api' => [
-            'api.default' => ['limit' => 1, 'period' => 1],
-            'api.role_2'  => ['limit' => 1, 'period' => 1], /* replace roleName with the actual role name */
-            'api.user_1'  => ['limit' => 1, 'period' => 1], /* replace userName with the actual user name */
-            'api.apiName' => ['limit' => 1, 'period' => 1]
+            'default' => ['limit' => 1, 'period' => 1],
+            'role_2'  => ['limit' => 1, 'period' => 1], /* replace roleName with the actual role name */
+            'user_1'  => ['limit' => 1, 'period' => 1], /* replace userName with the actual user name */
+            'apiName' => ['limit' => 1, 'period' => 1]
         ]
 
     ];
@@ -55,11 +55,11 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
 
         /* API Hits limits */
         'api' => [
-            'api.default'        => ['limit' => 1, 'period' => 1],
-            'api.role_2'         => ['limit' => 1, 'period' => 1], /* replace roleName with the actual role name */
-            'api.user_1'         => ['limit' => 1, 'period' => 1], /* replace userName with the actual user name */
-            'api.apiName'        => ['limit' => 1, 'period' => 1], /* replace apiName with the actual API name */
-            'api.apiName.role_2' => ['limit' => 1, 'period' => 1]
+            'default'        => ['limit' => 1, 'period' => 1],
+            'role_2'         => ['limit' => 1, 'period' => 1], /* replace roleName with the actual role name */
+            'user_1'         => ['limit' => 1, 'period' => 1], /* replace userName with the actual user name */
+            'apiName'        => ['limit' => 1, 'period' => 1], /* replace apiName with the actual API name */
+            'apiName.role_2' => ['limit' => 1, 'period' => 1]
         ]
 
     ];
@@ -68,11 +68,11 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
 
         /* API Hits limits */
         'api' => [
-            'api.default'        => ['limit' => 1, 'period' => 1],
-            'api.role_2'         => ['limit' => 1, 'period' => 1], /* replace roleName with the actual role name */
-            'api.user_1'         => ['limit' => 1, 'period' => 1], /* replace userName with the actual user name */
-            'api.apiName'        => ['limit' => 1, 'period' => 1], /* replace apiName with the actual API name */
-            'api.apiName.user_1' => ['limit' => 1, 'period' => 1]
+            'default'        => ['limit' => 1, 'period' => 1],
+            'role_2'         => ['limit' => 1, 'period' => 1], /* replace roleName with the actual role name */
+            'user_1'         => ['limit' => 1, 'period' => 1], /* replace userName with the actual user name */
+            'apiName'        => ['limit' => 1, 'period' => 1], /* replace apiName with the actual API name */
+            'apiName.user_1' => ['limit' => 1, 'period' => 1]
         ]
     ];
 
@@ -80,11 +80,11 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
 
         /* API Hits limits */
         'api' => [
-            'api.default'             => ['limit' => 1, 'period' => 1],
-            'api.role_2'              => ['limit' => 1, 'period' => 1], /* replace roleName with the actual role name */
-            'api.user_1'              => ['limit' => 1, 'period' => 1], /* replace userName with the actual user name */
-            'api.apiName'             => ['limit' => 1, 'period' => 1], /* replace apiName with the actual API name */
-            'api.apiName.serviceName' => ['limit' => 1, 'period' => 1]
+            'default'             => ['limit' => 1, 'period' => 1],
+            'role_2'              => ['limit' => 1, 'period' => 1], /* replace roleName with the actual role name */
+            'user_1'              => ['limit' => 1, 'period' => 1], /* replace userName with the actual user name */
+            'apiName'             => ['limit' => 1, 'period' => 1], /* replace apiName with the actual API name */
+            'apiName.serviceName' => ['limit' => 1, 'period' => 1]
         ]
 
     ];
@@ -93,16 +93,16 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
 
         /* API Hits limits */
         'api' => [
-            'api.default'                    => ['limit' => 1, 'period' => 1],
-            'api.role_2'                     => ['limit' => 1, 'period' => 1],
+            'default'                    => ['limit' => 1, 'period' => 1],
+            'role_2'                     => ['limit' => 1, 'period' => 1],
             /* replace roleName with the actual role name */
-            'api.user_1'                     => ['limit' => 1, 'period' => 1],
+            'user_1'                     => ['limit' => 1, 'period' => 1],
             /* replace userName with the actual user name */
-            'api.apiName'                    => ['limit' => 1, 'period' => 1],
+            'apiName'                    => ['limit' => 1, 'period' => 1],
             /* replace apiName with the actual API name */
-            'api.apiName.serviceName'        => ['limit' => 1, 'period' => 1],
+            'apiName.serviceName'        => ['limit' => 1, 'period' => 1],
             /* replace serviceName with the actual service name */
-            'api.apiName.serviceName.role_2' => ['limit' => 1, 'period' => 1]
+            'apiName.serviceName.role_2' => ['limit' => 1, 'period' => 1]
         ]
 
     ];
@@ -111,16 +111,16 @@ class LimitsTest extends \DreamFactory\Core\Testing\TestCase
 
         /* API Hits limits */
         'api' => [
-            'api.default'                    => ['limit' => 1, 'period' => 1],
-            'api.role_2'                     => ['limit' => 1, 'period' => 1],
+            'default'                    => ['limit' => 1, 'period' => 1],
+            'role_2'                     => ['limit' => 1, 'period' => 1],
             /* replace roleName with the actual role name */
-            'api.user_1'                     => ['limit' => 1, 'period' => 1],
+            'user_1'                     => ['limit' => 1, 'period' => 1],
             /* replace userName with the actual user name */
-            'api.apiName'                    => ['limit' => 1, 'period' => 1],
+            'apiName'                    => ['limit' => 1, 'period' => 1],
             /* replace apiName with the actual API name */
-            'api.apiName.serviceName'        => ['limit' => 1, 'period' => 1],
+            'apiName.serviceName'        => ['limit' => 1, 'period' => 1],
             /* replace serviceName with the actual service name */
-            'api.apiName.serviceName.user_1' => ['limit' => 1, 'period' => 1]
+            'apiName.serviceName.user_1' => ['limit' => 1, 'period' => 1]
         ]
 
     ];

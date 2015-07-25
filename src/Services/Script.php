@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Scripting\ScriptEngineManager;
@@ -50,7 +51,7 @@ class Script extends BaseRestService
         parent::__construct($settings);
 
         $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config'));
-//        Session::replaceLookups( $config, true );
+        Session::replaceLookups( $config, true );
 
         if (null === ($this->content = ArrayUtils::get($config, 'content', null, true))) {
             throw new \InvalidArgumentException('Script content can not be empty.');

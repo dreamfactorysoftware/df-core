@@ -1897,7 +1897,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             $filterValue = static::interpretFilterValue($filterValue);
             $foundInRecord = (is_array($record)) ? array_key_exists($filterField, $record) : false;
             $recordValue = ArrayUtils::get($record, $filterField);
-            $foundInOld = (is_array($old_record)) ? array_key_exists($filterField, $old_record) : false;
+
+            $old_record = ArrayUtils::clean($old_record);
+            $foundInOld = array_key_exists($filterField, $old_record);
             $oldValue = ArrayUtils::get($old_record, $filterField);
             $compareFound = ($foundInRecord || ($for_update && $foundInOld));
             $compareValue = $foundInRecord ? $recordValue : ($for_update ? $oldValue : null);
@@ -2547,7 +2549,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         // the rest should be lookup keys, or plain strings
-//        Session::replaceLookups( $value );
+        Session::replaceLookups( $value );
 
         return $value;
     }
@@ -2564,7 +2566,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         foreach ($record as $field => $value) {
-//            Session::replaceLookups( $value );
+            Session::replaceLookups( $value );
             $record[$field] = $value;
         }
 

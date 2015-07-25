@@ -274,6 +274,150 @@ class Session
     }
 
     /**
+     * @param string $lookup
+     * @param string $value
+     * @param bool   $use_private
+     *
+     * @returns bool
+     */
+    public static function getLookupValue( $lookup, &$value, $use_private = false )
+    {
+        if ( empty( $lookup ) )
+        {
+            return false;
+        }
+
+        $_parts = explode( '.', $lookup );
+        if ( count( $_parts ) > 1 )
+        {
+            $_section = array_shift( $_parts );
+            $_lookup = implode( '.', $_parts );
+            if ( !empty( $_section ) )
+            {
+                switch ( $_section )
+                {
+                    case 'session':
+                        switch ( $_lookup )
+                        {
+                            case 'id':
+                            case 'token':
+                                $value = static::getSessionToken();
+
+                                return true;
+
+//                            case 'ticket':
+//                                $value = static::_generateTicket();
+//
+//                                return true;
+                        }
+                        break;
+
+                    case 'user':
+                    case 'role':
+                        // get fields here
+                        if ( !empty( $_lookup ) )
+                        {
+                            $info = static::get($_section);
+                            if ( isset( $info, $info[$_lookup] ) )
+                            {
+                                $value = $info[$_lookup];
+
+                                return true;
+                            }
+                        }
+                        break;
+
+                    case 'app':
+                        switch ( $_lookup )
+                        {
+                            case 'id':
+                                $value = static::get('app.id');;
+
+                                return true;
+
+                            case 'api_key':
+                                $value = static::getApiKey();
+
+                                return true;
+                        }
+                        break;
+
+//                    case 'dsp':
+//                        switch ( $_lookup )
+//                        {
+//                            case 'host_url':
+//                                $value = Curl::currentUrl( false, false );
+//
+//                                return true;
+//                            case 'name':
+//                                $value = Pii::getParam( 'dsp_name' );
+//
+//                                return true;
+//                            case 'version':
+//                            case 'confirm_invite_url':
+//                            case 'confirm_register_url':
+//                            case 'confirm_reset_url':
+//                                $value = Curl::currentUrl( false, false ) . Pii::getParam( 'dsp.' . $_lookup );
+//
+//                                return true;
+//                        }
+//                        break;
+                }
+            }
+        }
+
+        $control = $use_private ? 'lookup_secret' : 'lookup';
+        $lookups = static::get($control);
+        if ( isset( $lookups, $lookups[$lookup] ) )
+        {
+            $value = $lookups[$lookup];
+
+            return true;
+        }
+
+        return false;
+    }
+
+    public static function replaceLookups( &$subject, $use_private = false )
+    {
+        if ( is_string( $subject ) )
+        {
+            // filter string values should be wrapped in curly braces
+            if ( false !== strpos( $subject, '{' ) )
+            {
+                $_search = array();
+                $_replace = array();
+                // brute force, yeah this could be better
+                foreach ( explode( '{', $subject ) as $_word )
+                {
+                    $_lookup = strstr( $_word, '}', true );
+                    if ( !empty( $_lookup ) )
+                    {
+                        if ( static::getLookupValue( $_lookup, $_value, $use_private ) )
+                        {
+                            $_search[] = '{' . $_lookup . '}';
+                            $_replace[] = $_value;
+                        }
+                    }
+                }
+
+                if ( !empty( $_search ) )
+                {
+                    $subject = str_replace( $_search, $_replace, $subject );
+                }
+            }
+        }
+        elseif ( is_array( $subject ) )
+        {
+            foreach ( $subject as &$_value )
+            {
+                static::replaceLookups( $_value, $use_private );
+            }
+        }
+    }
+
+
+    /**
      * @param array $credentials
      * @param bool  $remember
      * @param bool  $login
@@ -376,7 +520,7 @@ class Session
         }
 
         Session::setUserInfo($userInfo);
-        Session::put('app_id', $appId);
+        Session::put('app.id', $appId);
 
         $roleInfo = ($roleId) ? CacheUtilities::getRoleInfo($roleId) : null;
         if (!empty($roleInfo)) {

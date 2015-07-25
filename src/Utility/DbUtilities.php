@@ -833,7 +833,7 @@ class DbUtilities
         }
 
         // the rest should be lookup keys, or plain strings
-//        Session::replaceLookups( $value );
+        Session::replaceLookups( $value );
         return $value;
     }
 
@@ -849,7 +849,7 @@ class DbUtilities
         }
 
         foreach ($record as $field => $value) {
-//            Session::replaceLookups( $value );
+            Session::replaceLookups( $value );
             $record[$field] = $value;
         }
 

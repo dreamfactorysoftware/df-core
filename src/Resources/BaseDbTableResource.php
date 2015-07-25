@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Resources;
 use Config;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Utility\ApiDocUtilities;
@@ -127,7 +128,6 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected function detectRequestMembers()
     {
-//        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
         $wrapper = ResourcesWrapper::getWrapper();
         // override - don't call parent class here
         $this->payload = $this->getPayloadData();
@@ -203,10 +203,12 @@ abstract class BaseDbTableResource extends BaseDbResource
             }
 
             // Add server side filtering properties
-//        if ( null != $ssFilters = Session::getServiceFilters( $this->getRequestedAction(), $this->name, $this->resource ) )
-//        {
-//            $this->payload['ss_filters'] = $ssFilters;
-//        }
+            $resource = $this->name .'/'. $this->resource;
+            if (null !=
+                $ssFilters = Session::getServiceFilters($this->getRequestedAction(), $this->parent->name, $resource)
+            ) {
+                $this->options['ss_filters'] = $ssFilters;
+            }
         }
     }
 

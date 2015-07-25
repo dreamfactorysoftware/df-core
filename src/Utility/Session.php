@@ -204,12 +204,7 @@ class Session
             return [];
         }
 
-        if (null === ($roleInfo = session('rsa.role'))) {
-            // no role assigned
-            return [];
-        }
-
-        $services = ArrayUtils::clean(ArrayUtils::get($roleInfo, 'services'));
+        $services = ArrayUtils::clean(static::get('role.services'));
 
         $serviceAllowed = null;
         $serviceFound = false;
@@ -286,14 +281,15 @@ class Session
      * @return bool
      * @throws \Exception
      */
-    public static function authenticate(array $credentials, $remember=false, $login=true)
+    public static function authenticate(array $credentials, $remember = false, $login = true)
     {
         if (\Auth::attempt($credentials, false, false)) {
-            if($login) {
+            if ($login) {
                 $user = \Auth::getLastAttempted();
                 $user->update(['last_login_date' => Carbon::now()->toDateTimeString()]);
                 Session::setUserInfoWithJWT($user, $remember);
             }
+
             return true;
         } else {
             return false;
@@ -306,10 +302,13 @@ class Session
     public static function logout()
     {
         $token = static::getSessionToken();
-        if(empty($token)){
+        if (empty($token)) {
             return false;
         }
+
         JWTUtilities::invalidate($token);
+
+        return true;
     }
 
     /**
@@ -481,11 +480,13 @@ class Session
         \Session::set('session_token', $token);
     }
 
-    public static function setApiKey($apiKey){
+    public static function setApiKey($apiKey)
+    {
         \Session::set('api_key', $apiKey);
     }
 
-    public static function getApiKey(){
+    public static function getApiKey()
+    {
         return \Session::get('api_key');
     }
 

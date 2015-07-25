@@ -22,6 +22,8 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
      */
     protected $fillable = ['service_id'];
 
+    protected $casts = ['service_id' => 'integer'];
+
     /**
      * @var bool
      */

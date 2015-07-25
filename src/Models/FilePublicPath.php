@@ -9,7 +9,7 @@ class FilePublicPath extends BaseServiceConfigModel
 
     protected $fillable = ['service_id', 'public_path', 'container'];
 
-    protected $casts = ['public_path' => 'array'];
+    protected $casts = ['public_path' => 'array', 'service_id' => 'integer'];
 
     /**
      * {@inheritdoc}

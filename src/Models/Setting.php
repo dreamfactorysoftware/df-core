@@ -20,4 +20,5 @@ class Setting extends BaseSystemModel
 {
     protected $table = 'system_setting';
 
+    protected $casts = ['id' => 'integer'];
 }

@@ -28,11 +28,13 @@ class RoleServiceAccess extends BaseSystemModel
 
     protected $guarded = ['id'];
 
-    protected $casts = ['filters'        => 'array',
-                        'verb_mask'      => 'integer',
-                        'requestor_mask' => 'integer',
-                        'role_id'        => 'integer',
-                        'service_id'     => 'integer'
+    protected $casts = [
+        'filters'        => 'array',
+        'verb_mask'      => 'integer',
+        'requestor_mask' => 'integer',
+        'id'             => 'integer',
+        'role_id'        => 'integer',
+        'service_id'     => 'integer'
     ];
 
     public static function boot()

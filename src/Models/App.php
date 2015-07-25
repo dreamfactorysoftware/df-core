@@ -53,7 +53,11 @@ class App extends BaseSystemModel
     protected $casts = [
         'is_active'               => 'boolean',
         'requires_fullscreen'     => 'boolean',
-        'allow_fullscreen_toggle' => 'boolean'
+        'allow_fullscreen_toggle' => 'boolean',
+        'id'                      => 'integer',
+        'role_id'                 => 'integer',
+        'type'                    => 'integer',
+        'storage_service_id'      => 'integer',
     ];
 
     public static function generateApiKey($name)

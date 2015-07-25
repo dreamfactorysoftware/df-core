@@ -8,5 +8,7 @@ class AppToAppGroup extends BaseModel
 
     protected $fillable = ['app_id', 'group_id'];
 
+    protected $casts = ['id' => 'integer', 'app_id' => 'integer', 'group_id' => 'integer'];
+
     public $timestamps = false;
 }

@@ -17,5 +17,7 @@ class UserAppRole extends BaseModel
 
     protected $fillable = ['user_id', 'app_id', 'role_id'];
 
+    protected $casts = ['user_id' => 'integer', 'app_id' => 'integer', 'role_id' => 'integer'];
+
     public $timestamps = false;
 }

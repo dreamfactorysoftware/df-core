@@ -29,6 +29,8 @@ class ScriptConfig extends BaseServiceConfigModel
 
     protected $appends = ['engine'];
 
+    protected $casts = ['service_id' => 'integer'];
+
     /**
      * @var array Extra config to pass to any config handler
      */

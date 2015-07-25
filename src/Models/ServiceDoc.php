@@ -5,10 +5,10 @@ namespace DreamFactory\Core\Models;
 /**
  * ServiceDoc
  *
- * @property integer    $id
- * @property integer    $service_id
- * @property integer    $format_id
- * @property string     $content
+ * @property integer $id
+ * @property integer $service_id
+ * @property integer $format_id
+ * @property string  $content
  * @method static \Illuminate\Database\Query\Builder|ServiceDoc whereId($value)
  * @method static \Illuminate\Database\Query\Builder|ServiceDoc whereServiceId($value)
  * @method static \Illuminate\Database\Query\Builder|ServiceDoc whereFormatId($value)
@@ -19,4 +19,5 @@ class ServiceDoc extends BaseModel
 
     protected $guarded = false;
 
+    protected $casts = ['id' => 'integer', 'service_id' => 'integer', 'format_id' => 'integer'];
 }

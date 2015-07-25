@@ -10,6 +10,8 @@ class EmailServiceParameterConfig extends BaseModel
 
     protected $fillable = ['service_id', 'name', 'value', 'active'];
 
+    protected $casts = ['id' => 'integer', 'service_id' => 'integer', 'active' => 'boolean'];
+
     /**
      * @var bool
      */

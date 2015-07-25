@@ -76,7 +76,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      */
     protected $hidden = ['is_sys_admin', 'password', 'remember_token'];
 
-    protected $casts = ['is_active' => 'boolean', 'is_sys_admin' => 'boolean'];
+    protected $casts = ['is_active' => 'boolean', 'is_sys_admin' => 'boolean', 'id' => 'integer'];
 
     /**
      * Assigns a role to a user for all apps in the system.
@@ -150,6 +150,22 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     protected static function createInternal($record, $params = [])
     {
         try {
+            if (!isset($record['name'])) {
+                // potentially combine first and last
+                $first = (isset($record['first_name']) ? $record['first_name'] : null);
+                $last = (isset($record['last_name']) ? $record['last_name'] : null);
+                $name = (!empty($first)) ? $first : '';
+                $name .= (!empty($name) && !empty($last)) ? ' ' : '';
+                $name .= (!empty($last)) ? $last : '';
+                if (empty($name)) {
+                    // use the first part of their email or the username
+                    $email = (isset($record['email']) ? $record['email'] : null);
+                    $name = (!empty($email) && strpos($email, '@')) ? strstr($email, '@', true) : '';
+                }
+
+                $record['name'] = $name;
+            }
+
             $model = static::create($record);
 
             if (ArrayUtils::getBool($params, 'admin') &&

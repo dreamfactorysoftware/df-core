@@ -21,4 +21,8 @@ class AppGroup extends BaseSystemModel
     protected $table = 'app_group';
 
     protected $fillable = ['name', 'description'];
+
+    protected $casts = [
+        'id' => 'integer',
+    ];
 }

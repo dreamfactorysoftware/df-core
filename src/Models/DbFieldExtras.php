@@ -20,5 +20,5 @@ class DbFieldExtras extends BaseSystemModel
 {
     protected $table = 'db_field_extras';
 
-    protected $casts = ['validation' => 'array'];
+    protected $casts = ['validation' => 'array', 'id' => 'integer', 'service_id' => 'integer'];
 }

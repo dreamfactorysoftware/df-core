@@ -15,7 +15,6 @@ use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
  * @property boolean $deletable
  * @property string  $type
  * @property array   $config
- * @property integer $native_format_id
  * @property string  $created_date
  * @property string  $last_modified_date
  * @method static \Illuminate\Database\Query\Builder|Service whereId($value)
@@ -45,7 +44,7 @@ class Service extends BaseSystemModel
 
     protected $appends = ['config'];
 
-    protected $casts = ['is_active' => 'boolean', 'mutable' => 'boolean', 'deletable' => 'boolean'];
+    protected $casts = ['is_active' => 'boolean', 'mutable' => 'boolean', 'deletable' => 'boolean', 'id' => 'integer'];
 
     /**
      * @var array Extra config to pass to any config handler

@@ -26,7 +26,7 @@ class BaseSystemLookup extends BaseSystemModel
 {
     protected $fillable = ['name', 'value', 'private', 'description'];
 
-    protected $casts = ['private' => 'boolean'];
+    protected $casts = ['private' => 'boolean', 'id' => 'integer'];
 
     protected $encrypted = ['value'];
 

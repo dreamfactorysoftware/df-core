@@ -26,7 +26,9 @@ class CorsConfig extends BaseSystemModel
      * @var array
      */
     protected $casts = [
+        'id'      => 'integer',
         'method'  => 'integer',
+        'max_age' => 'integer',
         'enabled' => 'boolean'
     ];
 
@@ -104,9 +106,10 @@ class CorsConfig extends BaseSystemModel
     {
         if (is_array($method)) {
             return $method;
-        } else if(is_string($method)){
-            $method = (integer) $method;
+        } else if (is_string($method)) {
+            $method = (integer)$method;
         }
+
         return VerbsMask::maskToArray($method);
     }
 }

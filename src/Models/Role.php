@@ -32,7 +32,7 @@ class Role extends BaseSystemModel
         'is_active',
     ];
 
-    protected $casts = ['is_active' => 'boolean'];
+    protected $casts = ['is_active' => 'boolean', 'id' => 'integer'];
 
     public static function boot()
     {

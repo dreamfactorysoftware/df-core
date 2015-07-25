@@ -27,4 +27,6 @@ class RoleLookup extends BaseSystemLookup
     protected $table = 'role_lookup';
 
     protected $fillable = ['role_id', 'name', 'value', 'private', 'description'];
+
+    protected $casts = ['private' => 'boolean', 'id' => 'integer', 'role_id' => 'integer'];
 }

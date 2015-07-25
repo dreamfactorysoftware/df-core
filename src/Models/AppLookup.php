@@ -27,4 +27,10 @@ class AppLookup extends BaseSystemLookup
     protected $table = 'app_lookup';
 
     protected $fillable = ['app_id', 'name', 'value', 'private', 'description'];
+
+    protected $casts = [
+        'is_private' => 'boolean',
+        'id'         => 'integer',
+        'app_id'     => 'integer',
+    ];
 }

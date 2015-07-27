@@ -146,6 +146,14 @@ class CacheUtilities
         return ArrayUtils::get($result, $key, $default);
     }
 
+    public static function forgetServiceInfo($name)
+    {
+        $cacheKey = 'service:' . $name;
+        if (Cache::has($cacheKey)) {
+            Cache::forget($cacheKey);
+        }
+    }
+
     /**
      * Returns user info cached, or reads from db if not present.
      * Pass in a key to return a portion/index of the cached data.
@@ -184,6 +192,14 @@ class CacheUtilities
         }
 
         return ArrayUtils::get($result, $key, $default);
+    }
+
+    public static function forgetUserInfo($id)
+    {
+        $cacheKey = 'user:' . $id;
+        if (Cache::has($cacheKey)) {
+            Cache::forget($cacheKey);
+        }
     }
 
     /**
@@ -244,6 +260,14 @@ class CacheUtilities
         return ArrayUtils::get($result, $key, $default);
     }
 
+    public static function forgetRoleInfo($id)
+    {
+        $cacheKey = 'role:' . $id;
+        if (Cache::has($cacheKey)) {
+            Cache::forget($cacheKey);
+        }
+    }
+
     /**
      * Returns app info cached, or reads from db if not present.
      * Pass in a key to return a portion/index of the cached data.
@@ -284,6 +308,14 @@ class CacheUtilities
         }
 
         return ArrayUtils::get($result, $key, $default);
+    }
+
+    public static function forgetAppInfo($id)
+    {
+        $cacheKey = 'app:' . $id;
+        if (Cache::has($cacheKey)) {
+            Cache::forget($cacheKey);
+        }
     }
 
     /**

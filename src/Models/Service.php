@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
+use DreamFactory\Core\Utility\CacheUtilities;
 
 /**
  * Service
@@ -75,6 +76,12 @@ class Service extends BaseSystemModel
             }
         );
 
+        static::saved(
+            function(Service $service){
+                CacheUtilities::forgetServiceInfo($service->name);
+            }
+        );
+
         static::deleted(
             function (Service $service){
                 // take the type information and get the config_handler class
@@ -83,6 +90,7 @@ class Service extends BaseSystemModel
                 if (!empty($serviceCfg)) {
                     return $serviceCfg::removeConfig($service->getKey());
                 }
+                CacheUtilities::forgetServiceInfo($service->name);
 
                 return true;
             }

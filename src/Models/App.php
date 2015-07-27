@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Enums\AppTypes;
+use DreamFactory\Core\Utility\CacheUtilities;
 use DreamFactory\Core\Utility\JWTUtilities;
 
 /**
@@ -127,12 +128,14 @@ class App extends BaseSystemModel
                 if(!$app->is_active){
                     JWTUtilities::invalidateTokenByAppId($app->id);
                 }
+                CacheUtilities::forgetAppInfo($app->id);
             }
         );
 
         static::deleted(
             function(App $app){
                 JWTUtilities::invalidateTokenByAppId($app->id);
+                CacheUtilities::forgetAppInfo($app->id);
             }
         );
     }

@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Utility\CacheUtilities;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -308,12 +309,14 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 if (!$user->is_active) {
                     JWTUtilities::invalidateTokenByUserId($user->id);
                 }
+                CacheUtilities::forgetUserInfo($user->id);
             }
         );
 
         static::deleted(
             function (User $user){
                 JWTUtilities::invalidateTokenByUserId($user->id);
+                CacheUtilities::forgetUserInfo($user->id);
             }
         );
     }

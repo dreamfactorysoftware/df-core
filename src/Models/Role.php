@@ -40,64 +40,19 @@ class Role extends BaseSystemModel
 
         static::saved(
             function (Role $role){
-                if(!$role->is_active) {
+                if (!$role->is_active) {
                     JWTUtilities::invalidateTokenByRoleId($role->id);
                 }
-                Role::clearCache($role);
+                CacheUtilities::forgetRoleInfo($role->id);
             }
         );
 
         static::deleting(
             function (Role $role){
                 JWTUtilities::invalidateTokenByRoleId($role->id);
-                Role::clearCache($role);
+                CacheUtilities::forgetRoleInfo($role->id);
             }
         );
-    }
-
-    public static function clearCache(Role $role)
-    {
-        $role->load('app_by_role_id', 'app_by_user_to_app_to_role', 'user_to_app_to_role_by_role_id');
-
-        $apps = $role->getRelation('app_by_role_id')->toArray();
-
-        foreach ($apps as $app) {
-            $apiKey = ArrayUtils::get($app, 'api_key');
-
-            $cacheKey = CacheUtilities::makeApiKeyUserIdKey($apiKey);
-
-            if (Cache::has($cacheKey)) {
-                Cache::forget($cacheKey);
-            }
-        }
-
-        $appUsers = $role->getRelation('app_by_user_to_app_to_role')->toArray();
-
-        $userRoles = $role->getRelation('user_to_app_to_role_by_role_id')->toArray();
-
-        foreach ($appUsers as $au) {
-            $apiKey = ArrayUtils::get($au, 'api_key');
-            $roleId = ArrayUtils::getDeep($au, 'pivot', 'role_id');
-            $appId = ArrayUtils::getDeep($au, 'pivot', 'app_id');
-
-            foreach ($userRoles as $ur) {
-                if ($appId === ArrayUtils::get($ur, 'app_id') && $roleId === ArrayUtils::get($ur, 'role_id')) {
-                    $userId = ArrayUtils::get($ur, 'user_id');
-                    $cacheKey = CacheUtilities::makeApiKeyUserIdKey($apiKey, $userId);
-
-                    if (Cache::has($cacheKey)) {
-                        if ($appId === ArrayUtils::get($ur, 'app_id') && $roleId === ArrayUtils::get($ur, 'role_id')) {
-                            $userId = ArrayUtils::get($ur, 'user_id');
-                            $cacheKey = CacheUtilities::makeApiKeyUserIdKey($apiKey, $userId);
-
-                            if (Cache::has($cacheKey)) {
-                                Cache::forget($cacheKey);
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     /**

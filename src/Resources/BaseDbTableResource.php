@@ -197,13 +197,13 @@ abstract class BaseDbTableResource extends BaseDbResource
             // set defaults if not present
             if (Verbs::GET == $this->request->getMethod()) {
                 // default for GET should be "return all fields"
-                if (!array_key_exists('fields', $this->options)) {
-                    $this->options['fields'] = '*';
+                if (!array_key_exists(ApiOptions::FIELDS, $this->options)) {
+                    $this->options[ApiOptions::FIELDS] = '*';
                 }
             }
 
             // Add server side filtering properties
-            $resource = $this->name .'/'. $this->resource;
+            $resource = $this->name . '/' . $this->resource;
             if (null !=
                 $ssFilters = Session::getServiceFilters($this->getRequestedAction(), $this->parent->name, $resource)
             ) {
@@ -255,15 +255,15 @@ abstract class BaseDbTableResource extends BaseDbResource
             return $result;
         }
 
-        if (!empty($ids = ArrayUtils::get($this->options, 'ids'))) {
+        if (!empty($ids = ArrayUtils::get($this->options, ApiOptions::IDS))) {
             //	Multiple resources by ID
             $result = $this->retrieveRecordsByIds($this->resource, $ids, $this->options);
         } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->payload))) {
             // passing records to have them updated with new or more values, id field required
             $result = $this->retrieveRecords($this->resource, $records, $this->options);
         } else {
-            $filter = ArrayUtils::get($this->options, 'filter');
-            $params = ArrayUtils::get($this->options, 'params', []);
+            $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
+            $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
 
             $result = $this->retrieveRecordsByFilter($this->resource, $filter, $params, $this->options);
         }
@@ -346,17 +346,17 @@ abstract class BaseDbTableResource extends BaseDbResource
             return $this->updateRecordById($this->resource, $record, $this->resourceId, $this->options);
         }
 
-        $ids = ArrayUtils::get($this->options, 'ids');
+        $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
 
         if (!empty($ids)) {
             $record = ArrayUtils::get($records, 0, $records);
 
             $result = $this->updateRecordsByIds($this->resource, $record, $ids, $this->options);
         } else {
-            $filter = ArrayUtils::get($this->options, 'filter');
+            $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
             if (!empty($filter)) {
                 $record = ArrayUtils::get($records, 0, $records);
-                $params = ArrayUtils::get($this->options, 'params', []);
+                $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
                 $result = $this->updateRecordsByFilter(
                     $this->resource,
                     $record,
@@ -407,16 +407,16 @@ abstract class BaseDbTableResource extends BaseDbResource
             return $this->patchRecordById($this->resource, $record, $this->resourceId, $this->options);
         }
 
-        $ids = ArrayUtils::get($this->options, 'ids');
+        $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
 
         if (!empty($ids)) {
             $record = ArrayUtils::get($records, 0, $records);
             $result = $this->patchRecordsByIds($this->resource, $record, $ids, $this->options);
         } else {
-            $filter = ArrayUtils::get($this->options, 'filter');
+            $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
             if (!empty($filter)) {
                 $record = ArrayUtils::get($records, 0, $records);
-                $params = ArrayUtils::get($this->options, 'params', []);
+                $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
                 $result = $this->patchRecordsByFilter(
                     $this->resource,
                     $record,
@@ -460,7 +460,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             return $this->deleteRecordById($this->resource, $this->resourceId, $this->options);
         }
 
-        $ids = ArrayUtils::get($this->options, 'ids');
+        $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
         if (!empty($ids)) {
             $result = $this->deleteRecordsByIds($this->resource, $ids, $this->options);
         } else {
@@ -468,12 +468,12 @@ abstract class BaseDbTableResource extends BaseDbResource
             if (!empty($records)) {
                 $result = $this->deleteRecords($this->resource, $records, $this->options);
             } else {
-                $filter = ArrayUtils::get($this->options, 'filter');
+                $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
                 if (!empty($filter)) {
-                    $params = ArrayUtils::get($this->options, 'params', []);
+                    $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
                     $result = $this->deleteRecordsByFilter($this->resource, $filter, $params, $this->options);
                 } else {
-                    if (!ArrayUtils::getBool($this->options, 'force')) {
+                    if (!ArrayUtils::getBool($this->options, ApiOptions::FORCE)) {
                         throw new BadRequestException('No filter or records given for delete request.');
                     }
 
@@ -511,11 +511,11 @@ abstract class BaseDbTableResource extends BaseDbResource
         $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
         $isSingle = (1 == count($records));
-        $fields = ArrayUtils::get($extras, 'fields');
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
-        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::ROLLBACK, false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::CONTINUES, false);
         if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
@@ -631,12 +631,12 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
-        $fields = ArrayUtils::get($extras, 'fields');
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
         $isSingle = (1 == count($records));
-        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::ROLLBACK, false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::CONTINUES, false);
         if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
@@ -756,12 +756,12 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
 
-        $fields = ArrayUtils::get($extras, 'fields');
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
 
         // slow, but workable for now, maybe faster than merging individuals
-        $extras['fields'] = '';
+        $extras[ApiOptions::FIELDS] = '';
         $records = $this->retrieveRecordsByFilter($table, $filter, $params, $extras);
         unset($records['meta']);
 
@@ -772,7 +772,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         $ids = static::recordsAsIds($records, $idsInfo);
-        $extras['fields'] = $fields;
+        $extras[ApiOptions::FIELDS] = $fields;
 
         return $this->updateRecordsByIds($table, $record, $ids, $extras);
     }
@@ -793,12 +793,12 @@ abstract class BaseDbTableResource extends BaseDbResource
         $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
         $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
-        $fields = ArrayUtils::get($extras, 'fields');
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
         $isSingle = (1 == count($ids));
-        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::ROLLBACK, false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::CONTINUES, false);
         if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
@@ -920,12 +920,12 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
-        $fields = ArrayUtils::get($extras, 'fields');
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
         $isSingle = (1 == count($records));
-        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::ROLLBACK, false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::CONTINUES, false);
         if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
@@ -1045,12 +1045,12 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
 
-        $fields = ArrayUtils::get($extras, 'fields');
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
 
         // slow, but workable for now, maybe faster than merging individuals
-        $extras['fields'] = '';
+        $extras[ApiOptions::FIELDS] = '';
         $records = $this->retrieveRecordsByFilter($table, $filter, $params, $extras);
         unset($records['meta']);
 
@@ -1061,7 +1061,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         $ids = static::recordsAsIds($records, $idsInfo);
-        $extras['fields'] = $fields;
+        $extras[ApiOptions::FIELDS] = $fields;
 
         return $this->patchRecordsByIds($table, $record, $ids, $extras);
     }
@@ -1080,12 +1080,12 @@ abstract class BaseDbTableResource extends BaseDbResource
         $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
         $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
-        $fields = ArrayUtils::get($extras, 'fields');
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
         $isSingle = (1 == count($ids));
-        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::ROLLBACK, false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::CONTINUES, false);
         if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
@@ -1207,8 +1207,8 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
         $fieldsInfo = $this->getFieldsInfo($table);
         $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
         if (empty($idsInfo)) {
@@ -1251,12 +1251,12 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function deleteRecordsByFilter($table, $filter, $params = [], $extras = [])
     {
-        $fields = ArrayUtils::get($extras, 'fields');
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
 
         // slow, but workable for now, maybe faster than deleting individuals
-        $extras['fields'] = '';
+        $extras[ApiOptions::FIELDS] = '';
         $records = $this->retrieveRecordsByFilter($table, $filter, $params, $extras);
         unset($records['meta']);
 
@@ -1267,7 +1267,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         $ids = static::recordsAsIds($records, $idsInfo, $extras);
-        $extras['fields'] = $fields;
+        $extras[ApiOptions::FIELDS] = $fields;
 
         return $this->deleteRecordsByIds($table, $ids, $extras);
     }
@@ -1284,12 +1284,12 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
-        $fields = ArrayUtils::get($extras, 'fields');
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
         $isSingle = (1 == count($ids));
-        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, 'rollback', false);
-        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        $rollback = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::ROLLBACK, false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::CONTINUES, false);
         if ($rollback && $continue) {
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
@@ -1437,8 +1437,8 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
 
         $fieldsInfo = $this->getFieldsInfo($table);
         $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
@@ -1483,11 +1483,11 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
-        $fields = ArrayUtils::get($extras, 'fields');
-        $idFields = ArrayUtils::get($extras, 'id_field');
-        $idTypes = ArrayUtils::get($extras, 'id_type');
+        $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
+        $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
+        $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
         $isSingle = (1 == count($ids));
-        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, 'continue', false);
+        $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::CONTINUES, false);
 
         $this->initTransaction($table);
 
@@ -2549,7 +2549,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         // the rest should be lookup keys, or plain strings
-        Session::replaceLookups( $value );
+        Session::replaceLookups($value);
 
         return $value;
     }
@@ -2566,7 +2566,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         foreach ($record as $field => $value) {
-            Session::replaceLookups( $value );
+            Session::replaceLookups($value);
             $record[$field] = $value;
         }
 
@@ -2875,14 +2875,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'type'          => 'IdsRecordRequest',
                                         'paramType'     => 'body',
                                         'required'      => true,
-                                    ],
-                                    [
-                                        'name'          => 'ids',
-                                        'description'   => 'Comma-delimited list of the identifiers of the records to modify.',
-                                        'allowMultiple' => true,
-                                        'type'          => 'string',
-                                        'paramType'     => 'query',
-                                        'required'      => false,
                                     ],
                                     ApiOptions::documentOption(ApiOptions::IDS),
                                     ApiOptions::documentOption(ApiOptions::ID_FIELD),
@@ -3469,7 +3461,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             'IdsRequest'          => [
                 'id'         => 'IdsRequest',
                 'properties' => [
-                    'ids' => [
+                    ApiOptions::IDS => [
                         'type'        => 'array',
                         'description' => 'Array of record identifiers.',
                         'items'       => [
@@ -3482,11 +3474,11 @@ abstract class BaseDbTableResource extends BaseDbResource
             'IdsRecordRequest'    => [
                 'id'         => 'IdsRecordRequest',
                 'properties' => [
-                    $wrapper => [
+                    $wrapper        => [
                         'type'        => 'RecordRequest',
                         'description' => 'A single record, array of fields, used to modify existing records.',
                     ],
-                    'ids'    => [
+                    ApiOptions::IDS => [
                         'type'        => 'array',
                         'description' => 'Array of record identifiers.',
                         'items'       => [
@@ -3499,11 +3491,11 @@ abstract class BaseDbTableResource extends BaseDbResource
             'FilterRequest'       => [
                 'id'         => 'FilterRequest',
                 'properties' => [
-                    'filter' => [
+                    ApiOptions::FILTER => [
                         'type'        => 'string',
                         'description' => 'SQL or native filter to determine records where modifications will be applied.',
                     ],
-                    'params' => [
+                    ApiOptions::PARAMS => [
                         'type'        => 'array',
                         'description' => 'Array of name-value pairs, used for parameter replacement on filters.',
                         'items'       => [
@@ -3519,11 +3511,11 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'type'        => 'RecordRequest',
                         'description' => 'A single record, array of fields, used to modify existing records.',
                     ],
-                    'filter' => [
+                    ApiOptions::FILTER => [
                         'type'        => 'string',
                         'description' => 'SQL or native filter to determine records where modifications will be applied.',
                     ],
-                    'params' => [
+                    ApiOptions::PARAMS => [
                         'type'        => 'array',
                         'description' => 'Array of name-value pairs, used for parameter replacement on filters.',
                         'items'       => [
@@ -3542,7 +3534,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                             '$ref' => 'RecordRequest',
                         ],
                     ],
-                    'ids'    => [
+                    ApiOptions::IDS    => [
                         'type'        => 'array',
                         'description' => 'Array of record identifiers.',
                         'items'       => [
@@ -3550,11 +3542,11 @@ abstract class BaseDbTableResource extends BaseDbResource
                             'format' => 'int32',
                         ],
                     ],
-                    'filter' => [
+                    ApiOptions::FILTER => [
                         'type'        => 'string',
                         'description' => 'SQL or native filter to determine records where modifications will be applied.',
                     ],
-                    'params' => [
+                    ApiOptions::PARAMS => [
                         'type'        => 'array',
                         'description' => 'Array of name-value pairs, used for parameter replacement on filters.',
                         'items'       => [

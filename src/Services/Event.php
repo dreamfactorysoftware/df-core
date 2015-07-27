@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
@@ -85,10 +86,9 @@ class Event extends BaseRestService
      */
     protected function handleGET()
     {
-        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
         $wrapper = ResourcesWrapper::getWrapper();
-        $ids = $this->request->getParameter('ids');
-        $records = $this->getPayloadData(($alwaysWrap ? $wrapper : null), []);
+        $ids = $this->request->getParameter(ApiOptions::IDS);
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
 
         $data = null;
 
@@ -134,17 +134,17 @@ class Event extends BaseRestService
                 'params' => [],
             ];
 
-            if (null !== ($value = $this->request->getParameter('fields'))) {
+            if (null !== ($value = $this->request->getParameter(ApiOptions::FIELDS))) {
                 $criteria['select'] = $value;
             } else {
                 $criteria['select'] = "*";
             }
 
-            if (null !== ($value = $this->request->getPayloadData('params'))) {
+            if (null !== ($value = $this->request->getPayloadData(ApiOptions::PARAMS))) {
                 $criteria['params'] = $value;
             }
 
-            if (null !== ($value = $this->request->getParameter('filter'))) {
+            if (null !== ($value = $this->request->getParameter(ApiOptions::FILTER))) {
                 $criteria['condition'] = $value;
 
                 //	Add current user ID into parameter array if in condition, but not specified.
@@ -155,7 +155,7 @@ class Event extends BaseRestService
                 }
             }
 
-            $value = intval($this->request->getParameter('limit'));
+            $value = intval($this->request->getParameter(ApiOptions::LIMIT));
             $maxAllowed = intval(\Config::get('df.db_max_records_returned', self::MAX_RECORDS_RETURNED));
             if (($value < 1) || ($value > $maxAllowed)) {
                 // impose a limit to protect server
@@ -163,11 +163,11 @@ class Event extends BaseRestService
             }
             $criteria['limit'] = $value;
 
-            if (null !== ($value = $this->request->getParameter('offset'))) {
+            if (null !== ($value = $this->request->getParameter(ApiOptions::OFFSET))) {
                 $criteria['offset'] = $value;
             }
 
-            if (null !== ($value = $this->request->getParameter('order'))) {
+            if (null !== ($value = $this->request->getParameter(ApiOptions::ORDER))) {
                 $criteria['order'] = $value;
             }
 
@@ -175,7 +175,7 @@ class Event extends BaseRestService
             $data = ResourcesWrapper::wrapResources($data);
         }
 
-        if ($this->request->getParameterAsBool('include_count') === true) {
+        if ($this->request->getParameterAsBool(ApiOptions::INCLUDE_COUNT)) {
             if (isset($data[$wrapper])) {
                 $data['meta']['count'] = count($data[$wrapper]);
             } elseif (!empty($data)) {
@@ -183,7 +183,7 @@ class Event extends BaseRestService
             }
         }
 
-        if (!empty($data) && $this->request->getParameterAsBool('include_schema') === true) {
+        if (!empty($data) && $this->request->getParameterAsBool(ApiOptions::INCLUDE_SCHEMA)) {
             $data['meta']['schema'] = $model->getTableSchema()->toArray();
         }
 
@@ -243,7 +243,8 @@ class Event extends BaseRestService
         $this->triggerActionEvent($this->response);
 
         if (!empty($this->resource)) {
-            $result = $modelClass::updateById($this->resource, $this->getPayloadData(), $this->request->getParameters());
+            $result =
+                $modelClass::updateById($this->resource, $this->getPayloadData(), $this->request->getParameters());
         } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
             if (empty($records)) {
@@ -330,103 +331,18 @@ class Event extends BaseRestService
                         'consumes'         => ['application/json', 'application/xml', 'text/csv'],
                         'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [
-                            [
-                                'name'          => 'ids',
-                                'description'   => 'Comma-delimited list of the identifiers of the records to retrieve.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'filter',
-                                'description'   => 'SQL-like filter to limit the records to retrieve.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'limit',
-                                'description'   => 'Set to limit the filter results.',
-                                'allowMultiple' => false,
-                                'type'          => 'integer',
-                                'format'        => 'int32',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'order',
-                                'description'   => 'SQL-like order containing field and direction for filter results.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'offset',
-                                'description'   => 'Set to offset the filter results to a particular record count.',
-                                'allowMultiple' => false,
-                                'type'          => 'integer',
-                                'format'        => 'int32',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to retrieve for each record.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to retrieve for each record.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'include_count',
-                                'description'   => 'Include the total number of filter results in returned metadata.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'include_schema',
-                                'description'   => 'Include the schema of the table queried in returned metadata.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'file',
-                                'description'   => 'Download the results of the request as a file.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::FILTER),
+                            ApiOptions::documentOption(ApiOptions::LIMIT),
+                            ApiOptions::documentOption(ApiOptions::ORDER),
+                            ApiOptions::documentOption(ApiOptions::OFFSET),
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
+                            ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
+                            ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
+                            ApiOptions::documentOption(ApiOptions::FILE),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
                             'By default, all records up to the maximum are returned. <br>' .
@@ -452,22 +368,8 @@ class Event extends BaseRestService
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                             [
                                 'name'          => 'X-HTTP-METHOD',
                                 'description'   => 'Override request using POST to tunnel other http request, such as DELETE.',
@@ -478,20 +380,7 @@ class Event extends BaseRestService
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'Post data should be a single record or an array of records (shown). ' .
                             'By default, only the id property of the record affected is returned on success, ' .
@@ -514,37 +403,10 @@ class Event extends BaseRestService
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'Post data should be a single record or an array of records (shown). ' .
                             'By default, only the id property of the record is returned on success, ' .
@@ -557,54 +419,12 @@ class Event extends BaseRestService
                         'type'             => 'SubscribersResponse',
                         'event_name'       => $this->name . '.subscriber.delete',
                         'parameters'       => [
-                            [
-                                'name'          => 'ids',
-                                'description'   => 'Comma-delimited list of the identifiers of the records to delete.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'force',
-                                'description'   => 'Set force to true to delete all records in this table, otherwise \'ids\' parameter is required.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'default'       => false,
-                            ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::FORCE),
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'By default, only the id property of the record deleted is returned on success. ' .
                             'Use \'fields\' and \'related\' to return more properties of the deleted records. <br>' .
@@ -632,37 +452,10 @@ class Event extends BaseRestService
                                 'paramType'     => 'path',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related records to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                     ],
                     [
@@ -688,37 +481,10 @@ class Event extends BaseRestService
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related records to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'Post data should be an array of fields to update for a single record. <br>' .
                             'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
@@ -738,37 +504,10 @@ class Event extends BaseRestService
                                 'paramType'     => 'path',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related records to return.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
                     ],
                 ],
@@ -780,14 +519,14 @@ class Event extends BaseRestService
             'SubscribersRequest'  => [
                 'id'         => 'SubscribersRequest',
                 'properties' => [
-                    $wrapper => [
+                    $wrapper        => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
                             '$ref' => 'Subscriber',
                         ],
                     ],
-                    'ids'    => [
+                    ApiOptions::IDS => [
                         'type'        => 'array',
                         'description' => 'Array of system record identifiers, used for batch GET, PUT, PATCH, and DELETE.',
                         'items'       => [

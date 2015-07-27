@@ -3,10 +3,13 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Components\ApiDocManager;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\EventScript;
 use DreamFactory\Core\Resources\BaseRestResource;
+use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
@@ -135,12 +138,12 @@ class Event extends BaseRestResource
                 return $results;
             }
 
-            return $this->cleanResources($allEvents);
+            return ResourcesWrapper::cleanResources($allEvents);
         }
 
         $data = null;
 
-        $related = $this->request->getParameter('related');
+        $related = $this->request->getParameter(ApiOptions::RELATED);
         if (!empty($related)) {
             $related = explode(',', $related);
         } else {
@@ -148,8 +151,8 @@ class Event extends BaseRestResource
         }
 
         //	Single script by name
-        $fields = ['*'];
-        if (null !== ($value = $this->request->getParameter('fields'))) {
+        $fields = [ApiOptions::FIELDS_ALL];
+        if (null !== ($value = $this->request->getParameter(ApiOptions::FIELDS))) {
             $fields = explode(',', $value);
         }
 
@@ -227,31 +230,19 @@ class Event extends BaseRestResource
                         'method'           => 'GET',
                         'summary'          => 'get' . $name . 'Events() - Retrieve list of events.',
                         'nickname'         => 'get' . $name . 'Events',
+                        'notes'            => 'A list of event names are returned. <br>',
                         'type'             => 'ResourceList',
                         'event_name'       => $eventPath . '.list',
                         'consumes'         => ['application/json', 'application/xml', 'text/csv'],
                         'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
-                        'notes'            => 'A list of event names are returned. <br>',
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                     ],
                     [
                         'method'           => 'GET',
                         'summary'          => 'get' . $name . 'EventMap() - Retrieve full map of events.',
                         'nickname'         => 'get' . $name . 'EventMap',
+                        'notes'            => 'This returns a service to verb to event mapping. <br>',
                         'type'             => 'EventMap',
                         'event_name'       => $eventPath . '.list',
                         'consumes'         => ['application/json', 'application/xml', 'text/csv'],
@@ -267,21 +258,7 @@ class Event extends BaseRestResource
                                 'default'       => true,
                             ]
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
-                        'notes'            => 'This returns a service to verb to event mapping. <br>',
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                     ],
                 ],
                 'description' => 'Operations for retrieving events.',
@@ -293,6 +270,9 @@ class Event extends BaseRestResource
                         'method'           => 'GET',
                         'summary'          => 'get' . $name . 'EventScript() - Retrieve the script for an event.',
                         'nickname'         => 'get' . $name . 'EventScript',
+                        'notes'            =>
+                            'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
+                            'By default, all fields and no relations are returned for each record.',
                         'type'             => 'EventScriptResponse',
                         'event_name'       => $eventPath . '.{event_name}.read',
                         'parameters'       => [
@@ -304,61 +284,21 @@ class Event extends BaseRestResource
                                 'paramType'     => 'path',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to retrieve for each record.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to retrieve for each record.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'include_schema',
-                                'description'   => 'Include the schema of the table queried in returned metadata.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'file',
-                                'description'   => 'Download the contents of the script as a file.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
+                            ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
+                            ApiOptions::documentOption(ApiOptions::FILE),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
-                        'notes'            =>
-                            'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
-                            'By default, all fields and no relations are returned for each record.',
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                     ],
                     [
                         'method'           => 'POST',
                         'summary'          => 'create' . $name . 'EventScript() - Create a script for an event.',
                         'nickname'         => 'create' . $name . 'EventScript',
+                        'notes'            =>
+                            'Post data should be a single record containing required fields for a script. ' .
+                            'By default, only the id property of the record affected is returned on success, ' .
+                            'use \'fields\' and \'related\' to return more info.',
                         'type'             => 'EventScriptResponse',
                         'event_name'       => $eventPath . '.{event_name}.create',
                         'consumes'         => ['application/json', 'application/xml', 'text/csv'],
@@ -380,41 +320,10 @@ class Event extends BaseRestResource
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ]
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
-                        'notes'            =>
-                            'Post data should be a single record containing required fields for a script. ' .
-                            'By default, only the id property of the record affected is returned on success, ' .
-                            'use \'fields\' and \'related\' to return more info.',
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                     ],
                     [
                         'method'           => 'PATCH',
@@ -441,37 +350,10 @@ class Event extends BaseRestResource
                                 'paramType'     => 'body',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         'notes'            =>
                             'Posted data should be a single record containing changed fields. ' .
                             'By default, only the id property of the record is returned on success, ' .
@@ -481,6 +363,9 @@ class Event extends BaseRestResource
                         'method'           => 'DELETE',
                         'summary'          => 'delete' . $name . 'EventScript() - Delete an event scripts.',
                         'nickname'         => 'delete' . $name . 'EventScript',
+                        'notes'            =>
+                            'By default, only the id property of the record deleted is returned on success. ' .
+                            'Use \'fields\' and \'related\' to return more properties of the deleted record.',
                         'type'             => 'EventScriptResponse',
                         'event_name'       => $eventPath . '.{event_name}.delete',
                         'parameters'       => [
@@ -492,40 +377,10 @@ class Event extends BaseRestResource
                                 'paramType'     => 'path',
                                 'required'      => true,
                             ],
-                            [
-                                'name'          => 'fields',
-                                'description'   => 'Comma-delimited list of field names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'related',
-                                'description'   => 'Comma-delimited list of related names to return for each record affected.',
-                                'allowMultiple' => true,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => [
-                            [
-                                'message' => 'Bad Request - Request does not have a valid format, all required parameters, etc.',
-                                'code'    => 400,
-                            ],
-                            [
-                                'message' => 'Unauthorized Access - No currently valid session available.',
-                                'code'    => 401,
-                            ],
-                            [
-                                'message' => 'System Error - Specific reason is included in the error message.',
-                                'code'    => 500,
-                            ],
-                        ],
-                        'notes'            =>
-                            'By default, only the id property of the record deleted is returned on success. ' .
-                            'Use \'fields\' and \'related\' to return more properties of the deleted record.',
+                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                     ],
                 ],
                 'description' => 'Operations for scripts on individual events.',

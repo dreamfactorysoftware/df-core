@@ -2,6 +2,7 @@
 
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Illuminate\Support\Arr;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\Session;
@@ -29,7 +30,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
     public function testNonAdmin()
     {
         $user = $this->user1;
-        $this->makeRequest(Verbs::POST, 'user', ['fields' => '*', 'related' => 'user_lookup_by_user_id'], [$user]);
+        $this->makeRequest(Verbs::POST, 'user', [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'], [$user]);
 
         //Using a new instance here. Prev instance is set for user resource.
         $this->service = \DreamFactory\Core\Utility\ServiceHandler::getService('system');
@@ -54,7 +55,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
     public function testUnauthorizedSessionRequest()
     {
         $user = $this->user1;
-        $this->makeRequest(Verbs::POST, 'user', ['fields' => '*', 'related' => 'user_lookup_by_user_id'], [$user]);
+        $this->makeRequest(Verbs::POST, 'user', [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'], [$user]);
 
         Session::authenticate(['email' => $user['email'], 'password' => $user['password']]);
 

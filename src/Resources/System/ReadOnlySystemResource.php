@@ -329,7 +329,7 @@ class ReadOnlySystemResource extends BaseRestResource
                             '$ref' => $name . 'Request',
                         ],
                     ],
-                    'ids'    => [
+                    ApiOptions::IDS    => [
                         'type'        => 'array',
                         'description' => 'Array of system record identifiers, used for batch GET, PUT, PATCH, and DELETE.',
                         'items'       => [

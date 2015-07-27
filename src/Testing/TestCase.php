@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Testing;
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ServiceHandler;
 use Illuminate\Database\Eloquent\Model;
@@ -90,6 +91,20 @@ class TestCase extends LaravelTestCase
     {
         Artisan::call('migrate');
         Artisan::call('db:seed');
+        Model::unguard();
+
+        // Add default admin user
+        if (!User::exists()) {
+            User::create(
+                [
+                    'name'         => 'DF Admin',
+                    'email'        => 'admin@test.com',
+                    'password'     => 'Dream123!',
+                    'is_sys_admin' => true,
+                    'is_active'    => true
+                ]
+            );
+        }
     }
 
     /**

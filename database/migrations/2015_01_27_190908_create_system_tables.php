@@ -545,6 +545,31 @@ class CreateSystemTables extends Migration
                 $t->integer('exp')->unsigned();
             }
         );
+
+        Schema::create(
+            'file_public_path',
+            function (Blueprint $t){
+                $t->integer('service_id')->unsigned()->primary();
+                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
+                $t->text('public_path')->nullable();
+                $t->text('container')->nullable();
+            }
+        );
+
+        // create system customizations
+        Schema::create(
+            'system_custom',
+            function (Blueprint $t){
+                $t->string('name')->primary();
+                $t->longText('value')->nullable();
+                $t->timestamp('created_date');
+                $t->timestamp('last_modified_date');
+                $t->integer('created_by_id')->unsigned()->nullable();
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->integer('last_modified_by_id')->unsigned()->nullable();
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+            }
+        );
     }
 
     /**
@@ -556,6 +581,10 @@ class CreateSystemTables extends Migration
     {
         // Drop created tables in reverse order
 
+        // system customizations
+        Schema::dropIfExists('system_custom');
+        // File storage, public path designation
+        Schema::dropIfExists('file_public_path');
         // JSON Web Token to system resources map
         Schema::dropIfExists('token_map');
         // App relationship for user

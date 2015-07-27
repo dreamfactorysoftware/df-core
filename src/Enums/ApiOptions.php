@@ -57,6 +57,10 @@ class ApiOptions extends FactoryEnum
     /**
      * @var string
      */
+    const ALLOW_RELATED_DELETE = 'allow_related_delete';
+    /**
+     * @var string
+     */
     const FILTER = 'filter';
     /**
      * @var string
@@ -98,7 +102,10 @@ class ApiOptions extends FactoryEnum
      * @var string
      */
     const SCHEMA = 'schema';
-
+    /**
+     * @var string
+     */
+    const FORCE = 'force';
 
     //*************************************************************************
     //	Common Option Values
@@ -107,7 +114,6 @@ class ApiOptions extends FactoryEnum
      * @var string
      */
     const FIELDS_ALL = '*';
-
 
     public static $aliasMap = [
         self::FIELDS => ['select'],
@@ -119,40 +125,44 @@ class ApiOptions extends FactoryEnum
 
     public static $typeMap = [
         // only include non-strings here for speed
-        self::LIMIT          => 'integer',
-        self::OFFSET         => 'integer',
-        self::CONTINUES      => 'boolean',
-        self::ROLLBACK       => 'boolean',
-        self::INCLUDE_ACCESS => 'boolean',
-        self::INCLUDE_COUNT  => 'boolean',
-        self::INCLUDE_SCHEMA => 'boolean',
-        self::AS_LIST        => 'boolean',
-        self::AS_ACCESS_LIST => 'boolean',
-        self::REFRESH        => 'boolean',
-        self::REGENERATE     => 'boolean',
+        self::LIMIT                => 'integer',
+        self::OFFSET               => 'integer',
+        self::CONTINUES            => 'boolean',
+        self::ROLLBACK             => 'boolean',
+        self::INCLUDE_ACCESS       => 'boolean',
+        self::INCLUDE_COUNT        => 'boolean',
+        self::INCLUDE_SCHEMA       => 'boolean',
+        self::AS_LIST              => 'boolean',
+        self::AS_ACCESS_LIST       => 'boolean',
+        self::REFRESH              => 'boolean',
+        self::REGENERATE           => 'boolean',
+        self::FORCE                => 'boolean',
+        self::ALLOW_RELATED_DELETE => 'boolean',
     ];
 
     public static $descriptionMap = [
-        self::IDS            => 'Comma-delimited list of the identifiers of the records to retrieve.',
-        self::ID_FIELD       => 'Comma-delimited list of the fields used as identifiers, used to override defaults or provide identifiers when none are provisioned.',
-        self::ID_TYPE        => 'Comma-delimited list of the field types used as identifiers for the table, used to override defaults or provide identifiers when none are provisioned.',
-        self::FILTER         => 'SQL-like filter to limit the records to retrieve.',
-        self::LIMIT          => 'Set to limit the filter results.',
-        self::ORDER          => 'SQL-like order containing field and direction for filter results.',
-        self::OFFSET         => 'Set to offset the filter results to a particular record count.',
-        self::FIELDS         => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier.',
-        self::CONTINUES      => 'In batch scenarios where supported, continue processing even after one action fails. Default behavior is to halt and return results up to the first point of failure.',
-        self::ROLLBACK       => 'In batch scenarios where supported, rollback all actions if one action fails. Default behavior is to halt and return results up to the first point of failure.',
-        self::RELATED        => 'Comma-delimited list of related names to retrieve for each resource.',
-        self::INCLUDE_ACCESS => 'Include the access permissions for the returned resource.',
-        self::INCLUDE_COUNT  => 'Include the total number of filter results in returned metadata.',
-        self::INCLUDE_SCHEMA => 'Include the schema of the table queried in returned metadata.',
-        self::FILE           => 'Download the results of the request as a file.',
-        self::AS_LIST        => 'Return only a list of the resource identifiers.',
-        self::AS_ACCESS_LIST => 'Returns a list of the resources for role access designation.',
-        self::REFRESH        => 'Refresh any cached resource list on the server.',
-        self::REGENERATE     => 'Generate a new API key for this application.',
-        self::SCHEMA         => 'Select only a single schema of a database. Not applicable on all database services.',
+        self::IDS                  => 'Comma-delimited list of the identifiers of the records to retrieve.',
+        self::ID_FIELD             => 'Comma-delimited list of the fields used as identifiers, used to override defaults or provide identifiers when none are provisioned.',
+        self::ID_TYPE              => 'Comma-delimited list of the field types used as identifiers for the table, used to override defaults or provide identifiers when none are provisioned.',
+        self::FILTER               => 'SQL-like filter to limit the records to retrieve.',
+        self::LIMIT                => 'Set to limit the filter results.',
+        self::ORDER                => 'SQL-like order containing field and direction for filter results.',
+        self::OFFSET               => 'Set to offset the filter results to a particular record count.',
+        self::FIELDS               => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier.',
+        self::CONTINUES            => 'In batch scenarios where supported, continue processing even after one action fails. Default behavior is to halt and return results up to the first point of failure.',
+        self::ROLLBACK             => 'In batch scenarios where supported, rollback all actions if one action fails. Default behavior is to halt and return results up to the first point of failure.',
+        self::RELATED              => 'Comma-delimited list of related names to retrieve for each resource.',
+        self::ALLOW_RELATED_DELETE => 'Set to true to allow related records to be deleted on parent update.',
+        self::INCLUDE_ACCESS       => 'Include the access permissions for the returned resource.',
+        self::INCLUDE_COUNT        => 'Include the total number of filter results in returned metadata.',
+        self::INCLUDE_SCHEMA       => 'Include the schema of the table queried in returned metadata.',
+        self::FILE                 => 'Download the results of the request as a file.',
+        self::AS_LIST              => 'Return only a list of the resource identifiers.',
+        self::AS_ACCESS_LIST       => 'Returns a list of the resources for role access designation.',
+        self::REFRESH              => 'Refresh any cached resource list on the server.',
+        self::REGENERATE           => 'Generate a new API key for this application.',
+        self::SCHEMA               => 'Select only a single schema of a database. Not applicable on all database services.',
+        self::FORCE                => 'Set to true to delete all resources in the given table, folder, etc.',
     ];
 
     public static $multipleMap = [

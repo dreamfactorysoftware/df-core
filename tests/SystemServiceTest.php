@@ -1,6 +1,7 @@
 <?php
 
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\ApiOptions;
 use Illuminate\Support\Arr;
 
 class SystemServiceTest extends \DreamFactory\Core\Testing\TestCase
@@ -36,7 +37,7 @@ class SystemServiceTest extends \DreamFactory\Core\Testing\TestCase
 
     public function testGETServiceByIdWithFields()
     {
-        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE . '/1', ['fields' => 'name,label,id']);
+        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE . '/1', [ApiOptions::FIELDS => 'name,label,id']);
         $content = $rs->getContent();
 
         $this->assertEquals('system', Arr::get($content, 'name'));

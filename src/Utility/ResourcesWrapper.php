@@ -77,12 +77,14 @@ class ResourcesWrapper
                     }
                 }
             }
+
+            return static::wrapResources($resources, $force_wrap);
         }
 
-        return static::wrapResources($resources, $force_wrap);
+        return ($force_wrap ? static::wrapResources($resources, true) : $resources);
     }
 
-    public static function wrapResources(array $resources, $force = false)
+    public static function wrapResources($resources, $force = false)
     {
         if ($force || Config::get('df.always_wrap_resources', false)) {
             return [static::getWrapper() => $resources];
@@ -91,10 +93,14 @@ class ResourcesWrapper
         return $resources;
     }
 
-    public static function unwrapResources(array $payload)
+    public static function unwrapResources($payload)
     {
         // Always check, in case they are sending query params in payload.
 //        $alwaysWrap = Config::get('df.always_wrap_resources', false);
+        if (empty($payload) || !is_array($payload))
+        {
+            return $payload;
+        }
 
         return ArrayUtils::get($payload, static::getWrapper(), (isset($payload[0]) ? $payload : []));
     }

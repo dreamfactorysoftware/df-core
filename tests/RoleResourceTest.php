@@ -1,6 +1,7 @@
 <?php
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Library\Utility\ArrayUtils;
 use Illuminate\Support\Arr;
@@ -117,7 +118,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $response = $this->makeRequest(
             Verbs::POST,
             self::RESOURCE,
-            ['fields' => 'name,id', 'related' => 'role_lookup_by_role_id'],
+            [ApiOptions::FIELDS => 'name,id', ApiOptions::RELATED => 'role_lookup_by_role_id'],
             [$this->role3]
         );
         $content = $response->getContent();
@@ -165,7 +166,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $rs = $this->makeRequest(
             Verbs::PATCH,
             self::RESOURCE,
-            ['fields' => 'id,name,is_active', 'related' => 'role_service_access_by_role_id,role_lookup_by_role_id'],
+            [ApiOptions::FIELDS => 'id,name,is_active', ApiOptions::RELATED => 'role_service_access_by_role_id,role_lookup_by_role_id'],
             [$role1]
         );
 
@@ -254,7 +255,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $rs = $this->makeRequest(
             Verbs::PATCH,
             self::RESOURCE,
-            ['fields' => '*', 'related' => 'role_service_access_by_role_id,role_lookup_by_role_id'],
+            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'role_service_access_by_role_id,role_lookup_by_role_id'],
             [$role1, $role2, $role3]
         );
         $c = $rs->getContent();
@@ -292,7 +293,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
     public function testDELETERoles()
     {
         $ids = implode(',', static::$roleIds);
-        $response = $this->makeRequest(Verbs::DELETE, self::RESOURCE, ['ids' => $ids]);
+        $response = $this->makeRequest(Verbs::DELETE, self::RESOURCE, [ApiOptions::IDS => $ids]);
 
         $content = $response->getContent();
         $records = ArrayUtils::get($content, static::$wrapper);
@@ -314,7 +315,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $getResponse =
             $this->makeRequest(Verbs::GET, $resource,
-                ['related' => 'role_lookup_by_role_id,role_service_access_by_role_id']);
+                [ApiOptions::RELATED => 'role_lookup_by_role_id,role_service_access_by_role_id']);
         $role = $getResponse->getContent();
 
         return $role;

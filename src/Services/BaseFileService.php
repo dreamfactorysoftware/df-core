@@ -266,10 +266,12 @@ abstract class BaseFileService extends BaseRestService
                 // older html multi-part/form-data post, single or multiple files
                 $files = FileUtilities::rearrangePostedFiles($uploadedFiles);
                 $result = $this->handleFolderContentFromFiles($files, $extract, $clean, $checkExist);
+                $result = ResourcesWrapper::cleanResources($result);
             } else {
                 // possibly xml or json post either of files or folders to create, copy or move
                 if (!empty($data = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
                     $result = $this->handleFolderContentFromData($data, $extract, $clean, $checkExist);
+                    $result = ResourcesWrapper::cleanResources($result);
                 } else {
                     // create folder from resource path
                     $this->driver->createFolder($this->container, $this->folderPath);
@@ -555,7 +557,7 @@ abstract class BaseFileService extends BaseRestService
     protected function handleFolderContentFromData($data, $extract = false, $clean = false, $checkExist = false)
     {
         $out = [];
-        if (!empty($data)) {
+        if (!empty($data) && ArrayUtils::isArrayNumeric($data)) {
             foreach ($data as $key => $resource) {
                 switch (ArrayUtils::get($resource, 'type')) {
                     case 'folder':
@@ -568,7 +570,7 @@ abstract class BaseFileService extends BaseRestService
                                 $name = FileUtilities::getNameFromPath($srcPath);
                             }
                             $fullPathName = $this->folderPath . $name . '/';
-                            $out['folder'][$key] = ['name' => $name, 'path' => $fullPathName, 'type' => 'folder'];
+                            $out[$key] = ['name' => $name, 'path' => $fullPathName, 'type' => 'folder'];
                             try {
                                 $this->driver->copyFolder($this->container, $fullPathName, $srcContainer, $srcPath,
                                     true);
@@ -580,7 +582,7 @@ abstract class BaseFileService extends BaseRestService
                                 $out[$key]['error'] = ['message' => $ex->getMessage()];
                             }
                         } else {
-                            $fullPathName = $this->folderPath . $name;
+                            $fullPathName = $this->folderPath . $name . '/';
                             $content = ArrayUtils::get($resource, 'content', '');
                             $isBase64 = ArrayUtils::getBool($resource, 'is_base64');
                             if ($isBase64) {
@@ -588,8 +590,7 @@ abstract class BaseFileService extends BaseRestService
                             }
                             $out[$key] = ['name' => $name, 'path' => $fullPathName, 'type' => 'folder'];
                             try {
-                                $this->driver->createFolder($this->container, $fullPathName, true, $content,
-                                    $checkExist);
+                                $this->driver->createFolder($this->container, $fullPathName, $content);
                             } catch (\Exception $ex) {
                                 $out[$key]['error'] = ['message' => $ex->getMessage()];
                             }

@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -174,8 +175,8 @@ class BaseModel extends Model
         $response = [];
         $transaction = false;
         $errors = [];
-        $rollback = ArrayUtils::getBool($params, 'rollback');
-        $continue = ArrayUtils::getBool($params, 'continue');
+        $rollback = ArrayUtils::getBool($params, ApiOptions::ROLLBACK);
+        $continue = ArrayUtils::getBool($params, ApiOptions::CONTINUES);
 
         try {
             //	Start a transaction
@@ -383,8 +384,8 @@ class BaseModel extends Model
         $transaction = null;
         $errors = [];
         $singleRow = (1 === count($records)) ? true : false;
-        $rollback = ArrayUtils::getBool($params, 'rollback');
-        $continue = ArrayUtils::getBool($params, 'continue');
+        $rollback = ArrayUtils::getBool($params, ApiOptions::ROLLBACK);
+        $continue = ArrayUtils::getBool($params, ApiOptions::CONTINUES);
 
         try {
             //	Start a transaction
@@ -546,8 +547,8 @@ class BaseModel extends Model
         $transaction = null;
         $errors = [];
         $singleRow = (1 === count($records)) ? true : false;
-        $rollback = ArrayUtils::getBool($params, 'rollback');
-        $continue = ArrayUtils::getBool($params, 'continue');
+        $rollback = ArrayUtils::getBool($params, ApiOptions::ROLLBACK);
+        $continue = ArrayUtils::getBool($params, ApiOptions::CONTINUES);
 
         try {
             //	Start a transaction
@@ -649,8 +650,8 @@ class BaseModel extends Model
     {
         $pk = $model->primaryKey;
         $id = $model->{$pk};
-        $fields = ArrayUtils::get($params, 'fields', $pk);
-        $related = ArrayUtils::get($params, 'related');
+        $fields = ArrayUtils::get($params, ApiOptions::FIELDS, $pk);
+        $related = ArrayUtils::get($params, ApiOptions::RELATED);
 
         if ($pk === $fields && empty($related)) {
             return [$pk => $id];

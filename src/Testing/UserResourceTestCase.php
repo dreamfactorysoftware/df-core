@@ -2,10 +2,11 @@
 
 namespace DreamFactory\Core\Testing;
 
+use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Models\User;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Utility\Session;
 use Illuminate\Support\Arr;
-use Auth;
 use Hash;
 
 class UserResourceTestCase extends TestCase
@@ -89,7 +90,8 @@ class UserResourceTestCase extends TestCase
         $payload = json_encode([$this->user1, $this->user2], JSON_UNESCAPED_SLASHES);
 
         $rs =
-            $this->makeRequest(Verbs::POST, static::RESOURCE, ['fields' => '*', 'related' => 'user_lookup_by_user_id'],
+            $this->makeRequest(Verbs::POST, static::RESOURCE,
+                [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
                 $payload);
         $content = $rs->getContent();
         $data = Arr::get($content, static::$wrapper);
@@ -108,7 +110,7 @@ class UserResourceTestCase extends TestCase
         $rs = $this->makeRequest(
             Verbs::POST,
             static::RESOURCE,
-            ['fields' => '*', 'related' => 'user_lookup_by_user_id'],
+            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
             $payload
         );
         $data = $rs->getContent();
@@ -143,7 +145,7 @@ class UserResourceTestCase extends TestCase
 
         $rs =
             $this->makeRequest(Verbs::PATCH, static::RESOURCE . '/' . $user['id'],
-                ['fields' => '*', 'related' => 'user_lookup_by_user_id'], $payload);
+                [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'], $payload);
         $content = $rs->getContent();
 
         $this->assertEquals('Julie Doe', $content['name']);
@@ -157,7 +159,7 @@ class UserResourceTestCase extends TestCase
         $rs = $this->makeRequest(
             Verbs::PATCH,
             static::RESOURCE . '/' . $user['id'],
-            ['fields' => '*', 'related' => 'user_lookup_by_user_id'],
+            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
             json_encode($content, JSON_UNESCAPED_SLASHES)
         );
 
@@ -193,7 +195,8 @@ class UserResourceTestCase extends TestCase
         $ids = implode(',', array_column([$user1, $user2, $user3], 'id'));
         $rs =
             $this->makeRequest(Verbs::PATCH, static::RESOURCE,
-                ['ids' => $ids, 'fields' => '*', 'related' => 'user_lookup_by_user_id'], $payload);
+                [ApiOptions::IDS => $ids, ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
+                $payload);
         $content = $rs->getContent();
         $data = $content[static::$wrapper];
 
@@ -220,7 +223,8 @@ class UserResourceTestCase extends TestCase
         $payload = json_encode([$user1, $user2, $user3], JSON_UNESCAPED_SLASHES);
 
         $rs =
-            $this->makeRequest(Verbs::PATCH, static::RESOURCE, ['fields' => '*', 'related' => 'user_lookup_by_user_id'],
+            $this->makeRequest(Verbs::PATCH, static::RESOURCE,
+                [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
                 $payload);
         $content = $rs->getContent();
 
@@ -252,7 +256,8 @@ class UserResourceTestCase extends TestCase
 
         $payload = json_encode($user, JSON_UNESCAPED_SLASHES);
         $rs =
-            $this->makeRequest(Verbs::PATCH, static::RESOURCE . '/' . $user['id'], ['fields' => 'id,security_answer'],
+            $this->makeRequest(Verbs::PATCH, static::RESOURCE . '/' . $user['id'],
+                [ApiOptions::FIELDS => 'id,security_answer'],
                 $payload);
         $content = $rs->getContent();
 
@@ -288,7 +293,7 @@ class UserResourceTestCase extends TestCase
         $rs = $this->makeRequest(
             Verbs::GET,
             static::RESOURCE . '/' . $user['id'],
-            ['related' => 'user_lookup_by_user_id']
+            [ApiOptions::RELATED => 'user_lookup_by_user_id']
         );
         $data = $rs->getContent();
 
@@ -306,7 +311,7 @@ class UserResourceTestCase extends TestCase
         $user3 = $this->createUser(3);
 
         $ids = implode(',', array_column([$user1, $user2, $user3], 'id'));
-        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['ids' => $ids]);
+        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, [ApiOptions::IDS => $ids]);
         $content = $rs->getContent();
 
         //Total 4 users including the default admin user that was seeded by the seeder.
@@ -343,7 +348,7 @@ class UserResourceTestCase extends TestCase
         $this->createUser(2);
         $this->createUser(3);
 
-        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['filter' => "first_name='Dan'"]);
+        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, [ApiOptions::FILTER => "first_name='Dan'"]);
         $content = $rs->getContent();
         $data = $content[static::$wrapper];
         $firstNames = array_column($data, 'first_name');
@@ -351,7 +356,7 @@ class UserResourceTestCase extends TestCase
         $this->assertTrue(in_array('Dan', $firstNames));
         $this->assertEquals(1, count($data));
 
-        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['filter' => "last_name='doe'"]);
+        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, [ApiOptions::FILTER => "last_name='doe'"]);
         $content = $rs->getContent();
         $data = $content[static::$wrapper];
         $firstNames = array_column($data, 'first_name');
@@ -369,7 +374,7 @@ class UserResourceTestCase extends TestCase
         $user2 = $this->createUser(2);
         $user3 = $this->createUser(3);
 
-        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['limit' => 3]);
+        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, [ApiOptions::LIMIT => 3]);
         $content = $rs->getContent();
 
         $this->assertEquals(3, count($content[static::$wrapper]));
@@ -377,7 +382,7 @@ class UserResourceTestCase extends TestCase
         $idsOut = implode(',', array_column($content[static::$wrapper], 'id'));
         $this->assertEquals(implode(',', array_column([['id' => 1], $user1, $user2], 'id')), $idsOut);
 
-        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['limit' => 3, 'offset' => 1]);
+        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, [ApiOptions::LIMIT => 3, ApiOptions::OFFSET => 1]);
         $content = $rs->getContent();
 
         $this->assertEquals(3, count($content[static::$wrapper]));
@@ -385,7 +390,7 @@ class UserResourceTestCase extends TestCase
         $idsOut = implode(',', array_column($content[static::$wrapper], 'id'));
         $this->assertEquals(implode(',', array_column([$user1, $user2, $user3], 'id')), $idsOut);
 
-        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['limit' => 2, 'offset' => 2]);
+        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, [ApiOptions::LIMIT => 2, ApiOptions::OFFSET => 2]);
         $content = $rs->getContent();
 
         $this->assertEquals(2, count($content[static::$wrapper]));
@@ -402,21 +407,27 @@ class UserResourceTestCase extends TestCase
         $user3 = $this->createUser(3);
 
         $ids = implode(',', array_column([$user1, $user2, $user3], 'id'));
-        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['ids' => $ids, 'order' => 'first_name']);
+        $rs =
+            $this->makeRequest(Verbs::GET, static::RESOURCE,
+                [ApiOptions::IDS => $ids, ApiOptions::ORDER => 'first_name']);
         $content = $rs->getContent();
         $data = $content[static::$wrapper];
         $firstNames = implode(',', array_column($data, 'first_name'));
 
         $this->assertEquals('Dan,Jane,John', $firstNames);
 
-        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['ids' => $ids, 'order' => 'first_name DESC']);
+        $rs =
+            $this->makeRequest(Verbs::GET, static::RESOURCE,
+                [ApiOptions::IDS => $ids, ApiOptions::ORDER => 'first_name DESC']);
         $content = $rs->getContent();
         $data = $content[static::$wrapper];
         $firstNames = implode(',', array_column($data, 'first_name'));
 
         $this->assertEquals('John,Jane,Dan', $firstNames);
 
-        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE, ['ids' => $ids, 'order' => 'last_name,first_name DESC']);
+        $rs =
+            $this->makeRequest(Verbs::GET, static::RESOURCE,
+                [ApiOptions::IDS => $ids, ApiOptions::ORDER => 'last_name,first_name DESC']);
         $content = $rs->getContent();
         $data = $content[static::$wrapper];
         $firstNames = implode(',', array_column($data, 'first_name'));
@@ -436,7 +447,7 @@ class UserResourceTestCase extends TestCase
         $rs = $this->makeRequest(
             Verbs::POST,
             static::RESOURCE,
-            ['fields' => '*', 'related' => 'user_lookup_by_user_id'],
+            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
             $payload
         );
 
@@ -449,7 +460,7 @@ class UserResourceTestCase extends TestCase
     {
         $user = $this->{'user' . $num};
         $email = Arr::get($user, 'email');
-        \DreamFactory\Core\Models\User::whereEmail($email)->delete();
+        User::whereEmail($email)->delete();
     }
 
     protected function adminCheck($records)

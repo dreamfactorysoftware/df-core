@@ -66,7 +66,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'label'          => 'Local File Service',
             'description'    => 'File service supporting the local file system.',
             'group'          => ServiceTypeGroups::FILE,
-            'singleton'      => true
+            'singleton'      => false
         ],
         [
             'name'           => 'local_email',
@@ -75,7 +75,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
             'label'          => 'Local Email Service',
             'description'    => 'Local email service using system configuration.',
             'group'          => ServiceTypeGroups::EMAIL,
-            'singleton'      => true
+            'singleton'      => false
         ],
         [
             'name'           => 'smtp_email',

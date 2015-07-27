@@ -22,5 +22,6 @@ class DatabaseSeeder extends Seeder
         //$this->call(AdminSeeder::class);
         $this->call(DbTableExtrasSeeder::class);
         $this->call(AppSeeder::class);
+        $this->call(EmailTemplateSeeder::class);
     }
 }

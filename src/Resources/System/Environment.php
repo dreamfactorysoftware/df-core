@@ -238,7 +238,7 @@ class Environment extends BaseSystemResource
                 'label'      => $o->label,
                 'verb'       => [Verbs::GET, Verbs::POST],
                 'type'       => $o->type,
-                'icon_class' => $config['icon_class']
+                'icon_class' => ArrayUtils::get($config, 'icon_class')
             ];
         }
 

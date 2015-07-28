@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Services\Email;
 
 use App;
 use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Utility\Session;
 use Illuminate\Mail\Message;
 use Swift_Transport as SwiftTransport;
 use Swift_Mailer as SwiftMailer;
@@ -129,6 +130,9 @@ abstract class BaseService extends BaseRestService
      */
     public function sendEmail($data, $textView = null, $htmlView = null)
     {
+        Session::replaceLookups($textView);
+        Session::replaceLookups($htmlView);
+
         $view = [
             'html' => $htmlView,
             'text' => $textView
@@ -179,6 +183,7 @@ abstract class BaseService extends BaseRestService
                 }
 
                 if (!empty($subject)) {
+                    Session::replaceLookups($subject);
                     $m->subject(EmailUtilities::applyDataToView($subject, $data));
                 }
 

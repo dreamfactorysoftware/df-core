@@ -616,7 +616,7 @@ final class Enterprise
      */
     public static function getPolicyLimits()
     {
-        return static::isManagedInstace()? static::getConfig('limits') : [];
+        return static::isManagedInstance()? static::getConfig('limits') : [];
     }
 
     /**

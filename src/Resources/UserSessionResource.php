@@ -83,7 +83,8 @@ class UserSessionResource extends BaseRestResource
         } else {
             $credentials = [
                 'email'    => $this->getPayloadData('email'),
-                'password' => $this->getPayloadData('password')
+                'password' => $this->getPayloadData('password'),
+                'is_sys_admin' => false
             ];
 
             return $this->handleLogin($credentials, boolval($this->getPayloadData('remember_me')));

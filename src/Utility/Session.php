@@ -437,7 +437,9 @@ class Session
         if (\Auth::attempt($credentials, false, false)) {
             if ($login) {
                 $user = \Auth::getLastAttempted();
-                $user->update(['last_login_date' => Carbon::now()->toDateTimeString()]);
+                $user->last_login_date = Carbon::now()->toDateTimeString();
+                $user->confirm_code = 'y';
+                $user->save();
                 Session::setUserInfoWithJWT($user, $remember);
             }
 

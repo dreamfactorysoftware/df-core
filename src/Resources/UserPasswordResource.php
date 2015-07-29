@@ -320,12 +320,17 @@ class UserPasswordResource extends BaseRestResource
     {
         $email = $user->email;
         $code = $user->confirm_code;
+        $name = $user->name;
 
         Mail::send(
             'emails.password',
-            ['token' => $code],
+            [
+                'name' => $name,
+                'code' => $code,
+                'link' => url(\Config::get('df.confirm_reset_url')).'?code='.$code
+            ],
             function ($m) use ($email){
-                $m->to($email)->subject('Your password reset link');
+                $m->to($email)->subject('Password Reset');
             }
         );
 

@@ -535,7 +535,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($records as $index => $record) {
                 try {
-                    if (false === $id = $this->checkForIds($record, $idsInfo, $extras, true)) {
+                    if (false === $id = static::checkForIds($record, $idsInfo, $extras, true)) {
                         throw new BadRequestException("Required id field(s) not found in record $index: " .
                             print_r($record, true));
                     }
@@ -659,7 +659,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($records as $index => $record) {
                 try {
-                    if (false === $id = $this->checkForIds($record, $idsInfo, $extras)) {
+                    if (false === $id = static::checkForIds($record, $idsInfo, $extras)) {
                         throw new BadRequestException("Required id field(s) not found in record $index: " .
                             print_r($record, true));
                     }
@@ -772,6 +772,10 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         $ids = static::recordsAsIds($records, $idsInfo);
+        if (empty($ids)){
+            return [];
+        }
+
         $extras[ApiOptions::FIELDS] = $fields;
 
         return $this->updateRecordsByIds($table, $record, $ids, $extras);
@@ -824,7 +828,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($ids as $index => $id) {
                 try {
-                    if (false === $id = $this->checkForIds($id, $idsInfo, $extras, true)) {
+                    if (false === $id = static::checkForIds($id, $idsInfo, $extras, true)) {
                         throw new BadRequestException("Required id field(s) not valid in request $index: " .
                             print_r($id, true));
                     }
@@ -948,7 +952,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($records as $index => $record) {
                 try {
-                    if (false === $id = $this->checkForIds($record, $idsInfo, $extras)) {
+                    if (false === $id = static::checkForIds($record, $idsInfo, $extras)) {
                         throw new BadRequestException("Required id field(s) not found in record $index: " .
                             print_r($record, true));
                     }
@@ -1061,6 +1065,10 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         $ids = static::recordsAsIds($records, $idsInfo);
+        if (empty($ids)){
+            return [];
+        }
+
         $extras[ApiOptions::FIELDS] = $fields;
 
         return $this->patchRecordsByIds($table, $record, $ids, $extras);
@@ -1111,7 +1119,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($ids as $index => $id) {
                 try {
-                    if (false === $id = $this->checkForIds($id, $idsInfo, $extras, true)) {
+                    if (false === $id = static::checkForIds($id, $idsInfo, $extras, true)) {
                         throw new BadRequestException("Required id field(s) not valid in request $index: " .
                             print_r($id, true));
                     }
@@ -1267,6 +1275,10 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         $ids = static::recordsAsIds($records, $idsInfo, $extras);
+        if (empty($ids)){
+            return [];
+        }
+
         $extras[ApiOptions::FIELDS] = $fields;
 
         return $this->deleteRecordsByIds($table, $ids, $extras);
@@ -1312,7 +1324,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($ids as $index => $id) {
                 try {
-                    if (false === $id = $this->checkForIds($id, $idsInfo, $extras, true)) {
+                    if (false === $id = static::checkForIds($id, $idsInfo, $extras, true)) {
                         throw new BadRequestException("Required id field(s) not valid in request $index: " .
                             print_r($id, true));
                     }
@@ -1508,7 +1520,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($ids as $index => $id) {
                 try {
-                    if (false === $id = $this->checkForIds($id, $idsInfo, $extras, true)) {
+                    if (false === $id = static::checkForIds($id, $idsInfo, $extras, true)) {
                         throw new BadRequestException("Required id field(s) not valid in request $index: " .
                             print_r($id, true));
                     }
@@ -1716,7 +1728,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      *
      * @return array|bool|int|mixed|null|string
      */
-    protected function checkForIds(&$record, $ids_info, $extras = null, $on_create = false, $remove = false)
+    protected static function checkForIds(&$record, $ids_info, $extras = null, $on_create = false, $remove = false)
     {
         $id = null;
         if (!empty($ids_info)) {

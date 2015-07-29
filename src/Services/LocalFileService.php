@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Services;
 use Config;
 use DreamFactory\Core\Components\LocalFileSystem;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Aws\Utility\AwsSvcUtilities;
 use DreamFactory\Core\Aws\Components\S3FileSystem;
@@ -39,6 +40,8 @@ class LocalFileService extends BaseFileService
         }
 
         $disk = ArrayUtils::get($disks, $diskName);
+        //  Replace any private lookups
+        Session::replaceLookups( $disk, true );
 
         if (!isset($disk['driver'])) {
             throw new InternalServerErrorException('Mis-configured disk - ' . $diskName . '. Driver not specified.');
@@ -64,7 +67,6 @@ class LocalFileService extends BaseFileService
 
                 break;
             case 's3':
-                AwsSvcUtilities::updateCredentials($disk, false);
                 $this->container = ArrayUtils::get($disk, 'bucket', ArrayUtils::get($disk, 'container'));
                 ArrayUtils::set($disk, 'container', $this->container);
 

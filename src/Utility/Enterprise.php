@@ -482,7 +482,7 @@ final class Enterprise
     protected static function _refreshCache()
     {
 
-        CacheUtilities::get(
+        CacheUtilities::put(
             static::$_cacheKey,
             ['paths' => static::$_paths, 'config' => static::$_config]
         );
@@ -563,7 +563,7 @@ final class Enterprise
         $_rootHash = trim(IfSet::get($map, 'root-hash'), DIRECTORY_SEPARATOR);
 
         if (empty( $_zone ) || empty( $_partition ) || empty( $_rootHash )) {
-            return dirname(Pii::basePath()) . DIRECTORY_SEPARATOR . 'storage';
+            return storage_path();
         }
 
         return implode(DIRECTORY_SEPARATOR, array($_zone, $_partition, $_rootHash));
@@ -620,7 +620,7 @@ final class Enterprise
      */
     public static function getPolicyLimits()
     {
-        return static::isManagedInstace()? static::getConfig('limits') : [];
+        return static::isManagedInstance()? static::getConfig('limits') : [];
     }
 
     /**
@@ -632,10 +632,12 @@ final class Enterprise
     {
         if (static::isManagedInstance() === true) {
             $_env = static::getConfig('env');
-            return sha256($_env['cluster-id'] . $_env['instance-id']);
-        } else {
-            return null;
+            return hash('sha256', $_env['cluster-id'] . $_env['instance-id']);
         }
+
+        return null;
+
     }
 }
 
+//Enterprise::initialize();

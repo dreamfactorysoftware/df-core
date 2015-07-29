@@ -482,9 +482,9 @@ final class Enterprise
     protected static function _refreshCache()
     {
 
-        CacheUtilities::put(
-            static::$_cacheKey,
-            ['paths' => static::$_paths, 'config' => static::$_config]
+        config(
+            [static::$_cacheKey =>
+            ['paths' => static::$_paths, 'config' => static::$_config]]
         );
     }
 
@@ -493,7 +493,7 @@ final class Enterprise
      */
     protected static function _reloadCache()
     {
-        $_cache = CacheUtilities::get(static::$_cacheKey);
+        $_cache = config(static::$_cacheKey);
 
         if (!empty( $_cache ) && isset( $_cache['paths'], $_cache['config'] )) {
             static::$_paths = $_cache['paths'];

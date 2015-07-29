@@ -4,6 +4,7 @@ use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\FileSystem;
 use DreamFactory\Library\Utility\IfSet;
 use DreamFactory\Library\Utility\JsonFile;
+use DreamFactory\Core\Utility\CacheUtilities;
 use DreamFactory\Library\Utility\Enums\EnterpriseDefaults;
 use Symfony\Component\HttpFoundation\Request;
 use DreamFactory\Core\Exceptions\ForbiddenException;
@@ -481,7 +482,10 @@ final class Enterprise
     protected static function _refreshCache()
     {
 
-        config([static::$_cacheKey => ['paths' => static::$_paths, 'config' => static::$_config]]);
+        CacheUtilities::put(
+            static::$_cacheKey,
+            ['paths' => static::$_paths, 'config' => static::$_config]
+        );
     }
 
     /**
@@ -489,7 +493,7 @@ final class Enterprise
      */
     protected static function _reloadCache()
     {
-        $_cache = config(static::$_cacheKey);
+        $_cache = CacheUtilities::get(static::$_cacheKey);
 
         if (!empty( $_cache ) && isset( $_cache['paths'], $_cache['config'] )) {
             static::$_paths = $_cache['paths'];
@@ -635,4 +639,4 @@ final class Enterprise
     }
 }
 
-Enterprise::initialize();
+//Enterprise::initialize();

@@ -359,12 +359,12 @@ class Session
 
                                 return true;
                             case 'confirm_invite_url':
-                                $value = \Config::get('df.confirm_invite_url');
+                                $value = url(\Config::get('df.confirm_invite_url'));
 
                                 return true;
                             //case 'confirm_register_url':
                             case 'confirm_reset_url':
-                                $value = \Config::get('df.confirm_reset_url');
+                                $value = url(\Config::get('df.confirm_reset_url'));
 
                                 return true;
                         }

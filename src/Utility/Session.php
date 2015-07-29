@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Utility;
 
+use DreamFactory\Library\Utility\Curl;
 use \Request;
 use Carbon\Carbon;
 use Illuminate\Routing\Router;
@@ -342,26 +343,32 @@ class Session
                         }
                         break;
 
-//                    case 'dsp':
-//                        switch ( $_lookup )
-//                        {
-//                            case 'host_url':
-//                                $value = Curl::currentUrl( false, false );
-//
-//                                return true;
-//                            case 'name':
-//                                $value = Pii::getParam( 'dsp_name' );
-//
-//                                return true;
-//                            case 'version':
-//                            case 'confirm_invite_url':
-//                            case 'confirm_register_url':
-//                            case 'confirm_reset_url':
-//                                $value = Curl::currentUrl( false, false ) . Pii::getParam( 'dsp.' . $_lookup );
-//
-//                                return true;
-//                        }
-//                        break;
+                    case 'df':
+                        switch ( $_lookup )
+                        {
+                            case 'host_url':
+                                $value = Curl::currentUrl(false, false);
+
+                                return true;
+                            case 'name':
+                                $value = gethostname();
+
+                                return true;
+                            case 'version':
+                                $value = \Config::get('df.api_version');
+
+                                return true;
+                            case 'confirm_invite_url':
+                                $value = url(\Config::get('df.confirm_invite_url'));
+
+                                return true;
+                            //case 'confirm_register_url':
+                            case 'confirm_reset_url':
+                                $value = url(\Config::get('df.confirm_reset_url'));
+
+                                return true;
+                        }
+                        break;
                 }
             }
         }

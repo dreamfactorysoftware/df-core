@@ -640,4 +640,4 @@ final class Enterprise
     }
 }
 
-Enterprise::initialize();
+//Enterprise::initialize();

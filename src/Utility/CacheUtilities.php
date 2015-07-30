@@ -766,19 +766,19 @@ class CacheUtilities
         return true;
     }
 
-    public static function hasServiceTable()
-    {
-        $hasServiceTable = Cache::rememberForever('service_table_exists', function (){
-            return \Schema::hasTable('service');
-        });
-
-        return $hasServiceTable;
-    }
-
-    public static function resetServiceTableExists()
-    {
-        Cache::forget('service_table_exists');
-
-        return true;
-    }
+//    public static function hasServiceTable()
+//    {
+//        $hasServiceTable = Cache::rememberForever('service_table_exists', function (){
+//            return \Schema::hasTable('service');
+//        });
+//
+//        return $hasServiceTable;
+//    }
+//
+//    public static function resetServiceTableExists()
+//    {
+//        Cache::forget('service_table_exists');
+//
+//        return true;
+//    }
 }

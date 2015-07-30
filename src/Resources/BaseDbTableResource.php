@@ -3591,7 +3591,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                 'id'         => 'Metadata',
                 'properties' => [
                     'schema' => [
-                        'type'        => 'Array',
+                        'type'        => 'array',
                         'description' => 'Array of table schema.',
                         'items'       => [
                             'type' => 'string',

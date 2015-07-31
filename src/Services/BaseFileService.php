@@ -84,15 +84,15 @@ abstract class BaseFileService extends BaseRestService
     {
         // File services need the trailing slash '/' for designating folders vs files
         // It is removed by the parent method
-        $isFolder = $this->hasTrailingSlash($this->resourcePath);
+        $isFolder = (empty($resourcePath) ? false : ('/' === substr($resourcePath, - 1)));
         parent::setResourceMembers($resourcePath);
 
-        if (!empty($this->resource)) {
+        if (!empty($resourcePath)) {
             if ($isFolder) {
-                $this->folderPath = $this->resource . '/';
+                $this->folderPath = $resourcePath;
             } else {
-                $this->folderPath = dirname($this->resource) . '/';
-                $this->filePath = $this->resource;
+                $this->folderPath = dirname($resourcePath) . '/';
+                $this->filePath = $resourcePath;
             }
         }
 
@@ -400,11 +400,7 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function hasTrailingSlash($path)
     {
-        if (DIRECTORY_SEPARATOR === substr($path, strlen($path) - 1)) {
-            return true;
-        }
-
-        return false;
+         return ('/' === substr($path, - 1));
     }
 
     /**

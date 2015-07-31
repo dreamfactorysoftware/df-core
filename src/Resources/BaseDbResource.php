@@ -45,7 +45,9 @@ class BaseDbResource extends BaseRestResource
      *
      * @return array
      */
-    public function listAccessComponents($schema = null, $refresh = false)
+    public function listAccessComponents(
+        /** @noinspection PhpUnusedParameterInspection */
+        $schema = null, $refresh = false)
     {
         return [];
     }

@@ -365,7 +365,8 @@ abstract class RestHandler implements RequestHandlerInterface
      */
     protected function setResourceMembers($resourcePath = null)
     {
-        $this->resourcePath = $resourcePath;
+        // remove trailing slash here, override this function if you need it
+        $this->resourcePath = rtrim($resourcePath, '/');
         $this->resourceArray = (!empty($this->resourcePath)) ? explode('/', $this->resourcePath) : [];
 
         if (empty($this->resource)) {

@@ -167,7 +167,7 @@ class ServiceEventHandler
      * @param string $name
      * @param array  $event
      *
-     * @return bool|null
+     * @return array|null
      * @throws InternalServerErrorException
      * @throws \DreamFactory\Core\Events\Exceptions\ScriptException
      */
@@ -187,9 +187,11 @@ class ServiceEventHandler
             );
 
             //  Bail on errors...
-            if (is_array($result) && (isset($result['error']) || isset($result['exception']))) {
-                throw new InternalServerErrorException(ArrayUtils::get($result, 'exception',
-                    ArrayUtils::get($result, 'error')));
+            if (is_array($result) && isset($result['script_result'], $result['script_result']['error'])) {
+                throw new InternalServerErrorException($result['script_result']['error']);
+            }
+            if (is_array($result) && isset($result['exception'])) {
+                throw new InternalServerErrorException(ArrayUtils::get($result, 'exception',''));
             }
 
             //  The script runner should return an array

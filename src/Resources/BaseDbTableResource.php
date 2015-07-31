@@ -4,6 +4,8 @@ namespace DreamFactory\Core\Resources;
 
 use Config;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Events\ResourcePostProcess;
+use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -236,6 +238,126 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $this->correctTableName($table);
         $this->checkPermission($action, $table);
+    }
+
+    /**
+     * Runs pre process tasks/scripts
+     */
+    protected function preProcess()
+    {
+        switch (count($this->resourceArray)) {
+            case 0:
+                parent::preProcess();
+                break;
+            case 1:
+                // Try the generic table event
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results = \Event::fire(
+                    new ResourcePreProcess(
+                        $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}', $this->request,
+                        $this->resourcePath
+                    )
+                );
+                // Try the actual table name event
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results = \Event::fire(
+                    new ResourcePreProcess(
+                        $this->getServiceName(), $this->getFullPathName('.') . '.' . $this->resourceArray[0],
+                        $this->request,
+                        $this->resourcePath
+                    )
+                );
+                break;
+            case 2:
+                // Try the generic table event
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results = \Event::fire(
+                    new ResourcePreProcess(
+                        $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}.{id}',
+                        $this->request,
+                        $this->resourcePath
+                    )
+                );
+                // Try the actual table name event
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results = \Event::fire(
+                    new ResourcePreProcess(
+                        $this->getServiceName(),
+                        $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.' . $this->resourceArray[1],
+                        $this->request,
+                        $this->resourcePath
+                    )
+                );
+                break;
+            default:
+                // Do nothing is all we got?
+                break;
+        }
+    }
+
+    /**
+     * Runs post process tasks/scripts
+     */
+    protected function postProcess()
+    {
+        switch (count($this->resourceArray)) {
+            case 0:
+                parent::postProcess();
+                break;
+            case 1:
+                $event = new ResourcePostProcess(
+                    $this->getServiceName(), $this->getFullPathName('.') . '.' . $this->resourceArray[0],
+                    $this->request,
+                    $this->response,
+                    $this->resourcePath
+                );
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results = \Event::fire($event);
+
+                // todo doing something wrong that I have to copy this array back over
+                $this->response = $event->response;
+
+                $event = new ResourcePostProcess(
+                    $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}', $this->request,
+                    $this->response,
+                    $this->resourcePath
+                );
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results = \Event::fire($event);
+
+                // todo doing something wrong that I have to copy this array back over
+                $this->response = $event->response;
+                break;
+            case 2:
+                $event = new ResourcePostProcess(
+                    $this->getServiceName(),
+                    $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.' . $this->resourceArray[1],
+                    $this->request,
+                    $this->response,
+                    $this->resourcePath
+                );
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results = \Event::fire($event);
+
+                // todo doing something wrong that I have to copy this array back over
+                $this->response = $event->response;
+
+                // todo how to handle proper response for more than one result?
+                $event = new ResourcePostProcess(
+                    $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}.{field_name}', $this->request,
+                    $this->response,
+                    $this->resourcePath
+                );
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results = \Event::fire($event);
+
+                // todo doing something wrong that I have to copy this array back over
+                $this->response = $event->response;
+                break;
+            default:
+                // Do nothing is all we got?
+                break;
+        }
     }
 
     /**
@@ -772,7 +894,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         $ids = static::recordsAsIds($records, $idsInfo);
-        if (empty($ids)){
+        if (empty($ids)) {
             return [];
         }
 
@@ -1065,7 +1187,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         $ids = static::recordsAsIds($records, $idsInfo);
-        if (empty($ids)){
+        if (empty($ids)) {
             return [];
         }
 
@@ -1275,7 +1397,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         $ids = static::recordsAsIds($records, $idsInfo, $extras);
-        if (empty($ids)){
+        if (empty($ids)) {
             return [];
         }
 
@@ -3519,7 +3641,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             'FilterRecordRequest' => [
                 'id'         => 'FilterRecordRequest',
                 'properties' => [
-                    $wrapper => [
+                    $wrapper           => [
                         'type'        => 'RecordRequest',
                         'description' => 'A single record, array of fields, used to modify existing records.',
                     ],
@@ -3539,7 +3661,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             'GetRecordsRequest'   => [
                 'id'         => 'GetRecordsRequest',
                 'properties' => [
-                    $wrapper => [
+                    $wrapper           => [
                         'type'        => 'array',
                         'description' => 'Array of records.',
                         'items'       => [

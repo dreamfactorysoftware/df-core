@@ -25,7 +25,7 @@ class ScriptConfig extends BaseServiceConfigModel
 
     protected $table = 'script_config';
 
-    protected $fillable = ['service_id', 'type', 'engine', 'content', 'config'];
+    protected $fillable = ['service_id', 'type', 'content', 'config'];
 
     protected $appends = ['engine'];
 

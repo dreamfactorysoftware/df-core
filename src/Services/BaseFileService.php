@@ -82,23 +82,17 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function setResourceMembers($resourcePath = null)
     {
+        // File services need the trailing slash '/' for designating folders vs files
+        // It is removed by the parent method
+        $isFolder = $this->hasTrailingSlash($this->resourcePath);
         parent::setResourceMembers($resourcePath);
 
         if (!empty($this->resource)) {
-            if (count($this->resourceArray) === 2 && $this->resourceArray[1] === '') {
-                $temp = $this->resource . '/';
-            } else if (count($this->resourceArray) === 1) {
-                $temp = $this->resource;
+            if ($isFolder) {
+                $this->folderPath = $this->resource . '/';
             } else {
-                $temp = $resourcePath;
-            }
-            if (false !== $temp) {
-                if ($this->hasTrailingSlash($temp)) {
-                    $this->folderPath = $temp;
-                } else {
-                    $this->folderPath = dirname($temp) . '/';
-                    $this->filePath = $temp;
-                }
+                $this->folderPath = dirname($this->resource) . '/';
+                $this->filePath = $this->resource;
             }
         }
 
@@ -166,7 +160,7 @@ abstract class BaseFileService extends BaseRestService
                 // output handled by file handler, short the response here
                 $this->setNativeFormat(null);
                 $result = null;
-            } elseif ($this->request->getParameterAsBool('include_properties')){
+            } elseif ($this->request->getParameterAsBool('include_properties')) {
                 $result = $this->driver->getFolderProperties($this->container, $this->folderPath);
             } else {
                 $result = $this->driver->getFolder(
@@ -554,8 +548,12 @@ abstract class BaseFileService extends BaseRestService
      *
      * @return array
      */
-    protected function handleFolderContentFromData($data, $extract = false, $clean = false, $checkExist = false)
-    {
+    protected function handleFolderContentFromData(
+        $data,
+        /** @noinspection PhpUnusedParameterInspection */ $extract = false,
+        /** @noinspection PhpUnusedParameterInspection */ $clean = false,
+        /** @noinspection PhpUnusedParameterInspection */ $checkExist = false
+    ){
         $out = [];
         if (!empty($data) && ArrayUtils::isArrayNumeric($data)) {
             foreach ($data as $key => $resource) {

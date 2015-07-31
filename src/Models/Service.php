@@ -14,6 +14,8 @@ use DreamFactory\Core\Utility\CacheUtilities;
  * @property boolean $is_active
  * @property boolean $mutable
  * @property boolean $deletable
+ * @property boolean $cache_enabled
+ * @property integer $cache_ttl
  * @property string  $type
  * @property array   $config
  * @property string  $created_date
@@ -31,7 +33,7 @@ class Service extends BaseSystemModel
 {
     protected $table = 'service';
 
-    protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config'];
+    protected $fillable = ['name', 'label', 'description', 'is_active', 'cache_enabled', 'cache_ttl', 'type', 'config'];
 
     protected $guarded = [
         'id',
@@ -45,7 +47,14 @@ class Service extends BaseSystemModel
 
     protected $appends = ['config'];
 
-    protected $casts = ['is_active' => 'boolean', 'mutable' => 'boolean', 'deletable' => 'boolean', 'id' => 'integer'];
+    protected $casts = [
+        'is_active'     => 'boolean',
+        'mutable'       => 'boolean',
+        'deletable'     => 'boolean',
+        'cache_enabled' => 'boolean',
+        'cache_ttl'     => 'integer',
+        'id'            => 'integer'
+    ];
 
     /**
      * @var array Extra config to pass to any config handler
@@ -77,7 +86,7 @@ class Service extends BaseSystemModel
         );
 
         static::saved(
-            function(Service $service){
+            function (Service $service){
                 CacheUtilities::forgetServiceInfo($service->name);
             }
         );
@@ -167,7 +176,7 @@ class Service extends BaseSystemModel
     /**
      * @param array $val
      */
-    public function setConfigAttribute(Array $val)
+    public function setConfigAttribute(array $val)
     {
         $this->config = $val;
         // take the type information and get the config_handler class

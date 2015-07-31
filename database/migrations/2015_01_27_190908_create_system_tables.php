@@ -115,6 +115,8 @@ class CreateSystemTables extends Migration
                 $t->foreign('type')->references('name')->on('service_type')->onDelete('cascade');
                 $t->boolean('mutable')->default(1);
                 $t->boolean('deletable')->default(1);
+                $t->boolean('cache_enabled')->default(0);
+                $t->integer('cache_ttl')->default(0);
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();

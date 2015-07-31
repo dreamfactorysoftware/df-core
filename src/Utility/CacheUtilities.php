@@ -238,9 +238,14 @@ class CacheUtilities
                 unset($roleInfo['service_by_role_service_access']);
 
                 foreach ($roleInfo['role_service_access_by_role_id'] as $key => $value) {
-                    $serviceName =
-                        ArrayUtils::findByKeyValue($services, 'id', ArrayUtils::get($value, 'service_id'), 'name');
+                    $serviceName = ArrayUtils::findByKeyValue(
+                        $services,
+                        'id',
+                        ArrayUtils::get($value, 'service_id'), 'name'
+                    );
+                    $component = ArrayUtils::get($value, 'component');
                     $roleInfo['role_service_access_by_role_id'][$key]['service'] = $serviceName;
+                    $roleInfo['role_service_access_by_role_id'][$key]['component'] = trim($component, '/');
                 }
 
                 return $roleInfo;

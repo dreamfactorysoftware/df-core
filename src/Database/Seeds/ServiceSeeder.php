@@ -41,8 +41,8 @@ class ServiceSeeder extends BaseModelSeeder
             'description' => 'Service for accessing local file storage.',
             'is_active'   => true,
             'type'        => 'local_file',
-            'mutable'     => false,
-            'deletable'   => false
+            'mutable'     => true,
+            'deletable'   => true
         ]
     ];
 }

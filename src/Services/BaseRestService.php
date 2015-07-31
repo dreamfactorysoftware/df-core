@@ -187,7 +187,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                     'id'         => 'ResourceList',
                     'properties' => [
                         $wrapper => [
-                            'type'        => 'Array',
+                            'type'        => 'array',
                             'description' => 'Array of accessible components available by this service.',
                             'items'       => [
                                 'type' => 'string',
@@ -212,7 +212,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                     'id'         => 'Resources',
                     'properties' => [
                         $wrapper => [
-                            'type'        => 'Array',
+                            'type'        => 'array',
                             'description' => 'Array of resources available by this service.',
                             'items'       => [
                                 '$ref' => 'Resource',

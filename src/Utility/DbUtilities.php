@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Utility;
 
 use Config;
+use DreamFactory\Library\Utility\Scalar;
 use Log;
 use DreamFactory\Core\Models\DbFieldExtras;
 use DreamFactory\Core\Models\DbTableExtras;
@@ -474,7 +475,7 @@ class DbUtilities
 
             case 'boolean':
             case 'bool':
-                return boolval($value);
+                return Scalar::boolval($value);
 
             case 'string':
                 return strval($value);

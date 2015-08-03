@@ -7,7 +7,6 @@ use DreamFactory\Core\Components\LocalFileSystem;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Aws\Utility\AwsSvcUtilities;
 use DreamFactory\Core\Aws\Components\S3FileSystem;
 use DreamFactory\Core\Rackspace\Components\OpenStackObjectStorageSystem;
 use DreamFactory\Core\Azure\Components\AzureBlobFileSystem;

@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\BaseModel;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseFileService;
@@ -20,7 +21,7 @@ class Packager
     /**
      * Default container for app files.
      */
-    const DEFAULT_CONTAINER = 'applications';
+    const DEFAULT_STORAGE_FOLDER = 'applications';
 
     /**
      * Resource wrapper from config.
@@ -206,7 +207,7 @@ class Packager
     /**
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
-     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \Exception
      */
     private function insertSchemas()
     {
@@ -220,17 +221,18 @@ class Packager
                     $serviceName = ArrayUtils::get($schemas, 'name');
                     $tables = ArrayUtils::get($schemas, 'table');
                     if (!empty($tables)) {
-                        $result = ServiceHandler::handleRequest(
-                            Verbs::POST,
-                            $serviceName,
-                            '_schema',
-                            [],
-                            [$this->resourceWrapper => $tables]
-                        );
-
-                        if (isset($result[0]['error'])) {
-                            $msg = $result[0]['error']['message'];
-                            throw new InternalServerErrorException("Could not create the database tables for this application.\n$msg");
+                        try {
+                            ServiceHandler::handleRequest(
+                                Verbs::POST,
+                                $serviceName,
+                                '_schema',
+                                [],
+                                [$this->resourceWrapper => $tables]
+                            );
+                        } catch (\Exception $e){
+                            if(in_array($e->getCode(), [404, 500])){
+                                throw $e;
+                            }
                         }
                     }
                 }
@@ -247,7 +249,7 @@ class Packager
     /**
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
-     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \Exception
      */
     private function insertData()
     {
@@ -266,17 +268,18 @@ class Packager
                         $tableName = ArrayUtils::get($table, 'name');
                         $records = ArrayUtils::get($table, 'record');
 
-                        $result = ServiceHandler::handleRequest(
-                            Verbs::POST,
-                            $serviceName,
-                            '_table/' . $tableName,
-                            [],
-                            [$this->resourceWrapper => $records]
-                        );
-
-                        if (isset($result['record'][0]['error'])) {
-                            $msg = $result['record'][0]['error']['message'];
-                            throw new InternalServerErrorException("Could not insert the database entries for table '$tableName'' for this application.\n$msg");
+                        try{
+                            ServiceHandler::handleRequest(
+                                Verbs::POST,
+                                $serviceName,
+                                '_table/' . $tableName,
+                                [],
+                                [$this->resourceWrapper => $records]
+                            );
+                        } catch (\Exception $e){
+                            if(in_array($e->getCode(), [404, 500])){
+                                throw $e;
+                            }
                         }
                     }
                 }
@@ -302,7 +305,7 @@ class Packager
     {
         $appName = ArrayUtils::get($appInfo, 'name');
         $storageServiceId = ArrayUtils::get($appInfo, 'storage_service_id', $this->getDefaultStorageServiceId());
-        $container = ArrayUtils::get($appInfo, 'storage_container', static::DEFAULT_CONTAINER);
+        $storageFolder = ArrayUtils::get($appInfo, 'storage_container', static::DEFAULT_STORAGE_FOLDER);
 
         /** @var $service BaseFileService */
         $service = ServiceHandler::getServiceById($storageServiceId);
@@ -312,10 +315,10 @@ class Packager
             );
         }
 
-        if (empty($container)) {
+        if (empty($storageFolder)) {
             $info = $service->extractZipFile($appName, '', $this->zip, false, $appName . '/');
         } else {
-            $info = $service->extractZipFile($container, '', $this->zip);
+            $info = $service->extractZipFile($storageFolder, '', $this->zip);
         }
 
         return $info;

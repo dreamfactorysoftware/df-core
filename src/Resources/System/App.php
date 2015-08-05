@@ -41,7 +41,7 @@ class App extends BaseSystemResource
      */
     protected function handlePOST()
     {
-        $uploadedFiles = $this->request->getFile('files');
+        $uploadedFiles = $this->request->getFile('file');
         $importUrl = $this->request->getParameter('import_url');
 
         if(!empty($uploadedFiles)){

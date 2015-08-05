@@ -53,7 +53,11 @@ class FilePublicPath extends BaseServiceConfigModel
                     if ($defaultDiskName === $disk['driver']) {
                         $default = true;
                     }
-                    $values[] = ['name' => $disk['driver'], 'default' => $default];
+                    $values[] = [
+                        'name' => $disk['driver'],
+                        'label' => $disk['driver'],
+                        'default' => $default
+                    ];
                 }
 
                 $schema['type'] = 'picklist';

@@ -2,6 +2,10 @@
 
 namespace DreamFactory\Core\Utility;
 
+use DreamFactory\Core\Models\App;
+use DreamFactory\Core\Models\Lookup;
+use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Library\Utility\Curl;
 use \Request;
 use Carbon\Carbon;
@@ -516,12 +520,12 @@ class Session
 
     public static function setSessionData($appId = null, $userId = null)
     {
-        $appInfo = ($appId) ? CacheUtilities::getAppInfo($appId) : null;
-        $userInfo = ($userId) ? CacheUtilities::getUserInfo($userId) : null;
+        $appInfo = ($appId) ? App::getCachedInfo($appId) : null;
+        $userInfo = ($userId) ? User::getCachedInfo($userId) : null;
 
         $roleId = null;
         if (!empty($userId) && !empty($appId)) {
-            $roleId = CacheUtilities::getRoleIdByAppIdAndUserId($appId, $userId);
+            $roleId = static::getRoleIdByAppIdAndUserId($appId, $userId);
         }
 
         if (empty($roleId) && !empty($appInfo)) {
@@ -531,14 +535,14 @@ class Session
         Session::setUserInfo($userInfo);
         Session::put('app.id', $appId);
 
-        $roleInfo = ($roleId) ? CacheUtilities::getRoleInfo($roleId) : null;
+        $roleInfo = ($roleId) ? Role::getCachedInfo($roleId) : null;
         if (!empty($roleInfo)) {
             Session::put('role.id', $roleId);
             Session::put('role.name', $roleInfo['name']);
             Session::put('role.services', $roleInfo['role_service_access_by_role_id']);
         }
 
-        $systemLookup = CacheUtilities::getSystemLookups();
+        $systemLookup = Lookup::getCachedLookups();
         $systemLookup = (!empty($systemLookup)) ? $systemLookup : [];
         $appLookup = (!empty($appInfo['app_lookup_by_app_id'])) ? $appInfo['app_lookup_by_app_id'] : [];
         $roleLookup = (!empty($roleInfo['role_lookup_by_role_id'])) ? $roleInfo['role_lookup_by_role_id'] : [];
@@ -641,6 +645,34 @@ class Session
     public static function getApiKey()
     {
         return \Session::get('api_key');
+    }
+
+    /**
+     * Use this primarily in middle-ware or where no session is established yet.
+     * Once session is established, the role id is accessible via Session.
+     *
+     * @param int $app_id
+     * @param int $user_id
+     *
+     * @return null|int The role id or null for admin
+     */
+    public static function getRoleIdByAppIdAndUserId($app_id, $user_id)
+    {
+        $appIdUserIdToRoleIdMap = \Cache::get('appIdUserIdToRoleIdMap', []);
+
+        if (isset($appIdUserIdToRoleIdMap[$app_id], $appIdUserIdToRoleIdMap[$app_id][$user_id])) {
+            return $appIdUserIdToRoleIdMap[$app_id][$user_id];
+        }
+
+        $map = UserAppRole::whereUserId($user_id)->whereAppId($app_id)->first(['role_id']);
+        if ($map) {
+            $appIdUserIdToRoleIdMap[$app_id][$user_id] = $map->role_id;
+            \Cache::put('appIdUserIdToRoleIdMap', $appIdUserIdToRoleIdMap, \Config::get('df.default_cache_ttl'));
+
+            return $map->role_id;
+        }
+
+        return null;
     }
 
     /**

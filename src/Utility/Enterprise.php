@@ -4,10 +4,8 @@ use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\FileSystem;
 use DreamFactory\Library\Utility\IfSet;
 use DreamFactory\Library\Utility\JsonFile;
-use DreamFactory\Core\Utility\CacheUtilities;
 use DreamFactory\Library\Utility\Enums\EnterpriseDefaults;
 use Symfony\Component\HttpFoundation\Request;
-use DreamFactory\Core\Exceptions\ForbiddenException;
 
 /**
  * Methods for interfacing with DreamFactory Enterprise (DFE)
@@ -93,7 +91,6 @@ final class Enterprise
      *
      * @return array
      * @throws \RuntimeException
-     * @throws \CHttpException
      */
     public static function initialize()
     {
@@ -257,7 +254,6 @@ final class Enterprise
      * @param string $privatePath
      *
      * @return mixed|string
-     * @throws \CHttpException
      */
     protected static function _getMetadata($instanceName, $privatePath)
     {
@@ -481,10 +477,10 @@ final class Enterprise
      */
     protected static function _refreshCache()
     {
-
-        CacheUtilities::put(
+        \Cache::put(
             static::$_cacheKey,
-            ['paths' => static::$_paths, 'config' => static::$_config]
+            ['paths' => static::$_paths, 'config' => static::$_config],
+            30
         );
     }
 
@@ -493,7 +489,7 @@ final class Enterprise
      */
     protected static function _reloadCache()
     {
-        $_cache = CacheUtilities::get(static::$_cacheKey);
+        $_cache = \Cache::get(static::$_cacheKey);
 
         if (!empty( $_cache ) && isset( $_cache['paths'], $_cache['config'] )) {
             static::$_paths = $_cache['paths'];

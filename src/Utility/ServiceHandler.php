@@ -25,7 +25,7 @@ class ServiceHandler
     public static function getService($name)
     {
         $name = strtolower(trim($name));
-        $serviceInfo = CacheUtilities::getServiceInfo($name);
+        $serviceInfo = Service::getCachedInfo($name);
         $serviceClass = ArrayUtils::get($serviceInfo, 'class_name');
 
         return new $serviceClass($serviceInfo);

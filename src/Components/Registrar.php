@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use DreamFactory\Core\Utility\CacheUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\User;
 use Validator;
@@ -55,7 +54,7 @@ class Registrar implements RegistrarContract
             //TODO: Perform user registration here.
 
             //Reset admin_exists flag in cache.
-            CacheUtilities::resetAdminExists();
+            User::resetAdminExists();
 
             return $user;
         }

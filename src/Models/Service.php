@@ -2,7 +2,12 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
-use DreamFactory\Core\Utility\CacheUtilities;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Resources\System\Event;
+use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Core\Services\Swagger;
 
 /**
  * Service
@@ -14,8 +19,6 @@ use DreamFactory\Core\Utility\CacheUtilities;
  * @property boolean $is_active
  * @property boolean $mutable
  * @property boolean $deletable
- * @property boolean $cache_enabled
- * @property integer $cache_ttl
  * @property string  $type
  * @property array   $config
  * @property string  $created_date
@@ -24,8 +27,9 @@ use DreamFactory\Core\Utility\CacheUtilities;
  * @method static \Illuminate\Database\Query\Builder|Service whereName($value)
  * @method static \Illuminate\Database\Query\Builder|Service whereLabel($value)
  * @method static \Illuminate\Database\Query\Builder|Service whereIsActive($value)
+ * @method static \Illuminate\Database\Query\Builder|Service whereMutable($value)
+ * @method static \Illuminate\Database\Query\Builder|Service whereDeletable($value)
  * @method static \Illuminate\Database\Query\Builder|Service whereType($value)
- * @method static \Illuminate\Database\Query\Builder|Service whereNativeFormatId($value)
  * @method static \Illuminate\Database\Query\Builder|Service whereCreatedDate($value)
  * @method static \Illuminate\Database\Query\Builder|Service whereLastModifiedDate($value)
  */
@@ -33,7 +37,7 @@ class Service extends BaseSystemModel
 {
     protected $table = 'service';
 
-    protected $fillable = ['name', 'label', 'description', 'is_active', 'cache_enabled', 'cache_ttl', 'type', 'config'];
+    protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config'];
 
     protected $guarded = [
         'id',
@@ -48,12 +52,10 @@ class Service extends BaseSystemModel
     protected $appends = ['config'];
 
     protected $casts = [
-        'is_active'     => 'boolean',
-        'mutable'       => 'boolean',
-        'deletable'     => 'boolean',
-        'cache_enabled' => 'boolean',
-        'cache_ttl'     => 'integer',
-        'id'            => 'integer'
+        'is_active' => 'boolean',
+        'mutable'   => 'boolean',
+        'deletable' => 'boolean',
+        'id'        => 'integer'
     ];
 
     /**
@@ -87,7 +89,11 @@ class Service extends BaseSystemModel
 
         static::saved(
             function (Service $service){
-                CacheUtilities::forgetServiceInfo($service->name);
+                \Cache::forget('service:'.$service->name);
+
+                // Any changes to services needs to produce a new event list
+                Event::clearCache();
+                Swagger::clearCache($service->name);
             }
         );
 
@@ -99,7 +105,12 @@ class Service extends BaseSystemModel
                 if (!empty($serviceCfg)) {
                     return $serviceCfg::removeConfig($service->getKey());
                 }
-                CacheUtilities::forgetServiceInfo($service->name);
+
+                \Cache::forget('service:'.$service->name);
+
+                // Any changes to services needs to produce a new event list
+                Event::clearCache();
+                Swagger::clearCache($service->name);
 
                 return true;
             }
@@ -191,5 +202,79 @@ class Service extends BaseSystemModel
                 $serviceCfg::validateConfig($this->config);
             }
         }
+    }
+
+    public static function getStoredContentByServiceName($name)
+    {
+        if (!is_string($name)) {
+            throw new BadRequestException("Could not find a service for $name");
+        }
+
+        $service = static::whereName($name)->get()->first();
+        if (empty($service)) {
+            throw new NotFoundException("Could not find a service for $name");
+        }
+
+        return static::getStoredContentForService($service);
+    }
+
+    public static function getStoredContentForService(Service $service)
+    {
+        // check the database records for custom doc in swagger, raml, etc.
+        $info = $service->serviceDocs()->first();
+        $content = (isset($info)) ? $info->content : null;
+        if (is_string($content)) {
+            $content = json_decode($content, true);
+        } else {
+            $serviceClass = $service->serviceType()->first()->class_name;
+            $settings = $service->toArray();
+
+            /** @var BaseRestService $obj */
+            $obj = new $serviceClass($settings);
+            $content = $obj->getApiDocInfo();
+        }
+
+        return $content;
+    }
+
+    /**
+     * Returns service info cached, or reads from db if not present.
+     * Pass in a key to return a portion/index of the cached data.
+     *
+     * @param string      $name
+     * @param null|string $key
+     * @param null        $default
+     *
+     * @return mixed|null
+     */
+    public static function getCachedInfo($name, $key = null, $default = null)
+    {
+        $cacheKey = 'service:' . $name;
+        $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name){
+            $service = static::whereName($name)->first(['id', 'name', 'label', 'description', 'is_active', 'type']);
+
+            if (empty($service)) {
+                throw new NotFoundException("Could not find a service for $name");
+            }
+
+            if (!$service->is_active) {
+                throw new ForbiddenException("Service $name is inactive.");
+            }
+
+            $settings = $service->toArray();
+            $settings['class_name'] = $service->serviceType()->first(['class_name'])->class_name;
+
+            return $settings;
+        });
+
+        if (is_null($result)) {
+            return $default;
+        }
+
+        if (is_null($key)) {
+            return $result;
+        }
+
+        return (isset($result[$key]) ? $result[$key] : $default);
     }
 }

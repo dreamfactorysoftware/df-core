@@ -2,9 +2,11 @@
 namespace DreamFactory\Core\Models;
 
 use \Cache;
+use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Utility\CacheUtilities;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
  * Role
@@ -43,14 +45,14 @@ class Role extends BaseSystemModel
                 if (!$role->is_active) {
                     JWTUtilities::invalidateTokenByRoleId($role->id);
                 }
-                CacheUtilities::forgetRoleInfo($role->id);
+                \Cache::forget('role:'.$role->id);
             }
         );
 
         static::deleting(
             function (Role $role){
                 JWTUtilities::invalidateTokenByRoleId($role->id);
-                CacheUtilities::forgetRoleInfo($role->id);
+                \Cache::forget('role:'.$role->id);
             }
         );
     }
@@ -70,5 +72,68 @@ class Role extends BaseSystemModel
         }
 
         return $rsa;
+    }
+
+    /**
+     * Returns role info cached, or reads from db if not present.
+     * Pass in a key to return a portion/index of the cached data.
+     *
+     * @param int         $id
+     * @param null|string $key
+     * @param null        $default
+     *
+     * @return mixed|null
+     */
+    public static function getCachedInfo($id, $key = null, $default = null)
+    {
+        $cacheKey = 'role:' . $id;
+        try {
+            $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
+                $role = Role::with(
+                    [
+                        'role_lookup_by_role_id',
+                        'role_service_access_by_role_id',
+                        'service_by_role_service_access'
+                    ]
+                )->whereId($id)->first();
+
+                if (empty($role)) {
+                    throw new NotFoundException("Role not found.");
+                }
+
+                if (!$role->is_active) {
+                    throw new ForbiddenException("Role is not active.");
+                }
+
+                $roleInfo = $role->toArray();
+                $services = ArrayUtils::get($roleInfo, 'service_by_role_service_access');
+                unset($roleInfo['service_by_role_service_access']);
+
+                foreach ($roleInfo['role_service_access_by_role_id'] as $key => $value) {
+                    $serviceName = ArrayUtils::findByKeyValue(
+                        $services,
+                        'id',
+                        ArrayUtils::get($value, 'service_id'), 'name'
+                    );
+                    $component = ArrayUtils::get($value, 'component');
+                    $roleInfo['role_service_access_by_role_id'][$key]['service'] = $serviceName;
+                    $roleInfo['role_service_access_by_role_id'][$key]['component'] = trim($component, '/');
+                }
+
+                return $roleInfo;
+            });
+
+            if (is_null($result)) {
+                return $default;
+            }
+        } catch (ModelNotFoundException $ex) {
+            return $default;
+        }
+
+        if (is_null($key)) {
+            return $result;
+        }
+
+        return (isset($result[$key]) ? $result[$key] : $default);
     }
 }

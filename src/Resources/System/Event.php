@@ -2,16 +2,18 @@
 
 namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Core\Components\ApiDocManager;
+use DreamFactory\Core\Enums\ApiDocFormatTypes;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\EventScript;
+use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 
 /**
@@ -22,16 +24,211 @@ use DreamFactory\Library\Utility\Inflector;
 class Event extends BaseRestResource
 {
     //*************************************************************************
+    //	Constants
+    //*************************************************************************
+
+    /**
+     * @const string A cached process-handling events list derived from API Docs
+     */
+    const EVENT_CACHE_KEY = 'events';
+
+    //*************************************************************************
+    //	Members
+    //*************************************************************************
+
+    /**
+     * @var array The process-handling event map
+     */
+    protected static $eventMap = false;
+
+    //*************************************************************************
     //	Methods
     //*************************************************************************
 
     /**
-     * @return mixed
+     * Internal building method builds all static services and some dynamic
+     * services from file annotations, otherwise swagger info is loaded from
+     * database or storage files for each service, if it exists.
+     *
+     * @throws \Exception
      */
-    protected static function getEventMap()
+    protected static function buildEventMaps()
     {
-        return ApiDocManager::getEventMap();
+        \Log::info('Building event cache');
+
+        //  Build event mapping from services in database
+
+        //	Initialize the event map
+        $processEventMap = [];
+        $broadcastEventMap = [];
+
+        //  Pull any custom swagger docs
+        $result = ServiceModel::with(
+            [
+                'serviceDocs' => function ($query){
+                    $query->where('format', ApiDocFormatTypes::SWAGGER);
+                }
+            ]
+        )->get();
+
+        //	Spin through services and pull the events
+        foreach ($result as $service) {
+            $apiName = $service->name;
+            try {
+                if (empty($content = ServiceModel::getStoredContentForService($service))) {
+                    throw new \Exception('  * No event content found for service.');
+                    continue;
+                }
+
+                $serviceEvents = static::parseSwaggerEvents($apiName, $content);
+
+                //	Parse the events while we get the chance...
+                $processEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'process', []);
+                $broadcastEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'broadcast', []);
+
+                unset($content, $filePath, $service, $serviceEvents);
+            } catch (\Exception $ex) {
+                \Log::error("  * System error building event map for service '$apiName'.\n{$ex->getMessage()}");
+            }
+        }
+
+        static::$eventMap = ['process' => $processEventMap, 'broadcast' => $broadcastEventMap];
+
+        //	Write event cache file
+        \Cache::forever(static::EVENT_CACHE_KEY, static::$eventMap);
+
+        \Log::info('Event cache build process complete');
     }
+
+    /**
+     * @param string $apiName
+     * @param array  $data
+     *
+     * @return array
+     */
+    protected static function parseSwaggerEvents($apiName, &$data)
+    {
+        $processEvents = [];
+        $broadcastEvents = [];
+        $eventCount = 0;
+
+        foreach (ArrayUtils::get($data, 'apis', []) as $ixApi => $api) {
+            $apiProcessEvents = [];
+            $apiBroadcastEvents = [];
+
+            if (null === ($path = ArrayUtils::get($api, 'path'))) {
+                \Log::notice('  * Missing "path" in Swagger definition: ' . $apiName);
+                continue;
+            }
+
+            $path = str_replace(
+                ['{api_name}', '/'],
+                [$apiName, '.'],
+                trim($path, '/')
+            );
+
+            foreach (ArrayUtils::get($api, 'operations', []) as $ixOps => $operation) {
+                if (null !== ($eventNames = ArrayUtils::get($operation, 'event_name'))) {
+                    $method = strtolower(ArrayUtils::get($operation, 'method', Verbs::GET));
+                    $eventsThrown = [];
+
+                    if (is_string($eventNames) && false !== strpos($eventNames, ',')) {
+                        $eventNames = explode(',', $eventNames);
+
+                        //  Clean up any spaces...
+                        foreach ($eventNames as &$tempEvent) {
+                            $tempEvent = trim($tempEvent);
+                        }
+                    }
+
+                    if (empty($eventNames)) {
+                        $eventNames = [];
+                    } else if (!is_array($eventNames)) {
+                        $eventNames = [$eventNames];
+                    }
+
+                    //  Set into master record
+                    $data['apis'][$ixApi]['operations'][$ixOps]['event_name'] = $eventNames;
+
+                    foreach ($eventNames as $ixEventNames => $templateEventName) {
+                        $eventName = str_replace(
+                            [
+                                '{api_name}',
+                                $apiName . '.' . $apiName . '.',
+                                '{action}',
+                                '{request.method}'
+                            ],
+                            [
+                                $apiName,
+                                'system.' . $apiName . '.',
+                                $method,
+                                $method,
+                            ],
+                            $templateEventName
+                        );
+
+                        $eventsThrown[] = $eventName;
+
+                        //  Set actual name in swagger file
+                        $data['apis'][$ixApi]['operations'][$ixOps]['event_name'][$ixEventNames] = $eventName;
+
+                        $eventCount++;
+                    }
+
+                    $apiBroadcastEvents[$method] = $eventsThrown;
+                    $apiProcessEvents[$method] = ["$path.$method.pre_process", "$path.$method.post_process"];
+                }
+
+                unset($operation, $eventsThrown);
+            }
+
+            $processEvents[str_ireplace('{api_name}', $apiName, $path)] = $apiProcessEvents;
+            $broadcastEvents[str_ireplace('{api_name}', $apiName, $path)] = $apiBroadcastEvents;
+
+            unset($apiProcessEvents, $apiBroadcastEvents, $api);
+        }
+
+        \Log::debug('  * Discovered ' . $eventCount . ' event(s).');
+
+        return ['process' => $processEvents, 'broadcast' => $broadcastEvents];
+    }
+
+    /**
+     * Retrieves the cached event map or triggers a rebuild
+     *
+     * @return array
+     */
+    public static function getEventMap()
+    {
+        if (!empty(static::$eventMap)) {
+            return static::$eventMap;
+        }
+
+        static::$eventMap = \Cache::get(static::EVENT_CACHE_KEY);
+
+        //	If we still have no event map, build it.
+        if (empty(static::$eventMap)) {
+            static::buildEventMaps();
+        }
+
+        return static::$eventMap;
+    }
+
+    /**
+     * Clears the cache produced by the swagger annotations
+     */
+    public static function clearCache()
+    {
+        static::$eventMap = [];
+        \Cache::forget(static::EVENT_CACHE_KEY);
+
+        // rebuild swagger cache
+        static::buildEventMaps();
+    }
+
+    //*************************************************************************
+    //	Methods
+    //*************************************************************************
 
     protected static function affectsProcess($event)
     {

@@ -115,8 +115,6 @@ class CreateSystemTables extends Migration
                 $t->foreign('type')->references('name')->on('service_type')->onDelete('cascade');
                 $t->boolean('mutable')->default(1);
                 $t->boolean('deletable')->default(1);
-                $t->boolean('cache_enabled')->default(0);
-                $t->integer('cache_ttl')->default(0);
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
@@ -549,12 +547,22 @@ class CreateSystemTables extends Migration
         );
 
         Schema::create(
-            'file_public_path',
+            'file_service_config',
             function (Blueprint $t){
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->text('public_path')->nullable();
                 $t->text('container')->nullable();
+            }
+        );
+
+        Schema::create(
+            'service_cache_config',
+            function (Blueprint $t){
+                $t->integer('service_id')->unsigned()->primary();
+                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
+                $t->boolean('cache_enabled')->default(0);
+                $t->integer('cache_ttl')->default(0);
             }
         );
 
@@ -586,7 +594,9 @@ class CreateSystemTables extends Migration
         // system customizations
         Schema::dropIfExists('system_custom');
         // File storage, public path designation
-        Schema::dropIfExists('file_public_path');
+        Schema::dropIfExists('file_service_config');
+        // Cache-able service configuration
+        Schema::dropIfExists('service_cache_config');
         // JSON Web Token to system resources map
         Schema::dropIfExists('token_map');
         // App relationship for user

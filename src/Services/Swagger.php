@@ -1,21 +1,17 @@
 <?php
 namespace DreamFactory\Core\Services;
 
-use DreamFactory\Core\Components\ApiDocManager;
-use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ApiDocUtilities;
-use DreamFactory\Core\Utility\CacheUtilities;
-use DreamFactory\Core\Utility\Session;
 
 /**
  * Swagger
- * DSP API Documentation manager
+ * API Documentation manager
  *
  */
-class Swagger extends BaseRestService implements CachedInterface
+class Swagger extends BaseRestService
 {
     //*************************************************************************
     //	Constants
@@ -33,10 +29,6 @@ class Swagger extends BaseRestService implements CachedInterface
      * @const string The private cache file
      */
     const SWAGGER_CACHE_FILE = '_.json';
-    /**
-     * @const integer How long a swagger cache will live, 1440 = 24 minutes (default session timeout).
-     */
-    const SWAGGER_CACHE_TTL = 1440;
 
     //*************************************************************************
     //	Methods
@@ -51,7 +43,7 @@ class Swagger extends BaseRestService implements CachedInterface
         // here due to sdk access
 //        Session::checkAppPermission( null, false );
         if ($this->request->getParameterAsBool('refresh')) {
-            $this->flush();
+            static::clearCache();
         }
 
         if (empty($this->resource)) {
@@ -59,6 +51,19 @@ class Swagger extends BaseRestService implements CachedInterface
         }
 
         return $this->getSwaggerForService($this->resource);
+    }
+
+    public static function clearCache($name = null)
+    {
+        \Cache::forget(static::SWAGGER_CACHE_FILE);
+        if (empty($name)) {
+            // get all services names and clear them
+            foreach (Service::available() as $name) {
+                \Cache::forget($name . 'json');
+            }
+        } else {
+            \Cache::forget($name . 'json');
+        }
     }
 
     /**
@@ -70,15 +75,14 @@ class Swagger extends BaseRestService implements CachedInterface
      */
     public function getSwagger()
     {
-        $roleId = Session::getRoleId();
-        if (null === ($content = CacheUtilities::getByRoleId($roleId, static::SWAGGER_CACHE_FILE))) {
+        if (null === ($content = \Cache::get(static::SWAGGER_CACHE_FILE))) {
             \Log::info('Building Swagger cache');
 
             //  Build services from database
             //  Pull any custom swagger docs
             $result = Service::all(['name', 'description']);
 
-            // gather the services
+            //  Gather the services
             $services = [];
 
             //	Spin through services and pull the configs
@@ -117,15 +121,7 @@ HTML;
             $content = array_merge($resourceListing, ['apis' => $services]);
             $content = json_encode($content, JSON_UNESCAPED_SLASHES);
 
-            if (false ===
-                CacheUtilities::putByRoleId($roleId, static::SWAGGER_CACHE_FILE, $content, static::SWAGGER_CACHE_TTL)
-            ) {
-                \Log::error('  * System error creating swagger cache file: ' . static::SWAGGER_CACHE_FILE);
-            }
-
-            // Add to this services keys for clearing later.
-            $key = CacheUtilities::makeKeyFromTypeAndId('role', $roleId, static::SWAGGER_CACHE_FILE);
-            CacheUtilities::addKeysByTypeAndId('service', $this->id, $key);
+            \Cache::forever(static::SWAGGER_CACHE_FILE, $content);
 
             \Log::info('Swagger cache build process complete');
         }
@@ -145,7 +141,7 @@ HTML;
     {
         $cachePath = $name . '.json';
 
-        if (null === $content = CacheUtilities::getByServiceId($this->id, $cachePath)) {
+        if (null === $content = \Cache::get($cachePath)) {
             $service = Service::whereName($name)->get()->first();
             if (empty($service)) {
                 throw new NotFoundException("Service '$name' not found.");
@@ -158,7 +154,7 @@ HTML;
             ];
 
             try {
-                $result = ApiDocManager::getStoredContentForService($service);
+                $result = Service::getStoredContentForService($service);
 
                 if (empty($result)) {
                     throw new NotFoundException("No Swagger content found.");
@@ -171,31 +167,13 @@ HTML;
                 $content = str_replace('{api_name}', $name, $content);
 
                 // cache it for later access
-                if (false ===
-                    CacheUtilities::putByServiceId($this->id, $cachePath, $content, static::SWAGGER_CACHE_TTL)
-                ) {
-                    throw new \Exception("  * System error creating swagger cache file.");
-                }
-
-                // Add to this the queried service's keys for clearing later.
-                $key = CacheUtilities::makeKeyFromTypeAndId('service', $this->id, $cachePath);
-                CacheUtilities::addKeysByTypeAndId('service', $service->id, $key);
+                \Cache::forever($cachePath, $content);
             } catch (\Exception $ex) {
                 \Log::error("  * System error creating swagger file for service '$name'.\n{$ex->getMessage()}");
             }
         }
 
         return $content;
-    }
-
-    /**
-     * Clears the cache produced by the swagger annotations
-     */
-    public function flush()
-    {
-        CacheUtilities::forgetAllByTypeAndId('service', $this->id);
-
-        ApiDocManager::clearCache();
     }
 
     public function getApiDocInfo()

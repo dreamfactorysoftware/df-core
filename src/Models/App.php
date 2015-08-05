@@ -2,8 +2,10 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Enums\AppTypes;
-use DreamFactory\Core\Utility\CacheUtilities;
+use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
  * App
@@ -128,16 +130,110 @@ class App extends BaseSystemModel
                 if(!$app->is_active){
                     JWTUtilities::invalidateTokenByAppId($app->id);
                 }
-                CacheUtilities::forgetAppInfo($app->id);
+                \Cache::forget('app:'.$app->id);
             }
         );
 
         static::deleted(
             function(App $app){
                 JWTUtilities::invalidateTokenByAppId($app->id);
-                CacheUtilities::forgetAppInfo($app->id);
+                \Cache::forget('app:'.$app->id);
             }
         );
     }
 
+    /**
+     * Returns app info cached, or reads from db if not present.
+     * Pass in a key to return a portion/index of the cached data.
+     *
+     * @param int         $id
+     * @param null|string $key
+     * @param null        $default
+     *
+     * @return mixed|null
+     */
+    public static function getCachedInfo($id, $key = null, $default = null)
+    {
+        $cacheKey = 'app:' . $id;
+        try {
+            $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
+                $app = App::with('app_lookup_by_app_id')->whereId($id)->first();
+
+                if (empty($app)) {
+                    throw new NotFoundException("App not found.");
+                }
+
+                if (!$app->is_active) {
+                    throw new ForbiddenException("App is not active.");
+                }
+
+                return $app->toArray();
+            });
+
+            if (is_null($result)) {
+                return $default;
+            }
+        } catch (ModelNotFoundException $ex) {
+            return $default;
+        }
+
+        if (is_null($key)) {
+            return $result;
+        }
+
+        return (isset($result[$key]) ? $result[$key] : $default);
+    }
+
+    /**
+     * Use this primarily in middle-ware or where no session is established yet.
+     *
+     * @param string $api_key
+     * @param int    $app_id
+     */
+    public static function setApiKeyToAppId($api_key, $app_id)
+    {
+        $cacheKey = 'apikey2appid:' . $api_key;
+        \Cache::put($cacheKey, $app_id, \Config::get('df.default_cache_ttl'));
+    }
+
+    /**
+     * Use this primarily in middle-ware or where no session is established yet.
+     *
+     * @param string $api_key
+     *
+     * @return int The app id
+     */
+    public static function getAppIdByApiKey($api_key)
+    {
+        $cacheKey = 'apikey2appid:' . $api_key;
+        try {
+            return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($api_key){
+                return App::whereApiKey($api_key)->firstOrFail()->id;
+            });
+        } catch (ModelNotFoundException $ex) {
+            return null;
+        }
+    }
+
+    /**
+     * Use this primarily in middle-ware or where no session is established yet.
+     *
+     * @param int $id
+     *
+     * @return string|null The API key for the designated app or null if not found
+     */
+    public static function getApiKeyByAppId($id)
+    {
+        if (!empty($id)) {
+            // use local app caching
+            $key = static::getCachedInfo($id, 'api_key', null);
+            if (!is_null($key)) {
+                static::setApiKeyToAppId($key, $id);
+
+                return $key;
+            }
+        }
+
+        return null;
+    }
 }

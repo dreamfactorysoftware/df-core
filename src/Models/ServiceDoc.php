@@ -13,11 +13,11 @@ namespace DreamFactory\Core\Models;
  * @method static \Illuminate\Database\Query\Builder|ServiceDoc whereServiceId($value)
  * @method static \Illuminate\Database\Query\Builder|ServiceDoc whereFormatId($value)
  */
-class ServiceDoc extends BaseModel
+class ServiceDoc extends BaseSystemModel
 {
     protected $table = 'service_doc';
 
-    protected $guarded = false;
+    protected $fillable = ['service_id', 'format_id', 'content'];
 
     protected $casts = ['id' => 'integer', 'service_id' => 'integer', 'format_id' => 'integer'];
 }

@@ -441,7 +441,7 @@ abstract class BaseFileService extends BaseRestService
                 throw new InternalServerErrorException('Error opening temporary zip file. code = ' . $code);
             }
 
-            $results = $this->driver->extractZipFile($this->container, $dest_path, $zip, $clean);
+            $results = $this->extractZipFile($this->container, $dest_path, $zip, $clean);
             unlink($tmpName);
 
             return $results;
@@ -451,6 +451,20 @@ abstract class BaseFileService extends BaseRestService
 
             return ['name' => $dest_name, 'path' => $fullPathName, 'type' => 'file'];
         }
+    }
+
+    /**
+     * @param            $container
+     * @param            $path
+     * @param            $zip
+     * @param bool|false $clean
+     * @param null       $drop_path
+     *
+     * @return array
+     */
+    public function extractZipFile($container, $path, $zip, $clean = false, $drop_path = null)
+    {
+        return $this->driver->extractZipFile($container, $path, $zip, $clean, $drop_path);
     }
 
     /**
@@ -482,7 +496,7 @@ abstract class BaseFileService extends BaseRestService
             // need to extract zip file and move contents to storage
             $zip = new \ZipArchive();
             if (true === $zip->open($source_file)) {
-                return $this->driver->extractZipFile($this->container, $dest_path, $zip, $clean);
+                return $this->extractZipFile($this->container, $dest_path, $zip, $clean);
             } else {
                 throw new InternalServerErrorException('Error opening temporary zip file.');
             }

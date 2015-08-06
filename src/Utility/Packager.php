@@ -32,6 +32,8 @@ class Packager
      */
     protected $resourceWrapper = null;
 
+    protected $resourceWrapped = true;
+
     /**
      * Package zip file.
      *
@@ -47,18 +49,11 @@ class Packager
     protected $exportAppId = 0;
 
     /**
-     * Services to export.
+     * Services and Schemas to export.
      *
      * @type array
      */
-    protected $exportServices = [];
-
-    /**
-     * Schemas to export.
-     *
-     * @type array
-     */
-    protected $exportSchemas = [];
+    protected $exportItems = [];
 
     /**
      * @param mixed $fileInfo
@@ -68,13 +63,15 @@ class Packager
      */
     public function __construct($fileInfo = null)
     {
-        if(is_numeric($fileInfo)){
+        if (is_numeric($fileInfo)) {
             $this->exportAppId = $fileInfo;
         } else if (is_array($fileInfo)) {
             $this->verifyUploadedFile($fileInfo);
         } else if (!empty($fileInfo) && is_string($fileInfo)) {
             $this->verifyImportFromUrl($fileInfo);
         }
+
+        $this->resourceWrapped = \Config::get('df.always_wrap_resources');
         $this->resourceWrapper = \Config::get('df.resources_wrapper');
     }
 
@@ -83,20 +80,18 @@ class Packager
      */
     public function __destruct()
     {
-        if($this->zip instanceof \ZipArchive) {
+        if ($this->zip instanceof \ZipArchive) {
             @unlink($this->zip->filename);
             $this->zip->close();
         }
     }
 
     /**
-     * @param array $services
-     * @param array $schemas
+     * @param array $items
      */
-    public function setExportItems($services = [], $schemas = [])
+    public function setExportItems($items = [])
     {
-        $this->exportServices = $services;
-        $this->exportSchemas = $schemas;
+        $this->exportItems = $items;
     }
 
     /**
@@ -215,7 +210,7 @@ class Packager
             throw new InternalServerErrorException("Could not create the application.\n{$ex->getMessage()}");
         }
 
-        return (isset($result[$this->resourceWrapper])) ? $result[$this->resourceWrapper][0] : $result[0];
+        return (isset($result[$this->resourceWrapped])) ? $result[$this->resourceWrapper][0] : $result[0];
     }
 
     /**
@@ -397,6 +392,151 @@ class Packager
         return $appResults;
     }
 
+    private function initExportZipFile($appName)
+    {
+        $zip = new \ZipArchive();
+        $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $zipFileName = $tmpDir . $appName . '.' . static::FILE_EXTENSION;
+        $zip->filename = $zipFileName;
+        $this->zip = $zip;
+
+        if (true !== $this->zip->open($zipFileName, \ZipArchive::CREATE)) {
+            throw new InternalServerErrorException('Can not create package file for this application.');
+        }
+
+        return true;
+    }
+
+    private function packageAppDescription($app)
+    {
+        $record = [
+            'name'                    => $app->name,
+            'description'             => $app->description,
+            'is_active'               => $app->is_active,
+            'type'                    => $app->type,
+            'path'                    => $app->path,
+            'url'                     => $app->url,
+            'requires_fullscreen'     => $app->requires_fullscreen,
+            'allow_fullscreen_toggle' => $app->allow_fullscreen_toggle,
+            'toggle_location'         => $app->toggle_location
+        ];
+
+        if (!$this->zip->addFromString('description.json', json_encode($record, JSON_UNESCAPED_SLASHES))) {
+            throw new InternalServerErrorException("Can not include description in package file.");
+        }
+
+        return true;
+    }
+
+    private function packageAppFiles($app)
+    {
+        $appName = $app->name;
+        $zipFileName = $this->zip->filename;
+        $storageServiceId = $app->storage_service_id;
+        $storageFolder = $app->storage_container;
+
+        if (empty($storageServiceId)) {
+            $storageServiceId = $this->getDefaultStorageServiceId();
+        }
+
+        if (empty($storageServiceId)) {
+            throw new InternalServerErrorException("Can not find storage service identifier.");
+        }
+
+        /** @type BaseFileService $storage */
+        $storage = ServiceHandler::getServiceById($storageServiceId);
+        if (!$storage) {
+            throw new InternalServerErrorException("Can not find storage service by identifier '$storageServiceId''.");
+        }
+
+        if (empty($storageFolder)) {
+            if ($storage->driver()->containerExists($appName)) {
+                $storage->driver()->getFolderAsZip($appName, '', $this->zip, $zipFileName, true);
+            }
+        } else {
+            if ($storage->driver()->folderExists($storageFolder, $appName)) {
+                $storage->driver()->getFolderAsZip($storageFolder, $appName, $this->zip, $zipFileName, true);
+            }
+        }
+
+        return true;
+    }
+
+    private function packageServicesAndSchemas($includeServices, $includeSchemas)
+    {
+        if ($includeServices || $includeSchemas) {
+            $items = $this->exportItems;
+
+            if (!empty($items)) {
+                $services = [];
+                $schemas = [];
+
+                foreach ($items as $item) {
+                    $serviceName = ArrayUtils::get($item, 'name');
+                    /** @type Service $service */
+                    $service = Service::whereName($serviceName)->whereDeletable(1)->first();
+
+                    if ($includeServices) {
+
+                        if (!empty($service)) {
+                            $services[] = [
+                                'name'        => $service->name,
+                                'label'       => $service->label,
+                                'description' => $service->description,
+                                'type'        => $service->type,
+                                'is_active'   => $service->is_active,
+                                'mutable'     => $service->mutable,
+                                'deletable'   => $service->deletable,
+                                'config'      => $service->config
+                            ];
+                        }
+                    }
+
+                    if ($includeSchemas) {
+                        $component = ArrayUtils::get($item, 'component');
+                        if (is_array($component)) {
+                            $component = implode(',', $component);
+                        }
+
+                        if (!empty($component) && $service->type === 'sql_db') {
+                            $schema = ServiceHandler::handleRequest(
+                                Verbs::GET,
+                                $serviceName,
+                                '_schema',
+                                ['ids' => $component]
+                            );
+
+                            $schemas[] = [
+                                'name'  => $serviceName,
+                                'table' => ($this->resourceWrapped) ? $schema[$this->resourceWrapper] : $schema
+                            ];
+                        }
+                    }
+                }
+            }
+
+            if (!empty($services) &&
+                !$this->zip->addFromString('services.json', json_encode($services, JSON_UNESCAPED_SLASHES))
+            ) {
+                throw new InternalServerErrorException("Can not include services in package file.");
+            }
+            if (!empty($schemas) &&
+                !$this->zip->addFromString('schema.json', json_encode(['service' => $schemas], JSON_UNESCAPED_SLASHES))
+            ) {
+                throw new InternalServerErrorException("Can not include database schema in package file.");
+            }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    private function packageData()
+    {
+        //Todo: We need to load data unfiltered.
+    }
+
     public function exportAppAsPackage(
         $includeFiles = true,
         $includeServices = false,
@@ -411,66 +551,22 @@ class Packager
         }
 
         $appName = $app->name;
-        $zipFileName = null;
 
         try {
-            $zip = new \ZipArchive();
-            $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-            $zipFileName = $tmpDir . $appName . '.' . static::FILE_EXTENSION;
-            $zip->filename = $zipFileName;
-            $this->zip = $zip;
+            $this->initExportZipFile($appName);
+            $this->packageAppDescription($app);
+            $this->packageServicesAndSchemas($includeServices, $includeSchemas);
 
-            if (true !== $this->zip->open($zipFileName, \ZipArchive::CREATE)) {
-                throw new InternalServerErrorException('Can not create package file for this application.');
-            }
-
-            $record = [
-                'name'                    => $app->name,
-                'description'             => $app->description,
-                'is_active'               => $app->is_active,
-                'type'                    => $app->type,
-                'path'                    => $app->path,
-                'url'                     => $app->url,
-                'requires_fullscreen'     => $app->requires_fullscreen,
-                'allow_fullscreen_toggle' => $app->allow_fullscreen_toggle,
-                'toggle_location'         => $app->toggle_location
-            ];
-
-            if (!$this->zip->addFromString('description.json', json_encode($record, JSON_UNESCAPED_SLASHES))) {
-                throw new InternalServerErrorException("Can not include description in package file.");
+            if ($includeData) {
+                $this->packageData();
             }
 
             if ($app->type === AppTypes::STORAGE_SERVICE && $includeFiles) {
-                // add files
-                $storageServiceId = $app->storage_service_id;
-                $storageFolder = $app->storage_container;
-
-                if (empty($storageServiceId)) {
-                    $storageServiceId = $this->getDefaultStorageServiceId();
-                }
-
-                if (empty($storageServiceId)) {
-                    throw new InternalServerErrorException("Can not find storage service identifier.");
-                }
-
-                /** @type BaseFileService $storage */
-                $storage = ServiceHandler::getServiceById($storageServiceId);
-                if (!$storage) {
-                    throw new InternalServerErrorException("Can not find storage service by identifier '$storageServiceId''.");
-                }
-
-                if (empty($storageFolder)) {
-                    if ($storage->driver()->containerExists($appName)) {
-                        $storage->driver()->getFolderAsZip($appName, '', $this->zip, $zipFileName, true);
-                    }
-                } else {
-                    if ($storage->driver()->folderExists($storageFolder, $appName)) {
-                        $storage->driver()->getFolderAsZip($storageFolder, $appName, $this->zip, $zipFileName, true);
-                    }
-                }
+                $this->packageAppFiles($app);
             }
 
-            FileUtilities::sendFile($zipFileName, true);
+            FileUtilities::sendFile($this->zip->filename, true);
+
             return null;
         } catch (\Exception $e) {
             //Do necessary things here.

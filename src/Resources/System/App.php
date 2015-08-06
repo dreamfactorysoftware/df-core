@@ -17,12 +17,30 @@ class App extends BaseSystemResource
                 $includeServices = $this->request->getParameterAsBool('include_services');
                 $includeSchema = $this->request->getParameterAsBool('include_schema');
                 $includeData = $this->request->getParameterAsBool('include_data');
-
                 $services = explode(',', $this->request->getParameter('services'));
-                $schema = explode(',', $this->request->getParameter('schema'));
 
                 $package = new Packager($this->resource);
-                $package->setExportItems($services, $schema);
+
+//                $services = [
+//                    [
+//                        'name' => 'mysql',
+//                        'component' => 'Events,todo'
+//                    ],
+//                    [
+//                        'name' => 'dfdev'
+//                    ],
+//                    [
+//                        'name' => 'email'
+//                    ],
+//                    [
+//                        'name' => 'system'
+//                    ],
+//                    [
+//                        'name' => 's3'
+//                    ]
+//                ];
+
+                $package->setExportItems($services);
                 return $package->exportAppAsPackage($includeFiles, $includeServices, $includeSchema, $includeData);
             }
         }

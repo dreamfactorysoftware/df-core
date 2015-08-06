@@ -9,7 +9,26 @@ use DreamFactory\Core\Utility\Packager;
 
 class App extends BaseSystemResource
 {
-    const IMPORT_FILE_EXTENSION = 'dfpkg';
+    protected function handleGET()
+    {
+        if(!empty($this->resource)){
+            if($this->request->getParameterAsBool('pkg')){
+                $includeFiles = $this->request->getParameterAsBool('include_files');
+                $includeServices = $this->request->getParameterAsBool('include_services');
+                $includeSchema = $this->request->getParameterAsBool('include_schema');
+                $includeData = $this->request->getParameterAsBool('include_data');
+
+                $services = explode(',', $this->request->getParameter('services'));
+                $schema = explode(',', $this->request->getParameter('schema'));
+
+                $package = new Packager($this->resource);
+                $package->setExportItems($services, $schema);
+                return $package->exportAppAsPackage($includeFiles, $includeServices, $includeSchema, $includeData);
+            }
+        }
+        return parent::handleGET();
+    }
+
     /**
      * Handles PATCH action
      *

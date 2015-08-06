@@ -2,9 +2,11 @@
 
 namespace DreamFactory\Core\Utility;
 
+use DreamFactory\Core\Enums\AppTypes;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\BaseModel;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseFileService;
@@ -38,6 +40,27 @@ class Packager
     protected $zip = null;
 
     /**
+     * App ID of the app to export.
+     *
+     * @type int
+     */
+    protected $exportAppId = 0;
+
+    /**
+     * Services to export.
+     *
+     * @type array
+     */
+    protected $exportServices = [];
+
+    /**
+     * Schemas to export.
+     *
+     * @type array
+     */
+    protected $exportSchemas = [];
+
+    /**
      * @param mixed $fileInfo
      *
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
@@ -45,9 +68,11 @@ class Packager
      */
     public function __construct($fileInfo = null)
     {
-        if (is_array($fileInfo)) {
+        if(is_numeric($fileInfo)){
+            $this->exportAppId = $fileInfo;
+        } else if (is_array($fileInfo)) {
             $this->verifyUploadedFile($fileInfo);
-        } else if (!empty($fileInfo)) {
+        } else if (!empty($fileInfo) && is_string($fileInfo)) {
             $this->verifyImportFromUrl($fileInfo);
         }
         $this->resourceWrapper = \Config::get('df.resources_wrapper');
@@ -58,8 +83,20 @@ class Packager
      */
     public function __destruct()
     {
-        @unlink($this->zip->filename);
-        $this->zip->close();
+        if($this->zip instanceof \ZipArchive) {
+            @unlink($this->zip->filename);
+            $this->zip->close();
+        }
+    }
+
+    /**
+     * @param array $services
+     * @param array $schemas
+     */
+    public function setExportItems($services = [], $schemas = [])
+    {
+        $this->exportServices = $services;
+        $this->exportSchemas = $schemas;
     }
 
     /**
@@ -229,8 +266,8 @@ class Packager
                                 [],
                                 [$this->resourceWrapper => $tables]
                             );
-                        } catch (\Exception $e){
-                            if(in_array($e->getCode(), [404, 500])){
+                        } catch (\Exception $e) {
+                            if (in_array($e->getCode(), [404, 500])) {
                                 throw $e;
                             }
                         }
@@ -268,7 +305,7 @@ class Packager
                         $tableName = ArrayUtils::get($table, 'name');
                         $records = ArrayUtils::get($table, 'record');
 
-                        try{
+                        try {
                             ServiceHandler::handleRequest(
                                 Verbs::POST,
                                 $serviceName,
@@ -276,8 +313,8 @@ class Packager
                                 [],
                                 [$this->resourceWrapper => $records]
                             );
-                        } catch (\Exception $e){
-                            if(in_array($e->getCode(), [404, 500])){
+                        } catch (\Exception $e) {
+                            if (in_array($e->getCode(), [404, 500])) {
                                 throw $e;
                             }
                         }
@@ -358,5 +395,87 @@ class Packager
         \DB::commit();
 
         return $appResults;
+    }
+
+    public function exportAppAsPackage(
+        $includeFiles = true,
+        $includeServices = false,
+        $includeSchemas = false,
+        $includeData = false
+    ){
+        /** @type App $app */
+        $app = App::find($this->exportAppId);
+
+        if (empty($app)) {
+            throw new NotFoundException('App not found in database with app id - ' . $this->exportAppId);
+        }
+
+        $appName = $app->name;
+        $zipFileName = null;
+
+        try {
+            $zip = new \ZipArchive();
+            $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $zipFileName = $tmpDir . $appName . '.' . static::FILE_EXTENSION;
+            $zip->filename = $zipFileName;
+            $this->zip = $zip;
+
+            if (true !== $this->zip->open($zipFileName, \ZipArchive::CREATE)) {
+                throw new InternalServerErrorException('Can not create package file for this application.');
+            }
+
+            $record = [
+                'name'                    => $app->name,
+                'description'             => $app->description,
+                'is_active'               => $app->is_active,
+                'type'                    => $app->type,
+                'path'                    => $app->path,
+                'url'                     => $app->url,
+                'requires_fullscreen'     => $app->requires_fullscreen,
+                'allow_fullscreen_toggle' => $app->allow_fullscreen_toggle,
+                'toggle_location'         => $app->toggle_location
+            ];
+
+            if (!$this->zip->addFromString('description.json', json_encode($record, JSON_UNESCAPED_SLASHES))) {
+                throw new InternalServerErrorException("Can not include description in package file.");
+            }
+
+            if ($app->type === AppTypes::STORAGE_SERVICE && $includeFiles) {
+                // add files
+                $storageServiceId = $app->storage_service_id;
+                $storageFolder = $app->storage_container;
+
+                if (empty($storageServiceId)) {
+                    $storageServiceId = $this->getDefaultStorageServiceId();
+                }
+
+                if (empty($storageServiceId)) {
+                    throw new InternalServerErrorException("Can not find storage service identifier.");
+                }
+
+                /** @type BaseFileService $storage */
+                $storage = ServiceHandler::getServiceById($storageServiceId);
+                if (!$storage) {
+                    throw new InternalServerErrorException("Can not find storage service by identifier '$storageServiceId''.");
+                }
+
+                if (empty($storageFolder)) {
+                    if ($storage->driver()->containerExists($appName)) {
+                        $storage->driver()->getFolderAsZip($appName, '', $this->zip, $zipFileName, true);
+                    }
+                } else {
+                    if ($storage->driver()->folderExists($storageFolder, $appName)) {
+                        $storage->driver()->getFolderAsZip($storageFolder, $appName, $this->zip, $zipFileName, true);
+                    }
+                }
+            }
+
+            FileUtilities::sendFile($zipFileName, true);
+            return null;
+        } catch (\Exception $e) {
+            //Do necessary things here.
+
+            throw $e;
+        }
     }
 }

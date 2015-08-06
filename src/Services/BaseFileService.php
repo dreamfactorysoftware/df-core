@@ -65,6 +65,14 @@ abstract class BaseFileService extends BaseRestService
     }
 
     /**
+     * @return \DreamFactory\Core\Contracts\FileSystemInterface
+     */
+    public function driver()
+    {
+        return $this->driver;
+    }
+
+    /**
      * Sets the file system driver Local/S3/Azure/OStack...
      *
      * @param $config

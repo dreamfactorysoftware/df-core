@@ -12,11 +12,6 @@ use DreamFactory\Library\Utility\ArrayUtils;
 trait Cacheable
 {
     /**
-     * @type bool
-     */
-    protected $cacheEnabled = false;
-
-    /**
      * @type int
      */
     protected $cacheTTL = 0;
@@ -89,10 +84,6 @@ trait Cacheable
      */
     public function getFromCache($key, $default = null)
     {
-        if (!$this->cacheEnabled) {
-            return $default;
-        }
-
         $fullKey = $this->makeCacheKey($key);
 
         return Cache::get($fullKey, $default);
@@ -105,7 +96,6 @@ trait Cacheable
      */
     public function addToCache($key, $value, $forever = false)
     {
-        if ($this->cacheEnabled) {
             $fullKey = $this->makeCacheKey($key);
 
             if ($forever){
@@ -115,7 +105,6 @@ trait Cacheable
                 Cache::put($fullKey, $value, $this->cacheTTL);
             }
             $this->addKeys($key);
-        }
     }
 
     /**
@@ -125,14 +114,12 @@ trait Cacheable
      */
     public function removeFromCache($key)
     {
-        if ($this->cacheEnabled) {
             $fullKey = $this->makeCacheKey($key);
             if (!Cache::forget($fullKey)) {
                 return false;
             }
 
             $this->removeKeys($key);
-        }
 
         return true;
     }

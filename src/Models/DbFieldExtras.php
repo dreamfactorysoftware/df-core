@@ -15,6 +15,7 @@ namespace DreamFactory\Core\Models;
  * @property string     $extra_type
  * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereId($value)
  * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereServiceId($value)
+ * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereTable($value)
  */
 class DbFieldExtras extends BaseSystemModel
 {

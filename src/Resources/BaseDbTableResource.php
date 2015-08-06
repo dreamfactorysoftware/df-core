@@ -77,6 +77,14 @@ abstract class BaseDbTableResource extends BaseDbResource
     //*************************************************************************
 
     /**
+     * {@inheritdoc}
+     */
+    public function listTables($schema = null, $refresh = false)
+    {
+        return [];
+    }
+
+    /**
      * {@InheritDoc}
      */
     protected function setResourceMembers($response_path = null)
@@ -2734,6 +2742,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $base = parent::getApiDocInfo();
+        $tables = $this->listTables();
 
         $commonResponses = ApiDocUtilities::getCommonResponses();
         $wrapper = ResourcesWrapper::getWrapper();
@@ -2792,7 +2801,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                             'type'             => 'RecordsResponse',
                             'event_name'       => [
                                 $eventPath . '.{table_name}.select',
-                                $eventPath . '.table_selected',
                             ],
                             'parameters'       => [
                                 [
@@ -2802,6 +2810,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     'type'          => 'string',
                                     'paramType'     => 'path',
                                     'required'      => true,
+                                    'enum' => $tables,
                                 ],
                                 ApiOptions::documentOption(ApiOptions::FILTER),
                                 ApiOptions::documentOption(ApiOptions::LIMIT),
@@ -2838,6 +2847,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'type'          => 'string',
                                         'paramType'     => 'path',
                                         'required'      => true,
+                                        'enum' => $tables,
                                     ],
                                     ApiOptions::documentOption(ApiOptions::IDS),
                                     ApiOptions::documentOption(ApiOptions::ID_FIELD),
@@ -2872,6 +2882,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     'type'          => 'string',
                                     'paramType'     => 'path',
                                     'required'      => true,
+                                    'enum' => $tables,
                                 ],
                                 [
                                     'name'          => 'body',
@@ -2916,6 +2927,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'type'          => 'string',
                                         'paramType'     => 'path',
                                         'required'      => true,
+                                        'enum' => $tables,
                                     ],
                                     ApiOptions::documentOption(ApiOptions::IDS),
                                     ApiOptions::documentOption(ApiOptions::ID_FIELD),
@@ -2955,6 +2967,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'type'          => 'string',
                                         'paramType'     => 'path',
                                         'required'      => true,
+                                        'enum' => $tables,
                                     ],
                                     [
                                         'name'          => 'body',
@@ -3001,6 +3014,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'type'          => 'string',
                                         'paramType'     => 'path',
                                         'required'      => true,
+                                        'enum' => $tables,
                                     ],
                                     [
                                         'name'          => 'body',
@@ -3039,6 +3053,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'type'          => 'string',
                                         'paramType'     => 'path',
                                         'required'      => true,
+                                        'enum' => $tables,
                                     ],
                                     [
                                         'name'          => 'body',
@@ -3076,6 +3091,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                             'type'          => 'string',
                                             'paramType'     => 'path',
                                             'required'      => true,
+                                            'enum' => $tables,
                                         ],
                                         [
                                             'name'          => 'body',
@@ -3116,6 +3132,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                             'type'          => 'string',
                                             'paramType'     => 'path',
                                             'required'      => true,
+                                            'enum' => $tables,
                                         ],
                                         [
                                             'name'          => 'body',
@@ -3157,6 +3174,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                             'type'          => 'string',
                                             'paramType'     => 'path',
                                             'required'      => true,
+                                            'enum' => $tables,
                                         ],
                                         [
                                             'name'          => 'body',
@@ -3193,6 +3211,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                             'type'          => 'string',
                                             'paramType'     => 'path',
                                             'required'      => true,
+                                            'enum' => $tables,
                                         ],
                                         [
                                             'name'          => 'body',
@@ -3232,6 +3251,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                             'type'          => 'string',
                                             'paramType'     => 'path',
                                             'required'      => true,
+                                            'enum' => $tables,
                                         ],
                                         [
                                             'name'          => 'body',
@@ -3273,6 +3293,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                             'type'          => 'string',
                                             'paramType'     => 'path',
                                             'required'      => true,
+                                            'enum' => $tables,
                                         ],
                                         [
                                             'name'          => 'body',
@@ -3317,6 +3338,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                             'type'          => 'string',
                                             'paramType'     => 'path',
                                             'required'      => true,
+                                            'enum' => $tables,
                                         ],
                                         [
                                             'name'          => 'body',
@@ -3363,6 +3385,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'type'          => 'string',
                                         'paramType'     => 'path',
                                         'required'      => true,
+                                        'enum' => $tables,
                                     ],
                                     [
                                         'name'          => 'id',
@@ -3398,6 +3421,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'type'          => 'string',
                                         'paramType'     => 'path',
                                         'required'      => true,
+                                        'enum' => $tables,
                                     ],
                                     [
                                         'name'          => 'id',
@@ -3441,6 +3465,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'type'          => 'string',
                                         'paramType'     => 'path',
                                         'required'      => true,
+                                        'enum' => $tables,
                                     ],
                                     [
                                         'name'          => 'id',
@@ -3484,6 +3509,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'type'          => 'string',
                                         'paramType'     => 'path',
                                         'required'      => true,
+                                        'enum' => $tables,
                                     ],
                                     [
                                         'name'          => 'id',
@@ -3525,6 +3551,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'type'          => 'string',
                                         'paramType'     => 'path',
                                         'required'      => true,
+                                        'enum' => $tables,
                                     ],
                                     [
                                         'name'          => 'id',

@@ -130,7 +130,6 @@ class Event extends BaseRestResource
             foreach (ArrayUtils::get($api, 'operations', []) as $ixOps => $operation) {
                 if (null !== ($eventNames = ArrayUtils::get($operation, 'event_name'))) {
                     $method = strtolower(ArrayUtils::get($operation, 'method', Verbs::GET));
-                    $eventsThrown = [];
 
                     if (is_string($eventNames) && false !== strpos($eventNames, ',')) {
                         $eventNames = explode(',', $eventNames);
@@ -167,7 +166,7 @@ class Event extends BaseRestResource
                             $templateEventName
                         );
 
-                        $eventsThrown[] = $eventName;
+                        $apiBroadcastEvents[$method][] = $eventName;
 
                         //  Set actual name in swagger file
                         $data['apis'][$ixApi]['operations'][$ixOps]['event_name'][$ixEventNames] = $eventName;
@@ -175,11 +174,23 @@ class Event extends BaseRestResource
                         $eventCount++;
                     }
 
-                    $apiBroadcastEvents[$method] = $eventsThrown;
-                    $apiProcessEvents[$method] = ["$path.$method.pre_process", "$path.$method.post_process"];
+                    $apiProcessEvents[$method][] = "$path.$method.pre_process";
+                    $apiProcessEvents[$method][] = "$path.$method.post_process";
+                    $parameters = ArrayUtils::get($operation, 'parameters', []);
+                    foreach ($parameters as $parameter) {
+                        if (('path' === ArrayUtils::get($parameter, 'paramType')) &&
+                            !empty($enums = ArrayUtils::get($parameter, 'enum'))) {
+                            $name = ArrayUtils::get($parameter, 'name', '');
+                            $name = '{'.$name.'}';
+                            foreach($enums as $enum){
+                                $apiProcessEvents[$method][] = str_replace($name, $enum, "$path.$method.pre_process");
+                                $apiProcessEvents[$method][] = str_replace($name, $enum, "$path.$method.post_process");
+                            }
+                        }
+                    }
                 }
 
-                unset($operation, $eventsThrown);
+                unset($operation);
             }
 
             $processEvents[str_ireplace('{api_name}', $apiName, $path)] = $apiProcessEvents;
@@ -335,7 +346,7 @@ class Event extends BaseRestResource
                 return $results;
             }
 
-            return ResourcesWrapper::cleanResources($allEvents);
+            return ResourcesWrapper::cleanResources(array_values(array_unique($allEvents)));
         }
 
         $data = null;

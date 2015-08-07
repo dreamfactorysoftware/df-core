@@ -14,15 +14,6 @@ namespace DreamFactory\Core\Models;
  */
 class ScriptConfig extends BaseServiceConfigModel
 {
-    /**
-     * @const string The private cache file
-     */
-    const CACHE_PREFIX = 'script.';
-    /**
-     * @const integer How long a ScriptConfig cache will live, 1440 = 24 minutes (default session timeout).
-     */
-    const CACHE_TTL = 1440;
-
     protected $table = 'script_config';
 
     protected $fillable = ['service_id', 'type', 'content', 'config'];
@@ -71,4 +62,34 @@ class ScriptConfig extends BaseServiceConfigModel
 
         return $this->engine;
     }
+
+    /**
+     * @param array $schema
+     */
+    protected static function prepareConfigSchemaField(array &$schema)
+    {
+        parent::prepareConfigSchemaField($schema);
+
+        switch ($schema['name']) {
+            case 'type':
+                $schema['label'] = 'Scripting Engine Type';
+                $schema['description'] =
+                    'The Scripting Engine able to run this script. Others coming soon.';
+                $values = ScriptType::all(['name', 'label'])->toArray();
+                $schema['type'] = 'picklist';
+                $schema['values'] = $values;
+                break;
+            case 'content':
+                $schema['label'] = 'Content';
+                $schema['description'] =
+                    'The content of the script written in the appropriate language.';
+                break;
+            case 'config':
+                $schema['label'] = 'Additional Configuration';
+                $schema['description'] =
+                    'An array of additional configuration needed for the script to run.';
+                break;
+        }
+    }
+
 }

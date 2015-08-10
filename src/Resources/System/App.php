@@ -6,21 +6,37 @@ use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\App as AppModel;
 use DreamFactory\Core\Utility\Packager;
+use DreamFactory\Library\Utility\ArrayUtils;
 
 class App extends BaseSystemResource
 {
+    /**
+     * Handles GET action
+     *
+     * @return array|null
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \Exception
+     */
     protected function handleGET()
     {
         if(!empty($this->resource)){
+            /**
+             * Example request:
+             *
+             * GET http://df.instance.com/api/v2/system/app/9?pkg=true&service=1,2,3&schema={"service":["table1","table2"]}&include_files=true
+             *
+             * GET http://df.instance.com/api/v2/system/app/9?pkg=true&service=s1,s2,s3&schema={"1":["table1","table2"]}&include_files=true
+             */
             if($this->request->getParameterAsBool('pkg')){
+                $schemaString = $this->request->getParameter('schema');
+                $schemas = (!empty($schemaString))? json_decode($schemaString, true) : [];
+                $serviceString = $this->request->getParameter('service');
+                $services = (!empty($serviceString))? explode(',', $serviceString) : [];
                 $includeFiles = $this->request->getParameterAsBool('include_files');
-                $includeServices = $this->request->getParameterAsBool('include_services');
-                $includeSchema = $this->request->getParameterAsBool('include_schema');
                 $includeData = $this->request->getParameterAsBool('include_data');
-                $services = $this->getPayloadData('services');
                 $package = new Packager($this->resource);
-                $package->setExportItems($services);
-                return $package->exportAppAsPackage($includeFiles, $includeServices, $includeSchema, $includeData);
+                $package->setExportItems($services, $schemas);
+                return $package->exportAppAsPackage($includeFiles, $includeData);
             }
         }
         return parent::handleGET();

@@ -45,6 +45,11 @@ class Packager
     protected $zip = null;
 
     /**
+     * @type zip file full path
+     */
+    protected $zipFilePath = null;
+
+    /**
      * App ID of the app to export.
      *
      * @type int
@@ -90,9 +95,8 @@ class Packager
      */
     public function __destruct()
     {
-        if ($this->zip instanceof \ZipArchive) {
-            unlink($this->zip->filename);
-            $this->zip->close();
+        if(file_exists($this->zipFilePath)){
+            unlink($this->zipFilePath);
         }
     }
 
@@ -180,6 +184,7 @@ class Packager
         }
 
         $this->zip = $zip;
+        $this->zipFilePath = $file;
     }
 
     /**
@@ -424,8 +429,8 @@ class Packager
         $zip = new \ZipArchive();
         $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
         $zipFileName = $tmpDir . $appName . '.' . static::FILE_EXTENSION;
-        $zip->filename = $zipFileName;
         $this->zip = $zip;
+        $this->zipFilePath = $zipFileName;
 
         if (true !== $this->zip->open($zipFileName, \ZipArchive::CREATE)) {
             throw new InternalServerErrorException('Can not create package file for this application.');
@@ -476,7 +481,7 @@ class Packager
     private function packageAppFiles($app)
     {
         $appName = $app->name;
-        $zipFileName = $this->zip->filename;
+        $zipFileName = $this->zipFilePath;
         $storageServiceId = $app->storage_service_id;
         $storageFolder = $app->storage_container;
 
@@ -647,7 +652,8 @@ class Packager
                 $this->packageAppFiles($app);
             }
 
-            FileUtilities::sendFile($this->zip->filename, true);
+            $this->zip->close();
+            FileUtilities::sendFile($this->zipFilePath, true);
 
             return null;
         } catch (\Exception $e) {

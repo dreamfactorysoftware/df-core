@@ -205,13 +205,14 @@ abstract class BaseEngineAdapter
     {
         try {
             $result = Curl::request($method, $url, $payload, $curlOptions);
+            $result = ResponseFactory::create($result);
         } catch (\Exception $ex) {
             $result = ResponseFactory::create($ex);
 
             Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
         }
 
-        return $result;
+        return ResponseFactory::sendScriptResponse($result);
     }
 
     /**
@@ -307,7 +308,7 @@ abstract class BaseEngineAdapter
             Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
         }
 
-        return $result;
+        return ResponseFactory::sendScriptResponse($result);
     }
 
     /**

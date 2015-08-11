@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Utility\JWTUtilities;
 
 /**
  * RoleServiceAccess
@@ -46,6 +47,18 @@ class RoleServiceAccess extends BaseSystemModel
                 if (1 === $rsa->service_id && ('*' === $rsa->component || 'admin' === $rsa->component)) {
                     throw new BadRequestException('* and/or admin is not allowed on system service.');
                 }
+            }
+        );
+
+        static::saved(
+            function (RoleServiceAccess $rsa){
+                \Cache::forget('role:'.$rsa->role_id);
+            }
+        );
+
+        static::deleting(
+            function (RoleServiceAccess $rsa){
+                \Cache::forget('role:'.$rsa->role_id);
             }
         );
     }

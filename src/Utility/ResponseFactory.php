@@ -111,6 +111,40 @@ class ResponseFactory
         throw new BadRequestException('Content in response can not be resolved to acceptable content type.');
     }
 
+    /**
+     * @param ServiceResponseInterface $response
+     *
+     * @return array|mixed|string
+     * @throws BadRequestException
+     */
+    public static function sendScriptResponse(ServiceResponseInterface $response)
+    {
+        $content = $response->getContent();
+        $format = $response->getContentFormat();
+
+        if (empty($content) && is_null($format)) {
+            // No content and type specified. (File stream already handled by service)
+            return null;
+        }
+
+        $status = $response->getStatusCode();
+        //  In case the status code is not a valid HTTP Status code
+        if (!in_array($status, HttpStatusCodes::getDefinedConstants())) {
+            //  Do necessary translation here. Default is Internal server error.
+            $status = HttpStatusCodeInterface::HTTP_INTERNAL_SERVER_ERROR;
+        }
+
+        if ($content instanceof \Exception) {
+            $status =
+                ($content instanceof RestException) ? $content->getStatusCode()
+                    : ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
+            $content = self::makeExceptionContent($content);
+            $format = DataFormats::PHP_ARRAY;
+        }
+
+        return ['content' => $content, 'status' => $status, 'format' => $format];
+    }
+
     protected static function acceptedContentType(array $accepts, $content_type)
     {
         // see if we match an accepts type, if so, go with it.

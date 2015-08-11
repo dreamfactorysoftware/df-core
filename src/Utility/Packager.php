@@ -32,6 +32,9 @@ class Packager
      */
     protected $resourceWrapper = null;
 
+    /**
+     * @type bool|mixed
+     */
     protected $resourceWrapped = true;
 
     /**
@@ -49,11 +52,18 @@ class Packager
     protected $exportAppId = 0;
 
     /**
-     * Services and Schemas to export.
+     * Services to export.
      *
      * @type array
      */
-    protected $exportItems = [];
+    protected $exportServices = [];
+
+    /**
+     * Schemas to export.
+     *
+     * @type array
+     */
+    protected $exportSchemas = [];
 
     /**
      * @param mixed $fileInfo
@@ -81,20 +91,25 @@ class Packager
     public function __destruct()
     {
         if ($this->zip instanceof \ZipArchive) {
-            @unlink($this->zip->filename);
+            unlink($this->zip->filename);
             $this->zip->close();
         }
     }
 
     /**
-     * @param array $items
+     * Sets services and schemas to export.
+     * @param $services
+     * @param $schemas
      */
-    public function setExportItems($items = [])
+    public function setExportItems($services, $schemas)
     {
-        $this->exportItems = $items;
+        $this->exportServices = $services;
+        $this->exportSchemas = $schemas;
     }
 
     /**
+     * Verifies the uploaed file for importing process.
+     *
      * @param $file
      *
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
@@ -123,6 +138,8 @@ class Packager
     }
 
     /**
+     * Verifies file import from url.
+     *
      * @param $url
      *
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
@@ -149,6 +166,8 @@ class Packager
     }
 
     /**
+     * Opens and sets the zip file for import.
+     *
      * @param string $file
      *
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
@@ -210,7 +229,7 @@ class Packager
             throw new InternalServerErrorException("Could not create the application.\n{$ex->getMessage()}");
         }
 
-        return (isset($result[$this->resourceWrapped])) ? $result[$this->resourceWrapper][0] : $result[0];
+        return ($this->resourceWrapped) ? $result[$this->resourceWrapper][0] : $result[0];
     }
 
     /**
@@ -392,6 +411,14 @@ class Packager
         return $appResults;
     }
 
+    /**
+     * Initialize export zip file.
+     *
+     * @param $appName
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     private function initExportZipFile($appName)
     {
         $zip = new \ZipArchive();
@@ -407,6 +434,14 @@ class Packager
         return true;
     }
 
+    /**
+     * Package app info for export.
+     *
+     * @param $app
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     private function packageAppDescription($app)
     {
         $record = [
@@ -428,6 +463,16 @@ class Packager
         return true;
     }
 
+    /**
+     * Package app files for export.
+     *
+     * @param $app
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     */
     private function packageAppFiles($app)
     {
         $appName = $app->name;
@@ -462,56 +507,37 @@ class Packager
         return true;
     }
 
-    private function packageServicesAndSchemas($includeServices, $includeSchemas)
+    /**
+     * Package services for export.
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
+    private function packageServices()
     {
-        if ($includeServices || $includeSchemas) {
-            $items = $this->exportItems;
+        if(!empty($this->exportServices)){
+            $services = [];
 
-            if (!empty($items)) {
-                $services = [];
-                $schemas = [];
-
-                foreach ($items as $item) {
-                    $serviceName = ArrayUtils::get($item, 'name');
+            foreach ($this->exportServices as $serviceName) {
+                if(is_numeric($serviceName)){
+                    /** @type Service $service */
+                    $service = Service::find($serviceName);
+                } else {
                     /** @type Service $service */
                     $service = Service::whereName($serviceName)->whereDeletable(1)->first();
+                }
 
-                    if ($includeServices) {
-
-                        if (!empty($service)) {
-                            $services[] = [
-                                'name'        => $service->name,
-                                'label'       => $service->label,
-                                'description' => $service->description,
-                                'type'        => $service->type,
-                                'is_active'   => $service->is_active,
-                                'mutable'     => $service->mutable,
-                                'deletable'   => $service->deletable,
-                                'config'      => $service->config
-                            ];
-                        }
-                    }
-
-                    if ($includeSchemas) {
-                        $component = ArrayUtils::get($item, 'component');
-                        if (is_array($component)) {
-                            $component = implode(',', $component);
-                        }
-
-                        if (!empty($component) && $service->type === 'sql_db') {
-                            $schema = ServiceHandler::handleRequest(
-                                Verbs::GET,
-                                $serviceName,
-                                '_schema',
-                                ['ids' => $component]
-                            );
-
-                            $schemas[] = [
-                                'name'  => $serviceName,
-                                'table' => ($this->resourceWrapped) ? $schema[$this->resourceWrapper] : $schema
-                            ];
-                        }
-                    }
+                if (!empty($service)) {
+                    $services[] = [
+                        'name'        => $service->name,
+                        'label'       => $service->label,
+                        'description' => $service->description,
+                        'type'        => $service->type,
+                        'is_active'   => $service->is_active,
+                        'mutable'     => $service->mutable,
+                        'deletable'   => $service->deletable,
+                        'config'      => $service->config
+                    ];
                 }
             }
 
@@ -520,6 +546,54 @@ class Packager
             ) {
                 throw new InternalServerErrorException("Can not include services in package file.");
             }
+
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Package schemas for export.
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
+    private function packageSchemas()
+    {
+        if(!empty($this->exportSchemas)){
+            $schemas = [];
+
+            foreach($this->exportSchemas as $serviceName => $component){
+                if (is_array($component)) {
+                    $component = implode(',', $component);
+                }
+
+                if(is_numeric($serviceName)){
+                    /** @type Service $service */
+                    $service = Service::find($serviceName);
+                } else {
+                    /** @type Service $service */
+                    $service = Service::whereName($serviceName)->whereDeletable(1)->first();
+                }
+
+                if(!empty($service) && !empty($component)){
+                    if ($service->type === 'sql_db') {
+                        $schema = ServiceHandler::handleRequest(
+                            Verbs::GET,
+                            $serviceName,
+                            '_schema',
+                            ['ids' => $component]
+                        );
+
+                        $schemas[] = [
+                            'name'  => $serviceName,
+                            'table' => ($this->resourceWrapped) ? $schema[$this->resourceWrapper] : $schema
+                        ];
+                    }
+                }
+            }
+
             if (!empty($schemas) &&
                 !$this->zip->addFromString('schema.json', json_encode(['service' => $schemas], JSON_UNESCAPED_SLASHES))
             ) {
@@ -532,17 +606,24 @@ class Packager
         return false;
     }
 
+    /**
+     * Package data for export.
+     */
     private function packageData()
     {
         //Todo: We need to load data unfiltered.
     }
 
-    public function exportAppAsPackage(
-        $includeFiles = true,
-        $includeServices = false,
-        $includeSchemas = false,
-        $includeData = false
-    ){
+    /**
+     * @param bool|true  $includeFiles
+     * @param bool|false $includeData
+     *
+     * @return null
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \Exception
+     */
+    public function exportAppAsPackage($includeFiles = true, $includeData = false)
+    {
         /** @type App $app */
         $app = App::find($this->exportAppId);
 
@@ -555,7 +636,8 @@ class Packager
         try {
             $this->initExportZipFile($appName);
             $this->packageAppDescription($app);
-            $this->packageServicesAndSchemas($includeServices, $includeSchemas);
+            $this->packageServices();
+            $this->packageSchemas();
 
             if ($includeData) {
                 $this->packageData();

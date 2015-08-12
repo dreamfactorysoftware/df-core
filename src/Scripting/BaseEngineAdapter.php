@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Scripting;
 
+use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -265,8 +267,6 @@ abstract class BaseEngineAdapter
             $path = substr($path, 0, $pos);
         }
 
-        $contentType = 'application/json';
-
         if (false === ($pos = strpos($path, '/'))) {
             $serviceName = $path;
             $resource = null;
@@ -288,16 +288,16 @@ abstract class BaseEngineAdapter
             return null;
         }
 
-        if (false === ($content = json_encode($payload, JSON_UNESCAPED_SLASHES)) ||
-            JSON_ERROR_NONE != json_last_error()
-        ) {
-            $contentType = 'text/plain';
-            $content = $payload;
+        $format = DataFormats::PHP_ARRAY;
+        if (!is_array($payload)) {
+            $format = DataFormats::TEXT;
         }
 
         try {
+            Session::checkServicePermission($method, $serviceName, $resource, ServiceRequestorTypes::SCRIPT);
+
             $request = new ScriptServiceRequest($method, $params);
-            $request->setContent($content, $contentType);
+            $request->setContent($payload, $format);
 
             //  Now set the request object and go...
             $service = ServiceHandler::getService($serviceName);

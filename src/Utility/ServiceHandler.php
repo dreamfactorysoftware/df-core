@@ -100,6 +100,7 @@ class ServiceHandler
             if (is_array($payload)) {
                 $request->setContent($payload);
             } else {
+                // todo this needs to just pass the determined content type as format
                 $request->setContent($payload, DataFormats::JSON);
             }
         } else {

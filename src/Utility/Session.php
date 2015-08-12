@@ -7,9 +7,7 @@ use DreamFactory\Core\Models\Lookup;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Library\Utility\Curl;
-use \Request;
 use Carbon\Carbon;
-use Illuminate\Routing\Router;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Exceptions\ForbiddenException;
@@ -20,38 +18,6 @@ use DreamFactory\Core\Models\User;
 
 class Session
 {
-    /**
-     * Checks to see if Access is Allowed based on Role-Service-Access.
-     *
-     * @param int $requestor
-     *
-     * @return bool
-     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
-     */
-    public static function isAccessAllowed($requestor = ServiceRequestorTypes::API)
-    {
-        /** @var Router $router */
-        $router = app('router');
-        $service = strtolower($router->input('service'));
-        $component = strtolower($router->input('resource'));
-        $action = VerbsMask::toNumeric(Request::getMethod());
-        $allowed = static::getServicePermissions($service, $component, $requestor);
-
-        return ($action & $allowed) ? true : false;
-    }
-
-    /**
-     * Checks for permission based on Role-Service-Access.
-     *
-     * @throws ForbiddenException
-     */
-    public static function checkPermission()
-    {
-        if (!static::isAccessAllowed()) {
-            throw new ForbiddenException('Forbidden. You do not have permission to access the requested service/resource.');
-        }
-    }
-
     /**
      * @param string $action    - REST API action name
      * @param string $service   - API name of the service

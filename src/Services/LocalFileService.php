@@ -10,6 +10,7 @@ use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Aws\Components\S3FileSystem;
 use DreamFactory\Core\Rackspace\Components\OpenStackObjectStorageSystem;
 use DreamFactory\Core\Azure\Components\AzureBlobFileSystem;
+use DreamFactory\Managed\Support\Managed;
 
 class LocalFileService extends BaseFileService
 {
@@ -48,7 +49,7 @@ class LocalFileService extends BaseFileService
 
         switch ($disk['driver']) {
             case 'local':
-                $root = ArrayUtils::get($disk, 'root');
+                $root = Managed::getStoragePath(). '/' . ltrim(env('LOCAL_FILE_ROOT', 'app'), '/');
 
                 if (empty($root)) {
                     throw new InternalServerErrorException('Mis-configured disk - ' .

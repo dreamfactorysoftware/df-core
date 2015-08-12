@@ -35,7 +35,7 @@
     "dreamfactory/php-utils": "dev-develop as dev-master",
     "dreamfactory/df-sqldb-core": "dev-develop as dev-master",
     "guzzlehttp/guzzle": "~5.0",
-    "barryvdh/laravel-cors": "0.4.x@dev"
+    "barryvdh/laravel-cors": "0.7.x@dev"
   },
   "require-dev": {
     "phpunit/phpunit": "@stable"

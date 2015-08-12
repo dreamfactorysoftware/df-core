@@ -151,7 +151,7 @@ class Service extends BaseSystemModel
     public static function available()
     {
         // need to cache this possibly
-        return static::lists('name');
+        return static::lists('name')->all();
     }
 
     /**

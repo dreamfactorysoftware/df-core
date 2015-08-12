@@ -80,7 +80,7 @@ class BaseModel extends Model
      * @return BaseModel
      * @throws \Exception
      */
-    public static function create(array $attributes)
+    public static function create(array $attributes = [])
     {
         $m = new static;
         $relations = [];

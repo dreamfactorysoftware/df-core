@@ -13,6 +13,8 @@ use Artisan;
 
 class TestCase extends LaravelTestCase
 {
+    protected $baseUrl = 'http://localhost';
+
     /**
      * A flag to make sure that the stage() method gets to run one time only.
      *

@@ -322,7 +322,7 @@ class Event extends BaseRestResource
                     }
                     break;
                 default:
-                    $scripts = EventScript::lists('name');
+                    $scripts = EventScript::lists('name')->all();
                     foreach ($results as $type => &$services) {
                         foreach ($services as $serviceKey => &$apis) {
                             if (empty($service) || (0 === strcasecmp($service, $serviceKey))) {

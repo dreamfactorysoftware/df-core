@@ -721,7 +721,7 @@ abstract class BaseFileService extends BaseRestService
     public function getApiDocInfo()
     {
         $path = '/' . $this->name;
-        $eventPath = $this->name . '.';
+        $eventPath = $this->name;
         $commonResponses = ApiDocUtilities::getCommonResponses();
         $base = parent::getApiDocInfo();
 
@@ -782,29 +782,9 @@ abstract class BaseFileService extends BaseRestService
                                 'required'      => false,
                                 'defaultValue'  => false,
                             ],
-                        ],
-                    ],
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getResourcesAsZip() - Zip and return all content.',
-                        'nickname'         => 'getResourcesAsZip',
-                        'type'             => 'FileContent',
-                        'event_name'       => [$eventPath . '.zip',],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            => 'Zip and return all content in this storage. ',
-                        'parameters'       => [
-                            [
-                                'name'          => 'full_tree',
-                                'description'   => 'List the contents of all sub-folders as well.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
                             [
                                 'name'          => 'zip',
-                                'description'   => 'Return the content of the folder as a zip file.',
+                                'description'   => 'Return the content of the path as a zip file.',
                                 'allowMultiple' => false,
                                 'type'          => 'boolean',
                                 'paramType'     => 'query',
@@ -812,50 +792,6 @@ abstract class BaseFileService extends BaseRestService
                                 'defaultValue'  => false,
                             ],
                         ],
-                    ],
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getContainerProperties() - List the container\'s content, including properties.',
-                        'nickname'         => 'getContainerProperties',
-                        'type'             => 'ContainerResponse',
-                        'event_name'       => [
-                            $eventPath . '.describe',
-                            $eventPath . '.described'
-                        ],
-                        'parameters'       => [
-                            [
-                                'name'          => 'include_properties',
-                                'description'   => 'Retrieve any properties of the container.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => true,
-                                'defaultValue'  => true,
-                            ],
-                        ],
-                        'responseMessages' => $commonResponses,
-                        'notes'            =>
-                            'Use \'include_properties\' to get properties of the container. ' .
-                            'Use the \'include_folders\' and/or \'include_files\' to modify the listing.',
-                    ],
-                    [
-                        'method'           => 'PATCH',
-                        'summary'          => 'updateContainerProperties() - Update properties of the container.',
-                        'nickname'         => 'updateContainerProperties',
-                        'type'             => 'Container',
-                        'event_name'       => [$eventPath . '.update', $eventPath . '.updated'],
-                        'parameters'       => [
-                            [
-                                'name'          => 'body',
-                                'description'   => 'An array of container properties.',
-                                'allowMultiple' => false,
-                                'type'          => 'Container',
-                                'paramType'     => 'body',
-                                'required'      => true,
-                            ],
-                        ],
-                        'responseMessages' => $commonResponses,
-                        'notes'            => 'Post data as an array of container properties.',
                     ],
                 ],
             ],

@@ -56,7 +56,7 @@ class RoleServiceAccess extends BaseSystemModel
             }
         );
 
-        static::deleting(
+        static::deleted(
             function (RoleServiceAccess $rsa){
                 \Cache::forget('role:'.$rsa->role_id);
             }

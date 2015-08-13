@@ -2799,62 +2799,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                         ],
                         [
                             'method'           => 'POST',
-                            'summary'          => 'getRecordsByPost() - Retrieve one or more records by posting necessary data.',
-                            'nickname'         => 'getRecordsByPost',
-                            'notes'            =>
-                                'Post data should be an array of records wrapped in a <b>record</b> element - including the identifying fields at a minimum, ' .
-                                'or a <b>filter</b> in the SQL or other appropriate formats with or without a replacement <b>params</b> array, ' .
-                                'or a list of <b>ids</b> in a string list or an array.<br/> ' .
-                                'Use the <b>fields</b> parameter to limit properties returned for each record. ' .
-                                'By default, all fields are returned for identified records. ',
-                            'type'             => 'RecordsResponse',
-                            'event_name'       => [
-                                $eventPath . '.{table_name}.select',
-                                $eventPath . '.table_selected',
-                            ],
-                            'parameters'       => [
-                                [
-                                    'name'          => 'table_name',
-                                    'description'   => 'Name of the table to perform operations on.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'string',
-                                    'paramType'     => 'path',
-                                    'required'      => true,
-                                    'enum'          => $tables,
-                                ],
-                                [
-                                    'name'          => 'body',
-                                    'description'   => 'Data containing name-value pairs of records to retrieve.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'GetRecordsRequest',
-                                    'paramType'     => 'body',
-                                    'required'      => true,
-                                ],
-                                ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                ApiOptions::documentOption(ApiOptions::CONTINUES),
-                                ApiOptions::documentOption(ApiOptions::FIELDS),
-                                ApiOptions::documentOption(ApiOptions::RELATED),
-                                [
-                                    'name'          => 'X-HTTP-METHOD',
-                                    'description'   => 'Override request using POST to tunnel other http request, such as GET.',
-                                    'enum'          => ['GET'],
-                                    'allowMultiple' => false,
-                                    'type'          => 'string',
-                                    'paramType'     => 'header',
-                                    'required'      => true,
-                                ],
-                            ],
-                            'responseMessages' => $commonResponses,
-                        ],
-                        [
-                            'method'           => 'POST',
                             'summary'          => 'createRecords() - Create one or more records.',
                             'nickname'         => 'createRecords',
                             'notes'            =>
                                 'Posted data should be an array of records wrapped in a <b>record</b> element.<br/> ' .
                                 'By default, only the id property of the record is returned on success. ' .
-                                'Use <b>fields</b> parameter to return more info.',
+                                'Use <b>fields</b> parameter to return more info.' ,
                             'type'             => 'RecordsResponse',
                             'event_name'       => [
                                 $eventPath . '.{table_name}.insert',
@@ -2885,6 +2835,15 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     ApiOptions::documentOption(ApiOptions::ROLLBACK),
                                     ApiOptions::documentOption(ApiOptions::FIELDS),
                                     ApiOptions::documentOption(ApiOptions::RELATED),
+                                    [
+                                        'name'          => 'X-HTTP-METHOD',
+                                        'description'   => 'Override request using POST to tunnel other http request, such as DELETE or GET passing a payload.',
+                                        'enum'          => ['GET'],
+                                        'allowMultiple' => false,
+                                        'type'          => 'string',
+                                        'paramType'     => 'header',
+                                        'required'      => true,
+                                    ],
                                 ],
                             'responseMessages' => $commonResponses,
                         ],
@@ -3294,37 +3253,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         ],
                     ],
                     ApiOptions::IDS => [
-                        'type'        => 'array',
-                        'description' => 'Array of record identifiers.',
-                        'items'       => [
-                            'type'   => 'integer',
-                            'format' => 'int32',
-                        ],
-                    ],
-                    ApiOptions::FILTER => [
-                        'type'        => 'string',
-                        'description' => 'SQL or native filter to determine records where modifications will be applied.',
-                    ],
-                    ApiOptions::PARAMS => [
-                        'type'        => 'array',
-                        'description' => 'Array of name-value pairs, used for parameter replacement on filters.',
-                        'items'       => [
-                            'type' => 'string',
-                        ],
-                    ],
-                ],
-            ],
-            'GetRecordsRequest'   => [
-                'id'         => 'GetRecordsRequest',
-                'properties' => [
-                    $wrapper           => [
-                        'type'        => 'array',
-                        'description' => 'Array of records.',
-                        'items'       => [
-                            '$ref' => 'RecordRequest',
-                        ],
-                    ],
-                    ApiOptions::IDS    => [
                         'type'        => 'array',
                         'description' => 'Array of record identifiers.',
                         'items'       => [

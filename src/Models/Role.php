@@ -49,7 +49,7 @@ class Role extends BaseSystemModel
             }
         );
 
-        static::deleting(
+        static::deleted(
             function (Role $role){
                 JWTUtilities::invalidateTokenByRoleId($role->id);
                 \Cache::forget('role:'.$role->id);

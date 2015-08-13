@@ -97,7 +97,7 @@ class Service extends BaseSystemModel
             }
         );
 
-        static::deleted(
+        static::deleting(
             function (Service $service){
                 // take the type information and get the config_handler class
                 // set the config giving the service id and new config
@@ -106,13 +106,17 @@ class Service extends BaseSystemModel
                     return $serviceCfg::removeConfig($service->getKey());
                 }
 
+                return true;
+            }
+        );
+
+        static::deleted(
+            function (Service $service){
                 \Cache::forget('service:'.$service->name);
 
                 // Any changes to services needs to produce a new event list
                 Event::clearCache();
                 Swagger::clearCache($service->name);
-
-                return true;
             }
         );
     }

@@ -135,6 +135,49 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         return Session::getServicePermissions($this->getServiceName(), $path, $requestType);
     }
 
+    public function getApiDocModels()
+    {
+        $name = Inflector::camelize($this->name);
+        $plural = Inflector::pluralize($name);
+        $wrapper = ResourcesWrapper::getWrapper();
+
+        return [
+            $plural . 'List'       => [
+                'id'         => $plural . 'List',
+                'properties' => [
+                    $wrapper => [
+                        'type'        => 'array',
+                        'description' => 'Array of accessible resources available to this path.',
+                        'items'       => [
+                            'type' => 'string',
+                        ],
+                    ],
+                ],
+            ],
+            $name . 'Response'   => [
+                'id'         => $name . 'Response',
+                'properties' => [
+                    $this->getResourceIdentifier()    => [
+                        'type'        => 'string',
+                        'description' => 'Identifier of the resource.',
+                    ],
+                ],
+            ],
+            $plural . 'Response' => [
+                'id'         => $plural . 'Response',
+                'properties' => [
+                    $wrapper => [
+                        'type'        => 'array',
+                        'description' => 'Array of resources available to this path.',
+                        'items'       => [
+                            '$ref' => $name . 'Response',
+                        ],
+                    ],
+                ],
+            ],
+        ];
+    }
+
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
@@ -143,7 +186,6 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         $plural = Inflector::pluralize($name);
         $words = str_replace('_', ' ', $this->name);
         $pluralWords = Inflector::pluralize($words);
-        $wrapper = ResourcesWrapper::getWrapper();
 
         return [
             'apis'   => [
@@ -153,10 +195,14 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                     'operations'  => [
                         [
                             'method'           => 'GET',
-                            'summary'          => 'get' . $plural . 'List() - List all ' . $pluralWords . ' identifiers.',
+                            'summary'          => 'get' .
+                                $plural .
+                                'List() - List all ' .
+                                $pluralWords .
+                                ' identifiers.',
                             'nickname'         => 'get' . $plural . 'List',
                             'notes'            => 'Return only a list of the resource identifiers.',
-                            'type'             => $plural .'List',
+                            'type'             => $plural . 'List',
                             'event_name'       => [$eventPath . '.list'],
                             'parameters'       => [
                                 ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
@@ -182,54 +228,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                     ],
                 ],
             ],
-            'models'       => [
-                $name . 'List' => [
-                    'id'         => $name . 'List',
-                    'properties' => [
-                        $wrapper => [
-                            'type'        => 'array',
-                            'description' => 'Array of '. $words.' identifiers available by this resource.',
-                            'items'       => [
-                                'type' => 'string',
-                            ],
-                        ],
-                    ],
-                ],
-                $name . 'Response'     => [
-                    'id'         => $name . 'Response',
-                    'properties' => [
-                        '_id_'    => [
-                            'type'        => 'string',
-                            'description' => 'Identifier of the resource.',
-                        ],
-                        '_other_' => [
-                            'type'        => 'string',
-                            'description' => 'Other property of the resource.',
-                        ],
-                    ],
-                ],
-                $plural . 'Response'    => [
-                    'id'         => $plural . 'Response',
-                    'properties' => [
-                        $wrapper => [
-                            'type'        => 'array',
-                            'description' => 'Array of '. $pluralWords.' available by this resource.',
-                            'items'       => [
-                                '$ref' => $name . 'Response',
-                            ],
-                        ],
-                    ],
-                ],
-                'Success'      => [
-                    'id'         => 'Success',
-                    'properties' => [
-                        'success' => [
-                            'type'        => 'boolean',
-                            'description' => 'True when API call was successful, false or error otherwise.',
-                        ],
-                    ],
-                ],
-            ],
+            'models' => $this->getApiDocModels()
         ];
     }
 }

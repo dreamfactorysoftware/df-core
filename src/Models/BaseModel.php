@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -464,7 +465,7 @@ class BaseModel extends Model
         $model = static::find($id);
 
         if (!$model instanceof Model) {
-            throw new ModelNotFoundException('No model found for ' . $id);
+            throw new NotFoundException('No resource found for ' . $id);
         }
 
         $pk = $model->primaryKey;
@@ -609,8 +610,9 @@ class BaseModel extends Model
      * @param array $params
      *
      * @return array
-     * @throws BadRequestException
-     * @throws InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     public static function deleteInternal($id, $record, $params = [])
     {
@@ -627,7 +629,7 @@ class BaseModel extends Model
         $model = static::find($id);
 
         if (!$model instanceof Model) {
-            throw new ModelNotFoundException('No model found for ' . $id);
+            throw new NotFoundException('No resource found for ' . $id);
         }
 
         try {

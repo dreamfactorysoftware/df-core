@@ -276,6 +276,7 @@ class Packager
                 foreach ($services as $schemas) {
                     $serviceName = ArrayUtils::get($schemas, 'name');
                     $tables = ArrayUtils::get($schemas, 'table');
+                    $resource = ($this->resourceWrapped)? [$this->resourceWrapper => $tables] : [$tables];
                     if (!empty($tables)) {
                         try {
                             ServiceHandler::handleRequest(
@@ -283,11 +284,13 @@ class Packager
                                 $serviceName,
                                 '_schema',
                                 [],
-                                [$this->resourceWrapper => $tables]
+                                $resource
                             );
                         } catch (\Exception $e) {
                             if (in_array($e->getCode(), [404, 500])) {
                                 throw $e;
+                            } else {
+                                \Log::alert('Failed to create schema. '.$e->getMessage());
                             }
                         }
                     }
@@ -323,18 +326,20 @@ class Packager
                     foreach ($tables as $table) {
                         $tableName = ArrayUtils::get($table, 'name');
                         $records = ArrayUtils::get($table, 'record');
-
+                        $resource = ($this->resourceWrapped)? [$this->resourceWrapper => $records] : [$records];
                         try {
                             ServiceHandler::handleRequest(
                                 Verbs::POST,
                                 $serviceName,
                                 '_table/' . $tableName,
                                 [],
-                                [$this->resourceWrapper => $records]
+                                $resource
                             );
                         } catch (\Exception $e) {
                             if (in_array($e->getCode(), [404, 500])) {
                                 throw $e;
+                            } else {
+                                \Log::alert('Failed to insert data. '.$e->getMessage());
                             }
                         }
                     }

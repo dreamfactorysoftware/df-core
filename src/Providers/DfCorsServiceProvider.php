@@ -89,6 +89,7 @@ class DfCorsServiceProvider extends ServiceProvider
         try {
             $cors = \DB::table('cors_config')->whereRaw('enabled = 1')->get();
         } catch (QueryException $e){
+            \Log::alert('Could not get cors config from DB - '.$e->getMessage());
             return [];
         }
         $path = [];

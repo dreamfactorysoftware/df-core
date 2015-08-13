@@ -112,4 +112,25 @@ class CorsConfig extends BaseSystemModel
 
         return VerbsMask::maskToArray($method);
     }
+
+    /**
+     * Converts methods array to verb masks
+     *
+     * @param $method
+     *
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
+     */
+    public function setMethodAttribute($method)
+    {
+        if (is_array($method)) {
+            $action = 0;
+            foreach ($method as $verb) {
+                $action = $action | VerbsMask::toNumeric($verb);
+            }
+        } else {
+            $action = $method;
+        }
+
+        $this->attributes['method'] = $action;
+    }
 }

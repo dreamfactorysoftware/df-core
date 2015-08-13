@@ -14,7 +14,7 @@ trait SingleRecordModel
         return $model;
     }
 
-    public static function create(array $attributes)
+    public static function create(array $attributes = [])
     {
         /** @var Collection $models */
         $models = static::all();

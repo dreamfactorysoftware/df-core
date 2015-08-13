@@ -1,10 +1,10 @@
 <?php
-namespace DreamFactory\Core;
+namespace DreamFactory\Core\Providers;
 
 use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
-use DreamFactory\Core\Providers\BaseServiceProvider;
+use Illuminate\Support\ServiceProvider;
 
-class DfServiceProvider extends BaseServiceProvider
+class DfServiceProvider extends ServiceProvider
 {
     public function boot()
     {

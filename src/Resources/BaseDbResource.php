@@ -4,9 +4,10 @@ namespace DreamFactory\Core\Resources;
 use DreamFactory\Core\Contracts\RequestHandlerInterface;
 use DreamFactory\Core\Services\BaseRestService;
 
-class BaseDbResource extends BaseRestResource
+abstract class BaseDbResource extends BaseRestResource
 {
     const RESOURCE_IDENTIFIER = 'name';
+
     //*************************************************************************
     //	Members
     //*************************************************************************
@@ -40,15 +41,37 @@ class BaseDbResource extends BaseRestResource
     }
 
     /**
+     * @return string
+     */
+    abstract public function getResourceName();
+
+    /**
      * @param null $schema
      * @param bool $refresh
      *
      * @return array
      */
-    public function listAccessComponents(
+    abstract public function listResources(
         /** @noinspection PhpUnusedParameterInspection */
-        $schema = null, $refresh = false)
+        $schema = null,
+        $refresh = false
+    );
+
+    /**
+     * @param null $schema
+     * @param bool $refresh
+     *
+     * @return array
+     */
+    public function listAccessComponents($schema = null, $refresh = false)
     {
-        return [];
+        $output = [];
+        $result = $this->listResources($schema, $refresh);
+        foreach ($result as $name) {
+            $output[] = $this->getResourceName() . '/' . $name;
+        }
+
+        return $output;
     }
+
 }

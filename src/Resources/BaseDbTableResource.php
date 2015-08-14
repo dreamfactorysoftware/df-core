@@ -79,9 +79,9 @@ abstract class BaseDbTableResource extends BaseDbResource
     /**
      * {@inheritdoc}
      */
-    public function listTables($schema = null, $refresh = false)
+    public function getResourceName()
     {
-        return [];
+        return static::RESOURCE_NAME;
     }
 
     /**
@@ -2733,12 +2733,124 @@ abstract class BaseDbTableResource extends BaseDbResource
         return (substr($haystack, -strlen($needle)) === $needle);
     }
 
+    public function getApiDocModels()
+    {
+        $base = parent::getApiDocModels();
+        $wrapper = ResourcesWrapper::getWrapper();
+        $commonProperties = [
+            'id' => [
+                'type'        => 'integer',
+                'format'      => 'int32',
+                'description' => 'Sample identifier of this record.',
+            ],
+        ];
+
+        $models = [
+            'Tables'              => [
+                'id'         => 'Tables',
+                'properties' => [
+                    $wrapper => [
+                        'type'        => 'array',
+                        'description' => 'Array of tables and their properties.',
+                        'items'       => [
+                            '$ref' => 'Table',
+                        ],
+                    ],
+                ],
+            ],
+            'Table'               => [
+                'id'         => 'Table',
+                'properties' => [
+                    'name' => [
+                        'type'        => 'string',
+                        'description' => 'Name of the table.',
+                    ],
+                ],
+            ],
+            'RecordRequest'       => [
+                'id'         => 'RecordRequest',
+                'properties' =>
+                    $commonProperties
+            ],
+            'RecordsRequest'      => [
+                'id'         => 'RecordsRequest',
+                'properties' => [
+                    $wrapper => [
+                        'type'        => 'array',
+                        'description' => 'Array of records.',
+                        'items'       => [
+                            '$ref' => 'RecordRequest',
+                        ],
+                    ],
+                    ApiOptions::IDS => [
+                        'type'        => 'array',
+                        'description' => 'Array of record identifiers.',
+                        'items'       => [
+                            'type'   => 'integer',
+                            'format' => 'int32',
+                        ],
+                    ],
+                    ApiOptions::FILTER => [
+                        'type'        => 'string',
+                        'description' => 'SQL or native filter to determine records where modifications will be applied.',
+                    ],
+                    ApiOptions::PARAMS => [
+                        'type'        => 'array',
+                        'description' => 'Array of name-value pairs, used for parameter replacement on filters.',
+                        'items'       => [
+                            'type' => 'string',
+                        ],
+                    ],
+                ],
+            ],
+            'RecordResponse'      => [
+                'id'         => 'RecordResponse',
+                'properties' => $commonProperties
+            ],
+            'RecordsResponse'     => [
+                'id'         => 'RecordsResponse',
+                'properties' => [
+                    $wrapper => [
+                        'type'        => 'array',
+                        'description' => 'Array of system user records.',
+                        'items'       => [
+                            '$ref' => 'RecordResponse',
+                        ],
+                    ],
+                    'meta'   => [
+                        'type'        => 'Metadata',
+                        'description' => 'Array of metadata returned for GET requests.',
+                    ],
+                ],
+            ],
+            'Metadata'            => [
+                'id'         => 'Metadata',
+                'properties' => [
+                    'schema' => [
+                        'type'        => 'array',
+                        'description' => 'Array of table schema.',
+                        'items'       => [
+                            'type' => 'string',
+                        ],
+                    ],
+                    'count'  => [
+                        'type'        => 'integer',
+                        'format'      => 'int32',
+                        'description' => 'Record count returned for GET requests.',
+                    ],
+                ],
+            ]
+        ];
+
+        return array_merge($base, $models);
+    }
+
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $base = parent::getApiDocInfo();
-        $tables = $this->listTables();
+        $tables = $this->listResources();
 
         $commonResponses = ApiDocUtilities::getCommonResponses();
         $wrapper = ResourcesWrapper::getWrapper();
@@ -3207,113 +3319,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             ],
         ];
 
-        $commonProperties = [
-            'id' => [
-                'type'        => 'integer',
-                'format'      => 'int32',
-                'description' => 'Sample identifier of this record.',
-            ],
-        ];
-
-        $models = [
-            'Tables'              => [
-                'id'         => 'Tables',
-                'properties' => [
-                    $wrapper => [
-                        'type'        => 'array',
-                        'description' => 'Array of tables and their properties.',
-                        'items'       => [
-                            '$ref' => 'Table',
-                        ],
-                    ],
-                ],
-            ],
-            'Table'               => [
-                'id'         => 'Table',
-                'properties' => [
-                    'name' => [
-                        'type'        => 'string',
-                        'description' => 'Name of the table.',
-                    ],
-                ],
-            ],
-            'RecordRequest'       => [
-                'id'         => 'RecordRequest',
-                'properties' =>
-                    $commonProperties
-            ],
-            'RecordsRequest'      => [
-                'id'         => 'RecordsRequest',
-                'properties' => [
-                    $wrapper => [
-                        'type'        => 'array',
-                        'description' => 'Array of records.',
-                        'items'       => [
-                            '$ref' => 'RecordRequest',
-                        ],
-                    ],
-                    ApiOptions::IDS => [
-                        'type'        => 'array',
-                        'description' => 'Array of record identifiers.',
-                        'items'       => [
-                            'type'   => 'integer',
-                            'format' => 'int32',
-                        ],
-                    ],
-                    ApiOptions::FILTER => [
-                        'type'        => 'string',
-                        'description' => 'SQL or native filter to determine records where modifications will be applied.',
-                    ],
-                    ApiOptions::PARAMS => [
-                        'type'        => 'array',
-                        'description' => 'Array of name-value pairs, used for parameter replacement on filters.',
-                        'items'       => [
-                            'type' => 'string',
-                        ],
-                    ],
-                ],
-            ],
-            'RecordResponse'      => [
-                'id'         => 'RecordResponse',
-                'properties' => $commonProperties
-            ],
-            'RecordsResponse'     => [
-                'id'         => 'RecordsResponse',
-                'properties' => [
-                    $wrapper => [
-                        'type'        => 'array',
-                        'description' => 'Array of system user records.',
-                        'items'       => [
-                            '$ref' => 'RecordResponse',
-                        ],
-                    ],
-                    'meta'   => [
-                        'type'        => 'Metadata',
-                        'description' => 'Array of metadata returned for GET requests.',
-                    ],
-                ],
-            ],
-            'Metadata'            => [
-                'id'         => 'Metadata',
-                'properties' => [
-                    'schema' => [
-                        'type'        => 'array',
-                        'description' => 'Array of table schema.',
-                        'items'       => [
-                            'type' => 'string',
-                        ],
-                    ],
-                    'count'  => [
-                        'type'        => 'integer',
-                        'format'      => 'int32',
-                        'description' => 'Record count returned for GET requests.',
-                    ],
-                ],
-            ]
-        ];
-
         $base['apis'] = array_merge($base['apis'], $apis);
-        $base['models'] = array_merge($base['models'], $models);
 
         return $base;
     }

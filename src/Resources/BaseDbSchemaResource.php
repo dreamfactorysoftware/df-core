@@ -33,6 +33,14 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     //*************************************************************************
 
     /**
+     * {@inheritdoc}
+     */
+    public function getResourceName()
+    {
+        return static::RESOURCE_NAME;
+    }
+
+    /**
      * @param string $name
      *
      * @throws NotFoundException
@@ -577,6 +585,37 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     abstract public function deleteField($table, $field);
 
+    public function getApiDocModels()
+    {
+        $wrapper = ResourcesWrapper::getWrapper();
+        $base = parent::getApiDocModels();
+        $models = [
+            'Tables' => [
+                'id'         => 'Tables',
+                'properties' => [
+                    $wrapper => [
+                        'type'        => 'array',
+                        'description' => 'Array of tables and their properties.',
+                        'items'       => [
+                            '$ref' => 'Table',
+                        ],
+                    ],
+                ],
+            ],
+            'Table'  => [
+                'id'         => 'Table',
+                'properties' => [
+                    'name' => [
+                        'type'        => 'string',
+                        'description' => 'Name of the table.',
+                    ],
+                ],
+            ],
+        ];
+
+        return array_merge($base, $models);
+    }
+
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
@@ -946,33 +985,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             ],
         ];
 
-        $wrapper = ResourcesWrapper::getWrapper();
-        $models = [
-            'Tables' => [
-                'id'         => 'Tables',
-                'properties' => [
-                    $wrapper => [
-                        'type'        => 'array',
-                        'description' => 'Array of tables and their properties.',
-                        'items'       => [
-                            '$ref' => 'Table',
-                        ],
-                    ],
-                ],
-            ],
-            'Table'  => [
-                'id'         => 'Table',
-                'properties' => [
-                    'name' => [
-                        'type'        => 'string',
-                        'description' => 'Name of the table.',
-                    ],
-                ],
-            ],
-        ];
-
         $base['apis'] = array_merge($base['apis'], $apis);
-        $base['models'] = array_merge($base['models'], $models);
 
         return $base;
     }

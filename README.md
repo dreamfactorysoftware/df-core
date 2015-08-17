@@ -10,7 +10,7 @@
 
 ## Overview
 
-DreamFactory(™) Core is a package built on top of the Laravel framework, and as such retains the requirements of the [Laravel v5.0 framework](https://github.com/laravel/framework). 
+DreamFactory(™) Core is a package built on top of the Laravel framework, and as such retains the requirements of the [Laravel v5.1 framework](https://github.com/laravel/framework). 
 
 ## Documentation
 
@@ -26,17 +26,8 @@ For more information, see the [full platform repository](https://github.com/drea
 Edit your project’s composer.json to require the following package.
 
 	“require”:{
-		"dreamfactory/df-core": "dev-develop as dev-master"
+		"dreamfactory/df-core": "~0.0.2"
 	}
-
-	Note: dreamfactory/df-core is currently a private repo therefore you need to setup the repository for it in your composer.json file.
-
-	"repositories":[
-		{
-		 "type": "vcs",
-		 	"url":  "git@github.com:dreamfactorysoftware/df-core.git"
-		}
-	]
 
 	You may also need to add the following…
 

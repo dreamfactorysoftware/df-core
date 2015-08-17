@@ -4,9 +4,9 @@ namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Core\Models\ServiceCacheConfig;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Utility\ApiDocUtilities;
-use DreamFactory\Core\Utility\CacheUtilities;
 use DreamFactory\Core\Utility\ServiceHandler;
 
 /**
@@ -17,6 +17,37 @@ use DreamFactory\Core\Utility\ServiceHandler;
 class Cache extends BaseRestResource
 {
     /**
+     * {@inheritdoc}
+     */
+    protected function getResourceIdentifier()
+    {
+        return 'name';
+    }
+
+    /**
+     * Implement to return the resource configuration for this REST handling object
+     *
+     * @param boolean $only_handlers
+     *
+     * @return array Empty when not implemented, otherwise the array of resource information
+     */
+    public function getResources($only_handlers = false)
+    {
+        if (!$only_handlers) {
+            $resources = [];
+            $cacheables = ServiceCacheConfig::with('service')->whereCacheEnabled(true)->get();
+            /** @type ServiceCacheConfig $cacheable */
+            foreach ($cacheables as $cacheable){
+                $resources[] = ['name' => $cacheable->service->name, 'label' => $cacheable->service->label];
+            }
+
+            return $resources;
+        }
+
+        return [];
+    }
+
+    /**
      * Handles DELETE action
      *
      * @return array
@@ -25,7 +56,7 @@ class Cache extends BaseRestResource
     protected function handleDELETE()
     {
         if (empty($this->resource)) {
-            CacheUtilities::flush();
+            \Cache::flush();
         } else {
             $service = ServiceHandler::getService($this->resource);
             if ($service instanceof CachedInterface) {

@@ -10,13 +10,13 @@ class ScriptTypeSeeder extends BaseModelSeeder
     protected $modelClass = ScriptType::class;
 
     protected $records = [
-        [
-            'name'        => 'php',
-            'class_name'  => Php::class,
-            'label'       => 'PHP',
-            'description' => 'Script handler using native PHP.',
-            'sandboxed'   => false
-        ],
+//        [
+//            'name'        => 'php',
+//            'class_name'  => Php::class,
+//            'label'       => 'PHP',
+//            'description' => 'Script handler using native PHP.',
+//            'sandboxed'   => false
+//        ],
         [
             'name'        => 'v8js',
             'class_name'  => V8Js::class,

@@ -1,19 +1,32 @@
 <?php
-namespace DreamFactory\Core;
+namespace DreamFactory\Core\Providers;
 
-use Barryvdh\Cors\CorsServiceProvider;
+use Barryvdh\Cors\ServiceProvider;
 use Asm89\Stack\CorsService;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 use DreamFactory\Core\Models\CorsConfig;
 
-class DfCorsServiceProvider extends CorsServiceProvider
+class DfCorsServiceProvider extends ServiceProvider
 {
     /**
+     * Add the Cors middleware to the router.
+     * @param Request $request
+     * @param Kernel $kernel
+     */
+    public function boot(Request $request, Kernel $kernel)
+    {
+        $this->app['router']->middleware('cors', 'Barryvdh\Cors\HandleCors');
+
+        if ($request->isMethod('OPTIONS')) {
+            $kernel->pushMiddleware('Barryvdh\Cors\HandlePreflight');
+        }
+    }
+
+    /**
      * Register the service provider.
-     *
-     * Overriding this method only to NOT use the cors.php config file
-     * from the vendor's package. Instead using df.php config (cors.defaults).
      *
      * @return void
      */
@@ -21,9 +34,9 @@ class DfCorsServiceProvider extends CorsServiceProvider
     {
         /** @var \Illuminate\Http\Request $request */
         $request = $this->app['request'];
-
-        $this->app->bind('Asm89\Stack\CorsService', function () use ($request){
-            return new CorsService($this->getOptions($request));
+        $config = $this->getOptions($request);
+        $this->app->bind('Asm89\Stack\CorsService', function () use ($config){
+            return new CorsService($config);
         });
     }
 
@@ -73,17 +86,31 @@ class DfCorsServiceProvider extends CorsServiceProvider
      */
     protected function getPath()
     {
-        $cors = CorsConfig::whereEnabled(true)->get();
+        try {
+            $cors = \DB::table('cors_config')->whereRaw('enabled = 1')->get();
+        } catch (QueryException $e){
+            \Log::alert('Could not get cors config from DB - '.$e->getMessage());
+            return [];
+        }
         $path = [];
 
         if (!empty($cors)) {
             $path = [];
             foreach ($cors as $p) {
-                $path[$p['path']] = [
-                    "allowedOrigins" => explode(',', $p['origin']),
-                    "allowedHeaders" => explode(',', $p['header']),
-                    "allowedMethods" => $p['method'],
-                    "maxAge"         => $p['max_age']
+                $cc = new CorsConfig([
+                    'id'      => $p->id,
+                    'path'    => $p->path,
+                    'origin'  => $p->origin,
+                    'header'  => $p->header,
+                    'method'  => $p->method,
+                    'max_age' => $p->max_age,
+                    'enabled' => $p->enabled
+                ]);
+                $path[$cc->path] = [
+                    "allowedOrigins" => explode(',', $cc->origin),
+                    "allowedHeaders" => explode(',', $cc->header),
+                    "allowedMethods" => $cc->method,
+                    "maxAge"         => $cc->max_age
                 ];
             }
         }

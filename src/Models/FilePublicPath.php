@@ -5,7 +5,7 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 
 class FilePublicPath extends BaseServiceConfigModel
 {
-    protected $table = 'file_public_path';
+    protected $table = 'file_service_config';
 
     protected $fillable = ['service_id', 'public_path', 'container'];
 
@@ -53,7 +53,11 @@ class FilePublicPath extends BaseServiceConfigModel
                     if ($defaultDiskName === $disk['driver']) {
                         $default = true;
                     }
-                    $values[] = ['name' => $disk['driver'], 'default' => $default];
+                    $values[] = [
+                        'name' => $disk['driver'],
+                        'label' => $disk['driver'],
+                        'default' => $default
+                    ];
                 }
 
                 $schema['type'] = 'picklist';

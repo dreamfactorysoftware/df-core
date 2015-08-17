@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Models;
 
-use DreamFactory\Core\Utility\CacheUtilities;
+use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -202,7 +202,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         $model = static::find($id);
 
         if (!$model instanceof Model) {
-            throw new ModelNotFoundException('No model found for ' . $id);
+            throw new NotFoundException('No resource found for ' . $id);
         }
 
         $pk = $model->primaryKey;
@@ -251,7 +251,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         $model = static::find($id);
 
         if (!$model instanceof Model) {
-            throw new ModelNotFoundException('No model found for ' . $id);
+            throw new NotFoundException('No resource found for ' . $id);
         }
 
         try {
@@ -309,15 +309,74 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 if (!$user->is_active) {
                     JWTUtilities::invalidateTokenByUserId($user->id);
                 }
-                CacheUtilities::forgetUserInfo($user->id);
+                \Cache::forget('user:'.$user->id);
             }
         );
 
         static::deleted(
             function (User $user){
                 JWTUtilities::invalidateTokenByUserId($user->id);
-                CacheUtilities::forgetUserInfo($user->id);
+                \Cache::forget('user:'.$user->id);
             }
         );
+    }
+
+    /**
+     * Returns user info cached, or reads from db if not present.
+     * Pass in a key to return a portion/index of the cached data.
+     *
+     * @param int         $id
+     * @param null|string $key
+     * @param null        $default
+     *
+     * @return mixed|null
+     */
+    public static function getCachedInfo($id, $key = null, $default = null)
+    {
+        $cacheKey = 'user:' . $id;
+        $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
+            $user = static::with('user_lookup_by_user_id')->whereId($id)->first();
+            if (empty($user)) {
+                throw new NotFoundException("User not found.");
+            }
+
+            if (!$user->is_active) {
+                throw new ForbiddenException("User is not active.");
+            }
+
+            $userInfo = $user->toArray();
+            ArrayUtils::set($userInfo, 'is_sys_admin', $user->is_sys_admin);
+
+            return $userInfo;
+        });
+
+        if (is_null($result)) {
+            return $default;
+        }
+
+        if (is_null($key)) {
+            return $result;
+        }
+
+        return (isset($result[$key]) ? $result[$key] : $default);
+    }
+
+    /**
+     * @return boolean
+     */
+    public static function adminExists()
+    {
+        $adminExists = \Cache::rememberForever('admin_exists', function (){
+            return static::whereIsActive(1)->whereIsSysAdmin(1)->exists();
+        });
+
+        return $adminExists;
+    }
+
+    public static function resetAdminExists()
+    {
+        \Cache::forget('admin_exists');
+
+        return true;
     }
 }

@@ -27,15 +27,6 @@ class ServiceSeeder extends BaseModelSeeder
             'deletable'   => false
         ],
         [
-            'name'        => 'event',
-            'label'       => 'Events',
-            'description' => 'Service for displaying and subscribing to broadcast system events.',
-            'is_active'   => true,
-            'type'        => 'event',
-            'mutable'     => false,
-            'deletable'   => false
-        ],
-        [
             'name'        => 'files',
             'label'       => 'Local File Storage',
             'description' => 'Service for accessing local file storage.',

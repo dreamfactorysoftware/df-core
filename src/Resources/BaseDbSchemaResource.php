@@ -33,6 +33,14 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     //*************************************************************************
 
     /**
+     * {@inheritdoc}
+     */
+    public function getResourceName()
+    {
+        return static::RESOURCE_NAME;
+    }
+
+    /**
      * @param string $name
      *
      * @throws NotFoundException
@@ -124,7 +132,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 break;
             case 1:
                 $event = new ResourcePostProcess(
-                    $this->getServiceName(), $this->getFullPathName('.') . '.' . $this->resourceArray[0],
+                    $this->getServiceName(),
+                    $this->getFullPathName('.') . '.{table_name}',
                     $this->request,
                     $this->response,
                     $this->resourcePath
@@ -136,7 +145,23 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 $this->response = $event->response;
 
                 $event = new ResourcePostProcess(
-                    $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}', $this->request,
+                    $this->getServiceName(),
+                    $this->getFullPathName('.') . '.' . $this->resourceArray[0],
+                    $this->request,
+                    $this->response,
+                    $this->resourcePath
+                );
+                /** @noinspection PhpUnusedLocalVariableInspection */
+                $results = \Event::fire($event);
+
+                // todo doing something wrong that I have to copy this array back over
+                $this->response = $event->response;
+                break;
+            case 2:
+                // todo how to handle proper response for more than one result?
+                $event = new ResourcePostProcess(
+                    $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}.{field_name}',
+                    $this->request,
                     $this->response,
                     $this->resourcePath
                 );
@@ -146,24 +171,10 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 // todo doing something wrong that I have to copy this array back over
                 $this->response = $event->response;
 
-                break;
-            case 2:
                 $event = new ResourcePostProcess(
                     $this->getServiceName(),
                     $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.' . $this->resourceArray[1],
                     $this->request,
-                    $this->response,
-                    $this->resourcePath
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-
-                // todo doing something wrong that I have to copy this array back over
-                $this->response = $event->response;
-
-                // todo how to handle proper response for more than one result?
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}.{field_name}', $this->request,
                     $this->response,
                     $this->resourcePath
                 );
@@ -574,6 +585,37 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     abstract public function deleteField($table, $field);
 
+    public function getApiDocModels()
+    {
+        $wrapper = ResourcesWrapper::getWrapper();
+        $base = parent::getApiDocModels();
+        $models = [
+            'Tables' => [
+                'id'         => 'Tables',
+                'properties' => [
+                    $wrapper => [
+                        'type'        => 'array',
+                        'description' => 'Array of tables and their properties.',
+                        'items'       => [
+                            '$ref' => 'Table',
+                        ],
+                    ],
+                ],
+            ],
+            'Table'  => [
+                'id'         => 'Table',
+                'properties' => [
+                    'name' => [
+                        'type'        => 'string',
+                        'description' => 'Name of the table.',
+                    ],
+                ],
+            ],
+        ];
+
+        return array_merge($base, $models);
+    }
+
     public function getApiDocInfo()
     {
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
@@ -587,38 +629,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 'path'        => $path,
                 'description' => 'Operations available for SQL DB Schemas.',
                 'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getSchemasList() - List resources available for database schema.',
-                        'nickname'         => 'getSchemasList',
-                        'type'             => 'ResourceList',
-                        'event_name'       => $eventPath . '.list',
-                        'parameters'       => [
-                            [
-                                'name'          => 'refresh',
-                                'description'   => 'Refresh any cached copy of the schema list.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responseMessages' => $commonResponses,
-                        'notes'            => 'See listed operations for each resource available.',
-                    ],
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getSchemas() - List resources available for database schema.',
-                        'nickname'         => 'getSchemas',
-                        'type'             => 'Resources',
-                        'event_name'       => $eventPath . '.list',
-                        'parameters'       => [
-                            ApiOptions::documentOption(ApiOptions::FIELDS, true, ApiOptions::FIELDS_ALL),
-                            ApiOptions::documentOption(ApiOptions::REFRESH),
-                        ],
-                        'responseMessages' => $commonResponses,
-                        'notes'            => 'See listed operations for each resource available.',
-                    ],
                     [
                         'method'           => 'POST',
                         'summary'          => 'createTables() - Create one or more tables.',
@@ -975,33 +985,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             ],
         ];
 
-        $wrapper = ResourcesWrapper::getWrapper();
-        $models = [
-            'Tables' => [
-                'id'         => 'Tables',
-                'properties' => [
-                    $wrapper => [
-                        'type'        => 'array',
-                        'description' => 'Array of tables and their properties.',
-                        'items'       => [
-                            '$ref' => 'Table',
-                        ],
-                    ],
-                ],
-            ],
-            'Table'  => [
-                'id'         => 'Table',
-                'properties' => [
-                    'name' => [
-                        'type'        => 'string',
-                        'description' => 'Name of the table.',
-                    ],
-                ],
-            ],
-        ];
-
         $base['apis'] = array_merge($base['apis'], $apis);
-        $base['models'] = array_merge($base['models'], $models);
 
         return $base;
     }

@@ -2,12 +2,17 @@
 
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Components\Cacheable;
+use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Resources\BaseDbResource;
+use DreamFactory\Library\Utility\ArrayUtils;
 
-abstract class BaseDbService extends BaseRestService
+abstract class BaseDbService extends BaseRestService implements CachedInterface
 {
+    use Cacheable;
+
     //*************************************************************************
     //	Members
     //*************************************************************************
@@ -16,10 +21,32 @@ abstract class BaseDbService extends BaseRestService
      * @var array Array of resource defining arrays
      */
     protected $resources = [];
+    /**
+     * @type bool
+     */
+    protected $cacheEnabled = false;
 
     //*************************************************************************
     //	Methods
     //*************************************************************************
+
+    /**
+     * Create a new SqlDbSvc
+     *
+     * @param array $settings
+     *
+     * @throws \InvalidArgumentException
+     * @throws \Exception
+     */
+    public function __construct($settings = [])
+    {
+        parent::__construct($settings);
+
+        $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config'));
+        $this->cacheEnabled = ArrayUtils::getBool($config, 'cache_enabled');
+        $this->cacheTTL = intval(ArrayUtils::get($config, 'cache_ttl', \Config::get('df.default_cache_ttl')));
+        $this->cachePrefix = 'service_' . $this->id . ':';
+    }
 
     /**
      * {@inheritdoc}

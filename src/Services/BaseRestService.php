@@ -13,7 +13,7 @@ use DreamFactory\Core\Events\ServicePreProcess;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\Inflector;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
@@ -116,8 +116,9 @@ class BaseRestService extends RestHandler implements ServiceInterface
     protected function getAccessList()
     {
         if (!empty($this->getPermissions())) {
-            return ['','*'];
+            return ['', '*'];
         }
+
         return [];
     }
 
@@ -133,21 +134,72 @@ class BaseRestService extends RestHandler implements ServiceInterface
         return parent::handleGET();
     }
 
-    public function getApiDocInfo()
+    public function getApiDocModels()
     {
+        $name = Inflector::camelize($this->name);
+        $plural = Inflector::pluralize($name);
         $wrapper = ResourcesWrapper::getWrapper();
 
-        /**
-         * Some basic apis and models used in DSP REST interfaces
-         */
+        return [
+            'ResourceList'       => [
+                'id'         => 'ResourceList',
+                'properties' => [
+                    $wrapper => [
+                        'type'        => 'array',
+                        'description' => 'Array of accessible resources available to this service.',
+                        'items'       => [
+                            'type' => 'string',
+                        ],
+                    ],
+                ],
+            ],
+            $name . 'Response'   => [
+                'id'         => $name . 'Response',
+                'properties' => [
+                    $this->getResourceIdentifier() => [
+                        'type'        => 'string',
+                        'description' => 'Identifier of the resource.',
+                    ],
+                ],
+            ],
+            $plural . 'Response' => [
+                'id'         => $plural . 'Response',
+                'properties' => [
+                    $wrapper => [
+                        'type'        => 'array',
+                        'description' => 'Array of resources available to this service.',
+                        'items'       => [
+                            '$ref' => $name . 'Response',
+                        ],
+                    ],
+                ],
+            ],
+            'Success'            => [
+                'id'         => 'Success',
+                'properties' => [
+                    'success' => [
+                        'type'        => 'boolean',
+                        'description' => 'True when API call was successful, false or error otherwise.',
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    public function getApiDocInfo()
+    {
+        $path = '/' . $this->name;
+        $eventPath = $this->name;
+        $name = Inflector::camelize($this->name);
+        $plural = Inflector::pluralize($name);
 
         return [
-            'resourcePath' => '/' . $this->name,
+            'resourcePath' => $path,
             'produces'     => ['application/json', 'application/xml'],
             'consumes'     => ['application/json', 'application/xml'],
             'apis'         => [
                 [
-                    'path'        => '/' . $this->name,
+                    'path'        => $path,
                     'description' => "Operations available for the {$this->label} service.",
                     'operations'  => [
                         [
@@ -156,9 +208,9 @@ class BaseRestService extends RestHandler implements ServiceInterface
                             'nickname'         => 'getResourceList',
                             'notes'            => 'Return only a list of the resource identifiers.',
                             'type'             => 'ResourceList',
-                            'event_name'       => [$this->name . '.list'],
+                            'event_name'       => [$eventPath . '.list'],
                             'parameters'       => [
-                                ApiOptions::documentOption(ApiOptions::AS_LIST),
+                                ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
                                 ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
                                 ApiOptions::documentOption(ApiOptions::ID_FIELD),
                                 ApiOptions::documentOption(ApiOptions::ID_TYPE),
@@ -171,8 +223,8 @@ class BaseRestService extends RestHandler implements ServiceInterface
                             'summary'          => 'getResources() - List all resources.',
                             'nickname'         => 'getResources',
                             'notes'            => 'List the resources available on this service. ',
-                            'type'             => 'Resources',
-                            'event_name'       => [$this->name . '.list'],
+                            'type'             => $plural . 'Response',
+                            'event_name'       => [$eventPath . '.list'],
                             'parameters'       => [
                                 ApiOptions::documentOption(ApiOptions::FIELDS),
                                 ApiOptions::documentOption(ApiOptions::REFRESH),
@@ -182,54 +234,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                     ],
                 ],
             ],
-            'models'       => [
-                'ResourceList' => [
-                    'id'         => 'ResourceList',
-                    'properties' => [
-                        $wrapper => [
-                            'type'        => 'array',
-                            'description' => 'Array of accessible components available by this service.',
-                            'items'       => [
-                                'type' => 'string',
-                            ],
-                        ],
-                    ],
-                ],
-                'Resource'     => [
-                    'id'         => 'Resource',
-                    'properties' => [
-                        '_id_'    => [
-                            'type'        => 'string',
-                            'description' => 'Identifier of the resource.',
-                        ],
-                        '_other_' => [
-                            'type'        => 'string',
-                            'description' => 'Other property of the resource.',
-                        ],
-                    ],
-                ],
-                'Resources'    => [
-                    'id'         => 'Resources',
-                    'properties' => [
-                        $wrapper => [
-                            'type'        => 'array',
-                            'description' => 'Array of resources available by this service.',
-                            'items'       => [
-                                '$ref' => 'Resource',
-                            ],
-                        ],
-                    ],
-                ],
-                'Success'      => [
-                    'id'         => 'Success',
-                    'properties' => [
-                        'success' => [
-                            'type'        => 'boolean',
-                            'description' => 'True when API call was successful, false or error otherwise.',
-                        ],
-                    ],
-                ],
-            ],
+            'models'       => $this->getApiDocModels()
         ];
     }
 }

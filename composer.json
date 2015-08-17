@@ -1,9 +1,6 @@
 {
   "name": "dreamfactory/df-core",
   "description": "DreamFactory(tm) Core Components",
-  "config": {
-    "discard-changes": true
-  },
   "homepage": "https://www.dreamfactory.com/",
   "keywords": [
     "dsp",
@@ -28,8 +25,6 @@
       "email": "jerryablan@dreamfactory.com"
     }
   ],
-  "minimum-stability": "dev",
-  "prefer-stable": true,
   "require": {
     "php": "~5.5",
     "dreamfactory/php-utils": "dev-develop as dev-master",

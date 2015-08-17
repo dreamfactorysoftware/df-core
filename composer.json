@@ -31,9 +31,9 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "require": {
-    "php": "~5.4",
+    "php": "~5.5",
     "dreamfactory/php-utils": "dev-develop as dev-master",
-    "dreamfactory/df-sqldb-core": "dev-develop as dev-master",
+    "dreamfactory/df-sqldb-core": "~0.0.2",
     "guzzlehttp/guzzle": "~5.0",
     "barryvdh/laravel-cors": "0.7.x"
   },

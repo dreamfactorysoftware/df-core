@@ -80,17 +80,20 @@ class DfCorsServiceProvider extends ServiceProvider
     }
 
     /**
-     * Gets the CORS settings from database table.
-     *
      * @return array
+     * @throws \Exception
      */
     protected function getPath()
     {
         try {
             $cors = \DB::table('cors_config')->whereRaw('enabled = 1')->get();
-        } catch (QueryException $e){
-            \Log::alert('Could not get cors config from DB - '.$e->getMessage());
-            return [];
+        } catch (\Exception $e){
+            if($e instanceof QueryException || $e instanceof \PDOException){
+                \Log::alert('Could not get cors config from DB - '.$e->getMessage());
+                return [];
+            } else {
+                throw $e;
+            }
         }
         $path = [];
 

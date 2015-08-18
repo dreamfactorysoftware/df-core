@@ -126,6 +126,7 @@ trait DbSchemaExtras
 
         try {
             DbTableExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
+            DbFieldExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
         } catch (\Exception $ex) {
             Log::error('Failed to delete from DB Schema Extras. ' . $ex->getMessage());
         }

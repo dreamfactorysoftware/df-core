@@ -2133,6 +2133,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         if (is_array($validations)) {
             foreach ($validations as $key => $config) {
+                $config = ArrayUtils::clean($config);
                 $onFail = ArrayUtils::get($config, 'on_fail');
                 $throw = true;
                 $msg = null;

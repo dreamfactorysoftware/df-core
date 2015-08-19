@@ -31,10 +31,11 @@ trait DbSchemaExtras
             throw new \InvalidArgumentException('Invalid table list provided.');
         }
 
-        $result = DbTableExtras::where('service_id', $this->id)->whereIn('table', $values)->get()->toArray();
+        $result = DbTableExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->get()->toArray();
 
         if ($include_fields) {
-            $fieldResult = DbFieldExtras::where('service_id', $this->id)->whereIn('table', $values)->get()->toArray();
+            $fieldResult =
+                DbFieldExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->get()->toArray();
             $result = array_merge($result, $fieldResult);
         }
 
@@ -60,7 +61,7 @@ trait DbSchemaExtras
         }
 
         $results =
-            DbFieldExtras::where('service_id', $this->id)
+            DbFieldExtras::whereServiceId($this->getServiceId())
                 ->where('table', $table_name)
                 ->whereIn('field', $values)
                 ->get()
@@ -70,81 +71,47 @@ trait DbSchemaExtras
     }
 
     /**
-     * @param array $labels
+     * @param array $extras
      *
      * @return void
      */
-    public function setSchemaExtras($labels)
+    public function setSchemaTableExtras($extras)
     {
-        if (empty($labels)) {
+        if (empty($extras)) {
             return;
         }
 
-        $tables = [];
-        foreach ($labels as $label) {
-            $tables[] = ArrayUtils::get($label, 'table');
-        }
-
-        $tables = array_unique($tables);
-        $oldRows = static::getSchemaExtrasForTables($this->id, $tables);
-
-        $inserts = $updates = [];
-
-        foreach ($labels as $label) {
-            $table = ArrayUtils::get($label, 'table');
-            $field = ArrayUtils::get($label, 'field');
-            $id = null;
-            foreach ($oldRows as $row) {
-                if ((ArrayUtils::get($row, 'table') == $table) && (ArrayUtils::get($row, 'field') == $field)) {
-                    $id = ArrayUtils::get($row, 'id');
-                }
-            }
-
-            if (empty($id)) {
-                $inserts[] = $label;
-            } else {
-                $updates[$id] = $label;
+        foreach ($extras as $extra) {
+            if (!empty($table = ArrayUtils::get($extra, 'table'))) {
+                DbTableExtras::updateOrCreate(['service_id' => $this->getServiceId(), 'table' => $table],
+                    array_only($extra, ['label', 'plural', 'description', 'name_field']));
             }
         }
+    }
 
-//            $transaction = null;
-//
-//            try {
-//                $transaction = $db->beginTransaction();
-//            } catch (\Exception $ex) {
-//                //	No transaction support
-//                $transaction = false;
-//            }
-//
-//            try {
-//                $command = new \Command($db);
-//
-//                if (!empty($inserts)) {
-//                    foreach ($inserts as $insert) {
-//                        $command->reset();
-//                        $insert['service_id'] = $this->id;
-//                        $command->insert('df_sys_schema_extras', $insert);
-//                    }
-//                }
-//
-//                if (!empty($updates)) {
-//                    foreach ($updates as $id => $update) {
-//                        $command->reset();
-//                        $update['service_id'] = $this->id;
-//                        $command->update('df_sys_schema_extras', $update, 'id = :id', [':id' => $id]);
-//                    }
-//                }
-//
-//                if ($transaction) {
-//                    $transaction->commit();
-//                }
-//            } catch (\Exception $ex) {
-//                Log::error('Exception storing schema updates: ' . $ex->getMessage());
-//
-//                if ($transaction) {
-//                    $transaction->rollback();
-//                }
-//            }
+    /**
+     * @param array $extras
+     *
+     * @return void
+     */
+    public function setSchemaFieldExtras($extras)
+    {
+        if (empty($extras)) {
+            return;
+        }
+
+        foreach ($extras as $extra) {
+            if (!empty($table = ArrayUtils::get($extra, 'table')) &&
+                !empty($field = ArrayUtils::get($extra, 'field'))
+            ) {
+                DbFieldExtras::updateOrCreate([
+                    'service_id' => $this->getServiceId(),
+                    'table'      => $table,
+                    'field'      => $field
+                ], array_only($extra,
+                    ['label', 'extra_type', 'description', 'picklist', 'validation', 'client_info']));
+            }
+        }
     }
 
     /**
@@ -158,7 +125,8 @@ trait DbSchemaExtras
         }
 
         try {
-            DbTableExtras::whereServiceId($this->id)->whereIn('table', $values)->delete();
+            DbTableExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
+            DbFieldExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
         } catch (\Exception $ex) {
             Log::error('Failed to delete from DB Schema Extras. ' . $ex->getMessage());
         }
@@ -175,7 +143,10 @@ trait DbSchemaExtras
         }
 
         try {
-            DbFieldExtras::whereServiceId($this->id)->whereTable($table_name)->whereIn('field', $values)->delete();
+            DbFieldExtras::whereServiceId($this->getServiceId())
+                ->whereTable($table_name)
+                ->whereIn('field', $values)
+                ->delete();
         } catch (\Exception $ex) {
             Log::error('Failed to delete DB Schema Extras. ' . $ex->getMessage());
         }

@@ -29,7 +29,7 @@ Edit your project’s composer.json to require the following package.
 		"dreamfactory/df-core": "~0.0.2"
 	}
 
-	You may also need to add the following…
+You may also need to add the following…
 
 	"minimum-stability": "dev",
 	"prefer-stable": true,

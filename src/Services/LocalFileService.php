@@ -51,6 +51,10 @@ class LocalFileService extends BaseFileService
             case 'local':
                 $root = Managed::getStoragePath(). '/' . ltrim(env('LOCAL_FILE_ROOT', 'app'), '/');
 
+                if(!is_dir($root)){
+                    mkdir($root, 0775);
+                }
+
                 if (empty($root)) {
                     throw new InternalServerErrorException('Mis-configured disk - ' .
                         $diskName .

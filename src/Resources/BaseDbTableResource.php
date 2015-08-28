@@ -4,12 +4,12 @@ namespace DreamFactory\Core\Resources;
 
 use Config;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
+use DreamFactory\Core\Components\TableNameSchema;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Core\Enums\DbFilterOperators;
@@ -19,6 +19,8 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Enums\Verbs;
 
 abstract class BaseDbTableResource extends BaseDbResource
 {
@@ -82,6 +84,82 @@ abstract class BaseDbTableResource extends BaseDbResource
     public function getResourceName()
     {
         return static::RESOURCE_NAME;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function listResources($schema = null, $refresh = false)
+    {
+        $result = $this->parent->getTableNames($schema, $refresh);
+        $resources = [];
+        foreach ($result as $table) {
+            $name = (!empty($table->alias)) ? $table->alias : $table->name;
+            $access = $this->getPermissions($name);
+            if (!empty($access)) {
+                $resources[] = $name;
+            }
+        }
+
+        return $resources;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getResources($only_handlers = false)
+    {
+        if ($only_handlers) {
+            return [];
+        }
+
+        $refresh = $this->request->getParameterAsBool(ApiOptions::REFRESH);
+        $schema = $this->request->getParameter(ApiOptions::SCHEMA, '');
+        /** @type TableNameSchema[] $result */
+        $result = $this->parent->getTableNames($schema, $refresh);
+        $resources = [];
+        foreach ($result as $table) {
+            $name = (!empty($table->alias)) ? $table->alias : $table->name;
+            $access = $this->getPermissions($name);
+            if (!empty($access)) {
+                $info = $table->toArray(true);
+                $info['access'] = VerbsMask::maskToArray($access);
+                $resources[] = $info;
+            }
+        }
+
+        return $resources;
+    }
+
+    /**
+     * @param string $name       The name of the table to check
+     * @param bool   $returnName If true, the table name is returned instead of TRUE
+     *
+     * @throws \InvalidArgumentException
+     * @return bool
+     */
+    public function doesTableExist($name, $returnName = false)
+    {
+        $name = strtolower($name);
+        $result = $this->parent->getTableNames();
+        if (array_key_exists($name, $result)) {
+            if (!empty($result[$name]->alias)) {
+                // must use alias, denied!
+                return false;
+            }
+
+            return ($returnName) ? $result[$name]->name : true;
+        }
+
+        // search for alias
+        foreach ($result as $table) {
+            $apiName = (!empty($table->alias)) ? $table->alias : $table->name;
+            if ($name === strtolower($apiName)) {
+                return ($returnName) ? $table->name : true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -223,16 +301,6 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @param string $name
-     *
-     * @throws NotFoundException
-     * @throws BadRequestException
-     */
-    public function correctTableName(&$name)
-    {
-    }
-
-    /**
      * @param string $table
      * @param string $action
      *
@@ -244,7 +312,6 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new BadRequestException('Table name can not be empty.');
         }
 
-        $this->correctTableName($table);
         $this->checkPermission($action, $table);
     }
 
@@ -366,6 +433,9 @@ abstract class BaseDbTableResource extends BaseDbResource
 
     /**
      * @return array
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\RestException
      */
     protected function handleGet()
     {
@@ -373,9 +443,13 @@ abstract class BaseDbTableResource extends BaseDbResource
             return parent::handleGET();
         }
 
+        if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
+            throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
+        }
+
         if (!empty($this->resourceId)) {
             //	Single resource by ID
-            $result = $this->retrieveRecordById($this->resource, $this->resourceId, $this->options);
+            $result = $this->retrieveRecordById($tableName, $this->resourceId, $this->options);
             $this->triggerActionEvent($result);
 
             return $result;
@@ -383,15 +457,15 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         if (!empty($ids = ArrayUtils::get($this->options, ApiOptions::IDS))) {
             //	Multiple resources by ID
-            $result = $this->retrieveRecordsByIds($this->resource, $ids, $this->options);
+            $result = $this->retrieveRecordsByIds($tableName, $ids, $this->options);
         } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->payload))) {
             // passing records to have them updated with new or more values, id field required
-            $result = $this->retrieveRecords($this->resource, $records, $this->options);
+            $result = $this->retrieveRecords($tableName, $records, $this->options);
         } else {
             $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
             $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
 
-            $result = $this->retrieveRecordsByFilter($this->resource, $filter, $params, $this->options);
+            $result = $this->retrieveRecordsByFilter($tableName, $filter, $params, $this->options);
         }
 
         $meta = ArrayUtils::get($result, 'meta');
@@ -412,13 +486,20 @@ abstract class BaseDbTableResource extends BaseDbResource
 
     /**
      * @return array
-     * @throws BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\RestException
      */
     protected function handlePost()
     {
         if (empty($this->resource)) {
             // not currently supported, maybe batch opportunity?
             return false;
+        }
+
+        if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
+            throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
         }
 
         if (!empty($this->resourceId)) {
@@ -432,7 +513,7 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $this->triggerActionEvent($this->response);
 
-        $result = $this->createRecords($this->resource, $records, $this->options);
+        $result = $this->createRecords($tableName, $records, $this->options);
 
         $meta = ArrayUtils::get($result, 'meta');
         unset($result['meta']);
@@ -450,7 +531,10 @@ abstract class BaseDbTableResource extends BaseDbResource
 
     /**
      * @return array
-     * @throws BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\RestException
      */
     protected function handlePUT()
     {
@@ -466,10 +550,14 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $this->triggerActionEvent($this->response);
 
+        if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
+            throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
+        }
+
         if (!empty($this->resourceId)) {
             $record = ArrayUtils::get($records, 0, $records);
 
-            return $this->updateRecordById($this->resource, $record, $this->resourceId, $this->options);
+            return $this->updateRecordById($tableName, $record, $this->resourceId, $this->options);
         }
 
         $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
@@ -477,21 +565,21 @@ abstract class BaseDbTableResource extends BaseDbResource
         if (!empty($ids)) {
             $record = ArrayUtils::get($records, 0, $records);
 
-            $result = $this->updateRecordsByIds($this->resource, $record, $ids, $this->options);
+            $result = $this->updateRecordsByIds($tableName, $record, $ids, $this->options);
         } else {
             $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
             if (!empty($filter)) {
                 $record = ArrayUtils::get($records, 0, $records);
                 $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
                 $result = $this->updateRecordsByFilter(
-                    $this->resource,
+                    $tableName,
                     $record,
                     $filter,
                     $params,
                     $this->options
                 );
             } else {
-                $result = $this->updateRecords($this->resource, $records, $this->options);
+                $result = $this->updateRecords($tableName, $records, $this->options);
             }
         }
 
@@ -511,7 +599,10 @@ abstract class BaseDbTableResource extends BaseDbResource
 
     /**
      * @return array
-     * @throws BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\RestException
      */
     protected function handlePatch()
     {
@@ -527,31 +618,35 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $this->triggerActionEvent($this->response);
 
+        if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
+            throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
+        }
+
         if (!empty($this->resourceId)) {
             $record = ArrayUtils::get($records, 0, $records);
 
-            return $this->patchRecordById($this->resource, $record, $this->resourceId, $this->options);
+            return $this->patchRecordById($tableName, $record, $this->resourceId, $this->options);
         }
 
         $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
 
         if (!empty($ids)) {
             $record = ArrayUtils::get($records, 0, $records);
-            $result = $this->patchRecordsByIds($this->resource, $record, $ids, $this->options);
+            $result = $this->patchRecordsByIds($tableName, $record, $ids, $this->options);
         } else {
             $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
             if (!empty($filter)) {
                 $record = ArrayUtils::get($records, 0, $records);
                 $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
                 $result = $this->patchRecordsByFilter(
-                    $this->resource,
+                    $tableName,
                     $record,
                     $filter,
                     $params,
                     $this->options
                 );
             } else {
-                $result = $this->patchRecords($this->resource, $records, $this->options);
+                $result = $this->patchRecords($tableName, $records, $this->options);
             }
         }
 
@@ -571,7 +666,10 @@ abstract class BaseDbTableResource extends BaseDbResource
 
     /**
      * @return array
-     * @throws BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\RestException
      */
     protected function handleDelete()
     {
@@ -582,28 +680,32 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $this->triggerActionEvent($this->response);
 
+        if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
+            throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
+        }
+
         if (!empty($this->resourceId)) {
-            return $this->deleteRecordById($this->resource, $this->resourceId, $this->options);
+            return $this->deleteRecordById($tableName, $this->resourceId, $this->options);
         }
 
         $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
         if (!empty($ids)) {
-            $result = $this->deleteRecordsByIds($this->resource, $ids, $this->options);
+            $result = $this->deleteRecordsByIds($tableName, $ids, $this->options);
         } else {
             $records = ResourcesWrapper::unwrapResources($this->payload);
             if (!empty($records)) {
-                $result = $this->deleteRecords($this->resource, $records, $this->options);
+                $result = $this->deleteRecords($tableName, $records, $this->options);
             } else {
                 $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
                 if (!empty($filter)) {
                     $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
-                    $result = $this->deleteRecordsByFilter($this->resource, $filter, $params, $this->options);
+                    $result = $this->deleteRecordsByFilter($tableName, $filter, $params, $this->options);
                 } else {
                     if (!ArrayUtils::getBool($this->options, ApiOptions::FORCE)) {
                         throw new BadRequestException('No filter or records given for delete request.');
                     }
 
-                    return $this->truncateTable($this->resource, $this->options);
+                    return $this->truncateTable($tableName, $this->options);
                 }
             }
         }

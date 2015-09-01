@@ -332,7 +332,10 @@ class Session
                                 $value = url(\Config::get('df.confirm_invite_url'));
 
                                 return true;
-                            //case 'confirm_register_url':
+                            case 'confirm_register_url':
+                                $value = url(\Config::get('df.confirm_register_url'));
+
+                                return true;
                             case 'confirm_reset_url':
                                 $value = url(\Config::get('df.confirm_reset_url'));
 

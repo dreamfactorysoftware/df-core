@@ -3,12 +3,14 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Enums\AppTypes;
+use DreamFactory\Core\Enums\ServiceTypes;
 use DreamFactory\Core\Models\App as AppModel;
 use DreamFactory\Core\Models\AppGroup as AppGroupModel;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\User\Services\User;
 use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -29,7 +31,7 @@ class Environment extends BaseSystemResource
             'version_current'   => \Config::get('df.api_version'),
             'version_latest'    => \Config::get('df.api_version'),
             'upgrade_available' => false,
-            'is_hosted'         => false,
+            'is_hosted'         => !config('df.standalone'),
             'host'              => php_uname('n'),
         ];
 
@@ -206,16 +208,25 @@ class Environment extends BaseSystemResource
         if (class_exists(User::class)) {
             $oauth = static::getOAuthServices();
             $ldap = static::getAdLdapServices();
+            $userService = ServiceHandler::getService('user');
+            $allowOpenRegistration = $userService->config['allow_open_registration'];
+            $openRegEmailServiceId = $userService->config['open_reg_email_service_id'];
 
             return [
                 'admin'  => $adminApi,
                 'user'   => $userApi,
                 'oauth'  => $oauth,
-                'adldap' => $ldap
+                'adldap' => $ldap,
+                'allow_open_registration' => $allowOpenRegistration,
+                'open_reg_email_service_id' => $openRegEmailServiceId
             ];
         }
 
-        return ['admin' => $adminApi];
+        return [
+            'admin' => $adminApi,
+            'allow_open_registration' => false,
+            'open_reg_email_service_id' => false
+        ];
     }
 
     /**

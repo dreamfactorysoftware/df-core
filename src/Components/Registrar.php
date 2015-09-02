@@ -1,15 +1,15 @@
 <?php
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\User;
-use Validator;
-use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Models\EmailTemplate;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 use DreamFactory\Core\Services\Email\BaseService as EmailService;
-use DreamFactory\Core\Utility\Session;
+use Validator;
 
 class Registrar implements RegistrarContract
 {
@@ -23,7 +23,7 @@ class Registrar implements RegistrarContract
      */
     public function validator(array $data)
     {
-        $userService = ServiceHandler::getService('user');
+        $userService = Service::getCachedByName('user');
         $validationRules = [
             'name'       => 'required|max:255',
             'first_name' => 'required',
@@ -31,7 +31,7 @@ class Registrar implements RegistrarContract
             'email'      => 'required|email|max:255|unique:user'
         ];
 
-        if(empty($userService->config['open_reg_email_service_id'])) {
+        if(empty($userService['config']['open_reg_email_service_id'])) {
             $validationRules['password'] = 'required|confirmed|min:6';
         }
 
@@ -81,10 +81,10 @@ class Registrar implements RegistrarContract
      */
     public function create(array $data)
     {
-        $userService = ServiceHandler::getService('user');
-        $openRegEmailSvcId = $userService->config['open_reg_email_service_id'];
-        $openRegEmailTplId = $userService->config['open_reg_email_template_id'];
-        $openRegRoleId = $userService->config['open_reg_role_id'];
+        $userService = Service::getCachedByName('user');
+        $openRegEmailSvcId = $userService['config']['open_reg_email_service_id'];
+        $openRegEmailTplId = $userService['config']['open_reg_email_template_id'];
+        $openRegRoleId = $userService['config']['open_reg_role_id'];
         $user = User::create($data);
 
         if(!empty($openRegEmailSvcId)){

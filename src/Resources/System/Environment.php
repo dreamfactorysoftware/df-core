@@ -6,7 +6,6 @@ use DreamFactory\Core\Enums\AppTypes;
 use DreamFactory\Core\Models\App as AppModel;
 use DreamFactory\Core\Models\AppGroup as AppGroupModel;
 use DreamFactory\Core\Models\Service as ServiceModel;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\User\Services\User;
 use DreamFactory\Core\Utility\ResourcesWrapper;
@@ -207,7 +206,7 @@ class Environment extends BaseSystemResource
         if (class_exists(User::class)) {
             $oauth = static::getOAuthServices();
             $ldap = static::getAdLdapServices();
-            $userService = Service::getCachedByName('user');
+            $userService = ServiceModel::getCachedByName('user');
             $allowOpenRegistration = $userService['config']['allow_open_registration'];
             $openRegEmailServiceId = $userService['config']['open_reg_email_service_id'];
 

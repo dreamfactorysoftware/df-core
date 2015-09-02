@@ -86,7 +86,7 @@ class Event extends BaseRestResource
                 $processEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'process', []);
                 $broadcastEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'broadcast', []);
 
-                unset($content, $filePath, $service, $serviceEvents);
+                unset($content, $service, $serviceEvents);
             } catch (\Exception $ex) {
                 \Log::error("  * System error building event map for service '$apiName'.\n{$ex->getMessage()}");
             }
@@ -115,6 +115,7 @@ class Event extends BaseRestResource
         foreach (ArrayUtils::get($data, 'apis', []) as $ixApi => $api) {
             $apiProcessEvents = [];
             $apiBroadcastEvents = [];
+            $apiParameters = [];
 
             if (null === ($path = ArrayUtils::get($api, 'path'))) {
                 \Log::notice('  * Missing "path" in Swagger definition: ' . $apiName);
@@ -182,11 +183,7 @@ class Event extends BaseRestResource
                             !empty($enums = ArrayUtils::get($parameter, 'enum'))
                         ) {
                             $name = ArrayUtils::get($parameter, 'name', '');
-                            $name = '{' . $name . '}';
-                            foreach ($enums as $enum) {
-                                $apiProcessEvents[$method][] = str_replace($name, $enum, "$path.$method.pre_process");
-                                $apiProcessEvents[$method][] = str_replace($name, $enum, "$path.$method.post_process");
-                            }
+                            $apiParameters[$name] = $enums;
                         }
                     }
                 }
@@ -194,10 +191,11 @@ class Event extends BaseRestResource
                 unset($operation);
             }
 
-            $processEvents[str_ireplace('{api_name}', $apiName, $path)] = $apiProcessEvents;
-            $broadcastEvents[str_ireplace('{api_name}', $apiName, $path)] = $apiBroadcastEvents;
+            $processEvents[str_ireplace('{api_name}', $apiName, $path)]['verb'] = $apiProcessEvents;
+            $processEvents[str_ireplace('{api_name}', $apiName, $path)]['parameter'] = $apiParameters;
+            $broadcastEvents[str_ireplace('{api_name}', $apiName, $path)]['verb'] = $apiBroadcastEvents;
 
-            unset($apiProcessEvents, $apiBroadcastEvents, $api);
+            unset($apiProcessEvents, $apiBroadcastEvents, $apiParameters, $api);
         }
 
         \Log::debug('  * Discovered ' . $eventCount . ' event(s).');
@@ -336,7 +334,7 @@ class Event extends BaseRestResource
                         foreach ($services as $serviceKey => &$apis) {
                             if (empty($service) || (0 === strcasecmp($service, $serviceKey))) {
                                 foreach ($apis as $path => &$operations) {
-                                    foreach ($operations as $method => &$events) {
+                                    foreach ($operations['verb'] as $method => &$events) {
                                         $temp = [];
                                         foreach ($events as $event) {
                                             $hasScript = boolval(array_keys($scripts, $event));

@@ -42,11 +42,11 @@ class Php extends BaseEngineAdapter implements ScriptingEngineInterface
 
         try {
             $platform = static::buildPlatformAccess($identifier);
-            $event = $data;
+            $event = &$data;
 
-            $result = eval($script);
+            $event['script_result'] = eval($script);
 
-            return $result;
+            return $event;
         } catch (\Exception $ex) {
             $message = $ex->getMessage();
 

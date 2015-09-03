@@ -246,30 +246,12 @@ class Event extends BaseRestResource
     protected static function affectsProcess($event)
     {
         $sections = explode('.', $event);
-        $service = $sections[0];
-        $results = static::getEventMap();
-        foreach ($results as $type => $services) {
-            foreach ($services as $serviceKey => $apis) {
-                if ((0 === strcasecmp($service, $serviceKey))) {
-                    foreach ($apis as $path => &$operations) {
-                        foreach ($operations as $method => &$events) {
-                            foreach ($events as $eventKey) {
-                                if ((0 === strcasecmp($event, $eventKey))) {
-                                    switch ($type) {
-                                        case 'process':
-                                            return true;
-                                        case 'broadcast':
-                                            return false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        $last = $sections[count($sections)-1];
+        if ((0 === strcasecmp('pre_process', $last)) || (0 === strcasecmp('post_process', $last))) {
+            return true;
         }
 
-        throw new BadRequestException("$event is not a valid system event.");
+        return false;
     }
 
     /**

@@ -6,6 +6,7 @@ use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\BaseDbResource;
 use DreamFactory\Library\Utility\ArrayUtils;
 
@@ -86,6 +87,41 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
     public function getResources($only_handlers = false)
     {
         return ($only_handlers) ? $this->resources : array_values($this->resources);
+    }
+
+    /**
+     * @param string|null $schema
+     * @param bool        $refresh
+     *
+     * @return array
+     */
+    abstract public function getTableNames($schema = null, $refresh = false);
+
+    /**
+     */
+    abstract public function refreshTableCache();
+
+    /**
+     * {@InheritDoc}
+     */
+    protected function handleResource(array $resources)
+    {
+        try {
+            return parent::handleResource($resources);
+        } catch (NotFoundException $ex) {
+            // If version 1.x, the resource could be a table
+//            if ($this->request->getApiVersion())
+//            {
+//                $resource = $this->instantiateResource( Table::class, [ 'name' => $this->resource ] );
+//                $newPath = $this->resourceArray;
+//                array_shift( $newPath );
+//                $newPath = implode( '/', $newPath );
+//
+//                return $resource->handleRequest( $this->request, $newPath, $this->outputFormat );
+//            }
+
+            throw $ex;
+        }
     }
 
     /**

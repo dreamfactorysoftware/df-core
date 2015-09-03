@@ -2,7 +2,9 @@
 
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Components\RestHandler;
 use DreamFactory\Core\Contracts\ServiceInterface;
@@ -37,6 +39,10 @@ class BaseRestService extends RestHandler implements ServiceInterface
      * @var string Designated type of this service
      */
     protected $type;
+    /**
+     * @var boolean Is this service activated for use?
+     */
+    protected $isActive = false;
 
     //*************************************************************************
     //	Methods
@@ -50,7 +56,16 @@ class BaseRestService extends RestHandler implements ServiceInterface
         return $this->id;
     }
 
-    /**
+    public function handleRequest(ServiceRequestInterface $request, $resource = null)
+    {
+        if (!$this->isActive) {
+            throw new ForbiddenException("Service {$this->name} is deactivated.");
+        }
+
+        return parent::handleRequest($request, $resource);
+    }
+
+        /**
      * Runs pre process tasks/scripts
      */
     protected function preProcess()

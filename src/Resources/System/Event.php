@@ -86,7 +86,7 @@ class Event extends BaseRestResource
                 $processEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'process', []);
                 $broadcastEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'broadcast', []);
 
-                unset($content, $filePath, $service, $serviceEvents);
+                unset($content, $service, $serviceEvents);
             } catch (\Exception $ex) {
                 \Log::error("  * System error building event map for service '$apiName'.\n{$ex->getMessage()}");
             }
@@ -115,6 +115,7 @@ class Event extends BaseRestResource
         foreach (ArrayUtils::get($data, 'apis', []) as $ixApi => $api) {
             $apiProcessEvents = [];
             $apiBroadcastEvents = [];
+            $apiParameters = [];
 
             if (null === ($path = ArrayUtils::get($api, 'path'))) {
                 \Log::notice('  * Missing "path" in Swagger definition: ' . $apiName);
@@ -174,18 +175,16 @@ class Event extends BaseRestResource
                         $eventCount++;
                     }
 
-                    $apiProcessEvents[$method][] = "$path.$method.pre_process";
-                    $apiProcessEvents[$method][] = "$path.$method.post_process";
-                    $parameters = ArrayUtils::get($operation, 'parameters', []);
-                    foreach ($parameters as $parameter) {
-                        if (('path' === ArrayUtils::get($parameter, 'paramType')) &&
-                            !empty($enums = ArrayUtils::get($parameter, 'enum'))
-                        ) {
-                            $name = ArrayUtils::get($parameter, 'name', '');
-                            $name = '{' . $name . '}';
-                            foreach ($enums as $enum) {
-                                $apiProcessEvents[$method][] = str_replace($name, $enum, "$path.$method.pre_process");
-                                $apiProcessEvents[$method][] = str_replace($name, $enum, "$path.$method.post_process");
+                    if (!isset($apiProcessEvents[$method])) {
+                        $apiProcessEvents[$method][] = "$path.$method.pre_process";
+                        $apiProcessEvents[$method][] = "$path.$method.post_process";
+                        $parameters = ArrayUtils::get($operation, 'parameters', []);
+                        foreach ($parameters as $parameter) {
+                            if (('path' === ArrayUtils::get($parameter, 'paramType')) &&
+                                !empty($enums = ArrayUtils::get($parameter, 'enum'))
+                            ) {
+                                $name = ArrayUtils::get($parameter, 'name', '');
+                                $apiParameters[$name] = $enums;
                             }
                         }
                     }
@@ -194,10 +193,12 @@ class Event extends BaseRestResource
                 unset($operation);
             }
 
-            $processEvents[str_ireplace('{api_name}', $apiName, $path)] = $apiProcessEvents;
-            $broadcastEvents[str_ireplace('{api_name}', $apiName, $path)] = $apiBroadcastEvents;
+            $processEvents[str_ireplace('{api_name}', $apiName, $path)]['verb'] = $apiProcessEvents;
+            $apiParameters = (empty($apiParameters)) ? null : $apiParameters;
+            $processEvents[str_ireplace('{api_name}', $apiName, $path)]['parameter'] = $apiParameters;
+            $broadcastEvents[str_ireplace('{api_name}', $apiName, $path)]['verb'] = $apiBroadcastEvents;
 
-            unset($apiProcessEvents, $apiBroadcastEvents, $api);
+            unset($apiProcessEvents, $apiBroadcastEvents, $apiParameters, $api);
         }
 
         \Log::debug('  * Discovered ' . $eventCount . ' event(s).');
@@ -245,30 +246,12 @@ class Event extends BaseRestResource
     protected static function affectsProcess($event)
     {
         $sections = explode('.', $event);
-        $service = $sections[0];
-        $results = static::getEventMap();
-        foreach ($results as $type => $services) {
-            foreach ($services as $serviceKey => $apis) {
-                if ((0 === strcasecmp($service, $serviceKey))) {
-                    foreach ($apis as $path => &$operations) {
-                        foreach ($operations as $method => &$events) {
-                            foreach ($events as $eventKey) {
-                                if ((0 === strcasecmp($event, $eventKey))) {
-                                    switch ($type) {
-                                        case 'process':
-                                            return true;
-                                        case 'broadcast':
-                                            return false;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
+        $last = $sections[count($sections)-1];
+        if ((0 === strcasecmp('pre_process', $last)) || (0 === strcasecmp('post_process', $last))) {
+            return true;
         }
 
-        throw new BadRequestException("$event is not a valid system event.");
+        return false;
     }
 
     /**
@@ -280,73 +263,65 @@ class Event extends BaseRestResource
     protected function handleGET()
     {
         if (empty($this->resource)) {
-            $results = $this->getEventMap();
-            $allEvents = [];
             $service = $this->request->getParameter('service');
             $type = $this->request->getParameter('type');
             $onlyScripted = $this->request->getParameterAsBool('only_scripted');
+            if ($onlyScripted) {
+                switch ($type) {
+                    case 'process':
+                        $scripts = EventScript::where('affects_process', 1)->lists('name')->all();
+                        break;
+                    case 'broadcast':
+                        $scripts = EventScript::where('affects_process', 0)->lists('name')->all();
+                        break;
+                    default:
+                        $scripts = EventScript::lists('name')->all();
+                        break;
+                }
+
+                return ResourcesWrapper::cleanResources(array_values(array_unique($scripts)));
+            }
+
+            $results = $this->getEventMap();
+            $allEvents = [];
             switch ($type) {
                 case 'process':
-                    $scripts = EventScript::where('affects_process', 1)->lists('name')->all();
                     $results = ArrayUtils::get($results, 'process', []);
-                    foreach ($results as $serviceKey => &$apis) {
-                        if (empty($service) || (0 === strcasecmp($service, $serviceKey))) {
-                            foreach ($apis as $path => &$operations) {
-                                foreach ($operations as $method => &$events) {
-                                    $temp = [];
-                                    foreach ($events as $event) {
-                                        $hasScript = boolval(array_keys($scripts, $event));
-                                        if ($onlyScripted && !$hasScript) {
-                                            continue;
-                                        }
-                                        $temp[$event] = boolval(array_keys($scripts, $event));
-                                        $allEvents[] = $event;
-                                    }
-                                    $events = $temp;
+                    foreach ($results as $serviceKey => $apis) {
+                        if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
+                            unset($results[$serviceKey]);
+                        } else {
+                            foreach ($apis as $path => $operations) {
+                                foreach ($operations['verb'] as $method => $events) {
+                                    $allEvents = array_merge($allEvents, $events);
                                 }
                             }
                         }
                     }
                     break;
                 case 'broadcast':
-                    $scripts = EventScript::where('affects_process', 0)->lists('name')->all();
                     $results = ArrayUtils::get($results, 'broadcast', []);
-                    foreach ($results as $serviceKey => &$apis) {
-                        if (empty($service) || (0 === strcasecmp($service, $serviceKey))) {
-                            foreach ($apis as $path => &$operations) {
-                                foreach ($operations as $method => &$events) {
-                                    $temp = [];
-                                    foreach ($events as $event) {
-                                        $hasScript = boolval(array_keys($scripts, $event));
-                                        if ($onlyScripted && !$hasScript) {
-                                            continue;
-                                        }
-                                        $temp[$event] = boolval(array_keys($scripts, $event));
-                                        $allEvents[] = $event;
-                                    }
-                                    $events = $temp;
+                    foreach ($results as $serviceKey => $apis) {
+                        if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
+                            unset($results[$serviceKey]);
+                        } else {
+                            foreach ($apis as $path => $operations) {
+                                foreach ($operations['verb'] as $method => $events) {
+                                    $allEvents = array_merge($allEvents, $events);
                                 }
                             }
                         }
                     }
                     break;
                 default:
-                    $scripts = EventScript::lists('name')->all();
-                    foreach ($results as $type => &$services) {
-                        foreach ($services as $serviceKey => &$apis) {
-                            if (empty($service) || (0 === strcasecmp($service, $serviceKey))) {
-                                foreach ($apis as $path => &$operations) {
-                                    foreach ($operations as $method => &$events) {
-                                        $temp = [];
-                                        foreach ($events as $event) {
-                                            $hasScript = boolval(array_keys($scripts, $event));
-                                            if ($onlyScripted && !$hasScript) {
-                                                continue;
-                                            }
-                                            $temp[$event] = $hasScript;
-                                            $allEvents[] = $event;
-                                        }
-                                        $events = $temp;
+                    foreach ($results as $type => $services) {
+                        foreach ($services as $serviceKey => $apis) {
+                            if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
+                                unset($results[$type][$serviceKey]);
+                            } else {
+                                foreach ($apis as $path => $operations) {
+                                    foreach ($operations['verb'] as $method => $events) {
+                                        $allEvents = array_merge($allEvents, $events);
                                     }
                                 }
                             }

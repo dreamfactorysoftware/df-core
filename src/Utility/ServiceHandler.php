@@ -3,12 +3,12 @@
 namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Enums\DataFormats;
 
 /**
  * Class ServiceHandler
@@ -27,7 +27,7 @@ class ServiceHandler
     public static function getService($name)
     {
         $name = strtolower(trim($name));
-        $serviceInfo = Service::getCachedInfo($name);
+        $serviceInfo = Service::getCachedByName($name);
         $serviceClass = ArrayUtils::get($serviceInfo, 'class_name');
 
         return new $serviceClass($serviceInfo);
@@ -35,21 +35,10 @@ class ServiceHandler
 
     public static function getServiceById($id)
     {
-        /** @type Service $service */
-        $service = Service::find($id);
+        $serviceInfo = Service::getCachedById($id);
+        $serviceClass = ArrayUtils::get($serviceInfo, 'class_name');
 
-        if (empty($service)) {
-            throw new NotFoundException("Could not find a service for ID $id");
-        }
-
-        if (!$service->is_active) {
-            throw new ForbiddenException("Service $service->name is inactive.");
-        }
-
-        $serviceClass = $service->serviceType()->first()->class_name;
-        $settings = $service->toArray();
-
-        return new $serviceClass($settings);
+        return new $serviceClass($serviceInfo);
     }
 
     /**
@@ -78,20 +67,21 @@ class ServiceHandler
     }
 
     /**
-     * @param       $verb
-     * @param       $service
+     * @param string      $verb
+     * @param string      $service
      * @param null  $resource
      * @param array $query
      * @param null  $payload
+     * @param null  $format
      * @param array $header
      *
      * @return \DreamFactory\Core\Contracts\ServiceResponseInterface|mixed
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \Exception
      */
-    public static function handleRequest($verb, $service, $resource = null, $query = [], $payload = null, $header = [])
+    public static function handleRequest($verb, $service, $resource = null, $query = [], $payload = null, $format = null, $header = [])
     {
-        $_FILES = [];
+        $_FILES = []; // reset so that internal calls can handle other files.
         $request = new ServiceRequest();
         $request->setMethod($verb);
         $request->setParameters($query);
@@ -99,12 +89,11 @@ class ServiceHandler
         if (!empty($payload)) {
             if (is_array($payload)) {
                 $request->setContent($payload);
+            } elseif (empty($format)) {
+                throw new BadRequestException('Payload with undeclared format.');
             } else {
-                // todo this needs to just pass the determined content type as format
-                $request->setContent($payload, DataFormats::JSON);
+                $request->setContent($payload, $format);
             }
-        } else {
-            $request->setContent(null);
         }
 
         $response = self::getService($service)->handleRequest($request, $resource);

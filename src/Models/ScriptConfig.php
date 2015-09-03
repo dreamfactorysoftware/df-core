@@ -5,10 +5,10 @@ namespace DreamFactory\Core\Models;
 /**
  * ScriptConfig
  *
- * @property integer    $service_id
- * @property string     $type
- * @property string     $content
- * @property string     $config
+ * @property integer $service_id
+ * @property string  $type
+ * @property string  $content
+ * @property string  $config
  * @method static \Illuminate\Database\Query\Builder|ScriptConfig whereServiceId($value)
  * @method static \Illuminate\Database\Query\Builder|ScriptConfig whereType($value)
  */
@@ -20,7 +20,7 @@ class ScriptConfig extends BaseServiceConfigModel
 
     protected $appends = ['engine'];
 
-    protected $casts = ['service_id' => 'integer'];
+    protected $casts = ['service_id' => 'integer', 'config' => 'array'];
 
     /**
      * @var array Extra config to pass to any config handler
@@ -75,17 +75,24 @@ class ScriptConfig extends BaseServiceConfigModel
                 $schema['label'] = 'Scripting Engine Type';
                 $schema['description'] =
                     'The Scripting Engine able to run this script. Others coming soon.';
-                $values = ScriptType::all(['name', 'label'])->toArray();
+                $values = ScriptType::all(['name', 'label', 'sandboxed'])->toArray();
                 $schema['type'] = 'picklist';
                 $schema['values'] = $values;
                 break;
             case 'content':
                 $schema['label'] = 'Content';
+                $schema['type'] = 'text';
                 $schema['description'] =
                     'The content of the script written in the appropriate language.';
                 break;
             case 'config':
                 $schema['label'] = 'Additional Configuration';
+                $schema['type'] = 'object';
+                $schema['object'] =
+                    [
+                        'key'   => ['label' => 'Name', 'type' => 'string'],
+                        'value' => ['label' => 'Value', 'type' => 'string']
+                    ];
                 $schema['description'] =
                     'An array of additional configuration needed for the script to run.';
                 break;

@@ -249,7 +249,9 @@ class Packager
         if (false !== $data) {
             $data = DataFormatter::jsonToArray($data);
             try {
-                Service::create($data);
+                foreach($data as $service) {
+                    Service::create($service);
+                }
             } catch (\Exception $ex) {
                 throw new InternalServerErrorException("Could not create the services.\n{$ex->getMessage()}");
             }

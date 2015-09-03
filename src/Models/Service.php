@@ -90,6 +90,7 @@ class Service extends BaseSystemModel
         static::saved(
             function (Service $service){
                 \Cache::forget('service:'.$service->name);
+                \Cache::forget('service_id:'.$service->id);
 
                 // Any changes to services needs to produce a new event list
                 Event::clearCache();
@@ -113,6 +114,7 @@ class Service extends BaseSystemModel
         static::deleted(
             function (Service $service){
                 \Cache::forget('service:'.$service->name);
+                \Cache::forget('service_id:'.$service->id);
 
                 // Any changes to services needs to produce a new event list
                 Event::clearCache();
@@ -242,7 +244,7 @@ class Service extends BaseSystemModel
     }
 
     /**
-     * Returns service info cached, or reads from db if not present.
+     * Returns service info cached by service name, or reads from db if not present.
      * Pass in a key to return a portion/index of the cached data.
      *
      * @param string      $name
@@ -251,7 +253,7 @@ class Service extends BaseSystemModel
      *
      * @return mixed|null
      */
-    public static function getCachedInfo($name, $key = null, $default = null)
+    public static function getCachedByName($name, $key = null, $default = null)
     {
         $cacheKey = 'service:' . $name;
         $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name){
@@ -259,10 +261,6 @@ class Service extends BaseSystemModel
 
             if (empty($service)) {
                 throw new NotFoundException("Could not find a service for $name");
-            }
-
-            if (!$service->is_active) {
-                throw new ForbiddenException("Service $name is inactive.");
             }
 
             $settings = $service->toArray();
@@ -280,5 +278,31 @@ class Service extends BaseSystemModel
         }
 
         return (isset($result[$key]) ? $result[$key] : $default);
+    }
+
+    /**
+     * Returns service info cached, or reads from db if not present.
+     * Pass in a key to return a portion/index of the cached data.
+     *
+     * @param int      $id
+     * @param null|string $key
+     * @param null        $default
+     *
+     * @return mixed|null
+     */
+    public static function getCachedById($id, $key = null, $default = null)
+    {
+        $cacheKey = 'service_id:' . $id;
+        $name = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
+            $service = static::whereId($id)->first(['name']);
+
+            if (empty($service)) {
+                throw new NotFoundException("Could not find a service for id $id");
+            }
+
+            return $service->name;
+        });
+
+        return static::getCachedByName($name, $key, $default);
     }
 }

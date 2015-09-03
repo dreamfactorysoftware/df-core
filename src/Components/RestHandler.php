@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -51,10 +52,6 @@ abstract class RestHandler implements RequestHandlerInterface
      * @var string Description of this service
      */
     protected $description;
-    /**
-     * @var boolean Is this service activated for use?
-     */
-    protected $isActive = false;
     /**
      * @var string HTTP Action Verb
      */
@@ -127,6 +124,15 @@ abstract class RestHandler implements RequestHandlerInterface
     public function __construct($settings = [])
     {
         foreach ($settings as $key => $value) {
+            if (!property_exists($this, $key)) {
+                // try camel cased
+                $camel = camel_case($key);
+                if (property_exists($this, $camel)) {
+                    $this->{$camel} = $value;
+                    continue;
+                }
+            }
+            // set real and virtual
             $this->{$key} = $value;
         }
     }
@@ -147,11 +153,13 @@ abstract class RestHandler implements RequestHandlerInterface
 
     /**
      * @param ServiceRequestInterface $request
-     * @param null                    $resource
+     * @param string|null             $resource
      *
-     * @return ServiceResponseInterface
-     * @throws BadRequestException
-     * @throws InternalServerErrorException
+     * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     public function handleRequest(ServiceRequestInterface $request, $resource = null)
     {

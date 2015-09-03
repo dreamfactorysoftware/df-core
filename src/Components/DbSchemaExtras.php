@@ -50,24 +50,28 @@ trait DbSchemaExtras
      * @throws \InvalidArgumentException
      * @return array
      */
-    public function getSchemaExtrasForFields($table_name, $field_names, $select = '*')
+    public function getSchemaExtrasForFields($table_name, $field_names = '*', $select = '*')
     {
         if (empty($field_names)) {
             return [];
+        }
+
+        if ('*' === $field_names) {
+            return DbFieldExtras::whereServiceId($this->getServiceId())
+                ->whereTable($table_name)
+                ->get()
+                ->toArray();
         }
 
         if (false === $values = DbUtilities::validateAsArray($field_names, ',', true)) {
             throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
         }
 
-        $results =
-            DbFieldExtras::whereServiceId($this->getServiceId())
-                ->where('table', $table_name)
+        return DbFieldExtras::whereServiceId($this->getServiceId())
+                ->whereTable($table_name)
                 ->whereIn('field', $values)
                 ->get()
                 ->toArray();
-
-        return $results;
     }
 
     /**
@@ -84,7 +88,7 @@ trait DbSchemaExtras
         foreach ($extras as $extra) {
             if (!empty($table = ArrayUtils::get($extra, 'table'))) {
                 DbTableExtras::updateOrCreate(['service_id' => $this->getServiceId(), 'table' => $table],
-                    array_only($extra, ['label', 'plural', 'description', 'name_field']));
+                    array_only($extra, ['alias', 'label', 'plural', 'description', 'name_field']));
             }
         }
     }
@@ -109,7 +113,7 @@ trait DbSchemaExtras
                     'table'      => $table,
                     'field'      => $field
                 ], array_only($extra,
-                    ['label', 'extra_type', 'description', 'picklist', 'validation', 'client_info']));
+                    ['alias', 'label', 'extra_type', 'description', 'picklist', 'validation', 'client_info']));
             }
         }
     }

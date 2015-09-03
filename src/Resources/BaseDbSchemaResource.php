@@ -2,16 +2,20 @@
 
 namespace DreamFactory\Core\Resources;
 
+use DreamFactory\Core\Components\TableNameSchema;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Resources\System\Event;
+use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\ArrayUtils;
 
 abstract class BaseDbSchemaResource extends BaseDbResource
 {
@@ -41,13 +45,77 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     }
 
     /**
-     * @param string $name
-     *
-     * @throws NotFoundException
-     * @throws BadRequestException
+     * {@inheritdoc}
      */
-    public function correctTableName(&$name)
+    public function listResources($schema = null, $refresh = false)
     {
+        $tableNames = $this->parent->getTableNames($schema, $refresh);
+
+        return array_keys($tableNames); // only need keys here
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getResources($only_handlers = false)
+    {
+        if ($only_handlers) {
+            return [];
+        }
+
+        $refresh = $this->request->getParameterAsBool(ApiOptions::REFRESH);
+        $schema = $this->request->getParameter(ApiOptions::SCHEMA, '');
+
+        /** @type TableNameSchema[] $result */
+        $result = $this->parent->getTableNames($schema, $refresh);
+        $resources = [];
+        foreach ($result as $table) {
+            $access = $this->getPermissions($table->name);
+            if (!empty($access)) {
+                $info = $table->toArray();
+                $info['access'] = VerbsMask::maskToArray($access);
+                $resources[] = $info;
+            }
+        }
+
+        return $resources;
+    }
+
+    /**
+     * @param string $name       The name of the table to check
+     * @param bool   $returnName If true, the table name is returned instead of TRUE
+     *
+     * @throws \InvalidArgumentException
+     * @return bool
+     */
+    public function doesTableExist($name, $returnName = false)
+    {
+        if (empty($name)) {
+            throw new \InvalidArgumentException('Table name cannot be empty.');
+        }
+
+        //  Build the lower-cased table array
+        $tables = $this->parent->getTableNames();
+
+        //	Search normal, return real name
+        if (false !== array_key_exists(strtolower($name), $tables)) {
+            return $returnName ? $tables[strtolower($name)]->name : true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Refreshes all schema associated with this db connection:
+     *
+     * @return array
+     */
+    public function refreshCachedTables()
+    {
+        $this->parent->refreshTableCache();
+        // Any changes to tables needs to produce a new event list
+        Event::clearCache();
+        Swagger::clearCache($this->getServiceName());
     }
 
     /**
@@ -62,7 +130,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             throw new BadRequestException('Table name can not be empty.');
         }
 
-        $this->correctTableName($table);
+        $this->doesTableExist($table);
         $this->checkPermission($action, $table);
     }
 
@@ -192,7 +260,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
     /**
      * @return array|bool
-     * @throws BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     protected function handleGET()
     {
@@ -209,10 +277,16 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             } else {
                 $result = parent::handleGET();
             }
-        } elseif (empty($this->resourceId)) {
-            $result = $this->describeTable($this->resource, $refresh);
         } else {
-            $result = $this->describeField($this->resource, $this->resourceId, $refresh);
+            if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
+                throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
+            }
+
+            if (empty($this->resourceId)) {
+                $result = $this->describeTable($tableName, $refresh);
+            } else {
+                $result = $this->describeField($tableName, $this->resourceId, $refresh);
+            }
         }
 
         return $result;
@@ -220,7 +294,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
     /**
      * @return array|bool
-     * @throws BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     protected function handlePOST()
     {
@@ -237,12 +312,18 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
             $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
             $result = ResourcesWrapper::cleanResources($result, $asList, $idField, $fields);
-        } elseif (empty($this->resourceId)) {
-            $result = $this->createTable($this->resource, $payload, $checkExist, $fields);
-        } elseif (empty($payload)) {
-            throw new BadRequestException('No data in schema create request.');
         } else {
-            $result = $this->createField($this->resource, $this->resourceId, $payload, $checkExist, $fields);
+            if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
+                throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
+            }
+
+            if (empty($this->resourceId)) {
+                $result = $this->createTable($tableName, $payload, $checkExist, $fields);
+            } elseif (empty($payload)) {
+                throw new BadRequestException('No data in schema create request.');
+            } else {
+                $result = $this->createField($tableName, $this->resourceId, $payload, $checkExist, $fields);
+            }
         }
 
         return $result;
@@ -250,7 +331,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
     /**
      * @return array|bool
-     * @throws BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     protected function handlePUT()
     {
@@ -266,12 +348,18 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
             $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
             $result = ResourcesWrapper::cleanResources($result, $asList, $idField, $fields);
-        } elseif (empty($this->resourceId)) {
-            $result = $this->updateTable($this->resource, $payload, true, $fields);
-        } elseif (empty($payload)) {
-            throw new BadRequestException('No data in schema update request.');
         } else {
-            $result = $this->updateField($this->resource, $this->resourceId, $payload, true, $fields);
+            if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
+                throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
+            }
+
+            if (empty($this->resourceId)) {
+                $result = $this->updateTable($tableName, $payload, true, $fields);
+            } elseif (empty($payload)) {
+                throw new BadRequestException('No data in schema update request.');
+            } else {
+                $result = $this->updateField($tableName, $this->resourceId, $payload, true, $fields);
+            }
         }
 
         return $result;
@@ -279,7 +367,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
     /**
      * @return array|bool
-     * @throws BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     protected function handlePATCH()
     {
@@ -295,12 +384,18 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
             $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
             $result = ResourcesWrapper::cleanResources($result, $asList, $idField, $fields);
-        } elseif (empty($this->resourceId)) {
-            $result = $this->updateTable($this->resource, $payload, false, $fields);
-        } elseif (empty($payload)) {
-            throw new BadRequestException('No data in schema update request.');
         } else {
-            $result = $this->updateField($this->resource, $this->resourceId, $payload, false, $fields);
+            if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
+                throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
+            }
+
+            if (empty($this->resourceId)) {
+                $result = $this->updateTable($tableName, $payload, false, $fields);
+            } elseif (empty($payload)) {
+                throw new BadRequestException('No data in schema update request.');
+            } else {
+                $result = $this->updateField($tableName, $this->resourceId, $payload, false, $fields);
+            }
         }
 
         return $result;
@@ -308,7 +403,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
     /**
      * @return array|bool
-     * @throws BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     protected function handleDELETE()
     {
@@ -328,37 +424,23 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
             $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
             $result = ResourcesWrapper::cleanResources($result, $asList, $idField, $fields);
-        } elseif (empty($this->resourceId)) {
-            $this->deleteTable($this->resource);
-
-            $result = ['success' => true];
         } else {
-            $this->deleteField($this->resource, $this->resourceId);
+            if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
+                throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
+            }
 
-            $result = ['success' => true];
+            if (empty($this->resourceId)) {
+                $this->deleteTable($tableName);
+
+                $result = ['success' => true];
+            } else {
+                $this->deleteField($tableName, $this->resourceId);
+
+                $result = ['success' => true];
+            }
         }
 
         return $result;
-    }
-
-    /**
-     * Check if the table exists in the database
-     *
-     * @param string $table_name Table name
-     *
-     * @return boolean
-     * @throws \Exception
-     */
-    public function doesTableExist($table_name)
-    {
-        try {
-            $this->correctTableName($table_name);
-
-            return true;
-        } catch (\Exception $ex) {
-        }
-
-        return false;
     }
 
     /**
@@ -370,8 +452,10 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    public function describeTables($tables, $refresh = false)
-    {
+    public function describeTables(
+        $tables,
+        $refresh = false
+    ){
         $tables = DbUtilities::validateAsArray(
             $tables,
             ',',
@@ -621,6 +705,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $base = parent::getApiDocInfo();
+        $tables = $this->listResources();
 
         $commonResponses = ApiDocUtilities::getCommonResponses();
 
@@ -709,6 +794,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'refresh',
@@ -739,6 +825,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'schema',
@@ -769,6 +856,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'schema',
@@ -799,6 +887,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'schema',
@@ -826,6 +915,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                         ],
                         'responseMessages' => $commonResponses,
@@ -854,6 +944,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'field_name',
@@ -892,6 +983,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'field_name',
@@ -930,6 +1022,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'field_name',
@@ -968,6 +1061,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'field_name',

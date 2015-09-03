@@ -10,12 +10,6 @@ class DfServiceProvider extends ServiceProvider
 {
     public function boot()
     {
-        $this->publishes(
-            [
-                __DIR__ . '/../config/df.php' => config_path(),
-            ]
-        );
-
         if(!config('df.standalone')){
             if(!class_exists(ManagedServiceProvider::class)){
                 throw new NotImplementedException('Package not installed. For non-standalone instance df-managed package is required.');

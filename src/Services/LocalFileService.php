@@ -50,9 +50,9 @@ class LocalFileService extends BaseFileService
         switch ($disk['driver']) {
             case 'local':
                 if(config('df.standalone')){
-                    $root = storage_path(ltrim(env('LOCAL_FILE_ROOT', 'app'), '/'));
+                    $root = config('df.local_file_service_root');
                 } else {
-                    $root = Managed::getStoragePath() . '/' . ltrim(env('LOCAL_FILE_ROOT', 'app'), '/');
+                    $root = Managed::getStoragePath() . config('df.local_file_service_container');
                 }
 
                 if(!is_dir($root)){

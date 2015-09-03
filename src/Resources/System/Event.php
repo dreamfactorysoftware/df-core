@@ -192,6 +192,7 @@ class Event extends BaseRestResource
             }
 
             $processEvents[str_ireplace('{api_name}', $apiName, $path)]['verb'] = $apiProcessEvents;
+            $apiParameters = (empty($apiParameters)) ? null : $apiParameters;
             $processEvents[str_ireplace('{api_name}', $apiName, $path)]['parameter'] = $apiParameters;
             $broadcastEvents[str_ireplace('{api_name}', $apiName, $path)]['verb'] = $apiBroadcastEvents;
 
@@ -297,7 +298,7 @@ class Event extends BaseRestResource
                                         if ($onlyScripted && !$hasScript) {
                                             continue;
                                         }
-                                        $temp[$event] = boolval(array_keys($scripts, $event));
+                                        $temp[] = $event;
                                         $allEvents[] = $event;
                                     }
                                     $events = $temp;
@@ -319,7 +320,7 @@ class Event extends BaseRestResource
                                         if ($onlyScripted && !$hasScript) {
                                             continue;
                                         }
-                                        $temp[$event] = boolval(array_keys($scripts, $event));
+                                        $temp[] = $event;
                                         $allEvents[] = $event;
                                     }
                                     $events = $temp;
@@ -341,7 +342,7 @@ class Event extends BaseRestResource
                                             if ($onlyScripted && !$hasScript) {
                                                 continue;
                                             }
-                                            $temp[$event] = $hasScript;
+                                            $temp[] = $event;
                                             $allEvents[] = $event;
                                         }
                                         $events = $temp;

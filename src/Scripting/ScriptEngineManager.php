@@ -5,7 +5,6 @@ use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Events\Exceptions\ScriptException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
-use \Log;
 
 /**
  * Scripting engine
@@ -111,7 +110,7 @@ class ScriptEngineManager
         } catch (ScriptException $ex) {
             $message = $ex->getMessage();
 
-            Log::error($message = "Exception executing javascript: $message");
+            \Log::error($message = "Exception executing script: $message");
         }
 
         //  Clean up
@@ -119,7 +118,7 @@ class ScriptEngineManager
         static::destroy($engine);
 
         if (boolval(\Config::get('df.log_script_memory_usage', false))) {
-            Log::debug('Engine memory usage: ' . static::resizeBytes(memory_get_usage(true)));
+            \Log::debug('Engine memory usage: ' . static::resizeBytes(memory_get_usage(true)));
         }
 
         if (false !== $message) {

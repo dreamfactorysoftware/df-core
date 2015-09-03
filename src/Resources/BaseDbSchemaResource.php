@@ -705,6 +705,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $base = parent::getApiDocInfo();
+        $tables = $this->listResources();
 
         $commonResponses = ApiDocUtilities::getCommonResponses();
 
@@ -793,6 +794,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'refresh',
@@ -823,6 +825,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'schema',
@@ -853,6 +856,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'schema',
@@ -883,6 +887,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'schema',
@@ -910,6 +915,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                         ],
                         'responseMessages' => $commonResponses,
@@ -938,6 +944,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'field_name',
@@ -976,6 +983,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'field_name',
@@ -1014,6 +1022,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'field_name',
@@ -1052,6 +1061,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
+                                'enum'          => $tables,
                             ],
                             [
                                 'name'          => 'field_name',

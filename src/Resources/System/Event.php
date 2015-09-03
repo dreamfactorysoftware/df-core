@@ -175,15 +175,17 @@ class Event extends BaseRestResource
                         $eventCount++;
                     }
 
-                    $apiProcessEvents[$method][] = "$path.$method.pre_process";
-                    $apiProcessEvents[$method][] = "$path.$method.post_process";
-                    $parameters = ArrayUtils::get($operation, 'parameters', []);
-                    foreach ($parameters as $parameter) {
-                        if (('path' === ArrayUtils::get($parameter, 'paramType')) &&
-                            !empty($enums = ArrayUtils::get($parameter, 'enum'))
-                        ) {
-                            $name = ArrayUtils::get($parameter, 'name', '');
-                            $apiParameters[$name] = $enums;
+                    if (!isset($apiProcessEvents[$method])) {
+                        $apiProcessEvents[$method][] = "$path.$method.pre_process";
+                        $apiProcessEvents[$method][] = "$path.$method.post_process";
+                        $parameters = ArrayUtils::get($operation, 'parameters', []);
+                        foreach ($parameters as $parameter) {
+                            if (('path' === ArrayUtils::get($parameter, 'paramType')) &&
+                                !empty($enums = ArrayUtils::get($parameter, 'enum'))
+                            ) {
+                                $name = ArrayUtils::get($parameter, 'name', '');
+                                $apiParameters[$name] = $enums;
+                            }
                         }
                     }
                 }

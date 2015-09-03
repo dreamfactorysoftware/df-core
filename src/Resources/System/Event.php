@@ -279,73 +279,65 @@ class Event extends BaseRestResource
     protected function handleGET()
     {
         if (empty($this->resource)) {
-            $results = $this->getEventMap();
-            $allEvents = [];
             $service = $this->request->getParameter('service');
             $type = $this->request->getParameter('type');
             $onlyScripted = $this->request->getParameterAsBool('only_scripted');
+            if ($onlyScripted) {
+                switch ($type) {
+                    case 'process':
+                        $scripts = EventScript::where('affects_process', 1)->lists('name')->all();
+                        break;
+                    case 'broadcast':
+                        $scripts = EventScript::where('affects_process', 0)->lists('name')->all();
+                        break;
+                    default:
+                        $scripts = EventScript::lists('name')->all();
+                        break;
+                }
+
+                return ResourcesWrapper::cleanResources(array_values(array_unique($scripts)));
+            }
+
+            $results = $this->getEventMap();
+            $allEvents = [];
             switch ($type) {
                 case 'process':
-                    $scripts = EventScript::where('affects_process', 1)->lists('name')->all();
                     $results = ArrayUtils::get($results, 'process', []);
-                    foreach ($results as $serviceKey => &$apis) {
-                        if (empty($service) || (0 === strcasecmp($service, $serviceKey))) {
-                            foreach ($apis as $path => &$operations) {
-                                foreach ($operations as $method => &$events) {
-                                    $temp = [];
-                                    foreach ($events as $event) {
-                                        $hasScript = boolval(array_keys($scripts, $event));
-                                        if ($onlyScripted && !$hasScript) {
-                                            continue;
-                                        }
-                                        $temp[] = $event;
-                                        $allEvents[] = $event;
-                                    }
-                                    $events = $temp;
+                    foreach ($results as $serviceKey => $apis) {
+                        if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
+                            unset($results[$serviceKey]);
+                        } else {
+                            foreach ($apis as $path => $operations) {
+                                foreach ($operations['verb'] as $method => $events) {
+                                    $allEvents = array_merge($allEvents, $events);
                                 }
                             }
                         }
                     }
                     break;
                 case 'broadcast':
-                    $scripts = EventScript::where('affects_process', 0)->lists('name')->all();
                     $results = ArrayUtils::get($results, 'broadcast', []);
-                    foreach ($results as $serviceKey => &$apis) {
-                        if (empty($service) || (0 === strcasecmp($service, $serviceKey))) {
-                            foreach ($apis as $path => &$operations) {
-                                foreach ($operations as $method => &$events) {
-                                    $temp = [];
-                                    foreach ($events as $event) {
-                                        $hasScript = boolval(array_keys($scripts, $event));
-                                        if ($onlyScripted && !$hasScript) {
-                                            continue;
-                                        }
-                                        $temp[] = $event;
-                                        $allEvents[] = $event;
-                                    }
-                                    $events = $temp;
+                    foreach ($results as $serviceKey => $apis) {
+                        if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
+                            unset($results[$serviceKey]);
+                        } else {
+                            foreach ($apis as $path => $operations) {
+                                foreach ($operations['verb'] as $method => $events) {
+                                    $allEvents = array_merge($allEvents, $events);
                                 }
                             }
                         }
                     }
                     break;
                 default:
-                    $scripts = EventScript::lists('name')->all();
-                    foreach ($results as $type => &$services) {
-                        foreach ($services as $serviceKey => &$apis) {
-                            if (empty($service) || (0 === strcasecmp($service, $serviceKey))) {
-                                foreach ($apis as $path => &$operations) {
-                                    foreach ($operations['verb'] as $method => &$events) {
-                                        $temp = [];
-                                        foreach ($events as $event) {
-                                            $hasScript = boolval(array_keys($scripts, $event));
-                                            if ($onlyScripted && !$hasScript) {
-                                                continue;
-                                            }
-                                            $temp[] = $event;
-                                            $allEvents[] = $event;
-                                        }
-                                        $events = $temp;
+                    foreach ($results as $type => $services) {
+                        foreach ($services as $serviceKey => $apis) {
+                            if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
+                                unset($results[$type][$serviceKey]);
+                            } else {
+                                foreach ($apis as $path => $operations) {
+                                    foreach ($operations['verb'] as $method => $events) {
+                                        $allEvents = array_merge($allEvents, $events);
                                     }
                                 }
                             }

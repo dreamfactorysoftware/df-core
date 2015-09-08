@@ -232,4 +232,17 @@ class ServiceRequest implements ServiceRequestInterface
 
         return $apiKey;
     }
+
+    /**
+     * Returns request input.
+     *
+     * @param null $key
+     * @param null $default
+     *
+     * @return array|string
+     */
+    public function input($key=null, $default=null)
+    {
+        return Request::input($key, $default);
+    }
 }

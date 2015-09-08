@@ -75,13 +75,15 @@ class App extends BaseSystemResource
     {
         $uploadedFiles = $this->request->getFile('file');
         $importUrl = $this->request->getParameter('import_url');
+        $storageServiceId = $this->request->input('storage_service_id');
+        $storageContainer = $this->request->input('storage_container');
 
         if(!empty($uploadedFiles)){
             $package = new Packager($uploadedFiles);
-            $results = $package->importAppFromPackage();
+            $results = $package->importAppFromPackage($storageServiceId, $storageContainer);
         }  elseif (!empty($importUrl)) {
             $package = new Packager($importUrl);
-            $results = $package->importAppFromPackage();
+            $results = $package->importAppFromPackage($storageServiceId, $storageContainer);
         } else {
             $results = parent::handlePOST();
         }

@@ -280,4 +280,17 @@ trait InternalServiceRequest
 
         return $apiKey;
     }
+
+    /**
+     * Returns request input.
+     *
+     * @param null $key
+     * @param null $default
+     *
+     * @return array|string
+     */
+    public function input($key=null, $default=null)
+    {
+        return $this->getParameter($key, $this->getPayloadData($key, $default));
+    }
 }

@@ -237,7 +237,11 @@ class Packager
         }
 
         if(!isset($record['name'])){
-            throw new BadRequestException('No App name provided in description.');
+            throw new BadRequestException('No App name provided in description.json');
+        }
+
+        if(!isset($record['type'])){
+            $record['type'] = AppTypes::NONE;
         }
 
         if (isset($record['active']) && !isset($record['is_active'])) {
@@ -247,26 +251,31 @@ class Packager
             $record['is_active'] = true;
         }
 
-        if (!empty($record['storage_service_id'])) {
-            $serviceRecord = Service::with('service_type_by_type')->whereId($record['storage_service_id'])->first();
+        if($record['type'] === AppTypes::STORAGE_SERVICE) {
+            if (!empty(ArrayUtils::get($record, 'storage_service_id'))) {
+                $serviceRecord = Service::with('service_type_by_type')->whereId($record['storage_service_id'])->first();
 
-            if(empty($serviceRecord)){
-                throw new BadRequestException('Invalid Storage Service provided.');
+                if (empty($serviceRecord)) {
+                    throw new BadRequestException('Invalid Storage Service provided.');
+                }
+
+                $serviceType = $serviceRecord->getRelation('service_type_by_type');
+
+                if (ServiceTypeGroups::FILE !== $serviceType->group) {
+                    throw new BadRequestException('Invalid Storage Service provided.');
+                }
+            } else {
+                $record['storage_service_id'] = $this->getDefaultStorageServiceId();
             }
 
-            $serviceType = $serviceRecord->getRelation('service_type_by_type');
-
-            if(ServiceTypeGroups::FILE !== $serviceType->group){
-                throw new BadRequestException('Invalid Storage Service provided.');
+            if (!empty(ArrayUtils::get($record, 'storage_container'))) {
+                $record['storage_container'] = trim($record['storage_container'], '/');
+            } else {
+                $record['storage_container'] = Inflector::camelize($record['name']);
             }
         } else {
-            $record['storage_service_id'] = $this->getDefaultStorageServiceId();
-        }
-
-        if(!empty($record['storage_container'])){
-            $record['storage_container'] = trim($record['storage_container'], '/');
-        } else {
-            $record['storage_container'] = Inflector::camelize($record['name']);
+            $record['storage_service_id'] = null;
+            $record['storage_container'] = null;
         }
 
         if(!isset($record['url'])){
@@ -275,7 +284,15 @@ class Packager
             $record['url'] = ltrim($record['url'], '/');
         }
 
-        $record['path'] = $record['storage_container'].'/'.$record['url'];
+        if($record['type'] === AppTypes::STORAGE_SERVICE || $record['type'] === AppTypes::PATH) {
+            if(empty(ArrayUtils::get($record, 'path'))){
+                throw new BadRequestException('No Application Path provided in description.json');
+            }
+        } else if ($record['type'] === AppTypes::URL){
+            if(empty(ArrayUtils::get($record, 'url'))){
+                throw new BadRequestException('No Application URL provided in description.json');
+            }
+        }
     }
 
     /**
@@ -431,20 +448,24 @@ class Packager
      */
     private function storeApplicationFiles($appInfo)
     {
-        $appName = Inflector::camelize(ArrayUtils::get($appInfo, 'name'));
-        $storageServiceId = ArrayUtils::get($appInfo, 'storage_service_id', $this->getDefaultStorageServiceId());
-        $storageFolder = ArrayUtils::get($appInfo, 'storage_container', $appName);
+        if(ArrayUtils::get($appInfo, 'type', AppTypes::NONE) === AppTypes::STORAGE_SERVICE) {
+            $appName = Inflector::camelize(ArrayUtils::get($appInfo, 'name'));
+            $storageServiceId = ArrayUtils::get($appInfo, 'storage_service_id', $this->getDefaultStorageServiceId());
+            $storageFolder = ArrayUtils::get($appInfo, 'storage_container', $appName);
 
-        /** @var $service BaseFileService */
-        $service = ServiceHandler::getServiceById($storageServiceId);
-        if (empty($service)) {
-            throw new InternalServerErrorException(
-                "App record created, but failed to import files due to unknown storage service with id '$storageServiceId'."
-            );
+            /** @var $service BaseFileService */
+            $service = ServiceHandler::getServiceById($storageServiceId);
+            if (empty($service)) {
+                throw new InternalServerErrorException(
+                    "App record created, but failed to import files due to unknown storage service with id '$storageServiceId'."
+                );
+            }
+            $info = $service->extractZipFile($storageFolder, '', $this->zip);
+
+            return $info;
+        } else {
+            return [];
         }
-        $info = $service->extractZipFile($storageFolder, '', $this->zip);
-
-        return $info;
     }
 
     /**

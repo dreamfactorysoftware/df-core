@@ -44,15 +44,13 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getParameter($key = null, $default = null)
     {
-        if (!empty($this->parameters)) {
-            if (null === $key) {
-                return $this->parameters;
-            } else {
-                return ArrayUtils::get($this->parameters, $key, $default);
-            }
-        }
+        $this->getParameters();
 
-        return Request::query($key, $default);
+        if (null === $key) {
+            return $this->parameters;
+        } else {
+            return ArrayUtils::get($this->parameters, $key, $default);
+        }
     }
 
     /**
@@ -60,20 +58,18 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getParameters()
     {
-        if (!empty($this->parameters)) {
-            return $this->parameters;
+        if(empty($this->parameters)){
+            $this->parameters = Request::query();
         }
 
-        return Request::query();
+        return $this->parameters;
     }
 
     public function getParameterAsBool($key, $default = false)
     {
-        if (!empty($this->parameters)) {
-            return ArrayUtils::getBool($this->parameters, $key, $default);
-        }
+        $this->getParameters();
 
-        return Scalar::boolval(Request::query($key, $default));
+        return ArrayUtils::getBool($this->parameters, $key, $default);
     }
 
     /**
@@ -160,18 +156,12 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getHeader($key = null, $default = null)
     {
-        if (!empty($this->headers)) {
-            if (null === $key) {
-                return $this->headers;
-            } else {
-                return ArrayUtils::get($this->headers, $key, $default);
-            }
-        }
+        $this->getHeaders();
 
         if (null === $key) {
-            return Request::header();
+            return $this->headers;
         } else {
-            return Request::header($key, $default);
+            return ArrayUtils::get($this->headers, $key, $default);
         }
     }
 
@@ -180,11 +170,11 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getHeaders()
     {
-        if (!empty($this->headers)) {
-            return $this->headers;
+        if (empty($this->headers)) {
+            $this->headers = Request::header();
         }
 
-        return Request::header();
+        return $this->headers;
     }
 
     /**
@@ -231,6 +221,52 @@ class ServiceRequest implements ServiceRequestInterface
         }
 
         return $apiKey;
+    }
+
+    /**
+     * @param array $parameters
+     *
+     * @return $this
+     */
+    public function setParameters(array $parameters)
+    {
+        $this->getParameters();
+        foreach($parameters as $key => $value){
+            $this->setParameter($key, $value);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setParameter($key, $value)
+    {
+        $this->getParameters();
+        $this->parameters[$key] = $value;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setHeaders(array $headers)
+    {
+        $this->getHeaders();
+        foreach($headers as $key => $value){
+            $this->setHeader($key, $value);
+        }
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setHeader($key, $data)
+    {
+        $this->getHeaders();
+        $this->headers[$key] = $data;
     }
 
     /**

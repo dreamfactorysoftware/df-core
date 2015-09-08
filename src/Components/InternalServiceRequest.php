@@ -20,11 +20,11 @@ trait InternalServiceRequest
     /**
      * @var array
      */
-    protected $parameters = [];
+    protected $parameters = null;
     /**
      * @var array
      */
-    protected $headers = [];
+    protected $headers = null;
     /**
      * @var null|string
      */
@@ -70,7 +70,13 @@ trait InternalServiceRequest
      */
     public function setParameters(array $parameters)
     {
-        $this->parameters = $parameters;
+        if(is_null($this->parameters)) {
+            $this->parameters = $parameters;
+        } else {
+            foreach($parameters as $key => $value){
+                $this->setParameter($key, $value);
+            }
+        }
 
         return $this;
     }
@@ -80,7 +86,11 @@ trait InternalServiceRequest
      */
     public function setParameter($key, $value)
     {
-        $this->parameters[$key] = $value;
+        if(is_null($this->parameters)){
+            $this->setParameters([$key => $value]);
+        } else {
+            $this->parameters[$key] = $value;
+        }
     }
 
     /**
@@ -88,7 +98,7 @@ trait InternalServiceRequest
      */
     public function getParameters()
     {
-        return $this->parameters;
+        return (is_null($this->parameters))? [] : $this->parameters;
     }
 
     /**
@@ -96,6 +106,10 @@ trait InternalServiceRequest
      */
     public function getParameter($key = null, $default = null)
     {
+        if(is_null($this->parameters)){
+            return $default;
+        }
+
         if (null === $key) {
             return $this->parameters;
         } else {
@@ -111,6 +125,10 @@ trait InternalServiceRequest
      */
     public function getParameterAsBool($key, $default = false)
     {
+        if(is_null($this->parameters)){
+            return $default;
+        }
+
         return ArrayUtils::getBool($this->parameters, $key, $default);
     }
 
@@ -186,7 +204,13 @@ trait InternalServiceRequest
      */
     public function setHeaders(array $headers)
     {
-        $this->headers = $headers;
+        if(is_null($this->headers)) {
+            $this->headers = $headers;
+        } else {
+            foreach($headers as $key => $value){
+                $this->setHeader($key, $value);
+            }
+        }
 
         return $this;
     }
@@ -196,7 +220,11 @@ trait InternalServiceRequest
      */
     public function setHeader($key, $data)
     {
-        $this->headers[$key] = $data;
+        if(is_null($this->headers)){
+            $this->setHeaders([$key => $data]);
+        } else {
+            $this->headers[$key] = $data;
+        }
     }
 
     /**
@@ -204,6 +232,10 @@ trait InternalServiceRequest
      */
     public function getHeader($key = null, $default = null)
     {
+        if(is_null($this->headers)){
+            return $default;
+        }
+
         if (null === $key) {
             return $this->headers;
         } else {
@@ -216,7 +248,7 @@ trait InternalServiceRequest
      */
     public function getHeaders()
     {
-        return $this->headers;
+        return (is_null($this->headers))? [] : $this->headers;
     }
 
     /**

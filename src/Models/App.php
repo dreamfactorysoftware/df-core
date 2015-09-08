@@ -102,13 +102,11 @@ class App extends BaseSystemModel
                     $service = Service::whereId($this->storage_service_id)->first();
                     if (!empty($service)) {
                         $launchUrl .= $service->name . '/';
+                        if (!empty($this->storage_container)) {
+                            $launchUrl .= trim($this->storage_container, '/');
+                        }
                         if(!empty($this->path)){
-                            $launchUrl .= $this->path;
-                        } else {
-                            if (!empty($this->storage_container)) {
-                                $launchUrl .= $this->storage_container . '/';
-                            }
-                            $launchUrl .= $this->name . '/' . ltrim($this->path, '/');
+                            $launchUrl .= '/'. ltrim($this->path, '/');
                         }
                         $launchUrl = url($launchUrl);
                     }

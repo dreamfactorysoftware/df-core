@@ -92,7 +92,7 @@ abstract class BaseFileService extends BaseRestService
     {
         // File services need the trailing slash '/' for designating folders vs files
         // It is removed by the parent method
-        $isFolder = (empty($resourcePath) ? false : ('/' === substr($resourcePath, - 1)));
+        $isFolder = (empty($resourcePath) ? false : ('/' === substr($resourcePath, -1)));
         parent::setResourceMembers($resourcePath);
 
         if (!empty($resourcePath)) {
@@ -385,7 +385,7 @@ abstract class BaseFileService extends BaseRestService
             $result = ['name' => basename($this->filePath), 'path' => $this->filePath];
         }
 
-        return $result;
+        return ResourcesWrapper::cleanResources($result);
     }
 
     /**
@@ -408,7 +408,7 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function hasTrailingSlash($path)
     {
-         return ('/' === substr($path, - 1));
+        return ('/' === substr($path, -1));
     }
 
     /**
@@ -568,9 +568,12 @@ abstract class BaseFileService extends BaseRestService
      */
     protected function handleFolderContentFromData(
         $data,
-        /** @noinspection PhpUnusedParameterInspection */ $extract = false,
-        /** @noinspection PhpUnusedParameterInspection */ $clean = false,
-        /** @noinspection PhpUnusedParameterInspection */ $checkExist = false
+        /** @noinspection PhpUnusedParameterInspection */
+        $extract = false,
+        /** @noinspection PhpUnusedParameterInspection */
+        $clean = false,
+        /** @noinspection PhpUnusedParameterInspection */
+        $checkExist = false
     ){
         $out = [];
         if (!empty($data) && ArrayUtils::isArrayNumeric($data)) {
@@ -660,6 +663,7 @@ abstract class BaseFileService extends BaseRestService
      * @param  bool  $force
      *
      * @return array
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
     protected function deleteFolderContent($data, $root = '', $force = false)
     {
@@ -668,8 +672,16 @@ abstract class BaseFileService extends BaseRestService
         if (!empty($data)) {
             foreach ($data as $key => $resource) {
                 $path = ArrayUtils::get($resource, 'path');
-                $fullPath = $root . $path;
                 $name = ArrayUtils::get($resource, 'name');
+
+                if (!empty($path)) {
+                    $fullPath = $path;
+                } else if (!empty($name)) {
+                    $fullPath = $root . '/' . $name;
+                } else {
+                    throw new BadRequestException('No path or name provided for resource.');
+                }
+
                 switch (ArrayUtils::get($resource, 'type')) {
                     case 'file':
                         $out[$key] = ['name' => $name, 'path' => $path, 'type' => 'file'];

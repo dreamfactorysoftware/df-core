@@ -7,6 +7,7 @@ use DreamFactory\Core\Components\InternalServiceRequest;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use DreamFactory\Library\Utility\Scalar;
 use Request;
 
 /**
@@ -43,12 +44,18 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getParameter($key = null, $default = null)
     {
-        $this->loadParameters();
+        if (!is_null($this->parameters)) {
+            if (null === $key) {
+                return $this->parameters;
+            } else {
+                return ArrayUtils::get($this->parameters, $key, $default);
+            }
+        }
 
         if (null === $key) {
-            return $this->parameters;
+            return Request::query();
         } else {
-            return ArrayUtils::get($this->parameters, $key, $default);
+            return Request::query($key, $default);
         }
     }
 
@@ -57,16 +64,20 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getParameters()
     {
-        $this->loadParameters();
+        if (!is_null($this->parameters)) {
+            return $this->parameters;
+        }
 
-        return $this->parameters;
+        return Request::query();
     }
 
     public function getParameterAsBool($key, $default = false)
     {
-        $this->loadParameters();
+        if (!is_null($this->parameters)) {
+            return ArrayUtils::getBool($this->parameters, $key, $default);
+        }
 
-        return ArrayUtils::getBool($this->parameters, $key, $default);
+        return Scalar::boolval(Request::query($key, $default));
     }
 
     /**
@@ -153,12 +164,18 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getHeader($key = null, $default = null)
     {
-        $this->loadHeaders();
+        if (!is_null($this->headers)) {
+            if (null === $key) {
+                return $this->headers;
+            } else {
+                return ArrayUtils::get($this->headers, $key, $default);
+            }
+        }
 
         if (null === $key) {
-            return $this->headers;
+            return Request::header();
         } else {
-            return ArrayUtils::get($this->headers, $key, $default);
+            return Request::header($key, $default);
         }
     }
 
@@ -167,9 +184,11 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getHeaders()
     {
-        $this->loadHeaders();
+        if (!is_null($this->headers)) {
+            return $this->headers;
+        }
 
-        return $this->headers;
+        return Request::header();
     }
 
     /**

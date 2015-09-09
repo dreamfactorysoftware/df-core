@@ -48,6 +48,11 @@ class ResponseFactory
         if (empty($accepts)) {
             $accepts = array_map('trim', explode(',', \Request::header('ACCEPT')));
         }
+        // If no accepts header supplied or a blank is supplied for
+        // accept header (clients like bench-rest) then accept any.
+        if(empty($accepts) || (isset($accepts[0]) && empty($accepts[0]))) {
+            $accepts[] = '*/*';
+        }
 
         $content = $response->getContent();
         $format = $response->getContentFormat();

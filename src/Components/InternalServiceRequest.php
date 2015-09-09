@@ -70,13 +70,7 @@ trait InternalServiceRequest
      */
     public function setParameters(array $parameters)
     {
-        if(is_null($this->parameters)) {
-            $this->parameters = $parameters;
-        } else {
-            foreach($parameters as $key => $value){
-                $this->setParameter($key, $value);
-            }
-        }
+        $this->parameters = $parameters;
 
         return $this;
     }
@@ -86,11 +80,7 @@ trait InternalServiceRequest
      */
     public function setParameter($key, $value)
     {
-        if(is_null($this->parameters)){
-            $this->setParameters([$key => $value]);
-        } else {
-            $this->parameters[$key] = $value;
-        }
+        $this->parameters[$key] = $value;
     }
 
     /**
@@ -98,7 +88,7 @@ trait InternalServiceRequest
      */
     public function getParameters()
     {
-        return (is_null($this->parameters))? [] : $this->parameters;
+        return (is_null($this->parameters)) ? [] : $this->parameters;
     }
 
     /**
@@ -106,7 +96,7 @@ trait InternalServiceRequest
      */
     public function getParameter($key = null, $default = null)
     {
-        if(is_null($this->parameters)){
+        if (is_null($this->parameters)) {
             return $default;
         }
 
@@ -125,7 +115,7 @@ trait InternalServiceRequest
      */
     public function getParameterAsBool($key, $default = false)
     {
-        if(is_null($this->parameters)){
+        if (is_null($this->parameters)) {
             return $default;
         }
 
@@ -204,13 +194,7 @@ trait InternalServiceRequest
      */
     public function setHeaders(array $headers)
     {
-        if(is_null($this->headers)) {
-            $this->headers = $headers;
-        } else {
-            foreach($headers as $key => $value){
-                $this->setHeader($key, $value);
-            }
-        }
+        $this->headers = $headers;
 
         return $this;
     }
@@ -220,11 +204,7 @@ trait InternalServiceRequest
      */
     public function setHeader($key, $data)
     {
-        if(is_null($this->headers)){
-            $this->setHeaders([$key => $data]);
-        } else {
-            $this->headers[$key] = $data;
-        }
+        $this->headers[$key] = $data;
     }
 
     /**
@@ -232,7 +212,7 @@ trait InternalServiceRequest
      */
     public function getHeader($key = null, $default = null)
     {
-        if(is_null($this->headers)){
+        if (is_null($this->headers)) {
             return $default;
         }
 
@@ -248,7 +228,7 @@ trait InternalServiceRequest
      */
     public function getHeaders()
     {
-        return (is_null($this->headers))? [] : $this->headers;
+        return (is_null($this->headers)) ? [] : $this->headers;
     }
 
     /**
@@ -321,7 +301,7 @@ trait InternalServiceRequest
      *
      * @return array|string
      */
-    public function input($key=null, $default=null)
+    public function input($key = null, $default = null)
     {
         return $this->getParameter($key, $this->getPayloadData($key, $default));
     }

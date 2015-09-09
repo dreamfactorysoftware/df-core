@@ -236,11 +236,11 @@ class Packager
             throw new BadRequestException('Invalid App data provided');
         }
 
-        if(!isset($record['name'])){
+        if (!isset($record['name'])) {
             throw new BadRequestException('No App name provided in description.json');
         }
 
-        if(!isset($record['type'])){
+        if (!isset($record['type'])) {
             $record['type'] = AppTypes::NONE;
         }
 
@@ -251,7 +251,7 @@ class Packager
             $record['is_active'] = true;
         }
 
-        if($record['type'] === AppTypes::STORAGE_SERVICE) {
+        if ($record['type'] === AppTypes::STORAGE_SERVICE) {
             if (!empty(ArrayUtils::get($record, 'storage_service_id'))) {
                 $serviceRecord = Service::with('service_type_by_type')->whereId($record['storage_service_id'])->first();
 
@@ -278,18 +278,18 @@ class Packager
             $record['storage_container'] = null;
         }
 
-        if(!isset($record['url'])){
+        if (!isset($record['url'])) {
             $record['url'] = static::DEFAULT_URL;
         } else {
             $record['url'] = ltrim($record['url'], '/');
         }
 
-        if($record['type'] === AppTypes::STORAGE_SERVICE || $record['type'] === AppTypes::PATH) {
-            if(empty(ArrayUtils::get($record, 'path'))){
+        if ($record['type'] === AppTypes::STORAGE_SERVICE || $record['type'] === AppTypes::PATH) {
+            if (empty(ArrayUtils::get($record, 'path'))) {
                 throw new BadRequestException('No Application Path provided in description.json');
             }
-        } else if ($record['type'] === AppTypes::URL){
-            if(empty(ArrayUtils::get($record, 'url'))){
+        } else if ($record['type'] === AppTypes::URL) {
+            if (empty(ArrayUtils::get($record, 'url'))) {
                 throw new BadRequestException('No Application URL provided in description.json');
             }
         }
@@ -448,7 +448,7 @@ class Packager
      */
     private function storeApplicationFiles($appInfo)
     {
-        if(ArrayUtils::get($appInfo, 'type', AppTypes::NONE) === AppTypes::STORAGE_SERVICE) {
+        if (ArrayUtils::get($appInfo, 'type', AppTypes::NONE) === AppTypes::STORAGE_SERVICE) {
             $appName = Inflector::camelize(ArrayUtils::get($appInfo, 'name'));
             $storageServiceId = ArrayUtils::get($appInfo, 'storage_service_id', $this->getDefaultStorageServiceId());
             $storageFolder = ArrayUtils::get($appInfo, 'storage_container', $appName);

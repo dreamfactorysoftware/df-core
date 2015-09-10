@@ -31,7 +31,7 @@ class Registrar implements RegistrarContract
             'email'      => 'required|email|max:255|unique:user'
         ];
 
-        if(empty($userService['config']['open_reg_email_service_id'])) {
+        if (empty($userService['config']['open_reg_email_service_id'])) {
             $validationRules['password'] = 'required|confirmed|min:6';
         }
 
@@ -87,14 +87,14 @@ class Registrar implements RegistrarContract
         $openRegRoleId = $userService['config']['open_reg_role_id'];
         $user = User::create($data);
 
-        if(!empty($openRegEmailSvcId)){
+        if (!empty($openRegEmailSvcId)) {
             $this->sendConfirmation($user, $openRegEmailSvcId, $openRegEmailTplId);
-        } else if(!empty($data['password'])){
+        } else if (!empty($data['password'])) {
             $user->password = $data['password'];
             $user->save();
         }
 
-        if(!empty($openRegRoleId)){
+        if (!empty($openRegRoleId)) {
             User::applyDefaultUserAppRole($user, $openRegRoleId);
         }
 
@@ -109,7 +109,7 @@ class Registrar implements RegistrarContract
      *
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
-    protected static function sendConfirmation($user, $emailServiceId, $emailTemplateId, $deleteOnError=true)
+    protected static function sendConfirmation($user, $emailServiceId, $emailTemplateId, $deleteOnError = true)
     {
         try {
             if (empty($emailServiceId)) {
@@ -134,26 +134,27 @@ class Registrar implements RegistrarContract
                 $user->confirm_code = base64_encode($code);
                 $user->save();
 
-                $data = [
-                    'to'           => $email,
-                    'subject'      => 'Welcome to DreamFactory',
-                    'first_name'   => $user->first_name,
-                    'last_name'    => $user->last_name,
-                    'confirm_code' => $user->confirm_code,
-                    'display_name' => $user->name,
-                    'from_name'    => 'DreamFactory 2.0'
-                ];
+                $data = array_merge($emailTemplate->toArray(), [
+                    'to'            => $email,
+                    'subject'       => 'Welcome to DreamFactory',
+                    'firstName'     => $user->first_name,
+                    'contentHeader' => 'Confirm your DreamFactory account.',
+                    'link'          => url(\Config::get('df.confirm_register_url')) . '?code=' . $user->confirm_code,
+                    'code'          => $user->confirm_code,
+                    'instanceName'  => \Config::get('df.instance_name')
+                ]);
             } catch (\Exception $e) {
                 throw new InternalServerErrorException("Error creating user confirmation.\n{$e->getMessage()}",
                     $e->getCode());
             }
 
             $emailService->sendEmail($data, $emailTemplate->body_text, $emailTemplate->body_html);
-        } catch (\Exception $e){
+        } catch (\Exception $e) {
             if ($deleteOnError) {
                 $user->delete();
             }
-            throw new InternalServerErrorException("Error processing user confirmation.\n{$e->getMessage()}", $e->getCode());
+            throw new InternalServerErrorException("Error processing user confirmation.\n{$e->getMessage()}",
+                $e->getCode());
         }
     }
 }

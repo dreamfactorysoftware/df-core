@@ -1,5 +1,5 @@
 <?php
-namespace DreamFactory\Core\Components;
+namespace DreamFactory\Core\Database;
 
 /**
  * TableNameSchema is the base class for representing the metadata of a database table.
@@ -12,6 +12,7 @@ namespace DreamFactory\Core\Components;
  * <li>{@link rawName}</li>
  * </ul>
  *
+ * @property array $columnNames List of column names.
  */
 class TableNameSchema
 {
@@ -36,9 +37,15 @@ class TableNameSchema
      */
     public $description;
 
-    public function __construct($name)
+    /**
+     * @var boolean Table or View?.
+     */
+    public $isView;
+
+    public function __construct($name, $is_view = false)
     {
         $this->name = $name;
+        $this->isView = $is_view;
         $this->label = static::camelize($this->name, '_', true);
         $this->plural = static::pluralize($this->label);
     }
@@ -59,6 +66,7 @@ class TableNameSchema
     {
         $out = [
             'name'        => ($use_alias && !empty($this->alias)) ? $this->alias : $this->name,
+            'is_view'     => $this->isView,
             'label'       => $this->label,
             'plural'      => $this->plural,
             'description' => $this->description,

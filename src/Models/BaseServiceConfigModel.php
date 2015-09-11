@@ -3,7 +3,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
-use DreamFactory\Core\SqlDbCore\ColumnSchema;
+use DreamFactory\Core\Database\ColumnSchema;
 
 /**
  * Class BaseServiceConfigModel

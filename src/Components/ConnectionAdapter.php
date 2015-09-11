@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use DreamFactory\Core\SqlDbCore\Connection;
+use DreamFactory\Core\Database\Connection;
 
 class ConnectionAdapter extends Connection
 {

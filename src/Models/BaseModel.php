@@ -9,16 +9,15 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Components\ConnectionAdapter;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\SqlDbCore\ColumnSchema;
-use DreamFactory\Core\SqlDbCore\RelationSchema;
-use DreamFactory\Core\SqlDbCore\Schema;
-use DreamFactory\Core\SqlDbCore\TableSchema;
+use DreamFactory\Core\Database\ColumnSchema;
+use DreamFactory\Core\Database\RelationSchema;
+use DreamFactory\Core\Database\Schema;
+use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Components\Builder as DfBuilder;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\Session as SessionUtility;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Crypt;
 use DB;
 
@@ -151,6 +150,7 @@ class BaseModel extends Model
     public static function isField($field)
     {
         $m = new static;
+        /** @type TableSchema $tableSchema */
         $tableSchema = $m->getTableSchema();
         $columns = $tableSchema->getColumnNames();
 

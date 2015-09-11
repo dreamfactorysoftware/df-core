@@ -50,10 +50,6 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected $options = [];
     /**
-     * @var array
-     */
-    protected $ids = [];
-    /**
      * @var boolean
      */
     protected $useBlendFormat = true;
@@ -61,6 +57,14 @@ abstract class BaseDbTableResource extends BaseDbResource
      * @var string
      */
     protected $transactionTable = null;
+    /**
+     * @var array
+     */
+    protected $tableFieldsInfo = [];
+    /**
+     * @var array
+     */
+    protected $tableIdsInfo = [];
     /**
      * @var array
      */
@@ -748,14 +752,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
-        $this->initTransaction($table);
+        $this->initTransaction($table, $idFields, $idTypes, false);
 
-        $fieldsInfo = $this->getFieldsInfo($table);
-        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
-
-        $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
-        $extras['fields_info'] = $fieldsInfo;
         $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         $out = [];
@@ -763,7 +762,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($records as $index => $record) {
                 try {
-                    if (false === $id = static::checkForIds($record, $idsInfo, $extras, true)) {
+                    if (false === $id = static::checkForIds($record, $this->tableIdsInfo, $extras, true)) {
                         throw new BadRequestException("Required id field(s) not found in record $index: " .
                             print_r($record, true));
                     }
@@ -869,17 +868,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
-        $this->initTransaction($table);
+        $this->initTransaction($table, $idFields, $idTypes);
 
-        $fieldsInfo = $this->getFieldsInfo($table);
-        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
-        if (empty($idsInfo)) {
-            throw new InternalServerErrorException("Identifying field(s) could not be determined.");
-        }
-
-        $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
-        $extras['fields_info'] = $fieldsInfo;
         $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         $out = [];
@@ -887,7 +878,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($records as $index => $record) {
                 try {
-                    if (false === $id = static::checkForIds($record, $idsInfo, $extras)) {
+                    if (false === $id = static::checkForIds($record, $this->tableIdsInfo, $extras)) {
                         throw new BadRequestException("Required id field(s) not found in record $index: " .
                             print_r($record, true));
                     }
@@ -1035,17 +1026,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
-        $this->initTransaction($table);
+        $this->initTransaction($table, $idFields, $idTypes);
 
-        $fieldsInfo = $this->getFieldsInfo($table);
-        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
-        if (empty($idsInfo)) {
-            throw new InternalServerErrorException("Identifying field(s) could not be determined.");
-        }
-
-        $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
-        $extras['fields_info'] = $fieldsInfo;
         $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         static::removeIds($record, $idFields);
@@ -1056,7 +1039,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($ids as $index => $id) {
                 try {
-                    if (false === $id = static::checkForIds($id, $idsInfo, $extras, true)) {
+                    if (false === $id = static::checkForIds($id, $this->tableIdsInfo, $extras, true)) {
                         throw new BadRequestException("Required id field(s) not valid in request $index: " .
                             print_r($id, true));
                     }
@@ -1162,17 +1145,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
-        $this->initTransaction($table);
+        $this->initTransaction($table, $idFields, $idTypes);
 
-        $fieldsInfo = $this->getFieldsInfo($table);
-        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
-        if (empty($idsInfo)) {
-            throw new InternalServerErrorException("Identifying field(s) could not be determined.");
-        }
-
-        $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
-        $extras['fields_info'] = $fieldsInfo;
         $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         $out = [];
@@ -1180,7 +1155,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($records as $index => $record) {
                 try {
-                    if (false === $id = static::checkForIds($record, $idsInfo, $extras)) {
+                    if (false === $id = static::checkForIds($record, $this->tableIdsInfo, $extras)) {
                         throw new BadRequestException("Required id field(s) not found in record $index: " .
                             print_r($record, true));
                     }
@@ -1326,17 +1301,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
-        $this->initTransaction($table);
+        $this->initTransaction($table, $idFields, $idTypes);
 
-        $fieldsInfo = $this->getFieldsInfo($table);
-        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
-        if (empty($idsInfo)) {
-            throw new InternalServerErrorException("Identifying field(s) could not be determined.");
-        }
-
-        $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
-        $extras['fields_info'] = $fieldsInfo;
         $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         static::removeIds($record, $idFields);
@@ -1347,7 +1314,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($ids as $index => $id) {
                 try {
-                    if (false === $id = static::checkForIds($id, $idsInfo, $extras, true)) {
+                    if (false === $id = static::checkForIds($id, $this->tableIdsInfo, $extras, true)) {
                         throw new BadRequestException("Required id field(s) not valid in request $index: " .
                             print_r($id, true));
                     }
@@ -1534,17 +1501,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new BadRequestException('Rollback and continue operations can not be requested at the same time.');
         }
 
-        $this->initTransaction($table);
+        $this->initTransaction($table, $idFields, $idTypes);
 
-        $fieldsInfo = $this->getFieldsInfo($table);
-        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
-        if (empty($idsInfo)) {
-            throw new InternalServerErrorException("Identifying field(s) could not be determined.");
-        }
-
-        $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
-        $extras['fields_info'] = $fieldsInfo;
         $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         $out = [];
@@ -1552,7 +1511,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($ids as $index => $id) {
                 try {
-                    if (false === $id = static::checkForIds($id, $idsInfo, $extras, true)) {
+                    if (false === $id = static::checkForIds($id, $this->tableIdsInfo, $extras, true)) {
                         throw new BadRequestException("Required id field(s) not valid in request $index: " .
                             print_r($id, true));
                     }
@@ -1729,18 +1688,10 @@ abstract class BaseDbTableResource extends BaseDbResource
         $isSingle = (1 == count($ids));
         $continue = ($isSingle) ? false : ArrayUtils::getBool($extras, ApiOptions::CONTINUES, false);
 
-        $this->initTransaction($table);
-
-        $fieldsInfo = $this->getFieldsInfo($table);
-        $idsInfo = $this->getIdsInfo($table, $fieldsInfo, $idFields, $idTypes);
-        if (empty($idsInfo)) {
-            throw new InternalServerErrorException("Identifying field(s) could not be determined.");
-        }
+        $this->initTransaction($table, $idFields, $idTypes);
 
         $extras['single'] = $isSingle;
-        $extras['ids_info'] = $idsInfo;
         $extras['id_fields'] = $idFields;
-        $extras['fields_info'] = $fieldsInfo;
         $extras['require_more'] = static::requireMoreFields($fields, $idFields);
 
         $out = [];
@@ -1748,7 +1699,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         try {
             foreach ($ids as $index => $id) {
                 try {
-                    if (false === $id = static::checkForIds($id, $idsInfo, $extras, true)) {
+                    if (false === $id = static::checkForIds($id, $this->tableIdsInfo, $extras, true)) {
                         throw new BadRequestException("Required id field(s) not valid in request $index: " .
                             print_r($id, true));
                     }
@@ -1825,16 +1776,28 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @param mixed $handle
+     * @param string $table_name
+     * @param        $id_fields
+     * @param        $id_types
+     * @param bool   $require_ids
      *
      * @return bool
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
-    protected function initTransaction($handle = null)
+    protected function initTransaction($table_name, &$id_fields = null, $id_types = null, $require_ids = true)
     {
-        $this->transactionTable = $handle;
+        $this->transactionTable = $table_name;
+        $this->tableFieldsInfo = $this->getFieldsInfo($table_name);
+        $this->tableIdsInfo = $this->getIdsInfo($table_name, $this->tableFieldsInfo, $id_fields, $id_types);
         $this->batchRecords = [];
         $this->batchIds = [];
         $this->rollbackRecords = [];
+
+        if ($require_ids && empty($this->tableIdsInfo)) {
+            throw new InternalServerErrorException("Identifying field(s) could not be determined.");
+        }
+
 
         return true;
     }
@@ -1933,7 +1896,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     );
 
     /**
-     * @param $id_info
+     * @param ColumnSchema[] $id_info
      *
      * @return array
      */
@@ -1941,7 +1904,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $fields = [];
         foreach ($id_info as $info) {
-            $fields[] = ArrayUtils::get($info, 'name');
+            $fields[] = $info->name;
         }
 
         return $fields;
@@ -1962,7 +1925,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         if (!empty($ids_info)) {
             if (1 == count($ids_info)) {
                 $info = $ids_info[0];
-                $name = ArrayUtils::get($info, 'name');
+                $name = $info->name;
                 if (is_array($record)) {
                     $value = ArrayUtils::get($record, $name);
                     if ($remove) {
@@ -1972,8 +1935,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                     $value = $record;
                 }
                 if (!empty($value)) {
-                    $type = ArrayUtils::get($info, 'type');
-                    switch ($type) {
+                    switch ($info->type) {
                         case 'int':
                             $value = intval($value);
                             break;
@@ -1983,17 +1945,16 @@ abstract class BaseDbTableResource extends BaseDbResource
                     }
                     $id = $value;
                 } else {
-                    $required = ArrayUtils::getBool($info, 'required');
                     // could be passed in as a parameter affecting all records
                     $param = ArrayUtils::get($extras, $name);
-                    if ($on_create && $required && empty($param)) {
+                    if ($on_create && $info->determineRequired() && empty($param)) {
                         return false;
                     }
                 }
             } else {
                 $id = [];
                 foreach ($ids_info as $info) {
-                    $name = ArrayUtils::get($info, 'name');
+                    $name = $info->name;
                     if (is_array($record)) {
                         $value = ArrayUtils::get($record, $name);
                         if ($remove) {
@@ -2003,8 +1964,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $value = $record;
                     }
                     if (!empty($value)) {
-                        $type = ArrayUtils::get($info, 'type');
-                        switch ($type) {
+                        switch ($info->type) {
                             case 'int':
                                 $value = intval($value);
                                 break;
@@ -2014,10 +1974,9 @@ abstract class BaseDbTableResource extends BaseDbResource
                         }
                         $id[$name] = $value;
                     } else {
-                        $required = ArrayUtils::getBool($info, 'required');
                         // could be passed in as a parameter affecting all records
                         $param = ArrayUtils::get($extras, $name);
-                        if ($on_create && $required && empty($param)) {
+                        if ($on_create && $info->determineRequired() && empty($param)) {
                             return false;
                         }
                     }
@@ -2034,6 +1993,19 @@ abstract class BaseDbTableResource extends BaseDbResource
         return false;
     }
 
+    protected function getCurrentTimestamp()
+    {
+        return time();
+    }
+
+    protected function parseValueForSet(
+        $value,
+        /** @noinspection PhpUnusedParameterInspection */
+        $field_info
+    ){
+        return $value;
+    }
+
     /**
      * @param array $record
      * @param array $fields_info
@@ -2046,60 +2018,80 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected function parseRecord($record, $fields_info, $filter_info = null, $for_update = false, $old_record = null)
     {
-//        $record = DataFormat::arrayKeyLower( $record );
+        $record = $this->interpretRecordValues($record);
+
         $parsed = (empty($fields_info)) ? $record : [];
         if (!empty($fields_info)) {
-            $keys = array_keys($record);
-            $values = array_values($record);
+            $record = array_change_key_case($record, CASE_LOWER);
             foreach ($fields_info as $fieldInfo) {
-//            $name = strtolower( ArrayUtils::get( $field_info, 'name', '' ) );
-                $name = ArrayUtils::get($fieldInfo, 'name', '');
-                $type = ArrayUtils::get($fieldInfo, 'type');
-                $pos = array_search($name, $keys);
-                if (false !== $pos) {
-                    $fieldVal = ArrayUtils::get($values, $pos);
-                    // due to conversion from XML to array, null or empty xml elements have the array value of an empty array
-                    if (is_array($fieldVal) && empty($fieldVal)) {
-                        $fieldVal = null;
-                    }
-
-                    /** validations **/
-
-                    $validations = ArrayUtils::get($fieldInfo, 'validation');
-
-                    if (!static::validateFieldValue($name, $fieldVal, $validations, $for_update, $fieldInfo)) {
-                        unset($keys[$pos]);
-                        unset($values[$pos]);
-                        continue;
-                    }
-
-                    $parsed[$name] = $fieldVal;
-                    unset($keys[$pos]);
-                    unset($values[$pos]);
-                }
-
                 // add or override for specific fields
-                switch ($type) {
+                switch ($fieldInfo->type) {
                     case 'timestamp_on_create':
                         if (!$for_update) {
-                            $parsed[$name] = time();
+                            $parsed[$fieldInfo->name] = $this->getCurrentTimestamp();
                         }
                         break;
                     case 'timestamp_on_update':
-                        $parsed[$name] = time();
+                        $parsed[$fieldInfo->name] = $this->getCurrentTimestamp();
                         break;
                     case 'user_id_on_create':
                         if (!$for_update) {
-                            $userId = 1; // TODO Session::getCurrentUserId();
+                            $userId = Session::getCurrentUserId();
                             if (isset($userId)) {
-                                $parsed[$name] = $userId;
+                                $parsed[$fieldInfo->name] = $userId;
                             }
                         }
                         break;
                     case 'user_id_on_update':
-                        $userId = 1; // TODO Session::getCurrentUserId();
+                        $userId = Session::getCurrentUserId();
                         if (isset($userId)) {
-                            $parsed[$name] = $userId;
+                            $parsed[$fieldInfo->name] = $userId;
+                        }
+                        break;
+                    default:
+                        $name = strtolower((empty($fieldInfo->alias)) ? $fieldInfo->name : $fieldInfo->alias);
+                        if (array_key_exists($name, $record)) {
+                            $fieldVal = ArrayUtils::get($record, $name);
+                            // due to conversion from XML to array, null or empty xml elements have the array value of an empty array
+                            if (is_array($fieldVal) && empty($fieldVal)) {
+                                $fieldVal = null;
+                            }
+
+                            // overwrite some undercover fields
+                            if ($fieldInfo->autoIncrement) {
+                                // should I error this?
+                                // drop for now
+                                unset($record[$name]);
+                                continue;
+                            }
+                            if (is_null($fieldVal) && !$fieldInfo->allowNull) {
+                                throw new BadRequestException("Field '$name' can not be NULL.");
+                            }
+
+                            /** validations **/
+                            if (!static::validateFieldValue(
+                                $fieldInfo->name,
+                                $fieldVal,
+                                $fieldInfo->validation,
+                                $for_update,
+                                $fieldInfo
+                            )
+                            ) {
+                                // if invalid and exception not thrown, drop it
+                                unset($record[$name]);
+                                continue;
+                            }
+
+                            $fieldVal = $this->parseValueForSet($fieldVal, $fieldInfo);
+
+                            $parsed[$fieldInfo->name] = $fieldVal;
+                            unset($record[$name]);
+                        } else {
+                            // if field is required, kick back error
+                            if ($fieldInfo->determineRequired() && !$for_update) {
+                                throw new BadRequestException("Required field '$name' can not be NULL.");
+                            }
+                            break;
                         }
                         break;
                 }
@@ -2424,8 +2416,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         }
                         break;
                     case 'picklist':
-                        $values = ArrayUtils::get($field_info, 'value');
-                        if (empty($values)) {
+                        if (is_null($field_info) || empty($values = $field_info->value)) {
                             throw new InternalServerErrorException("Invalid validation configuration: Field '$name' has no 'value' in schema settings.");
                         }
 
@@ -2441,8 +2432,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         }
                         break;
                     case 'multi_picklist':
-                        $values = ArrayUtils::get($field_info, 'value');
-                        if (empty($values)) {
+                        if (is_null($field_info) || empty($values = $field_info->value)) {
                             throw new InternalServerErrorException("Invalid validation configuration: Field '$name' has no 'value' in schema settings.");
                         }
 
@@ -2849,7 +2839,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         ];
 
         $models = [
-            'Tables'              => [
+            'Tables'          => [
                 'id'         => 'Tables',
                 'properties' => [
                     $wrapper => [
@@ -2861,7 +2851,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                     ],
                 ],
             ],
-            'Table'               => [
+            'Table'           => [
                 'id'         => 'Table',
                 'properties' => [
                     'name' => [
@@ -2870,22 +2860,22 @@ abstract class BaseDbTableResource extends BaseDbResource
                     ],
                 ],
             ],
-            'RecordRequest'       => [
+            'RecordRequest'   => [
                 'id'         => 'RecordRequest',
                 'properties' =>
                     $commonProperties
             ],
-            'RecordsRequest'      => [
+            'RecordsRequest'  => [
                 'id'         => 'RecordsRequest',
                 'properties' => [
-                    $wrapper => [
+                    $wrapper           => [
                         'type'        => 'array',
                         'description' => 'Array of records.',
                         'items'       => [
                             '$ref' => 'RecordRequest',
                         ],
                     ],
-                    ApiOptions::IDS => [
+                    ApiOptions::IDS    => [
                         'type'        => 'array',
                         'description' => 'Array of record identifiers.',
                         'items'       => [
@@ -2906,11 +2896,11 @@ abstract class BaseDbTableResource extends BaseDbResource
                     ],
                 ],
             ],
-            'RecordResponse'      => [
+            'RecordResponse'  => [
                 'id'         => 'RecordResponse',
                 'properties' => $commonProperties
             ],
-            'RecordsResponse'     => [
+            'RecordsResponse' => [
                 'id'         => 'RecordsResponse',
                 'properties' => [
                     $wrapper => [
@@ -2926,7 +2916,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                     ],
                 ],
             ],
-            'Metadata'            => [
+            'Metadata'        => [
                 'id'         => 'Metadata',
                 'properties' => [
                     'schema' => [
@@ -3019,7 +3009,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                             'notes'            =>
                                 'Posted data should be an array of records wrapped in a <b>record</b> element.<br/> ' .
                                 'By default, only the id property of the record is returned on success. ' .
-                                'Use <b>fields</b> parameter to return more info.' ,
+                                'Use <b>fields</b> parameter to return more info.',
                             'type'             => 'RecordsResponse',
                             'event_name'       => [
                                 $eventPath . '.{table_name}.insert',

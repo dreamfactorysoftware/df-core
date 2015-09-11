@@ -79,7 +79,7 @@ class App extends BaseSystemResource
     protected function handlePOST()
     {
         $uploadedFiles = $this->request->getFile('file');
-        $importUrl = $this->request->getParameter('import_url');
+        $importUrl = $this->request->getPayloadData('import_url');
         $storageServiceId = $this->request->input('storage_service_id');
         $storageContainer = $this->request->input('storage_container');
 

@@ -19,8 +19,7 @@ abstract class FileServiceTestCase extends TestCase
     {
         $rs = $this->addFolder([
             "resource" => [
-                ["name" => static::FOLDER_1, "type" => "folder"],
-                ["name" => static::FOLDER_2, "type" => "folder"]
+                ["name" => static::FOLDER_1, "type" => "folder"]
             ]
         ]);
 
@@ -31,10 +30,6 @@ abstract class FileServiceTestCase extends TestCase
             static::FOLDER_1 .
             '","path":"' .
             static::FOLDER_1 .
-            '/","type":"folder"},{"name":"' .
-            static::FOLDER_2 .
-            '","path":"' .
-            static::FOLDER_2 .
             '/","type":"folder"}]}',
             $content
         );
@@ -42,7 +37,7 @@ abstract class FileServiceTestCase extends TestCase
 
     public function testPOSTFolderWithCheckExist()
     {
-        $payload = '{"resource":[{"name":"' . static::FOLDER_2 . '", "type" => "folder"}]}';
+        $payload = '{"resource":[{"name":"' . static::FOLDER_2 . '", "type":"folder"}]}';
 
         $rs = $this->makeRequest(Verbs::POST, null, [], $payload);
         $content = json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES);
@@ -60,7 +55,7 @@ abstract class FileServiceTestCase extends TestCase
             static::FOLDER_2 .
             '","path":"' .
             static::FOLDER_2 .
-            '/","error":{"message":"Folder \'' .
+            '/","type":"folder","error":{"message":"Folder \'' .
             static::FOLDER_2 .
             '/\' already exists."}}]}', $content);
     }
@@ -114,7 +109,11 @@ abstract class FileServiceTestCase extends TestCase
         );
         $content = json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES);
 
-        $this->assertEquals('{"name":"' . static::FOLDER_1 . '/f2","path":"' . static::FOLDER_1 . '/f2/","type":"file"}',
+        $this->assertEquals('{"name":"' .
+            static::FOLDER_1 .
+            '/f2","path":"' .
+            static::FOLDER_1 .
+            '/f2/","type":"file"}',
             $content);
     }
 
@@ -142,7 +141,7 @@ abstract class FileServiceTestCase extends TestCase
         $paths = array_column($data[static::$wrapper], 'path');
 
         $this->assertTrue((in_array(static::FOLDER_1, $names) && in_array(static::FOLDER_2, $names)));
-        $this->assertTrue((in_array(static::FOLDER_1.'/', $paths) && in_array(static::FOLDER_2.'/', $paths)));
+        $this->assertTrue((in_array(static::FOLDER_1 . '/', $paths) && in_array(static::FOLDER_2 . '/', $paths)));
     }
 
     // requires established session
@@ -221,9 +220,14 @@ abstract class FileServiceTestCase extends TestCase
             static::FOLDER_2 .
             '/","type":"folder"}]}';
 
-        $rs = $this->makeRequest(Verbs::DELETE, null, [], $payload);
+        $rs = $this->makeRequest(Verbs::DELETE, null, ['force' => true], $payload);
 
-        $expected = '{"resource":[{"name":"' . static::FOLDER_1 . '"},{"name":"' . static::FOLDER_2 . '"}]}';
+        $expected =
+            '{"resource":[{"name":"' .
+            static::FOLDER_1 .
+            '/","path":null,"type":"folder"},{"name":"' .
+            static::FOLDER_2 .
+            '/","path":null,"type":"folder"}]}';
 
         $this->assertEquals($expected, json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES));
     }
@@ -242,11 +246,11 @@ abstract class FileServiceTestCase extends TestCase
     {
         $this->addFolder(["resource" => [["name" => static::FOLDER_4, "type" => "folder"]]]);
 
-        $payload = '{"resource":[{"name":"' . static::FOLDER_4 . '", "type" => "folder"}]}';
+        $payload = '{"resource":[{"name":"' . static::FOLDER_4 . '", "type": "folder"}]}';
 
-        $rs = $this->makeRequest(Verbs::DELETE, null, [], $payload);
+        $rs = $this->makeRequest(Verbs::DELETE, null, ['force' => true], $payload);
 
-        $this->assertEquals('{"resource":[{"name":"' . static::FOLDER_4 . '"}]}',
+        $this->assertEquals('{"resource":[{"name":"' . static::FOLDER_4 . '","path":null,"type":"folder"}]}',
             json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES));
     }
 

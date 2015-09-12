@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Database;
 
+use DreamFactory\Core\Contracts\CacheInterface;
+
 /**
  * Connection represents a connection to a database.
  *
@@ -152,6 +154,18 @@ class Connection
      * @var string Custom PDO wrapper class.
      */
     public $pdoClass = 'PDO';
+    /**
+     * @var CacheInterface
+     */
+    public $cache = null;
+    /**
+     * @var DbExtrasInterface
+     */
+    public $extraStore = null;
+    /**
+     * @var boolean
+     */
+    protected $defaultSchemaOnly = false;
 
     /**
      * @var array mapping between PDO driver and schema class name.
@@ -245,9 +259,6 @@ class Connection
     private $transaction;
     private $schema;
 
-    public $cache = null;
-    public $extraStore = null;
-    protected $defaultSchemaOnly = false;
 
     /**
      * Constructor.

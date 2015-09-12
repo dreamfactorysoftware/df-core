@@ -7,7 +7,8 @@ use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
-use DreamFactory\Core\Components\TableNameSchema;
+use DreamFactory\Core\Database\TableNameSchema;
+use DreamFactory\Core\Database\ColumnSchema;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Utility\ApiDocUtilities;
@@ -1798,7 +1799,6 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new InternalServerErrorException("Identifying field(s) could not be determined.");
         }
 
-
         return true;
     }
 
@@ -1911,11 +1911,11 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @param      $record
-     * @param      $ids_info
-     * @param null $extras
-     * @param bool $on_create
-     * @param bool $remove
+     * @param array          $record
+     * @param ColumnSchema[] $ids_info
+     * @param null           $extras
+     * @param bool           $on_create
+     * @param bool           $remove
      *
      * @return array|bool|int|mixed|null|string
      */
@@ -1947,7 +1947,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                 } else {
                     // could be passed in as a parameter affecting all records
                     $param = ArrayUtils::get($extras, $name);
-                    if ($on_create && $info->determineRequired() && empty($param)) {
+                    if ($on_create && $info->getRequired() && empty($param)) {
                         return false;
                     }
                 }
@@ -1976,7 +1976,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                     } else {
                         // could be passed in as a parameter affecting all records
                         $param = ArrayUtils::get($extras, $name);
-                        if ($on_create && $info->determineRequired() && empty($param)) {
+                        if ($on_create && $info->getRequired() && empty($param)) {
                             return false;
                         }
                     }

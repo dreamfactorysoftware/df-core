@@ -2,7 +2,7 @@
 
 namespace DreamFactory\Core\Resources;
 
-use DreamFactory\Core\Components\TableNameSchema;
+use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;

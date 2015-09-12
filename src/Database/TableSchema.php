@@ -113,13 +113,6 @@ class TableSchema extends TableNameSchema
         $this->relations[$relation->name] = $relation;
     }
 
-    public function mergeDbExtras($extras)
-    {
-        parent::mergeDbExtras($extras);
-
-        $this->nameField = $extras['name_field'];
-    }
-
     public function toArray($use_alias = false)
     {
         $out = parent::toArray($use_alias);

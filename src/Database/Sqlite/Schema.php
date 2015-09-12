@@ -400,7 +400,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
      */
     protected function createColumn($column)
     {
-        $c = new ColumnSchema($column['name']);
+        $c = new ColumnSchema(['name' => $column['name']]);
         $c->rawName = $this->quoteColumnName($c->name);
         $c->allowNull = !$column['notnull'];
         $c->isPrimaryKey = $column['pk'] != 0;

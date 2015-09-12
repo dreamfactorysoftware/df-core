@@ -1164,7 +1164,7 @@ class BaseModel extends Model
                     $requestFields[$field->name] = [
                         'type'        => $field->type,
                         'description' => $field->comment,
-                        'required'    => $field->determineRequired()
+                        'required'    => $field->getRequired()
                     ];
                 }
 
@@ -1172,7 +1172,7 @@ class BaseModel extends Model
                     $responseFields[$field->name] = [
                         'type'        => $field->type,
                         'description' => $field->comment,
-                        'required'    => $field->determineRequired()
+                        'required'    => $field->getRequired()
                     ];
                 }
             }

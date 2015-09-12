@@ -410,7 +410,7 @@ EOD;
      */
     protected function createColumn($column)
     {
-        $c = new ColumnSchema($column['attname']);
+        $c = new ColumnSchema(['name' => $column['attname']]);
         $c->rawName = $this->quoteColumnName($c->name);
         $c->allowNull = !$column['attnotnull'];
         $c->comment = $column['comment'] === null ? '' : $column['comment'];

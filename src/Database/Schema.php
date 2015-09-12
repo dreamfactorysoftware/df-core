@@ -219,13 +219,13 @@ abstract class Schema
         // merge db extras
         if (!empty($extras = $this->connection->getSchemaExtrasForTables($name, false))) {
             $extras = (isset($extras[0])) ? $extras[0] : null;
-            $table->mergeDbExtras($extras);
+            $table->fill($extras);
         }
         if (!empty($extras = $this->connection->getSchemaExtrasForFields($name, '*'))) {
             foreach ($extras as $extra) {
                 if (!empty($columnName = (isset($extra['field'])) ? $extra['field'] : null)) {
                     if (null !== $column = $table->getColumn($columnName)) {
-                        $column->mergeDbExtras($extra);
+                        $column->fill($extra);
                     }
                 }
             }
@@ -320,7 +320,7 @@ abstract class Schema
                     foreach ($extrasEntries as $extras) {
                         if (!empty($extraName = strtolower(strval($extras['table'])))) {
                             if (array_key_exists($extraName, $tables)) {
-                                $tables[$extraName]->mergeDbExtras($extras);
+                                $tables[$extraName]->fill($extras);
                             }
                         }
                     }

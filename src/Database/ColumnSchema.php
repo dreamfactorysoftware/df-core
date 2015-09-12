@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Database;
 
+use DreamFactory\Library\Utility\Inflector;
+
 /**
  * ColumnSchema class describes the column meta data of a database table.
  */
@@ -137,14 +139,32 @@ class ColumnSchema
      * @var string comment of this column. Default value is empty string which means that no comment
      * has been set for the column. Null value means that RDBMS does not support column comments
      * at all (SQLite) or comment retrieval for the active RDBMS is not yet supported by the framework.
-     * @since 1.1.13
      */
     public $comment = '';
 
-    public function __construct($name)
+    public function __construct(array $settings)
     {
-        $this->name = $name;
-        $this->label = static::camelize($this->name, '_', true);
+        $this->fill($settings);
+    }
+
+    public function fill(array $settings)
+    {
+        foreach ($settings as $key => $value) {
+            if (('extra_type' === $key) && !empty($value)) {
+                $this->type = $value;
+                continue;
+            }
+            if (!property_exists($this, $key)) {
+                // try camel cased
+                $camel = camel_case($key);
+                if (property_exists($this, $camel)) {
+                    $this->{$camel} = $value;
+                    continue;
+                }
+            }
+            // set real and virtual
+            $this->{$key} = $value;
+        }
     }
 
     /**
@@ -398,33 +418,29 @@ class ColumnSchema
         }
     }
 
-    public function mergeDbExtras($extras)
+    public function getRequired()
     {
-        if (!empty($extras['label'])) {
-            $this->label = $extras['label'];
+        if (property_exists($this, 'required')) {
+            return $this->{'required'};
         }
-        if (!empty($extras['extra_type'])) {
-            $this->type = $extras['extra_type'];
+
+        if ($this->allowNull || (isset($this->defaultValue)) || $this->autoIncrement) {
+            return false;
         }
-        if (!empty($extras['alias'])) {
-            $this->alias = $extras['alias'];
-        }
-        if (!empty($extras['description'])) {
-            $this->description = $extras['description'];
-        }
-        if (!empty($extras['picklist'])) {
-            $this->picklist = $extras['picklist'];
-        }
-        if (!empty($extras['validation'])) {
-            $this->validation = $extras['validation'];
-        }
+
+        return true;
+    }
+
+    public function getLabel()
+    {
+        return (empty($this->label)) ? Inflector::camelize($this->name, '_', true) : $this->label;
     }
 
     public function toArray($use_alias = false)
     {
         $out = [
             'name'               => ($use_alias && !empty($this->alias)) ? $this->alias : $this->name,
-            'label'              => (empty($this->label)) ? static::camelize($this->name, '_', true) : $this->label,
+            'label'              => $this->getLabel(),
             'description'        => $this->description,
             'type'               => $this->type,
             'db_type'            => $this->dbType,
@@ -432,7 +448,7 @@ class ColumnSchema
             'precision'          => $this->precision,
             'scale'              => $this->scale,
             'default'            => $this->defaultValue,
-            'required'           => $this->determineRequired(),
+            'required'           => $this->getRequired(),
             'allow_null'         => $this->allowNull,
             'fixed_length'       => $this->fixedLength,
             'supports_multibyte' => $this->supportsMultibyte,
@@ -452,29 +468,5 @@ class ColumnSchema
         }
 
         return $out;
-    }
-
-    public function determineRequired()
-    {
-        if ($this->allowNull || (isset($this->defaultValue)) || $this->autoIncrement) {
-            return false;
-        }
-
-        return true;
-    }
-
-    // Utility methods, remove when this code is reworked, or make it dependent on php-utils
-
-    public static function camelize($string, $separator = null, $preserveWhiteSpace = false, $isKey = false)
-    {
-        empty($separator) && $separator = ['_', '-'];
-
-        $newString = ucwords(str_replace($separator, ' ', $string));
-
-        if (false !== $isKey) {
-            $newString = lcfirst($newString);
-        }
-
-        return (false === $preserveWhiteSpace ? str_replace(' ', null, $newString) : $newString);
     }
 }

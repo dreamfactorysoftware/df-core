@@ -1,5 +1,5 @@
 <?php
-namespace DreamFactory\Core\Database;
+namespace DreamFactory\Core\Contracts;
 
 /**
  * Something that caches stuff, that can be cleared

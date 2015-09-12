@@ -416,7 +416,7 @@ MYSQL
      */
     protected function createColumn($column)
     {
-        $c = new ColumnSchema($column['Field']);
+        $c = new ColumnSchema(['name' => $column['Field']]);
         $c->rawName = $this->quoteColumnName($c->name);
         $c->allowNull = $column['Null'] === 'YES';
         $c->isPrimaryKey = strpos($column['Key'], 'PRI') !== false;

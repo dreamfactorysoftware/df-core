@@ -399,7 +399,7 @@ SQL;
      */
     protected function createColumn($column)
     {
-        $c = new ColumnSchema($column['COLNAME']);
+        $c = new ColumnSchema(['name' => $column['COLNAME']]);
         $c->rawName = $this->quoteColumnName($c->name);
         $c->allowNull = ($column['NULLS'] == 'Y');
         $c->autoIncrement = ($column['IDENTITY'] == 'Y');

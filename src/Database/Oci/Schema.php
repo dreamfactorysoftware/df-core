@@ -446,7 +446,7 @@ EOD;
      */
     protected function createColumn($column)
     {
-        $c = new ColumnSchema($column['COLUMN_NAME']);
+        $c = new ColumnSchema(['name' => $column['COLUMN_NAME']]);
         $c->rawName = $this->quoteColumnName($c->name);
         $c->allowNull = $column['NULLABLE'] === 'Y';
         $c->isPrimaryKey = strpos($column['KEY'], 'P') !== false;

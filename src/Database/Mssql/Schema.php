@@ -654,7 +654,7 @@ EOD;
      */
     protected function createColumn($column)
     {
-        $c = new ColumnSchema($column['name']);
+        $c = new ColumnSchema(['name' => $column['name']]);
         $c->rawName = $this->quoteColumnName($c->name);
         $c->allowNull = $column['is_nullable'] == '1';
         $c->isPrimaryKey = $column['is_primary_key'] == '1';

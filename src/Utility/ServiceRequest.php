@@ -2,12 +2,14 @@
 
 namespace DreamFactory\Core\Utility;
 
+use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Components\InternalServiceRequest;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Library\Utility\Scalar;
+use Illuminate\Support\Str;
 use Request;
 
 /**
@@ -99,25 +101,84 @@ class ServiceRequest implements ServiceRequestInterface
 
         //This just checks the Request Header Content-Type.
         if (Request::isJson()) {
-            //Decoded json data is cached internally using parameterBag.
+            // Decoded json data is cached internally using parameterBag.
             return $this->json($key, $default);
+        }
+
+        if(Str::contains(Request::header('CONTENT_TYPE'), 'xml')){
+            // Formatted xml data is stored in $this->contentAsArray
+            return $this->xml($key, $default);
         }
 
         //Check the actual content. If it is blank return blank array.
         $content = $this->getContent();
         if (empty($content)) {
-            return [];
+            if(null === $key) {
+                return [];
+            } else {
+                return $default;
+            }
         }
 
         //Checking this last to be more efficient.
         if (json_decode($content) !== null) {
+            $this->contentType = DataFormats::toMimeType(DataFormats::JSON);
             //Decoded json data is cached internally using parameterBag.
             return $this->json($key, $default);
+        } else if(DataFormatter::xmlToArray($content) !== null){
+            $this->contentType = DataFormats::toMimeType(DataFormats::XML);
+            return $this->xml($key, $default);
         }
 
         //Todo:Check for additional content-type here.
 
         throw new BadRequestException('Unrecognized payload type');
+    }
+
+    /**
+     * Returns XML payload data.
+     *
+     * @param null $key
+     * @param null $default
+     *
+     * @return array|mixed|null
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    protected function xml($key=null, $default=null){
+        if (!empty($this->contentAsArray)) {
+            if (null === $key) {
+                return $this->contentAsArray;
+            } else {
+                return ArrayUtils::get($this->contentAsArray, $key, $default);
+            }
+        }
+
+        $content = $this->getContent();
+        $data = DataFormatter::xmlToArray($content);
+        $rootTag = config('df.xml_request_root');
+
+        if(!empty($content) && (empty($data) || empty(ArrayUtils::get($data, $rootTag)))){
+            throw new BadRequestException('Invalid XML payload supplied.');
+        }
+        $payload = $data[$rootTag];
+
+        // Store the content so that formatting is only done once.
+        $this->contentAsArray = (empty($payload))? [] : $payload;
+        $this->content = $content;
+
+        if(null === $key){
+            if(empty($payload)){
+                return [];
+            } else {
+                return $payload;
+            }
+        } else {
+            if(empty($payload)){
+                return $default;
+            } else {
+                return ArrayUtils::get($payload, $key, $default);
+            }
+        }
     }
 
     /**

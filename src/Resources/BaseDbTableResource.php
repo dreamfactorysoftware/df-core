@@ -2007,11 +2007,11 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @param array $record
+     * @param array          $record
      * @param ColumnSchema[] $fields_info
-     * @param array $filter_info
-     * @param bool  $for_update
-     * @param array $old_record
+     * @param array          $filter_info
+     * @param bool           $for_update
+     * @param array          $old_record
      *
      * @return array
      * @throws \Exception
@@ -2214,11 +2214,11 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @param      $name
-     * @param      $value
-     * @param      $validations
-     * @param bool $for_update
-     * @param null $field_info
+     * @param string            $name
+     * @param mixed             $value
+     * @param array             $validations
+     * @param bool              $for_update
+     * @param ColumnSchema|null $field_info
      *
      * @return bool
      * @throws InternalServerErrorException
@@ -2417,7 +2417,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         }
                         break;
                     case 'picklist':
-                        if (is_null($field_info) || empty($values = $field_info->value)) {
+                        if (is_null($field_info) || empty($values = $field_info->picklist)) {
                             throw new InternalServerErrorException("Invalid validation configuration: Field '$name' has no 'value' in schema settings.");
                         }
 
@@ -2433,7 +2433,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         }
                         break;
                     case 'multi_picklist':
-                        if (is_null($field_info) || empty($values = $field_info->value)) {
+                        if (is_null($field_info) || empty($values = $field_info->picklist)) {
                             throw new InternalServerErrorException("Invalid validation configuration: Field '$name' has no 'value' in schema settings.");
                         }
 

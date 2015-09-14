@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Core\Enums\AppTypes;
+use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -12,6 +13,7 @@ use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseFileService;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\Inflector;
 
 class Packager
 {
@@ -21,9 +23,9 @@ class Packager
     const FILE_EXTENSION = 'dfpkg';
 
     /**
-     * Default container for app files.
+     * Default app URL
      */
-    const DEFAULT_STORAGE_FOLDER = 'applications';
+    const DEFAULT_URL = 'index.html';
 
     /**
      * Resource wrapper from config.
@@ -95,13 +97,14 @@ class Packager
      */
     public function __destruct()
     {
-        if(file_exists($this->zipFilePath)){
+        if (file_exists($this->zipFilePath)) {
             unlink($this->zipFilePath);
         }
     }
 
     /**
      * Sets services and schemas to export.
+     *
      * @param $services
      * @param $schemas
      */
@@ -221,13 +224,92 @@ class Packager
     }
 
     /**
+     * Sanitizes the app record description.json
+     *
      * @param $record
      *
-     * @return array
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    private function sanitizeAppRecord(& $record)
+    {
+        if (!is_array($record)) {
+            throw new BadRequestException('Invalid App data provided');
+        }
+
+        if (!isset($record['name'])) {
+            throw new BadRequestException('No App name provided in description.json');
+        }
+
+        if (!isset($record['type'])) {
+            $record['type'] = AppTypes::NONE;
+        }
+
+        if (isset($record['active']) && !isset($record['is_active'])) {
+            $record['is_active'] = $record['active'];
+            unset($record['active']);
+        } else if (!isset($record['is_active'])) {
+            $record['is_active'] = true;
+        }
+
+        if ($record['type'] === AppTypes::STORAGE_SERVICE) {
+            if (!empty(ArrayUtils::get($record, 'storage_service_id'))) {
+                $serviceRecord = Service::with('service_type_by_type')->whereId($record['storage_service_id'])->first();
+
+                if (empty($serviceRecord)) {
+                    throw new BadRequestException('Invalid Storage Service provided.');
+                }
+
+                $serviceType = $serviceRecord->getRelation('service_type_by_type');
+
+                if (ServiceTypeGroups::FILE !== $serviceType->group) {
+                    throw new BadRequestException('Invalid Storage Service provided.');
+                }
+            } else {
+                $record['storage_service_id'] = $this->getDefaultStorageServiceId();
+            }
+
+            if (!empty(ArrayUtils::get($record, 'storage_container'))) {
+                $record['storage_container'] = trim($record['storage_container'], '/');
+            } else {
+                $record['storage_container'] = Inflector::camelize($record['name']);
+            }
+        } else {
+            $record['storage_service_id'] = null;
+            $record['storage_container'] = null;
+        }
+
+        if (!isset($record['url'])) {
+            $record['url'] = static::DEFAULT_URL;
+        } else {
+            $record['url'] = ltrim($record['url'], '/');
+        }
+
+        if ($record['type'] === AppTypes::STORAGE_SERVICE || $record['type'] === AppTypes::PATH) {
+            if (empty(ArrayUtils::get($record, 'path'))) {
+                throw new BadRequestException('No Application Path provided in description.json');
+            }
+        } else if ($record['type'] === AppTypes::URL) {
+            if (empty(ArrayUtils::get($record, 'url'))) {
+                throw new BadRequestException('No Application URL provided in description.json');
+            }
+        }
+    }
+
+    /**
+     * @param      $record
+     * @param null $ssId
+     * @param null $sc
+     *
+     * @return mixed
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
-    private function insertAppRecord($record)
+    private function insertAppRecord(& $record, $ssId = null, $sc = null)
     {
+        $record['storage_service_id'] = $ssId;
+        $record['storage_container'] = $sc;
+        $this->sanitizeAppRecord($record);
+
         try {
             $result = ServiceHandler::handleRequest(Verbs::POST, 'system', 'app', ['fields' => '*'], [$record]);
         } catch (\Exception $ex) {
@@ -249,7 +331,7 @@ class Packager
         if (false !== $data) {
             $data = DataFormatter::jsonToArray($data);
             try {
-                foreach($data as $service) {
+                foreach ($data as $service) {
                     Service::create($service);
                 }
             } catch (\Exception $ex) {
@@ -278,7 +360,7 @@ class Packager
                 foreach ($services as $schemas) {
                     $serviceName = ArrayUtils::get($schemas, 'name');
                     $tables = ArrayUtils::get($schemas, 'table');
-                    $resource = ($this->resourceWrapped)? [$this->resourceWrapper => $tables] : [$tables];
+                    $resource = ($this->resourceWrapped) ? [$this->resourceWrapper => $tables] : [$tables];
                     if (!empty($tables)) {
                         try {
                             ServiceHandler::handleRequest(
@@ -292,7 +374,7 @@ class Packager
                             if (in_array($e->getCode(), [404, 500])) {
                                 throw $e;
                             } else {
-                                \Log::alert('Failed to create schema. '.$e->getMessage());
+                                \Log::alert('Failed to create schema. ' . $e->getMessage());
                             }
                         }
                     }
@@ -328,7 +410,7 @@ class Packager
                     foreach ($tables as $table) {
                         $tableName = ArrayUtils::get($table, 'name');
                         $records = ArrayUtils::get($table, 'record');
-                        $resource = ($this->resourceWrapped)? [$this->resourceWrapper => $records] : [$records];
+                        $resource = ($this->resourceWrapped) ? [$this->resourceWrapper => $records] : [$records];
                         try {
                             ServiceHandler::handleRequest(
                                 Verbs::POST,
@@ -341,7 +423,7 @@ class Packager
                             if (in_array($e->getCode(), [404, 500])) {
                                 throw $e;
                             } else {
-                                \Log::alert('Failed to insert data. '.$e->getMessage());
+                                \Log::alert('Failed to insert data. ' . $e->getMessage());
                             }
                         }
                     }
@@ -366,36 +448,37 @@ class Packager
      */
     private function storeApplicationFiles($appInfo)
     {
-        $appName = ArrayUtils::get($appInfo, 'name');
-        $storageServiceId = ArrayUtils::get($appInfo, 'storage_service_id', $this->getDefaultStorageServiceId());
-        $storageFolder = ArrayUtils::get($appInfo, 'storage_container', static::DEFAULT_STORAGE_FOLDER);
+        if (ArrayUtils::get($appInfo, 'type', AppTypes::NONE) === AppTypes::STORAGE_SERVICE) {
+            $appName = Inflector::camelize(ArrayUtils::get($appInfo, 'name'));
+            $storageServiceId = ArrayUtils::get($appInfo, 'storage_service_id', $this->getDefaultStorageServiceId());
+            $storageFolder = ArrayUtils::get($appInfo, 'storage_container', $appName);
 
-        /** @var $service BaseFileService */
-        $service = ServiceHandler::getServiceById($storageServiceId);
-        if (empty($service)) {
-            throw new InternalServerErrorException(
-                "App record created, but failed to import files due to unknown storage service with id '$storageServiceId'."
-            );
-        }
-
-        if (empty($storageFolder)) {
-            $info = $service->extractZipFile($appName, '', $this->zip, false, $appName . '/');
-        } else {
+            /** @var $service BaseFileService */
+            $service = ServiceHandler::getServiceById($storageServiceId);
+            if (empty($service)) {
+                throw new InternalServerErrorException(
+                    "App record created, but failed to import files due to unknown storage service with id '$storageServiceId'."
+                );
+            }
             $info = $service->extractZipFile($storageFolder, '', $this->zip);
-        }
 
-        return $info;
+            return $info;
+        } else {
+            return [];
+        }
     }
 
     /**
-     * @param null $record
+     * @param null | integer $storageServiceId
+     * @param null | string  $storageContainer
+     * @param null | array   $record
      *
      * @return \DreamFactory\Core\Contracts\ServiceResponseInterface|mixed
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \Exception
      */
-    public function importAppFromPackage($record = null)
+    public function importAppFromPackage($storageServiceId = null, $storageContainer = null, $record = null)
     {
         $record = ArrayUtils::clean($record);
         $data = $this->getAppInfo();
@@ -404,7 +487,7 @@ class Packager
         $record = array_merge($data, $record);
 
         \DB::beginTransaction();
-        $appResults = $this->insertAppRecord($record);
+        $appResults = $this->insertAppRecord($record, $storageServiceId, $storageContainer);
 
         try {
             $this->insertServices();
@@ -527,11 +610,11 @@ class Packager
      */
     private function packageServices()
     {
-        if(!empty($this->exportServices)){
+        if (!empty($this->exportServices)) {
             $services = [];
 
             foreach ($this->exportServices as $serviceName) {
-                if(is_numeric($serviceName)){
+                if (is_numeric($serviceName)) {
                     /** @type Service $service */
                     $service = Service::find($serviceName);
                 } else {
@@ -573,15 +656,15 @@ class Packager
      */
     private function packageSchemas()
     {
-        if(!empty($this->exportSchemas)){
+        if (!empty($this->exportSchemas)) {
             $schemas = [];
 
-            foreach($this->exportSchemas as $serviceName => $component){
+            foreach ($this->exportSchemas as $serviceName => $component) {
                 if (is_array($component)) {
                     $component = implode(',', $component);
                 }
 
-                if(is_numeric($serviceName)){
+                if (is_numeric($serviceName)) {
                     /** @type Service $service */
                     $service = Service::find($serviceName);
                 } else {
@@ -589,7 +672,7 @@ class Packager
                     $service = Service::whereName($serviceName)->whereDeletable(1)->first();
                 }
 
-                if(!empty($service) && !empty($component)){
+                if (!empty($service) && !empty($component)) {
                     if ($service->type === 'sql_db') {
                         $schema = ServiceHandler::handleRequest(
                             Verbs::GET,

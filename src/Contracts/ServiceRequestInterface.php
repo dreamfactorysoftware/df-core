@@ -155,4 +155,14 @@ interface ServiceRequestInterface
      * @return mixed
      */
     public function getApiKey();
+
+    /**
+     * Returns request input
+     *
+     * @param null $key
+     * @param null $default
+     *
+     * @return array|string
+     */
+    public function input($key=null, $default=null);
 }

@@ -52,6 +52,7 @@ class UserPasswordResource extends BaseRestResource
 
         if (!empty($oldPassword) && Session::isAuthenticated()) {
             $user = Session::user();
+
             return static::changePassword($user, $oldPassword, $newPassword);
         }
 
@@ -218,6 +219,7 @@ class UserPasswordResource extends BaseRestResource
 
         if ($login) {
             static::userLogin($email, $newPassword);
+
             return ['success' => true, 'session_token' => Session::getSessionToken()];
         }
 
@@ -281,6 +283,7 @@ class UserPasswordResource extends BaseRestResource
 
         if ($login) {
             static::userLogin($email, $newPassword);
+
             return ['success' => true, 'session_token' => Session::getSessionToken()];
         }
 
@@ -320,17 +323,18 @@ class UserPasswordResource extends BaseRestResource
     {
         $email = $user->email;
         $code = $user->confirm_code;
-        $name = $user->name;
+        $name = $user->first_name;
 
         Mail::send(
             'emails.password',
             [
-                'name' => $name,
-                'code' => $code,
-                'link' => url(\Config::get('df.confirm_reset_url')).'?code='.$code
+                'contentHeader' => 'Password Reset',
+                'firstName'          => $name,
+                'code'          => $code,
+                'link'          => url(\Config::get('df.confirm_reset_url')) . '?code=' . $code
             ],
             function ($m) use ($email){
-                $m->to($email)->subject('Password Reset');
+                $m->to($email)->subject('[DF] Password Reset');
             }
         );
 

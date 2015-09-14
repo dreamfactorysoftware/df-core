@@ -103,9 +103,11 @@ class App extends BaseSystemModel
                     if (!empty($service)) {
                         $launchUrl .= $service->name . '/';
                         if (!empty($this->storage_container)) {
-                            $launchUrl .= $this->storage_container . '/';
+                            $launchUrl .= trim($this->storage_container, '/');
                         }
-                        $launchUrl .= $this->name . '/' . ltrim($this->path, '/');
+                        if(!empty($this->path)){
+                            $launchUrl .= '/'. ltrim($this->path, '/');
+                        }
                         $launchUrl = url($launchUrl);
                     }
                 }

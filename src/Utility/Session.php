@@ -321,7 +321,7 @@ class Session
 
                                 return true;
                             case 'name':
-                                $value = gethostname();
+                                $value = \Config::get('df.instance_name', gethostname());
 
                                 return true;
                             case 'version':

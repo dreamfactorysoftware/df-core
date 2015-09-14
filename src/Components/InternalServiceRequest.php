@@ -20,11 +20,11 @@ trait InternalServiceRequest
     /**
      * @var array
      */
-    protected $parameters = [];
+    protected $parameters = null;
     /**
      * @var array
      */
-    protected $headers = [];
+    protected $headers = null;
     /**
      * @var null|string
      */
@@ -88,7 +88,7 @@ trait InternalServiceRequest
      */
     public function getParameters()
     {
-        return $this->parameters;
+        return (is_null($this->parameters)) ? [] : $this->parameters;
     }
 
     /**
@@ -96,6 +96,10 @@ trait InternalServiceRequest
      */
     public function getParameter($key = null, $default = null)
     {
+        if (is_null($this->parameters)) {
+            return $default;
+        }
+
         if (null === $key) {
             return $this->parameters;
         } else {
@@ -111,6 +115,10 @@ trait InternalServiceRequest
      */
     public function getParameterAsBool($key, $default = false)
     {
+        if (is_null($this->parameters)) {
+            return $default;
+        }
+
         return ArrayUtils::getBool($this->parameters, $key, $default);
     }
 
@@ -204,6 +212,10 @@ trait InternalServiceRequest
      */
     public function getHeader($key = null, $default = null)
     {
+        if (is_null($this->headers)) {
+            return $default;
+        }
+
         if (null === $key) {
             return $this->headers;
         } else {
@@ -216,7 +228,7 @@ trait InternalServiceRequest
      */
     public function getHeaders()
     {
-        return $this->headers;
+        return (is_null($this->headers)) ? [] : $this->headers;
     }
 
     /**
@@ -279,5 +291,18 @@ trait InternalServiceRequest
         }
 
         return $apiKey;
+    }
+
+    /**
+     * Returns request input.
+     *
+     * @param null $key
+     * @param null $default
+     *
+     * @return array|string
+     */
+    public function input($key = null, $default = null)
+    {
+        return $this->getParameter($key, $this->getPayloadData($key, $default));
     }
 }

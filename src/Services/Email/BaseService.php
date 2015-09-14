@@ -152,10 +152,10 @@ abstract class BaseService extends BaseRestService
                 $replyEmail = ArrayUtils::get($data, 'reply_to_email');
 
                 if (empty($fromEmail)) {
-                    $fromEmail = 'no-reply@dreamfactory.com';
+                    $fromEmail = config('mail.from.address');
                     $data['from_email'] = $fromEmail;
                     if (empty($fromName)) {
-                        $fromName = 'DreamFactory Software, Inc.';
+                        $fromName = config('mail.from.name');
                         $data['from_name'] = $fromName;
                     }
                 }

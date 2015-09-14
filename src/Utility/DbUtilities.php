@@ -26,7 +26,7 @@ class DbUtilities
     {
         $out = [];
         foreach ($avail_fields as $field_info) {
-            $out[] = $field_info['name'];
+            $out[] = $field_info->name;
         }
 
         return $out;
@@ -41,7 +41,7 @@ class DbUtilities
     public static function getFieldFromDescribe($field_name, $avail_fields)
     {
         foreach ($avail_fields as $field_info) {
-            if (0 == strcasecmp($field_name, $field_info['name'])) {
+            if (0 == strcasecmp($field_name, $field_info->name)) {
                 return $field_info;
             }
         }
@@ -58,7 +58,7 @@ class DbUtilities
     public static function findFieldFromDescribe($field_name, $avail_fields)
     {
         foreach ($avail_fields as $key => $field_info) {
-            if (0 == strcasecmp($field_name, $field_info['name'])) {
+            if (0 == strcasecmp($field_name, $field_info->name)) {
                 return $key;
             }
         }
@@ -74,8 +74,8 @@ class DbUtilities
     public static function getPrimaryKeyFieldFromDescribe($avail_fields)
     {
         foreach ($avail_fields as $field_info) {
-            if ($field_info['is_primary_key']) {
-                return $field_info['name'];
+            if ($field_info->isPrimaryKey) {
+                return $field_info->name;
             }
         }
 
@@ -92,8 +92,8 @@ class DbUtilities
     {
         $keys = [];
         foreach ($avail_fields as $info) {
-            if ($info['is_primary_key']) {
-                $keys[] = ($names_only ? $info['name'] : $info);
+            if ($info->isPrimaryKey) {
+                $keys[] = ($names_only ? $info->name : $info);
             }
         }
 
@@ -334,30 +334,6 @@ class DbUtilities
         $out = [];
         foreach ($records as $record) {
             $out[] = static::cleanRecord($record, $include, $id_field);
-        }
-
-        return $out;
-    }
-
-    /**
-     * @param array $records
-     * @param       $ids_info
-     * @param null  $extras
-     * @param bool  $on_create
-     * @param bool  $remove
-     *
-     * @internal param string $id_field
-     * @internal param bool $include_field
-     *
-     * @return array
-     */
-    protected static function recordsAsIds($records, $ids_info, $extras = null, $on_create = false, $remove = false)
-    {
-        $out = [];
-        if (!empty($records)) {
-            foreach ($records as $record) {
-                $out[] = static::checkForIds($record, $ids_info, $extras, $on_create, $remove);
-            }
         }
 
         return $out;

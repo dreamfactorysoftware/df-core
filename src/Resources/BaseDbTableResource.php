@@ -2008,7 +2008,7 @@ abstract class BaseDbTableResource extends BaseDbResource
 
     /**
      * @param array $record
-     * @param array $fields_info
+     * @param ColumnSchema[] $fields_info
      * @param array $filter_info
      * @param bool  $for_update
      * @param array $old_record
@@ -2023,6 +2023,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $parsed = (empty($fields_info)) ? $record : [];
         if (!empty($fields_info)) {
             $record = array_change_key_case($record, CASE_LOWER);
+
             foreach ($fields_info as $fieldInfo) {
                 // add or override for specific fields
                 switch ($fieldInfo->type) {
@@ -2088,7 +2089,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                             unset($record[$name]);
                         } else {
                             // if field is required, kick back error
-                            if ($fieldInfo->determineRequired() && !$for_update) {
+                            if ($fieldInfo->getRequired() && !$for_update) {
                                 throw new BadRequestException("Required field '$name' can not be NULL.");
                             }
                             break;

@@ -876,23 +876,17 @@ abstract class Schema
             $oldForeignKey = (isset($oldField)) ? $oldField->isForeignKey : false;
             $temp = [];
 
-            $values = (isset($field['value'])) ? $field['value'] : [];
-            if (!is_array($values)) {
-                $values = array_map('trim', explode(',', trim($values, ',')));
+            $picklist = (isset($field['picklist'])) ? $field['picklist'] : [];
+            if (!is_array($picklist)) {
+                // accept comma delimited from client side
+                $picklist = array_map('trim', explode(',', trim($picklist, ',')));
             }
-            if (!empty($values)) {
-                $oldValues = (isset($oldField)) ? $oldField->picklist : [];
-                if ($values != $oldValues) {
-                    $picklist = '';
-                    foreach ($values as $value) {
-                        if (!empty($picklist)) {
-                            $picklist .= "\r";
-                        }
-                        $picklist .= $value;
-                    }
-                    if (!empty($picklist)) {
-                        $temp['picklist'] = $picklist;
-                    }
+            if (!empty($picklist)) {
+                $oldPicklist = (isset($oldField)) ? $oldField->picklist : [];
+                if ((count($picklist) !== count($oldPicklist)) ||
+                    empty(array_diff($picklist, $oldPicklist))
+                ) {
+                    $temp['picklist'] = $picklist;
                 }
             }
 
@@ -917,7 +911,7 @@ abstract class Schema
             if (!empty($validation)) {
                 $oldValue = (isset($oldField)) ? $oldField->validation : null;
                 if ($validation != $oldValue) {
-                    $temp['validation'] = json_encode($validation);
+                    $temp['validation'] = $validation;
                 }
             }
 
@@ -930,7 +924,7 @@ abstract class Schema
                     switch (strtolower($key)) {
                         case 'label':
                         case 'alias':
-                        case 'value':
+                        case 'picklist':
                         case 'validation':
                         case 'description':
                         case 'client_info':

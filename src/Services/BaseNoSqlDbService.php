@@ -86,7 +86,7 @@ abstract class BaseNoSqlDbService extends BaseDbService
                             'type' => 'string',
                         ],
                     ],
-                    'value'          => [
+                    'picklist'          => [
                         'type'        => 'Array',
                         'description' => 'Selectable string values for client menus and picklist validation.',
                         'items'       => [

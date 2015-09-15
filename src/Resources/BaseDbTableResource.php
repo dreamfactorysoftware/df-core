@@ -2418,7 +2418,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         break;
                     case 'picklist':
                         if (is_null($field_info) || empty($values = $field_info->picklist)) {
-                            throw new InternalServerErrorException("Invalid validation configuration: Field '$name' has no 'value' in schema settings.");
+                            throw new InternalServerErrorException("Invalid validation configuration: Field '$name' has no 'picklist' options in schema settings.");
                         }
 
                         if (!empty($value) && (false === array_search($value, $values))) {
@@ -2434,7 +2434,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         break;
                     case 'multi_picklist':
                         if (is_null($field_info) || empty($values = $field_info->picklist)) {
-                            throw new InternalServerErrorException("Invalid validation configuration: Field '$name' has no 'value' in schema settings.");
+                            throw new InternalServerErrorException("Invalid validation configuration: Field '$name' has no 'picklist' options in schema settings.");
                         }
 
                         if (!empty($value)) {

@@ -11,7 +11,7 @@ namespace DreamFactory\Core\Models;
  * @property string  $alias
  * @property string  $label
  * @property string  $description
- * @property string  $picklist
+ * @property array   $picklist
  * @property array   $validation
  * @property string  $extra_type
  * @property string  $client_info
@@ -37,5 +37,5 @@ class DbFieldExtras extends BaseSystemModel
         'client_info'
     ];
 
-    protected $casts = ['validation' => 'array', 'id' => 'integer', 'service_id' => 'integer'];
+    protected $casts = ['picklist' => 'array', 'validation' => 'array', 'id' => 'integer', 'service_id' => 'integer'];
 }

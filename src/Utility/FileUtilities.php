@@ -1278,7 +1278,7 @@ class FileUtilities
      */
     public static function addTreeToZip($zip, $root, $path = '', $skip = array('.', '..'))
     {
-        $dirPath = $root;
+        $dirPath = rtrim($root, '/').DIRECTORY_SEPARATOR;
         if (!empty($path)) {
             $dirPath .= $path . DIRECTORY_SEPARATOR;
         }

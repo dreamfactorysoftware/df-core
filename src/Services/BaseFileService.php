@@ -1364,4 +1364,22 @@ abstract class BaseFileService extends BaseRestService
 
         return $base;
     }
+
+    /**
+     * Runs pre process tasks/scripts
+     */
+    protected function preProcess()
+    {
+        // Pre process not supported on file services
+        return true;
+    }
+
+    /**
+     * Runs post process tasks/scripts
+     */
+    protected function postProcess()
+    {
+        // Post process not supported on file services
+        return true;
+    }
 }

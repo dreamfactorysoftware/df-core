@@ -408,8 +408,9 @@ class Session
     public static function authenticate(array $credentials, $remember = false, $login = true)
     {
         if (\Auth::attempt($credentials, false, false)) {
+            $user = \Auth::getLastAttempted();
+            static::checkRole($user->id);
             if ($login) {
-                $user = \Auth::getLastAttempted();
                 $user->last_login_date = Carbon::now()->toDateTimeString();
                 $user->confirm_code = 'y';
                 $user->save();
@@ -419,6 +420,19 @@ class Session
             return true;
         } else {
             return false;
+        }
+    }
+
+    protected static function checkRole($userId)
+    {
+        $appId = static::get('app.id', null);
+
+        if(!empty($appId) && !empty($userId)){
+            $roleId = static::getRoleIdByAppIdAndUserId($appId, $userId);
+            $roleInfo = ($roleId) ? Role::getCachedInfo($roleId) : null;
+            if(!empty($roleInfo) && !ArrayUtils::get($roleInfo, 'is_active', false)){
+                throw new ForbiddenException('Role is not active.');
+            }
         }
     }
 

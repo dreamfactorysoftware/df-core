@@ -234,9 +234,6 @@ class Event extends BaseRestResource
     {
         static::$eventMap = [];
         \Cache::forget(static::EVENT_CACHE_KEY);
-
-        // rebuild swagger cache
-        static::buildEventMaps();
     }
 
     //*************************************************************************
@@ -416,7 +413,7 @@ class Event extends BaseRestResource
         foreach ($results as $services) {
             foreach ($services as $apis) {
                 foreach ($apis as $operations) {
-                    foreach ($operations as $events) {
+                    foreach ($operations['verb'] as $events) {
                         foreach ($events as $event) {
                             $allEvents[] = $event;
                         }

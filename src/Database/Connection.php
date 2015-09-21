@@ -241,7 +241,7 @@ class Connection
         // http://php.net/manual/en/ref.pdo-sqlite.connection.php
         'mysql'  => 'mysql:host=localhost;port=3306;dbname=db',
         // http://php.net/manual/en/ref.pdo-mysql.connection.php
-        'dblib'  => 'mssql:host=localhost:1433;dbname=database',
+        'dblib'  => 'dblib:host=localhost:1433;dbname=database',
         // http://php.net/manual/en/ref.pdo-dblib.connection.php
         'sqlsrv' => 'sqlsrv:Server=localhost,1433;Database=db',
         // http://php.net/manual/en/ref.pdo-sqlsrv.connection.php

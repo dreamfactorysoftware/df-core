@@ -53,7 +53,7 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
         parent::__construct($settings);
 
         if (!extension_loaded('v8js')) {
-            throw new ServiceUnavailableException("This DSP cannot run server-side javascript scripts. The 'v8js' is not available.");
+            throw new ServiceUnavailableException("This instance cannot run server-side javascript scripts. The 'v8js' is not available.");
         }
 
         $settings = ArrayUtils::clean($settings);

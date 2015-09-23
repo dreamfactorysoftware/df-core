@@ -28,6 +28,10 @@ class Role extends BaseSystemModel
 {
     protected $table = 'role';
 
+    protected $rules = [
+        'name' => 'required'
+    ];
+
     protected $fillable = [
         'name',
         'description',
@@ -45,14 +49,14 @@ class Role extends BaseSystemModel
                 if (!$role->is_active) {
                     JWTUtilities::invalidateTokenByRoleId($role->id);
                 }
-                \Cache::forget('role:'.$role->id);
+                \Cache::forget('role:' . $role->id);
             }
         );
 
         static::deleted(
             function (Role $role){
                 JWTUtilities::invalidateTokenByRoleId($role->id);
-                \Cache::forget('role:'.$role->id);
+                \Cache::forget('role:' . $role->id);
             }
         );
     }

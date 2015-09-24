@@ -397,10 +397,10 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     public static function createFirstAdmin(array &$data)
     {
         $validationRules = [
-            'name'       => 'required|max:255|not_in:user@example.com',
-            'first_name' => 'required',
-            'last_name'  => 'required',
-            'email'      => 'required|email|max:255|unique:user',
+            'name'       => 'required|max:255',
+            'first_name' => 'required|max:255',
+            'last_name'  => 'required|max:255',
+            'email'      => 'required|email|max:255|unique:user|not_in:user@example.com',
             'password'   => 'required|confirmed|min:6'
         ];
 

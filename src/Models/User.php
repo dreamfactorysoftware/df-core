@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Components\RegisterContact;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\Session;
@@ -12,8 +13,8 @@ use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
-use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Model;
+use Validator;
 
 /**
  * User
@@ -199,6 +200,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             throw new BadRequestException('Identifying field "id" can not be empty for update request . ');
         }
 
+        /** @type User $model */
         $model = static::find($id);
 
         if (!$model instanceof Model) {
@@ -248,6 +250,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             throw new BadRequestException('Identifying field "id" can not be empty for update request . ');
         }
 
+        /** @type User $model */
         $model = static::find($id);
 
         if (!$model instanceof Model) {
@@ -309,14 +312,14 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 if (!$user->is_active) {
                     JWTUtilities::invalidateTokenByUserId($user->id);
                 }
-                \Cache::forget('user:'.$user->id);
+                \Cache::forget('user:' . $user->id);
             }
         );
 
         static::deleted(
             function (User $user){
                 JWTUtilities::invalidateTokenByUserId($user->id);
-                \Cache::forget('user:'.$user->id);
+                \Cache::forget('user:' . $user->id);
             }
         );
     }
@@ -366,17 +369,64 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      */
     public static function adminExists()
     {
-        $adminExists = \Cache::rememberForever('admin_exists', function (){
-            return static::whereIsActive(1)->whereIsSysAdmin(1)->exists();
-        });
+        return \Cache::rememberForever('admin_exists', function (){
+            // Unfortunate workaround for Bitnami install situation.
+            $adminExists =
+                static::whereIsActive(1)->whereIsSysAdmin(1)->where('email', '!=', 'user@example.com')->exists();
+            if (!$adminExists) {
+                // make sure no 'user@example.com' exists anymore
+                static::whereEmail('user@example.com')->delete();
+            }
 
-        return $adminExists;
+            return $adminExists;
+        });
     }
 
     public static function resetAdminExists()
     {
-        \Cache::forget('admin_exists');
+        return \Cache::forget('admin_exists');
+    }
 
-        return true;
+    /**
+     * Creates first admin user.
+     *
+     * @param  array $data
+     *
+     * @return User|boolean
+     */
+    public static function createFirstAdmin(array &$data)
+    {
+        $validationRules = [
+            'name'       => 'required|max:255|not_in:user@example.com',
+            'first_name' => 'required',
+            'last_name'  => 'required',
+            'email'      => 'required|email|max:255|unique:user',
+            'password'   => 'required|confirmed|min:6'
+        ];
+
+        $validator = Validator::make($data, $validationRules);
+
+        if ($validator->fails()) {
+            $errors = $validator->getMessageBag()->all();
+            $data = array_merge($data, ['errors' => $errors, 'version' => \Config::get('df.api_version')]);
+
+            return false;
+        } else {
+            /** @type User $user */
+            $attributes = array_only($data, ['name', 'first_name', 'last_name', 'email']);
+            $attributes['is_active'] = 1;
+            $user = static::create($attributes);
+
+            $user->password = ArrayUtils::get($data, 'password');
+            $user->is_sys_admin = 1;
+            $user->save();
+
+            // Register user
+            RegisterContact::registerUser($user);
+            // Reset admin_exists flag in cache.
+            \Cache::forever('admin_exists', true);
+
+            return $user;
+        }
     }
 }

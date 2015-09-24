@@ -273,7 +273,6 @@ class ColumnSchema
             case 'tinyint':
             case 'smallint':
             case 'mediumint':
-            case 'bigint':
             case 'int':
             case 'integer':
                 // watch out for point here!
@@ -282,6 +281,13 @@ class ColumnSchema
                 } else {
                     $this->type = static::TYPE_INTEGER;
                 }
+                break;
+
+            case 'bigint':
+                // bigint too big to represent as number in php
+                $this->type = static::TYPE_STRING;
+                $this->phpType = 'string';
+                $this->pdoType = 'string';
                 break;
 
             case (false !== strpos($simpleType, 'timestamp')):

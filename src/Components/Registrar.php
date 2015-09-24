@@ -1,9 +1,9 @@
 <?php
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ServiceHandler;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\EmailTemplate;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -13,7 +13,6 @@ use Validator;
 
 class Registrar implements RegistrarContract
 {
-
     /**
      * Get a validator for an incoming registration request.
      *
@@ -39,52 +38,26 @@ class Registrar implements RegistrarContract
     }
 
     /**
-     * Creates first admin user.
-     *
-     * @param  array $data
-     *
-     * @return User|false
-     */
-    public function createFirstAdmin(array $data)
-    {
-        $adminExists = User::whereIsActive(1)->whereIsSysAdmin(1)->exists();
-
-        if (!$adminExists) {
-            $user = User::create([
-                'name'       => ArrayUtils::get($data, 'name'),
-                'first_name' => ArrayUtils::get($data, 'first_name'),
-                'last_name'  => ArrayUtils::get($data, 'last_name'),
-                'is_active'  => 1,
-                'email'      => ArrayUtils::get($data, 'email')
-            ]);
-
-            $user->password = ArrayUtils::get($data, 'password');
-            $user->is_sys_admin = 1;
-            $user->save();
-
-            //Reset admin_exists flag in cache.
-            User::resetAdminExists();
-
-            return $user;
-        }
-
-        return false;
-    }
-
-    /**
      * Creates a non-admin user.
      *
      * @param array $data
      *
-     * @return \DreamFactory\Core\Models\BaseModel
+     * @return \DreamFactory\Core\Models\User
+     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \Exception
      */
     public function create(array $data)
     {
         $userService = Service::getCachedByName('user');
+        if (!$userService['config']['allow_open_registration']){
+            throw new ForbiddenException('Open Registration is not enabled.');
+        }
+
         $openRegEmailSvcId = $userService['config']['open_reg_email_service_id'];
         $openRegEmailTplId = $userService['config']['open_reg_email_template_id'];
         $openRegRoleId = $userService['config']['open_reg_role_id'];
+        /** @type User $user */
         $user = User::create($data);
 
         if (!empty($openRegEmailSvcId)) {

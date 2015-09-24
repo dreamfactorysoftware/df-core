@@ -73,6 +73,88 @@ class BaseModel extends Model
     protected static $tableToModelMap = [];
 
     /**
+     * Rules for validating model data
+     *
+     * @type array
+     */
+    protected $rules = [];
+
+    /**
+     * Stores validation errors.
+     *
+     * @type array
+     */
+    protected $errors = [];
+
+    /**
+     * Validates data based on $this->rules.
+     *
+     * @param array     $data
+     * @param bool|true $throwException
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    public function validate(array $data = [], $throwException = true)
+    {
+        if (empty($data)) {
+            $data = $this->attributes;
+        }
+
+        if (empty($this->rules) || empty($data)) {
+            return true;
+        } else {
+            $validator = \Validator::make($data, $this->rules);
+
+            if ($validator->fails()) {
+                $this->errors = $validator->messages()->getMessages();
+                if ($throwException) {
+                    $errorString = static::errorsToString($this->errors);
+                    throw new BadRequestException('Invalid data supplied.' . $errorString, null, null, $this->errors);
+                } else {
+                    return false;
+                }
+            } else {
+                return true;
+            }
+        }
+    }
+
+    /**
+     * Converts validation errors to plain string.
+     *
+     * @param $messages
+     *
+     * @return string
+     */
+    public static function errorsToString($messages)
+    {
+        $errorString = '';
+
+        foreach ($messages as $field => $errors) {
+            foreach ($errors as $error) {
+                $errorString .= ' ' . $error;
+            }
+        }
+
+        return $errorString;
+    }
+
+    public function errors()
+    {
+        return $this->errors;
+    }
+
+    public function save(array $options = [])
+    {
+        if ($this->validate()) {
+            return parent::save($options);
+        } else {
+            return false;
+        }
+    }
+
+    /**
      * Save a new model and return the instance.
      *
      * @param array $attributes

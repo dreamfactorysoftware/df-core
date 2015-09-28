@@ -167,7 +167,12 @@ class Event extends BaseRestResource
                             $templateEventName
                         );
 
-                        $apiBroadcastEvents[$method][] = $eventName;
+                        if (!isset($apiBroadcastEvents[$method]) ||
+                            false === array_search($eventName, $apiBroadcastEvents[$method])
+                        ) {
+                            // should not have duplicates here.
+                            $apiBroadcastEvents[$method][] = $eventName;
+                        }
 
                         //  Set actual name in swagger file
                         $data['apis'][$ixApi]['operations'][$ixOps]['event_name'][$ixEventNames] = $eventName;
@@ -243,7 +248,7 @@ class Event extends BaseRestResource
     protected static function affectsProcess($event)
     {
         $sections = explode('.', $event);
-        $last = $sections[count($sections)-1];
+        $last = $sections[count($sections) - 1];
         if ((0 === strcasecmp('pre_process', $last)) || (0 === strcasecmp('post_process', $last))) {
             return true;
         }

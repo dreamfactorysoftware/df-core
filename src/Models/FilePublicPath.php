@@ -41,7 +41,7 @@ class FilePublicPath extends BaseServiceConfigModel
                 $schema['items'] = 'string';
                 $schema['description'] =
                     'An array of paths to make public.' .
-                    ' All folders and files under these paths will be available as public but read-only via the server\'s URL .';
+                    ' All folders and files under these paths will be available as public but read-only via the server\'s URL.';
                 break;
             case 'container':
                 $values = [];

@@ -74,7 +74,7 @@ class ScriptConfig extends BaseServiceConfigModel
             case 'type':
                 $schema['label'] = 'Scripting Engine Type';
                 $schema['description'] =
-                    'The Scripting Engine able to run this script. Others coming soon.';
+                    'The Scripting Engine able to run this script.';
                 $values = ScriptType::all(['name', 'label', 'sandboxed'])->toArray();
                 $schema['type'] = 'picklist';
                 $schema['values'] = $values;

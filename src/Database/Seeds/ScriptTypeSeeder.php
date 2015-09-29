@@ -12,13 +12,6 @@ class ScriptTypeSeeder extends BaseModelSeeder
 
     protected $records = [
         [
-            'name'        => 'nodejs',
-            'class_name'  => NodeJs::class,
-            'label'       => 'NodeJs',
-            'description' => 'Server-side JavaScript handler using the NodeJs engine.',
-            'sandboxed'   => false
-        ],
-        [
             'name'        => 'php',
             'class_name'  => Php::class,
             'label'       => 'PHP',
@@ -26,10 +19,17 @@ class ScriptTypeSeeder extends BaseModelSeeder
             'sandboxed'   => false
         ],
         [
+            'name'        => 'nodejs',
+            'class_name'  => NodeJs::class,
+            'label'       => 'Node.js',
+            'description' => 'Server-side JavaScript handler using the Node.js engine.',
+            'sandboxed'   => false
+        ],
+        [
             'name'        => 'v8js',
             'class_name'  => V8Js::class,
-            'label'       => 'V8Js',
-            'description' => 'Server-side JavaScript handler using the V8Js engine.',
+            'label'       => 'V8js',
+            'description' => 'Server-side JavaScript handler using the V8js engine.',
             'sandboxed'   => true
         ]
     ];

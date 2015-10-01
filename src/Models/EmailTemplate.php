@@ -30,9 +30,26 @@ class EmailTemplate extends BaseSystemModel
 {
     protected $table = 'email_template';
 
-    protected $fillable = ['name'];
+    protected $fillable = [
+        'name',
+        'description',
+        'to',
+        'cc',
+        'bcc',
+        'subject',
+        'body_text',
+        'body_html',
+        'from_name',
+        'from_email',
+        'reply_to_name',
+        'reply_to_email'
+    ];
 
     protected $casts = [
         'id' => 'integer',
+    ];
+
+    protected $rules = [
+        'name' => 'required'
     ];
 }

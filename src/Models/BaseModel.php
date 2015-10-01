@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Models;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Components\ConnectionAdapter;
@@ -107,9 +108,9 @@ class BaseModel extends Model
             $validator = \Validator::make($data, $this->rules);
 
             if ($validator->fails()) {
-                $this->errors = $validator->messages()->getMessages();
+                $this->errors = $validator->errors()->getMessages();
                 if ($throwException) {
-                    $errorString = static::errorsToString($this->errors);
+                    $errorString = DataFormatter::validationErrorsToString($this->errors);
                     throw new BadRequestException('Invalid data supplied.' . $errorString, null, null, $this->errors);
                 } else {
                     return false;
@@ -118,26 +119,6 @@ class BaseModel extends Model
                 return true;
             }
         }
-    }
-
-    /**
-     * Converts validation errors to plain string.
-     *
-     * @param $messages
-     *
-     * @return string
-     */
-    public static function errorsToString($messages)
-    {
-        $errorString = '';
-
-        foreach ($messages as $field => $errors) {
-            foreach ($errors as $error) {
-                $errorString .= ' ' . $error;
-            }
-        }
-
-        return $errorString;
     }
 
     public function errors()
@@ -529,8 +510,9 @@ class BaseModel extends Model
      * @param array $params
      *
      * @return array
-     * @throws BadRequestException
-     * @throws InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     public static function updateInternal($id, $record, $params = [])
     {

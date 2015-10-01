@@ -56,7 +56,6 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
             throw new ServiceUnavailableException("This instance cannot run server-side javascript scripts. The 'v8js' is not available.");
         }
 
-        $settings = ArrayUtils::clean($settings);
         $name = ArrayUtils::get($settings, 'name', self::EXPOSED_OBJECT_NAME, true);
         $variables = ArrayUtils::get($settings, 'variables', [], true);
         $extensions = ArrayUtils::get($settings, 'extensions', [], true);

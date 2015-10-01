@@ -177,8 +177,7 @@ class Connection
         // MySQL
         'mysql'   => 'DreamFactory\Core\Database\Mysql\Schema',
         // SQLite
-        'sqlite'  => 'DreamFactory\Core\Database\Sqllite\Schema',
-        'sqlite2' => 'DreamFactory\Core\Database\Sqllite\Schema',
+        'sqlite'  => 'DreamFactory\Core\Database\Sqlite\Schema',
         // MS SQL Server
         'mssql'   => 'DreamFactory\Core\Database\Mssql\Schema',
         // on linux (and maybe others os) hosts
@@ -198,7 +197,6 @@ class Connection
         'pgsql'   => 'PostgreSQL',
         'mysql'   => 'MySQL',
         'sqlite'  => 'SQLite',
-        'sqlite2' => 'SQLite2',
         'dblib'   => 'MS SQL Server/Sybase',
         'sqlsrv'  => 'MS SQL Server',
         'oci'     => 'Oracle Database',
@@ -237,7 +235,7 @@ class Connection
      * @var array mapping between PDO driver and default DSN template.
      */
     public static $driverDsnMap = [
-        'sqlite' => 'sqlite:/opt/databases/db.sq3',
+        'sqlite' => 'sqlite:db.sq3',
         // http://php.net/manual/en/ref.pdo-sqlite.connection.php
         'mysql'  => 'mysql:host=localhost;port=3306;dbname=db',
         // http://php.net/manual/en/ref.pdo-mysql.connection.php
@@ -519,7 +517,7 @@ class Connection
         }
 
         if (!class_exists($pdoClass)) {
-            throw new \Exception('Connection is unable to find PDO class "{$pdoClass}". Make sure PDO is installed correctly.');
+            throw new \Exception("Connection is unable to find PDO class '{$pdoClass}'. Make sure PDO is installed correctly.");
         }
 
         @$instance = new $pdoClass($this->connectionString, $this->username, $this->password, $this->attributes);
@@ -544,11 +542,15 @@ class Connection
         if ($this->emulatePrepare !== null && constant('PDO::ATTR_EMULATE_PREPARES')) {
             $pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES, $this->emulatePrepare);
         }
+
+        $driver = strtolower($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME));
         if ($this->charset !== null) {
-            $driver = strtolower($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME));
             if (in_array($driver, ['pgsql', 'mysql', 'mysqli'])) {
                 $pdo->exec('SET NAMES ' . $pdo->quote($this->charset));
             }
+        }
+        if ('sqlite' === $driver) {
+            $pdo->exec('PRAGMA foreign_keys=1');
         }
         if ($this->initSQLs !== null) {
             foreach ($this->initSQLs as $sql) {

@@ -1087,35 +1087,23 @@ MYSQL;
         return $results;
     }
 
-    public function parseFieldsForSelect($context, $field_info, $as_quoted_string = false, $out_as = '')
+    public function parseFieldForSelect($field_info)
     {
-        if ($as_quoted_string) {
-            $context = $this->quoteColumnName($context);
-            $out_as = $this->quoteColumnName($out_as);
-        }
-
         switch ($field_info->dbType) {
             case 'datetime':
             case 'datetimeoffset':
-                if (!$as_quoted_string) {
-                    $context = $this->quoteColumnName($context);
-                    $out_as = $this->quoteColumnName($out_as);
-                }
                 $out = "(CONVERT(nvarchar(30), $context, 127)) AS $out_as";
                 break;
             case 'geometry':
             case 'geography':
             case 'hierarchyid':
-                if (!$as_quoted_string) {
-                    $context = $this->quoteColumnName($context);
-                    $out_as = $this->quoteColumnName($out_as);
-                }
                 $out = "($context.ToString()) AS $out_as";
                 break;
             default :
-                $out = $context;
-                if (!empty($as)) {
-                    $out .= ' AS ' . $out_as;
+                $out = ($as_quoted_string) ? $this->quoteColumnName($field_info->name) : $field_info->name;
+                if (!empty($field_info->alias)) {
+                    $out .= ' AS ' . ($as_quoted_string) ? $this->quoteColumnName($field_info->alias)
+                        : $field_info->alias;
                 }
                 break;
         }

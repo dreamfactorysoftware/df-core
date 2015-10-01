@@ -437,15 +437,20 @@ class ColumnSchema
         return true;
     }
 
+    public function getName($use_alias = false)
+    {
+        return ($use_alias && !empty($this->alias)) ? $this->alias : $this->name;
+    }
+
     public function getLabel()
     {
-        return (empty($this->label)) ? Inflector::camelize($this->name, '_', true) : $this->label;
+        return (empty($this->label)) ? Inflector::camelize($this->getName(true), '_', true) : $this->label;
     }
 
     public function toArray($use_alias = false)
     {
         $out = [
-            'name'               => ($use_alias && !empty($this->alias)) ? $this->alias : $this->name,
+            'name'               => $this->getName($use_alias),
             'label'              => $this->getLabel(),
             'description'        => $this->description,
             'type'               => $this->type,

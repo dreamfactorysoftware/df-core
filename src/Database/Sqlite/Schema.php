@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database\Sqlite;
 
+use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
@@ -16,7 +17,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
             // some types need massaging, some need other required properties
             case 'pk':
             case 'id':
-                $info['type'] = 'int';
+                $info['type'] = 'integer';
                 $info['allow_null'] = false;
                 $info['auto_increment'] = true;
                 $info['is_primary_key'] = true;
@@ -24,8 +25,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
 
             case 'fk':
             case 'reference':
-                $info['type'] = 'int';
-                $info['type_extras'] = '(11)';
+                $info['type'] = 'integer';
                 $info['is_foreign_key'] = true;
                 // check foreign tables
                 break;
@@ -36,18 +36,14 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
                     $default = 'CURRENT_TIMESTAMP';
-                    if ('timestamp_on_update' === $type) {
-                        $default .= ' ON UPDATE CURRENT_TIMESTAMP';
-                    }
-                    $info['default'] = $default;
+                    $info['default'] = ['expression' => $default];
                 }
                 break;
 
             case 'user_id':
             case 'user_id_on_create':
             case 'user_id_on_update':
-                $info['type'] = 'int';
-                $info['type_extras'] = '(11)';
+                $info['type'] = 'integer';
                 break;
 
             case 'boolean':
@@ -201,18 +197,15 @@ class Schema extends \DreamFactory\Core\Database\Schema
 
         $default = (isset($info['default'])) ? $info['default'] : null;
         if (isset($default)) {
-            $quoteDefault =
-                (isset($info['quote_default'])) ? filter_var($info['quote_default'], FILTER_VALIDATE_BOOLEAN) : false;
-            if ($quoteDefault) {
-                $default = "'" . $default . "'";
+            if (is_array($default)) {
+                $expression = (isset($default['expression'])) ? $default['expression'] : null;
+                if (null !== $expression) {
+                    $definition .= ' DEFAULT ' . $expression;
+                }
+            } else {
+                $default = $this->connection->quoteValue($default);
+                $definition .= ' DEFAULT ' . $default;
             }
-
-            $definition .= ' DEFAULT ' . $default;
-        }
-
-        $auto = (isset($info['auto_increment'])) ? filter_var($info['auto_increment'], FILTER_VALIDATE_BOOLEAN) : false;
-        if ($auto) {
-            $definition .= ' AUTOINCREMENT';
         }
 
         $isUniqueKey = (isset($info['is_unique'])) ? filter_var($info['is_unique'], FILTER_VALIDATE_BOOLEAN) : false;
@@ -221,10 +214,37 @@ class Schema extends \DreamFactory\Core\Database\Schema
         if ($isPrimaryKey && $isUniqueKey) {
             throw new \Exception('Unique and Primary designations not allowed simultaneously.');
         }
+
         if ($isUniqueKey) {
-            $definition .= ' UNIQUE KEY';
+            $definition .= ' UNIQUE';
         } elseif ($isPrimaryKey) {
             $definition .= ' PRIMARY KEY';
+        }
+
+        $isForeignKey = (isset($info['is_foreign_key'])) ? boolval($info['is_foreign_key']) : false;
+        if (('reference' == $type) || $isForeignKey) {
+            // special case for references because the table referenced may not be created yet
+            $refTable = (isset($info['ref_table'])) ? $info['ref_table'] : null;
+            if (empty($refTable)) {
+                throw new \Exception("Invalid schema detected - no table element for reference type.");
+            }
+
+            $refColumns = (isset($info['ref_fields'])) ? $info['ref_fields'] : 'id';
+            $refOnDelete = (isset($info['ref_on_delete'])) ? $info['ref_on_delete'] : null;
+            $refOnUpdate = (isset($info['ref_on_update'])) ? $info['ref_on_update'] : null;
+
+            $definition .= " REFERENCES $refTable($refColumns)";
+            if (!empty($refOnUpdate)) {
+                $definition .= " ON UPDATE $refOnUpdate";
+            }
+            if (!empty($refOnDelete)) {
+                $definition .= " ON DELETE $refOnDelete";
+            }
+        }
+
+        $auto = (isset($info['auto_increment'])) ? filter_var($info['auto_increment'], FILTER_VALIDATE_BOOLEAN) : false;
+        if ($auto) {
+            $definition .= ' AUTOINCREMENT';
         }
 
         return $definition;
@@ -247,6 +267,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
         if ($table->sequenceName === null) {
             return;
         }
+
         if ($value !== null) {
             $value = (int)($value) - 1;
         } else {
@@ -265,8 +286,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
     }
 
     /**
-     * Enables or disables integrity check. Note that this method used to do nothing before 1.1.14. Since 1.1.14
-     * it changes integrity check state as expected.
+     * Enables or disables integrity check.
      *
      * @param boolean $check  whether to turn on or off the integrity check.
      * @param string  $schema the schema of the tables. Defaults to empty string, meaning the current or default schema.
@@ -294,7 +314,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
 
         $names = [];
         foreach ($rows as $row) {
-            $names[strtolower($row)] = ['name' => $row, 'is_view' => false];
+            $names[strtolower($row)] = new TableNameSchema($row, false);
         }
 
         return $names;
@@ -320,16 +340,16 @@ class Schema extends \DreamFactory\Core\Database\Schema
     protected function loadTable($name)
     {
         $table = new TableSchema($name);
-        $table->name = $name;
         $table->rawName = $this->quoteTableName($name);
+        $table->displayName = $name;
 
-        if ($this->findColumns($table)) {
-            $this->findConstraints($table);
-
-            return $table;
-        } else {
+        if (!$this->findColumns($table)) {
             return null;
         }
+
+        $this->findConstraints($table);
+
+        return $table;
     }
 
     /**
@@ -369,29 +389,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
     }
 
     /**
-     * Collects the foreign key column details for the given table.
-     *
-     * @param TableSchema $table the table metadata
-     */
-    protected function findConstraints($table)
-    {
-        $foreignKeys = [];
-        $sql = "PRAGMA foreign_key_list({$table->rawName})";
-        $keys = $this->connection->createCommand($sql)->queryAll();
-        foreach ($keys as $key) {
-            $column = $table->columns[$key['from']];
-            $column->isForeignKey = true;
-            $column->refTable = $key['table'];
-            $column->refFields = $key['to'];
-            if ('integer' === $column->type) {
-                $column->type = 'reference';
-            }
-            $foreignKeys[$key['from']] = [$key['table'], $key['to']];
-        }
-        $table->foreignKeys = $foreignKeys;
-    }
-
-    /**
      * Creates a table column.
      *
      * @param array $column column metadata
@@ -414,6 +411,52 @@ class Schema extends \DreamFactory\Core\Database\Schema
         $c->extractDefault($column['dflt_value']);
 
         return $c;
+    }
+
+    /**
+     * Collects the foreign key column details for the given table.
+     *
+     * @param TableSchema $table the table metadata
+     */
+    protected function findConstraints($table)
+    {
+        $keys = [];
+        /** @type TableNameSchema $each */
+        foreach ($this->getTableNames() as $each) {
+            $sql = "PRAGMA foreign_key_list({$each->name})";
+            $fks = $this->connection->createCommand($sql)->queryAll();
+            if ($each->name === $table->name) {
+                foreach ($fks as $key) {
+                    $column = $table->columns[$key['from']];
+                    $column->isForeignKey = true;
+                    $column->refTable = $key['table'];
+                    $column->refFields = $key['to'];
+                    if ('integer' === $column->type) {
+                        $column->type = 'reference';
+                    }
+                    $table->foreignKeys[$key['from']] = [$key['table'], $key['to']];
+                    // Add it to our foreign references as well
+                    $table->addReference('belongs_to', $key['table'], $key['to'], $key['from']);
+                }
+            } else {
+                $keys[$each->name] = $fks;
+                foreach ($fks as $key => $fk) {
+                    if ($fk['table'] === $table->name) {
+                        $table->addReference('has_many', $each->name, $fk['from'], $fk['to']);
+                        $fks2 = $fks;
+                        // if other has foreign keys to other tables, we can say these are related as well
+                        foreach ($fks2 as $key2 => $fk2) {
+                            if (($key !== $key2) && ($fk2['table'] !== $table->name)) {
+                                // not same as parent, i.e. via reference back to self
+                                // not the same key
+                                $table->addReference('many_many', $fk2['table'], $fk['to'], $fk2['to'],
+                                    "{$each->name}({$fk['from']},{$fk2['from']})");
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     /**
@@ -586,5 +629,10 @@ class Schema extends \DreamFactory\Core\Database\Schema
     public function dropPrimaryKey($name, $table)
     {
         throw new \Exception('Removing a primary key after table has been created is not supported by SQLite.');
+    }
+
+    public function allowsSeparateForeignConstraint()
+    {
+        return false;
     }
 }

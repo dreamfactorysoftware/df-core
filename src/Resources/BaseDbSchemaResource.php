@@ -49,9 +49,16 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     public function listResources($schema = null, $refresh = false)
     {
-        $tableNames = $this->parent->getTableNames($schema, $refresh);
+        /** @type TableNameSchema[] $result */
+        $result = $this->parent->getTableNames($schema, $refresh);
+        $resources = [];
+        foreach ($result as $table) {
+            if (!empty($this->getPermissions($table->name))) {
+                $resources[] = $table->name;
+            }
+        }
 
-        return array_keys($tableNames); // only need keys here
+        return $resources;
     }
 
     /**
@@ -98,8 +105,9 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         $tables = $this->parent->getTableNames();
 
         //	Search normal, return real name
-        if (false !== array_key_exists(strtolower($name), $tables)) {
-            return $returnName ? $tables[strtolower($name)]->name : true;
+        $ndx = strtolower($name);
+        if (isset($tables[$ndx])) {
+            return $returnName ? $tables[$ndx]->name : true;
         }
 
         return false;

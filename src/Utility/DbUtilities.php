@@ -20,55 +20,6 @@ class DbUtilities
     /**
      * @param $avail_fields
      *
-     * @return array
-     */
-    public static function listAllFieldsFromDescribe($avail_fields)
-    {
-        $out = [];
-        foreach ($avail_fields as $field_info) {
-            $out[] = $field_info->name;
-        }
-
-        return $out;
-    }
-
-    /**
-     * @param $field_name
-     * @param $avail_fields
-     *
-     * @return null
-     */
-    public static function getFieldFromDescribe($field_name, $avail_fields)
-    {
-        foreach ($avail_fields as $field_info) {
-            if (0 == strcasecmp($field_name, $field_info->name)) {
-                return $field_info;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param $field_name
-     * @param $avail_fields
-     *
-     * @return bool|int|string
-     */
-    public static function findFieldFromDescribe($field_name, $avail_fields)
-    {
-        foreach ($avail_fields as $key => $field_info) {
-            if (0 == strcasecmp($field_name, $field_info->name)) {
-                return $key;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * @param $avail_fields
-     *
      * @return string
      */
     public static function getPrimaryKeyFieldFromDescribe($avail_fields)

@@ -224,6 +224,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
         if ($isPrimaryKey && $isUniqueKey) {
             throw new \Exception('Unique and Primary designations not allowed simultaneously.');
         }
+
         if ($isUniqueKey) {
             $definition .= ' UNIQUE KEY';
         } elseif ($isPrimaryKey) {

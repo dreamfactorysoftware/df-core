@@ -11,10 +11,8 @@ use DreamFactory\Core\Database\TableSchema;
 class Schema extends \DreamFactory\Core\Database\Schema
 {
     /**
-     * @type string
+     * @type boolean
      */
-    private $defaultSchema;
-
     private $isIseries = null;
 
     private function isISeries()
@@ -33,25 +31,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
 
             return $this->isIseries;
         }
-    }
-
-    /**
-     * Loads the metadata for the specified table.
-     *
-     * @param string $name table name
-     *
-     * @return TableSchema driver dependent table metadata, null if the table does not exist.
-     */
-    protected function loadTable($name)
-    {
-        $table = new TableSchema;
-        $this->resolveTableNames($table, $name);
-        if (!$this->findColumns($table)) {
-            return null;
-        }
-        $this->findConstraints($table);
-
-        return $table;
     }
 
     protected function translateSimpleColumnTypes(array &$info)
@@ -305,6 +284,27 @@ class Schema extends \DreamFactory\Core\Database\Schema
     public function quoteSimpleColumnName($name)
     {
         return $name;
+    }
+
+    /**
+     * Loads the metadata for the specified table.
+     *
+     * @param string $name table name
+     *
+     * @return TableSchema driver dependent table metadata, null if the table does not exist.
+     */
+    protected function loadTable($name)
+    {
+        $table = new TableSchema($name);
+        $this->resolveTableNames($table, $name);
+
+        if (!$this->findColumns($table)) {
+            return null;
+        }
+
+        $this->findConstraints($table);
+
+        return $table;
     }
 
     /**

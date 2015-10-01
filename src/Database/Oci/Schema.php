@@ -7,8 +7,6 @@ use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from an Oracle database.
- *
- * @property string $defaultSchema Default schema.
  */
 class Schema extends \DreamFactory\Core\Database\Schema
 {

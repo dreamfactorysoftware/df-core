@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Utility;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Enums\DataFormats;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\MessageBag;
 
 /**
  * Class DataFormatter
@@ -767,5 +768,31 @@ class DataFormatter
         }
 
         return "$return\n\n--------------------------------------------\n\n";
+    }
+
+    /**
+     * Converts validation errors to plain string.
+     *
+     * @param $messages
+     *
+     * @return string
+     */
+    public static function validationErrorsToString($messages)
+    {
+        if($messages instanceof MessageBag){
+            $messages = $messages->getMessages();
+        }
+
+        $errorString = '';
+
+        if(is_array($messages)) {
+            foreach ($messages as $field => $errors) {
+                foreach ($errors as $error) {
+                    $errorString .= ' ' . $error;
+                }
+            }
+        }
+
+        return $errorString;
     }
 }

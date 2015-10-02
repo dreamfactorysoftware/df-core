@@ -41,7 +41,7 @@ class LocalFileService extends BaseFileService
 
         $disk = ArrayUtils::get($disks, $diskName);
         //  Replace any private lookups
-        Session::replaceLookups( $disk, true );
+        Session::replaceLookups($disk, true);
 
         if (!isset($disk['driver'])) {
             throw new InternalServerErrorException('Mis-configured disk - ' . $diskName . '. Driver not specified.');
@@ -49,13 +49,13 @@ class LocalFileService extends BaseFileService
 
         switch ($disk['driver']) {
             case 'local':
-                if(config('df.standalone')){
-                    $root = config('df.local_file_service_root');
+                if (config('df.standalone')) {
+                    $root = $disk['root'];
                 } else {
                     $root = Managed::getStoragePath() . config('df.local_file_service_container');
                 }
 
-                if(!is_dir($root)){
+                if (!is_dir($root)) {
                     mkdir($root, 0775);
                 }
 
@@ -79,7 +79,7 @@ class LocalFileService extends BaseFileService
                 ArrayUtils::set($disk, 'container', $this->container);
 
                 if (empty($this->container)) {
-                    throw new InternalServerErrorException('S3 file service bucket not specified. Please check configuration for file service - ' .
+                    throw new InternalServerErrorException('S3 file service bucket/container not specified. Please check configuration for file service - ' .
                         $this->name);
                 }
 

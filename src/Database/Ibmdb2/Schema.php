@@ -11,10 +11,8 @@ use DreamFactory\Core\Database\TableSchema;
 class Schema extends \DreamFactory\Core\Database\Schema
 {
     /**
-     * @type string
+     * @type boolean
      */
-    private $defaultSchema;
-
     private $isIseries = null;
 
     private function isISeries()
@@ -35,23 +33,13 @@ class Schema extends \DreamFactory\Core\Database\Schema
         }
     }
 
-    /**
-     * Loads the metadata for the specified table.
-     *
-     * @param string $name table name
-     *
-     * @return TableSchema driver dependent table metadata, null if the table does not exist.
-     */
-    protected function loadTable($name)
+    public static function checkRequirements($driver)
     {
-        $table = new TableSchema;
-        $this->resolveTableNames($table, $name);
-        if (!$this->findColumns($table)) {
-            return null;
+        if (!extension_loaded('ibm_db2')) {
+            throw new \Exception("Required extension or module 'ibm_db2' is not installed or loaded.");
         }
-        $this->findConstraints($table);
 
-        return $table;
+        parent::checkRequirements($driver);
     }
 
     protected function translateSimpleColumnTypes(array &$info)
@@ -305,6 +293,27 @@ class Schema extends \DreamFactory\Core\Database\Schema
     public function quoteSimpleColumnName($name)
     {
         return $name;
+    }
+
+    /**
+     * Loads the metadata for the specified table.
+     *
+     * @param string $name table name
+     *
+     * @return TableSchema driver dependent table metadata, null if the table does not exist.
+     */
+    protected function loadTable($name)
+    {
+        $table = new TableSchema($name);
+        $this->resolveTableNames($table, $name);
+
+        if (!$this->findColumns($table)) {
+            return null;
+        }
+
+        $this->findConstraints($table);
+
+        return $table;
     }
 
     /**

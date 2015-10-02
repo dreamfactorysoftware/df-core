@@ -96,12 +96,12 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function listResources($schema = null, $refresh = false)
     {
+        /** @type TableNameSchema[] $result */
         $result = $this->parent->getTableNames($schema, $refresh);
         $resources = [];
         foreach ($result as $table) {
-            $name = (!empty($table->alias)) ? $table->alias : $table->name;
-            $access = $this->getPermissions($name);
-            if (!empty($access)) {
+            $name = $table->getName(true);
+            if (!empty($this->getPermissions($name))) {
                 $resources[] = $name;
             }
         }
@@ -124,8 +124,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $result = $this->parent->getTableNames($schema, $refresh);
         $resources = [];
         foreach ($result as $table) {
-            $name = (!empty($table->alias)) ? $table->alias : $table->name;
-            $access = $this->getPermissions($name);
+            $access = $this->getPermissions($table->getName(true));
             if (!empty($access)) {
                 $info = $table->toArray(true);
                 $info['access'] = VerbsMask::maskToArray($access);
@@ -145,23 +144,17 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function doesTableExist($name, $returnName = false)
     {
-        $name = strtolower($name);
-        $result = $this->parent->getTableNames();
-        if (array_key_exists($name, $result)) {
-            if (!empty($result[$name]->alias)) {
-                // must use alias, denied!
-                return false;
-            }
-
-            return ($returnName) ? $result[$name]->name : true;
+        if (empty($name)) {
+            throw new \InvalidArgumentException('Table name cannot be empty.');
         }
 
-        // search for alias
-        foreach ($result as $table) {
-            $apiName = (!empty($table->alias)) ? $table->alias : $table->name;
-            if ($name === strtolower($apiName)) {
-                return ($returnName) ? $table->name : true;
-            }
+        //  Build the lower-cased table array
+        $tables = $this->parent->getTableNames(null, false, true);
+
+        //	Search normal, return real name
+        $ndx = strtolower($name);
+        if (isset($tables[$ndx])) {
+            return $returnName ? $tables[$ndx]->name : true;
         }
 
         return false;
@@ -1925,7 +1918,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         if (!empty($ids_info)) {
             if (1 == count($ids_info)) {
                 $info = $ids_info[0];
-                $name = $info->name;
+                $name = $info->getName(true);
                 if (is_array($record)) {
                     $value = ArrayUtils::get($record, $name);
                     if ($remove) {
@@ -1954,7 +1947,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             } else {
                 $id = [];
                 foreach ($ids_info as $info) {
-                    $name = $info->name;
+                    $name = $info->getName(true);
                     if (is_array($record)) {
                         $value = ArrayUtils::get($record, $name);
                         if ($remove) {
@@ -2050,7 +2043,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         }
                         break;
                     default:
-                        $name = strtolower((empty($fieldInfo->alias)) ? $fieldInfo->name : $fieldInfo->alias);
+                        $name = strtolower($fieldInfo->getName(true));
                         if (array_key_exists($name, $record)) {
                             $fieldVal = ArrayUtils::get($record, $name);
                             // due to conversion from XML to array, null or empty xml elements have the array value of an empty array
@@ -2071,7 +2064,7 @@ abstract class BaseDbTableResource extends BaseDbResource
 
                             /** validations **/
                             if (!static::validateFieldValue(
-                                $fieldInfo->name,
+                                $fieldInfo->getName(true),
                                 $fieldVal,
                                 $fieldInfo->validation,
                                 $for_update,

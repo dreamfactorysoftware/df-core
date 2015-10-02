@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Models;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Components\ConnectionAdapter;
@@ -71,6 +72,68 @@ class BaseModel extends Model
      * @var array
      */
     protected static $tableToModelMap = [];
+
+    /**
+     * Rules for validating model data
+     *
+     * @type array
+     */
+    protected $rules = [];
+
+    /**
+     * Stores validation errors.
+     *
+     * @type array
+     */
+    protected $errors = [];
+
+    /**
+     * Validates data based on $this->rules.
+     *
+     * @param array     $data
+     * @param bool|true $throwException
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    public function validate(array $data = [], $throwException = true)
+    {
+        if (empty($data)) {
+            $data = $this->attributes;
+        }
+
+        if (empty($this->rules) || empty($data)) {
+            return true;
+        } else {
+            $validator = \Validator::make($data, $this->rules);
+
+            if ($validator->fails()) {
+                $this->errors = $validator->errors()->getMessages();
+                if ($throwException) {
+                    $errorString = DataFormatter::validationErrorsToString($this->errors);
+                    throw new BadRequestException('Invalid data supplied.' . $errorString, null, null, $this->errors);
+                } else {
+                    return false;
+                }
+            } else {
+                return true;
+            }
+        }
+    }
+
+    public function errors()
+    {
+        return $this->errors;
+    }
+
+    public function save(array $options = [])
+    {
+        if ($this->validate()) {
+            return parent::save($options);
+        } else {
+            return false;
+        }
+    }
 
     /**
      * Save a new model and return the instance.
@@ -447,8 +510,9 @@ class BaseModel extends Model
      * @param array $params
      *
      * @return array
-     * @throws BadRequestException
-     * @throws InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     public static function updateInternal($id, $record, $params = [])
     {

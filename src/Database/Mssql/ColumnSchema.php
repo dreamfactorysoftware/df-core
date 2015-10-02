@@ -18,11 +18,6 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
         if ((false !== strpos($dbType, 'varchar')) && (null === $this->size)) {
             $this->type = 'text';
         }
-        // bigint too big to represent as number in php
-        if (0 === strpos($dbType, 'bigint')) {
-            $this->phpType = 'string';
-            $this->pdoType = 'string';
-        }
     }
 
     /**

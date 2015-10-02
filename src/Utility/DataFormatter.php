@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Utility;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Enums\DataFormats;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\MessageBag;
 
 /**
  * Class DataFormatter
@@ -214,9 +215,8 @@ class DataFormatter
                         ]; //This will combine the existing item and the new item together to make an array
                         $repeated_tag_index[$tag . '_' . $level] = 2;
 
-                        if (isset($current[
-                                  $tag .
-                                  '_attr'])) { //The attribute of the last(0th) tag must be moved as well
+                        if (isset($current[$tag .
+                            '_attr'])) { //The attribute of the last(0th) tag must be moved as well
                             $current[$tag]['0_attr'] = $current[$tag . '_attr'];
                             unset($current[$tag . '_attr']);
                         }
@@ -249,9 +249,8 @@ class DataFormatter
                         ]; //...Make it an array using using the existing value and the new value
                         $repeated_tag_index[$tag . '_' . $level] = 1;
                         if ($priority == 'tag' and $get_attributes) {
-                            if (isset($current[
-                                      $tag .
-                                      '_attr'])) { //The attribute of the last(0th) tag must be moved as well
+                            if (isset($current[$tag .
+                                '_attr'])) { //The attribute of the last(0th) tag must be moved as well
 
                                 $current[$tag]['0_attr'] = $current[$tag . '_attr'];
                                 unset($current[$tag . '_attr']);
@@ -492,12 +491,12 @@ class DataFormatter
      *
      * @return string
      */
-    public static function arrayToXml($data, $root = null, $level = 1, $format = true)
+    protected static function arrayToXmlInternal($data, $root = null, $level = 1, $format = true)
     {
         $xml = null;
         if (ArrayUtils::isArrayNumeric($data)) {
             foreach ($data as $value) {
-                $xml .= self::arrayToXml($value, $root, $level, $format);
+                $xml .= self::arrayToXmlInternal($value, $root, $level, $format);
             }
         } else if (ArrayUtils::isArrayAssociative($data)) {
             if (!empty($root)) {
@@ -510,7 +509,7 @@ class DataFormatter
                 }
             }
             foreach ($data as $key => $value) {
-                $xml .= self::arrayToXml($value, $key, $level + 1, $format);
+                $xml .= self::arrayToXmlInternal($value, $key, $level + 1, $format);
             }
             if (!empty($root)) {
                 if ($format) {
@@ -551,6 +550,23 @@ class DataFormatter
     }
 
     /**
+     * @param mixed  $data
+     * @param string $root
+     * @param int    $level
+     * @param bool   $format
+     *
+     * @return string
+     */
+    public static function arrayToXml($data, $root = null, $level = 1, $format = true)
+    {
+        if (empty($root)) {
+            $root = config('df.xml_response_root', 'dfapi');
+        }
+
+        return '<?xml version="1.0" ?>' . static::arrayToXmlInternal($data, $root);
+    }
+
+    /**
      * @param array $array
      *
      * @return string
@@ -561,8 +577,16 @@ class DataFormatter
             return '';
         }
 
-        $keys = array_keys(ArrayUtils::get($array, 0, []));
-        $data = $array;
+        $array = ArrayUtils::get($array, ResourcesWrapper::getWrapper(), ArrayUtils::get($array, 'error', $array));
+        $data = [];
+
+        if (!isset($array[0])) {
+            $data[] = $array;
+        } else {
+            $data = $array;
+        }
+
+        $keys = array_keys(ArrayUtils::get($data, 0, []));
 
         // currently need to write out to file to use parser
         $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
@@ -744,5 +768,31 @@ class DataFormatter
         }
 
         return "$return\n\n--------------------------------------------\n\n";
+    }
+
+    /**
+     * Converts validation errors to plain string.
+     *
+     * @param $messages
+     *
+     * @return string
+     */
+    public static function validationErrorsToString($messages)
+    {
+        if($messages instanceof MessageBag){
+            $messages = $messages->getMessages();
+        }
+
+        $errorString = '';
+
+        if(is_array($messages)) {
+            foreach ($messages as $field => $errors) {
+                foreach ($errors as $error) {
+                    $errorString .= ' ' . $error;
+                }
+            }
+        }
+
+        return $errorString;
     }
 }

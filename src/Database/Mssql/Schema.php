@@ -21,6 +21,19 @@ class Schema extends \DreamFactory\Core\Database\Schema
         return static::DEFAULT_SCHEMA;
     }
 
+    public static function checkRequirements($driver)
+    {
+        $extension = $driver;
+        if ('dblib' === $driver) {
+            $extension = 'mssql';
+        }
+        if (!extension_loaded($extension)) {
+            throw new \Exception("Required extension or module '$extension' is not installed or loaded.");
+        }
+
+        parent::checkRequirements($driver);
+    }
+
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class
@@ -53,11 +66,8 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 $info['type'] = 'datetimeoffset';
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
-                    $default = 'getdate()';
-                    if ('timestamp_on_update' === $type) {
-                        $default .= ' ON UPDATE CURRENT_TIMESTAMP';
-                    }
-                    $info['default'] = $default;
+                    $default = 'CURRENT_TIMESTAMP';
+                    $info['default'] = ['expression' => $default];
                 }
                 break;
             case 'user_id':
@@ -65,7 +75,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
             case 'user_id_on_update':
                 $info['type'] = 'int';
                 break;
-
 
             case 'boolean':
                 $info['type'] = 'bit';
@@ -244,13 +253,15 @@ class Schema extends \DreamFactory\Core\Database\Schema
 
         $default = (isset($info['default'])) ? $info['default'] : null;
         if (isset($default)) {
-            $quoteDefault =
-                (isset($info['quote_default'])) ? filter_var($info['quote_default'], FILTER_VALIDATE_BOOLEAN) : false;
-            if ($quoteDefault) {
-                $default = "'" . $default . "'";
+            if (is_array($default)) {
+                $expression = (isset($default['expression'])) ? $default['expression'] : null;
+                if (null !== $expression) {
+                    $definition .= ' DEFAULT ' . $expression;
+                }
+            } else {
+                $default = $this->connection->quoteValue($default);
+                $definition .= ' DEFAULT ' . $default;
             }
-
-            $definition .= ' DEFAULT ' . $default;
         }
 
         $auto = (isset($info['auto_increment'])) ? filter_var($info['auto_increment'], FILTER_VALIDATE_BOOLEAN) : false;
@@ -264,8 +275,9 @@ class Schema extends \DreamFactory\Core\Database\Schema
         if ($isPrimaryKey && $isUniqueKey) {
             throw new \Exception('Unique and Primary designations not allowed simultaneously.');
         }
+
         if ($isUniqueKey) {
-            $definition .= ' UNIQUE KEY';
+            $definition .= ' UNIQUE';
         } elseif ($isPrimaryKey) {
             $definition .= ' PRIMARY KEY';
         }
@@ -1087,40 +1099,28 @@ MYSQL;
         return $results;
     }
 
-    public function parseFieldsForSelect($context, $field_info, $as_quoted_string = false, $out_as = '')
+    /**
+     * @param ColumnSchema $field_info
+     * @param bool         $as_quoted_string
+     * @param string       $out_as
+     *
+     * @return string
+     */
+    public function parseFieldForSelect($field_info, $as_quoted_string = false, $out_as = null)
     {
-        if ($as_quoted_string) {
-            $context = $this->quoteColumnName($context);
-            $out_as = $this->quoteColumnName($out_as);
-        }
-
+        $field = ($as_quoted_string) ? $this->quoteColumnName($field_info->name) : $field_info->name;
+        $alias = ($as_quoted_string) ? $this->quoteColumnName($field_info->getName(true)) : $field_info->getName(true);
         switch ($field_info->dbType) {
             case 'datetime':
             case 'datetimeoffset':
-                if (!$as_quoted_string) {
-                    $context = $this->quoteColumnName($context);
-                    $out_as = $this->quoteColumnName($out_as);
-                }
-                $out = "(CONVERT(nvarchar(30), $context, 127)) AS $out_as";
-                break;
+                return "(CONVERT(nvarchar(30), $field, 127)) AS $alias";
             case 'geometry':
             case 'geography':
             case 'hierarchyid':
-                if (!$as_quoted_string) {
-                    $context = $this->quoteColumnName($context);
-                    $out_as = $this->quoteColumnName($out_as);
-                }
-                $out = "($context.ToString()) AS $out_as";
-                break;
+                return "($field.ToString()) AS $alias";
             default :
-                $out = $context;
-                if (!empty($as)) {
-                    $out .= ' AS ' . $out_as;
-                }
-                break;
+                return parent::parseFieldForSelect($field_info, $as_quoted_string, $out_as);
         }
-
-        return $out;
     }
 
     /**

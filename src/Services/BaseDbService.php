@@ -7,6 +7,7 @@ use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Resources\BaseDbResource;
 use DreamFactory\Library\Utility\ArrayUtils;
 
@@ -70,11 +71,15 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
             $resource = $this->instantiateResource($className, $resourceInfo);
             $access = $this->getPermissions($resource->name);
             if (!empty($access)) {
-                $output[] = $resource->name . '/';
-                $output[] = $resource->name . '/*';
+                try{
+                    $results = $resource->listAccessComponents($schema, $refresh);
+                    $output[] = $resource->name . '/';
+                    $output[] = $resource->name . '/*';
+                    $output = array_merge($output, $results);
 
-                $results = $resource->listAccessComponents($schema, $refresh);
-                $output = array_merge($output, $results);
+                } catch ( NotImplementedException $ex){
+                    // carry on
+                }
             }
         }
 
@@ -92,10 +97,11 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
     /**
      * @param string|null $schema
      * @param bool        $refresh
+     * @param bool        $use_alias
      *
      * @return array
      */
-    abstract public function getTableNames($schema = null, $refresh = false);
+    abstract public function getTableNames($schema = null, $refresh = false, $use_alias = false);
 
     /**
      */

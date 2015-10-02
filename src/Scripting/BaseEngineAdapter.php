@@ -129,7 +129,7 @@ abstract class BaseEngineAdapter
         $libraryPaths = ArrayUtils::clean($libraryPaths);
 
         //  Application storage script path
-        $libraryPaths[] = storage_path(DIRECTORY_SEPARATOR . 'scripting');
+        $libraryPaths[] = storage_path('scripting');
 
         //  Merge in config libraries...
         $libraryPaths = array_merge($libraryPaths, ArrayUtils::clean(\Config::get('df.scripting.paths', [])));

@@ -30,6 +30,10 @@ class NodeJs extends BaseEngineAdapter implements ScriptingEngineInterface
      * @var string Where NodeJs executable can be found.
      */
     protected $commandPath;
+    /**
+     * @var array Array of extension names to preload with script.
+     */
+    protected $extensions;
 
     //*************************************************************************
     //	Methods
@@ -44,10 +48,22 @@ class NodeJs extends BaseEngineAdapter implements ScriptingEngineInterface
     {
         parent::__construct($settings);
 
-        // todo windows support with where.exe here?
-        if (empty($this->commandPath = trim(shell_exec('which node')))) {
-            throw new ServiceUnavailableException("Failed to find a valid path to NodeJs.");
+        if (empty($this->commandPath)) {
+            if (strncasecmp(PHP_OS, 'WIN', 3) == 0) {
+                // need to use windows where.exe...
+                $finder = 'where node';
+            } else {
+                // must be linux or osx (darwin), use which
+                $finder = 'which node';
+            }
+            if (empty($this->commandPath = trim(shell_exec($finder)))) {
+                throw new ServiceUnavailableException("Failed to find a valid path to NodeJs.");
+            }
         }
+
+        $extensions = ArrayUtils::get($settings, 'extensions', [], true);
+        // accept comma-delimited string
+        $this->extensions = (is_string($extensions)) ? array_map('trim', explode(',', trim($extensions, ','))) : $extensions;
 
         static::startup($settings);
     }

@@ -10,7 +10,9 @@ trait FileServiceWithContainer
             if ($schema['name'] === 'container') {
                 $pathSchema[$k]['type'] = 'text';
                 unset($pathSchema[$k]['values']);
-                unset($pathSchema[$k]['description']);
+                $pathSchema[$k]['label'] = 'Container';
+                $pathSchema[$k]['description'] =
+                    'Enter a Container (root directory) for your storage service. It will be created if does not exit already.';
             }
         }
     }

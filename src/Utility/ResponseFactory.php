@@ -37,20 +37,51 @@ class ResponseFactory
     }
 
     /**
-     * @param ServiceResponseInterface $response
-     * @param null|string|array        $accepts
+     * @param \DreamFactory\Core\Contracts\ServiceResponseInterface $response
+     * @param null                                                  $accepts
+     * @param null                                                  $asFile
+     * @param string                                                $resource
      *
-     * @return array|mixed|string
-     * @throws BadRequestException
+     * @return \Symfony\Component\HttpFoundation\Response
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
-    public static function sendResponse(ServiceResponseInterface $response, $accepts = null)
-    {
+    public static function sendResponse(
+        ServiceResponseInterface $response,
+        $accepts = null,
+        $asFile = null,
+        $resource = 'resource'
+    ){
         if (empty($accepts)) {
             $accepts = array_map('trim', explode(',', \Request::header('ACCEPT')));
         }
+
+        if (empty($asFile)) {
+            $asFile = \Request::input('file');
+
+            if (true === filter_var($asFile, FILTER_VALIDATE_BOOLEAN)) {
+                $asFile = $resource . '.json';
+            }
+
+            if (is_string($asFile) && strpos($asFile, '.') !== false) {
+                $format = strtolower(pathinfo($asFile, PATHINFO_EXTENSION));
+                if (!empty($format)) {
+                    if ($format === 'csv') {
+                        $accepts = ['text/csv'];
+                    } else if ($format === 'xml') {
+                        $accepts = ['application/xml'];
+                    } else if ($format === 'json') {
+                        $accepts = ['application/json'];
+                    }
+                }
+            } else {
+                $asFile = null;
+            }
+        }
+
         // If no accepts header supplied or a blank is supplied for
-        // accept header (clients like bench-rest) then accept any.
-        if(empty($accepts) || (isset($accepts[0]) && empty($accepts[0]))) {
+        // accept header (clients like bench-rest) then use default response type from config.
+        if (empty($accepts) || (isset($accepts[0]) && empty($accepts[0]))) {
             $accepts[] = config('df.default_response_type');
         }
 
@@ -100,17 +131,26 @@ class ResponseFactory
                     $acceptsAny = true;
                 }
                 continue;
+            } else {
+                $contentType = $mimeType;
             }
-
             $reformatted = DataFormatter::reformatData($content, $format, $acceptFormat);
+        }
+
+        $responseHeaders = [
+            "Content-Type" => $contentType
+        ];
+        if (!empty($asFile)) {
+            $responseHeaders['Content-Disposition'] = 'attachment; filename="' . $asFile . '";';
         }
 
         if ($acceptsAny) {
             $contentType = (empty($contentType)) ? DataFormats::toMimeType($format, 'application/json') : $contentType;
+            $responseHeaders['Content-Type'] = $contentType;
 
-            return DfResponse::create($content, $status, ["Content-Type" => $contentType]);
+            return DfResponse::create($content, $status, $responseHeaders);
         } else if (false !== $reformatted) {
-            return DfResponse::create($reformatted, $status, ["Content-Type" => $contentType]);
+            return DfResponse::create($reformatted, $status, $responseHeaders);
         }
 
         throw new BadRequestException('Content in response can not be resolved to acceptable content type.');
@@ -180,14 +220,15 @@ class ResponseFactory
 
         if ("local" === env("APP_ENV")) {
             $trace = $exception->getTraceAsString();
-            $trace = str_replace(["\n", "#", "):"], ["", "<br><br>|#", "):<br>|---->"], $trace);
+            $trace = str_replace(["\n", "#"], ["", "<br>"], $trace);
             $traceArray = explode("<br>", $trace);
+            $cleanTrace = [];
             foreach ($traceArray as $k => $v) {
-                if (empty($v)) {
-                    $traceArray[$k] = '|';
+                if (!empty($v)) {
+                    $cleanTrace[] = $v;
                 }
             }
-            $errorInfo['trace'] = $traceArray;
+            $errorInfo['trace'] = $cleanTrace;
         }
 
         $result = [

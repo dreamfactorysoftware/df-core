@@ -20,7 +20,7 @@ class AppTypes extends FactoryEnum
      */
     const NONE = 0;
     /**
-     * @var int Application files are located at a particular file storage service on this DSP.
+     * @var int Application files are located at a particular file storage service on this instance.
      */
     const STORAGE_SERVICE = 1;
     /**

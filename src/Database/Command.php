@@ -214,7 +214,7 @@ class Command
                 $this->statement = $this->getConnection()->getPdoInstance()->prepare($this->getText());
                 $this->paramLog = [];
             } catch (\Exception $e) {
-                $errorInfo = $e instanceof \PDOException ? $e->errorInfo : null;
+                $errorInfo = $e instanceof \PDOException ? $e : null;
                 throw new \Exception('Command failed to prepare the SQL statement: ' . $e->getMessage(),
                     (int)$e->getCode(), $errorInfo);
             }

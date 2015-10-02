@@ -33,7 +33,7 @@ class MailGunConfig extends CloudEmailConfig
 
         switch ($schema['name']) {
             case 'domain':
-                $schema['label'] = 'Mailgun domain.';
+                $schema['label'] = 'Mailgun Domain';
                 $schema['description'] = 'Your Mailgun domain name.';
                 break;
             case 'key':

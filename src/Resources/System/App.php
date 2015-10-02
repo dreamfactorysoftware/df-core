@@ -132,13 +132,14 @@ class App extends BaseSystemResource
         $result = parent::handleDELETE();
 
         if ($deleteStorage) {
+            $temp = $result;
             $wrapper = ResourcesWrapper::getWrapper();
             if (isset($result[$wrapper])) {
-                $result = ResourcesWrapper::unwrapResources($result);
+                $temp = ResourcesWrapper::unwrapResources($temp);
             }
 
-            if (ArrayUtils::isArrayNumeric($result)) {
-                foreach ($result as $app) {
+            if (ArrayUtils::isArrayNumeric($temp)) {
+                foreach ($temp as $app) {
                     static::deleteHostedAppStorage(
                         $app['id'],
                         $app['storage_service_id'],
@@ -147,9 +148,9 @@ class App extends BaseSystemResource
                 }
             } else {
                 static::deleteHostedAppStorage(
-                    $result['id'],
-                    $result['storage_service_id'],
-                    $result['storage_container']
+                    $temp['id'],
+                    $temp['storage_service_id'],
+                    $temp['storage_container']
                 );
             }
         }

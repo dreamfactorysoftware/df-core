@@ -53,13 +53,14 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
         parent::__construct($settings);
 
         if (!extension_loaded('v8js')) {
-            throw new ServiceUnavailableException("This DSP cannot run server-side javascript scripts. The 'v8js' is not available.");
+            throw new ServiceUnavailableException("This instance cannot run server-side javascript scripts. The 'v8js' is not available.");
         }
 
-        $settings = ArrayUtils::clean($settings);
         $name = ArrayUtils::get($settings, 'name', self::EXPOSED_OBJECT_NAME, true);
         $variables = ArrayUtils::get($settings, 'variables', [], true);
         $extensions = ArrayUtils::get($settings, 'extensions', [], true);
+        // accept comma-delimited string
+        $extensions = (is_string($extensions)) ? array_map('trim', explode(',', trim($extensions, ','))) : $extensions;
         $reportUncaughtExceptions = ArrayUtils::getBool($settings, 'report_uncaught_exceptions', false);
         $logMemoryUsage = ArrayUtils::getBool($settings, 'log_memory_usage', false);
 
@@ -115,7 +116,10 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
 
         //  Register any extensions
         if (null !== $extensions = ArrayUtils::get($options, 'extensions', [], true)) {
-            static::registerExtensions(ArrayUtils::clean($extensions));
+            // accept comma-delimited string
+            $extensions =
+                (is_string($extensions)) ? array_map('trim', explode(',', trim($extensions, ','))) : $extensions;
+            static::registerExtensions($extensions);
         }
     }
 
@@ -236,7 +240,9 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
             );
         }
 
-        return file_get_contents($fullScriptPath);
+        $content = file_get_contents($fullScriptPath);
+
+        return $content;
     }
 
     /**
@@ -256,18 +262,25 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      * (module loading), the "lodash" library will be automatically registered and injected
      * into all script contexts.
      *
-     * @return array|bool
+     * @param array $extensions
+     *
+     * @return array
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
     protected static function registerExtensions(array $extensions = [])
     {
-        $registered = [];
+        /** @noinspection PhpUndefinedClassInspection */
+        $existing = \V8Js::getExtensions();
+        $registered = array_diff($extensions, $existing);
 
-        foreach ($extensions as $module) {
+        foreach ($registered as $module) {
             /** @noinspection PhpUndefinedClassInspection */
-            \V8Js::registerExtension($module, static::loadScriptingModule($module), [], false);
+            if (false === \V8Js::registerExtension($module, static::loadScriptingModule($module), [], false)) {
+                throw new InternalServerErrorException('Failed to register V8Js extension script: ' . $module);
+            }
         }
 
-        return empty($registered) ? false : $registered;
+        return $registered;
     }
 
     /**

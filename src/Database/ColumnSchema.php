@@ -273,7 +273,6 @@ class ColumnSchema
             case 'tinyint':
             case 'smallint':
             case 'mediumint':
-            case 'bigint':
             case 'int':
             case 'integer':
                 // watch out for point here!
@@ -282,6 +281,11 @@ class ColumnSchema
                 } else {
                     $this->type = static::TYPE_INTEGER;
                 }
+                break;
+
+            case 'bigint':
+                // bigint too big to represent as number in php
+                $this->type = static::TYPE_BIGINT;
                 break;
 
             case (false !== strpos($simpleType, 'timestamp')):
@@ -431,15 +435,20 @@ class ColumnSchema
         return true;
     }
 
+    public function getName($use_alias = false)
+    {
+        return ($use_alias && !empty($this->alias)) ? $this->alias : $this->name;
+    }
+
     public function getLabel()
     {
-        return (empty($this->label)) ? Inflector::camelize($this->name, '_', true) : $this->label;
+        return (empty($this->label)) ? Inflector::camelize($this->getName(true), '_', true) : $this->label;
     }
 
     public function toArray($use_alias = false)
     {
         $out = [
-            'name'               => ($use_alias && !empty($this->alias)) ? $this->alias : $this->name,
+            'name'               => $this->getName($use_alias),
             'label'              => $this->getLabel(),
             'description'        => $this->description,
             'type'               => $this->type,

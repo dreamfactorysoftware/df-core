@@ -535,7 +535,15 @@ abstract class BaseFileService extends BaseRestService
             $error = $file['error'];
             if ($error == UPLOAD_ERR_OK) {
                 $tmpName = $file['tmp_name'];
-                $contentType = $file['type'];
+
+                // Get file's content type
+                $contentType = finfo_file(finfo_open(FILEINFO_MIME_TYPE), $tmpName);
+
+                if (empty($contentType)) {
+                    // It is not safe to use content-type set by client.
+                    // Therefore, only using content-type from client as a fallback.
+                    $contentType = $file['type'];
+                }
                 $tmp = $this->handleFile(
                     $this->folderPath,
                     $name,
@@ -1363,5 +1371,23 @@ abstract class BaseFileService extends BaseRestService
         $base['models'] = array_merge($base['models'], $models);
 
         return $base;
+    }
+
+    /**
+     * Runs pre process tasks/scripts
+     */
+    protected function preProcess()
+    {
+        // Pre process not supported on file services
+        return true;
+    }
+
+    /**
+     * Runs post process tasks/scripts
+     */
+    protected function postProcess()
+    {
+        // Post process not supported on file services
+        return true;
     }
 }

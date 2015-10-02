@@ -1,6 +1,9 @@
 <?php
 namespace DreamFactory\Core\Database;
 
+use DreamFactory\Core\Exceptions\NotImplementedException;
+use League\Flysystem\NotSupportedException;
+
 /**
  * Schema is the base class for retrieving metadata information.
  *
@@ -83,6 +86,19 @@ abstract class Schema
         return $this->connection;
     }
 
+    public static function checkRequirements($driver)
+    {
+        if (!extension_loaded('PDO')) {
+            throw new \Exception("Required PDO extension is not installed or loaded.");
+        }
+
+        // see overrides for specific driver checks
+        $drivers = \PDO::getAvailableDrivers();
+        if (!in_array($driver, $drivers)) {
+            throw new \Exception("Required PDO driver '$driver' is not installed or loaded properly.");
+        }
+    }
+
     /**
      * Returns the default schema name for the connection.
      *
@@ -157,7 +173,7 @@ abstract class Schema
      */
     protected function findSchemaNames()
     {
-//        throw new \Exception( '{get_class( $this )} does not support fetching all schema names.' );
+//        throw new \Exception( "{get_class( $this )} does not support fetching all schema names." );
         return [''];
     }
 
@@ -269,7 +285,7 @@ abstract class Schema
      * @param bool   $include_views
      * @param bool   $refresh
      *
-     * @return array all table names in the database.
+     * @return TableNameSchema[] all table names in the database.
      */
     public function getTableNames($schema = '', $include_views = true, $refresh = false)
     {
@@ -287,15 +303,15 @@ abstract class Schema
                 $temp = (isset($this->tableNames[$schema]) ? $this->tableNames[$schema] : []);
                 $names = array_merge($names, $temp);
             }
-
-            return $names;
         } else {
             if (!isset($this->tableNames[$schema])) {
                 $this->getCachedTableNames($include_views);
             }
 
-            return (isset($this->tableNames[$schema]) ? $this->tableNames[$schema] : []);
+            $names = (isset($this->tableNames[$schema]) ? $this->tableNames[$schema] : []);
         }
+
+        return $names;
     }
 
     /**
@@ -346,7 +362,7 @@ abstract class Schema
      */
     protected function findTableNames($schema = '', $include_views = true)
     {
-        throw new \Exception('{get_class( $this )} does not support fetching all table names.');
+        throw new NotImplementedException("Database or driver does not support fetching all table names.");
     }
 
     /**
@@ -381,7 +397,7 @@ abstract class Schema
      */
     protected function loadProcedure($name)
     {
-        throw new \Exception('{get_class( $this )} does not support loading stored procedure.');
+        throw new NotImplementedException("Database or driver does not support loading stored procedure.");
     }
 
     /**
@@ -393,7 +409,7 @@ abstract class Schema
      */
     public function callProcedure($name, &$params)
     {
-        throw new \Exception('{get_class( $this )} does not support calling stored procedures.');
+        throw new NotImplementedException("Database or driver does not support calling stored procedures.");
     }
 
     /**
@@ -493,7 +509,7 @@ abstract class Schema
      */
     protected function findProcedureNames($schema = '')
     {
-        throw new \Exception('{get_class( $this )} does not support fetching all stored procedure names.');
+        throw new NotImplementedException("Database or driver does not support fetching all stored procedure names.");
     }
 
     /**
@@ -613,7 +629,7 @@ abstract class Schema
      */
     protected function findFunctionNames($schema = '')
     {
-        throw new \Exception('{get_class( $this )} does not support fetching all stored function names.');
+        throw new NotImplementedException("Database or driver does not support fetching all stored function names.");
     }
 
     /**
@@ -626,7 +642,7 @@ abstract class Schema
      */
     protected function loadFunction($name)
     {
-        throw new \Exception('{get_class( $this )} does not support loading stored functions.');
+        throw new NotImplementedException("Database or driver does not support loading stored functions.");
     }
 
     /**
@@ -638,7 +654,7 @@ abstract class Schema
      */
     public function callFunction($name, &$params)
     {
-        throw new \Exception('{get_class( $this )} does not support calling stored functions.');
+        throw new NotImplementedException("Database or driver does not support calling stored functions.");
     }
 
     /**
@@ -874,79 +890,43 @@ abstract class Schema
             }
 
             $oldForeignKey = (isset($oldField)) ? $oldField->isForeignKey : false;
-            $temp = [];
 
             $picklist = (isset($field['picklist'])) ? $field['picklist'] : [];
-            if (!is_array($picklist)) {
+            if (!empty($picklist) && !is_array($picklist)) {
                 // accept comma delimited from client side
-                $picklist = array_map('trim', explode(',', trim($picklist, ',')));
-            }
-            if (!empty($picklist)) {
-                $oldPicklist = (isset($oldField)) ? $oldField->picklist : [];
-                if ((count($picklist) !== count($oldPicklist)) ||
-                    empty(array_diff($picklist, $oldPicklist))
-                ) {
-                    $temp['picklist'] = $picklist;
-                }
+                $field['picklist'] = array_map('trim', explode(',', trim($picklist, ',')));
             }
 
             // extras
-            $label = (isset($field['label'])) ? $field['label'] : null;
-            if (!empty($label)) {
-                $oldLabel = (isset($oldField)) ? $oldField->label : null;
-                if ($label != $oldLabel) {
-                    $temp['label'] = $label;
-                }
+            $extraTags = ['alias','label','description','picklist','validation','client_info'];
+            $extraNew = array_only($field, $extraTags);
+            if ($oldField){
+                $extraOld = array_only($oldField->toArray(), $extraTags);
+                $extraNew = array_diff_assoc($extraNew, $extraOld);
             }
 
-            $alias = (isset($field['alias'])) ? $field['alias'] : null;
-            if (!empty($alias)) {
-                $oldAlias = (isset($oldField)) ? $oldField->alias : null;
-                if ($alias != $oldAlias) {
-                    $temp['alias'] = $alias;
-                }
-            }
+//            if (!empty($picklist)) {
+//                $oldPicklist = (isset($oldField)) ? $oldField->picklist : [];
+//                if ((count($picklist) !== count($oldPicklist)) ||
+//                    empty(array_diff($picklist, $oldPicklist))
+//                ) {
+//                    $temp['picklist'] = $picklist;
+//                }
+//            }
 
-            $validation = (isset($field['validation'])) ? $field['validation'] : null;
-            if (!empty($validation)) {
-                $oldValue = (isset($oldField)) ? $oldField->validation : null;
-                if ($validation != $oldValue) {
-                    $temp['validation'] = $validation;
-                }
-            }
 
             // if same as old, don't bother
             if (!empty($oldField)) {
-                $same = true;
-                $oldFieldArray = $oldField->toArray();
+                $settingsNew = array_except($field, $extraTags);
+                $settingsOld = array_except($oldField->toArray(), $extraTags);
+                $settingsNew = array_diff_assoc($settingsNew, $settingsOld);
 
-                foreach ($field as $key => $value) {
-                    switch (strtolower($key)) {
-                        case 'label':
-                        case 'alias':
-                        case 'picklist':
-                        case 'validation':
-                        case 'description':
-                        case 'client_info':
-                            // extras from server already taken care of
-                            break;
-                        default:
-                            if (isset($oldFieldArray[$key])) // could be extra stuff from client
-                            {
-                                if ($value != $oldFieldArray[$key]) {
-                                    $same = false;
-                                    break 2;
-                                }
-                            }
-                            break;
-                    }
-                }
-
-                if ($same) {
-                    if (!empty($temp)) {
-                        $temp['table'] = $table_name;
-                        $temp['field'] = $name;
-                        $labels[] = $temp;
+                // if empty, nothing to do here, check extras
+                if (empty($settingsNew)) {
+                    if (!empty($extraNew)) {
+                        $extraNew['table'] = $table_name;
+                        $extraNew['field'] = $name;
+                        $labels[] = $extraNew;
                     }
 
                     continue;
@@ -957,19 +937,19 @@ abstract class Schema
 
             switch ($type) {
                 case 'user_id':
-                    $temp['extra_type'] = 'user_id';
+                    $extraNew['extra_type'] = 'user_id';
                     break;
                 case 'user_id_on_create':
-                    $temp['extra_type'] = 'user_id_on_create';
+                    $extraNew['extra_type'] = 'user_id_on_create';
                     break;
                 case 'user_id_on_update':
-                    $temp['extra_type'] = 'user_id_on_update';
+                    $extraNew['extra_type'] = 'user_id_on_update';
                     break;
                 case 'timestamp_on_create':
-                    $temp['extra_type'] = 'timestamp_on_create';
+                    $extraNew['extra_type'] = 'timestamp_on_create';
                     break;
                 case 'timestamp_on_update':
-                    $temp['extra_type'] = 'timestamp_on_update';
+                    $extraNew['extra_type'] = 'timestamp_on_update';
                     break;
                 case 'id':
                 case 'pk':
@@ -985,22 +965,25 @@ abstract class Schema
                 if (empty($refTable)) {
                     throw new \Exception("Invalid schema detected - no table element for reference type of $name.");
                 }
+
                 $refColumns = (isset($field['ref_fields'])) ? $field['ref_fields'] : 'id';
                 $refOnDelete = (isset($field['ref_on_delete'])) ? $field['ref_on_delete'] : null;
                 $refOnUpdate = (isset($field['ref_on_update'])) ? $field['ref_on_update'] : null;
 
-                // will get to it later, $refTable may not be there
-                $keyName = $this->makeConstraintName('fk', $table_name, $name);
-                if (!$isAlter || !$oldForeignKey) {
-                    $references[] = [
-                        'name'       => $keyName,
-                        'table'      => $table_name,
-                        'column'     => $name,
-                        'ref_table'  => $refTable,
-                        'ref_fields' => $refColumns,
-                        'delete'     => $refOnDelete,
-                        'update'     => $refOnUpdate
-                    ];
+                if ($this->allowsSeparateForeignConstraint()) {
+                    // will get to it later, $refTable may not be there
+                    $keyName = $this->makeConstraintName('fk', $table_name, $name);
+                    if (!$isAlter || !$oldForeignKey) {
+                        $references[] = [
+                            'name'       => $keyName,
+                            'table'      => $table_name,
+                            'column'     => $name,
+                            'ref_table'  => $refTable,
+                            'ref_fields' => $refColumns,
+                            'delete'     => $refOnDelete,
+                            'update'     => $refOnUpdate
+                        ];
+                    }
                 }
             }
 
@@ -1036,10 +1019,10 @@ abstract class Schema
                 $columns[$name] = $field;
             }
 
-            if (!empty($temp)) {
-                $temp['table'] = $table_name;
-                $temp['field'] = $name;
-                $labels[] = $temp;
+            if (!empty($extraNew)) {
+                $extraNew['table'] = $table_name;
+                $extraNew['field'] = $name;
+                $labels[] = $extraNew;
             }
         }
 
@@ -1104,6 +1087,7 @@ abstract class Schema
         if ($isPrimaryKey && $isUniqueKey) {
             throw new \Exception('Unique and Primary designations not allowed simultaneously.');
         }
+
         if ($isUniqueKey) {
             $definition .= ' UNIQUE KEY';
         } elseif ($isPrimaryKey) {
@@ -1423,6 +1407,11 @@ abstract class Schema
         return true;
     }
 
+    public function allowsSeparateForeignConstraint()
+    {
+        return true;
+    }
+
     /**
      * Builds a SQL statement for creating a new index.
      *
@@ -1523,30 +1512,41 @@ abstract class Schema
     }
 
     /**
-     * @param string       $context
      * @param ColumnSchema $field_info
      * @param bool         $as_quoted_string
      * @param string       $out_as
      *
      * @return string
      */
-    public function parseFieldsForSelect($context, $field_info, $as_quoted_string = false, $out_as = '')
+    public function parseFieldForSelect($field_info, $as_quoted_string = false, $out_as = null)
     {
-        if ($as_quoted_string) {
-            $context = $this->quoteColumnName($context);
-            $out_as = $this->quoteColumnName($out_as);
-        }
-
         switch ($field_info->dbType) {
             default :
-                $out = $context;
-                if (!empty($as)) {
-                    $out .= ' AS ' . $out_as;
+                $out = ($as_quoted_string) ? $field_info->rawName : $field_info->name;
+                if (!empty($field_info->alias)) {
+                    if ($as_quoted_string){
+                        $out .= ' AS ' . $this->quoteColumnName($field_info->alias);
+                    } else {
+                        $out .= ' AS ' . $field_info->alias;
+                    }
                 }
                 break;
         }
 
         return $out;
+    }
+
+    /**
+     * @param ColumnSchema $field_info
+     *
+     * @return array
+     */
+    public function parseFieldForBinding(ColumnSchema $field_info)
+    {
+        $pdoType = ($field_info->allowNull) ? null : $field_info->pdoType;
+        $phpType = (is_null($pdoType)) ? $field_info->phpType : null;
+
+        return ['name' => $field_info->getName(true), 'pdo_type' => $pdoType, 'php_type' => $phpType];
     }
 
     /**

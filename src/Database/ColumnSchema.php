@@ -285,9 +285,7 @@ class ColumnSchema
 
             case 'bigint':
                 // bigint too big to represent as number in php
-                $this->type = static::TYPE_STRING;
-                $this->phpType = 'string';
-                $this->pdoType = 'string';
+                $this->type = static::TYPE_BIGINT;
                 break;
 
             case (false !== strpos($simpleType, 'timestamp')):

@@ -1518,7 +1518,7 @@ abstract class Schema
      *
      * @return string
      */
-    public function parseFieldForSelect(ColumnSchema $field_info, $as_quoted_string = false, $out_as = null)
+    public function parseFieldForSelect($field_info, $as_quoted_string = false, $out_as = null)
     {
         switch ($field_info->dbType) {
             default :

@@ -21,6 +21,19 @@ class Schema extends \DreamFactory\Core\Database\Schema
         return static::DEFAULT_SCHEMA;
     }
 
+    public static function checkRequirements($driver)
+    {
+        $extension = $driver;
+        if ('dblib' === $driver) {
+            $extension = 'mssql';
+        }
+        if (!extension_loaded($extension)) {
+            throw new \Exception("Required extension or module '$extension' is not installed or loaded.");
+        }
+
+        parent::checkRequirements($driver);
+    }
+
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class
@@ -1087,28 +1100,28 @@ MYSQL;
         return $results;
     }
 
-    public function parseFieldForSelect($field_info)
+    /**
+     * @param ColumnSchema $field_info
+     * @param bool         $as_quoted_string
+     * @param string       $out_as
+     *
+     * @return string
+     */
+    public function parseFieldForSelect(ColumnSchema $field_info, $as_quoted_string = false, $out_as = null)
     {
+        $field = ($as_quoted_string) ? $this->quoteColumnName($field_info->name) : $field_info->name;
+        $alias = ($as_quoted_string) ? $this->quoteColumnName($field_info->getName(true)) : $field_info->getName(true);
         switch ($field_info->dbType) {
             case 'datetime':
             case 'datetimeoffset':
-                $out = "(CONVERT(nvarchar(30), $context, 127)) AS $out_as";
-                break;
+                return "(CONVERT(nvarchar(30), $field, 127)) AS $alias";
             case 'geometry':
             case 'geography':
             case 'hierarchyid':
-                $out = "($context.ToString()) AS $out_as";
-                break;
+                return "($field.ToString()) AS $alias";
             default :
-                $out = ($as_quoted_string) ? $this->quoteColumnName($field_info->name) : $field_info->name;
-                if (!empty($field_info->alias)) {
-                    $out .= ' AS ' . ($as_quoted_string) ? $this->quoteColumnName($field_info->alias)
-                        : $field_info->alias;
-                }
-                break;
+                return parent::parseFieldForSelect($field_info, $as_quoted_string, $out_as);
         }
-
-        return $out;
     }
 
     /**

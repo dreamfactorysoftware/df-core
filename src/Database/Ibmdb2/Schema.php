@@ -33,6 +33,15 @@ class Schema extends \DreamFactory\Core\Database\Schema
         }
     }
 
+    public static function checkRequirements($driver)
+    {
+        if (!extension_loaded('ibm_db2')) {
+            throw new \Exception("Required extension or module 'ibm_db2' is not installed or loaded.");
+        }
+
+        parent::checkRequirements($driver);
+    }
+
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class

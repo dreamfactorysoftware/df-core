@@ -9,6 +9,15 @@ use DreamFactory\Core\Database\TableSchema;
  */
 class Schema extends \DreamFactory\Core\Database\Schema
 {
+    public static function checkRequirements($driver)
+    {
+        if (!extension_loaded('mysql') && !extension_loaded('mysqlnd')) {
+            throw new \Exception("Required extension or module 'mysql' is not installed or loaded.");
+        }
+
+        parent::checkRequirements($driver);
+    }
+
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class

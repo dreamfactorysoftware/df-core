@@ -21,6 +21,15 @@ class Schema extends \DreamFactory\Core\Database\Schema
         //        'pk' => 'NUMBER GENERATED ALWAYS AS IDENTITY',
     ];
 
+    public static function checkRequirements($driver)
+    {
+        if (!extension_loaded('oci8')) {
+            throw new \Exception("Required extension or module 'oci8' is not installed or loaded.");
+        }
+
+        // don't call parent method here, no need for PDO driver
+    }
+
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class

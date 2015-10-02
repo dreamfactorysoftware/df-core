@@ -23,6 +23,15 @@ class Schema extends \DreamFactory\Core\Database\Schema
         return static::DEFAULT_SCHEMA;
     }
 
+    public static function checkRequirements($driver)
+    {
+        if (!extension_loaded('pgsql')) {
+            throw new \Exception("Required extension or module 'pgsql' is not installed or loaded.");
+        }
+
+        parent::checkRequirements($driver);
+    }
+
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class

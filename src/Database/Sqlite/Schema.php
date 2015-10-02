@@ -9,6 +9,15 @@ use DreamFactory\Core\Database\TableSchema;
  */
 class Schema extends \DreamFactory\Core\Database\Schema
 {
+    public static function checkRequirements($driver)
+    {
+        if (!extension_loaded('sqlite3')) {
+            throw new \Exception("Required extension 'sqlite3' is not installed or loaded.");
+        }
+
+        parent::checkRequirements($driver);
+    }
+
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class

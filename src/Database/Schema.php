@@ -86,6 +86,19 @@ abstract class Schema
         return $this->connection;
     }
 
+    public static function checkRequirements($driver)
+    {
+        if (!extension_loaded('PDO')) {
+            throw new \Exception("Required PDO extension is not installed or loaded.");
+        }
+
+        // see overrides for specific driver checks
+        $drivers = \PDO::getAvailableDrivers();
+        if (!in_array($driver, $drivers)) {
+            throw new \Exception("Required PDO driver '$driver' is not installed or loaded properly.");
+        }
+    }
+
     /**
      * Returns the default schema name for the connection.
      *
@@ -877,79 +890,43 @@ abstract class Schema
             }
 
             $oldForeignKey = (isset($oldField)) ? $oldField->isForeignKey : false;
-            $temp = [];
 
             $picklist = (isset($field['picklist'])) ? $field['picklist'] : [];
-            if (!is_array($picklist)) {
+            if (!empty($picklist) && !is_array($picklist)) {
                 // accept comma delimited from client side
-                $picklist = array_map('trim', explode(',', trim($picklist, ',')));
-            }
-            if (!empty($picklist)) {
-                $oldPicklist = (isset($oldField)) ? $oldField->picklist : [];
-                if ((count($picklist) !== count($oldPicklist)) ||
-                    empty(array_diff($picklist, $oldPicklist))
-                ) {
-                    $temp['picklist'] = $picklist;
-                }
+                $field['picklist'] = array_map('trim', explode(',', trim($picklist, ',')));
             }
 
             // extras
-            $label = (isset($field['label'])) ? $field['label'] : null;
-            if (!empty($label)) {
-                $oldLabel = (isset($oldField)) ? $oldField->label : null;
-                if ($label != $oldLabel) {
-                    $temp['label'] = $label;
-                }
+            $extraTags = ['alias','label','description','picklist','validation','client_info'];
+            $extraNew = array_only($field, $extraTags);
+            if ($oldField){
+                $extraOld = array_only($oldField->toArray(), $extraTags);
+                $extraNew = array_diff_assoc($extraNew, $extraOld);
             }
 
-            $alias = (isset($field['alias'])) ? $field['alias'] : null;
-            if (!empty($alias)) {
-                $oldAlias = (isset($oldField)) ? $oldField->alias : null;
-                if ($alias != $oldAlias) {
-                    $temp['alias'] = $alias;
-                }
-            }
+//            if (!empty($picklist)) {
+//                $oldPicklist = (isset($oldField)) ? $oldField->picklist : [];
+//                if ((count($picklist) !== count($oldPicklist)) ||
+//                    empty(array_diff($picklist, $oldPicklist))
+//                ) {
+//                    $temp['picklist'] = $picklist;
+//                }
+//            }
 
-            $validation = (isset($field['validation'])) ? $field['validation'] : null;
-            if (!empty($validation)) {
-                $oldValue = (isset($oldField)) ? $oldField->validation : null;
-                if ($validation != $oldValue) {
-                    $temp['validation'] = $validation;
-                }
-            }
 
             // if same as old, don't bother
             if (!empty($oldField)) {
-                $same = true;
-                $oldFieldArray = $oldField->toArray();
+                $settingsNew = array_except($field, $extraTags);
+                $settingsOld = array_except($oldField->toArray(), $extraTags);
+                $settingsNew = array_diff_assoc($settingsNew, $settingsOld);
 
-                foreach ($field as $key => $value) {
-                    switch (strtolower($key)) {
-                        case 'label':
-                        case 'alias':
-                        case 'picklist':
-                        case 'validation':
-                        case 'description':
-                        case 'client_info':
-                            // extras from server already taken care of
-                            break;
-                        default:
-                            if (isset($oldFieldArray[$key])) // could be extra stuff from client
-                            {
-                                if ($value != $oldFieldArray[$key]) {
-                                    $same = false;
-                                    break 2;
-                                }
-                            }
-                            break;
-                    }
-                }
-
-                if ($same) {
-                    if (!empty($temp)) {
-                        $temp['table'] = $table_name;
-                        $temp['field'] = $name;
-                        $labels[] = $temp;
+                // if empty, nothing to do here, check extras
+                if (empty($settingsNew)) {
+                    if (!empty($extraNew)) {
+                        $extraNew['table'] = $table_name;
+                        $extraNew['field'] = $name;
+                        $labels[] = $extraNew;
                     }
 
                     continue;
@@ -960,19 +937,19 @@ abstract class Schema
 
             switch ($type) {
                 case 'user_id':
-                    $temp['extra_type'] = 'user_id';
+                    $extraNew['extra_type'] = 'user_id';
                     break;
                 case 'user_id_on_create':
-                    $temp['extra_type'] = 'user_id_on_create';
+                    $extraNew['extra_type'] = 'user_id_on_create';
                     break;
                 case 'user_id_on_update':
-                    $temp['extra_type'] = 'user_id_on_update';
+                    $extraNew['extra_type'] = 'user_id_on_update';
                     break;
                 case 'timestamp_on_create':
-                    $temp['extra_type'] = 'timestamp_on_create';
+                    $extraNew['extra_type'] = 'timestamp_on_create';
                     break;
                 case 'timestamp_on_update':
-                    $temp['extra_type'] = 'timestamp_on_update';
+                    $extraNew['extra_type'] = 'timestamp_on_update';
                     break;
                 case 'id':
                 case 'pk':
@@ -1042,10 +1019,10 @@ abstract class Schema
                 $columns[$name] = $field;
             }
 
-            if (!empty($temp)) {
-                $temp['table'] = $table_name;
-                $temp['field'] = $name;
-                $labels[] = $temp;
+            if (!empty($extraNew)) {
+                $extraNew['table'] = $table_name;
+                $extraNew['field'] = $name;
+                $labels[] = $extraNew;
             }
         }
 

@@ -173,34 +173,21 @@ class Connection
      */
     public static $driverSchemaMap = [
         // PostgreSQL
-        'pgsql'   => 'DreamFactory\Core\Database\Pgsql\Schema',
+        'pgsql'  => 'DreamFactory\Core\Database\Pgsql\Schema',
         // MySQL
-        'mysql'   => 'DreamFactory\Core\Database\Mysql\Schema',
+        'mysql'  => 'DreamFactory\Core\Database\Mysql\Schema',
         // SQLite
-        'sqlite'  => 'DreamFactory\Core\Database\Sqlite\Schema',
+        'sqlite' => 'DreamFactory\Core\Database\Sqlite\Schema',
         // MS SQL Server
-        'mssql'   => 'DreamFactory\Core\Database\Mssql\Schema',
+        'mssql'  => 'DreamFactory\Core\Database\Mssql\Schema',
         // on linux (and maybe others os) hosts
-        'dblib'   => 'DreamFactory\Core\Database\Mssql\Schema',
+        'dblib'  => 'DreamFactory\Core\Database\Mssql\Schema',
         // Windows hosts
-        'sqlsrv'  => 'DreamFactory\Core\Database\Mssql\Schema',
+        'sqlsrv' => 'DreamFactory\Core\Database\Mssql\Schema',
         // Oracle driver
-        'oci'     => 'DreamFactory\Core\Database\Oci\Schema',
+        'oci'    => 'DreamFactory\Core\Database\Oci\Schema',
         // IBM DB2 driver
-        'ibm'     => 'DreamFactory\Core\Database\Ibmdb2\Schema',
-    ];
-
-    /**
-     * @var array mapping between PDO driver and label.
-     */
-    public static $driverLabelMap = [
-        'pgsql'   => 'PostgreSQL',
-        'mysql'   => 'MySQL',
-        'sqlite'  => 'SQLite',
-        'dblib'   => 'MS SQL Server/Sybase',
-        'sqlsrv'  => 'MS SQL Server',
-        'oci'     => 'Oracle Database',
-        'ibm'     => 'IBM DB2',
+        'ibm'    => 'DreamFactory\Core\Database\Ibmdb2\Schema',
     ];
 
     /**
@@ -219,16 +206,16 @@ class Connection
     ];
 
     /**
-     * @var array mapping between PDO driver and extension name.
+     * @var array mapping between PDO driver and label.
      */
-    public static $driverExtensionMap = [
-        'sqlite' => 'sqlite3',
-        'mysql'  => 'mysql',
-        'dblib'  => 'mssql',
-        'sqlsrv' => 'mssql',
-        'pgsql'  => 'pgsql',
-        'oci'    => 'oci8',
-        'ibm'    => 'ibm_db2',
+    public static $driverLabelMap = [
+        'pgsql'  => 'PostgreSQL',
+        'mysql'  => 'MySQL',
+        'sqlite' => 'SQLite',
+        'dblib'  => 'MS SQL Server (via dblib)',
+        'sqlsrv' => 'MS SQL Server (via sqlsrv)',
+        'oci'    => 'Oracle Database',
+        'ibm'    => 'IBM DB2',
     ];
 
     /**
@@ -245,7 +232,7 @@ class Connection
         // http://php.net/manual/en/ref.pdo-sqlsrv.connection.php
         'pgsql'  => 'pgsql:host=localhost;port=5432;dbname=db;user=name;password=pwd',
         // http://php.net/manual/en/ref.pdo-pgsql.connection.php
-        'oci'    => 'oci:dbname=//localhost:1521/mydb',
+        'oci'    => 'oci:dbname=(DESCRIPTION = (ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = 192.168.1.1)(PORT = 1521))) (CONNECT_DATA = (SID = db)))',
         // http://php.net/manual/en/ref.pdo-oci.connection.php
         'ibm'    => 'ibm:DRIVER={IBM DB2 ODBC DRIVER};DATABASE=db;HOSTNAME=localhost;PORT=56789;PROTOCOL=TCPIP;',
         // http://php.net/manual/en/ref.pdo-ibm.connection.php
@@ -257,17 +244,16 @@ class Connection
     private $transaction;
     private $schema;
 
-
     /**
      * Constructor.
      * Note, the DB connection is not established when this connection
      * instance is created. Set {@link setActive active} property to true
      * to establish the connection.
      *
-     * @param string                 $dsn         The Data Source Name, or DSN, contains the information required to
+     * @param string $dsn                         The Data Source Name, or DSN, contains the information required to
      *                                            connect to the database.
-     * @param string                 $username    The user name for the DSN string.
-     * @param string                 $password    The password for the DSN string.
+     * @param string $username                    The user name for the DSN string.
+     * @param string $password                    The password for the DSN string.
      *
      * @see http://www.php.net/manual/en/function.PDO-construct.php
      */
@@ -359,6 +345,24 @@ class Connection
     }
 
     /**
+     * Returns a list of available PDO drivers.
+     *
+     * @return array list of available PDO drivers
+     * @see http://www.php.net/manual/en/function.PDO-getAvailableDBs.php
+     */
+    public static function getAllDrivers()
+    {
+        $values = [];
+        $supported = static::getAvailableDrivers();
+        foreach (static::$driverLabelMap as $driver => $label) {
+            $disable = !in_array($driver, $supported);
+            $dsn = isset(static::$driverDsnMap[$driver]) ? static::$driverDsnMap[$driver] : '';
+            $values[] = ['name' => $driver, 'label' => $label, 'disable' => $disable, 'dsn' => $dsn];
+        }
+        return $values;
+    }
+
+    /**
      * Returns the name of the DB driver from a connection string
      *
      * @param string $dsn The connection string
@@ -377,42 +381,22 @@ class Connection
     }
 
     /**
-     * @param string  $driver
-     * @param boolean $requires_pdo
+     * @param string $driver
      *
      * @return bool Returns true if all required extensions are loaded, otherwise an exception is thrown
      * @throws \Exception
      */
-    public static function requireDriver($driver, $requires_pdo = true)
+    public static function requireDriver($driver)
     {
         if (empty($driver)) {
-            throw new \Exception("PDO driver name can not be empty.");
+            throw new \Exception("Database driver name can not be empty.");
         }
 
-        if (!isset(static::$driverExtensionMap[$driver])) {
+        /** @type Schema $schema */
+        if (!empty($schema = static::$driverSchemaMap[$driver])) {
+            $schema::checkRequirements($driver);
+        } else {
             throw new \Exception("Driver '$driver' is not supported by this software.");
-        }
-
-        $extension = static::$driverExtensionMap[$driver];
-        if ('mysql' === $extension) {
-            if (!extension_loaded('mysql') && !extension_loaded('mysqlnd')) {
-                throw new \Exception("Required extension or module '$extension' is not installed or loaded.");
-            }
-        } elseif (!extension_loaded($extension)) {
-            throw new \Exception("Required extension or module '$extension' is not installed or loaded.");
-        }
-
-        if ($requires_pdo) {
-            if (!extension_loaded('PDO')) {
-                throw new \Exception("Required PDO extension is not installed or loaded.");
-            }
-
-            if (!empty($driver) && ('oci' !== $driver)) {
-                $drivers = static::getAvailableDrivers();
-                if (!in_array($driver, $drivers)) {
-                    throw new \Exception("Required PDO driver '$driver' is not installed or loaded properly.");
-                }
-            }
         }
 
         return true;
@@ -1119,21 +1103,11 @@ class Connection
                     }
                 }
 
-                // add table labels
-                $label = (isset($table['label'])) ? $table['label'] : null;
-                $plural = (isset($table['plural'])) ? $table['plural'] : null;
-                $alias = (isset($table['alias'])) ? $table['alias'] : null;
-                $description = (isset($table['description'])) ? $table['description'] : null;
-                $nameField = (isset($table['name_field'])) ? $table['name_field'] : null;
-                if (!empty($label) || !empty($plural) || !empty($alias) || !empty($description) || !empty($nameField)) {
-                    $tableExtras[] = [
-                        'table'       => $tableName,
-                        'alias'       => $alias,
-                        'label'       => $label,
-                        'plural'      => $plural,
-                        'description' => $description,
-                        'name_field'  => $nameField,
-                    ];
+                // add table extras
+                $extras = array_only($table, ['label', 'plural', 'alias', 'description', 'name_field']);
+                if (!empty($extras)) {
+                    $extras['table'] = $tableName;
+                    $tableExtras[] = $extras;
                 }
 
                 $fieldExtras = array_merge($fieldExtras, (isset($results['labels'])) ? $results['labels'] : []);

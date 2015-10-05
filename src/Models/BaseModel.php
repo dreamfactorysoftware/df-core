@@ -741,16 +741,7 @@ class BaseModel extends Model
     {
         if (empty($this->schema)) {
             $connection = $this->getConnection();
-            $database = $connection->getDatabaseName();
-            $host = $connection->getConfig('host');
-            $username = $connection->getConfig('username');
-            $password = $connection->getConfig('password');
-            $driver = $connection->getConfig('driver');
-
-            //Todo: This will only work for Mysql and Postgres. If we use other db for system this needs to account for that.
-            $dsn = $driver . ":host=" . $host . ";dbname=" . $database;
-
-            $adaptedConnection = new ConnectionAdapter($dsn, $username, $password);
+            $adaptedConnection = ConnectionAdapter::getLegacyConnection($connection);
             $this->schema = $adaptedConnection->getSchema();
         }
 

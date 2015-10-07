@@ -145,7 +145,9 @@ class ResponseFactory
         }
 
         if ($acceptsAny) {
-            $contentType = (empty($contentType)) ? DataFormats::toMimeType($format, 'application/json') : $contentType;
+            $contentType =
+                (empty($contentType)) ? DataFormats::toMimeType($format, config('df.default_response_type'))
+                    : $contentType;
             $responseHeaders['Content-Type'] = $contentType;
 
             return DfResponse::create($content, $status, $responseHeaders);

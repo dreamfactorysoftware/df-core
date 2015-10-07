@@ -130,7 +130,7 @@ class ResponseFactory
                 if ('*/*' === $mimeType) {
                     $acceptsAny = true;
                 }
-                continue;
+                break;
             } else {
                 $contentType = $mimeType;
             }
@@ -145,8 +145,12 @@ class ResponseFactory
         }
 
         if ($acceptsAny) {
-            $contentType = (empty($contentType)) ? DataFormats::toMimeType($format, 'application/json') : $contentType;
+            $contentType =
+                (empty($contentType)) ? DataFormats::toMimeType($format, config('df.default_response_type'))
+                    : $contentType;
             $responseHeaders['Content-Type'] = $contentType;
+
+            $content = (!$reformatted) ? $content : $reformatted;
 
             return DfResponse::create($content, $status, $responseHeaders);
         } else if (false !== $reformatted) {

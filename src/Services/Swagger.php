@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
@@ -17,6 +18,10 @@ class Swagger extends BaseRestService
     //	Constants
     //*************************************************************************
 
+    /**
+     * @var int|null Native data format of this service - DataFormats enum value.
+     */
+    protected $nativeFormat = DataFormats::JSON;
     /**
      * @const string The current API version
      */
@@ -41,7 +46,7 @@ class Swagger extends BaseRestService
     {
         // lock down access to valid apps only, can't check session permissions
         // here due to sdk access
-//        Session::checkAppPermission( null, false );
+        // Session::checkAppPermission( null, false );
         if ($this->request->getParameterAsBool('refresh')) {
             static::clearCache();
         }

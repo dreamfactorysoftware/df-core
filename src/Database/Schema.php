@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Database;
 
 use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Library\Utility\Scalar;
 use League\Flysystem\NotSupportedException;
 
 /**
@@ -84,19 +85,6 @@ abstract class Schema
     public function getDbConnection()
     {
         return $this->connection;
-    }
-
-    public static function checkRequirements($driver)
-    {
-        if (!extension_loaded('PDO')) {
-            throw new \Exception("Required PDO extension is not installed or loaded.");
-        }
-
-        // see overrides for specific driver checks
-        $drivers = \PDO::getAvailableDrivers();
-        if (!in_array($driver, $drivers)) {
-            throw new \Exception("Required PDO driver '$driver' is not installed or loaded properly.");
-        }
     }
 
     /**
@@ -883,7 +871,7 @@ abstract class Schema
             }
 
             /** @type ColumnSchema $oldField */
-            $oldField = isset($oldSchema, $oldSchema->columns[$name]) ? $oldSchema->columns[$name] : null;
+            $oldField = isset($oldSchema) ? $oldSchema->getColumn($name) : null;
             $isAlter = (null !== $oldField);
             if ($isAlter && !$allow_update) {
                 throw new \Exception("Field '$name' already exists in table '$table_name'.");
@@ -1562,5 +1550,77 @@ abstract class Schema
     public function parseValueForSet($value, $field_info)
     {
         return $value;
+    }
+
+    public static function formatValue($value, $type)
+    {
+        $type = strtolower(strval($type));
+        switch ($type) {
+            case 'int':
+            case 'integer':
+                return intval($value);
+
+            case 'decimal':
+            case 'double':
+            case 'float':
+                return floatval($value);
+
+            case 'boolean':
+            case 'bool':
+                return Scalar::boolval($value);
+
+            case 'string':
+                return strval($value);
+
+            case 'time':
+            case 'date':
+            case 'datetime':
+            case 'timestamp':
+                $cfgFormat = static::getDateTimeFormat($type);
+
+                return static::formatDateTime($cfgFormat, $value);
+        }
+
+        return $value;
+    }
+
+    public static function getDateTimeFormat($type)
+    {
+        switch (strtolower(strval($type))) {
+            case 'time':
+                return \Config::get('df.db_time_format');
+
+            case 'date':
+                return \Config::get('df.db_date_format');
+
+            case 'datetime':
+                return \Config::get('df.db_datetime_format');
+
+            case 'timestamp':
+                return \Config::get('df.db_timestamp_format');
+        }
+
+        return null;
+    }
+
+    public static function formatDateTime($out_format, $in_value = null, $in_format = null)
+    {
+        //  If value is null, current date and time are returned
+        if (!empty($out_format)) {
+            $in_value = (is_string($in_value) || is_null($in_value)) ? $in_value : strval($in_value);
+            if (!empty($in_format)) {
+                if (false === $date = \DateTime::createfromFormat($in_format, $in_value)) {
+                    \Log::error("Failed to format datetime from '$in_value'' to '$in_format'");
+
+                    return $in_value;
+                }
+            } else {
+                $date = new \DateTime($in_value);
+            }
+
+            return $date->format($out_format);
+        }
+
+        return $in_value;
     }
 }

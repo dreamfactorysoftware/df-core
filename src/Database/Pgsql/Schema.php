@@ -23,15 +23,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
         return static::DEFAULT_SCHEMA;
     }
 
-    public static function checkRequirements($driver)
-    {
-        if (!extension_loaded('pgsql')) {
-            throw new \Exception("Required extension or module 'pgsql' is not installed or loaded.");
-        }
-
-        parent::checkRequirements($driver);
-    }
-
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class
@@ -393,7 +384,7 @@ EOD;
 
         foreach ($columns as $column) {
             $c = $this->createColumn($column);
-            $table->columns[$c->name] = $c;
+            $table->addColumn($c);
 
             if (stripos($column['adsrc'], 'nextval') === 0 &&
                 preg_match('/nextval\([^\']*\'([^\']+)\'[^\)]*\)/i', $column['adsrc'], $matches)
@@ -493,10 +484,10 @@ EOD;
                 }
 
                 // Add it to our foreign references as well
-                $table->addReference('belongs_to', $name, $rcn, $cn);
+                $table->addRelation('belongs_to', $name, $rcn, $cn);
             } elseif ((0 == strcasecmp($rtn, $table->name)) && (0 == strcasecmp($rts, $schema))) {
                 $name = ($ts == static::DEFAULT_SCHEMA) ? $tn : $ts . '.' . $tn;
-                $table->addReference('has_many', $name, $cn, $rcn);
+                $table->addRelation('has_many', $name, $cn, $rcn);
 
                 // if other has foreign keys to other tables, we can say these are related as well
                 foreach ($columns2 as $key2 => $column2) {
@@ -515,7 +506,7 @@ EOD;
                                 $name2 = ($rts2 == static::DEFAULT_SCHEMA) ? $rtn2 : $rts2 . '.' . $rtn2;
                                 // not same as parent, i.e. via reference back to self
                                 // not the same key
-                                $table->addReference('many_many', $name2, $rcn2, $rcn, "$name($cn,$cn2)");
+                                $table->addRelation('many_many', $name2, $rcn2, $rcn, "$name($cn,$cn2)");
                             }
                         }
                     }
@@ -937,5 +928,15 @@ MYSQL;
         }
 
         return $value;
+    }
+
+    public static function formatValue($value, $type)
+    {
+        if (('int' === $type) && ('' === $value)) {
+            // Postgresql strangely returns "" for null integers
+            return null;
+        }
+
+        return parent::formatValue($value, $type);
     }
 }

@@ -97,7 +97,7 @@ use DreamFactory\Core\Contracts\CacheInterface;
  * @property array          $stats              The first element indicates the number of SQL statements executed,
  * and the second element the total time spent in SQL execution.
  */
-class Connection
+abstract class Connection
 {
     /**
      * @var string The Data Source Name, or DSN, contains the information required to connect to the database.
@@ -166,83 +166,59 @@ class Connection
      * @var boolean
      */
     protected $defaultSchemaOnly = false;
-
     /**
-     * @var array mapping between PDO driver and schema class name.
-     * A schema class can be specified using path alias.
+     * @var array
      */
-    public static $driverSchemaMap = [
-        // PostgreSQL
-        'pgsql'  => 'DreamFactory\Core\Database\Pgsql\Schema',
-        // MySQL
-        'mysql'  => 'DreamFactory\Core\Database\Mysql\Schema',
-        // SQLite
-        'sqlite' => 'DreamFactory\Core\Database\Sqlite\Schema',
-        // MS SQL Server
-        'mssql'  => 'DreamFactory\Core\Database\Mssql\Schema',
-        // on linux (and maybe others os) hosts
-        'dblib'  => 'DreamFactory\Core\Database\Mssql\Schema',
-        // Windows hosts
-        'sqlsrv' => 'DreamFactory\Core\Database\Mssql\Schema',
-        // Oracle driver
-        'oci'    => 'DreamFactory\Core\Database\Oci\Schema',
-        // IBM DB2 driver
-        'ibm'    => 'DreamFactory\Core\Database\Ibmdb2\Schema',
-    ];
-
+    protected $attributes = [];
     /**
-     * @var array mapping between PDO driver and adapter class name.
-     * An adapter class can be specified using path alias.
+     * @var boolean.
      */
-    public static $driverAdapterMap = [
-        // MS SQL Server
-        'mssql'  => 'DreamFactory\Core\Database\Mssql\PdoAdapter',
-        // MS SQL Server on linux (and maybe others os) hosts
-        'dblib'  => 'DreamFactory\Core\Database\Mssql\PdoAdapter',
-        // MS SQL Server on Windows
-        'sqlsrv' => 'DreamFactory\Core\Database\Mssql\SqlsrvPdoAdapter',
-        // Oracle driver
-        'oci'    => 'DreamFactory\Core\Database\Oci\PdoAdapter',
-    ];
-
+    protected $active = false;
     /**
-     * @var array mapping between PDO driver and label.
+     * @var \PDO
      */
-    public static $driverLabelMap = [
-        'pgsql'  => 'PostgreSQL',
-        'mysql'  => 'MySQL',
-        'sqlite' => 'SQLite',
-        'dblib'  => 'MS SQL Server (via dblib)',
-        'sqlsrv' => 'MS SQL Server (via sqlsrv)',
-        'oci'    => 'Oracle Database',
-        'ibm'    => 'IBM DB2',
-    ];
-
+    protected $pdo;
     /**
-     * @var array mapping between PDO driver and default DSN template.
+     * @var Transaction
      */
-    public static $driverDsnMap = [
-        'sqlite' => 'sqlite:db.sq3',
-        // http://php.net/manual/en/ref.pdo-sqlite.connection.php
-        'mysql'  => 'mysql:host=localhost;port=3306;dbname=db',
-        // http://php.net/manual/en/ref.pdo-mysql.connection.php
-        'dblib'  => 'dblib:host=localhost:1433;dbname=database',
-        // http://php.net/manual/en/ref.pdo-dblib.connection.php
-        'sqlsrv' => 'sqlsrv:Server=localhost,1433;Database=db',
-        // http://php.net/manual/en/ref.pdo-sqlsrv.connection.php
-        'pgsql'  => 'pgsql:host=localhost;port=5432;dbname=db;user=name;password=pwd',
-        // http://php.net/manual/en/ref.pdo-pgsql.connection.php
-        'oci'    => 'oci:dbname=(DESCRIPTION = (ADDRESS_LIST = (ADDRESS = (PROTOCOL = TCP)(HOST = 192.168.1.1)(PORT = 1521))) (CONNECT_DATA = (SID = db)))',
-        // http://php.net/manual/en/ref.pdo-oci.connection.php
-        'ibm'    => 'ibm:DRIVER={IBM DB2 ODBC DRIVER};DATABASE=db;HOSTNAME=localhost;PORT=56789;PROTOCOL=TCPIP;',
-        // http://php.net/manual/en/ref.pdo-ibm.connection.php
-    ];
+    protected $transaction;
+    /**
+     * @var Schema
+     */
+    protected $schema;
 
-    private $attributes = [];
-    private $active = false;
-    private $pdo;
-    private $transaction;
-    private $schema;
+    public static function getDriverLabel()
+    {
+        return 'Unknown';
+    }
+
+    public static function getSampleDsn()
+    {
+        return '';
+    }
+
+    public static function checkRequirements($driver, $throw_exception = true)
+    {
+        if (!extension_loaded('PDO')) {
+            if ($throw_exception) {
+                throw new \Exception("Required PDO extension is not installed or loaded.");
+            } else {
+                return false;
+            }
+        }
+
+        // see overrides for specific driver checks
+        $drivers = \PDO::getAvailableDrivers();
+        if (!in_array($driver, $drivers)) {
+            if ($throw_exception) {
+                throw new \Exception("Required PDO driver '$driver' is not installed or loaded properly.");
+            } else {
+                return false;
+            }
+        }
+
+        return true;
+    }
 
     /**
      * Constructor.
@@ -334,35 +310,6 @@ class Connection
     }
 
     /**
-     * Returns a list of available PDO drivers.
-     *
-     * @return array list of available PDO drivers
-     * @see http://www.php.net/manual/en/function.PDO-getAvailableDBs.php
-     */
-    public static function getAvailableDrivers()
-    {
-        return \PDO::getAvailableDrivers();
-    }
-
-    /**
-     * Returns a list of available PDO drivers.
-     *
-     * @return array list of available PDO drivers
-     * @see http://www.php.net/manual/en/function.PDO-getAvailableDBs.php
-     */
-    public static function getAllDrivers()
-    {
-        $values = [];
-        $supported = static::getAvailableDrivers();
-        foreach (static::$driverLabelMap as $driver => $label) {
-            $disable = !in_array($driver, $supported);
-            $dsn = isset(static::$driverDsnMap[$driver]) ? static::$driverDsnMap[$driver] : '';
-            $values[] = ['name' => $driver, 'label' => $label, 'disable' => $disable, 'dsn' => $dsn];
-        }
-        return $values;
-    }
-
-    /**
      * Returns the name of the DB driver from a connection string
      *
      * @param string $dsn The connection string
@@ -378,28 +325,6 @@ class Connection
         }
 
         return null;
-    }
-
-    /**
-     * @param string $driver
-     *
-     * @return bool Returns true if all required extensions are loaded, otherwise an exception is thrown
-     * @throws \Exception
-     */
-    public static function requireDriver($driver)
-    {
-        if (empty($driver)) {
-            throw new \Exception("Database driver name can not be empty.");
-        }
-
-        /** @type Schema $schema */
-        if (!empty($schema = static::$driverSchemaMap[$driver])) {
-            $schema::checkRequirements($driver);
-        } else {
-            throw new \Exception("Driver '$driver' is not supported by this software.");
-        }
-
-        return true;
     }
 
     /**
@@ -490,16 +415,6 @@ class Connection
     protected function createPdoInstance()
     {
         $pdoClass = $this->pdoClass;
-        if (null !== ($driver = static::getDriverFromDSN($this->connectionString))) {
-            //  Require that the PDO driver and dependencies are loaded
-            static::requireDriver($driver);
-
-            //  Detect if we need an adapter for PDO
-            if (isset(static::$driverAdapterMap[$driver])) {
-                $pdoClass = static::$driverAdapterMap[$driver];
-            }
-        }
-
         if (!class_exists($pdoClass)) {
             throw new \Exception("Connection is unable to find PDO class '{$pdoClass}'. Make sure PDO is installed correctly.");
         }
@@ -533,10 +448,7 @@ class Connection
                 $pdo->exec('SET NAMES ' . $pdo->quote($this->charset));
             }
         }
-        if ('sqlite' === $driver) {
-            $pdo->exec('PRAGMA foreign_keys=1');
-        }
-        if ($this->initSQLs !== null) {
+        if (is_array($this->initSQLs)) {
             foreach ($this->initSQLs as $sql) {
                 $pdo->exec($sql);
             }
@@ -606,55 +518,7 @@ class Connection
      * @throws \Exception if Connection does not support reading schema for specified database driver
      * @return Schema the database schema for the current connection
      */
-    public function getSchema()
-    {
-        if ($this->schema !== null) {
-            return $this->schema;
-        } else {
-            $driver = $this->getDBName();
-            if (isset(static::$driverSchemaMap[$driver])) {
-                return $this->schema = static::createComponent(static::$driverSchemaMap[$driver], $this);
-            } else {
-                throw new \Exception("Connection does not support reading schema for '$driver' database.");
-            }
-        }
-    }
-
-    public static function createComponent($config)
-    {
-        if (is_string($config)) {
-            $type = $config;
-            $config = [];
-        } elseif (isset($config['class'])) {
-            $type = $config['class'];
-            unset($config['class']);
-        } else {
-            throw new \Exception('Object configuration must be an array containing a "class" element.');
-        }
-        if (($n = func_num_args()) > 1) {
-            $args = func_get_args();
-            if ($n === 2) {
-                $object = new $type($args[1]);
-            } elseif ($n === 3) {
-                $object = new $type($args[1], $args[2]);
-            } elseif ($n === 4) {
-                $object = new $type($args[1], $args[2], $args[3]);
-            } else {
-                unset($args[0]);
-                $class = new \ReflectionClass($type);
-                // Note: ReflectionClass::newInstanceArgs() is available for PHP 5.1.3+
-                // $object=$class->newInstanceArgs($args);
-                $object = call_user_func_array([$class, 'newInstance'], $args);
-            }
-        } else {
-            $object = new $type;
-        }
-        foreach ($config as $key => $value) {
-            $object->$key = $value;
-        }
-
-        return $object;
-    }
+    abstract public function getSchema();
 
     /**
      * Returns the SQL command builder for the current DB connection.

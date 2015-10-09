@@ -9,15 +9,6 @@ use DreamFactory\Core\Database\TableSchema;
  */
 class Schema extends \DreamFactory\Core\Database\Schema
 {
-    public static function checkRequirements($driver)
-    {
-        if (!extension_loaded('sqlite3')) {
-            throw new \Exception("Required extension 'sqlite3' is not installed or loaded.");
-        }
-
-        parent::checkRequirements($driver);
-    }
-
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class
@@ -378,7 +369,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
 
         foreach ($columns as $column) {
             $c = $this->createColumn($column);
-            $table->columns[$c->name] = $c;
+            $table->addColumn($c);
             if ($c->isPrimaryKey) {
                 if ($table->primaryKey === null) {
                     $table->primaryKey = $c->name;
@@ -445,20 +436,20 @@ class Schema extends \DreamFactory\Core\Database\Schema
                     }
                     $table->foreignKeys[$key['from']] = [$key['table'], $key['to']];
                     // Add it to our foreign references as well
-                    $table->addReference('belongs_to', $key['table'], $key['to'], $key['from']);
+                    $table->addRelation('belongs_to', $key['table'], $key['to'], $key['from']);
                 }
             } else {
                 $keys[$each->name] = $fks;
                 foreach ($fks as $key => $fk) {
                     if ($fk['table'] === $table->name) {
-                        $table->addReference('has_many', $each->name, $fk['from'], $fk['to']);
+                        $table->addRelation('has_many', $each->name, $fk['from'], $fk['to']);
                         $fks2 = $fks;
                         // if other has foreign keys to other tables, we can say these are related as well
                         foreach ($fks2 as $key2 => $fk2) {
                             if (($key !== $key2) && ($fk2['table'] !== $table->name)) {
                                 // not same as parent, i.e. via reference back to self
                                 // not the same key
-                                $table->addReference('many_many', $fk2['table'], $fk['to'], $fk2['to'],
+                                $table->addRelation('many_many', $fk2['table'], $fk['to'], $fk2['to'],
                                     "{$each->name}({$fk['from']},{$fk2['from']})");
                             }
                         }

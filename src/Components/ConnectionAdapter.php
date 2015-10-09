@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Core\Database\ConnectionFactory;
 use PDO;
 use Illuminate\Support\Arr;
 use DreamFactory\Core\Database\Connection;
@@ -68,9 +69,8 @@ class ConnectionAdapter
                     break;
             }
 
-            $username = isset($config['username']) ? $config['username'] : '';
-            $password = isset($config['password']) ? $config['password'] : '';
-            static::$connection = new Connection($dsn, $username, $password);
+            $config['dsn'] = $dsn;
+            static::$connection = ConnectionFactory::createConnection($driver, $config);
         }
 
         return static::$connection;

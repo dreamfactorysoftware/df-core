@@ -9,15 +9,6 @@ use DreamFactory\Core\Database\TableSchema;
  */
 class Schema extends \DreamFactory\Core\Database\Schema
 {
-    public static function checkRequirements($driver)
-    {
-        if (!extension_loaded('mysql') && !extension_loaded('mysqlnd')) {
-            throw new \Exception("Required extension or module 'mysql' is not installed or loaded.");
-        }
-
-        parent::checkRequirements($driver);
-    }
-
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class
@@ -399,7 +390,6 @@ MYSQL
         }
         foreach ($columns as $column) {
             $c = $this->createColumn($column);
-            $table->columns[$c->name] = $c;
             if ($c->isPrimaryKey) {
                 if ($table->primaryKey === null) {
                     $table->primaryKey = $c->name;
@@ -410,8 +400,12 @@ MYSQL
                 }
                 if ($c->autoIncrement) {
                     $table->sequenceName = '';
+                    if (('integer' === $c->type)) {
+                        $c->type = 'id';
+                    }
                 }
             }
+            $table->addColumn($c);
         }
 
         return true;
@@ -507,20 +501,21 @@ MYSQL;
                 $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
 
                 $table->foreignKeys[$cn] = [$name, $rcn];
-                if (isset($table->columns[$cn])) {
-                    $table->columns[$cn]->isForeignKey = true;
-                    $table->columns[$cn]->refTable = $name;
-                    $table->columns[$cn]->refFields = $rcn;
-                    if ('integer' === $table->columns[$cn]->type) {
-                        $table->columns[$cn]->type = 'reference';
+                $cnk = strtolower($cn);
+                if (isset($table->columns[$cnk])) {
+                    $table->columns[$cnk]->isForeignKey = true;
+                    $table->columns[$cnk]->refTable = $name;
+                    $table->columns[$cnk]->refFields = $rcn;
+                    if ('integer' === $table->columns[$cnk]->type) {
+                        $table->columns[$cnk]->type = 'reference';
                     }
                 }
 
                 // Add it to our foreign references as well
-                $table->addReference('belongs_to', $name, $rcn, $cn);
+                $table->addRelation('belongs_to', $name, $rcn, $cn);
             } elseif ((0 == strcasecmp($rtn, $table->name)) && (0 == strcasecmp($rts, $tableSchema))) {
                 $name = ($ts == $defaultSchema) ? $tn : $ts . '.' . $tn;
-                $table->addReference('has_many', $name, $cn, $rcn);
+                $table->addRelation('has_many', $name, $cn, $rcn);
 
                 // if other has foreign keys to other tables, we can say these are related as well
                 foreach ($columns2 as $key2 => $column2) {
@@ -539,7 +534,7 @@ MYSQL;
                                 $name2 = ($rts2 == $defaultSchema) ? $rtn2 : $rts2 . '.' . $rtn2;
                                 // not same as parent, i.e. via reference back to self
                                 // not the same key
-                                $table->addReference('many_many', $name2, $rcn2, $rcn, "$name($cn,$cn2)");
+                                $table->addRelation('many_many', $name2, $rcn2, $rcn, "$name($cn,$cn2)");
                             }
                         }
                     }

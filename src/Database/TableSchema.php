@@ -66,6 +66,16 @@ class TableSchema extends TableNameSchema
     public $columns = [];
 
     /**
+     * Sets the named column metadata.
+     *
+     * @param ColumnSchema $schema
+     */
+    public function addColumn(ColumnSchema $schema)
+    {
+        $this->columns[strtolower($schema->name)] = $schema;
+    }
+
+    /**
      * Gets the named column metadata.
      * This is a convenient method for retrieving a named column even if it does not exist.
      *
@@ -75,7 +85,9 @@ class TableSchema extends TableNameSchema
      */
     public function getColumn($name)
     {
-        return $this->columns[$name];
+        $key = strtolower($name);
+
+        return (isset($this->columns[$key])) ? $this->columns[$key] : null;
     }
 
     /**
@@ -84,6 +96,13 @@ class TableSchema extends TableNameSchema
     public function getColumnNames()
     {
         return array_keys($this->columns);
+    }
+
+    public function addRelation($type, $ref_table, $ref_field, $field, $join = null)
+    {
+        $relation = new RelationSchema($type, $ref_table, $ref_field, $field, $join);
+
+        $this->relations[strtolower($relation->name)] = $relation;
     }
 
     /**
@@ -95,7 +114,9 @@ class TableSchema extends TableNameSchema
      */
     public function getRelation($name)
     {
-        return $this->relations[$name];
+        $key = strtolower($name);
+
+        return (isset($this->relations[$key])) ? $this->relations[$key] : null;
     }
 
     /**
@@ -104,13 +125,6 @@ class TableSchema extends TableNameSchema
     public function getRelationNames()
     {
         return array_keys($this->columns);
-    }
-
-    public function addReference($type, $ref_table, $ref_field, $field, $join = null)
-    {
-        $relation = new RelationSchema($type, $ref_table, $ref_field, $field, $join);
-
-        $this->relations[$relation->name] = $relation;
     }
 
     public function toArray($use_alias = false)
@@ -123,7 +137,6 @@ class TableSchema extends TableNameSchema
             $fields[] = $column->toArray($use_alias);
         }
         $out['field'] = $fields;
-
 
         $relations = [];
         /** @var RelationSchema $relation */

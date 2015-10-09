@@ -1,10 +1,12 @@
 <?php
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Scripting\ScriptEngineManager;
+use DreamFactory\Library\Utility\Enums\Verbs;
 use \Log;
 
 /**
@@ -65,28 +67,18 @@ class Script extends BaseRestService
     }
 
     /**
-     * @return mixed
-     */
-    protected function handleGET()
-    {
-        return $this->runScript();
-    }
-
-    /**
-     * @return mixed
-     */
-    protected function handlePOST()
-    {
-        return $this->runScript();
-    }
-
-    /**
-     * @return mixed
-     * @throws InternalServerErrorException
+     * @return bool|mixed
      * @throws \DreamFactory\Core\Events\Exceptions\ScriptException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
-    protected function runScript()
+    protected function processRequest()
     {
+        //	Now all actions must be HTTP verbs
+        if (!Verbs::contains($this->action)) {
+            throw new BadRequestException('The action "' . $this->action . '" is not supported.');
+        }
+
         $logOutput = $this->request->getParameterAsBool('log_output', true);
         $data = ['request' => $this->request->toArray()];
         $output = null;
@@ -103,14 +95,17 @@ class Script extends BaseRestService
             \Log::info("Script '{$this->name}' output:" . PHP_EOL . $output . PHP_EOL);
         }
 
+            //  Bail on errors...
+            if (is_array($result) && isset($result['script_result'], $result['script_result']['error'])) {
+                throw new InternalServerErrorException($result['script_result']['error']);
+            }
+            if (is_array($result) && isset($result['exception'])) {
+                throw new InternalServerErrorException(ArrayUtils::get($result, 'exception',''));
+            }
+
         //  The script runner should return an array
         if (is_array($result) && isset($result['__tag__'])) {
             $scriptResult = ArrayUtils::get($result, 'script_result', []);
-            //  Bail on errors...
-            if (is_array($scriptResult) && (isset($scriptResult['error']) || isset($scriptResult['exception']))) {
-                throw new InternalServerErrorException(ArrayUtils::get($scriptResult, 'exception',
-                    ArrayUtils::get($scriptResult, 'error')));
-            }
 
             return $scriptResult;
         } else {

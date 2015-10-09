@@ -78,6 +78,7 @@ class ScriptConfig extends BaseServiceConfigModel
                 $values = ScriptType::all(['name', 'label', 'sandboxed'])->toArray();
                 $schema['type'] = 'picklist';
                 $schema['values'] = $values;
+                $schema['default'] = 'v8js';
                 break;
             case 'content':
                 $schema['label'] = 'Content';

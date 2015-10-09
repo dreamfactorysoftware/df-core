@@ -3041,7 +3041,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                         'allowMultiple' => false,
                                         'type'          => 'string',
                                         'paramType'     => 'header',
-                                        'required'      => true,
+                                        'required'      => false,
                                     ],
                                 ],
                             'responseMessages' => $commonResponses,

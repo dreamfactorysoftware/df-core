@@ -3037,7 +3037,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                     [
                                         'name'          => 'X-HTTP-METHOD',
                                         'description'   => 'Override request using POST to tunnel other http request, such as DELETE or GET passing a payload.',
-                                        'enum'          => ['GET'],
+                                        'enum'          => ['','GET'],
                                         'allowMultiple' => false,
                                         'type'          => 'string',
                                         'paramType'     => 'header',

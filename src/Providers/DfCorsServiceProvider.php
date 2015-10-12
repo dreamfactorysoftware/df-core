@@ -18,6 +18,13 @@ class DfCorsServiceProvider extends ServiceProvider
      */
     public function boot(Request $request, Kernel $kernel)
     {
+        /** @var \Illuminate\Http\Request $request */
+        $request = $this->app['request'];
+        $config = $this->getOptions($request);
+        $this->app->bind('Asm89\Stack\CorsService', function () use ($config){
+            return new CorsService($config);
+        });
+
         $this->app['router']->middleware('cors', 'Barryvdh\Cors\HandleCors');
 
         if ($request->isMethod('OPTIONS')) {
@@ -33,11 +40,11 @@ class DfCorsServiceProvider extends ServiceProvider
     public function register()
     {
         /** @var \Illuminate\Http\Request $request */
-        $request = $this->app['request'];
-        $config = $this->getOptions($request);
-        $this->app->bind('Asm89\Stack\CorsService', function () use ($config){
-            return new CorsService($config);
-        });
+//        $request = $this->app['request'];
+//        $config = $this->getOptions($request);
+//        $this->app->bind('Asm89\Stack\CorsService', function () use ($config){
+//            return new CorsService($config);
+//        });
     }
 
     /**

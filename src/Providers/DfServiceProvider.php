@@ -8,7 +8,7 @@ use Illuminate\Support\ServiceProvider;
 
 class DfServiceProvider extends ServiceProvider
 {
-    public function boot()
+    public function register()
     {
         if(!config('df.standalone')){
             if(!class_exists(ManagedServiceProvider::class)){
@@ -16,10 +16,7 @@ class DfServiceProvider extends ServiceProvider
             }
             $this->app->register(ManagedServiceProvider::class);
         }
-    }
 
-    public function register()
-    {
         $subscriber = new ServiceEventHandler();
         \Event::subscribe($subscriber);
     }

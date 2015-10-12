@@ -33,21 +33,6 @@ class DfCorsServiceProvider extends ServiceProvider
     }
 
     /**
-     * Register the service provider.
-     *
-     * @return void
-     */
-    public function register()
-    {
-        /** @var \Illuminate\Http\Request $request */
-//        $request = $this->app['request'];
-//        $config = $this->getOptions($request);
-//        $this->app->bind('Asm89\Stack\CorsService', function () use ($config){
-//            return new CorsService($config);
-//        });
-    }
-
-    /**
      * Find the options for the current request, based on the paths/hosts settings.
      *
      * @param Request $request

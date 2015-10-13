@@ -72,6 +72,15 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     ];
 
     /**
+     * Input validation rules.
+     * @type array
+     */
+    protected $rules = [
+        'name'  => 'required|max:255',
+        'email' => 'required|email|max:255'
+    ];
+
+    /**
      * The attributes excluded from the model's JSON form.
      *
      * @var array

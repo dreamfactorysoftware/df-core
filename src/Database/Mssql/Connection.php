@@ -50,6 +50,12 @@ class Connection extends \DreamFactory\Core\Database\Connection
         if (substr(PHP_OS, 0, 3) == 'WIN') {
             // MS SQL Server on Windows
             $this->pdoClass = 'DreamFactory\Core\Database\Mssql\SqlsrvPdoAdapter';
+        } else {
+            if (null !== $confLocation = config('df.db.freetds.sqlsrv')) {
+                if (!putenv("FREETDSCONF=$confLocation")) {
+                    \Log::alert('Could not write environment variable for FREETDSCONF location.');
+                }
+            }
         }
 
         parent::__construct($dsn, $username, $password);

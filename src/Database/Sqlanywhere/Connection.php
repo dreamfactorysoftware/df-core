@@ -31,6 +31,17 @@ class Connection extends \DreamFactory\Core\Database\Connection
         return 'dblib:host=localhost:2638;dbname=database';
     }
 
+    public function __construct($dsn = '', $username = '', $password = '')
+    {
+        if (null !== $confLocation = config('df.db.freetds.sqlanywhere')) {
+            if (!putenv("FREETDSCONF=$confLocation")) {
+                \Log::alert('Could not write environment variable for FREETDSCONF location.');
+            }
+        }
+
+        parent::__construct($dsn, $username, $password);
+    }
+
     public function getSchema()
     {
         if ($this->schema !== null) {

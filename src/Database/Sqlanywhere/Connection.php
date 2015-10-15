@@ -33,6 +33,16 @@ class Connection extends \DreamFactory\Core\Database\Connection
 
     public function __construct($dsn = '', $username = '', $password = '')
     {
+        if (null !== $dumpLocation = config('df.db.freetds.dump')) {
+            if (!putenv("TDSDUMP=$dumpLocation")) {
+                \Log::alert('Could not write environment variable for TDSDUMP location.');
+            }
+        }
+        if (null !== $dumpConfLocation = config('df.db.freetds.dumpconfig')) {
+            if (!putenv("TDSDUMPCONFIG=$dumpConfLocation")) {
+                \Log::alert('Could not write environment variable for TDSDUMPCONFIG location.');
+            }
+        }
         if (null !== $confLocation = config('df.db.freetds.sqlanywhere')) {
             if (!putenv("FREETDSCONF=$confLocation")) {
                 \Log::alert('Could not write environment variable for FREETDSCONF location.');

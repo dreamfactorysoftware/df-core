@@ -94,6 +94,21 @@ class ScriptEngineManager
         array &$data = [],
         &$output = null
     ){
+        if (!empty($disable = config('df.scripting.disable')))
+        {
+            switch (strtolower($disable)){
+                case 'all':
+                    throw new ServiceUnavailableException("All scripting is disabled for this instance.");
+                    break;
+                default:
+                    $type = (isset($engine_config['name'])) ? $engine_config['name'] : null;
+                    if (!empty($type) && (false !== stripos($disable, $type))){
+                        throw new ServiceUnavailableException("Scripting with $type is disabled for this instance.");
+                    }
+                    break;
+            }
+        }
+
         $engine = static::create($engine_config, $config);
 
         $result = $message = false;

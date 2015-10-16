@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Components;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
+use DreamFactory\Managed\Support\Managed;
 
 class RegisterContact
 {
@@ -20,9 +21,16 @@ class RegisterContact
      */
     public static function registerUser($user, $payload = [])
     {
-        $installType = 'Standalone Package';
-        if (false !== stripos(env('DB_DATABASE', ''), 'bitnami')) {
-            $installType = 'Bitnami Package';
+        $leadsource = 'product-install';
+        if (!config('df.standalone')){
+            if (false === strpos(gethostname(), '.enterprise.dreamfactory.com')){
+                return true; // bail, not tracking
+            }
+            $leadsource = 'website-freehosted';
+        }
+        $partner = env('DF_INSTALL', '');
+        if (empty($partner) && (false !== stripos(env('DB_DATABASE', ''), 'bitnami'))) {
+            $partner = 'bitnami';
         }
         $payload = array_merge(
             [
@@ -32,7 +40,11 @@ class RegisterContact
                 'name'                => $user->name,
                 'first_name'          => $user->first_name,
                 'last_name'           => $user->last_name,
-                'installation_source' => $installType
+                'leadsource' => $leadsource,
+                'partner' => $partner,
+                'product' => 'dreamfactory',
+                'version' => config('df.version', 'unknown'),
+                'hostos' => PHP_OS,
             ],
             ArrayUtils::clean($payload)
         );

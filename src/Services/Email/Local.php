@@ -38,13 +38,13 @@ class Local extends BaseService
             case 'mailgun':
                 $domain = \Config::get('services.mailgun.domain');
                 $key = \Config::get('services.mailgun.secret');
-                $key = (!empty($key)) ?: \Config::get('services.mailgun.key');
+                $key = (!empty($key)) ? $key : \Config::get('services.mailgun.key');
                 $transport = MailGun::getTransport($domain, $key);
 
                 break;
             case 'mandrill':
                 $key = \Config::get('services.mandrill.secret');
-                $key = (!empty($key)) ?: \Config::get('services.mandrill.key');
+                $key = (!empty($key)) ? $key : \Config::get('services.mandrill.key');
                 $transport = Mandrill::getTransport($key);
                 break;
             case 'ses':

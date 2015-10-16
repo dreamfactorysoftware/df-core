@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Services\Email;
 
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Library\Utility\ArrayUtils;
+use GuzzleHttp\Client;
 use Illuminate\Mail\Transport\MandrillTransport;
 
 class Mandrill extends BaseService
@@ -26,6 +27,6 @@ class Mandrill extends BaseService
             throw new InternalServerErrorException('Missing key for Mandrill service.');
         }
 
-        return new MandrillTransport($key);
+        return new MandrillTransport(new Client(), $key);
     }
 }

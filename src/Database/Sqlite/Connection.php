@@ -1,7 +1,10 @@
 <?php
 namespace DreamFactory\Core\Database\Sqlite;
 
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Managed\Support\Managed;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Connection represents a connection to a Sqlite database.
@@ -14,7 +17,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
     {
         if (!extension_loaded('sqlite3')) {
             if ($throw_exception) {
-                throw new \Exception("Required extension 'sqlite3' is not installed or loaded.");
+                throw new ServiceUnavailableException("Required extension 'sqlite3' is not installed or loaded.");
             } else {
                 return false;
             }
@@ -45,9 +48,16 @@ class Connection extends \DreamFactory\Core\Database\Connection
                 $storage = Managed::getStoragePath();
                 $storage = rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'databases';
             }
-            if (is_dir($storage)) {
-                $dsn = 'sqlite:' . rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $file;
+            if (!is_dir($storage)) {
+                // Attempt
+                @mkdir($storage);
             }
+            if (!is_dir($storage)) {
+                logger('Failed to access storage path ' . $storage);
+                throw new InternalServerErrorException('Failed to access storage path.');
+            }
+
+            $dsn = 'sqlite:' . rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $file;
         }
 
         parent::__construct($dsn, $username, $password);

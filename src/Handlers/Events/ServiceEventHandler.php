@@ -173,7 +173,7 @@ class ServiceEventHandler
      */
     protected function handleEventScript($name, &$event)
     {
-        $model = EventScript::with('script_type_by_type')->whereName($name)->first();
+        $model = EventScript::with('script_type_by_type')->whereName($name)->whereIsActive(true)->first();
         if (!empty($model)) {
             $output = null;
 

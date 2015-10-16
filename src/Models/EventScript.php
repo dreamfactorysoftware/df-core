@@ -14,6 +14,7 @@ use DreamFactory\Core\Exceptions\ServiceUnavailableException;
  * @property boolean    $is_active
  * @property boolean    $affects_process
  * @method static \Illuminate\Database\Query\Builder|EventScript whereName($value)
+ * @method static \Illuminate\Database\Query\Builder|EventScript whereIsActive($value)
  * @method static \Illuminate\Database\Query\Builder|EventScript whereType($value)
  */
 class EventScript extends BaseModel

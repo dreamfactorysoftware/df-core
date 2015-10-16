@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Services\Email;
 
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Library\Utility\ArrayUtils;
+use GuzzleHttp\Client;
 use Illuminate\Mail\Transport\MailgunTransport;
 
 class MailGun extends BaseService
@@ -29,6 +30,6 @@ class MailGun extends BaseService
             throw new InternalServerErrorException('Missing one or more configuration for MailGun service.');
         }
 
-        return new MailgunTransport($key, $domain);
+        return new MailgunTransport(new Client(), $key, $domain);
     }
 }

@@ -468,7 +468,9 @@ class Session
         }
 
         if (!empty($userInfo)) {
-            $token = JWTUtilities::makeJWTByUserId(ArrayUtils::get($userInfo, 'id'), $forever);
+            $id = ArrayUtils::get($userInfo, 'id');
+            $email = ArrayUtils::get($userInfo, 'email');
+            $token = JWTUtilities::makeJWTByUser($id, $email, $forever);
             static::setSessionToken($token);
 
             return static::setUserInfo($userInfo);

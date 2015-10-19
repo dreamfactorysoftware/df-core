@@ -20,7 +20,7 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
     public function testSysAdmin()
     {
         $user = User::find(1);
-        $token = JWTUtilities::makeJWTByUserId($user->id);
+        $token = JWTUtilities::makeJWTByUser($user->id, $user->email);
 
         $this->call(Verbs::GET, '/api/v2/system', [], [], [], ['HTTP_X_DREAMFACTORY_SESSION_TOKEN' => $token]);
 
@@ -100,7 +100,7 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
         $apiKey = $app->api_key;
 
         $myUser = User::find($userId);
-        $token = JWTUtilities::makeJWTByUserId($myUser->id);
+        $token = JWTUtilities::makeJWTByUser($myUser->id, $myUser->email);
         $this->call(
             Verbs::GET, '/api/v2/system',
             [],

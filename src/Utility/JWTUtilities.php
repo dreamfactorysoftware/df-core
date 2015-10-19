@@ -6,6 +6,7 @@ use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Facades\JWTFactory;
 use Tymon\JWTAuth\Token;
@@ -15,17 +16,18 @@ class JWTUtilities
 {
     /**
      * @param      $userId
+     * @param      $email
      * @param bool $forever
      *
      * @return string
      */
-    public static function makeJWTByUserId($userId, $forever = false)
+    public static function makeJWTByUser($userId, $email, $forever = false)
     {
         if (\Config::get('df.allow_forever_sessions') === false) {
             $forever = false;
         }
 
-        $claims = ['sub' => $userId, 'user_id' => $userId, 'forever' => $forever];
+        $claims = ['sub' => $userId, 'user_id' => $userId, 'email' => $email, 'forever' => $forever];
         /** @type Payload $payload */
         $payload = JWTFactory::make($claims);
         /** @type Token $token */
@@ -34,6 +36,27 @@ class JWTUtilities
         static::setTokenMap($payload, $tokenValue);
 
         return $tokenValue;
+    }
+
+    /**
+     * Verifies JWT user.
+     *
+     * @param Payload $payload
+     *
+     * @return bool
+     * @throws BadRequestException
+     */
+    public static function verifyUser($payload)
+    {
+        $userId = $payload->get('user_id');
+        $email = $payload->get('email');
+        $userInfo = ($userId) ? User::getCachedInfo($userId) : null;
+
+        if (!empty($userInfo) && $email === $userInfo['email']) {
+            return true;
+        } else {
+            throw new BadRequestException('Invalid token supplied.');
+        }
     }
 
     /**
@@ -80,7 +103,7 @@ class JWTUtilities
         static::removeTokenMap($userId, $exp);
         try {
             \JWTAuth::invalidate();
-        } catch (TokenExpiredException $e){
+        } catch (TokenExpiredException $e) {
             //If the token is expired already then do nothing here. The token map is already removed above.
         }
     }
@@ -96,11 +119,11 @@ class JWTUtilities
     {
         $maps = \DB::table('token_map')->where('user_id', $userId)->get();
 
-        if(!empty($maps) && is_array($maps)) {
-            foreach($maps as $map){
-                try{
+        if (!empty($maps) && is_array($maps)) {
+            foreach ($maps as $map) {
+                try {
                     \JWTAuth::invalidate($map->token);
-                } catch (TokenExpiredException $e){
+                } catch (TokenExpiredException $e) {
                     //If the token is expired already then do nothing here.
                 }
             }
@@ -113,8 +136,8 @@ class JWTUtilities
     {
         $userAppRole = UserAppRole::whereRoleId($roleId)->get(['user_id']);
 
-        if(!empty($userAppRole) && is_array($userAppRole)){
-            foreach($userAppRole as $uar){
+        if (!empty($userAppRole) && is_array($userAppRole)) {
+            foreach ($userAppRole as $uar) {
                 static::invalidateTokenByUserId($uar->user_id);
             }
         }
@@ -124,8 +147,8 @@ class JWTUtilities
     {
         $userAppRole = UserAppRole::whereAppId($appId)->get(['user_id']);
 
-        if(!empty($userAppRole) && is_array($userAppRole)){
-            foreach($userAppRole as $uar){
+        if (!empty($userAppRole) && is_array($userAppRole)) {
+            foreach ($userAppRole as $uar) {
                 static::invalidateTokenByUserId($uar->user_id);
             }
         }

@@ -2,6 +2,8 @@
 
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Exceptions\ServiceUnavailableException;
+
 /**
  * ScriptConfig
  *
@@ -26,6 +28,29 @@ class ScriptConfig extends BaseServiceConfigModel
      * @var array Extra config to pass to any config handler
      */
     protected $engine = [];
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function validateConfig($config, $create = true)
+    {
+        if (!empty($disable = config('df.scripting.disable')))
+        {
+            switch (strtolower($disable)){
+                case 'all':
+                    throw new ServiceUnavailableException("All scripting is disabled for this instance.");
+                    break;
+                default:
+                    $type = (isset($config['type'])) ? $config['type'] : null;
+                    if (!empty($type) && (false !== stripos($disable, $type))){
+                        throw new ServiceUnavailableException("Scripting with $type is disabled for this instance.");
+                    }
+                    break;
+            }
+        }
+
+        return true;
+    }
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
@@ -78,6 +103,7 @@ class ScriptConfig extends BaseServiceConfigModel
                 $values = ScriptType::all(['name', 'label', 'sandboxed'])->toArray();
                 $schema['type'] = 'picklist';
                 $schema['values'] = $values;
+                $schema['default'] = 'v8js';
                 break;
             case 'content':
                 $schema['label'] = 'Content';

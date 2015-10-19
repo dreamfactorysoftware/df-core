@@ -2,6 +2,8 @@
 
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Exceptions\ServiceUnavailableException;
+
 /**
  * EventScript
  *
@@ -12,6 +14,7 @@ namespace DreamFactory\Core\Models;
  * @property boolean    $is_active
  * @property boolean    $affects_process
  * @method static \Illuminate\Database\Query\Builder|EventScript whereName($value)
+ * @method static \Illuminate\Database\Query\Builder|EventScript whereIsActive($value)
  * @method static \Illuminate\Database\Query\Builder|EventScript whereType($value)
  */
 class EventScript extends BaseModel
@@ -48,6 +51,30 @@ class EventScript extends BaseModel
     protected $casts = ['is_active' => 'boolean', 'affects_process' => 'boolean'];
 
     public $incrementing = false;
+
+    public function validate(array $data = [], $throwException = true)
+    {
+        if (empty($data)) {
+            $data = $this->attributes;
+        }
+
+        if (!empty($disable = config('df.scripting.disable')))
+        {
+            switch (strtolower($disable)){
+                case 'all':
+                    throw new ServiceUnavailableException("All scripting is disabled for this instance.");
+                    break;
+                default:
+                    $type = (isset($data['type'])) ? $data['type'] : null;
+                    if (!empty($type) && (false !== stripos($disable, $type))){
+                        throw new ServiceUnavailableException("Scripting with $type is disabled for this instance.");
+                    }
+                    break;
+            }
+        }
+
+        return parent::validate($data, $throwException);
+    }
 
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo

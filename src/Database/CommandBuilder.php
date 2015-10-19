@@ -845,11 +845,10 @@ class CommandBuilder
 
         if (is_string($columnName)) // simple key
         {
-            if (!isset($table->columns[$columnName])) {
-                throw new \Exception('Table "{$table->name}" does not have a column named "{$columnName}".');
+            /** @type ColumnSchema $column */
+            if (null === $column = $table->getColumn($columnName)) {
+                throw new \Exception("Table '{$table->name}' does not have a column named '{$columnName}'.");
             }
-
-            $column = $table->columns[$columnName];
 
             $values = array_values($values);
             foreach ($values as &$value) {
@@ -866,13 +865,14 @@ class CommandBuilder
         } elseif (is_array($columnName)) // composite key: $values=array(array('pk1'=>'v1','pk2'=>'v2'),array(...))
         {
             foreach ($columnName as $name) {
-                if (!isset($table->columns[$name])) {
-                    throw new \Exception("Table '{$table->name}' does not have a column named '$name'.");
+                /** @type ColumnSchema $column */
+                if (null === $column = $table->getColumn($name)) {
+                    throw new \Exception("Table '{$table->name}' does not have a column named '{$name}'.");
                 }
 
                 for ($i = 0; $i < $n; ++$i) {
                     if (isset($values[$i][$name])) {
-                        $value = $table->columns[$name]->typecast($values[$i][$name]);
+                        $value = $column->typecast($values[$i][$name]);
                         if (is_string($value)) {
                             $values[$i][$name] = $db->quoteValue($value);
                         } else {
@@ -886,8 +886,12 @@ class CommandBuilder
             if (count($values) === 1) {
                 $entries = array();
                 foreach ($values[0] as $name => $value) {
+                    /** @type ColumnSchema $column */
+                    if (null === $column = $table->getColumn($name)) {
+                        throw new \Exception("Table '{$table->name}' does not have a column named '{$name}'.");
+                    }
                     $entries[] =
-                        $prefix . $table->columns[$name]->rawName . ($value === null ? ' IS NULL' : '=' . $value);
+                        $prefix . $column->rawName . ($value === null ? ' IS NULL' : '=' . $value);
                 }
 
                 return implode(' AND ', $entries);
@@ -907,12 +911,17 @@ class CommandBuilder
      * @param string      $prefix column prefix (ended with dot)
      *
      * @return string the expression for selection
+     * @throws \Exception
      */
     protected function createCompositeInCondition($table, $values, $prefix)
     {
         $keyNames = array();
         foreach (array_keys($values[0]) as $name) {
-            $keyNames[] = $prefix . $table->columns[$name]->rawName;
+            /** @type ColumnSchema $column */
+            if (null === $column = $table->getColumn($name)) {
+                throw new \Exception("Table '{$table->name}' does not have a column named '{$name}'.");
+            }
+            $keyNames[] = $prefix . $column->rawName;
         }
         $vs = array();
         foreach ($values as $value) {

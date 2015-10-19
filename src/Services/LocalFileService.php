@@ -52,7 +52,7 @@ class LocalFileService extends BaseFileService
                 if (config('df.standalone')) {
                     $root = $disk['root'];
                 } else {
-                    $root = Managed::getStoragePath() . config('df.local_file_service_container');
+                    $root = Managed::getStoragePath(config('df.local_file_service_container'));
                 }
 
                 if (!is_dir($root)) {

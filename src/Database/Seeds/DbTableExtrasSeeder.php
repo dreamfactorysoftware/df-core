@@ -114,7 +114,7 @@ class DbTableExtrasSeeder extends BaseModelSeeder
 
     protected function getRecordExtras()
     {
-        $systemServiceId = Service::whereType('system')->pluck('id');
+        $systemServiceId = Service::whereType('system')->value('id');
 
         return [
             'service_id' => $systemServiceId,

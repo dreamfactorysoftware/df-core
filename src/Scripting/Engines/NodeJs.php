@@ -39,6 +39,23 @@ class NodeJs extends BaseEngineAdapter implements ScriptingEngineInterface
     //	Methods
     //*************************************************************************
 
+    public static function findCommandPath()
+    {
+        $path = config('df.scripting.nodejs_path');
+        if (empty($path)) {
+            if (strncasecmp(PHP_OS, 'WIN', 3) == 0) {
+                // need to use windows where.exe...
+                $finder = 'where node';
+            } else {
+                // must be linux or osx (darwin), use which
+                $finder = 'which node';
+            }
+            $path = trim(shell_exec($finder));
+        }
+
+        return $path;
+    }
+
     /**
      * @param array $settings
      *
@@ -49,14 +66,8 @@ class NodeJs extends BaseEngineAdapter implements ScriptingEngineInterface
         parent::__construct($settings);
 
         if (empty($this->commandPath)) {
-            if (strncasecmp(PHP_OS, 'WIN', 3) == 0) {
-                // need to use windows where.exe...
-                $finder = 'where node';
-            } else {
-                // must be linux or osx (darwin), use which
-                $finder = 'which node';
-            }
-            if (empty($this->commandPath = trim(shell_exec($finder)))) {
+            $this->commandPath = static::findCommandPath();
+            if (empty($this->commandPath)) {
                 throw new ServiceUnavailableException("Failed to find a valid path to NodeJs.");
             }
         }

@@ -72,6 +72,15 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     ];
 
     /**
+     * Input validation rules.
+     * @type array
+     */
+    protected $rules = [
+        'name'  => 'required|max:255',
+        'email' => 'required|email|max:255'
+    ];
+
+    /**
      * The attributes excluded from the model's JSON form.
      *
      * @var array
@@ -223,7 +232,14 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 $model->password = ArrayUtils::get($record, 'password');
             }
 
+            $oldEmail = $model->email;
+
             $model->update($record);
+
+            if (('user@example.com' === $oldEmail) && ('user@example.com' !== $model->email)) {
+                // Register user
+                RegisterContact::registerUser($model);
+            }
 
             return static::buildResult($model, $params);
         } catch (\Exception $ex) {
@@ -370,15 +386,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     public static function adminExists()
     {
         return \Cache::rememberForever('admin_exists', function (){
-            // Unfortunate workaround for Bitnami install situation.
-            $adminExists =
-                static::whereIsActive(1)->whereIsSysAdmin(1)->where('email', '!=', 'user@example.com')->exists();
-            if (!$adminExists) {
-                // make sure no 'user@example.com' exists anymore
-                static::whereEmail('user@example.com')->delete();
-            }
-
-            return $adminExists;
+            return static::whereIsActive(1)->whereIsSysAdmin(1)->exists();
         });
     }
 
@@ -400,7 +408,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             'name'       => 'required|max:255',
             'first_name' => 'required|max:255',
             'last_name'  => 'required|max:255',
-            'email'      => 'required|email|max:255|unique:user|not_in:user@example.com',
+            'email'      => 'required|email|max:255|unique:user',
             'password'   => 'required|confirmed|min:6'
         ];
 

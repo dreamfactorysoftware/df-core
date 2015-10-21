@@ -51,9 +51,7 @@ class RegisterContact
         $options = [CURLOPT_HTTPHEADER => ['Content-Type: application/json']];
 
         if (false !== ($_response = Curl::post(static::ENDPOINT, $payload, $options))) {
-            if ($_response && $_response->success) {
-                return true;
-            }
+            return true;
         }
 
         return false;

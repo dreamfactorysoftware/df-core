@@ -26,6 +26,23 @@ class Lookup extends BaseSystemLookup
 {
     protected $table = 'system_lookup';
 
+    public static function boot()
+    {
+        parent::boot();
+
+        static::saved(
+            function (Lookup $lookup){
+                \Cache::forget('system_lookups');
+            }
+        );
+
+        static::deleted(
+            function (Lookup $lookup){
+                \Cache::forget('system_lookups');
+            }
+        );
+    }
+
     /**
      * Returns system lookups cached, or reads from db if not present.
      * Pass in a key to return a portion/index of the cached data.

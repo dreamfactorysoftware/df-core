@@ -171,6 +171,10 @@ class ReadOnlySystemResource extends BaseRestResource
             $criteria['order'] = $value;
         }
 
+        if (null !== ($value = $this->request->getParameter(ApiOptions::GROUP))) {
+            $criteria['group'] = $value;
+        }
+
         return $criteria;
     }
 
@@ -271,6 +275,7 @@ class ReadOnlySystemResource extends BaseRestResource
                             ApiOptions::documentOption(ApiOptions::FILTER),
                             ApiOptions::documentOption(ApiOptions::LIMIT),
                             ApiOptions::documentOption(ApiOptions::ORDER),
+                            ApiOptions::documentOption(ApiOptions::GROUP),
                             ApiOptions::documentOption(ApiOptions::OFFSET),
                             ApiOptions::documentOption(ApiOptions::FIELDS),
                             ApiOptions::documentOption(ApiOptions::RELATED),

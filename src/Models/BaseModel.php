@@ -861,6 +861,8 @@ class BaseModel extends Model
         $offset = ArrayUtils::get($criteria, 'offset', 0);
         $orderBy = ArrayUtils::get($criteria, 'order', "$pk asc");
         $orders = explode(',', $orderBy);
+        $groupBy = ArrayUtils::get($criteria, 'group', '');
+        $groups = explode(',', $groupBy);
 
         if (!empty($selection)) {
             if (!empty($condition)) {
@@ -878,6 +880,10 @@ class BaseModel extends Model
                 }
 
                 $builder = $builder->orderBy($column, $direction);
+            }
+
+            foreach ($groups as $group) {
+                $builder = $builder->groupBy(trim($group));
             }
 
             $collections = $builder->get($selection);

@@ -171,6 +171,10 @@ class Event extends BaseRestService
                 $criteria['order'] = $value;
             }
 
+            if (null !== ($value = $this->request->getParameter(ApiOptions::GROUP))) {
+                $criteria['group'] = $value;
+            }
+
             $data = $model->selectByRequest($criteria, $related);
             $data = ResourcesWrapper::wrapResources($data);
         }
@@ -335,6 +339,7 @@ class Event extends BaseRestService
                             ApiOptions::documentOption(ApiOptions::FILTER),
                             ApiOptions::documentOption(ApiOptions::LIMIT),
                             ApiOptions::documentOption(ApiOptions::ORDER),
+                            ApiOptions::documentOption(ApiOptions::GROUP),
                             ApiOptions::documentOption(ApiOptions::OFFSET),
                             ApiOptions::documentOption(ApiOptions::FIELDS),
                             ApiOptions::documentOption(ApiOptions::RELATED),

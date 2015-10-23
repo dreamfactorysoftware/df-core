@@ -211,18 +211,19 @@ class Environment extends BaseSystemResource
             $openRegEmailServiceId = $userService['config']['open_reg_email_service_id'];
 
             return [
-                'admin'  => $adminApi,
-                'user'   => $userApi,
-                'oauth'  => $oauth,
-                'adldap' => $ldap,
-                'allow_open_registration' => $allowOpenRegistration,
-                'open_reg_email_service_id' => $openRegEmailServiceId
+                'admin'                     => $adminApi,
+                'user'                      => $userApi,
+                'oauth'                     => $oauth,
+                'adldap'                    => $ldap,
+                'allow_open_registration'   => $allowOpenRegistration,
+                'open_reg_email_service_id' => $openRegEmailServiceId,
+                'allow_forever_sessions'    => config('df.allow_forever_sessions', false)
             ];
         }
 
         return [
-            'admin' => $adminApi,
-            'allow_open_registration' => false,
+            'admin'                     => $adminApi,
+            'allow_open_registration'   => false,
             'open_reg_email_service_id' => false
         ];
     }

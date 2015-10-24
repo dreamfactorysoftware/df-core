@@ -325,6 +325,10 @@ class Session
 
                                 return true;
                             case 'version':
+                                $value = \Config::get('df.version');
+
+                                return true;
+                            case 'api_version':
                                 $value = \Config::get('df.api_version');
 
                                 return true;

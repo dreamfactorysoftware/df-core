@@ -416,7 +416,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
         if ($validator->fails()) {
             $errors = $validator->getMessageBag()->all();
-            $data = array_merge($data, ['errors' => $errors, 'version' => \Config::get('df.api_version')]);
+            $data = array_merge($data, ['errors' => $errors, 'version' => \Config::get('df.version')]);
 
             return false;
         } else {

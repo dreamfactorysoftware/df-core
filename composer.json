@@ -3,7 +3,7 @@
   "description": "DreamFactory(tm) Core Components",
   "homepage":    "https://www.dreamfactory.com/",
   "keywords":    [
-    "dsp",
+    "dreamfactory",
     "rest",
     "api",
     "mbaas",
@@ -28,10 +28,10 @@
     }
   ],
   "require":     {
-    "php":                        "~5.5",
-    "dreamfactory/php-utils":     "1.1.*",
-    "guzzlehttp/guzzle":          "~5.0",
-    "barryvdh/laravel-cors":      "0.7.x"
+    "php":                    "~5.5",
+    "dreamfactory/php-utils": "1.1.*",
+    "guzzlehttp/guzzle":      "~5.0",
+    "barryvdh/laravel-cors":  "0.7.x"
   },
   "require-dev": {
     "phpunit/phpunit": "@stable"
@@ -43,7 +43,7 @@
   },
   "extra":       {
     "branch-alias": {
-      "dev-develop": "0.0.x-dev"
+      "dev-develop": "0.1.x-dev"
     }
   }
 }

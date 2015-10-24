@@ -98,7 +98,7 @@ class Packager
     public function __destruct()
     {
         if (file_exists($this->zipFilePath)) {
-            unlink($this->zipFilePath);
+            @unlink($this->zipFilePath);
         }
     }
 

@@ -719,10 +719,10 @@ EOD;
         $name = $this->connection->quoteTableName($name);
         $bindings = [];
         foreach ($params as $key => $param) {
-            $name = (isset($param['name']) && !empty($param['name'])) ? ':' . $param['name'] : ":p$key";
-            $value = isset($param['value']) ? $param['value'] : null;
+            $pName = (isset($param['name']) && !empty($param['name'])) ? ':' . $param['name'] : ":p$key";
+            $pValue = isset($param['value']) ? $param['value'] : null;
 
-            $bindings[$name] = $value;
+            $bindings[$pName] = $pValue;
         }
 
         $paramStr = implode(',', array_keys($bindings));

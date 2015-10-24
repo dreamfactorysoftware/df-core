@@ -21,7 +21,8 @@ class RegisterContact
     {
         $source = 'Product Install DreamFactory';
         if (!config('df.standalone')) {
-            if (false === strpos(gethostname(), '.enterprise.dreamfactory.com')) {
+            $serverName = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : '';
+            if (false === strpos($serverName, '.enterprise.dreamfactory.com')) {
                 return true; // bail, not tracking
             }
             $source = 'Website Free Hosted';

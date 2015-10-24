@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Components\DbRequestCriteria;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Utility\ApiDocUtilities;
@@ -12,7 +13,6 @@ use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Models\BaseSystemModel;
-use DreamFactory\Core\Utility\Session as SessionUtility;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -22,6 +22,8 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
  */
 class ReadOnlySystemResource extends BaseRestResource
 {
+    use DbRequestCriteria;
+
     /**
      * Default maximum records returned on filter request
      */
@@ -115,63 +117,11 @@ class ReadOnlySystemResource extends BaseRestResource
      */
     protected function retrieveByRequest(array $related = [])
     {
-        /** @var BaseSystemModel $model */
         $modelClass = $this->model;
         $criteria = $this->getSelectionCriteria();
         $data = $modelClass::selectByRequest($criteria, $related);
 
         return $data;
-    }
-
-    /**
-     * Builds the selection criteria from request and returns it.
-     *
-     * @return array
-     */
-    protected function getSelectionCriteria()
-    {
-        $criteria = [
-            'params' => []
-        ];
-
-        if (null !== ($value = $this->request->getParameter(ApiOptions::FIELDS))) {
-            $criteria['select'] = explode(',', $value);
-        } else {
-            $criteria['select'] = ['*'];
-        }
-
-        if (null !== ($value = $this->request->getPayloadData(ApiOptions::PARAMS))) {
-            $criteria['params'] = $value;
-        }
-
-        if (null !== ($value = $this->request->getParameter(ApiOptions::FILTER))) {
-            $criteria['condition'] = $value;
-
-            //	Add current user ID into parameter array if in condition, but not specified.
-            if (false !== stripos($value, ':user_id')) {
-                if (!isset($criteria['params'][':user_id'])) {
-                    $criteria['params'][':user_id'] = SessionUtility::getCurrentUserId();
-                }
-            }
-        }
-
-        $value = intval($this->request->getParameter(ApiOptions::LIMIT));
-        $maxAllowed = intval(\Config::get('df.db_max_records_returned', self::MAX_RECORDS_RETURNED));
-        if (($value < 1) || ($value > $maxAllowed)) {
-            // impose a limit to protect server
-            $value = $maxAllowed;
-        }
-        $criteria['limit'] = $value;
-
-        if (null !== ($value = $this->request->getParameter(ApiOptions::OFFSET))) {
-            $criteria['offset'] = $value;
-        }
-
-        if (null !== ($value = $this->request->getParameter(ApiOptions::ORDER))) {
-            $criteria['order'] = $value;
-        }
-
-        return $criteria;
     }
 
     /**
@@ -271,6 +221,7 @@ class ReadOnlySystemResource extends BaseRestResource
                             ApiOptions::documentOption(ApiOptions::FILTER),
                             ApiOptions::documentOption(ApiOptions::LIMIT),
                             ApiOptions::documentOption(ApiOptions::ORDER),
+                            ApiOptions::documentOption(ApiOptions::GROUP),
                             ApiOptions::documentOption(ApiOptions::OFFSET),
                             ApiOptions::documentOption(ApiOptions::FIELDS),
                             ApiOptions::documentOption(ApiOptions::RELATED),

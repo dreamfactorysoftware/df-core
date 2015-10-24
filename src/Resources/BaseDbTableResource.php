@@ -254,6 +254,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ApiOptions::LIMIT,
                 ApiOptions::OFFSET,
                 ApiOptions::ORDER,
+                ApiOptions::GROUP,
                 ApiOptions::FIELDS,
                 ApiOptions::IDS,
                 ApiOptions::FILTER,
@@ -261,20 +262,20 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ApiOptions::CONTINUES,
                 ApiOptions::ROLLBACK
             ];
-            $otherNames = ['top', 'skip', 'sort', null, null, null, null, null, null]; // Microsoft et al preferences
 
             foreach ($optionNames as $key => $value) {
                 if (!array_key_exists($value, $this->options)) {
                     if (array_key_exists($value, $this->payload)) {
                         $this->options[$value] = $this->payload[$value];
-                    } elseif (isset($otherNames[$key])) {
-                        $other = $otherNames[$key];
-                        if (!array_key_exists($other, $this->options)) {
-                            if (array_key_exists($other, $this->payload)) {
-                                $this->options[$value] = $this->payload[$other];
+                    } elseif (!empty($otherNames = ApiOptions::getAliases($value))) {
+                        foreach ($otherNames as $other) {
+                            if (!array_key_exists($other, $this->options)) {
+                                if (array_key_exists($other, $this->payload)) {
+                                    $this->options[$value] = $this->payload[$other];
+                                }
+                            } else {
+                                $this->options[$value] = $this->options[$other];
                             }
-                        } else {
-                            $this->options[$value] = $this->options[$other];
                         }
                     }
                 }
@@ -2983,6 +2984,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 ApiOptions::documentOption(ApiOptions::FILTER),
                                 ApiOptions::documentOption(ApiOptions::LIMIT),
                                 ApiOptions::documentOption(ApiOptions::ORDER),
+                                ApiOptions::documentOption(ApiOptions::GROUP),
                                 ApiOptions::documentOption(ApiOptions::OFFSET),
                                 ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
                                 ApiOptions::documentOption(ApiOptions::IDS),

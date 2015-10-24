@@ -77,6 +77,14 @@ class ApiOptions extends FactoryEnum
     /**
      * @var string
      */
+    const GROUP = 'group';
+    /**
+     * @var string
+     */
+    const HAVING = 'having';
+    /**
+     * @var string
+     */
     const FILE = 'file';
     /**
      * @var string
@@ -115,15 +123,16 @@ class ApiOptions extends FactoryEnum
      */
     const FIELDS_ALL = '*';
 
-    public static $aliasMap = [
+    protected static $aliasMap = [
         self::FIELDS => ['select'],
         self::FILTER => ['where'],
         self::LIMIT  => ['top'],
         self::OFFSET => ['skip'],
-        self::ORDER  => ['sort'],
+        self::ORDER  => ['sort', 'order_by'],
+        self::GROUP  => ['group_by'],
     ];
 
-    public static $typeMap = [
+    protected static $typeMap = [
         // only include non-strings here for speed
         self::LIMIT                => 'integer',
         self::OFFSET               => 'integer',
@@ -140,13 +149,15 @@ class ApiOptions extends FactoryEnum
         self::ALLOW_RELATED_DELETE => 'boolean',
     ];
 
-    public static $descriptionMap = [
+    protected static $descriptionMap = [
         self::IDS                  => 'Comma-delimited list of the identifiers of the records to retrieve.',
         self::ID_FIELD             => 'Comma-delimited list of the fields used as identifiers, used to override defaults or provide identifiers when none are provisioned.',
         self::ID_TYPE              => 'Comma-delimited list of the field types used as identifiers for the table, used to override defaults or provide identifiers when none are provisioned.',
         self::FILTER               => 'SQL-like filter to limit the records to retrieve.',
         self::LIMIT                => 'Set to limit the filter results.',
         self::ORDER                => 'SQL-like order containing field and direction for filter results.',
+        self::GROUP                => 'Comma-delimited list of the fields used for grouping of filter results.',
+        self::HAVING               => 'SQL-like filter to limit the results after the grouping of filter results.',
         self::OFFSET               => 'Set to offset the filter results to a particular record count.',
         self::FIELDS               => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier.',
         self::CONTINUES            => 'In batch scenarios where supported, continue processing even after one action fails. Default behavior is to halt and return results up to the first point of failure.',
@@ -165,10 +176,11 @@ class ApiOptions extends FactoryEnum
         self::FORCE                => 'Set to true to delete all resources in the given table, folder, etc.',
     ];
 
-    public static $multipleMap = [
+    protected static $multipleMap = [
         // only put ones that allow multiple here
         self::IDS,
         self::FIELDS,
+        self::GROUP,
         self::RELATED,
     ];
 
@@ -176,9 +188,9 @@ class ApiOptions extends FactoryEnum
     {
         return [
             'name'          => $option,
-            'description'   => (isset(static::$descriptionMap[$option]) ? static::$descriptionMap[$option] : 'Unknown'),
-            'allowMultiple' => in_array($option, static::$multipleMap),
-            'type'          => (isset(static::$typeMap[$option]) ? static::$typeMap[$option] : 'string'),
+            'description'   => static::getDescription($option),
+            'allowMultiple' => static::doesAllowMultiple($option),
+            'type'          => static::getType($option),
             'format'        => 'int32',
             'paramType'     => 'query',
             'required'      => $required,
@@ -210,7 +222,7 @@ class ApiOptions extends FactoryEnum
         $default = null,
         $checkPayload = false
     ){
-        $checkBool = (isset(static::$typeMap[$option]) && ('boolean' === static::$typeMap[$option]));
+        $checkBool = ('boolean' === static::getType($option));
         $value = ($checkBool) ? $request->getParameterAsBool($option) : $request->getParameter($option);
         if (!is_null($value)) {
             return $value;
@@ -224,5 +236,37 @@ class ApiOptions extends FactoryEnum
         }
 
         return $default;
+    }
+
+    public static function getAliases($option)
+    {
+        if (isset(static::$aliasMap[$option])) {
+            return static::$aliasMap[$option];
+        }
+
+        return [];
+    }
+
+    public static function getType($option)
+    {
+        if (isset(static::$typeMap[$option])) {
+            return static::$typeMap[$option];
+        }
+
+        return 'string';
+    }
+
+    public static function getDescription($option)
+    {
+        if (isset(static::$descriptionMap[$option])) {
+            return static::$descriptionMap[$option];
+        }
+
+        return '';
+    }
+
+    public static function doesAllowMultiple($option)
+    {
+        return in_array($option, static::$multipleMap);
     }
 }

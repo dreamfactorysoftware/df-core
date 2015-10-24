@@ -23,6 +23,7 @@ abstract class BaseDbResource extends BaseRestResource
      * @var BaseDbService
      */
     protected $parent = null;
+
     //*************************************************************************
     //	Methods
     //*************************************************************************

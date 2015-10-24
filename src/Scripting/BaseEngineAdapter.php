@@ -260,7 +260,8 @@ abstract class BaseEngineAdapter
                     if (!empty($p)) {
                         $tmp = explode('=', $p);
                         $name = ArrayUtils::get($tmp, 0, $k);
-                        $params[$name] = ArrayUtils::get($tmp, 1);
+                        $value = ArrayUtils::get($tmp, 1);
+                        $params[$name] = urldecode($value);
                     }
                 }
             }

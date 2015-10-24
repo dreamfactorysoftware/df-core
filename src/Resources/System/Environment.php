@@ -26,8 +26,8 @@ class Environment extends BaseSystemResource
         $result = [];
 
         $result['platform'] = [
-            'version_current'   => \Config::get('df.api_version'),
-            'version_latest'    => \Config::get('df.api_version'),
+            'version_current'   => \Config::get('df.version'),
+            'version_latest'    => \Config::get('df.version'),
             'upgrade_available' => false,
             'is_hosted'         => !config('df.standalone'),
             'host'              => php_uname('n'),

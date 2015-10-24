@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Components\DbRequestCriteria;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\ResourcesWrapper;
@@ -19,6 +20,7 @@ use Illuminate\Database\Eloquent\Collection;
  */
 class Event extends BaseRestService
 {
+    use DbRequestCriteria;
     //*************************************************************************
     //	Constants
     //*************************************************************************
@@ -130,51 +132,7 @@ class Event extends BaseRestService
             $data = ResourcesWrapper::wrapResources($data);
         } else {
             //	Build our criteria
-            $criteria = [
-                'params' => [],
-            ];
-
-            if (null !== ($value = $this->request->getParameter(ApiOptions::FIELDS))) {
-                $criteria['select'] = $value;
-            } else {
-                $criteria['select'] = "*";
-            }
-
-            if (null !== ($value = $this->request->getPayloadData(ApiOptions::PARAMS))) {
-                $criteria['params'] = $value;
-            }
-
-            if (null !== ($value = $this->request->getParameter(ApiOptions::FILTER))) {
-                $criteria['condition'] = $value;
-
-                //	Add current user ID into parameter array if in condition, but not specified.
-                if (false !== stripos($value, ':user_id')) {
-                    if (!isset($criteria['params'][':user_id'])) {
-                        //$criteria['params'][':user_id'] = Session::getCurrentUserId();
-                    }
-                }
-            }
-
-            $value = intval($this->request->getParameter(ApiOptions::LIMIT));
-            $maxAllowed = intval(\Config::get('df.db_max_records_returned', self::MAX_RECORDS_RETURNED));
-            if (($value < 1) || ($value > $maxAllowed)) {
-                // impose a limit to protect server
-                $value = $maxAllowed;
-            }
-            $criteria['limit'] = $value;
-
-            if (null !== ($value = $this->request->getParameter(ApiOptions::OFFSET))) {
-                $criteria['offset'] = $value;
-            }
-
-            if (null !== ($value = $this->request->getParameter(ApiOptions::ORDER))) {
-                $criteria['order'] = $value;
-            }
-
-            if (null !== ($value = $this->request->getParameter(ApiOptions::GROUP))) {
-                $criteria['group'] = $value;
-            }
-
+            $criteria = $this->getSelectionCriteria();
             $data = $model->selectByRequest($criteria, $related);
             $data = ResourcesWrapper::wrapResources($data);
         }

@@ -856,44 +856,48 @@ class BaseModel extends Model
     {
         $pk = static::getPrimaryKeyStatic();
         $selection = ArrayUtils::get($criteria, 'select');
-        $condition = ArrayUtils::get($criteria, 'condition');
-        $limit = ArrayUtils::get($criteria, 'limit', \Config::get('df.db_max_records_returned'));
-        $offset = ArrayUtils::get($criteria, 'offset', 0);
-        $orderBy = ArrayUtils::get($criteria, 'order', "$pk asc");
-        $orders = explode(',', $orderBy);
-
-        if (!empty($selection)) {
-            if (!empty($condition)) {
-                $builder = static::whereRaw($condition)->with($related)->skip($offset)->take($limit);
-            } else {
-                $builder = static::with($related)->skip($offset)->take($limit);
-            }
-
-            foreach ($orders as $order) {
-                $order = trim($order);
-
-                @list($column, $direction) = explode(' ', $order);
-                if (empty($direction)) {
-                    $direction = 'ASC';
-                }
-
-                $builder = $builder->orderBy($column, $direction);
-            }
-
-            $groupBy = ArrayUtils::get($criteria, 'group');
-            if (!empty($groupBy)) {
-                $groups = explode(',', $groupBy);
-                foreach ($groups as $group) {
-                    $builder = $builder->groupBy(trim($group));
-                }
-            }
-
-            $collections = $builder->get($selection);
-        } //This should never happen as $criteria['select'] is always '*' by default.
-        else {
-            $collections = static::skip($offset)->take($limit)->all();
+        if (empty($selection)) {
+            $selection = ['*'];
         }
 
+        $condition = ArrayUtils::get($criteria, 'condition');
+        /** @type \Illuminate\Database\Eloquent\Builder $builder */
+        if (!empty($condition)) {
+            $builder = static::whereRaw($condition)->with($related);
+        } else {
+            $builder = static::with($related);
+        }
+
+        if (!empty($limit = ArrayUtils::get($criteria, 'limit'))) {
+            $builder->take($limit);
+        }
+
+        if (!empty($offset = ArrayUtils::get($criteria, 'offset'))) {
+            $builder->skip($offset);
+        }
+
+        $orderBy = ArrayUtils::get($criteria, 'order', "$pk asc");
+        $orders = explode(',', $orderBy);
+        foreach ($orders as $order) {
+            $order = trim($order);
+
+            @list($column, $direction) = explode(' ', $order);
+            if (empty($direction)) {
+                $direction = 'ASC';
+            }
+
+            $builder = $builder->orderBy($column, $direction);
+        }
+
+        $groupBy = ArrayUtils::get($criteria, 'group');
+        if (!empty($groupBy)) {
+            $groups = explode(',', $groupBy);
+            foreach ($groups as $group) {
+                $builder = $builder->groupBy(trim($group));
+            }
+        }
+
+        $collections = $builder->get($selection);
         $result = $collections->toArray();
 
         return $result;

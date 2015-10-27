@@ -1278,7 +1278,7 @@ class FileUtilities
      */
     public static function addTreeToZip($zip, $root, $path = '', $skip = array('.', '..'))
     {
-        $dirPath = rtrim($root, '/').DIRECTORY_SEPARATOR;
+        $dirPath = rtrim($root, '/') . DIRECTORY_SEPARATOR;
         if (!empty($path)) {
             $dirPath .= $path . DIRECTORY_SEPARATOR;
         }
@@ -1325,5 +1325,38 @@ class FileUtilities
         }
 
         return $new;
+    }
+
+    /**
+     * Updates .env file setting.
+     *
+     * @param array $settings
+     * @param null  $path
+     */
+    public static function updateEnvSetting(array $settings, $path = null)
+    {
+        if (empty($path)) {
+            $path = base_path('.env');
+        }
+
+        if (file_exists($path)) {
+            $subject = file_get_contents($path);
+
+            foreach ($settings as $key => $value) {
+                /**
+                 * Using a new instance of dotenv to get the
+                 * most update to .env file content for reading.
+                 */
+                $dotenv = new \Dotenv();
+                $dotenv->load(base_path());
+
+                $search = $key . '=' . getenv($key);
+                $replace = $key . '=' . $value;
+
+                $subject = str_replace($search, $replace, $subject);
+            }
+
+            file_put_contents($path, $subject);
+        }
     }
 }

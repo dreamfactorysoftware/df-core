@@ -29,7 +29,7 @@ class Environment extends BaseSystemResource
             'version_current'   => \Config::get('df.version'),
             'version_latest'    => \Config::get('df.version'),
             'upgrade_available' => false,
-            'is_hosted'         => !config('df.standalone'),
+            'is_hosted'         => config('df.managed'),
             'host'              => php_uname('n'),
         ];
 

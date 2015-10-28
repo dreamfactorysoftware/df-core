@@ -6,8 +6,8 @@ use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Exceptions\BadRequestException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
+use Tymon\JWTAuth\Exceptions\TokenInvalidException;
 use Tymon\JWTAuth\Facades\JWTFactory;
 use Tymon\JWTAuth\Token;
 use Tymon\JWTAuth\Payload;
@@ -44,7 +44,7 @@ class JWTUtilities
      * @param Payload $payload
      *
      * @return bool
-     * @throws BadRequestException
+     * @throws TokenInvalidException
      */
     public static function verifyUser($payload)
     {
@@ -55,7 +55,7 @@ class JWTUtilities
         if (!empty($userInfo) && $email === $userInfo['email']) {
             return true;
         } else {
-            throw new BadRequestException('Invalid token supplied.');
+            throw new TokenInvalidException('User verification failed.');
         }
     }
 

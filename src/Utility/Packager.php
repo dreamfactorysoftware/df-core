@@ -284,6 +284,10 @@ class Packager
             $record['url'] = ltrim($record['url'], '/');
         }
 
+        if(isset($record['path'])){
+            $record['path'] = ltrim($record['path'], '/');
+        }
+
         if ($record['type'] === AppTypes::STORAGE_SERVICE || $record['type'] === AppTypes::PATH) {
             if (empty(ArrayUtils::get($record, 'path'))) {
                 throw new BadRequestException('No Application Path provided in description.json');

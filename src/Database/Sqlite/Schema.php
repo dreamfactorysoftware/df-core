@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database\Sqlite;
 
+use DreamFactory\Core\Database\Expression;
 use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
@@ -629,6 +630,11 @@ class Schema extends \DreamFactory\Core\Database\Schema
     public function dropPrimaryKey($name, $table)
     {
         throw new \Exception('Removing a primary key after table has been created is not supported by SQLite.');
+    }
+
+    public function getTimestampForSet($update = false)
+    {
+        return new Expression("datetime('now')");
     }
 
     public function allowsSeparateForeignConstraint()

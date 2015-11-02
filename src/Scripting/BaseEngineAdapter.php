@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Scripting;
 
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -201,20 +202,25 @@ abstract class BaseEngineAdapter
      * @param mixed  $payload
      * @param array  $curlOptions
      *
-     * @return \stdClass|string
+     * @return \DreamFactory\Core\Utility\ServiceResponse
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
+     * @throws \DreamFactory\Core\Exceptions\RestException
      */
     protected static function externalRequest($method, $url, $payload = [], $curlOptions = [])
     {
-        try {
-            $result = Curl::request($method, $url, $payload, $curlOptions);
-            $result = ResponseFactory::create($result);
-        } catch (\Exception $ex) {
-            $result = ResponseFactory::create($ex);
+        $result = Curl::request($method, $url, $payload, $curlOptions);
+        $contentType = Curl::getInfo('content_type');
+        $format = DataFormats::fromMimeType($contentType);
+        $status = Curl::getLastHttpCode();
+        if ($status >= 300) {
+            if (!is_string($result)) {
+                $result = json_encode($result);
+            }
 
-            Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
+            throw new RestException($status, $result, $status);
         }
 
-        return ResponseFactory::sendScriptResponse($result);
+        return ResponseFactory::create($result, $format, $status, $contentType);
     }
 
     /**
@@ -246,63 +252,63 @@ abstract class BaseEngineAdapter
             unset($options);
         }
 
-        if ('https:/' == ($protocol = substr($path, 0, 7)) || 'http://' == $protocol) {
-            return static::externalRequest($method, $path, $payload, $curlOptions);
-        }
+        try {
+            if ('https:/' == ($protocol = substr($path, 0, 7)) || 'http://' == $protocol) {
+                $result = static::externalRequest($method, $path, $payload, $curlOptions);
+            } else {
+                $result = null;
+                $params = [];
+                if (false !== $pos = strpos($path, '?')) {
+                    $paramString = substr($path, $pos + 1);
+                    if (!empty($paramString)) {
+                        $pArray = explode('&', $paramString);
+                        foreach ($pArray as $k => $p) {
+                            if (!empty($p)) {
+                                $tmp = explode('=', $p);
+                                $name = ArrayUtils::get($tmp, 0, $k);
+                                $value = ArrayUtils::get($tmp, 1);
+                                $params[$name] = urldecode($value);
+                            }
+                        }
+                    }
+                    $path = substr($path, 0, $pos);
+                }
 
-        $result = null;
-        $params = [];
-        if (false !== $pos = strpos($path, '?')) {
-            $paramString = substr($path, $pos + 1);
-            if (!empty($paramString)) {
-                $pArray = explode('&', $paramString);
-                foreach ($pArray as $k => $p) {
-                    if (!empty($p)) {
-                        $tmp = explode('=', $p);
-                        $name = ArrayUtils::get($tmp, 0, $k);
-                        $value = ArrayUtils::get($tmp, 1);
-                        $params[$name] = urldecode($value);
+                if (false === ($pos = strpos($path, '/'))) {
+                    $serviceName = $path;
+                    $resource = null;
+                } else {
+                    $serviceName = substr($path, 0, $pos);
+                    $resource = substr($path, $pos + 1);
+
+                    //	Fix removal of trailing slashes from resource
+                    if (!empty($resource)) {
+                        if ((false === strpos($path, '?') && '/' === substr($path, strlen($path) - 1, 1)) ||
+                            ('/' === substr($path, strpos($path, '?') - 1, 1))
+                        ) {
+                            $resource .= '/';
+                        }
                     }
                 }
-            }
-            $path = substr($path, 0, $pos);
-        }
 
-        if (false === ($pos = strpos($path, '/'))) {
-            $serviceName = $path;
-            $resource = null;
-        } else {
-            $serviceName = substr($path, 0, $pos);
-            $resource = substr($path, $pos + 1);
-
-            //	Fix removal of trailing slashes from resource
-            if (!empty($resource)) {
-                if ((false === strpos($path, '?') && '/' === substr($path, strlen($path) - 1, 1)) ||
-                    ('/' === substr($path, strpos($path, '?') - 1, 1))
-                ) {
-                    $resource .= '/';
+                if (empty($serviceName)) {
+                    return null;
                 }
+
+                $format = DataFormats::PHP_ARRAY;
+                if (!is_array($payload)) {
+                    $format = DataFormats::TEXT;
+                }
+
+                Session::checkServicePermission($method, $serviceName, $resource, ServiceRequestorTypes::SCRIPT);
+
+                $request = new ScriptServiceRequest($method, $params);
+                $request->setContent($payload, $format);
+
+                //  Now set the request object and go...
+                $service = ServiceHandler::getService($serviceName);
+                $result = $service->handleRequest($request, $resource);
             }
-        }
-
-        if (empty($serviceName)) {
-            return null;
-        }
-
-        $format = DataFormats::PHP_ARRAY;
-        if (!is_array($payload)) {
-            $format = DataFormats::TEXT;
-        }
-
-        try {
-            Session::checkServicePermission($method, $serviceName, $resource, ServiceRequestorTypes::SCRIPT);
-
-            $request = new ScriptServiceRequest($method, $params);
-            $request->setContent($payload, $format);
-
-            //  Now set the request object and go...
-            $service = ServiceHandler::getService($serviceName);
-            $result = $service->handleRequest($request, $resource);
         } catch (\Exception $ex) {
             $result = ResponseFactory::create($ex);
 

@@ -315,18 +315,6 @@ _wrapperResult = (function() {
         //noinspection JSUnresolvedVariable
         _event.script_result = (function(event, platform) {
 
-            //noinspection CoffeeScriptUnusedLocalSymbols,JSUnusedLocalSymbols
-            var include = function( fileName ) {
-                var _contents;
-
-                //noinspection JSUnresolvedFunction
-                if ( false === ( _contents = platform.api.includeScript(fileName) ) ) {
-                    throw 'Included script "' + fileName + '" not found.';
-                }
-
-                return _contents;
-            };
-
             //noinspection BadExpressionStatementJS,JSUnresolvedVariable
             {$script};
     	})(_event, DSP.platform);

@@ -357,9 +357,9 @@ abstract class BaseDbTableResource extends BaseDbResource
                 $results = \Event::fire(
                     new ResourcePreProcess(
                         $this->getServiceName(),
-                        $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.' . $this->resourceArray[1],
+                        $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.{id}',
                         $this->request,
-                        $this->resourcePath
+                        $this->resourceArray[1]
                     )
                 );
                 break;
@@ -403,10 +403,10 @@ abstract class BaseDbTableResource extends BaseDbResource
             case 2:
                 $event = new ResourcePostProcess(
                     $this->getServiceName(),
-                    $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.' . $this->resourceArray[1],
+                    $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.{id}',
                     $this->request,
                     $this->response,
-                    $this->resourcePath
+                    $this->resourceArray[1]
                 );
                 /** @noinspection PhpUnusedLocalVariableInspection */
                 $results = \Event::fire($event);

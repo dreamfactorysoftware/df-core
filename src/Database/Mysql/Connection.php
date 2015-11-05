@@ -6,19 +6,6 @@ namespace DreamFactory\Core\Database\Mysql;
  */
 class Connection extends \DreamFactory\Core\Database\Connection
 {
-    public static function checkRequirements($driver, $throw_exception = true)
-    {
-        if (!extension_loaded('mysql') && !extension_loaded('mysqlnd')) {
-            if ($throw_exception) {
-                throw new \Exception("Required extension or module 'mysql' is not installed or loaded.");
-            } else {
-                return false;
-            }
-        }
-
-        return parent::checkRequirements('mysql', $throw_exception);
-    }
-
     public static function getDriverLabel()
     {
         return 'MySQL';

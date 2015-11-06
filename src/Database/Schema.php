@@ -230,6 +230,11 @@ abstract class Schema
                 if (!empty($columnName = (isset($extra['field'])) ? $extra['field'] : null)) {
                     if (null !== $column = $table->getColumn($columnName)) {
                         $column->fill($extra);
+                    } elseif ('function' === (isset($extra['extra_type']) ? $extra['extra_type'] : null)) {
+                        $extra['name'] = $extra['field'];
+                        $extra['allow_null'] = true; // make sure it is not required
+                        $column = new ColumnSchema($extra);
+                        $table->addColumn($column);
                     }
                 }
             }
@@ -256,9 +261,9 @@ abstract class Schema
     public function getTables($schema = '', $include_views = true, $refresh = false)
     {
         $tables = [];
-        foreach ($this->getTableNames($schema, $include_views, $refresh) as $name) {
-            if (($table = $this->getTable($name, $refresh)) !== null) {
-                $tables[$name] = $table;
+        foreach ($this->getTableNames($schema, $include_views, $refresh) as $tableNameSchema) {
+            if (($table = $this->getTable($tableNameSchema->name, $refresh)) !== null) {
+                $tables[$tableNameSchema->name] = $table;
             }
         }
 
@@ -886,9 +891,10 @@ abstract class Schema
             }
 
             // extras
-            $extraTags = ['alias','label','description','picklist','validation','client_info'];
+            $extraTags =
+                ['alias', 'label', 'description', 'picklist', 'validation', 'client_info', 'function', 'db_function'];
             $extraNew = array_only($field, $extraTags);
-            if ($oldField){
+            if ($oldField) {
                 $extraOld = array_only($oldField->toArray(), $extraTags);
                 $extraNew = array_diff_assoc($extraNew, $extraOld);
             }
@@ -901,7 +907,6 @@ abstract class Schema
 //                    $temp['picklist'] = $picklist;
 //                }
 //            }
-
 
             // if same as old, don't bother
             if (!empty($oldField)) {
@@ -943,6 +948,15 @@ abstract class Schema
                 case 'pk':
                     $pkExtras = $this->getPrimaryKeyCommands($table_name, $name);
                     $extraCommands = array_merge($extraCommands, $pkExtras);
+                    break;
+                case 'function':
+                    $extraNew['extra_type'] = 'function';
+                    $extraNew['db_function'] = (isset($field['db_function'])) ? $field['db_function'] : null;
+                    $extraNew['function'] = (isset($field['function'])) ? $field['function'] : null;
+                    $extraNew['table'] = $table_name;
+                    $extraNew['field'] = $name;
+                    $labels[] = $extraNew;
+                    continue 2;
                     break;
             }
 
@@ -1509,19 +1523,29 @@ abstract class Schema
     public function parseFieldForSelect($field_info, $as_quoted_string = false, $out_as = null)
     {
         switch ($field_info->dbType) {
+            case null:
+                $function = 'NULL';
+                if (!empty($field_info->db_function) &&
+                    isset($field_info->db_function['select'], $field_info->db_function['select']['function'])
+                ) {
+                    if (isset($field_info->db_function['select']['function'])) {
+                        $function = $field_info->db_function['select']['function'];
+                    }
+                }
+
+                return $function . ' AS ' . $field_info->getName(true);
             default :
                 $out = ($as_quoted_string) ? $field_info->rawName : $field_info->name;
                 if (!empty($field_info->alias)) {
-                    if ($as_quoted_string){
+                    if ($as_quoted_string) {
                         $out .= ' AS ' . $this->quoteColumnName($field_info->alias);
                     } else {
                         $out .= ' AS ' . $field_info->alias;
                     }
                 }
-                break;
-        }
 
-        return $out;
+                return $out;
+        }
     }
 
     /**
@@ -1531,8 +1555,25 @@ abstract class Schema
      */
     public function parseFieldForBinding(ColumnSchema $field_info)
     {
-        $pdoType = ($field_info->allowNull) ? null : $field_info->pdoType;
-        $phpType = (is_null($pdoType)) ? $field_info->phpType : null;
+        switch ($field_info->dbType) {
+            case null:
+                $type = 'string';
+                if (!empty($field_info->db_function) &&
+                    isset($field_info->db_function['select'], $field_info->db_function['select']['type'])
+                ) {
+                    if (isset($field_info->db_function['select']['type'])) {
+                        $type = $field_info->db_function['select']['type'];
+                    }
+                }
+
+                $pdoType = $field_info->extractPdoType($type);
+                $phpType = (is_null($pdoType)) ? $type : null;
+                break;
+            default:
+                $pdoType = ($field_info->allowNull) ? null : $field_info->pdoType;
+                $phpType = (is_null($pdoType)) ? $field_info->phpType : null;
+                break;
+        }
 
         return ['name' => $field_info->getName(true), 'pdo_type' => $pdoType, 'php_type' => $phpType];
     }

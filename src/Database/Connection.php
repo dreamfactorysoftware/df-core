@@ -385,9 +385,9 @@ abstract class Connection
                 $this->initConnection($this->pdo);
                 $this->active = true;
             } catch (\PDOException $e) {
+                \Log::error($e->errorInfo);
                 throw new \Exception(
-                    'Connection failed to open the DB connection: ' . $e->getMessage(), (int)$e->getCode(),
-                    $e->errorInfo
+                    'Connection failed to open the DB connection: ' . $e->getMessage(), (int)$e->getCode()
                 );
             }
         }

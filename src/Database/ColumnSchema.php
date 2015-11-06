@@ -27,6 +27,7 @@ class ColumnSchema
     const TYPE_BINARY    = 'binary';
     const TYPE_BOOLEAN   = 'boolean';
     const TYPE_MONEY     = 'money';
+    const TYPE_FUNCTION  = 'function';
 
     /**
      * @var string name of this column (without quotes).
@@ -124,13 +125,21 @@ class ColumnSchema
      */
     public $fixedLength = false;
     /**
-     * @var string the allowed picklist values for this column.
+     * @var array the allowed picklist values for this column.
      */
     public $picklist;
     /**
-     * @var string Additional validations for this column.
+     * @var array Additional validations for this column.
      */
     public $validation;
+    /**
+     * @var array DB function to use for this column.
+     */
+    public $db_function;
+    /**
+     * @var array Server-side function to compute for this column.
+     */
+    public $function;
     /**
      * @var string Optional description of this column.
      */
@@ -469,7 +478,9 @@ class ColumnSchema
             'ref_table'          => $this->refTable,
             'ref_fields'         => $this->refFields,
             'picklist'           => $this->picklist,
-            'validation'         => $this->validation
+            'validation'         => $this->validation,
+            'db_function'        => $this->db_function,
+            'function'           => $this->function,
         ];
 
         if (!$use_alias) {

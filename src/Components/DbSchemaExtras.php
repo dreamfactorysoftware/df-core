@@ -68,10 +68,10 @@ trait DbSchemaExtras
         }
 
         return DbFieldExtras::whereServiceId($this->getServiceId())
-                ->whereTable($table_name)
-                ->whereIn('field', $values)
-                ->get()
-                ->toArray();
+            ->whereTable($table_name)
+            ->whereIn('field', $values)
+            ->get()
+            ->toArray();
     }
 
     /**
@@ -113,7 +113,17 @@ trait DbSchemaExtras
                     'table'      => $table,
                     'field'      => $field
                 ], array_only($extra,
-                    ['alias', 'label', 'extra_type', 'description', 'picklist', 'validation', 'client_info']));
+                    [
+                        'alias',
+                        'label',
+                        'extra_type',
+                        'description',
+                        'picklist',
+                        'validation',
+                        'client_info',
+                        'function',
+                        'db_function',
+                    ]));
             }
         }
     }

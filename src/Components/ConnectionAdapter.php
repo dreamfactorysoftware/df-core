@@ -37,7 +37,9 @@ class ConnectionAdapter
 
             $configKeys = [];
             foreach ($connections as $name => $connectionConfig) {
-                if ($driver === $name || $driver === $connectionConfig['driver']) {
+                if ($driver === $name ||
+                    $driver === $connectionConfig['driver'] ||
+                    ($driver === 'dblib' && $name === 'sqlsrv')) {
                     $configKeys = array_keys($connectionConfig);
                 }
             }
@@ -62,6 +64,7 @@ class ConnectionAdapter
                     $dsn = static::getPgSqlDsn($config);
                     break;
                 case 'sqlsrv':
+                case 'dblib':
                     $dsn = static::getSqlSrvDsn($config);
                     break;
                 default:

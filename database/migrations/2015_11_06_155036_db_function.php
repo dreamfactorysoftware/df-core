@@ -13,7 +13,6 @@ class DbFunction extends Migration
     public function up()
     {
         Schema::table('db_field_extras', function (Blueprint $table) {
-            $table->text('function')->nullable();
             $table->text('db_function')->nullable();
         });
     }
@@ -27,7 +26,6 @@ class DbFunction extends Migration
     {
         Schema::table('db_field_extras', function (Blueprint $table) {
             $table->dropColumn('db_function');
-            $table->dropColumn('function');
         });
     }
 }

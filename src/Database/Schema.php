@@ -230,7 +230,7 @@ abstract class Schema
                 if (!empty($columnName = (isset($extra['field'])) ? $extra['field'] : null)) {
                     if (null !== $column = $table->getColumn($columnName)) {
                         $column->fill($extra);
-                    } elseif ('function' === (isset($extra['extra_type']) ? $extra['extra_type'] : null)) {
+                    } elseif (ColumnSchema::TYPE_VIRTUAL === (isset($extra['extra_type']) ? $extra['extra_type'] : null)) {
                         $extra['name'] = $extra['field'];
                         $extra['allow_null'] = true; // make sure it is not required
                         $column = new ColumnSchema($extra);
@@ -892,7 +892,7 @@ abstract class Schema
 
             // extras
             $extraTags =
-                ['alias', 'label', 'description', 'picklist', 'validation', 'client_info', 'function', 'db_function'];
+                ['alias', 'label', 'description', 'picklist', 'validation', 'client_info', 'db_function'];
             $extraNew = array_only($field, $extraTags);
             if ($oldField) {
                 $extraOld = array_only($oldField->toArray(), $extraTags);
@@ -929,30 +929,20 @@ abstract class Schema
             $type = (isset($field['type'])) ? strtolower($field['type']) : '';
 
             switch ($type) {
-                case 'user_id':
-                    $extraNew['extra_type'] = 'user_id';
+                case ColumnSchema::TYPE_USER_ID:
+                case ColumnSchema::TYPE_USER_ID_ON_CREATE:
+                case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
+                case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
+                case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
+                    $extraNew['extra_type'] = $type;
                     break;
-                case 'user_id_on_create':
-                    $extraNew['extra_type'] = 'user_id_on_create';
-                    break;
-                case 'user_id_on_update':
-                    $extraNew['extra_type'] = 'user_id_on_update';
-                    break;
-                case 'timestamp_on_create':
-                    $extraNew['extra_type'] = 'timestamp_on_create';
-                    break;
-                case 'timestamp_on_update':
-                    $extraNew['extra_type'] = 'timestamp_on_update';
-                    break;
-                case 'id':
+                case ColumnSchema::TYPE_ID:
                 case 'pk':
                     $pkExtras = $this->getPrimaryKeyCommands($table_name, $name);
                     $extraCommands = array_merge($extraCommands, $pkExtras);
                     break;
-                case 'function':
-                    $extraNew['extra_type'] = 'function';
-                    $extraNew['db_function'] = (isset($field['db_function'])) ? $field['db_function'] : null;
-                    $extraNew['function'] = (isset($field['function'])) ? $field['function'] : null;
+                case ColumnSchema::TYPE_VIRTUAL:
+                    $extraNew['extra_type'] = $type;
                     $extraNew['table'] = $table_name;
                     $extraNew['field'] = $name;
                     $labels[] = $extraNew;
@@ -961,7 +951,7 @@ abstract class Schema
             }
 
             $isForeignKey = (isset($field['is_foreign_key'])) ? boolval($field['is_foreign_key']) : false;
-            if (('reference' == $type) || $isForeignKey) {
+            if ((ColumnSchema::TYPE_REF == $type) || $isForeignKey) {
                 // special case for references because the table referenced may not be created yet
                 $refTable = (isset($field['ref_table'])) ? $field['ref_table'] : null;
                 if (empty($refTable)) {
@@ -1524,14 +1514,7 @@ abstract class Schema
     {
         switch ($field_info->dbType) {
             case null:
-                $function = 'NULL';
-                if (!empty($field_info->db_function) &&
-                    isset($field_info->db_function['select'], $field_info->db_function['select']['function'])
-                ) {
-                    if (isset($field_info->db_function['select']['function'])) {
-                        $function = $field_info->db_function['select']['function'];
-                    }
-                }
+                $function = $field_info->getDbFunction();
 
                 return $function . ' AS ' . $field_info->getName(true);
             default :
@@ -1557,15 +1540,7 @@ abstract class Schema
     {
         switch ($field_info->dbType) {
             case null:
-                $type = 'string';
-                if (!empty($field_info->db_function) &&
-                    isset($field_info->db_function['select'], $field_info->db_function['select']['type'])
-                ) {
-                    if (isset($field_info->db_function['select']['type'])) {
-                        $type = $field_info->db_function['select']['type'];
-                    }
-                }
-
+                $type = $field_info->getDbFunctionType();
                 $pdoType = $field_info->extractPdoType($type);
                 $phpType = (is_null($pdoType)) ? $type : null;
                 break;

@@ -1,10 +1,10 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use DreamFactory\Core\Utility\DbUtilities;
 use Log;
 use DreamFactory\Core\Models\DbFieldExtras;
 use DreamFactory\Core\Models\DbTableExtras;
+use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
@@ -121,7 +121,6 @@ trait DbSchemaExtras
                         'picklist',
                         'validation',
                         'client_info',
-                        'function',
                         'db_function',
                     ]));
             }

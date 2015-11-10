@@ -2021,15 +2021,15 @@ abstract class BaseDbTableResource extends BaseDbResource
             foreach ($fields_info as $fieldInfo) {
                 // add or override for specific fields
                 switch ($fieldInfo->type) {
-                    case 'timestamp_on_create':
+                    case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
                         if (!$for_update) {
                             $parsed[$fieldInfo->name] = $this->getCurrentTimestamp();
                         }
                         break;
-                    case 'timestamp_on_update':
+                    case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
                         $parsed[$fieldInfo->name] = $this->getCurrentTimestamp();
                         break;
-                    case 'user_id_on_create':
+                    case ColumnSchema::TYPE_USER_ID_ON_CREATE:
                         if (!$for_update) {
                             $userId = Session::getCurrentUserId();
                             if (isset($userId)) {
@@ -2037,7 +2037,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                             }
                         }
                         break;
-                    case 'user_id_on_update':
+                    case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
                         $userId = Session::getCurrentUserId();
                         if (isset($userId)) {
                             $parsed[$fieldInfo->name] = $userId;

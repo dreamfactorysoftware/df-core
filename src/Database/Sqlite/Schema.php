@@ -17,7 +17,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
         switch ($type) {
             // some types need massaging, some need other required properties
             case 'pk':
-            case 'id':
+            case ColumnSchema::TYPE_ID:
                 $info['type'] = 'integer';
                 $info['allow_null'] = false;
                 $info['auto_increment'] = true;
@@ -25,14 +25,14 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 break;
 
             case 'fk':
-            case 'reference':
+            case ColumnSchema::TYPE_REF:
                 $info['type'] = 'integer';
                 $info['is_foreign_key'] = true;
                 // check foreign tables
                 break;
 
-            case 'timestamp_on_create':
-            case 'timestamp_on_update':
+            case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
+            case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
                 $info['type'] = 'timestamp';
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
@@ -41,13 +41,13 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'user_id':
-            case 'user_id_on_create':
-            case 'user_id_on_update':
+            case ColumnSchema::TYPE_USER_ID:
+            case ColumnSchema::TYPE_USER_ID_ON_CREATE:
+            case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
                 $info['type'] = 'integer';
                 break;
 
-            case 'boolean':
+            case ColumnSchema::TYPE_BOOLEAN:
                 $info['type'] = 'tinyint';
                 $info['type_extras'] = '(1)';
                 $default = (isset($info['default'])) ? $info['default'] : null;
@@ -57,7 +57,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'money':
+            case ColumnSchema::TYPE_MONEY:
                 $info['type'] = 'decimal';
                 $info['type_extras'] = '(19,4)';
                 $default = (isset($info['default'])) ? $info['default'] : null;
@@ -66,7 +66,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'string':
+            case ColumnSchema::TYPE_STRING:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $national =
@@ -81,7 +81,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'binary':
+            case ColumnSchema::TYPE_BINARY:
                 $info['type'] = 'blob';
                 break;
         }
@@ -223,7 +223,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
         }
 
         $isForeignKey = (isset($info['is_foreign_key'])) ? boolval($info['is_foreign_key']) : false;
-        if (('reference' == $type) || $isForeignKey) {
+        if ((ColumnSchema::TYPE_REF == $type) || $isForeignKey) {
             // special case for references because the table referenced may not be created yet
             $refTable = (isset($info['ref_table'])) ? $info['ref_table'] : null;
             if (empty($refTable)) {
@@ -432,8 +432,8 @@ class Schema extends \DreamFactory\Core\Database\Schema
                     $column->isForeignKey = true;
                     $column->refTable = $key['table'];
                     $column->refFields = $key['to'];
-                    if ('integer' === $column->type) {
-                        $column->type = 'reference';
+                    if (ColumnSchema::TYPE_INTEGER === $column->type) {
+                        $column->type = ColumnSchema::TYPE_REF;
                     }
                     $table->foreignKeys[$key['from']] = [$key['table'], $key['to']];
                     // Add it to our foreign references as well

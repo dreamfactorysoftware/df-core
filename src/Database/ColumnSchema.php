@@ -11,23 +11,28 @@ class ColumnSchema
     /**
      * The followings are the supported abstract column data types.
      */
-    const TYPE_ID        = 'id';
-    const TYPE_REF       = 'reference';
-    const TYPE_STRING    = 'string';
-    const TYPE_TEXT      = 'text';
-    const TYPE_INTEGER   = 'integer';
-    const TYPE_BIGINT    = 'bigint';
-    const TYPE_FLOAT     = 'float';
-    const TYPE_DOUBLE    = 'double';
-    const TYPE_DECIMAL   = 'decimal';
-    const TYPE_DATETIME  = 'datetime';
-    const TYPE_TIMESTAMP = 'timestamp';
-    const TYPE_TIME      = 'time';
-    const TYPE_DATE      = 'date';
-    const TYPE_BINARY    = 'binary';
-    const TYPE_BOOLEAN   = 'boolean';
-    const TYPE_MONEY     = 'money';
-    const TYPE_FUNCTION  = 'function';
+    const TYPE_ID                  = 'id';
+    const TYPE_REF                 = 'reference';
+    const TYPE_USER_ID             = 'user_id';
+    const TYPE_USER_ID_ON_CREATE   = 'user_id_on_create';
+    const TYPE_USER_ID_ON_UPDATE   = 'user_id_on_update';
+    const TYPE_STRING              = 'string';
+    const TYPE_TEXT                = 'text';
+    const TYPE_INTEGER             = 'integer';
+    const TYPE_BIGINT              = 'bigint';
+    const TYPE_FLOAT               = 'float';
+    const TYPE_DOUBLE              = 'double';
+    const TYPE_DECIMAL             = 'decimal';
+    const TYPE_DATETIME            = 'datetime';
+    const TYPE_TIMESTAMP           = 'timestamp';
+    const TYPE_TIMESTAMP_ON_CREATE = 'timestamp_on_create';
+    const TYPE_TIMESTAMP_ON_UPDATE = 'timestamp_on_update';
+    const TYPE_TIME                = 'time';
+    const TYPE_DATE                = 'date';
+    const TYPE_BINARY              = 'binary';
+    const TYPE_BOOLEAN             = 'boolean';
+    const TYPE_MONEY               = 'money';
+    const TYPE_VIRTUAL             = 'virtual';
 
     /**
      * @var string name of this column (without quotes).
@@ -454,6 +459,35 @@ class ColumnSchema
         return (empty($this->label)) ? Inflector::camelize($this->getName(true), '_', true) : $this->label;
     }
 
+    public function getDbFunction()
+    {
+        $function = 'NULL';
+        if (!empty($this->db_function) && isset($this->db_function['function'])) {
+            $function = $this->db_function['function'];
+        }
+
+        return $function;
+    }
+
+    public function getDbFunctionType()
+    {
+        $type = 'string';
+        if (!empty($this->db_function) && isset($this->db_function['type'])) {
+            $type = $this->db_function['type'];
+        }
+
+        return $type;
+    }
+
+    public function isAggregate()
+    {
+        if (!empty($this->db_function) && isset($this->db_function['aggregate'])) {
+            return filter_var($this->db_function['aggregate'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return false;
+    }
+
     public function toArray($use_alias = false)
     {
         $out = [
@@ -480,7 +514,6 @@ class ColumnSchema
             'picklist'           => $this->picklist,
             'validation'         => $this->validation,
             'db_function'        => $this->db_function,
-            'function'           => $this->function,
         ];
 
         if (!$use_alias) {

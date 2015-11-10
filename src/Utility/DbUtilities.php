@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Utility;
 
 use Config;
+use DreamFactory\Core\Database\ColumnSchema;
 use DreamFactory\Library\Utility\Scalar;
 use Log;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -78,39 +79,39 @@ class DbUtilities
     public static function determinePhpConversionType($type)
     {
         switch ($type) {
-            case 'boolean':
+            case ColumnSchema::TYPE_BOOLEAN:
                 return 'bool';
 
-            case 'integer':
-            case 'id':
-            case 'reference':
-            case 'user_id':
-            case 'user_id_on_create':
-            case 'user_id_on_update':
+            case ColumnSchema::TYPE_INTEGER:
+            case ColumnSchema::TYPE_ID:
+            case ColumnSchema::TYPE_REF:
+            case ColumnSchema::TYPE_USER_ID:
+            case ColumnSchema::TYPE_USER_ID_ON_CREATE:
+            case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
                 return 'int';
 
-            case 'decimal':
-            case 'float':
-            case 'double':
+            case ColumnSchema::TYPE_DECIMAL:
+            case ColumnSchema::TYPE_DOUBLE:
+            case ColumnSchema::TYPE_FLOAT:
                 return 'float';
 
-            case 'string':
-            case 'text':
+            case ColumnSchema::TYPE_STRING:
+            case ColumnSchema::TYPE_TEXT:
                 return 'string';
 
             // special checks
-            case 'date':
+            case ColumnSchema::TYPE_DATE:
                 return 'date';
 
-            case 'time':
+            case ColumnSchema::TYPE_TIME:
                 return 'time';
 
-            case 'datetime':
+            case ColumnSchema::TYPE_DATETIME:
                 return 'datetime';
 
-            case 'timestamp':
-            case 'timestamp_on_create':
-            case 'timestamp_on_update':
+            case ColumnSchema::TYPE_TIMESTAMP:
+            case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
+            case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
                 return 'timestamp';
         }
 

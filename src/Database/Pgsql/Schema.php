@@ -30,7 +30,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
         switch ($type) {
             // some types need massaging, some need other required properties
             case 'pk':
-            case 'id':
+            case ColumnSchema::TYPE_ID:
                 $info['type'] = 'serial';
                 $info['allow_null'] = false;
                 $info['auto_increment'] = true;
@@ -38,7 +38,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 break;
 
             case 'fk':
-            case 'reference':
+            case ColumnSchema::TYPE_REF:
                 $info['type'] = 'integer';
                 $info['is_foreign_key'] = true;
                 // check foreign tables
@@ -48,22 +48,22 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 $info['type'] = 'timestamp';
                 break;
 
-            case 'timestamp_on_create':
-            case 'timestamp_on_update':
+            case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
+            case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
                 $info['type'] = 'timestamp';
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
                     $default = 'CURRENT_TIMESTAMP';
-                    if ('timestamp_on_update' === $type) {
+                    if (ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE === $type) {
                         $default .= ' ON UPDATE CURRENT_TIMESTAMP';
                     }
                     $info['default'] = $default;
                 }
                 break;
 
-            case 'user_id':
-            case 'user_id_on_create':
-            case 'user_id_on_update':
+            case ColumnSchema::TYPE_USER_ID:
+            case ColumnSchema::TYPE_USER_ID_ON_CREATE:
+            case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
                 $info['type'] = 'integer';
                 break;
 
@@ -79,7 +79,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 $info['type'] = 'double precision';
                 break;
 
-            case 'string':
+            case ColumnSchema::TYPE_STRING:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $national =
@@ -94,7 +94,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'binary':
+            case ColumnSchema::TYPE_BINARY:
                 $info['type'] = 'bytea';
                 break;
         }
@@ -478,8 +478,8 @@ EOD;
                     $table->columns[$cn]->isForeignKey = true;
                     $table->columns[$cn]->refTable = $name;
                     $table->columns[$cn]->refFields = $rcn;
-                    if ('integer' === $table->columns[$cn]->type) {
-                        $table->columns[$cn]->type = 'reference';
+                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cn]->type) {
+                        $table->columns[$cn]->type = ColumnSchema::TYPE_REF;
                     }
                 }
 
@@ -550,8 +550,8 @@ EOD;
             $name = $row['field_name'];
             if (isset($table->columns[$name])) {
                 $table->columns[$name]->isPrimaryKey = true;
-                if (('integer' === $table->columns[$name]->type) && $table->columns[$name]->autoIncrement) {
-                    $table->columns[$name]->type = 'id';
+                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$name]->type) && $table->columns[$name]->autoIncrement) {
+                    $table->columns[$name]->type = ColumnSchema::TYPE_ID;
                 }
                 if ($table->primaryKey === null) {
                     $table->primaryKey = $name;
@@ -922,7 +922,7 @@ MYSQL;
     public function parseValueForSet($value, $field_info)
     {
         switch ($field_info->type) {
-            case 'boolean':
+            case ColumnSchema::TYPE_BOOLEAN:
                 $value = (filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 'TRUE' : 'FALSE');
                 break;
         }

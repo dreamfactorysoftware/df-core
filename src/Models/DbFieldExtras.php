@@ -16,7 +16,6 @@ namespace DreamFactory\Core\Models;
  * @property string  $extra_type
  * @property string  $client_info
  * @property array   $db_function
- * @property array   $function
  * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereId($value)
  * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereServiceId($value)
  * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereTable($value)
@@ -38,14 +37,12 @@ class DbFieldExtras extends BaseSystemModel
         'extra_type',
         'client_info',
         'db_function',
-        'function',
     ];
 
     protected $casts = [
         'picklist'    => 'array',
         'validation'  => 'array',
         'db_function' => 'array',
-        'function'    => 'array',
         'id'          => 'integer',
         'service_id'  => 'integer'
     ];

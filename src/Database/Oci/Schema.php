@@ -28,7 +28,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
         switch ($type) {
             // some types need massaging, some need other required properties
             case 'pk':
-            case 'id':
+            case ColumnSchema::TYPE_ID:
                 $info['type'] = 'number';
                 $info['type_extras'] = '(10)';
                 $info['allow_null'] = false;
@@ -37,34 +37,34 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 break;
 
             case 'fk':
-            case 'reference':
+            case ColumnSchema::TYPE_REF:
                 $info['type'] = 'number';
                 $info['type_extras'] = '(10)';
                 $info['is_foreign_key'] = true;
                 // check foreign tables
                 break;
 
-            case 'timestamp_on_create':
-            case 'timestamp_on_update':
+            case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
+            case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
                 $info['type'] = 'timestamp';
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
                     $default = 'CURRENT_TIMESTAMP';
-                    if ('timestamp_on_update' === $type) {
+                    if (ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE === $type) {
                         $default .= ' ON UPDATE CURRENT_TIMESTAMP';
                     }
                     $info['default'] = $default;
                 }
                 break;
 
-            case 'user_id':
-            case 'user_id_on_create':
-            case 'user_id_on_update':
+            case ColumnSchema::TYPE_USER_ID:
+            case ColumnSchema::TYPE_USER_ID_ON_CREATE:
+            case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
                 $info['type'] = 'number';
                 $info['type_extras'] = '(10)';
                 break;
 
-            case 'integer':
+            case ColumnSchema::TYPE_INTEGER:
                 $info['type'] = 'number';
                 $info['type_extras'] = '(10)';
                 break;
@@ -82,7 +82,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 $info['type'] = 'TIMESTAMP';
                 break;
 
-            case 'boolean':
+            case ColumnSchema::TYPE_BOOLEAN:
                 $info['type'] = 'number';
                 $info['type_extras'] = '(1)';
                 $default = (isset($info['default'])) ? $info['default'] : null;
@@ -92,7 +92,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'money':
+            case ColumnSchema::TYPE_MONEY:
                 $info['type'] = 'number';
                 $info['type_extras'] = '(19,4)';
                 $default = (isset($info['default'])) ? $info['default'] : null;
@@ -101,7 +101,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'string':
+            case ColumnSchema::TYPE_STRING:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $national =
@@ -116,7 +116,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'text':
+            case ColumnSchema::TYPE_TEXT:
                 $national =
                     (isset($info['supports_multibyte'])) ? filter_var($info['supports_multibyte'],
                         FILTER_VALIDATE_BOOLEAN) : false;
@@ -127,7 +127,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'binary':
+            case ColumnSchema::TYPE_BINARY:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $info['type'] = ($fixed) ? 'blob' : 'varbinary';
@@ -500,8 +500,8 @@ EOD;
                     $table->columns[$cn]->isForeignKey = true;
                     $table->columns[$cn]->refTable = $name;
                     $table->columns[$cn]->refFields = $rcn;
-                    if ('integer' === $table->columns[$cn]->type) {
-                        $table->columns[$cn]->type = 'reference';
+                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cn]->type) {
+                        $table->columns[$cn]->type = ColumnSchema::TYPE_REF;
                     }
                 }
 

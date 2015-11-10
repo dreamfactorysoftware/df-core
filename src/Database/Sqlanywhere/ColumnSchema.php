@@ -20,10 +20,10 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
 
         switch ($simpleType) {
             case 'long varchar':
-                $this->type = 'text';
+                $this->type = static::TYPE_TEXT;
                 break;
             case 'long nvarchar':
-                $this->type = 'text';
+                $this->type = static::TYPE_TEXT;
                 $this->supportsMultibyte = true;
                 break;
         }
@@ -42,7 +42,7 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
             $this->autoIncrement = true;
         } elseif ($defaultValue == '(NULL)') {
             $this->defaultValue = null;
-        } elseif ($this->type === 'boolean') {
+        } elseif ($this->type === static::TYPE_BOOLEAN) {
             if ('1' === $defaultValue) {
                 $this->defaultValue = true;
             } elseif ('0' === $defaultValue) {
@@ -50,14 +50,14 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
             } else {
                 $this->defaultValue = null;
             }
-        } elseif ($this->type === 'timestamp') {
+        } elseif ($this->type === static::TYPE_TIMESTAMP) {
             $this->defaultValue = null;
             if ($defaultValue === 'current timestamp') {
                 $this->defaultValue = ['expression' => 'CURRENT TIMESTAMP'];
-                $this->type = 'timestamp_on_create';
+                $this->type = static::TYPE_TIMESTAMP_ON_CREATE;
             } elseif ($defaultValue === 'timestamp') {
                 $this->defaultValue = ['expression' => 'TIMESTAMP'];
-                $this->type = 'timestamp_on_update';
+                $this->type = static::TYPE_TIMESTAMP_ON_UPDATE;
             }
         } else {
             parent::extractDefault(str_replace(['(', ')', "'"], '', $defaultValue));

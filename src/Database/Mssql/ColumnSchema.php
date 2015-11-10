@@ -16,7 +16,7 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
         parent::extractType($dbType);
 
         if ((false !== strpos($dbType, 'varchar')) && (null === $this->size)) {
-            $this->type = 'text';
+            $this->type = static::TYPE_TEXT;
         }
     }
 
@@ -30,7 +30,7 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
     {
         if ($defaultValue == '(NULL)') {
             $this->defaultValue = null;
-        } elseif ($this->type === 'boolean') {
+        } elseif ($this->type === static::TYPE_BOOLEAN) {
             if ('((1))' === $defaultValue) {
                 $this->defaultValue = true;
             } elseif ('((0))' === $defaultValue) {
@@ -38,7 +38,7 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
             } else {
                 $this->defaultValue = null;
             }
-        } elseif ($this->type === 'timestamp') {
+        } elseif ($this->type === static::TYPE_TIMESTAMP) {
             $this->defaultValue = null;
         } else {
             parent::extractDefault(str_replace(array('(', ')', "'"), '', $defaultValue));

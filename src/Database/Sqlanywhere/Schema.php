@@ -27,7 +27,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
         switch ($type) {
             // some types need massaging, some need other required properties
             case 'pk':
-            case 'id':
+            case ColumnSchema::TYPE_ID:
                 $info['type'] = 'int';
                 $info['allow_null'] = false;
                 $info['auto_increment'] = true;
@@ -35,33 +35,33 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 break;
 
             case 'fk':
-            case 'reference':
+            case ColumnSchema::TYPE_REF:
                 $info['type'] = 'int';
                 $info['is_foreign_key'] = true;
                 // check foreign tables
                 break;
 
-            case 'timestamp_on_create':
+            case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
                 $info['type'] = 'timestamp';
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
                     $info['default'] = ['expression' => 'CURRENT TIMESTAMP'];
                 }
                 break;
-            case 'timestamp_on_update':
+            case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
                 $info['type'] = 'timestamp';
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
                     $info['default'] = ['expression' => 'TIMESTAMP'];
                 }
                 break;
-            case 'user_id':
-            case 'user_id_on_create':
-            case 'user_id_on_update':
+            case ColumnSchema::TYPE_USER_ID:
+            case ColumnSchema::TYPE_USER_ID_ON_CREATE:
+            case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
                 $info['type'] = 'int';
                 break;
 
-            case 'boolean':
+            case ColumnSchema::TYPE_BOOLEAN:
                 $info['type'] = 'bit';
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (isset($default)) {
@@ -70,16 +70,16 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'integer':
+            case ColumnSchema::TYPE_INTEGER:
                 $info['type'] = 'int';
                 break;
 
-            case 'double':
+            case ColumnSchema::TYPE_DOUBLE:
                 $info['type'] = 'float';
                 $info['type_extras'] = '(53)';
                 break;
 
-            case 'text':
+            case ColumnSchema::TYPE_TEXT:
                 $info['type'] = 'long varchar';
                 break;
             case 'ntext':
@@ -90,7 +90,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 $info['type_extras'] = '(max)';
                 break;
 
-            case 'string':
+            case ColumnSchema::TYPE_STRING:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $national =
@@ -105,7 +105,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'binary':
+            case ColumnSchema::TYPE_BINARY:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $info['type'] = ($fixed) ? 'binary' : 'varbinary';
@@ -448,10 +448,10 @@ EOD;
                             $key = strtolower($primary);
                             if (isset($table->columns[$key])) {
                                 $table->columns[$key]->isPrimaryKey = true;
-                                if (('integer' === $table->columns[$key]->type) &&
+                                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$key]->type) &&
                                     $table->columns[$key]->autoIncrement
                                 ) {
-                                    $table->columns[$key]->type = 'id';
+                                    $table->columns[$key]->type = ColumnSchema::TYPE_ID;
                                 }
                             }
                             $table->primaryKey = $primary;
@@ -517,8 +517,8 @@ EOD;
                     $table->columns[$cnk]->isForeignKey = true;
                     $table->columns[$cnk]->refTable = $name;
                     $table->columns[$cnk]->refFields = $rcn;
-                    if ('integer' === $table->columns[$cnk]->type) {
-                        $table->columns[$cnk]->type = 'reference';
+                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) {
+                        $table->columns[$cnk]->type = ColumnSchema::TYPE_REF;
                     }
                 }
 
@@ -986,7 +986,7 @@ SQL;
     public function parseValueForSet($value, $field_info)
     {
         switch ($field_info->type) {
-            case 'boolean':
+            case ColumnSchema::TYPE_BOOLEAN:
                 $value = (filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 1 : 0);
                 break;
         }

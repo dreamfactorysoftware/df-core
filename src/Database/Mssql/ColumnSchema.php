@@ -70,4 +70,21 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
             return parent::typecast($value);
         }
     }
+
+    public function parseFieldForSelect($as_quoted_string = false)
+    {
+        $field = ($as_quoted_string) ? $this->quoteColumnName($this->name) : $this->name;
+        $alias = ($as_quoted_string) ? $this->quoteColumnName($this->getName(true)) : $this->getName(true);
+        switch ($this->dbType) {
+            case 'datetime':
+            case 'datetimeoffset':
+                return "(CONVERT(nvarchar(30), $field, 127)) AS $alias";
+            case 'geometry':
+            case 'geography':
+            case 'hierarchyid':
+                return "($field.ToString()) AS $alias";
+            default :
+                return parent::parseFieldForSelect($as_quoted_string);
+        }
+    }
 }

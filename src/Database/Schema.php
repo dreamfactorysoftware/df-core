@@ -1504,56 +1504,6 @@ abstract class Schema
     }
 
     /**
-     * @param ColumnSchema $field_info
-     * @param bool         $as_quoted_string
-     * @param string       $out_as
-     *
-     * @return string
-     */
-    public function parseFieldForSelect($field_info, $as_quoted_string = false, $out_as = null)
-    {
-        switch ($field_info->dbType) {
-            case null:
-                $function = $field_info->getDbFunction();
-
-                return $function . ' AS ' . $field_info->getName(true);
-            default :
-                $out = ($as_quoted_string) ? $field_info->rawName : $field_info->name;
-                if (!empty($field_info->alias)) {
-                    if ($as_quoted_string) {
-                        $out .= ' AS ' . $this->quoteColumnName($field_info->alias);
-                    } else {
-                        $out .= ' AS ' . $field_info->alias;
-                    }
-                }
-
-                return $out;
-        }
-    }
-
-    /**
-     * @param ColumnSchema $field_info
-     *
-     * @return array
-     */
-    public function parseFieldForBinding(ColumnSchema $field_info)
-    {
-        switch ($field_info->dbType) {
-            case null:
-                $type = $field_info->getDbFunctionType();
-                $pdoType = $field_info->extractPdoType($type);
-                $phpType = (is_null($pdoType)) ? $type : null;
-                break;
-            default:
-                $pdoType = ($field_info->allowNull) ? null : $field_info->pdoType;
-                $phpType = (is_null($pdoType)) ? $field_info->phpType : null;
-                break;
-        }
-
-        return ['name' => $field_info->getName(true), 'pdo_type' => $pdoType, 'php_type' => $phpType];
-    }
-
-    /**
      * @param bool $update
      *
      * @return mixed

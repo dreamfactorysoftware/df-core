@@ -488,6 +488,54 @@ class ColumnSchema
         return false;
     }
 
+    public function parseFieldForSelect($as_quoted_string = false)
+    {
+        switch ($this->dbType) {
+            case null:
+                $function = $this->getDbFunction();
+
+                return $function . ' AS ' . $this->getName(true);
+            default :
+                $out = ($as_quoted_string) ? $this->rawName : $this->name;
+                if (!empty($this->alias)) {
+                    if ($as_quoted_string) {
+                        $out .= ' AS ' . $this->quoteColumnName($this->alias);
+                    } else {
+                        $out .= ' AS ' . $this->alias;
+                    }
+                }
+
+                return $out;
+        }
+    }
+
+    public function getPdoBinding()
+    {
+        switch ($this->dbType) {
+            case null:
+                $type = $this->getDbFunctionType();
+                $pdoType = $this->extractPdoType($type);
+                $phpType = (is_null($pdoType)) ? $type : null;
+                break;
+            default:
+                $pdoType = ($this->allowNull) ? null : $this->pdoType;
+                $phpType = (is_null($pdoType)) ? $this->phpType : null;
+                break;
+        }
+
+        return ['name' => $this->getName(true), 'pdo_type' => $pdoType, 'php_type' => $phpType];
+    }
+
+    public function parseFieldForFilter($as_quoted_string = false)
+    {
+        switch ($this->dbType) {
+            case null:
+                return $this->getDbFunction();
+        }
+
+        return ($as_quoted_string) ? $this->rawName : $this->name;
+    }
+
     public function toArray($use_alias = false)
     {
         $out = [

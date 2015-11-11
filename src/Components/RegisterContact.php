@@ -20,13 +20,6 @@ class RegisterContact
     public static function registerUser($user, array $payload = [])
     {
         $source = 'Product Install DreamFactory';
-        if (config('df.managed')) {
-            $serverName = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : '';
-            if (false === strpos($serverName, '.enterprise.dreamfactory.com')) {
-                return true; // bail, not tracking
-            }
-            $source = 'Website Free Hosted';
-        }
         $partner = env('DF_INSTALL', '');
         if (empty($partner) && (false !== stripos(env('DB_DATABASE', ''), 'bitnami'))) {
             $partner = 'Bitnami';

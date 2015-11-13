@@ -16,7 +16,7 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
         parent::extractType($dbType);
 
         if ((false !== strpos($dbType, 'varchar')) && (null === $this->size)) {
-            $this->type = 'text';
+            $this->type = static::TYPE_TEXT;
         }
     }
 
@@ -30,7 +30,7 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
     {
         if ($defaultValue == '(NULL)') {
             $this->defaultValue = null;
-        } elseif ($this->type === 'boolean') {
+        } elseif ($this->type === static::TYPE_BOOLEAN) {
             if ('((1))' === $defaultValue) {
                 $this->defaultValue = true;
             } elseif ('((0))' === $defaultValue) {
@@ -38,7 +38,7 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
             } else {
                 $this->defaultValue = null;
             }
-        } elseif ($this->type === 'timestamp') {
+        } elseif ($this->type === static::TYPE_TIMESTAMP) {
             $this->defaultValue = null;
         } else {
             parent::extractDefault(str_replace(array('(', ')', "'"), '', $defaultValue));
@@ -68,6 +68,23 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
             return $value ? 1 : 0;
         } else {
             return parent::typecast($value);
+        }
+    }
+
+    public function parseFieldForSelect($as_quoted_string = false)
+    {
+        $field = ($as_quoted_string) ? $this->quoteColumnName($this->name) : $this->name;
+        $alias = ($as_quoted_string) ? $this->quoteColumnName($this->getName(true)) : $this->getName(true);
+        switch ($this->dbType) {
+            case 'datetime':
+            case 'datetimeoffset':
+                return "(CONVERT(nvarchar(30), $field, 127)) AS $alias";
+            case 'geometry':
+            case 'geography':
+            case 'hierarchyid':
+                return "($field.ToString()) AS $alias";
+            default :
+                return parent::parseFieldForSelect($as_quoted_string);
         }
     }
 }

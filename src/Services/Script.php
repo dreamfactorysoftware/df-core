@@ -1,7 +1,10 @@
 <?php
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -53,7 +56,7 @@ class Script extends BaseRestService
         parent::__construct($settings);
 
         $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config'));
-        Session::replaceLookups( $config, true );
+        Session::replaceLookups($config, true);
 
         if (null === ($this->content = ArrayUtils::get($config, 'content', null, true))) {
             throw new \InvalidArgumentException('Script content can not be empty.');
@@ -95,17 +98,24 @@ class Script extends BaseRestService
             \Log::info("Script '{$this->name}' output:" . PHP_EOL . $output . PHP_EOL);
         }
 
-            //  Bail on errors...
-            if (is_array($result) && isset($result['script_result'], $result['script_result']['error'])) {
-                throw new InternalServerErrorException($result['script_result']['error']);
-            }
-            if (is_array($result) && isset($result['exception'])) {
-                throw new InternalServerErrorException(ArrayUtils::get($result, 'exception',''));
-            }
+        //  Bail on errors...
+        if (is_array($result) && isset($result['script_result'], $result['script_result']['error'])) {
+            throw new InternalServerErrorException($result['script_result']['error']);
+        }
+        if (is_array($result) && isset($result['exception'])) {
+            throw new InternalServerErrorException(ArrayUtils::get($result, 'exception', ''));
+        }
 
         //  The script runner should return an array
         if (is_array($result) && isset($result['__tag__'])) {
             $scriptResult = ArrayUtils::get($result, 'script_result', []);
+            if (!empty($response = ArrayUtils::get($result, 'response', []))) {
+                $content = ArrayUtils::get($response, 'content');
+                $status = ArrayUtils::get($response, 'status', ServiceResponseInterface::HTTP_OK);
+                $format = ArrayUtils::get($response, 'format', DataFormats::PHP_ARRAY);
+
+                return ResponseFactory::create($content, $format, $status);
+            }
 
             return $scriptResult;
         } else {

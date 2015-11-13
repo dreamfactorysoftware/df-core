@@ -1,10 +1,10 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use DreamFactory\Core\Utility\DbUtilities;
 use Log;
 use DreamFactory\Core\Models\DbFieldExtras;
 use DreamFactory\Core\Models\DbTableExtras;
+use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
@@ -68,10 +68,10 @@ trait DbSchemaExtras
         }
 
         return DbFieldExtras::whereServiceId($this->getServiceId())
-                ->whereTable($table_name)
-                ->whereIn('field', $values)
-                ->get()
-                ->toArray();
+            ->whereTable($table_name)
+            ->whereIn('field', $values)
+            ->get()
+            ->toArray();
     }
 
     /**
@@ -113,7 +113,16 @@ trait DbSchemaExtras
                     'table'      => $table,
                     'field'      => $field
                 ], array_only($extra,
-                    ['alias', 'label', 'extra_type', 'description', 'picklist', 'validation', 'client_info']));
+                    [
+                        'alias',
+                        'label',
+                        'extra_type',
+                        'description',
+                        'picklist',
+                        'validation',
+                        'client_info',
+                        'db_function',
+                    ]));
             }
         }
     }

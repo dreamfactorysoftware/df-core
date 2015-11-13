@@ -111,7 +111,7 @@ class CreateSystemTables extends Migration
                 $t->string('label', 80);
                 $t->string('description')->nullable();
                 $t->boolean('is_active')->default(0);
-                $t->string('type');
+                $t->string('type', 40);
                 $t->foreign('type')->references('name')->on('service_type')->onDelete('cascade');
                 $t->boolean('mutable')->default(1);
                 $t->boolean('deletable')->default(1);
@@ -158,7 +158,7 @@ class CreateSystemTables extends Migration
             function (Blueprint $t){
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('type');
+                $t->string('type', 40);
                 $t->foreign('type')->references('name')->on('script_type')->onDelete('cascade');
                 $t->text('content')->nullable();
                 $t->text('config')->nullable();
@@ -187,7 +187,7 @@ class CreateSystemTables extends Migration
             'event_script',
             function (Blueprint $t){
                 $t->string('name', 80)->primary();
-                $t->string('type');
+                $t->string('type', 40);
                 $t->foreign('type')->references('name')->on('script_type')->onDelete('cascade');
                 $t->boolean('is_active')->default(0);
                 $t->boolean('affects_process')->default(0);

@@ -228,6 +228,6 @@ JS;
 //                \Cache::get('scripting.nodejs.extensions', static::loadScriptingModule('lodash')) . ';' . $enrobedScript;
 //        }
 
-        return $this->commandPath . " -e '$enrobedScript'";
+        return $this->commandPath . ' -e ' . escapeshellarg($enrobedScript);
     }
 }

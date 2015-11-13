@@ -6,6 +6,7 @@ use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\EmailTemplate;
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 use DreamFactory\Core\Services\Email\BaseService as EmailService;
@@ -50,7 +51,7 @@ class Registrar implements RegistrarContract
     public function create(array $data)
     {
         $userService = Service::getCachedByName('user');
-        if (!$userService['config']['allow_open_registration']){
+        if (!$userService['config']['allow_open_registration']) {
             throw new ForbiddenException('Open Registration is not enabled.');
         }
 
@@ -106,15 +107,18 @@ class Registrar implements RegistrarContract
                 $code = \Hash::make($email);
                 $user->confirm_code = base64_encode($code);
                 $user->save();
-
-                $data = array_merge($emailTemplate->toArray(), [
-                    'to'            => $email,
-                    'subject'       => 'Welcome to DreamFactory',
-                    'firstName'     => $user->first_name,
-                    'contentHeader' => 'Confirm your DreamFactory account.',
-                    'link'          => url(\Config::get('df.confirm_register_url')) . '?code=' . $user->confirm_code,
-                    'code'          => $user->confirm_code,
-                    'instanceName'  => \Config::get('df.instance_name')
+                $templateData = $emailTemplate->toArray();
+                $data = array_merge($templateData, [
+                    'to'             => $email,
+                    'confirm_code'   => $user->confirm_code,
+                    'link'           => url(\Config::get('df.confirm_register_url')) . '?code=' . $user->confirm_code,
+                    'first_name'     => $user->first_name,
+                    'last_name'      => $user->last_name,
+                    'name'           => $user->name,
+                    'email'          => $user->email,
+                    'phone'          => $user->phone,
+                    'content_header' => ArrayUtils::get($templateData, 'subject', 'Confirm your DreamFactory account.'),
+                    'instance_name'  => \Config::get('df.instance_name')
                 ]);
             } catch (\Exception $e) {
                 throw new InternalServerErrorException("Error creating user confirmation.\n{$e->getMessage()}",

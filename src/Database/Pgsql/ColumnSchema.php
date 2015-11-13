@@ -15,11 +15,11 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
     {
         parent::extractType($dbType);
         if (strpos($dbType, '[') !== false || strpos($dbType, 'char') !== false || strpos($dbType, 'text') !== false) {
-            $this->type = 'string';
+            $this->type = static::TYPE_STRING;
         } elseif (preg_match('/(real|float|double)/', $dbType)) {
-            $this->type = 'double';
+            $this->type = static::TYPE_DOUBLE;
         } elseif (preg_match('/(integer|oid|serial|smallint)/', $dbType)) {
-            $this->type = 'integer';
+            $this->type = static::TYPE_INTEGER;
         }
     }
 

@@ -357,9 +357,9 @@ abstract class BaseDbTableResource extends BaseDbResource
                 $results = \Event::fire(
                     new ResourcePreProcess(
                         $this->getServiceName(),
-                        $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.' . $this->resourceArray[1],
+                        $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.{id}',
                         $this->request,
-                        $this->resourcePath
+                        $this->resourceArray[1]
                     )
                 );
                 break;
@@ -403,10 +403,10 @@ abstract class BaseDbTableResource extends BaseDbResource
             case 2:
                 $event = new ResourcePostProcess(
                     $this->getServiceName(),
-                    $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.' . $this->resourceArray[1],
+                    $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.{id}',
                     $this->request,
                     $this->response,
-                    $this->resourcePath
+                    $this->resourceArray[1]
                 );
                 /** @noinspection PhpUnusedLocalVariableInspection */
                 $results = \Event::fire($event);
@@ -2021,15 +2021,15 @@ abstract class BaseDbTableResource extends BaseDbResource
             foreach ($fields_info as $fieldInfo) {
                 // add or override for specific fields
                 switch ($fieldInfo->type) {
-                    case 'timestamp_on_create':
+                    case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
                         if (!$for_update) {
                             $parsed[$fieldInfo->name] = $this->getCurrentTimestamp();
                         }
                         break;
-                    case 'timestamp_on_update':
+                    case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
                         $parsed[$fieldInfo->name] = $this->getCurrentTimestamp();
                         break;
-                    case 'user_id_on_create':
+                    case ColumnSchema::TYPE_USER_ID_ON_CREATE:
                         if (!$for_update) {
                             $userId = Session::getCurrentUserId();
                             if (isset($userId)) {
@@ -2037,7 +2037,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                             }
                         }
                         break;
-                    case 'user_id_on_update':
+                    case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
                         $userId = Session::getCurrentUserId();
                         if (isset($userId)) {
                             $parsed[$fieldInfo->name] = $userId;
@@ -2045,6 +2045,13 @@ abstract class BaseDbTableResource extends BaseDbResource
                         break;
                     default:
                         $name = strtolower($fieldInfo->getName(true));
+                        // overwrite some undercover fields
+                        if ($fieldInfo->autoIncrement || 'virtual' === $fieldInfo->type) {
+                            // should I error this?
+                            // drop for now
+                            unset($record[$name]);
+                            continue;
+                        }
                         if (array_key_exists($name, $record)) {
                             $fieldVal = ArrayUtils::get($record, $name);
                             // due to conversion from XML to array, null or empty xml elements have the array value of an empty array
@@ -2052,13 +2059,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 $fieldVal = null;
                             }
 
-                            // overwrite some undercover fields
-                            if ($fieldInfo->autoIncrement) {
-                                // should I error this?
-                                // drop for now
-                                unset($record[$name]);
-                                continue;
-                            }
                             if (is_null($fieldVal) && !$fieldInfo->allowNull) {
                                 throw new BadRequestException("Field '$name' can not be NULL.");
                             }

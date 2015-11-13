@@ -171,9 +171,9 @@ class Admin extends BaseSystemResource
         $condition = ArrayUtils::get($criteria, 'condition');
 
         if (!empty($condition)) {
-            $condition .= ' AND is_sys_admin = "1" ';
+            $condition .= " AND is_sys_admin = '1' ";
         } else {
-            $condition = ' is_sys_admin = "1" ';
+            $condition = " is_sys_admin = '1'";
         }
 
         ArrayUtils::set($criteria, 'condition', $condition);

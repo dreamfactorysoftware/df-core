@@ -16,7 +16,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
         switch ($type) {
             // some types need massaging, some need other required properties
             case 'pk':
-            case 'id':
+            case ColumnSchema::TYPE_ID:
                 $info['type'] = 'int';
                 $info['type_extras'] = '(11)';
                 $info['allow_null'] = false;
@@ -25,34 +25,34 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 break;
 
             case 'fk':
-            case 'reference':
+            case ColumnSchema::TYPE_REF:
                 $info['type'] = 'int';
                 $info['type_extras'] = '(11)';
                 $info['is_foreign_key'] = true;
                 // check foreign tables
                 break;
 
-            case 'timestamp_on_create':
-            case 'timestamp_on_update':
+            case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
+            case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
                 $info['type'] = 'timestamp';
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
                     $default = 'CURRENT_TIMESTAMP';
-                    if ('timestamp_on_update' === $type) {
+                    if (ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE === $type) {
                         $default .= ' ON UPDATE CURRENT_TIMESTAMP';
                     }
                     $info['default'] = ['expression' => $default];
                 }
                 break;
 
-            case 'user_id':
-            case 'user_id_on_create':
-            case 'user_id_on_update':
+            case ColumnSchema::TYPE_USER_ID:
+            case ColumnSchema::TYPE_USER_ID_ON_CREATE:
+            case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
                 $info['type'] = 'int';
                 $info['type_extras'] = '(11)';
                 break;
 
-            case 'boolean':
+            case ColumnSchema::TYPE_BOOLEAN:
                 $info['type'] = 'tinyint';
                 $info['type_extras'] = '(1)';
                 $default = (isset($info['default'])) ? $info['default'] : null;
@@ -62,12 +62,12 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'money':
+            case ColumnSchema::TYPE_MONEY:
                 $info['type'] = 'decimal';
                 $info['type_extras'] = '(19,4)';
                 break;
 
-            case 'string':
+            case ColumnSchema::TYPE_STRING:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $national =
@@ -82,7 +82,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
                 break;
 
-            case 'binary':
+            case ColumnSchema::TYPE_BINARY:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $info['type'] = ($fixed) ? 'binary' : 'varbinary';
@@ -400,8 +400,8 @@ MYSQL
                 }
                 if ($c->autoIncrement) {
                     $table->sequenceName = '';
-                    if (('integer' === $c->type)) {
-                        $c->type = 'id';
+                    if ((ColumnSchema::TYPE_INTEGER === $c->type)) {
+                        $c->type = ColumnSchema::TYPE_ID;
                     }
                 }
             }
@@ -445,10 +445,10 @@ MYSQL
         if ($c->dbType === 'timestamp' && (0 === strcasecmp(strval($column['Default']), 'CURRENT_TIMESTAMP'))) {
             if (0 === strcasecmp(strval($column['Extra']), 'on update CURRENT_TIMESTAMP')) {
                 $c->defaultValue = ['expression' => 'CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP'];
-                $c->type = 'timestamp_on_update';
+                $c->type = ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE;
             } else {
                 $c->defaultValue = ['expression' => 'CURRENT_TIMESTAMP'];
-                $c->type = 'timestamp_on_create';
+                $c->type = ColumnSchema::TYPE_TIMESTAMP_ON_CREATE;
             }
         } else {
             $c->extractDefault($column['Default']);
@@ -506,8 +506,8 @@ MYSQL;
                     $table->columns[$cnk]->isForeignKey = true;
                     $table->columns[$cnk]->refTable = $name;
                     $table->columns[$cnk]->refFields = $rcn;
-                    if ('integer' === $table->columns[$cnk]->type) {
-                        $table->columns[$cnk]->type = 'reference';
+                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) {
+                        $table->columns[$cnk]->type = ColumnSchema::TYPE_REF;
                     }
                 }
 
@@ -933,7 +933,7 @@ MYSQL;
     public function parseValueForSet($value, $field_info)
     {
         switch ($field_info->type) {
-            case 'boolean':
+            case ColumnSchema::TYPE_BOOLEAN:
                 $value = (filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 1 : 0);
                 break;
         }

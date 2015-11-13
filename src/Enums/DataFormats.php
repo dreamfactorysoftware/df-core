@@ -80,6 +80,10 @@ class DataFormats extends FactoryEnum
      * @var int application/x-www-form-urlencoded
      */
     const WWW = 14;
+    /**
+     * @var int application/soap+xml, for SOAP1.2 interfaces
+     */
+    const SOAP = 15;
 
     // Client-side Only Content Types
 
@@ -133,6 +137,7 @@ class DataFormats extends FactoryEnum
         self::YAML          => 'yaml',
         self::RDF           => 'rdf',
         self::WWW           => 'www',
+        self::SOAP          => 'soap',
         self::JS            => 'js',
         self::CSS           => 'css',
         self::PHP           => 'php',
@@ -142,6 +147,9 @@ class DataFormats extends FactoryEnum
         self::RAW           => null,
     ];
 
+    /**
+     * @var array A hash of enum values against modern MIME types
+     */
     protected static $contentTypeMap = [
         self::CSV           => 'text/csv',
         self::TSV           => 'text/tab-separated-values',
@@ -157,6 +165,7 @@ class DataFormats extends FactoryEnum
         self::YAML          => 'text/yaml',
         self::RDF           => 'application/rdf+xml',
         self::WWW           => 'application/x-www-form-urlencoded',
+        self::SOAP          => 'application/soap+xml',
         self::JS            => 'application/javascript',
         self::CSS           => 'text/css',
         self::PHP           => null,
@@ -164,6 +173,31 @@ class DataFormats extends FactoryEnum
         self::PHP_OBJECT    => null,
         self::PHP_SIMPLEXML => null,
         self::RAW           => null,
+    ];
+
+    /**
+     * @var array A hash of modern and old MIME types to enum values
+     */
+    protected static $mimeTypeMap = [
+        'text/csv'                          => self::CSV,
+        'text/tab-separated-values'         => self::TSV,
+        'text/pipe-separated-values'        => self::PSV,
+        'text/html'                         => self::HTML,
+        'application/xhtml+xml'             => self::XHTML,
+        'text/plain'                        => self::TEXT,
+        'application/rtf'                   => self::RTF,
+        'application/json'                  => self::JSON,
+        'application/xml'                   => self::XML,
+        'text/xml'                          => self::XML, // older type
+        'application/atom+xml'              => self::ATOM,
+        'application/rss+xml'               => self::RSS,
+        'text/yaml'                         => self::YAML,
+        'application/rdf+xml'               => self::RDF,
+        'application/soap+xml'              => self::SOAP,
+        'application/x-www-form-urlencoded' => self::WWW,
+        'application/javascript'            => self::JS,
+        'text/javascript'                   => self::JS, // older type
+        'text/css'                          => self::CSS,
     ];
 
     //*************************************************************************
@@ -224,7 +258,7 @@ class DataFormats extends FactoryEnum
             return $default;
         }
 
-        return (static::$contentTypeMap[$enum_value])? : $default;
+        return (static::$contentTypeMap[$enum_value]) ?: $default;
     }
 
     /**
@@ -244,15 +278,16 @@ class DataFormats extends FactoryEnum
         }
 
         $mime_type = (false !== strpos($mime_type, ';')) ? trim(strstr($mime_type, ';', true)) : $mime_type;
-        if (false === $pos = array_search(strtolower($mime_type), static::$contentTypeMap)) {
+        $mime_type = strtolower($mime_type);
+        if (!array_key_exists($mime_type, static::$mimeTypeMap)) {
             if ($throw_if_not_found) {
-                throw new NotImplementedException('The MIME type "' . $mime_type . '" is not supported.');
+                throw new NotImplementedException('The mime type "' . $mime_type . '" is not supported.');
             }
 
             return $default;
         }
 
-        return $pos;
+        return (static::$mimeTypeMap[$mime_type]) ?: $default;
     }
 
     /**

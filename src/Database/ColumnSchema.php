@@ -11,22 +11,28 @@ class ColumnSchema
     /**
      * The followings are the supported abstract column data types.
      */
-    const TYPE_ID        = 'id';
-    const TYPE_REF       = 'reference';
-    const TYPE_STRING    = 'string';
-    const TYPE_TEXT      = 'text';
-    const TYPE_INTEGER   = 'integer';
-    const TYPE_BIGINT    = 'bigint';
-    const TYPE_FLOAT     = 'float';
-    const TYPE_DOUBLE    = 'double';
-    const TYPE_DECIMAL   = 'decimal';
-    const TYPE_DATETIME  = 'datetime';
-    const TYPE_TIMESTAMP = 'timestamp';
-    const TYPE_TIME      = 'time';
-    const TYPE_DATE      = 'date';
-    const TYPE_BINARY    = 'binary';
-    const TYPE_BOOLEAN   = 'boolean';
-    const TYPE_MONEY     = 'money';
+    const TYPE_ID                  = 'id';
+    const TYPE_REF                 = 'reference';
+    const TYPE_USER_ID             = 'user_id';
+    const TYPE_USER_ID_ON_CREATE   = 'user_id_on_create';
+    const TYPE_USER_ID_ON_UPDATE   = 'user_id_on_update';
+    const TYPE_STRING              = 'string';
+    const TYPE_TEXT                = 'text';
+    const TYPE_INTEGER             = 'integer';
+    const TYPE_BIGINT              = 'bigint';
+    const TYPE_FLOAT               = 'float';
+    const TYPE_DOUBLE              = 'double';
+    const TYPE_DECIMAL             = 'decimal';
+    const TYPE_DATETIME            = 'datetime';
+    const TYPE_TIMESTAMP           = 'timestamp';
+    const TYPE_TIMESTAMP_ON_CREATE = 'timestamp_on_create';
+    const TYPE_TIMESTAMP_ON_UPDATE = 'timestamp_on_update';
+    const TYPE_TIME                = 'time';
+    const TYPE_DATE                = 'date';
+    const TYPE_BINARY              = 'binary';
+    const TYPE_BOOLEAN             = 'boolean';
+    const TYPE_MONEY               = 'money';
+    const TYPE_VIRTUAL             = 'virtual';
 
     /**
      * @var string name of this column (without quotes).
@@ -124,13 +130,21 @@ class ColumnSchema
      */
     public $fixedLength = false;
     /**
-     * @var string the allowed picklist values for this column.
+     * @var array the allowed picklist values for this column.
      */
     public $picklist;
     /**
-     * @var string Additional validations for this column.
+     * @var array Additional validations for this column.
      */
     public $validation;
+    /**
+     * @var array DB function to use for this column.
+     */
+    public $dbFunction;
+    /**
+     * @var array Server-side function to compute for this column.
+     */
+    public $function;
     /**
      * @var string Optional description of this column.
      */
@@ -445,6 +459,83 @@ class ColumnSchema
         return (empty($this->label)) ? Inflector::camelize($this->getName(true), '_', true) : $this->label;
     }
 
+    public function getDbFunction()
+    {
+        $function = 'NULL';
+        if (!empty($this->dbFunction) && isset($this->dbFunction['function'])) {
+            $function = $this->dbFunction['function'];
+        }
+
+        return $function;
+    }
+
+    public function getDbFunctionType()
+    {
+        $type = 'string';
+        if (!empty($this->dbFunction) && isset($this->dbFunction['type'])) {
+            $type = $this->dbFunction['type'];
+        }
+
+        return $type;
+    }
+
+    public function isAggregate()
+    {
+        if (!empty($this->dbFunction) && isset($this->dbFunction['aggregate'])) {
+            return filter_var($this->dbFunction['aggregate'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return false;
+    }
+
+    public function parseFieldForSelect($as_quoted_string = false)
+    {
+        switch ($this->dbType) {
+            case null:
+                $function = $this->getDbFunction();
+
+                return $function . ' AS ' . $this->getName(true);
+            default :
+                $out = ($as_quoted_string) ? $this->rawName : $this->name;
+                if (!empty($this->alias)) {
+                    if ($as_quoted_string) {
+                        $out .= ' AS ' . $this->quoteColumnName($this->alias);
+                    } else {
+                        $out .= ' AS ' . $this->alias;
+                    }
+                }
+
+                return $out;
+        }
+    }
+
+    public function getPdoBinding()
+    {
+        switch ($this->dbType) {
+            case null:
+                $type = $this->getDbFunctionType();
+                $pdoType = $this->extractPdoType($type);
+                $phpType = (is_null($pdoType)) ? $type : null;
+                break;
+            default:
+                $pdoType = ($this->allowNull) ? null : $this->pdoType;
+                $phpType = (is_null($pdoType)) ? $this->phpType : null;
+                break;
+        }
+
+        return ['name' => $this->getName(true), 'pdo_type' => $pdoType, 'php_type' => $phpType];
+    }
+
+    public function parseFieldForFilter($as_quoted_string = false)
+    {
+        switch ($this->dbType) {
+            case null:
+                return $this->getDbFunction();
+        }
+
+        return ($as_quoted_string) ? $this->rawName : $this->name;
+    }
+
     public function toArray($use_alias = false)
     {
         $out = [
@@ -469,7 +560,8 @@ class ColumnSchema
             'ref_table'          => $this->refTable,
             'ref_fields'         => $this->refFields,
             'picklist'           => $this->picklist,
-            'validation'         => $this->validation
+            'validation'         => $this->validation,
+            'db_function'        => $this->dbFunction,
         ];
 
         if (!$use_alias) {

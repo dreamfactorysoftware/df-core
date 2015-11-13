@@ -30,7 +30,7 @@ abstract class BaseService extends BaseRestService
     protected $mailer;
 
     /**
-     * @var Array;
+     * @var array;
      */
     protected $parameters;
 
@@ -138,6 +138,7 @@ abstract class BaseService extends BaseRestService
             'text' => $textView
         ];
 
+        /** @noinspection PhpVoidFunctionResultUsedInspection */
         $count = $this->mailer->send(
             $view,
             $data,

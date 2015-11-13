@@ -808,6 +808,6 @@ class DataFormatter
     {
         // Using regex here for more control. Could have used ctype_print but that
         // does not consider tab, carriage return, and linefeed as printable.
-        return preg_match('/^[A-Za-z0-9_~\-!@#\$%\^&\*\(\)\/\\\,=\"\'\.\s]+$/', $string);
+        return preg_match('/^[A-Za-z0-9_~\-!@#\$%\^&\*\(\)\/\\\,=\"\'\.\s\[\]\(\)\{\}\+\-\?\<\>]+$/', $string);
     }
 }

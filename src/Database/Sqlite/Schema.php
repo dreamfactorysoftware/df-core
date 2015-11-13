@@ -381,9 +381,12 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
             }
         }
-        if (is_string($table->primaryKey) && !strncasecmp($table->columns[$table->primaryKey]->dbType, 'int', 3)) {
-            $table->sequenceName = '';
-            $table->columns[$table->primaryKey]->autoIncrement = true;
+        if (is_string($table->primaryKey)) {
+            $cnk = strtolower($table->primaryKey);
+            if (!strncasecmp($table->columns[$cnk]->dbType, 'int', 3)) {
+                $table->sequenceName = '';
+                $table->columns[$cnk]->autoIncrement = true;
+            }
         }
 
         return true;
@@ -428,7 +431,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
             $fks = $this->connection->createCommand($sql)->queryAll();
             if ($each->name === $table->name) {
                 foreach ($fks as $key) {
-                    $column = $table->columns[$key['from']];
+                    $column = $table->columns[strtolower($key['from'])];
                     $column->isForeignKey = true;
                     $column->refTable = $key['table'];
                     $column->refFields = $key['to'];

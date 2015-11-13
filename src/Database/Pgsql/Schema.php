@@ -472,14 +472,14 @@ EOD;
             $rcn = $column['referenced_column_name'];
             if ((0 == strcasecmp($tn, $table->name)) && (0 == strcasecmp($ts, $schema))) {
                 $name = ($rts == static::DEFAULT_SCHEMA) ? $rtn : $rts . '.' . $rtn;
-
-                $table->foreignKeys[$cn] = [$name, $rcn];
-                if (isset($table->columns[$cn])) {
-                    $table->columns[$cn]->isForeignKey = true;
-                    $table->columns[$cn]->refTable = $name;
-                    $table->columns[$cn]->refFields = $rcn;
-                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cn]->type) {
-                        $table->columns[$cn]->type = ColumnSchema::TYPE_REF;
+                $cnk = strtolower($cn);
+                $table->foreignKeys[$cnk] = [$name, $rcn];
+                if (isset($table->columns[$cnk])) {
+                    $table->columns[$cnk]->isForeignKey = true;
+                    $table->columns[$cnk]->refTable = $name;
+                    $table->columns[$cnk]->refFields = $rcn;
+                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) {
+                        $table->columns[$cnk]->type = ColumnSchema::TYPE_REF;
                     }
                 }
 
@@ -548,10 +548,11 @@ EOD;
         $table->primaryKey = null;
         foreach ($command->queryAll() as $row) {
             $name = $row['field_name'];
-            if (isset($table->columns[$name])) {
-                $table->columns[$name]->isPrimaryKey = true;
-                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$name]->type) && $table->columns[$name]->autoIncrement) {
-                    $table->columns[$name]->type = ColumnSchema::TYPE_ID;
+            $cnk = strtolower($name);
+            if (isset($table->columns[$cnk])) {
+                $table->columns[$cnk]->isPrimaryKey = true;
+                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) && $table->columns[$cnk]->autoIncrement) {
+                    $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
                 }
                 if ($table->primaryKey === null) {
                     $table->primaryKey = $name;

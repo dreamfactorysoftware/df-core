@@ -494,14 +494,14 @@ EOD;
             $rcn = $column['REFERENCED_COLUMN_NAME'];
             if ((0 == strcasecmp($tn, $table->name)) && (0 == strcasecmp($ts, $schema))) {
                 $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
-
-                $table->foreignKeys[$cn] = [$name, $rcn];
-                if (isset($table->columns[$cn])) {
-                    $table->columns[$cn]->isForeignKey = true;
-                    $table->columns[$cn]->refTable = $name;
-                    $table->columns[$cn]->refFields = $rcn;
-                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cn]->type) {
-                        $table->columns[$cn]->type = ColumnSchema::TYPE_REF;
+                $cnk = strtolower($cn);
+                $table->foreignKeys[$cnk] = [$name, $rcn];
+                if (isset($table->columns[$cnk])) {
+                    $table->columns[$cnk]->isForeignKey = true;
+                    $table->columns[$cnk]->refTable = $name;
+                    $table->columns[$cnk]->refFields = $rcn;
+                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) {
+                        $table->columns[$cnk]->type = ColumnSchema::TYPE_REF;
                     }
                 }
 

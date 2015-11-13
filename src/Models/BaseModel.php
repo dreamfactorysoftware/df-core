@@ -1291,10 +1291,9 @@ class BaseModel extends Model
                             }
                             break;
                         case RelationSchema::MANY_MANY:
-                            $pivot = substr($relation->join, 0, strpos($relation->join, '('));
-                            $pivotModel = static::tableNameToModel($pivot);
+                            $pivotModel = static::tableNameToModel($relation->junctionTable);
                             $pivotModel = static::getModelBaseName($pivotModel);
-                            $pivotModel = empty($pivotModel) ? $pivot : $pivotModel;
+                            $pivotModel = empty($pivotModel) ? $relation->junctionTable : $pivotModel;
 
                             if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [

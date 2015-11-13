@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Database;
 
+use DreamFactory\Library\Utility\Inflector;
+
 /**
  * RelationSchema class describes the relationship meta data of a database table.
  */
@@ -25,64 +27,144 @@ class RelationSchema
     const MANY_MANY = 'many_many';
 
     /**
-     * @var string name of this relationship.
+     * @var string Auto-generated name of this relationship.
      */
     public $name;
+    /**
+     * @var string Optional alias for this relationship.
+     */
+    public $alias;
+    /**
+     * @var string Optional label for this relationship.
+     */
+    public $label;
+    /**
+     * @var string Optional description for this relationship.
+     */
+    public $description;
+    /**
+     * @var boolean Collapse the fields to the parent if possible.
+     */
+    public $collapse;
     /**
      * @var string the DreamFactory simple type of this relationship.
      */
     public $type;
     /**
-     * @var string the referenced table name
+     * @var boolean Is this a virtual reference.
+     */
+    public $isVirtual;
+    /**
+     * @var integer|null Optional referenced service id
+     */
+    public $refServiceId;
+    /**
+     * @var string The referenced table name
      */
     public $refTable;
     /**
-     * @var string the referenced fields of the referenced table
+     * @var string The referenced fields of the referenced table
      */
     public $refFields;
     /**
-     * @var string the local table's field that is the foreign key
+     * @var string if a foreign key, then what to do with this field's value when the foreign is updated
+     */
+    public $refOnUpdate;
+    /**
+     * @var string if a foreign key, then what to do with this field's value when the foreign is deleted
+     */
+    public $refOnDelete;
+    /**
+     * @var string The local table's field that is the foreign key
      */
     public $field;
     /**
      * @var string details the pivot or junction table
      */
     public $join;
+    /**
+     * @var string details the pivot or junction table
+     */
+    public $junctionTable;
+    /**
+     * @var string details the pivot or junction table field facing the native
+     */
+    public $junctionField;
+    /**
+     * @var string details the pivot or junction table field facing the foreign
+     */
+    public $junctionRefField;
 
-    public function __construct($type, $ref_table, $ref_field, $field, $join = null)
+
+    public function __construct($type, array $settings)
     {
-        switch ($type) {
+        $this->fill($settings);
+
+        $this->type = $type;
+        switch ($this->type) {
             case static::BELONGS_TO:
-                $name = $ref_table . '_by_' . $field;
+                $this->name = $this->refTable . '_by_' . $this->field;
                 break;
             case static::HAS_MANY:
-                $name = $ref_table . '_by_' . $ref_field;
+                $this->name = $this->refTable . '_by_' . $this->refFields;
                 break;
             case static::MANY_MANY:
-                $name = $ref_table . '_by_' . substr($join, 0, strpos($join, '('));
+                $this->name = $this->refTable . '_by_' . $this->junctionTable;
                 break;
             default:
-                $name = null;
                 break;
         }
-
-        $this->name = $name;
-        $this->type = $type;
-        $this->refTable = $ref_table;
-        $this->refFields = $ref_field;
-        $this->field = $field;
-        $this->join = $join;
     }
 
-    public function toArray()
+    public function fill(array $settings)
     {
-        return [
-            'name'       => $this->name,
-            'type'       => $this->type,
-            'ref_table'  => $this->refTable,
-            'ref_fields' => $this->refFields,
-            'field'      => $this->field,
-            'join'       => $this->join,
+        foreach ($settings as $key => $value) {
+            if (!property_exists($this, $key)) {
+                // try camel cased
+                $camel = camel_case($key);
+                if (property_exists($this, $camel)) {
+                    $this->{$camel} = $value;
+                    continue;
+                }
+            }
+            // set real and virtual
+            $this->{$key} = $value;
+        }
+    }
+
+    public function getName($use_alias = false)
+    {
+        return ($use_alias && !empty($this->alias)) ? $this->alias : $this->name;
+    }
+
+    public function getLabel()
+    {
+        return (empty($this->label)) ? Inflector::camelize($this->getName(true), '_', true) : $this->label;
+    }
+
+    public function toArray($use_alias = false)
+    {
+        $out = [
+            'name'               => $this->getName($use_alias),
+            'label'              => $this->getLabel(),
+            'description'        => $this->description,
+            'field'              => $this->field,
+            'type'               => $this->type,
+            'is_virtual'         => $this->isVirtual,
+            'ref_service_id'     => $this->refServiceId,
+            'ref_table'          => $this->refTable,
+            'ref_fields'         => $this->refFields,
+            'ref_on_update'      => $this->refOnUpdate,
+            'ref_on_delete'      => $this->refOnDelete,
+            'junction_table'     => $this->junctionTable,
+            'junction_field'     => $this->junctionField,
+            'junction_ref_field' => $this->junctionRefField,
         ];
+
+        if (!$use_alias) {
+            $out['alias'] = $this->alias;
+        }
+
+        return $out;
     }
 }

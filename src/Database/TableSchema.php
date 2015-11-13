@@ -98,10 +98,8 @@ class TableSchema extends TableNameSchema
         return array_keys($this->columns);
     }
 
-    public function addRelation($type, $ref_table, $ref_field, $field, $join = null)
+    public function addRelation(RelationSchema $relation)
     {
-        $relation = new RelationSchema($type, $ref_table, $ref_field, $field, $join);
-
         $this->relations[strtolower($relation->name)] = $relation;
     }
 
@@ -141,7 +139,7 @@ class TableSchema extends TableNameSchema
         $relations = [];
         /** @var RelationSchema $relation */
         foreach ($this->relations as $relation) {
-            $relations[] = $relation->toArray();
+            $relations[] = $relation->toArray($use_alias);
         }
         $out['related'] = $relations;
 

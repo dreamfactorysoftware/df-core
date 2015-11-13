@@ -140,7 +140,7 @@ class ColumnSchema
     /**
      * @var array DB function to use for this column.
      */
-    public $db_function;
+    public $dbFunction;
     /**
      * @var array Server-side function to compute for this column.
      */
@@ -462,8 +462,8 @@ class ColumnSchema
     public function getDbFunction()
     {
         $function = 'NULL';
-        if (!empty($this->db_function) && isset($this->db_function['function'])) {
-            $function = $this->db_function['function'];
+        if (!empty($this->dbFunction) && isset($this->dbFunction['function'])) {
+            $function = $this->dbFunction['function'];
         }
 
         return $function;
@@ -472,8 +472,8 @@ class ColumnSchema
     public function getDbFunctionType()
     {
         $type = 'string';
-        if (!empty($this->db_function) && isset($this->db_function['type'])) {
-            $type = $this->db_function['type'];
+        if (!empty($this->dbFunction) && isset($this->dbFunction['type'])) {
+            $type = $this->dbFunction['type'];
         }
 
         return $type;
@@ -481,8 +481,8 @@ class ColumnSchema
 
     public function isAggregate()
     {
-        if (!empty($this->db_function) && isset($this->db_function['aggregate'])) {
-            return filter_var($this->db_function['aggregate'], FILTER_VALIDATE_BOOLEAN);
+        if (!empty($this->dbFunction) && isset($this->dbFunction['aggregate'])) {
+            return filter_var($this->dbFunction['aggregate'], FILTER_VALIDATE_BOOLEAN);
         }
 
         return false;
@@ -561,7 +561,7 @@ class ColumnSchema
             'ref_fields'         => $this->refFields,
             'picklist'           => $this->picklist,
             'validation'         => $this->validation,
-            'db_function'        => $this->db_function,
+            'db_function'        => $this->dbFunction,
         ];
 
         if (!$use_alias) {

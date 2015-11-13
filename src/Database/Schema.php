@@ -3,7 +3,6 @@ namespace DreamFactory\Core\Database;
 
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Library\Utility\Scalar;
-use League\Flysystem\NotSupportedException;
 
 /**
  * Schema is the base class for retrieving metadata information.
@@ -887,26 +886,43 @@ abstract class Schema
             $picklist = (isset($field['picklist'])) ? $field['picklist'] : [];
             if (!empty($picklist) && !is_array($picklist)) {
                 // accept comma delimited from client side
-                $field['picklist'] = array_map('trim', explode(',', trim($picklist, ',')));
+                $picklist = array_map('trim', explode(',', trim($picklist, ',')));
             }
 
             // extras
             $extraTags =
-                ['alias', 'label', 'description', 'picklist', 'validation', 'client_info', 'db_function'];
+                [
+                    'alias',
+                    'label',
+                    'description',
+                    'picklist',
+                    'validation',
+                    'client_info',
+                    'db_function',
+                ];
             $extraNew = array_only($field, $extraTags);
             if ($oldField) {
                 $extraOld = array_only($oldField->toArray(), $extraTags);
-                $extraNew = array_diff_assoc($extraNew, $extraOld);
-            }
+                $noDiff = ['picklist', 'db_function'];
+                $extraNew = array_diff_assoc(array_except($extraNew, $noDiff), array_except($extraOld, $noDiff));
 
-//            if (!empty($picklist)) {
-//                $oldPicklist = (isset($oldField)) ? $oldField->picklist : [];
-//                if ((count($picklist) !== count($oldPicklist)) ||
-//                    empty(array_diff($picklist, $oldPicklist))
-//                ) {
-//                    $temp['picklist'] = $picklist;
-//                }
-//            }
+                $oldPicklist = (is_array($oldField->picklist) ? $oldField->picklist : []);
+                if ((count($picklist) !== count($oldPicklist)) ||
+                    !empty(array_diff($picklist, $oldPicklist)) ||
+                    !empty(array_diff($oldPicklist, $picklist))
+                ) {
+                    $extraNew['picklist'] = $picklist;
+                }
+
+                $dbFunction = (isset($field['db_function'])) ? $field['db_function'] : [];
+                $oldFunction = (is_array($oldField->dbFunction) ? $oldField->dbFunction : []);
+                if ((count($dbFunction) !== count($oldFunction)) ||
+                    !empty(array_diff($dbFunction, $oldFunction)) ||
+                    !empty(array_diff($oldFunction, $dbFunction))
+                ) {
+                    $extraNew['db_function'] = $dbFunction;
+                }
+            }
 
             // if same as old, don't bother
             if (!empty($oldField)) {

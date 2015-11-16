@@ -510,12 +510,12 @@ SQL;
         foreach ($indexes as $index) {
             $columns = explode("+", ltrim($index['COLNAMES'], '+'));
             foreach ($columns as $colname) {
-                if (isset($table->columns[$colname])) {
-                    $table->columns[$colname]->isPrimaryKey = true;
-                    if ((ColumnSchema::TYPE_INTEGER === $table->columns[$colname]->type) && $table->columns[$colname]->autoIncrement) {
-                        $table->columns[$colname]->type = ColumnSchema::TYPE_ID;
+                $cnk = strtolower($colname);
+                if (isset($table->columns[$cnk])) {
+                    $table->columns[$cnk]->isPrimaryKey = true;
+                    if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) && $table->columns[$cnk]->autoIncrement) {
+                        $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
                     }
-
                     if ($table->primaryKey === null) {
                         $table->primaryKey = $colname;
                     } elseif (is_string($table->primaryKey)) {
@@ -643,7 +643,7 @@ SQL;
     {
         if ($table->sequenceName !== null &&
             is_string($table->primaryKey) &&
-            $table->columns[$table->primaryKey]->autoIncrement
+            $table->columns[strtolower($table->primaryKey)]->autoIncrement
         ) {
             if ($value === null) {
                 $value =

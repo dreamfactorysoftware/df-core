@@ -72,7 +72,9 @@ class TableSchema extends TableNameSchema
      */
     public function addColumn(ColumnSchema $schema)
     {
-        $this->columns[strtolower($schema->name)] = $schema;
+        $key = strtolower($schema->name);
+
+        $this->columns[$key] = $schema;
     }
 
     /**

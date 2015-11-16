@@ -179,14 +179,14 @@ abstract class Schema
             $rcn = $constraint['referenced_column_name'];
             if ((0 == strcasecmp($tn, $table->name)) && (0 == strcasecmp($ts, $schema))) {
                 $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
-
-                $table->foreignKeys[$cn] = [$name, $rcn];
-                if (isset($table->columns[$cn])) {
-                    $table->columns[$cn]->isForeignKey = true;
-                    $table->columns[$cn]->refTable = $name;
-                    $table->columns[$cn]->refFields = $rcn;
-                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cn]->type) {
-                        $table->columns[$cn]->type = ColumnSchema::TYPE_REF;
+                $cnk = strtolower($cn);
+                $table->foreignKeys[$cnk] = [$name, $rcn];
+                if (isset($table->columns[$cnk])) {
+                    $table->columns[$cnk]->isForeignKey = true;
+                    $table->columns[$cnk]->refTable = $name;
+                    $table->columns[$cnk]->refFields = $rcn;
+                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) {
+                        $table->columns[$cnk]->type = ColumnSchema::TYPE_REF;
                     }
                 }
 
@@ -1708,5 +1708,50 @@ abstract class Schema
         }
 
         return $in_value;
+    }
+    /**
+     * Builds a SQL statement for creating a new DB table.
+     *
+     * The columns in the new  table should be specified as name-definition pairs (e.g. 'name'=>'string'),
+     * where name stands for a column name which will be properly quoted by the method, and definition
+     * stands for the column type which can contain an abstract DB type.
+     * The {@link getColumnType} method will be invoked to convert any abstract type into a physical one.
+     *
+     * If a column is specified with definition only (e.g. 'PRIMARY KEY (name, type)'), it will be directly
+     * inserted into the generated SQL.
+     *
+     * @param string $table   the name of the table to be created. The name will be properly quoted by the method.
+     * @param array  $columns the columns (name=>definition) in the new table.
+     * @param string $options additional SQL fragment that will be appended to the generated SQL.
+     *
+     * @return string the SQL statement for creating a new DB table.
+     * @since 1.1.6
+     */
+    public function createView($table, $columns, $select, $options = null)
+    {
+        $cols = [];
+        foreach ($columns as $name => $type) {
+            if (is_string($name)) {
+                $cols[] = "\t" . $this->quoteColumnName($name) . ' ' . $this->getColumnType($type);
+            } else {
+                $cols[] = "\t" . $type;
+            }
+        }
+        $sql = "CREATE VIEW " . $this->quoteTableName($table) . " (\n" . implode(",\n", $cols) . "\n)";
+
+        return $options === null ? $sql : $sql . ' ' . $options;
+    }
+
+    /**
+     * Builds a SQL statement for dropping a DB view.
+     *
+     * @param string $table the view to be dropped. The name will be properly quoted by the method.
+     *
+     * @return string the SQL statement for dropping a DB view.
+     * @since 1.1.6
+     */
+    public function dropView($table)
+    {
+        return "DROP VIEW " . $this->quoteTableName($table);
     }
 }

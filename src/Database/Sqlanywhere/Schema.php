@@ -445,13 +445,13 @@ EOD;
                             break;
                         case 1: // Only 1 primary key
                             $primary = strstr($colnames[0], ' ', true);
-                            $key = strtolower($primary);
-                            if (isset($table->columns[$key])) {
-                                $table->columns[$key]->isPrimaryKey = true;
-                                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$key]->type) &&
-                                    $table->columns[$key]->autoIncrement
+                            $cnk = strtolower($primary);
+                            if (isset($table->columns[$cnk])) {
+                                $table->columns[$cnk]->isPrimaryKey = true;
+                                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) &&
+                                    $table->columns[$cnk]->autoIncrement
                                 ) {
-                                    $table->columns[$key]->type = ColumnSchema::TYPE_ID;
+                                    $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
                                 }
                             }
                             $table->primaryKey = $primary;

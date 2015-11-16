@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Database\Pgsql;
 
-use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
@@ -499,10 +498,11 @@ EOD;
         $table->primaryKey = null;
         foreach ($command->queryAll() as $row) {
             $name = $row['field_name'];
-            if (isset($table->columns[$name])) {
-                $table->columns[$name]->isPrimaryKey = true;
-                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$name]->type) && $table->columns[$name]->autoIncrement) {
-                    $table->columns[$name]->type = ColumnSchema::TYPE_ID;
+            $cnk = strtolower($name);
+            if (isset($table->columns[$cnk])) {
+                $table->columns[$cnk]->isPrimaryKey = true;
+                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) && $table->columns[$cnk]->autoIncrement) {
+                    $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
                 }
                 if ($table->primaryKey === null) {
                     $table->primaryKey = $name;

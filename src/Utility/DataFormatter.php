@@ -779,13 +779,13 @@ class DataFormatter
      */
     public static function validationErrorsToString($messages)
     {
-        if($messages instanceof MessageBag){
+        if ($messages instanceof MessageBag) {
             $messages = $messages->getMessages();
         }
 
         $errorString = '';
 
-        if(is_array($messages)) {
+        if (is_array($messages)) {
             foreach ($messages as $field => $errors) {
                 foreach ($errors as $error) {
                     $errorString .= ' ' . $error;
@@ -794,5 +794,20 @@ class DataFormatter
         }
 
         return $errorString;
+    }
+
+    /**
+     * Checks to see if a string is printable or not.
+     * Considers tab, carriage return, linefeed as printable.
+     *
+     * @param $string
+     *
+     * @return boolean
+     */
+    public static function isPrintable($string)
+    {
+        // Using regex here for more control. Could have used ctype_print but that
+        // does not consider tab, carriage return, and linefeed as printable.
+        return preg_match('/^[A-Za-z0-9_~\-!@#\$%\^&\*\(\)\/\\\,=\"\'\.\s\[\]\(\)\{\}\+\-\?\<\>]+$/', $string);
     }
 }

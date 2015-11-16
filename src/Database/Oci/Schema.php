@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Database\Oci;
 
 use DreamFactory\Core\Database\Expression;
-use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 

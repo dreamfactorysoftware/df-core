@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Database\Mssql;
 
 use DreamFactory\Core\Database\Expression;
-use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableNameSchema;
 
 /**
@@ -470,18 +469,20 @@ EOD;
                 break;
             case 1: // Only 1 primary key
                 $primary = $primary[0];
-                if (isset($table->columns[$primary])) {
-                    $table->columns[$primary]->isPrimaryKey = true;
-                    if ((ColumnSchema::TYPE_INTEGER === $table->columns[$primary]->type) && $table->columns[$primary]->autoIncrement) {
-                        $table->columns[$primary]->type = ColumnSchema::TYPE_ID;
+                $cnk = strtolower($primary);
+                if (isset($table->columns[$cnk])) {
+                    $table->columns[$cnk]->isPrimaryKey = true;
+                    if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) && $table->columns[$cnk]->autoIncrement) {
+                        $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
                     }
                 }
                 break;
             default:
                 if (is_array($primary)) {
                     foreach ($primary as $key) {
-                        if (isset($table->columns[$key])) {
-                            $table->columns[$key]->isPrimaryKey = true;
+                        $cnk = strtolower($key);
+                        if (isset($table->columns[$cnk])) {
+                            $table->columns[$cnk]->isPrimaryKey = true;
                         }
                     }
                 }

@@ -2045,6 +2045,13 @@ abstract class BaseDbTableResource extends BaseDbResource
                         break;
                     default:
                         $name = strtolower($fieldInfo->getName(true));
+                        // overwrite some undercover fields
+                        if ($fieldInfo->autoIncrement || 'virtual' === $fieldInfo->type) {
+                            // should I error this?
+                            // drop for now
+                            unset($record[$name]);
+                            continue;
+                        }
                         if (array_key_exists($name, $record)) {
                             $fieldVal = ArrayUtils::get($record, $name);
                             // due to conversion from XML to array, null or empty xml elements have the array value of an empty array
@@ -2052,13 +2059,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 $fieldVal = null;
                             }
 
-                            // overwrite some undercover fields
-                            if ($fieldInfo->autoIncrement) {
-                                // should I error this?
-                                // drop for now
-                                unset($record[$name]);
-                                continue;
-                            }
                             if (is_null($fieldVal) && !$fieldInfo->allowNull) {
                                 throw new BadRequestException("Field '$name' can not be NULL.");
                             }

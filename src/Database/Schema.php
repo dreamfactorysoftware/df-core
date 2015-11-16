@@ -951,25 +951,27 @@ abstract class Schema
         $extraCommands = [];
         $newFields = [];
         foreach ($fields as $field) {
-            $newFields[$field['name']] = array_change_key_case($field, CASE_LOWER);
+            $newFields[strtolower($field['name'])] = array_change_key_case($field, CASE_LOWER);
         }
 
         if ($allow_delete && isset($oldSchema, $oldSchema->columns)) {
             // check for columns to drop
-            foreach ($oldSchema->columns as $oldName => $oldField) {
-                if (!isset($newFields[$oldName])) {
-                    $dropColumns[] = $oldName;
+            /** @type  ColumnSchema $oldField */
+            foreach ($oldSchema->columns as $ndx => $oldField) {
+                if (!isset($newFields[$ndx])) {
+                    $dropColumns[] = $oldField->name;
                 }
             }
         }
 
-        foreach ($newFields as $name => $field) {
+        foreach ($newFields as $ndx => $field) {
+            $name = $field['name'];
             if (empty($name)) {
                 throw new \Exception("Invalid schema detected - no name element.");
             }
 
             /** @type ColumnSchema $oldField */
-            $oldField = isset($oldSchema) ? $oldSchema->getColumn($name) : null;
+            $oldField = isset($oldSchema) ? $oldSchema->getColumn($ndx) : null;
             $isAlter = (null !== $oldField);
             if ($isAlter && !$allow_update) {
                 throw new \Exception("Field '$name' already exists in table '$table_name'.");

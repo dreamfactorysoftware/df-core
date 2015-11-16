@@ -328,10 +328,14 @@ class UserPasswordResource extends BaseRestResource
         Mail::send(
             'emails.password',
             [
-                'contentHeader' => 'Password Reset',
-                'firstName'          => $name,
-                'code'          => $code,
-                'link'          => url(\Config::get('df.confirm_reset_url')) . '?code=' . $code
+                'content_header' => 'Password Reset',
+                'first_name'     => $name,
+                'last_name'      => $user->last_name,
+                'phone'          => $user->phone,
+                'email'          => $user->email,
+                'name'           => $user->name,
+                'confirm_code'   => $code,
+                'link'           => url(\Config::get('df.confirm_reset_url')) . '?code=' . $code
             ],
             function ($m) use ($email){
                 $m->to($email)->subject('[DF] Password Reset');

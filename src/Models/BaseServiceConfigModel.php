@@ -105,6 +105,10 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
         if ($schema) {
             $out = [];
             foreach ($schema->columns as $name => $column) {
+                // Skip if column is hidden
+                if (in_array($name, $model->getHidden())) {
+                    continue;
+                }
                 /** @var ColumnSchema $column */
                 if (('service_id' === $name) || $column->autoIncrement) {
                     continue;
@@ -144,7 +148,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
         } else {
             $newRules = [];
             foreach ($config as $key => $value) {
-                if(array_key_exists($key, $rules)){
+                if (array_key_exists($key, $rules)) {
                     $newRules[$key] = $rules[$key];
                 }
             }

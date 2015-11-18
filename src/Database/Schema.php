@@ -332,6 +332,15 @@ abstract class Schema
                 }
             }
         }
+        if (!empty($extras = $this->connection->getSchemaExtrasForRelated($name, '*'))) {
+            foreach ($extras as $extra) {
+                if (!empty($relatedName = (isset($extra['relationship'])) ? $extra['relationship'] : null)) {
+                    if (null !== $relationship = $table->getRelation($relatedName)) {
+                        $relationship->fill($extra);
+                    }
+                }
+            }
+        }
 
         $this->tables[$name] = $table;
         $this->connection->addToCache('table:' . $name, $table, true);
@@ -1709,19 +1718,14 @@ abstract class Schema
 
         return $in_value;
     }
+
     /**
-     * Builds a SQL statement for creating a new DB table.
+     * Builds a SQL statement for creating a new DB view of an existing table.
      *
-     * The columns in the new  table should be specified as name-definition pairs (e.g. 'name'=>'string'),
-     * where name stands for a column name which will be properly quoted by the method, and definition
-     * stands for the column type which can contain an abstract DB type.
-     * The {@link getColumnType} method will be invoked to convert any abstract type into a physical one.
      *
-     * If a column is specified with definition only (e.g. 'PRIMARY KEY (name, type)'), it will be directly
-     * inserted into the generated SQL.
-     *
-     * @param string $table   the name of the table to be created. The name will be properly quoted by the method.
-     * @param array  $columns the columns (name=>definition) in the new table.
+     * @param string $table   the name of the view to be created. The name will be properly quoted by the method.
+     * @param array  $columns optional mapping to the columns in the select of the new view.
+     * @param string $select  SQL statement defining the view.
      * @param string $options additional SQL fragment that will be appended to the generated SQL.
      *
      * @return string the SQL statement for creating a new DB table.
@@ -1729,17 +1733,19 @@ abstract class Schema
      */
     public function createView($table, $columns, $select, $options = null)
     {
-        $cols = [];
-        foreach ($columns as $name => $type) {
-            if (is_string($name)) {
-                $cols[] = "\t" . $this->quoteColumnName($name) . ' ' . $this->getColumnType($type);
-            } else {
-                $cols[] = "\t" . $type;
+        $sql = "CREATE VIEW " . $this->quoteTableName($table);
+        if (!empty($columns)) {
+            if (is_array($columns)) {
+                foreach ($columns as &$name) {
+                    $name = $this->quoteColumnName($name);
+                }
+                $columns = implode(',', $columns);
             }
+            $sql .= " ($columns)";
         }
-        $sql = "CREATE VIEW " . $this->quoteTableName($table) . " (\n" . implode(",\n", $cols) . "\n)";
+        $sql .= " AS " . $select;
 
-        return $options === null ? $sql : $sql . ' ' . $options;
+        return $sql;
     }
 
     /**

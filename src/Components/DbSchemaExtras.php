@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Components;
 
 use Log;
 use DreamFactory\Core\Models\DbFieldExtras;
+use DreamFactory\Core\Models\DbRelatedExtras;
 use DreamFactory\Core\Models\DbTableExtras;
 use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -15,13 +16,13 @@ trait DbSchemaExtras
 {
     /**
      * @param string | array $table_names
-     * @param bool           $include_fields
+     * @param bool           $include_all
      * @param string | array $select
      *
      * @throws \InvalidArgumentException
      * @return array
      */
-    public function getSchemaExtrasForTables($table_names, $include_fields = true, $select = '*')
+    public function getSchemaExtrasForTables($table_names, $include_all = true, $select = '*')
     {
         if (empty($table_names)) {
             return [];
@@ -33,10 +34,13 @@ trait DbSchemaExtras
 
         $result = DbTableExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->get()->toArray();
 
-        if ($include_fields) {
+        if ($include_all) {
             $fieldResult =
                 DbFieldExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->get()->toArray();
-            $result = array_merge($result, $fieldResult);
+
+            $relatedResult =
+                DbRelatedExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->get()->toArray();
+            $result = array_merge($result, $fieldResult, $relatedResult);
         }
 
         return $result;
@@ -70,6 +74,38 @@ trait DbSchemaExtras
         return DbFieldExtras::whereServiceId($this->getServiceId())
             ->whereTable($table_name)
             ->whereIn('field', $values)
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * @param string         $table_name
+     * @param string | array $related_names
+     * @param string | array $select
+     *
+     * @throws \InvalidArgumentException
+     * @return array
+     */
+    public function getSchemaExtrasForRelated($table_name, $related_names = '*', $select = '*')
+    {
+        if (empty($related_names)) {
+            return [];
+        }
+
+        if ('*' === $related_names) {
+            return DbRelatedExtras::whereServiceId($this->getServiceId())
+                ->whereTable($table_name)
+                ->get()
+                ->toArray();
+        }
+
+        if (false === $values = DbUtilities::validateAsArray($related_names, ',', true)) {
+            throw new \InvalidArgumentException('Invalid related list. ' . $related_names);
+        }
+
+        return DbRelatedExtras::whereServiceId($this->getServiceId())
+            ->whereTable($table_name)
+            ->whereIn('relationship', $values)
             ->get()
             ->toArray();
     }
@@ -128,6 +164,36 @@ trait DbSchemaExtras
     }
 
     /**
+     * @param array $extras
+     *
+     * @return void
+     */
+    public function setSchemaRelatedExtras($extras)
+    {
+        if (empty($extras)) {
+            return;
+        }
+
+        foreach ($extras as $extra) {
+            if (!empty($table = ArrayUtils::get($extra, 'table')) &&
+                !empty($relationship = ArrayUtils::get($extra, 'relationship'))
+            ) {
+                DbRelatedExtras::updateOrCreate([
+                    'service_id'   => $this->getServiceId(),
+                    'table'        => $table,
+                    'relationship' => $relationship
+                ], array_only($extra,
+                    [
+                        'alias',
+                        'label',
+                        'description',
+                        'collapse',
+                    ]));
+            }
+        }
+    }
+
+    /**
      * @param string | array $table_names
      *
      */
@@ -140,8 +206,9 @@ trait DbSchemaExtras
         try {
             DbTableExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
             DbFieldExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
+            DbRelatedExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
         } catch (\Exception $ex) {
-            Log::error('Failed to delete from DB Schema Extras. ' . $ex->getMessage());
+            Log::error('Failed to delete from DB Table Schema Extras. ' . $ex->getMessage());
         }
     }
 
@@ -161,7 +228,27 @@ trait DbSchemaExtras
                 ->whereIn('field', $values)
                 ->delete();
         } catch (\Exception $ex) {
-            Log::error('Failed to delete DB Schema Extras. ' . $ex->getMessage());
+            Log::error('Failed to delete DB Field Schema Extras. ' . $ex->getMessage());
+        }
+    }
+
+    /**
+     * @param string         $table_name
+     * @param string | array $related_names
+     */
+    public function removeSchemaExtrasForRelated($table_name, $related_names)
+    {
+        if (false === $values = DbUtilities::validateAsArray($related_names, ',', true)) {
+            throw new \InvalidArgumentException('Invalid related list. ' . $related_names);
+        }
+
+        try {
+            DbRelatedExtras::whereServiceId($this->getServiceId())
+                ->whereTable($table_name)
+                ->whereIn('relationship', $values)
+                ->delete();
+        } catch (\Exception $ex) {
+            Log::error('Failed to delete DB Related Schema Extras. ' . $ex->getMessage());
         }
     }
 }

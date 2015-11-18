@@ -1066,12 +1066,9 @@ class BaseModel extends Model
         $references = $this->getReferences();
 
         if (array_key_exists($name, $references)) {
-            $join = $references[$name]->join;
-            if (!empty($join)) {
-                $pivotTable = substr($join, 0, strpos($join, '('));
-                $fields = substr($join, (strpos($join, '(') + 1));
-                $fields = substr($fields, 0, strlen($fields) - 1);
-                list($fk, $rk) = explode(',', $fields);
+            if (!empty($pivotTable = $references[$name]->junctionTable)) {
+                $fk = $references[$name]->junctionField;
+                $rk = $references[$name]->junctionRefField;
 
                 return [$pivotTable, $fk, $rk];
             }

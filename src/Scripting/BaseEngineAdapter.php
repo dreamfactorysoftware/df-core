@@ -1,16 +1,10 @@
 <?php
 namespace DreamFactory\Core\Scripting;
 
-use DreamFactory\Core\Enums\DataFormats;
-use DreamFactory\Core\Enums\ServiceRequestorTypes;
-use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Components\ExposedApi;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Curl;
-use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
-use DreamFactory\Core\Utility\ServiceHandler;
-use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use \Log;
 
@@ -197,128 +191,6 @@ abstract class BaseEngineAdapter
     }
 
     /**
-     * @param string $method
-     * @param string $url
-     * @param mixed  $payload
-     * @param array  $curlOptions
-     *
-     * @return \DreamFactory\Core\Utility\ServiceResponse
-     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
-     * @throws \DreamFactory\Core\Exceptions\RestException
-     */
-    protected static function externalRequest($method, $url, $payload = [], $curlOptions = [])
-    {
-        $result = Curl::request($method, $url, $payload, $curlOptions);
-        $contentType = Curl::getInfo('content_type');
-        $format = DataFormats::fromMimeType($contentType);
-        $status = Curl::getLastHttpCode();
-        if ($status >= 300) {
-            if (!is_string($result)) {
-                $result = json_encode($result);
-            }
-
-            throw new RestException($status, $result, $status);
-        }
-
-        return ResponseFactory::create($result, $format, $status, $contentType);
-    }
-
-    /**
-     * @param string $method
-     * @param string $path
-     * @param array  $payload
-     * @param array  $curlOptions Additional CURL options for external requests
-     *
-     * @return array
-     */
-    public static function inlineRequest($method, $path, $payload = null, $curlOptions = [])
-    {
-        if (null === $payload || 'null' == $payload) {
-            $payload = [];
-        }
-
-        if (!empty($curlOptions)) {
-            $options = [];
-
-            foreach ($curlOptions as $key => $value) {
-                if (!is_numeric($key)) {
-                    if (defined($key)) {
-                        $options[constant($key)] = $value;
-                    }
-                }
-            }
-
-            $curlOptions = $options;
-            unset($options);
-        }
-
-        try {
-            if ('https:/' == ($protocol = substr($path, 0, 7)) || 'http://' == $protocol) {
-                $result = static::externalRequest($method, $path, $payload, $curlOptions);
-            } else {
-                $result = null;
-                $params = [];
-                if (false !== $pos = strpos($path, '?')) {
-                    $paramString = substr($path, $pos + 1);
-                    if (!empty($paramString)) {
-                        $pArray = explode('&', $paramString);
-                        foreach ($pArray as $k => $p) {
-                            if (!empty($p)) {
-                                $tmp = explode('=', $p);
-                                $name = ArrayUtils::get($tmp, 0, $k);
-                                $value = ArrayUtils::get($tmp, 1);
-                                $params[$name] = urldecode($value);
-                            }
-                        }
-                    }
-                    $path = substr($path, 0, $pos);
-                }
-
-                if (false === ($pos = strpos($path, '/'))) {
-                    $serviceName = $path;
-                    $resource = null;
-                } else {
-                    $serviceName = substr($path, 0, $pos);
-                    $resource = substr($path, $pos + 1);
-
-                    //	Fix removal of trailing slashes from resource
-                    if (!empty($resource)) {
-                        if ((false === strpos($path, '?') && '/' === substr($path, strlen($path) - 1, 1)) ||
-                            ('/' === substr($path, strpos($path, '?') - 1, 1))
-                        ) {
-                            $resource .= '/';
-                        }
-                    }
-                }
-
-                if (empty($serviceName)) {
-                    return null;
-                }
-
-                $format = DataFormats::PHP_ARRAY;
-                if (!is_array($payload)) {
-                    $format = DataFormats::TEXT;
-                }
-
-                Session::checkServicePermission($method, $serviceName, $resource, ServiceRequestorTypes::SCRIPT);
-
-                $request = new ScriptServiceRequest($method, $params);
-                $request->setContent($payload, $format);
-
-                //  Now set the request object and go...
-                $service = ServiceHandler::getService($serviceName);
-                $result = $service->handleRequest($request, $resource);
-            }
-        } catch (\Exception $ex) {
-            $result = ResponseFactory::create($ex);
-
-            Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
-        }
-
-        return ResponseFactory::sendScriptResponse($result);
-    }
-
-    /**
      * Locates and loads a library returning the contents
      *
      * @param string $id   The id of the library (i.e. "lodash", "underscore", etc.)
@@ -344,64 +216,10 @@ abstract class BaseEngineAdapter
         throw new \InvalidArgumentException('The library id "' . $id . '" could not be located.');
     }
 
-    /**
-     * @return \stdClass
-     */
-    protected static function getExposedApi()
-    {
-        static $api;
-
-        if (null !== $api) {
-            return $api;
-        }
-
-        $api = new \stdClass();
-
-        $api->call = function ($method, $path, $payload = null, $curlOptions = []){
-            return static::inlineRequest($method, $path, $payload, $curlOptions);
-        };
-
-        $api->get = function ($path, $payload = null, $curlOptions = []){
-            return static::inlineRequest(Verbs::GET, $path, $payload, $curlOptions);
-        };
-
-        $api->put = function ($path, $payload = null, $curlOptions = []){
-            return static::inlineRequest(Verbs::PUT, $path, $payload, $curlOptions);
-        };
-
-        $api->post = function ($path, $payload = null, $curlOptions = []){
-            return static::inlineRequest(Verbs::POST, $path, $payload, $curlOptions);
-        };
-
-        $api->delete = function ($path, $payload = null, $curlOptions = []){
-            return static::inlineRequest(Verbs::DELETE, $path, $payload, $curlOptions);
-        };
-
-        $api->merge = function ($path, $payload = null, $curlOptions = []){
-            return static::inlineRequest(Verbs::MERGE, $path, $payload, $curlOptions);
-        };
-
-        $api->patch = function ($path, $payload = null, $curlOptions = []){
-            return static::inlineRequest(Verbs::PATCH, $path, $payload, $curlOptions);
-        };
-
-        $api->includeScript = function ($fileName){
-            $fileName = storage_path(DIRECTORY_SEPARATOR . 'scripts') . DIRECTORY_SEPARATOR . $fileName;
-
-            if (!file_exists($fileName)) {
-                return false;
-            }
-
-            return file_get_contents(storage_path(DIRECTORY_SEPARATOR . 'scripts') . DIRECTORY_SEPARATOR . $fileName);
-        };
-
-        return $api;
-    }
-
     public static function buildPlatformAccess($identifier)
     {
         return [
-            'api'     => static::getExposedApi(),
+            'api'     => ExposedApi::getExposedApi(),
             'config'  => \Config::all(),
             'session' => Session::all(),
             'store'   => new ScriptSession(\Config::get("script.$identifier.store"), app('cache'))

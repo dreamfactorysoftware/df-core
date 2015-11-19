@@ -158,6 +158,12 @@ trait DbSchemaExtras
                         'validation',
                         'client_info',
                         'db_function',
+                        'virtual_foreign_key',
+                        'ref_service_id',
+                        'ref_table',
+                        'ref_fields',
+                        'ref_on_update',
+                        'ref_on_delete',
                     ]));
             }
         }

@@ -1019,8 +1019,6 @@ abstract class Schema
                 $extraOld = array_only($oldField->toArray(), $extraTags);
                 $noDiff = ['picklist', 'db_function'];
                 $extraNew = array_diff_assoc(array_except($extraNew, $noDiff), array_except($extraOld, $noDiff));
-                if ($virtualFK && $oldField->virtualForeignKey) {
-                }
 
                 $oldPicklist = (is_array($oldField->picklist) ? $oldField->picklist : []);
                 if ((count($picklist) !== count($oldPicklist)) ||
@@ -1090,7 +1088,7 @@ abstract class Schema
             }
 
             $isForeignKey = (isset($field['is_foreign_key'])) ? boolval($field['is_foreign_key']) : false;
-            if ((ColumnSchema::TYPE_REF == $type) || $isForeignKey) {
+            if (((ColumnSchema::TYPE_REF == $type) || $isForeignKey) && !$virtualFK) {
                 // special case for references because the table referenced may not be created yet
                 $refTable = (isset($field['ref_table'])) ? $field['ref_table'] : null;
                 if (empty($refTable)) {

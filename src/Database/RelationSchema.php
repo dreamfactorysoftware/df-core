@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database;
 
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Library\Utility\Inflector;
 
 /**
@@ -127,6 +128,9 @@ class RelationSchema
             default:
                 break;
         }
+        if ($this->isVirtual) {
+            $this->name = Service::getCachedNameById($this->refServiceId) . '.' . $this->name;
+        }
     }
 
     public function fill(array $settings)
@@ -152,7 +156,8 @@ class RelationSchema
 
     public function getLabel()
     {
-        return (empty($this->label)) ? Inflector::camelize($this->getName(true), '_', true) : $this->label;
+        $name = str_replace('.', ' ', $this->getName(true));
+        return (empty($this->label)) ? Inflector::camelize($name, '_', true) : $this->label;
     }
 
     public function toArray($use_alias = false)

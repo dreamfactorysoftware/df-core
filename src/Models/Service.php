@@ -89,8 +89,8 @@ class Service extends BaseSystemModel
 
         static::saved(
             function (Service $service){
-                \Cache::forget('service:'.$service->name);
-                \Cache::forget('service_id:'.$service->id);
+                \Cache::forget('service:' . $service->name);
+                \Cache::forget('service_id:' . $service->id);
 
                 // Any changes to services needs to produce a new event list
                 Event::clearCache();
@@ -113,8 +113,8 @@ class Service extends BaseSystemModel
 
         static::deleted(
             function (Service $service){
-                \Cache::forget('service:'.$service->name);
-                \Cache::forget('service_id:'.$service->id);
+                \Cache::forget('service:' . $service->name);
+                \Cache::forget('service_id:' . $service->id);
 
                 // Any changes to services needs to produce a new event list
                 Event::clearCache();
@@ -284,7 +284,7 @@ class Service extends BaseSystemModel
      * Returns service info cached, or reads from db if not present.
      * Pass in a key to return a portion/index of the cached data.
      *
-     * @param int      $id
+     * @param int         $id
      * @param null|string $key
      * @param null        $default
      *
@@ -292,8 +292,23 @@ class Service extends BaseSystemModel
      */
     public static function getCachedById($id, $key = null, $default = null)
     {
+        $name = static::getCachedNameById($id);
+
+        return static::getCachedByName($name, $key, $default);
+    }
+
+    /**
+     * Returns service name cached, or reads from db if not present.
+     * Pass in a key to return a portion/index of the cached data.
+     *
+     * @param int $id
+     *
+     * @return string|null
+     */
+    public static function getCachedNameById($id)
+    {
         $cacheKey = 'service_id:' . $id;
-        $name = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
+        return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
             $service = static::whereId($id)->first(['name']);
 
             if (empty($service)) {
@@ -302,7 +317,5 @@ class Service extends BaseSystemModel
 
             return $service->name;
         });
-
-        return static::getCachedByName($name, $key, $default);
     }
 }

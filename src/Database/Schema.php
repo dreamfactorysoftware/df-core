@@ -306,12 +306,9 @@ abstract class Schema
                 if (!empty($columnName = (isset($extra['field'])) ? $extra['field'] : null)) {
                     if (null !== $column = $table->getColumn($columnName)) {
                         $column->fill($extra);
-                        if (isset($column->refServiceId)) {
+                        if (isset($extra['ref_table'])) {
                             $column->isForeignKey = true;
                             $column->virtualForeignKey = true;
-                            if (ColumnSchema::TYPE_INTEGER === $column->type) {
-                                $column->type = ColumnSchema::TYPE_REF;
-                            }
 
                             // Add it to our foreign references as well
                             $relation =

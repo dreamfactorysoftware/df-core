@@ -1203,8 +1203,8 @@ abstract class Connection
     public function dropColumn($table, $column)
     {
         $result = 0;
-        $table = $this->getSchema()->getTable($table);
-        if (($columnInfo = $table->getColumn($column)) && (ColumnSchema::TYPE_VIRTUAL !== $columnInfo->type)) {
+        $tableInfo = $this->getSchema()->getTable($table);
+        if (($columnInfo = $tableInfo->getColumn($column)) && (ColumnSchema::TYPE_VIRTUAL !== $columnInfo->type)) {
             $result = $this->createCommand()->dropColumn($table, $column);
         }
         $this->removeSchemaExtrasForFields($table, $column);

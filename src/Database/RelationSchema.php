@@ -128,7 +128,7 @@ class RelationSchema
             default:
                 break;
         }
-        if ($this->isVirtual) {
+        if ($this->isVirtual && $this->refServiceId) {
             $this->name = Service::getCachedNameById($this->refServiceId) . '.' . $this->name;
         }
     }

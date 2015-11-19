@@ -121,7 +121,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
     {
         $path = $this->getFullPathName();
         if (!empty($resource)) {
-            $path = (!empty($path)) ? '/' . $resource : $resource;
+            $path = (!empty($path)) ? $path . '/' . $resource : $resource;
         }
 
         $requestType = ($this->request) ? $this->request->getRequestorType() : ServiceRequestorTypes::API;
@@ -138,7 +138,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
     {
         $path = $this->getFullPathName();
         if (!empty($resource)) {
-            $path = (!empty($path)) ? '/' . $resource : $resource;
+            $path = (!empty($path)) ? $path . '/' . $resource : $resource;
         }
 
         $requestType = ($this->request) ? $this->request->getRequestorType() : ServiceRequestorTypes::API;
@@ -153,7 +153,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         $wrapper = ResourcesWrapper::getWrapper();
 
         return [
-            $plural . 'List'       => [
+            $plural . 'List'     => [
                 'id'         => $plural . 'List',
                 'properties' => [
                     $wrapper => [
@@ -168,7 +168,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
             $name . 'Response'   => [
                 'id'         => $name . 'Response',
                 'properties' => [
-                    $this->getResourceIdentifier()    => [
+                    $this->getResourceIdentifier() => [
                         'type'        => 'string',
                         'description' => 'Identifier of the resource.',
                     ],

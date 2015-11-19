@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Database\Sqlite;
 
 use DreamFactory\Core\Database\Expression;
+use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
@@ -440,21 +441,38 @@ class Schema extends \DreamFactory\Core\Database\Schema
                     }
                     $table->foreignKeys[$key['from']] = [$key['table'], $key['to']];
                     // Add it to our foreign references as well
-                    $table->addRelation('belongs_to', $key['table'], $key['to'], $key['from']);
+                    $relation =
+                        new RelationSchema(RelationSchema::BELONGS_TO,
+                            ['ref_table' => $key['table'], 'ref_fields' => $key['to'], 'field' => $key['from']]);
+
+                    $table->addRelation($relation);
                 }
             } else {
                 $keys[$each->name] = $fks;
                 foreach ($fks as $key => $fk) {
                     if ($fk['table'] === $table->name) {
-                        $table->addRelation('has_many', $each->name, $fk['from'], $fk['to']);
+                        $relation =
+                            new RelationSchema(RelationSchema::HAS_MANY,
+                                ['ref_table' => $each->name, 'ref_fields' => $fk['from'], 'field' => $fk['to']]);
+
+                        $table->addRelation($relation);
                         $fks2 = $fks;
                         // if other has foreign keys to other tables, we can say these are related as well
                         foreach ($fks2 as $key2 => $fk2) {
                             if (($key !== $key2) && ($fk2['table'] !== $table->name)) {
                                 // not same as parent, i.e. via reference back to self
                                 // not the same key
-                                $table->addRelation('many_many', $fk2['table'], $fk['to'], $fk2['to'],
-                                    "{$each->name}({$fk['from']},{$fk2['from']})");
+                                $relation =
+                                    new RelationSchema(RelationSchema::MANY_MANY,
+                                        ['ref_table'          => $fk2['table'],
+                                         'ref_fields'         => $fk['to'],
+                                         'field'              => $fk2['to'],
+                                         'junction_table'     => $each->name,
+                                         'junction_field'     => $fk['from'],
+                                         'junction_ref_field' => $fk2['from']
+                                        ]);
+
+                                $table->addRelation($relation);
                             }
                         }
                     }

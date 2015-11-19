@@ -107,6 +107,14 @@ class ColumnSchema
      */
     public $isForeignKey = false;
     /**
+     * @var boolean whether this column is a virtual foreign key
+     */
+    public $virtualForeignKey = false;
+    /**
+     * @var string if a foreign key, then this is referenced service id
+     */
+    public $refServiceId;
+    /**
      * @var string if a foreign key, then this is referenced table name
      */
     public $refTable;
@@ -114,6 +122,14 @@ class ColumnSchema
      * @var string if a foreign key, then this is the referenced fields of the referenced table
      */
     public $refFields;
+    /**
+     * @var string if a foreign key, then what to do with this field's value when the foreign is updated
+     */
+    public $refOnUpdate;
+    /**
+     * @var string if a foreign key, then what to do with this field's value when the foreign is deleted
+     */
+    public $refOnDelete;
     /**
      * @var boolean whether this column is auto-incremental
      * @since 1.1.7
@@ -141,10 +157,6 @@ class ColumnSchema
      * @var array DB function to use for this column.
      */
     public $dbFunction;
-    /**
-     * @var array Server-side function to compute for this column.
-     */
-    public $function;
     /**
      * @var string Optional description of this column.
      */
@@ -539,29 +551,33 @@ class ColumnSchema
     public function toArray($use_alias = false)
     {
         $out = [
-            'name'               => $this->getName($use_alias),
-            'label'              => $this->getLabel(),
-            'description'        => $this->description,
-            'type'               => $this->type,
-            'db_type'            => $this->dbType,
-            'length'             => $this->size,
-            'precision'          => $this->precision,
-            'scale'              => $this->scale,
-            'default'            => $this->defaultValue,
-            'required'           => $this->getRequired(),
-            'allow_null'         => $this->allowNull,
-            'fixed_length'       => $this->fixedLength,
-            'supports_multibyte' => $this->supportsMultibyte,
-            'auto_increment'     => $this->autoIncrement,
-            'is_primary_key'     => $this->isPrimaryKey,
-            'is_foreign_key'     => $this->isForeignKey,
-            'is_unique'          => $this->isUnique,
-            'is_index'           => $this->isIndex,
-            'ref_table'          => $this->refTable,
-            'ref_fields'         => $this->refFields,
-            'picklist'           => $this->picklist,
-            'validation'         => $this->validation,
-            'db_function'        => $this->dbFunction,
+            'name'                => $this->getName($use_alias),
+            'label'               => $this->getLabel(),
+            'description'         => $this->description,
+            'type'                => $this->type,
+            'db_type'             => $this->dbType,
+            'length'              => $this->size,
+            'precision'           => $this->precision,
+            'scale'               => $this->scale,
+            'default'             => $this->defaultValue,
+            'required'            => $this->getRequired(),
+            'allow_null'          => $this->allowNull,
+            'fixed_length'        => $this->fixedLength,
+            'supports_multibyte'  => $this->supportsMultibyte,
+            'auto_increment'      => $this->autoIncrement,
+            'is_primary_key'      => $this->isPrimaryKey,
+            'is_unique'           => $this->isUnique,
+            'is_index'            => $this->isIndex,
+            'is_foreign_key'      => $this->isForeignKey,
+            'virtual_foreign_key' => $this->virtualForeignKey,
+            'ref_service_id'      => $this->refServiceId,
+            'ref_table'           => $this->refTable,
+            'ref_fields'          => $this->refFields,
+            'ref_on_update'       => $this->refOnUpdate,
+            'ref_on_delete'       => $this->refOnDelete,
+            'picklist'            => $this->picklist,
+            'validation'          => $this->validation,
+            'db_function'         => $this->dbFunction,
         ];
 
         if (!$use_alias) {

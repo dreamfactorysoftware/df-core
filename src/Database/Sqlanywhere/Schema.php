@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Database\Sqlanywhere;
 
 use DreamFactory\Core\Database\Expression;
+use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
@@ -425,17 +426,16 @@ class Schema extends \DreamFactory\Core\Database\Schema
     protected function findConstraints($table)
     {
         $schema = (!empty($table->schemaName)) ? $table->schemaName : $this->getDefaultSchema();
-        $defaultSchema = $this->getDefaultSchema();
 
         $sql = <<<EOD
 SELECT indextype,colnames FROM SYS.SYSINDEXES WHERE creator = :schema AND tname = :table
 EOD;
         $params = [':schema' => $schema, ':table' => $table->name];
-        $columns = $this->connection->createCommand($sql)->queryAll(true, $params);
+        $constraints = $this->connection->createCommand($sql)->queryAll(true, $params);
 
-        foreach ($columns as $key => $column) {
-            $type = $column['indextype'];
-            $colnames = $column['colnames'];
+        foreach ($constraints as $key => $constraint) {
+            $type = $constraint['indextype'];
+            $colnames = $constraint['colnames'];
             switch ($type) {
                 case 'Primary Key':
                     $colnames = explode(',', $colnames);
@@ -445,13 +445,13 @@ EOD;
                             break;
                         case 1: // Only 1 primary key
                             $primary = strstr($colnames[0], ' ', true);
-                            $key = strtolower($primary);
-                            if (isset($table->columns[$key])) {
-                                $table->columns[$key]->isPrimaryKey = true;
-                                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$key]->type) &&
-                                    $table->columns[$key]->autoIncrement
+                            $cnk = strtolower($primary);
+                            if (isset($table->columns[$cnk])) {
+                                $table->columns[$cnk]->isPrimaryKey = true;
+                                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) &&
+                                    $table->columns[$cnk]->autoIncrement
                                 ) {
-                                    $table->columns[$key]->type = ColumnSchema::TYPE_ID;
+                                    $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
                                 }
                             }
                             $table->primaryKey = $primary;
@@ -499,58 +499,16 @@ EOD;
         }
 
         $sql = <<<EOD
-SELECT * FROM SYS.SYSFOREIGNKEYS WHERE foreign_creator NOT IN ('SYS','dbo')
+SELECT columns, foreign_creator AS 'table_schema', foreign_tname AS 'table_name',
+    primary_creator AS 'referenced_table_schema', primary_tname AS 'referenced_table_name'
+FROM SYS.SYSFOREIGNKEYS WHERE foreign_creator NOT IN ('SYS','dbo')
 EOD;
-        $columns = $columns2 = $this->connection->createCommand($sql)->queryAll();
-        foreach ($columns as $key => $column) {
-            list($cn, $rcn) = explode(' IS ', $column['columns']);
-            $ts = $column['foreign_creator'];
-            $tn = $column['foreign_tname'];
-            $rts = $column['primary_creator'];
-            $rtn = $column['primary_tname'];
-            if ((0 == strcasecmp($tn, $table->name)) && (0 == strcasecmp($ts, $schema))) {
-                $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
-
-                $cnk = strtolower($cn);
-                $table->foreignKeys[$cnk] = [$name, $rcn];
-                if (isset($table->columns[$cnk])) {
-                    $table->columns[$cnk]->isForeignKey = true;
-                    $table->columns[$cnk]->refTable = $name;
-                    $table->columns[$cnk]->refFields = $rcn;
-                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) {
-                        $table->columns[$cnk]->type = ColumnSchema::TYPE_REF;
-                    }
-                }
-
-                // Add it to our foreign references as well
-                $table->addRelation('belongs_to', $name, $rcn, $cn);
-            } elseif ((0 == strcasecmp($rtn, $table->name)) && (0 == strcasecmp($rts, $schema))) {
-                $name = ($ts == $defaultSchema) ? $tn : $ts . '.' . $tn;
-                $table->addRelation('has_many', $name, $cn, $rcn);
-
-                // if other has foreign keys to other tables, we can say these are related as well
-                foreach ($columns2 as $key2 => $column2) {
-                    if (0 != strcasecmp($key, $key2)) // not same key
-                    {
-                        $ts2 = $column2['foreign_creator'];
-                        $tn2 = $column2['foreign_tname'];
-                        list($cn2, $rcn2) = explode(' IS ', $column2['columns']);
-                        if ((0 == strcasecmp($ts2, $ts)) && (0 == strcasecmp($tn2, $tn))
-                        ) {
-                            $rts2 = $column2['primary_creator'];
-                            $rtn2 = $column2['primary_tname'];
-                            if ((0 != strcasecmp($rts2, $schema)) || (0 != strcasecmp($rtn2, $table->name))
-                            ) {
-                                $name2 = ($rts2 == $defaultSchema) ? $rtn2 : $rts2 . '.' . $rtn2;
-                                // not same as parent, i.e. via reference back to self
-                                // not the same key
-                                $table->addRelation('many_many', $name2, $rcn2, $rcn, "$name($cn,$cn2)");
-                            }
-                        }
-                    }
-                }
-            }
+        $constraints = $this->connection->createCommand($sql)->queryAll();
+        foreach ($constraints as &$constraint) {
+            list($constraint['column_name'], $constraint['referenced_column_name']) = explode(' IS ', $constraint['columns']);
         }
+
+        $this->buildTableRelations($table, $constraints);
     }
 
     /**

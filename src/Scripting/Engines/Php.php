@@ -34,6 +34,7 @@ class Php extends BaseEngineAdapter implements ScriptingEngineInterface
      * @internal param \DreamFactory\Core\Events\PlatformEvent $event
      * @internal param \DreamFactory\Core\Events\EventDispatcher $dispatcher
      * @return mixed
+     * @throws \Exception
      */
     public function executeString($script, $identifier, array &$data = [], array $engineArguments = [])
     {
@@ -49,11 +50,9 @@ class Php extends BaseEngineAdapter implements ScriptingEngineInterface
             return $event;
         } catch (\Exception $ex) {
             $message = $ex->getMessage();
-
             Log::error($message = "Exception executing PHP: $message");
+            throw $ex;
         }
-
-        return null;
     }
 
     /**

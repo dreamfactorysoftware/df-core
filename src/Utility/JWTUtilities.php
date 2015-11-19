@@ -91,6 +91,14 @@ class JWTUtilities
         return Session::getSessionToken();
     }
 
+    public static function isForever($token)
+    {
+        $payloadArray = \JWTAuth::manager()->getJWTProvider()->decode($token);
+        $forever = boolval(ArrayUtils::get($payloadArray, 'forever'));
+
+        return $forever;
+    }
+
     /**
      * @param $token
      */

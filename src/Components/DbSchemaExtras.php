@@ -187,7 +187,9 @@ trait DbSchemaExtras
                         'alias',
                         'label',
                         'description',
-                        'collapse',
+                        'always_fetch',
+                        'flatten',
+                        'flatten_drop_prefix',
                     ]));
             }
         }

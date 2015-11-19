@@ -11,7 +11,9 @@ namespace DreamFactory\Core\Models;
  * @property string  $alias
  * @property string  $label
  * @property string  $description
- * @property boolean $collapse
+ * @property boolean $always_fetch
+ * @property boolean $flatten
+ * @property boolean $flatten_drop_prefix
  * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereId($value)
  * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereServiceId($value)
  * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereTable($value)
@@ -28,12 +30,16 @@ class DbRelatedExtras extends BaseSystemModel
         'alias',
         'label',
         'description',
-        'collapse',
+        'always_fetch',
+        'flatten',
+        'flatten_drop_prefix',
     ];
 
     protected $casts = [
-        'collapse'   => 'boolean',
-        'id'         => 'integer',
-        'service_id' => 'integer'
+        'always_fetch'        => 'boolean',
+        'flatten'             => 'boolean',
+        'flatten_drop_prefix' => 'boolean',
+        'id'                  => 'integer',
+        'service_id'          => 'integer'
     ];
 }

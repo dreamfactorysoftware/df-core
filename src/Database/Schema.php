@@ -337,6 +337,9 @@ abstract class Schema
                 if (!empty($relatedName = (isset($extra['relationship'])) ? $extra['relationship'] : null)) {
                     if (null !== $relationship = $table->getRelation($relatedName)) {
                         $relationship->fill($extra);
+                        if (isset($extra['always_fetch']) && $extra['always_fetch']){
+                            $table->fetchRequiresRelations = true;
+                        }
                     }
                 }
             }
@@ -1038,10 +1041,17 @@ abstract class Schema
             }
 
             // if same as old, don't bother
-            if (!empty($oldField)) {
+            if ($oldField) {
+                $extraTags[] = 'default';
                 $settingsNew = array_except($field, $extraTags);
                 $settingsOld = array_except($oldField->toArray(), $extraTags);
                 $settingsNew = array_diff_assoc($settingsNew, $settingsOld);
+
+                // may be an array due to expressions
+                $default = (isset($field['default'])) ? $field['default'] : null;
+                if ($default !== $oldField->defaultValue) {
+                    $settingsNew['default'] = $default;
+                }
 
                 // if empty, nothing to do here, check extras
                 if (empty($settingsNew)) {

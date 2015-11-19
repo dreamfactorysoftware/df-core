@@ -27,6 +27,11 @@ class RelationSchema
     const MANY_MANY = 'many_many';
 
     /**
+     * @var array List of extra information fields.
+     */
+    public static $extraFields = ['label', 'description', 'always_fetch', 'flatten', 'flatten_drop_prefix'];
+
+    /**
      * @var string Auto-generated name of this relationship.
      */
     public $name;
@@ -43,9 +48,18 @@ class RelationSchema
      */
     public $description;
     /**
-     * @var boolean Collapse the fields to the parent if possible.
+     * @var boolean Fetch this relationship whenever the parent is fetched.
      */
-    public $collapse;
+    public $alwaysFetch = false;
+    /**
+     * @var boolean Flatten the fields to the parent if a single record and possible.
+     */
+    public $flatten = false;
+    /**
+     * @var boolean If flattened, do we drop the prefix, i.e. the relationship name.
+     *              Note: field names of child record must be unique, otherwise conflicts may arise.
+     */
+    public $flattenDropPrefix = false;
     /**
      * @var string the DreamFactory simple type of this relationship.
      */
@@ -53,7 +67,7 @@ class RelationSchema
     /**
      * @var boolean Is this a virtual reference.
      */
-    public $isVirtual;
+    public $isVirtual = false;
     /**
      * @var integer|null Optional referenced service id
      */
@@ -94,7 +108,6 @@ class RelationSchema
      * @var string details the pivot or junction table field facing the foreign
      */
     public $junctionRefField;
-
 
     public function __construct($type, array $settings)
     {
@@ -145,20 +158,23 @@ class RelationSchema
     public function toArray($use_alias = false)
     {
         $out = [
-            'name'               => $this->getName($use_alias),
-            'label'              => $this->getLabel(),
-            'description'        => $this->description,
-            'field'              => $this->field,
-            'type'               => $this->type,
-            'is_virtual'         => $this->isVirtual,
-            'ref_service_id'     => $this->refServiceId,
-            'ref_table'          => $this->refTable,
-            'ref_fields'         => $this->refFields,
-            'ref_on_update'      => $this->refOnUpdate,
-            'ref_on_delete'      => $this->refOnDelete,
-            'junction_table'     => $this->junctionTable,
-            'junction_field'     => $this->junctionField,
-            'junction_ref_field' => $this->junctionRefField,
+            'name'                => $this->getName($use_alias),
+            'label'               => $this->getLabel(),
+            'description'         => $this->description,
+            'always_fetch'        => $this->alwaysFetch,
+            'flatten'             => $this->flatten,
+            'flatten_drop_prefix' => $this->flattenDropPrefix,
+            'type'                => $this->type,
+            'is_virtual'          => $this->isVirtual,
+            'field'               => $this->field,
+            'ref_service_id'      => $this->refServiceId,
+            'ref_table'           => $this->refTable,
+            'ref_fields'          => $this->refFields,
+            'ref_on_update'       => $this->refOnUpdate,
+            'ref_on_delete'       => $this->refOnDelete,
+            'junction_table'      => $this->junctionTable,
+            'junction_field'      => $this->junctionField,
+            'junction_ref_field'  => $this->junctionRefField,
         ];
 
         if (!$use_alias) {

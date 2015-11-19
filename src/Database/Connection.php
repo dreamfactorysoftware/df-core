@@ -1008,7 +1008,16 @@ abstract class Connection
                         foreach ($relationships as $info) {
                             if (isset($info, $info['name'])) {
                                 $relationship = $info['name'];
-                                $toSave = array_only($info, ['label', 'description', 'alias', 'collapse']);
+                                $toSave =
+                                    array_only($info,
+                                        [
+                                            'label',
+                                            'description',
+                                            'alias',
+                                            'always_fetch',
+                                            'flatten',
+                                            'flatten_drop_prefix'
+                                        ]);
                                 if (!empty($toSave)) {
                                     $toSave['relationship'] = $relationship;
                                     $toSave['table'] = $tableName;

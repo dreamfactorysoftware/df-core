@@ -57,13 +57,18 @@ class TableSchema extends TableNameSchema
     public $foreignKeys = [];
     /**
      * @var array relationship metadata of this table. Each array element is a RelationSchema object, indexed by
-     *      relation name.
+     *      lowercase relation name.
      */
     public $relations = [];
     /**
-     * @var array column metadata of this table. Each array element is a ColumnSchema object, indexed by column name.
+     * @var array column metadata of this table. Each array element is a ColumnSchema object, indexed by lowercase
+     *      column name.
      */
     public $columns = [];
+    /**
+     * @var boolean Are any of the relationships required during fetch on this table?
+     */
+    public $fetchRequiresRelations = false;
 
     /**
      * Sets the named column metadata.
@@ -102,6 +107,9 @@ class TableSchema extends TableNameSchema
 
     public function addRelation(RelationSchema $relation)
     {
+        if ($relation->alwaysFetch) {
+            $this->fetchRequiresRelations = true;
+        }
         $this->relations[strtolower($relation->name)] = $relation;
     }
 

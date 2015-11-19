@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database\Mysql;
 
+use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
@@ -477,70 +478,17 @@ MYSQL
      */
     protected function findConstraints($table)
     {
-        $defaultSchema = $this->getDefaultSchema();
-        $tableSchema = (!empty($table->schemaName)) ? $table->schemaName : $this->getDefaultSchema();
-        $columns = [];
+        $constraints = [];
         foreach ($this->getSchemaNames() as $schema) {
             $sql = <<<MYSQL
 SELECT table_schema, table_name, column_name, referenced_table_schema, referenced_table_name, referenced_column_name
 FROM information_schema.KEY_COLUMN_USAGE WHERE referenced_table_name IS NOT NULL AND table_schema = '$schema';
 MYSQL;
 
-            $columns = array_merge($columns, $this->connection->createCommand($sql)->queryAll());
+            $constraints = array_merge($constraints, $this->connection->createCommand($sql)->queryAll());
         }
 
-        $columns2 = $columns;
-        foreach ($columns as $key => $column) {
-            $ts = $column['table_schema'];
-            $tn = $column['table_name'];
-            $cn = $column['column_name'];
-            $rts = $column['referenced_table_schema'];
-            $rtn = $column['referenced_table_name'];
-            $rcn = $column['referenced_column_name'];
-            if ((0 == strcasecmp($tn, $table->name)) && (0 == strcasecmp($ts, $tableSchema))) {
-                $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
-
-                $table->foreignKeys[$cn] = [$name, $rcn];
-                $cnk = strtolower($cn);
-                if (isset($table->columns[$cnk])) {
-                    $table->columns[$cnk]->isForeignKey = true;
-                    $table->columns[$cnk]->refTable = $name;
-                    $table->columns[$cnk]->refFields = $rcn;
-                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) {
-                        $table->columns[$cnk]->type = ColumnSchema::TYPE_REF;
-                    }
-                }
-
-                // Add it to our foreign references as well
-                $table->addRelation('belongs_to', $name, $rcn, $cn);
-            } elseif ((0 == strcasecmp($rtn, $table->name)) && (0 == strcasecmp($rts, $tableSchema))) {
-                $name = ($ts == $defaultSchema) ? $tn : $ts . '.' . $tn;
-                $table->addRelation('has_many', $name, $cn, $rcn);
-
-                // if other has foreign keys to other tables, we can say these are related as well
-                foreach ($columns2 as $key2 => $column2) {
-                    if (0 != strcasecmp($key, $key2)) // not same key
-                    {
-                        $ts2 = $column2['table_schema'];
-                        $tn2 = $column2['table_name'];
-                        $cn2 = $column2['column_name'];
-                        if ((0 == strcasecmp($ts2, $ts)) && (0 == strcasecmp($tn2, $tn))
-                        ) {
-                            $rts2 = $column2['referenced_table_schema'];
-                            $rtn2 = $column2['referenced_table_name'];
-                            $rcn2 = $column2['referenced_column_name'];
-                            if ((0 != strcasecmp($rts2, $tableSchema)) || (0 != strcasecmp($rtn2, $table->name))
-                            ) {
-                                $name2 = ($rts2 == $defaultSchema) ? $rtn2 : $rts2 . '.' . $rtn2;
-                                // not same as parent, i.e. via reference back to self
-                                // not the same key
-                                $table->addRelation('many_many', $name2, $rcn2, $rcn, "$name($cn,$cn2)");
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        $this->buildTableRelations($table, $constraints);
     }
 
     /**

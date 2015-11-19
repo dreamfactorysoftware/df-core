@@ -886,6 +886,15 @@ abstract class Connection
         return null;
     }
 
+    public function getSchemaExtrasForRelated($table_name, $related_names, $select = '*')
+    {
+        if ($this->extraStore) {
+            return $this->extraStore->getSchemaExtrasForRelated($table_name, $related_names, $select);
+        }
+
+        return null;
+    }
+
     public function setSchemaTableExtras($extras)
     {
         if ($this->extraStore) {
@@ -899,6 +908,15 @@ abstract class Connection
     {
         if ($this->extraStore) {
             $this->extraStore->setSchemaFieldExtras($extras);
+        }
+
+        return null;
+    }
+
+    public function setSchemaRelatedExtras($extras)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->setSchemaRelatedExtras($extras);
         }
 
         return null;
@@ -922,6 +940,15 @@ abstract class Connection
         return null;
     }
 
+    public function removeSchemaExtrasForRelated($table_name, $related_names)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->removeSchemaExtrasForRelated($table_name, $related_names);
+        }
+
+        return null;
+    }
+
     public function updateSchema($tables, $allow_merge = false, $allow_delete = false, $rollback = false)
     {
         if (!is_array($tables) || empty($tables)) {
@@ -939,6 +966,7 @@ abstract class Connection
         $out = [];
         $tableExtras = [];
         $fieldExtras = [];
+        $relatedExtras = [];
         $count = 0;
         $singleTable = (1 == count($tables));
 
@@ -974,6 +1002,32 @@ abstract class Connection
                     $tableExtras[] = $extras;
                 }
 
+                // add relationship extras
+                if (!empty($relationships = (isset($table['related'])) ? $table['related'] : null)) {
+                    if (is_array($relationships)) {
+                        foreach ($relationships as $info) {
+                            if (isset($info, $info['name'])) {
+                                $relationship = $info['name'];
+                                $toSave =
+                                    array_only($info,
+                                        [
+                                            'label',
+                                            'description',
+                                            'alias',
+                                            'always_fetch',
+                                            'flatten',
+                                            'flatten_drop_prefix'
+                                        ]);
+                                if (!empty($toSave)) {
+                                    $toSave['relationship'] = $relationship;
+                                    $toSave['table'] = $tableName;
+                                    $relatedExtras[] = $toSave;
+                                }
+                            }
+                        }
+                    }
+                }
+
                 $fieldExtras = array_merge($fieldExtras, (isset($results['labels'])) ? $results['labels'] : []);
                 $references = array_merge($references, (isset($results['references'])) ? $results['references'] : []);
                 $indexes = array_merge($indexes, (isset($results['indexes'])) ? $results['indexes'] : []);
@@ -1006,6 +1060,9 @@ abstract class Connection
         }
         if (!empty($fieldExtras)) {
             $this->setSchemaFieldExtras($fieldExtras);
+        }
+        if (!empty($relatedExtras)) {
+            $this->setSchemaRelatedExtras($relatedExtras);
         }
 
         return $out;

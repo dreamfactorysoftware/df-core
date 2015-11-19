@@ -465,9 +465,6 @@ EOD;
      */
     protected function findConstraints($table)
     {
-        $defaultSchema = static::getDefaultSchema();
-        $schema = (!empty($table->schemaName)) ? $table->schemaName : $defaultSchema;
-
         $sql = <<<EOD
 		SELECT D.constraint_type, C.position, D.r_constraint_name,
             C.owner as table_schema,
@@ -483,58 +480,9 @@ EOD;
         WHERE D.constraint_type = 'R'
         ORDER BY D.constraint_name, C.position
 EOD;
-        $columns = $columns2 = $command = $this->connection->createCommand($sql)->queryAll();
+        $constraints = $command = $this->connection->createCommand($sql)->queryAll();
 
-        foreach ($columns as $key => $column) {
-            $ts = $column['TABLE_SCHEMA'];
-            $tn = $column['TABLE_NAME'];
-            $cn = $column['COLUMN_NAME'];
-            $rts = $column['REFERENCED_TABLE_SCHEMA'];
-            $rtn = $column['REFERENCED_TABLE_NAME'];
-            $rcn = $column['REFERENCED_COLUMN_NAME'];
-            if ((0 == strcasecmp($tn, $table->name)) && (0 == strcasecmp($ts, $schema))) {
-                $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
-                $cnk = strtolower($cn);
-                $table->foreignKeys[$cnk] = [$name, $rcn];
-                if (isset($table->columns[$cnk])) {
-                    $table->columns[$cnk]->isForeignKey = true;
-                    $table->columns[$cnk]->refTable = $name;
-                    $table->columns[$cnk]->refFields = $rcn;
-                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) {
-                        $table->columns[$cnk]->type = ColumnSchema::TYPE_REF;
-                    }
-                }
-
-                // Add it to our foreign references as well
-                $table->addRelation('belongs_to', $name, $rcn, $cn);
-            } elseif ((0 == strcasecmp($rtn, $table->name)) && (0 == strcasecmp($rts, $schema))) {
-                $name = ($ts == $defaultSchema) ? $tn : $ts . '.' . $tn;
-                $table->addRelation('has_many', $name, $cn, $rcn);
-
-                // if other has foreign keys to other tables, we can say these are related as well
-                foreach ($columns2 as $key2 => $column2) {
-                    if (0 != strcasecmp($key, $key2)) // not same key
-                    {
-                        $ts2 = $column2['TABLE_SCHEMA'];
-                        $tn2 = $column2['TABLE_NAME'];
-                        $cn2 = $column2['COLUMN_NAME'];
-                        if ((0 == strcasecmp($ts2, $ts)) && (0 == strcasecmp($tn2, $tn))
-                        ) {
-                            $rts2 = $column2['REFERENCED_TABLE_SCHEMA'];
-                            $rtn2 = $column2['REFERENCED_TABLE_NAME'];
-                            $rcn2 = $column2['REFERENCED_COLUMN_NAME'];
-                            if ((0 != strcasecmp($rts2, $schema)) || (0 != strcasecmp($rtn2, $table->name))
-                            ) {
-                                $name2 = ($rts2 == $defaultSchema) ? $rtn2 : $rts2 . '.' . $rtn2;
-                                // not same as parent, i.e. via reference back to self
-                                // not the same key
-                                $table->addRelation('many_many', $name2, $rcn2, $rcn, "$name($cn,$cn2)");
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        $this->buildTableRelations($table, $constraints);
     }
 
     protected function findSchemaNames()

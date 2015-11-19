@@ -337,7 +337,7 @@ abstract class Schema
                 if (!empty($relatedName = (isset($extra['relationship'])) ? $extra['relationship'] : null)) {
                     if (null !== $relationship = $table->getRelation($relatedName)) {
                         $relationship->fill($extra);
-                        if (isset($extra['always_fetch']) && $extra['always_fetch']){
+                        if (isset($extra['always_fetch']) && $extra['always_fetch']) {
                             $table->fetchRequiresRelations = true;
                         }
                     }
@@ -956,11 +956,12 @@ abstract class Schema
 
         $columns = [];
         $alterColumns = [];
+        $dropColumns = [];
         $references = [];
         $indexes = [];
-        $labels = [];
-        $dropColumns = [];
-        $extraCommands = [];
+        $extras = [];
+        $dropExtras = [];
+        $commands = [];
         $newFields = [];
         foreach ($fields as $field) {
             $newFields[strtolower($field['name'])] = array_change_key_case($field, CASE_LOWER);
@@ -971,7 +972,11 @@ abstract class Schema
             /** @type  ColumnSchema $oldField */
             foreach ($oldSchema->columns as $ndx => $oldField) {
                 if (!isset($newFields[$ndx])) {
-                    $dropColumns[] = $oldField->name;
+                    if (ColumnSchema::TYPE_VIRTUAL === $oldField->type) {
+                        $dropExtras[$table_name][] = $oldField->name;
+                    } else {
+                        $dropColumns[] = $oldField->name;
+                    }
                 }
             }
         }
@@ -1056,7 +1061,7 @@ abstract class Schema
                     if (!empty($extraNew)) {
                         $extraNew['table'] = $table_name;
                         $extraNew['field'] = $name;
-                        $labels[] = $extraNew;
+                        $extras[] = $extraNew;
                     }
 
                     continue;
@@ -1076,13 +1081,13 @@ abstract class Schema
                 case ColumnSchema::TYPE_ID:
                 case 'pk':
                     $pkExtras = $this->getPrimaryKeyCommands($table_name, $name);
-                    $extraCommands = array_merge($extraCommands, $pkExtras);
+                    $commands = array_merge($commands, $pkExtras);
                     break;
                 case ColumnSchema::TYPE_VIRTUAL:
                     $extraNew['extra_type'] = $type;
                     $extraNew['table'] = $table_name;
                     $extraNew['field'] = $name;
-                    $labels[] = $extraNew;
+                    $extras[] = $extraNew;
                     continue 2;
                     break;
             }
@@ -1151,7 +1156,7 @@ abstract class Schema
             if (!empty($extraNew)) {
                 $extraNew['table'] = $table_name;
                 $extraNew['field'] = $name;
-                $labels[] = $extraNew;
+                $extras[] = $extraNew;
             }
         }
 
@@ -1161,8 +1166,9 @@ abstract class Schema
             'drop_columns'  => $dropColumns,
             'references'    => $references,
             'indexes'       => $indexes,
-            'labels'        => $labels,
-            'extras'        => $extraCommands
+            'extras'        => $extras,
+            'drop_extras'   => $dropExtras,
+            'commands'      => $commands
         ];
     }
 

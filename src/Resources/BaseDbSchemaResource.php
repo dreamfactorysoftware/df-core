@@ -62,6 +62,24 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     }
 
     /**
+     * @param null $schema
+     * @param bool $refresh
+     *
+     * @return array
+     */
+    public function listAccessComponents($schema = null, $refresh = false)
+    {
+        $output = [];
+        $result = $this->listResources($schema, $refresh);
+        foreach ($result as $name) {
+            $output[] = $this->getResourceName() . '/' . $name . '/';
+            $output[] = $this->getResourceName() . '/' . $name . '/*';
+        }
+
+        return $output;
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function getResources($only_handlers = false)

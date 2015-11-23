@@ -35,7 +35,7 @@ class CorsConfig extends BaseSystemModel
     /**
      * @var bool
      */
-    public $timestamps = false;
+    public $timestamps = true;
 
     /**
      * {@inheritdoc}

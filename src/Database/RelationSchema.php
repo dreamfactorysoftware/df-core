@@ -70,7 +70,11 @@ class RelationSchema
      */
     public $isVirtual = false;
     /**
-     * @var integer|null Optional referenced service id
+     * @var boolean Is this a virtual reference to a foreign service.
+     */
+    public $isForeignService = false;
+    /**
+     * @var integer|null The referenced service id
      */
     public $refServiceId;
     /**
@@ -94,9 +98,13 @@ class RelationSchema
      */
     public $field;
     /**
-     * @var string details the pivot or junction table
+     * @var boolean Is this a junction table on a foreign service.
      */
-    public $join;
+    public $isForeignJunctionService = false;
+    /**
+     * @var string details the service of the pivot or junction table
+     */
+    public $junctionServiceId;
     /**
      * @var string details the pivot or junction table
      */
@@ -115,21 +123,26 @@ class RelationSchema
         $this->fill($settings);
 
         $this->type = $type;
+        $table = $this->refTable;
+        if ($this->isForeignService && $this->refServiceId) {
+            $table = Service::getCachedNameById($this->refServiceId) . '.' . $table;
+        }
         switch ($this->type) {
             case static::BELONGS_TO:
-                $this->name = $this->refTable . '_by_' . $this->field;
+                $this->name = $table . '_by_' . $this->field;
                 break;
             case static::HAS_MANY:
-                $this->name = $this->refTable . '_by_' . $this->refFields;
+                $this->name = $table . '_by_' . $this->refFields;
                 break;
             case static::MANY_MANY:
-                $this->name = $this->refTable . '_by_' . $this->junctionTable;
+                $junction = $this->junctionTable;
+                if ($this->isForeignJunctionService && $this->junctionServiceId) {
+                    $junction = Service::getCachedNameById($this->junctionServiceId) . '.' . $junction;
+                }
+                $this->name = $table . '_by_' . $junction;
                 break;
             default:
                 break;
-        }
-        if ($this->isVirtual && $this->refServiceId) {
-            $this->name = Service::getCachedNameById($this->refServiceId) . '.' . $this->name;
         }
     }
 
@@ -157,29 +170,33 @@ class RelationSchema
     public function getLabel()
     {
         $name = str_replace('.', ' ', $this->getName(true));
+
         return (empty($this->label)) ? Inflector::camelize($name, '_', true) : $this->label;
     }
 
     public function toArray($use_alias = false)
     {
         $out = [
-            'name'                => $this->getName($use_alias),
-            'label'               => $this->getLabel(),
-            'description'         => $this->description,
-            'always_fetch'        => $this->alwaysFetch,
-            'flatten'             => $this->flatten,
-            'flatten_drop_prefix' => $this->flattenDropPrefix,
-            'type'                => $this->type,
-            'is_virtual'          => $this->isVirtual,
-            'field'               => $this->field,
-            'ref_service_id'      => $this->refServiceId,
-            'ref_table'           => $this->refTable,
-            'ref_fields'          => $this->refFields,
-            'ref_on_update'       => $this->refOnUpdate,
-            'ref_on_delete'       => $this->refOnDelete,
-            'junction_table'      => $this->junctionTable,
-            'junction_field'      => $this->junctionField,
-            'junction_ref_field'  => $this->junctionRefField,
+            'name'                        => $this->getName($use_alias),
+            'label'                       => $this->getLabel(),
+            'description'                 => $this->description,
+            'always_fetch'                => $this->alwaysFetch,
+            'flatten'                     => $this->flatten,
+            'flatten_drop_prefix'         => $this->flattenDropPrefix,
+            'type'                        => $this->type,
+            'field'                       => $this->field,
+            'is_virtual'                  => $this->isVirtual,
+            'is_foreign_service'          => $this->isForeignService,
+            'ref_service_id'              => $this->refServiceId,
+            'ref_table'                   => $this->refTable,
+            'ref_fields'                  => $this->refFields,
+            'ref_on_update'               => $this->refOnUpdate,
+            'ref_on_delete'               => $this->refOnDelete,
+            'is_foreign_junction_service' => $this->isForeignJunctionService,
+            'junction_service_id'         => $this->junctionTable,
+            'junction_table'              => $this->junctionTable,
+            'junction_field'              => $this->junctionField,
+            'junction_ref_field'          => $this->junctionRefField,
         ];
 
         if (!$use_alias) {

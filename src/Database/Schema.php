@@ -308,13 +308,22 @@ abstract class Schema
                         $column->fill($extra);
                         if (isset($extra['ref_table'])) {
                             $column->isForeignKey = true;
-                            $column->virtualForeignKey = true;
+                            $column->isVirtualForeignKey = true;
+                            if (!empty($extra['service_id']) &&
+                                !empty($extra['ref_service_id']) &&
+                                ($extra['service_id'] !== $extra['ref_service_id'])
+                            ) {
+                                $column->isForeignRefService = true;
+                            }
 
                             // Add it to our foreign references as well
-                            $relation =
-                                new RelationSchema(RelationSchema::BELONGS_TO,
-                                    array_merge(array_except($extra, ['label', 'description']),
-                                        ['is_virtual' => true, 'field' => $column->name]));
+                            $relatedInfo =
+                                array_merge(array_except($extra, ['label', 'description']),
+                                    ['is_virtual'         => true,
+                                     'is_foreign_service' => $column->isForeignRefService,
+                                     'field'              => $column->name
+                                    ]);
+                            $relation = new RelationSchema(RelationSchema::BELONGS_TO, $relatedInfo);
 
                             $table->addRelation($relation);
                         }
@@ -1009,12 +1018,21 @@ abstract class Schema
                     'validation',
                     'client_info',
                     'db_function',
-                    'virtual_foreign_key',
+                    'is_virtual_foreign_key',
+                    'is_foreign_ref_service',
                     'ref_service_id'
                 ];
-            $virtualFK = (isset($field['virtual_foreign_key']) && boolval($field['virtual_foreign_key']));
+            $virtualFK = (isset($field['is_virtual_foreign_key']) && boolval($field['is_virtual_foreign_key']));
             if ($virtualFK) {
                 $extraTags = array_merge($extraTags, ['ref_table', 'ref_fields', 'ref_on_update', 'ref_on_delete']);
+                // cleanup possible overkill from API
+                $field['is_foreign_key'] = null;
+                if (!empty($field['type']) && (ColumnSchema::TYPE_REF == $field['type'])) {
+                    $field['type'] = ColumnSchema::TYPE_INTEGER;
+                }
+            } else {
+                // don't set this in the database extras
+                $field['ref_service_id'] = null;
             }
             $extraNew = array_only($field, $extraTags);
             if ($oldField) {
@@ -1041,6 +1059,10 @@ abstract class Schema
             }
 
             // if same as old, don't bother
+            if ($virtualFK) {
+                // clean out extras
+                $field = array_except($field, $extraTags);
+            }
             if ($oldField) {
                 $extraTags[] = 'default';
                 $settingsNew = array_except($field, $extraTags);
@@ -1090,7 +1112,7 @@ abstract class Schema
             }
 
             $isForeignKey = (isset($field['is_foreign_key'])) ? boolval($field['is_foreign_key']) : false;
-            if (((ColumnSchema::TYPE_REF == $type) || $isForeignKey) && !$virtualFK) {
+            if (((ColumnSchema::TYPE_REF == $type) || $isForeignKey)) {
                 // special case for references because the table referenced may not be created yet
                 $refTable = (isset($field['ref_table'])) ? $field['ref_table'] : null;
                 if (empty($refTable)) {

@@ -373,6 +373,9 @@ class Schema extends \DreamFactory\Core\Database\Schema
             $c = $this->createColumn($column);
             $table->addColumn($c);
             if ($c->isPrimaryKey) {
+                if ($c->autoIncrement) {
+                    $table->sequenceName = '';
+                }
                 if ($table->primaryKey === null) {
                     $table->primaryKey = $c->name;
                 } elseif (is_string($table->primaryKey)) {
@@ -384,9 +387,10 @@ class Schema extends \DreamFactory\Core\Database\Schema
         }
         if (is_string($table->primaryKey)) {
             $cnk = strtolower($table->primaryKey);
-            if (!strncasecmp($table->columns[$cnk]->dbType, 'int', 3)) {
+            if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type)) {
                 $table->sequenceName = '';
                 $table->columns[$cnk]->autoIncrement = true;
+                $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
             }
         }
 
@@ -404,8 +408,8 @@ class Schema extends \DreamFactory\Core\Database\Schema
     {
         $c = new ColumnSchema(['name' => $column['name']]);
         $c->rawName = $this->quoteColumnName($c->name);
-        $c->allowNull = !$column['notnull'];
-        $c->isPrimaryKey = $column['pk'] != 0;
+        $c->allowNull = (1 != $column['notnull']);
+        $c->isPrimaryKey = ($column['pk'] != 0);
         $c->comment = null; // SQLite does not support column comments at all
 
         $c->dbType = strtolower($column['type']);
@@ -464,12 +468,13 @@ class Schema extends \DreamFactory\Core\Database\Schema
                                 // not the same key
                                 $relation =
                                     new RelationSchema(RelationSchema::MANY_MANY,
-                                        ['ref_table'          => $fk2['table'],
-                                         'ref_fields'         => $fk['to'],
-                                         'field'              => $fk2['to'],
-                                         'junction_table'     => $each->name,
-                                         'junction_field'     => $fk['from'],
-                                         'junction_ref_field' => $fk2['from']
+                                        [
+                                            'ref_table'          => $fk2['table'],
+                                            'ref_fields'         => $fk['to'],
+                                            'field'              => $fk2['to'],
+                                            'junction_table'     => $each->name,
+                                            'junction_field'     => $fk['from'],
+                                            'junction_ref_field' => $fk2['from']
                                         ]);
 
                                 $table->addRelation($relation);

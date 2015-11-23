@@ -144,6 +144,10 @@ trait DbSchemaExtras
             if (!empty($table = ArrayUtils::get($extra, 'table')) &&
                 !empty($field = ArrayUtils::get($extra, 'field'))
             ) {
+                if (!empty($extra['ref_table']) && empty($extra['ref_service_id'])) {
+                    // don't allow empty ref_service_id into the database, needs to be searchable from other services
+                    $extras['ref_service_id'] = $this->getServiceId();
+                }
                 DbFieldExtras::updateOrCreate([
                     'service_id' => $this->getServiceId(),
                     'table'      => $table,
@@ -158,7 +162,6 @@ trait DbSchemaExtras
                         'validation',
                         'client_info',
                         'db_function',
-                        'virtual_foreign_key',
                         'ref_service_id',
                         'ref_table',
                         'ref_fields',

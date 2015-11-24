@@ -433,7 +433,6 @@ EOD;
     {
         $this->findPrimaryKey($table);
 
-        $schema = (!empty($table->schemaName)) ? $table->schemaName : static::DEFAULT_SCHEMA;
         $rc = 'information_schema.referential_constraints';
         $kcu = 'information_schema.key_column_usage';
         if (isset($table->catalogName)) {
@@ -461,58 +460,9 @@ EOD;
 		   AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION
 EOD;
 
-        $columns = $columns2 = $this->connection->createCommand($sql)->queryAll();
+        $constraints = $this->connection->createCommand($sql)->queryAll();
 
-        foreach ($columns as $key => $column) {
-            $ts = $column['table_schema'];
-            $tn = $column['table_name'];
-            $cn = $column['column_name'];
-            $rts = $column['referenced_table_schema'];
-            $rtn = $column['referenced_table_name'];
-            $rcn = $column['referenced_column_name'];
-            if ((0 == strcasecmp($tn, $table->name)) && (0 == strcasecmp($ts, $schema))) {
-                $name = ($rts == static::DEFAULT_SCHEMA) ? $rtn : $rts . '.' . $rtn;
-
-                $table->foreignKeys[$cn] = [$name, $rcn];
-                if (isset($table->columns[$cn])) {
-                    $table->columns[$cn]->isForeignKey = true;
-                    $table->columns[$cn]->refTable = $name;
-                    $table->columns[$cn]->refFields = $rcn;
-                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cn]->type) {
-                        $table->columns[$cn]->type = ColumnSchema::TYPE_REF;
-                    }
-                }
-
-                // Add it to our foreign references as well
-                $table->addRelation('belongs_to', $name, $rcn, $cn);
-            } elseif ((0 == strcasecmp($rtn, $table->name)) && (0 == strcasecmp($rts, $schema))) {
-                $name = ($ts == static::DEFAULT_SCHEMA) ? $tn : $ts . '.' . $tn;
-                $table->addRelation('has_many', $name, $cn, $rcn);
-
-                // if other has foreign keys to other tables, we can say these are related as well
-                foreach ($columns2 as $key2 => $column2) {
-                    if (0 != strcasecmp($key, $key2)) // not same key
-                    {
-                        $ts2 = $column2['table_schema'];
-                        $tn2 = $column2['table_name'];
-                        $cn2 = $column2['column_name'];
-                        if ((0 == strcasecmp($ts2, $ts)) && (0 == strcasecmp($tn2, $tn))
-                        ) {
-                            $rts2 = $column2['referenced_table_schema'];
-                            $rtn2 = $column2['referenced_table_name'];
-                            $rcn2 = $column2['referenced_column_name'];
-                            if ((0 != strcasecmp($rts2, $schema)) || (0 != strcasecmp($rtn2, $table->name))
-                            ) {
-                                $name2 = ($rts2 == static::DEFAULT_SCHEMA) ? $rtn2 : $rts2 . '.' . $rtn2;
-                                // not same as parent, i.e. via reference back to self
-                                // not the same key
-                                $table->addRelation('many_many', $name2, $rcn2, $rcn, "$name($cn,$cn2)");
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        $this->buildTableRelations($table, $constraints);
     }
 
     /**
@@ -548,10 +498,11 @@ EOD;
         $table->primaryKey = null;
         foreach ($command->queryAll() as $row) {
             $name = $row['field_name'];
-            if (isset($table->columns[$name])) {
-                $table->columns[$name]->isPrimaryKey = true;
-                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$name]->type) && $table->columns[$name]->autoIncrement) {
-                    $table->columns[$name]->type = ColumnSchema::TYPE_ID;
+            $cnk = strtolower($name);
+            if (isset($table->columns[$cnk])) {
+                $table->columns[$cnk]->isPrimaryKey = true;
+                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) && $table->columns[$cnk]->autoIncrement) {
+                    $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
                 }
                 if ($table->primaryKey === null) {
                     $table->primaryKey = $name;

@@ -42,12 +42,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
         $file = substr($dsn, 7);
         if (false === strpos($file, DIRECTORY_SEPARATOR)) {
             // no directories involved, store it where we want to store it
-            if (config('df.managed')) {
-                $storage = Managed::getStoragePath();
-                $storage = rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'databases';
-            } else {
-                $storage = config('df.db.sqlite_storage');
-            }
+            $storage = config('df.db.sqlite_storage');
             if (!is_dir($storage)) {
                 // Attempt
                 @mkdir($storage);

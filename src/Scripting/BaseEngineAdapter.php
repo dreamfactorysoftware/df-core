@@ -4,14 +4,14 @@ namespace DreamFactory\Core\Scripting;
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Curl;
-use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
-use DreamFactory\Core\Utility\ServiceHandler;
-use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\Curl;
+use DreamFactory\Library\Utility\Enums\Verbs;
 use \Log;
 
 /**
@@ -87,14 +87,17 @@ abstract class BaseEngineAdapter
      * Look through the known paths for a particular script. Returns full path to script file.
      *
      * @param string $name           The name/id of the script
-     * @param string $script         The name of the script
+     * @param string $path           The name of the script
      * @param bool   $returnContents If true, the contents of the file, if found, are returned. Otherwise, the only the
      *                               path is returned
      *
      * @return string
      */
-    public static function loadScript($name, $script, $returnContents = true)
+    public static function loadScript($name, $path = null, $returnContents = true)
     {
+        if ($path) {
+            // no longer support file paths for scripts?
+        }
         //  Already read, return script
         if (null !== ($script = ArrayUtils::get(static::$libraries, $name))) {
             return $returnContents ? file_get_contents($script) : $script;
@@ -194,6 +197,32 @@ abstract class BaseEngineAdapter
         if (false === ($path = static::loadScript($name, $script, false))) {
             throw new \InvalidArgumentException('The script "' . $script . '" was not found.');
         }
+    }
+
+    /**
+     * Locates and loads a library returning the contents
+     *
+     * @param string $id   The id of the library (i.e. "lodash", "underscore", etc.)
+     * @param string $file The relative path/name of the library file
+     *
+     * @return string
+     */
+    protected static function getLibrary($id, $file = null)
+    {
+        if (null !== $file || array_key_exists($id, static::$libraries)) {
+            $file = $file ?: static::$libraries[$id];
+
+            //  Find the library
+            foreach (static::$libraryPaths as $name => $path) {
+                $filePath = $path . DIRECTORY_SEPARATOR . $file;
+
+                if (file_exists($filePath) && is_readable($filePath)) {
+                    return file_get_contents($filePath, 'r');
+                }
+            }
+        }
+
+        throw new \InvalidArgumentException('The library id "' . $id . '" could not be located.');
     }
 
     /**
@@ -319,32 +348,6 @@ abstract class BaseEngineAdapter
     }
 
     /**
-     * Locates and loads a library returning the contents
-     *
-     * @param string $id   The id of the library (i.e. "lodash", "underscore", etc.)
-     * @param string $file The relative path/name of the library file
-     *
-     * @return string
-     */
-    protected static function getLibrary($id, $file = null)
-    {
-        if (null !== $file || array_key_exists($id, static::$libraries)) {
-            $file = $file ?: static::$libraries[$id];
-
-            //  Find the library
-            foreach (static::$libraryPaths as $name => $path) {
-                $filePath = $path . DIRECTORY_SEPARATOR . $file;
-
-                if (file_exists($filePath) && is_readable($filePath)) {
-                    return file_get_contents($filePath, 'r');
-                }
-            }
-        }
-
-        throw new \InvalidArgumentException('The library id "' . $id . '" could not be located.');
-    }
-
-    /**
      * @return \stdClass
      */
     protected static function getExposedApi()
@@ -375,10 +378,6 @@ abstract class BaseEngineAdapter
 
         $api->delete = function ($path, $payload = null, $curlOptions = []){
             return static::inlineRequest(Verbs::DELETE, $path, $payload, $curlOptions);
-        };
-
-        $api->merge = function ($path, $payload = null, $curlOptions = []){
-            return static::inlineRequest(Verbs::MERGE, $path, $payload, $curlOptions);
         };
 
         $api->patch = function ($path, $payload = null, $curlOptions = []){

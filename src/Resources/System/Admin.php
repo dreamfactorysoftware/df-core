@@ -15,11 +15,16 @@ class Admin extends BaseSystemResource
             'class_name' => Password::class,
             'label'      => 'Password'
         ],
+        Profile::RESOURCE_NAME  => [
+            'name'       => Profile::RESOURCE_NAME,
+            'class_name' => Profile::class,
+            'label'      => 'Profile'
+        ],
         Session::RESOURCE_NAME  => [
             'name'       => Session::RESOURCE_NAME,
             'class_name' => Session::class,
             'label'      => 'Session'
-        ]
+        ],
     ];
 
     /**

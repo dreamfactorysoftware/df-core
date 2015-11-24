@@ -1,6 +1,9 @@
 <?php
 namespace DreamFactory\Core\Database;
 
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Library\Utility\Inflector;
+
 /**
  * RelationSchema class describes the relationship meta data of a database table.
  */
@@ -25,64 +28,181 @@ class RelationSchema
     const MANY_MANY = 'many_many';
 
     /**
-     * @var string name of this relationship.
+     * @var array List of extra information fields.
+     */
+    public static $extraFields = ['label', 'description', 'always_fetch', 'flatten', 'flatten_drop_prefix'];
+
+    /**
+     * @var string Auto-generated name of this relationship.
      */
     public $name;
+    /**
+     * @var string Optional alias for this relationship.
+     */
+    public $alias;
+    /**
+     * @var string Optional label for this relationship.
+     */
+    public $label;
+    /**
+     * @var string Optional description for this relationship.
+     */
+    public $description;
+    /**
+     * @var boolean Fetch this relationship whenever the parent is fetched.
+     */
+    public $alwaysFetch = false;
+    /**
+     * @var boolean Flatten the fields to the parent if a single record and possible.
+     */
+    public $flatten = false;
+    /**
+     * @var boolean If flattened, do we drop the prefix, i.e. the relationship name.
+     *              Note: field names of child record must be unique, otherwise conflicts may arise.
+     */
+    public $flattenDropPrefix = false;
     /**
      * @var string the DreamFactory simple type of this relationship.
      */
     public $type;
     /**
-     * @var string the referenced table name
+     * @var boolean Is this a virtual reference.
+     */
+    public $isVirtual = false;
+    /**
+     * @var boolean Is this a virtual reference to a foreign service.
+     */
+    public $isForeignService = false;
+    /**
+     * @var integer|null The referenced service id
+     */
+    public $refServiceId;
+    /**
+     * @var string The referenced table name
      */
     public $refTable;
     /**
-     * @var string the referenced fields of the referenced table
+     * @var string The referenced fields of the referenced table
      */
     public $refFields;
     /**
-     * @var string the local table's field that is the foreign key
+     * @var string if a foreign key, then what to do with this field's value when the foreign is updated
+     */
+    public $refOnUpdate;
+    /**
+     * @var string if a foreign key, then what to do with this field's value when the foreign is deleted
+     */
+    public $refOnDelete;
+    /**
+     * @var string The local table's field that is the foreign key
      */
     public $field;
     /**
+     * @var boolean Is this a junction table on a foreign service.
+     */
+    public $isForeignJunctionService = false;
+    /**
+     * @var string details the service of the pivot or junction table
+     */
+    public $junctionServiceId;
+    /**
      * @var string details the pivot or junction table
      */
-    public $join;
+    public $junctionTable;
+    /**
+     * @var string details the pivot or junction table field facing the native
+     */
+    public $junctionField;
+    /**
+     * @var string details the pivot or junction table field facing the foreign
+     */
+    public $junctionRefField;
 
-    public function __construct($type, $ref_table, $ref_field, $field, $join = null)
+    public function __construct($type, array $settings)
     {
-        switch ($type) {
+        $this->fill($settings);
+
+        $this->type = $type;
+        $table = $this->refTable;
+        if ($this->isForeignService && $this->refServiceId) {
+            $table = Service::getCachedNameById($this->refServiceId) . '.' . $table;
+        }
+        switch ($this->type) {
             case static::BELONGS_TO:
-                $name = $ref_table . '_by_' . $field;
+                $this->name = $table . '_by_' . $this->field;
                 break;
             case static::HAS_MANY:
-                $name = $ref_table . '_by_' . $ref_field;
+                $this->name = $table . '_by_' . $this->refFields;
                 break;
             case static::MANY_MANY:
-                $name = $ref_table . '_by_' . substr($join, 0, strpos($join, '('));
+                $junction = $this->junctionTable;
+                if ($this->isForeignJunctionService && $this->junctionServiceId) {
+                    $junction = Service::getCachedNameById($this->junctionServiceId) . '.' . $junction;
+                }
+                $this->name = $table . '_by_' . $junction;
                 break;
             default:
-                $name = null;
                 break;
         }
-
-        $this->name = $name;
-        $this->type = $type;
-        $this->refTable = $ref_table;
-        $this->refFields = $ref_field;
-        $this->field = $field;
-        $this->join = $join;
     }
 
-    public function toArray()
+    public function fill(array $settings)
     {
-        return [
-            'name'       => $this->name,
-            'type'       => $this->type,
-            'ref_table'  => $this->refTable,
-            'ref_fields' => $this->refFields,
-            'field'      => $this->field,
-            'join'       => $this->join,
+        foreach ($settings as $key => $value) {
+            if (!property_exists($this, $key)) {
+                // try camel cased
+                $camel = camel_case($key);
+                if (property_exists($this, $camel)) {
+                    $this->{$camel} = $value;
+                    continue;
+                }
+            }
+            // set real and virtual
+            $this->{$key} = $value;
+        }
+    }
+
+    public function getName($use_alias = false)
+    {
+        return ($use_alias && !empty($this->alias)) ? $this->alias : $this->name;
+    }
+
+    public function getLabel()
+    {
+        $name = str_replace('.', ' ', $this->getName(true));
+
+        return (empty($this->label)) ? Inflector::camelize($name, '_', true) : $this->label;
+    }
+
+    public function toArray($use_alias = false)
+    {
+        $out = [
+            'name'                        => $this->getName($use_alias),
+            'label'                       => $this->getLabel(),
+            'description'                 => $this->description,
+            'always_fetch'                => $this->alwaysFetch,
+            'flatten'                     => $this->flatten,
+            'flatten_drop_prefix'         => $this->flattenDropPrefix,
+            'type'                        => $this->type,
+            'field'                       => $this->field,
+            'is_virtual'                  => $this->isVirtual,
+            'is_foreign_service'          => $this->isForeignService,
+            'ref_service_id'              => $this->refServiceId,
+            'ref_table'                   => $this->refTable,
+            'ref_fields'                  => $this->refFields,
+            'ref_on_update'               => $this->refOnUpdate,
+            'ref_on_delete'               => $this->refOnDelete,
+            'is_foreign_junction_service' => $this->isForeignJunctionService,
+            'junction_service_id'         => $this->junctionTable,
+            'junction_table'              => $this->junctionTable,
+            'junction_field'              => $this->junctionField,
+            'junction_ref_field'          => $this->junctionRefField,
         ];
+
+        if (!$use_alias) {
+            $out['alias'] = $this->alias;
+        }
+
+        return $out;
     }
 }

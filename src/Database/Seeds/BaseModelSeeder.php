@@ -63,6 +63,7 @@ class BaseModelSeeder extends Seeder
                 $created[] = $name;
             } elseif ($this->allowUpdate) {
                 // update an existing record
+                $builder->first()->update($record);
                 $updated[] = $name;
             }
         }

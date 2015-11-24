@@ -20,7 +20,7 @@ class RegisterContact
     public static function registerUser($user, array $payload = [])
     {
         $source = 'Product Install DreamFactory';
-        if (config('df.managed')) {
+        if (env('DF_MANAGED', false)) {
             $serverName = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : '';
             if (false === strpos($serverName, '.enterprise.dreamfactory.com')) {
                 return true; // bail, not tracking
@@ -57,5 +57,4 @@ class RegisterContact
 
         return false;
     }
-
 }

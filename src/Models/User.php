@@ -122,40 +122,6 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     }
 
     /**
-     * @param $value
-     *
-     * @return string
-     */
-    public function getEmailAttribute($value)
-    {
-        if (false !== strpos($value, '+')) {
-            list($emailId, $domain) = explode('@', $value);
-            list($emailId, $provider) = explode('+', $emailId);
-
-            $value = $emailId . '@' . $domain;
-        }
-
-        return $value;
-    }
-
-    /**
-     * @param $email
-     */
-    public function setEmailAttribute($email)
-    {
-        if ($this->exists && !empty($email)) {
-            $provider = (!empty($this->oauth_provider)) ? $this->oauth_provider : $this->adldap;
-            if (!empty($provider)) {
-                list($emailId, $domain) = explode('@', $email);
-                $emailId .= '+' . $provider;
-                $email = $emailId . '@' . $domain;
-            }
-        }
-
-        $this->attributes['email'] = $email;
-    }
-
-    /**
      * {@inheritdoc}
      */
     protected static function createInternal($record, $params = [])

@@ -21,6 +21,20 @@ interface DbExtrasInterface
     public function getSchemaExtrasForFields($table_name, $field_names = '*', $select = '*');
 
     /**
+     * @param string         $table_name
+     * @param string | array $field_names
+     * @param string | array $select
+     */
+    public function getSchemaExtrasForFieldsReferenced($table_name, $field_names = '*', $select = '*');
+
+    /**
+     * @param string         $table_name
+     * @param string | array $related_names
+     * @param string | array $select
+     */
+    public function getSchemaExtrasForRelated($table_name, $related_names = '*', $select = '*');
+
+    /**
      * @param array $extras
      */
     public function setSchemaTableExtras($extras);
@@ -29,6 +43,11 @@ interface DbExtrasInterface
      * @param array $extras
      */
     public function setSchemaFieldExtras($extras);
+
+    /**
+     * @param array $extras
+     */
+    public function setSchemaRelatedExtras($extras);
 
     /**
      * @param string | array $table_names
@@ -40,4 +59,10 @@ interface DbExtrasInterface
      * @param string | array $field_names
      */
     public function removeSchemaExtrasForFields($table_name, $field_names);
+
+    /**
+     * @param string         $table_name
+     * @param string | array $related_names
+     */
+    public function removeSchemaExtrasForRelated($table_name, $related_names);
 }

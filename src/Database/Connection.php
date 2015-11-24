@@ -886,6 +886,24 @@ abstract class Connection
         return null;
     }
 
+    public function getSchemaExtrasForFieldsReferenced($table_name, $field_names, $select = '*')
+    {
+        if ($this->extraStore) {
+            return $this->extraStore->getSchemaExtrasForFieldsReferenced($table_name, $field_names, $select);
+        }
+
+        return null;
+    }
+
+    public function getSchemaExtrasForRelated($table_name, $related_names, $select = '*')
+    {
+        if ($this->extraStore) {
+            return $this->extraStore->getSchemaExtrasForRelated($table_name, $related_names, $select);
+        }
+
+        return null;
+    }
+
     public function setSchemaTableExtras($extras)
     {
         if ($this->extraStore) {
@@ -899,6 +917,15 @@ abstract class Connection
     {
         if ($this->extraStore) {
             $this->extraStore->setSchemaFieldExtras($extras);
+        }
+
+        return null;
+    }
+
+    public function setSchemaRelatedExtras($extras)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->setSchemaRelatedExtras($extras);
         }
 
         return null;
@@ -922,6 +949,15 @@ abstract class Connection
         return null;
     }
 
+    public function removeSchemaExtrasForRelated($table_name, $related_names)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->removeSchemaExtrasForRelated($table_name, $related_names);
+        }
+
+        return null;
+    }
+
     public function updateSchema($tables, $allow_merge = false, $allow_delete = false, $rollback = false)
     {
         if (!is_array($tables) || empty($tables)) {
@@ -939,6 +975,8 @@ abstract class Connection
         $out = [];
         $tableExtras = [];
         $fieldExtras = [];
+        $fieldDrops = [];
+        $relatedExtras = [];
         $count = 0;
         $singleTable = (1 == count($tables));
 
@@ -974,7 +1012,34 @@ abstract class Connection
                     $tableExtras[] = $extras;
                 }
 
-                $fieldExtras = array_merge($fieldExtras, (isset($results['labels'])) ? $results['labels'] : []);
+                // add relationship extras
+                if (!empty($relationships = (isset($table['related'])) ? $table['related'] : null)) {
+                    if (is_array($relationships)) {
+                        foreach ($relationships as $info) {
+                            if (isset($info, $info['name'])) {
+                                $relationship = $info['name'];
+                                $toSave =
+                                    array_only($info,
+                                        [
+                                            'label',
+                                            'description',
+                                            'alias',
+                                            'always_fetch',
+                                            'flatten',
+                                            'flatten_drop_prefix'
+                                        ]);
+                                if (!empty($toSave)) {
+                                    $toSave['relationship'] = $relationship;
+                                    $toSave['table'] = $tableName;
+                                    $relatedExtras[] = $toSave;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                $fieldExtras = array_merge($fieldExtras, (isset($results['extras'])) ? $results['extras'] : []);
+                $fieldDrops = array_merge($fieldDrops, (isset($results['drop_extras'])) ? $results['drop_extras'] : []);
                 $references = array_merge($references, (isset($results['references'])) ? $results['references'] : []);
                 $indexes = array_merge($indexes, (isset($results['indexes'])) ? $results['indexes'] : []);
                 $out[$count] = ['name' => $tableName];
@@ -1006,6 +1071,14 @@ abstract class Connection
         }
         if (!empty($fieldExtras)) {
             $this->setSchemaFieldExtras($fieldExtras);
+        }
+        if (!empty($fieldDrops)) {
+            foreach ($fieldDrops as $table => $dropFields) {
+                $this->removeSchemaExtrasForFields($table, $dropFields);
+            }
+        }
+        if (!empty($relatedExtras)) {
+            $this->setSchemaRelatedExtras($relatedExtras);
         }
 
         return $out;
@@ -1046,8 +1119,8 @@ abstract class Connection
         $command = $this->createCommand();
         $command->createTable($table, $results['columns'], $options);
 
-        if (!empty($results['extras'])) {
-            foreach ($results['extras'] as $extraCommand) {
+        if (!empty($results['commands'])) {
+            foreach ($results['commands'] as $extraCommand) {
                 try {
                     $command->reset();
                     $command->setText($extraCommand)->execute();
@@ -1138,7 +1211,11 @@ abstract class Connection
 
     public function dropColumn($table, $column)
     {
-        $result = $this->createCommand()->dropColumn($table, $column);
+        $result = 0;
+        $tableInfo = $this->getSchema()->getTable($table);
+        if (($columnInfo = $tableInfo->getColumn($column)) && (ColumnSchema::TYPE_VIRTUAL !== $columnInfo->type)) {
+            $result = $this->createCommand()->dropColumn($table, $column);
+        }
         $this->removeSchemaExtrasForFields($table, $column);
 
         //  Any changes here should refresh cached schema
@@ -1200,9 +1277,16 @@ abstract class Connection
         $indexes = (isset($results['indexes'])) ? $results['indexes'] : [];
         $this->createFieldIndexes($indexes);
 
-        $labels = (isset($results['labels'])) ? $results['labels'] : [];
-        if (!empty($labels)) {
-            $this->setSchemaFieldExtras($labels);
+        $extras = (isset($results['extras'])) ? $results['extras'] : [];
+        if (!empty($extras)) {
+            $this->setSchemaFieldExtras($extras);
+        }
+
+        $extras = (isset($results['drop_extras'])) ? $results['drop_extras'] : [];
+        if (!empty($extras)) {
+            foreach ($extras as $table => $dropFields) {
+                $this->removeSchemaExtrasForFields($table, $dropFields);
+            }
         }
 
         return ['names' => $names];

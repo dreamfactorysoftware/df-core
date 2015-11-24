@@ -80,5 +80,4 @@ abstract class BaseDbResource extends BaseRestResource
 
         return $output;
     }
-
 }

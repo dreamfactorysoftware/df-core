@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Database\Sqlite;
 
 use DreamFactory\Core\Database\Expression;
+use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
@@ -372,6 +373,9 @@ class Schema extends \DreamFactory\Core\Database\Schema
             $c = $this->createColumn($column);
             $table->addColumn($c);
             if ($c->isPrimaryKey) {
+                if ($c->autoIncrement) {
+                    $table->sequenceName = '';
+                }
                 if ($table->primaryKey === null) {
                     $table->primaryKey = $c->name;
                 } elseif (is_string($table->primaryKey)) {
@@ -381,9 +385,13 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 }
             }
         }
-        if (is_string($table->primaryKey) && !strncasecmp($table->columns[$table->primaryKey]->dbType, 'int', 3)) {
-            $table->sequenceName = '';
-            $table->columns[$table->primaryKey]->autoIncrement = true;
+        if (is_string($table->primaryKey)) {
+            $cnk = strtolower($table->primaryKey);
+            if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type)) {
+                $table->sequenceName = '';
+                $table->columns[$cnk]->autoIncrement = true;
+                $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
+            }
         }
 
         return true;
@@ -400,8 +408,8 @@ class Schema extends \DreamFactory\Core\Database\Schema
     {
         $c = new ColumnSchema(['name' => $column['name']]);
         $c->rawName = $this->quoteColumnName($c->name);
-        $c->allowNull = !$column['notnull'];
-        $c->isPrimaryKey = $column['pk'] != 0;
+        $c->allowNull = (1 != $column['notnull']);
+        $c->isPrimaryKey = ($column['pk'] != 0);
         $c->comment = null; // SQLite does not support column comments at all
 
         $c->dbType = strtolower($column['type']);
@@ -428,7 +436,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
             $fks = $this->connection->createCommand($sql)->queryAll();
             if ($each->name === $table->name) {
                 foreach ($fks as $key) {
-                    $column = $table->columns[$key['from']];
+                    $column = $table->columns[strtolower($key['from'])];
                     $column->isForeignKey = true;
                     $column->refTable = $key['table'];
                     $column->refFields = $key['to'];
@@ -437,21 +445,39 @@ class Schema extends \DreamFactory\Core\Database\Schema
                     }
                     $table->foreignKeys[$key['from']] = [$key['table'], $key['to']];
                     // Add it to our foreign references as well
-                    $table->addRelation('belongs_to', $key['table'], $key['to'], $key['from']);
+                    $relation =
+                        new RelationSchema(RelationSchema::BELONGS_TO,
+                            ['ref_table' => $key['table'], 'ref_fields' => $key['to'], 'field' => $key['from']]);
+
+                    $table->addRelation($relation);
                 }
             } else {
                 $keys[$each->name] = $fks;
                 foreach ($fks as $key => $fk) {
                     if ($fk['table'] === $table->name) {
-                        $table->addRelation('has_many', $each->name, $fk['from'], $fk['to']);
+                        $relation =
+                            new RelationSchema(RelationSchema::HAS_MANY,
+                                ['ref_table' => $each->name, 'ref_fields' => $fk['from'], 'field' => $fk['to']]);
+
+                        $table->addRelation($relation);
                         $fks2 = $fks;
                         // if other has foreign keys to other tables, we can say these are related as well
                         foreach ($fks2 as $key2 => $fk2) {
                             if (($key !== $key2) && ($fk2['table'] !== $table->name)) {
                                 // not same as parent, i.e. via reference back to self
                                 // not the same key
-                                $table->addRelation('many_many', $fk2['table'], $fk['to'], $fk2['to'],
-                                    "{$each->name}({$fk['from']},{$fk2['from']})");
+                                $relation =
+                                    new RelationSchema(RelationSchema::MANY_MANY,
+                                        [
+                                            'ref_table'          => $fk2['table'],
+                                            'ref_fields'         => $fk['to'],
+                                            'field'              => $fk2['to'],
+                                            'junction_table'     => $each->name,
+                                            'junction_field'     => $fk['from'],
+                                            'junction_ref_field' => $fk2['from']
+                                        ]);
+
+                                $table->addRelation($relation);
                             }
                         }
                     }

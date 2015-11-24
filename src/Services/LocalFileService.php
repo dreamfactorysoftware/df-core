@@ -49,11 +49,7 @@ class LocalFileService extends BaseFileService
 
         switch ($disk['driver']) {
             case 'local':
-                if (config('df.managed')) {
-                    $root = Managed::getStoragePath(config('df.local_file_service_container'));
-                } else {
-                    $root = $disk['root'];
-                }
+                $root = $disk['root'];
 
                 if (!is_dir($root)) {
                     mkdir($root, 0775);

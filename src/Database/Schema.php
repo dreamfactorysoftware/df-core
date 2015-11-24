@@ -164,6 +164,83 @@ abstract class Schema
         return [''];
     }
 
+    protected function buildTableRelations(TableSchema $table, $constraints)
+    {
+        $schema = (!empty($table->schemaName)) ? $table->schemaName : $this->getDefaultSchema();
+        $defaultSchema = $this->getDefaultSchema();
+        $constraints2 = $constraints;
+
+        foreach ($constraints as $key => $constraint) {
+            $ts = $constraint['table_schema'];
+            $tn = $constraint['table_name'];
+            $cn = $constraint['column_name'];
+            $rts = $constraint['referenced_table_schema'];
+            $rtn = $constraint['referenced_table_name'];
+            $rcn = $constraint['referenced_column_name'];
+            if ((0 == strcasecmp($tn, $table->name)) && (0 == strcasecmp($ts, $schema))) {
+                $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
+                $cnk = strtolower($cn);
+                $table->foreignKeys[$cnk] = [$name, $rcn];
+                if (isset($table->columns[$cnk])) {
+                    $table->columns[$cnk]->isForeignKey = true;
+                    $table->columns[$cnk]->refTable = $name;
+                    $table->columns[$cnk]->refFields = $rcn;
+                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) {
+                        $table->columns[$cnk]->type = ColumnSchema::TYPE_REF;
+                    }
+                }
+
+                // Add it to our foreign references as well
+                $relation =
+                    new RelationSchema(RelationSchema::BELONGS_TO,
+                        ['ref_table' => $name, 'ref_fields' => $rcn, 'field' => $cn]);
+
+                $table->addRelation($relation);
+            } elseif ((0 == strcasecmp($rtn, $table->name)) && (0 == strcasecmp($rts, $schema))) {
+                $name = ($ts == $defaultSchema) ? $tn : $ts . '.' . $tn;
+                $relation =
+                    new RelationSchema(RelationSchema::HAS_MANY,
+                        ['ref_table' => $name, 'ref_fields' => $cn, 'field' => $rcn]);
+
+                $table->addRelation($relation);
+
+                // if other has foreign keys to other tables, we can say these are related as well
+                foreach ($constraints2 as $key2 => $constraint2) {
+                    if (0 != strcasecmp($key, $key2)) // not same key
+                    {
+                        $ts2 = $constraint2['table_schema'];
+                        $tn2 = $constraint2['table_name'];
+                        $cn2 = $constraint2['column_name'];
+                        if ((0 == strcasecmp($ts2, $ts)) && (0 == strcasecmp($tn2, $tn))
+                        ) {
+                            $rts2 = $constraint2['referenced_table_schema'];
+                            $rtn2 = $constraint2['referenced_table_name'];
+                            $rcn2 = $constraint2['referenced_column_name'];
+                            if ((0 != strcasecmp($rts2, $schema)) || (0 != strcasecmp($rtn2, $table->name))
+                            ) {
+                                $name2 = ($rts2 == $schema) ? $rtn2 : $rts2 . '.' . $rtn2;
+                                // not same as parent, i.e. via reference back to self
+                                // not the same key
+                                $relation =
+                                    new RelationSchema(RelationSchema::MANY_MANY,
+                                        [
+                                            'ref_table'          => $name2,
+                                            'ref_fields'         => $rcn2,
+                                            'field'              => $rcn,
+                                            'junction_table'     => $name,
+                                            'junction_field'     => $cn,
+                                            'junction_ref_field' => $cn2
+                                        ]);
+
+                                $table->addRelation($relation);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * @param string $name       The name of the table to check
      * @param bool   $returnName If true, the table name is returned instead of TRUE
@@ -229,11 +306,67 @@ abstract class Schema
                 if (!empty($columnName = (isset($extra['field'])) ? $extra['field'] : null)) {
                     if (null !== $column = $table->getColumn($columnName)) {
                         $column->fill($extra);
-                    } elseif (ColumnSchema::TYPE_VIRTUAL === (isset($extra['extra_type']) ? $extra['extra_type'] : null)) {
+                        if (isset($extra['ref_table'])) {
+                            $column->isForeignKey = true;
+                            $column->isVirtualForeignKey = true;
+                            if (!empty($extra['service_id']) &&
+                                !empty($extra['ref_service_id']) &&
+                                ($extra['service_id'] !== $extra['ref_service_id'])
+                            ) {
+                                $column->isForeignRefService = true;
+                            }
+
+                            // Add it to our foreign references as well
+                            $relatedInfo =
+                                array_merge(array_except($extra, ['label', 'description']),
+                                    ['is_virtual'         => true,
+                                     'is_foreign_service' => $column->isForeignRefService,
+                                     'field'              => $column->name
+                                    ]);
+                            $relation = new RelationSchema(RelationSchema::BELONGS_TO, $relatedInfo);
+
+                            $table->addRelation($relation);
+                        }
+                    } elseif (ColumnSchema::TYPE_VIRTUAL ===
+                        (isset($extra['extra_type']) ? $extra['extra_type'] : null)
+                    ) {
                         $extra['name'] = $extra['field'];
                         $extra['allow_null'] = true; // make sure it is not required
                         $column = new ColumnSchema($extra);
                         $table->addColumn($column);
+                    }
+                }
+            }
+        }
+        if (!empty($extras = $this->connection->getSchemaExtrasForFieldsReferenced($name, '*'))) {
+            foreach ($extras as $extra) {
+                if (!empty($columnName = (isset($extra['ref_fields'])) ? $extra['ref_fields'] : null)) {
+                    if (null !== $column = $table->getColumn($columnName)) {
+
+                        // Add it to our foreign references as well
+                        $relatedInfo = [
+                            'field'              => $column->name,
+                            'is_virtual'         => true,
+                            'is_foreign_service' => ($extra['service_id'] !== $extra['ref_service_id']),
+                            'ref_service_id'     => $extra['service_id'],
+                            'ref_table'          => $extra['table'],
+                            'ref_fields'         => $extra['field'],
+                        ];
+                        $relation = new RelationSchema(RelationSchema::HAS_MANY, $relatedInfo);
+
+                        $table->addRelation($relation);
+                    }
+                }
+            }
+        }
+        if (!empty($extras = $this->connection->getSchemaExtrasForRelated($name, '*'))) {
+            foreach ($extras as $extra) {
+                if (!empty($relatedName = (isset($extra['relationship'])) ? $extra['relationship'] : null)) {
+                    if (null !== $relationship = $table->getRelation($relatedName)) {
+                        $relationship->fill($extra);
+                        if (isset($extra['always_fetch']) && $extra['always_fetch']) {
+                            $table->fetchRequiresRelations = true;
+                        }
                     }
                 }
             }
@@ -850,32 +983,39 @@ abstract class Schema
 
         $columns = [];
         $alterColumns = [];
+        $dropColumns = [];
         $references = [];
         $indexes = [];
-        $labels = [];
-        $dropColumns = [];
-        $extraCommands = [];
+        $extras = [];
+        $dropExtras = [];
+        $commands = [];
         $newFields = [];
         foreach ($fields as $field) {
-            $newFields[$field['name']] = array_change_key_case($field, CASE_LOWER);
+            $newFields[strtolower($field['name'])] = array_change_key_case($field, CASE_LOWER);
         }
 
         if ($allow_delete && isset($oldSchema, $oldSchema->columns)) {
             // check for columns to drop
-            foreach ($oldSchema->columns as $oldName => $oldField) {
-                if (!isset($newFields[$oldName])) {
-                    $dropColumns[] = $oldName;
+            /** @type  ColumnSchema $oldField */
+            foreach ($oldSchema->columns as $ndx => $oldField) {
+                if (!isset($newFields[$ndx])) {
+                    if (ColumnSchema::TYPE_VIRTUAL === $oldField->type) {
+                        $dropExtras[$table_name][] = $oldField->name;
+                    } else {
+                        $dropColumns[] = $oldField->name;
+                    }
                 }
             }
         }
 
-        foreach ($newFields as $name => $field) {
+        foreach ($newFields as $ndx => $field) {
+            $name = $field['name'];
             if (empty($name)) {
                 throw new \Exception("Invalid schema detected - no name element.");
             }
 
             /** @type ColumnSchema $oldField */
-            $oldField = isset($oldSchema) ? $oldSchema->getColumn($name) : null;
+            $oldField = isset($oldSchema) ? $oldSchema->getColumn($ndx) : null;
             $isAlter = (null !== $oldField);
             if ($isAlter && !$allow_update) {
                 throw new \Exception("Field '$name' already exists in table '$table_name'.");
@@ -899,7 +1039,22 @@ abstract class Schema
                     'validation',
                     'client_info',
                     'db_function',
+                    'is_virtual_foreign_key',
+                    'is_foreign_ref_service',
+                    'ref_service_id'
                 ];
+            $virtualFK = (isset($field['is_virtual_foreign_key']) && boolval($field['is_virtual_foreign_key']));
+            if ($virtualFK) {
+                $extraTags = array_merge($extraTags, ['ref_table', 'ref_fields', 'ref_on_update', 'ref_on_delete']);
+                // cleanup possible overkill from API
+                $field['is_foreign_key'] = null;
+                if (!empty($field['type']) && (ColumnSchema::TYPE_REF == $field['type'])) {
+                    $field['type'] = ColumnSchema::TYPE_INTEGER;
+                }
+            } else {
+                // don't set this in the database extras
+                $field['ref_service_id'] = null;
+            }
             $extraNew = array_only($field, $extraTags);
             if ($oldField) {
                 $extraOld = array_only($oldField->toArray(), $extraTags);
@@ -925,17 +1080,28 @@ abstract class Schema
             }
 
             // if same as old, don't bother
-            if (!empty($oldField)) {
+            if ($virtualFK) {
+                // clean out extras
+                $field = array_except($field, $extraTags);
+            }
+            if ($oldField) {
+                $extraTags[] = 'default';
                 $settingsNew = array_except($field, $extraTags);
                 $settingsOld = array_except($oldField->toArray(), $extraTags);
                 $settingsNew = array_diff_assoc($settingsNew, $settingsOld);
+
+                // may be an array due to expressions
+                $default = (isset($field['default'])) ? $field['default'] : null;
+                if ($default !== $oldField->defaultValue) {
+                    $settingsNew['default'] = $default;
+                }
 
                 // if empty, nothing to do here, check extras
                 if (empty($settingsNew)) {
                     if (!empty($extraNew)) {
                         $extraNew['table'] = $table_name;
                         $extraNew['field'] = $name;
-                        $labels[] = $extraNew;
+                        $extras[] = $extraNew;
                     }
 
                     continue;
@@ -955,19 +1121,19 @@ abstract class Schema
                 case ColumnSchema::TYPE_ID:
                 case 'pk':
                     $pkExtras = $this->getPrimaryKeyCommands($table_name, $name);
-                    $extraCommands = array_merge($extraCommands, $pkExtras);
+                    $commands = array_merge($commands, $pkExtras);
                     break;
                 case ColumnSchema::TYPE_VIRTUAL:
                     $extraNew['extra_type'] = $type;
                     $extraNew['table'] = $table_name;
                     $extraNew['field'] = $name;
-                    $labels[] = $extraNew;
+                    $extras[] = $extraNew;
                     continue 2;
                     break;
             }
 
             $isForeignKey = (isset($field['is_foreign_key'])) ? boolval($field['is_foreign_key']) : false;
-            if ((ColumnSchema::TYPE_REF == $type) || $isForeignKey) {
+            if (((ColumnSchema::TYPE_REF == $type) || $isForeignKey)) {
                 // special case for references because the table referenced may not be created yet
                 $refTable = (isset($field['ref_table'])) ? $field['ref_table'] : null;
                 if (empty($refTable)) {
@@ -1030,7 +1196,7 @@ abstract class Schema
             if (!empty($extraNew)) {
                 $extraNew['table'] = $table_name;
                 $extraNew['field'] = $name;
-                $labels[] = $extraNew;
+                $extras[] = $extraNew;
             }
         }
 
@@ -1040,8 +1206,9 @@ abstract class Schema
             'drop_columns'  => $dropColumns,
             'references'    => $references,
             'indexes'       => $indexes,
-            'labels'        => $labels,
-            'extras'        => $extraCommands
+            'extras'        => $extras,
+            'drop_extras'   => $dropExtras,
+            'commands'      => $commands
         ];
     }
 
@@ -1604,5 +1771,47 @@ abstract class Schema
         }
 
         return $in_value;
+    }
+
+    /**
+     * Builds a SQL statement for creating a new DB view of an existing table.
+     *
+     *
+     * @param string $table   the name of the view to be created. The name will be properly quoted by the method.
+     * @param array  $columns optional mapping to the columns in the select of the new view.
+     * @param string $select  SQL statement defining the view.
+     * @param string $options additional SQL fragment that will be appended to the generated SQL.
+     *
+     * @return string the SQL statement for creating a new DB table.
+     * @since 1.1.6
+     */
+    public function createView($table, $columns, $select, $options = null)
+    {
+        $sql = "CREATE VIEW " . $this->quoteTableName($table);
+        if (!empty($columns)) {
+            if (is_array($columns)) {
+                foreach ($columns as &$name) {
+                    $name = $this->quoteColumnName($name);
+                }
+                $columns = implode(',', $columns);
+            }
+            $sql .= " ($columns)";
+        }
+        $sql .= " AS " . $select;
+
+        return $sql;
+    }
+
+    /**
+     * Builds a SQL statement for dropping a DB view.
+     *
+     * @param string $table the view to be dropped. The name will be properly quoted by the method.
+     *
+     * @return string the SQL statement for dropping a DB view.
+     * @since 1.1.6
+     */
+    public function dropView($table)
+    {
+        return "DROP VIEW " . $this->quoteTableName($table);
     }
 }

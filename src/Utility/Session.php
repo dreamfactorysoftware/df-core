@@ -90,16 +90,18 @@ class Session
 
             $tempService = strval(ArrayUtils::get($svcInfo, 'service'));
             $tempComponent = strval(ArrayUtils::get($svcInfo, 'component'));
+            $tempCompStarPos = strpos($tempComponent, '*');
             $tempVerbs = ArrayUtils::get($svcInfo, 'verb_mask');
 
+            $temp = substr($component, 0, $tempCompStarPos) . '*';
             if (0 == strcasecmp($service, $tempService)) {
                 if (!empty($component)) {
                     if (0 == strcasecmp($component, $tempComponent)) {
                         // exact match
                         $exactAllowed |= $tempVerbs;
                         $exactFound = true;
-                    } elseif (0 ==
-                        strcasecmp(substr($component, 0, strpos($component, '/') + 1) . '*', $tempComponent)
+                    } elseif ($tempCompStarPos &&
+                        (0 == strcasecmp(substr($component, 0, $tempCompStarPos) . '*', $tempComponent))
                     ) {
                         $componentAllowed |= $tempVerbs;
                         $componentFound = true;
@@ -251,25 +253,20 @@ class Session
      *
      * @returns bool
      */
-    public static function getLookupValue( $lookup, &$value, $use_private = false )
+    public static function getLookupValue($lookup, &$value, $use_private = false)
     {
-        if ( empty( $lookup ) )
-        {
+        if (empty($lookup)) {
             return false;
         }
 
-        $_parts = explode( '.', $lookup );
-        if ( count( $_parts ) > 1 )
-        {
-            $_section = array_shift( $_parts );
-            $_lookup = implode( '.', $_parts );
-            if ( !empty( $_section ) )
-            {
-                switch ( $_section )
-                {
+        $_parts = explode('.', $lookup);
+        if (count($_parts) > 1) {
+            $_section = array_shift($_parts);
+            $_lookup = implode('.', $_parts);
+            if (!empty($_section)) {
+                switch ($_section) {
                     case 'session':
-                        switch ( $_lookup )
-                        {
+                        switch ($_lookup) {
                             case 'id':
                             case 'token':
                                 $value = static::getSessionToken();
@@ -286,11 +283,9 @@ class Session
                     case 'user':
                     case 'role':
                         // get fields here
-                        if ( !empty( $_lookup ) )
-                        {
+                        if (!empty($_lookup)) {
                             $info = static::get($_section);
-                            if ( isset( $info, $info[$_lookup] ) )
-                            {
+                            if (isset($info, $info[$_lookup])) {
                                 $value = $info[$_lookup];
 
                                 return true;
@@ -299,8 +294,7 @@ class Session
                         break;
 
                     case 'app':
-                        switch ( $_lookup )
-                        {
+                        switch ($_lookup) {
                             case 'id':
                                 $value = static::get('app.id');;
 
@@ -314,8 +308,7 @@ class Session
                         break;
 
                     case 'df':
-                        switch ( $_lookup )
-                        {
+                        switch ($_lookup) {
                             case 'host_url':
                                 $value = Curl::currentUrl(false, false);
 
@@ -352,8 +345,7 @@ class Session
 
         $control = $use_private ? 'lookup_secret' : 'lookup';
         $lookups = static::get($control);
-        if ( isset( $lookups, $lookups[$lookup] ) )
-        {
+        if (isset($lookups, $lookups[$lookup])) {
             $value = $lookups[$lookup];
 
             return true;
@@ -362,44 +354,34 @@ class Session
         return false;
     }
 
-    public static function replaceLookups( &$subject, $use_private = false )
+    public static function replaceLookups(&$subject, $use_private = false)
     {
-        if ( is_string( $subject ) )
-        {
+        if (is_string($subject)) {
             // filter string values should be wrapped in curly braces
-            if ( false !== strpos( $subject, '{' ) )
-            {
-                $_search = array();
-                $_replace = array();
+            if (false !== strpos($subject, '{')) {
+                $_search = [];
+                $_replace = [];
                 // brute force, yeah this could be better
-                foreach ( explode( '{', $subject ) as $_word )
-                {
-                    $_lookup = strstr( $_word, '}', true );
-                    if ( !empty( $_lookup ) )
-                    {
-                        if ( static::getLookupValue( $_lookup, $_value, $use_private ) )
-                        {
+                foreach (explode('{', $subject) as $_word) {
+                    $_lookup = strstr($_word, '}', true);
+                    if (!empty($_lookup)) {
+                        if (static::getLookupValue($_lookup, $_value, $use_private)) {
                             $_search[] = '{' . $_lookup . '}';
                             $_replace[] = $_value;
                         }
                     }
                 }
 
-                if ( !empty( $_search ) )
-                {
-                    $subject = str_replace( $_search, $_replace, $subject );
+                if (!empty($_search)) {
+                    $subject = str_replace($_search, $_replace, $subject);
                 }
             }
-        }
-        elseif ( is_array( $subject ) )
-        {
-            foreach ( $subject as &$_value )
-            {
-                static::replaceLookups( $_value, $use_private );
+        } elseif (is_array($subject)) {
+            foreach ($subject as &$_value) {
+                static::replaceLookups($_value, $use_private);
             }
         }
     }
-
 
     /**
      * @param array $credentials
@@ -431,10 +413,10 @@ class Session
     {
         $appId = static::get('app.id', null);
 
-        if(!empty($appId) && !empty($userId)){
+        if (!empty($appId) && !empty($userId)) {
             $roleId = static::getRoleIdByAppIdAndUserId($appId, $userId);
             $roleInfo = ($roleId) ? Role::getCachedInfo($roleId) : null;
-            if(!empty($roleInfo) && !ArrayUtils::get($roleInfo, 'is_active', false)){
+            if (!empty($roleInfo) && !ArrayUtils::get($roleInfo, 'is_active', false)) {
                 throw new ForbiddenException('Role is not active.');
             }
         }

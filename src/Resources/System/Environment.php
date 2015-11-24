@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Resources\System;
 use DreamFactory\Core\Enums\AppTypes;
 use DreamFactory\Core\Models\App as AppModel;
 use DreamFactory\Core\Models\AppGroup as AppGroupModel;
+use DreamFactory\Core\Models\Config as SystemConfig;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\User\Services\User;
@@ -12,9 +13,8 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\Scalar;
-use DreamFactory\Core\Models\Config as SystemConfig;
 use DreamFactory\Library\Utility\Inflector;
+use DreamFactory\Library\Utility\Scalar;
 
 class Environment extends BaseSystemResource
 {
@@ -29,7 +29,7 @@ class Environment extends BaseSystemResource
             'version_current'   => \Config::get('df.version'),
             'version_latest'    => \Config::get('df.version'),
             'upgrade_available' => false,
-            'is_hosted'         => config('df.managed'),
+            'is_hosted'         => env('DF_MANAGED', false),
             'host'              => php_uname('n'),
         ];
 
@@ -85,7 +85,7 @@ class Environment extends BaseSystemResource
                     [
                         'app_by_app_to_app_group' => function ($q){
                             $q->whereIsActive(1)->whereNotIn('type', [AppTypes::NONE]);
-                        }
+                        },
                     ]
                 )->get();
                 $apps = AppModel::whereIsActive(1)->whereNotIn('type', [AppTypes::NONE])->get();
@@ -105,7 +105,7 @@ class Environment extends BaseSystemResource
                     [
                         'app_by_app_to_app_group' => function ($q) use ($appIdsString, $typeString){
                             $q->whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type NOT IN ($typeString)");
-                        }
+                        },
                     ]
                 )->get();
                 $apps =
@@ -119,7 +119,7 @@ class Environment extends BaseSystemResource
                         $q->where('role_id', '>', 0)
                             ->whereIsActive(1)
                             ->whereNotIn('type', [AppTypes::NONE]);
-                    }
+                    },
                 ]
             )->get();
             $apps = AppModel::whereIsActive(1)
@@ -150,7 +150,7 @@ class Environment extends BaseSystemResource
                     'id'          => $appGroup->id,
                     'name'        => $appGroup->name,
                     'description' => $appGroup->description,
-                    'app'         => $appInfo
+                    'app'         => $appInfo,
                 ];
             }
         }
@@ -175,7 +175,7 @@ class Environment extends BaseSystemResource
             'is_default'              => ($defaultAppId === $app['id']) ? true : false,
             'allow_fullscreen_toggle' => $app['allow_fullscreen_toggle'],
             'requires_fullscreen'     => $app['requires_fullscreen'],
-            'toggle_location'         => $app['toggle_location']
+            'toggle_location'         => $app['toggle_location'],
         ];
     }
 
@@ -190,8 +190,8 @@ class Environment extends BaseSystemResource
             'payload' => [
                 'email'       => 'string',
                 'password'    => 'string',
-                'remember_me' => 'bool'
-            ]
+                'remember_me' => 'bool',
+            ],
         ];
         $userApi = [
             'path'    => 'user/session',
@@ -199,8 +199,8 @@ class Environment extends BaseSystemResource
             'payload' => [
                 'email'       => 'string',
                 'password'    => 'string',
-                'remember_me' => 'bool'
-            ]
+                'remember_me' => 'bool',
+            ],
         ];
 
         if (class_exists(User::class)) {
@@ -217,14 +217,14 @@ class Environment extends BaseSystemResource
                 'adldap'                    => $ldap,
                 'allow_open_registration'   => $allowOpenRegistration,
                 'open_reg_email_service_id' => $openRegEmailServiceId,
-                'allow_forever_sessions'    => config('df.allow_forever_sessions', false)
+                'allow_forever_sessions'    => config('df.allow_forever_sessions', false),
             ];
         }
 
         return [
             'admin'                     => $adminApi,
             'allow_open_registration'   => false,
-            'open_reg_email_service_id' => false
+            'open_reg_email_service_id' => false,
         ];
     }
 
@@ -248,7 +248,7 @@ class Environment extends BaseSystemResource
                 'label'      => $o->label,
                 'verb'       => [Verbs::GET, Verbs::POST],
                 'type'       => $o->type,
-                'icon_class' => ArrayUtils::get($config, 'icon_class')
+                'icon_class' => ArrayUtils::get($config, 'icon_class'),
             ];
         }
 
@@ -277,8 +277,8 @@ class Environment extends BaseSystemResource
                     'username'    => 'string',
                     'password'    => 'string',
                     'service'     => $l->name,
-                    'remember_me' => 'bool'
-                ]
+                    'remember_me' => 'bool',
+                ],
             ];
         }
 
@@ -332,7 +332,7 @@ class Environment extends BaseSystemResource
     protected static function getPhpInfo()
     {
         $html = null;
-        $info = array();
+        $info = [];
         $pattern =
             '#(?:<h2>(?:<a name=".*?">)?(.*?)(?:</a>)?</h2>)|(?:<tr(?: class=".*?")?><t[hd](?: class=".*?")?>(.*?)\s*</t[hd]>(?:<t[hd](?: class=".*?")?>(.*?)\s*</t[hd]>(?:<t[hd](?: class=".*?")?>(.*?)\s*</t[hd]>)?)?</tr>)#s';
 
@@ -347,9 +347,9 @@ class Environment extends BaseSystemResource
                 $lastKey = end($keys);
 
                 if (strlen($match[1])) {
-                    $info[$match[1]] = array();
+                    $info[$match[1]] = [];
                 } elseif (isset($match[3])) {
-                    $info[$lastKey][$match[2]] = isset($match[4]) ? array($match[3], $match[4]) : $match[3];
+                    $info[$lastKey][$match[2]] = isset($match[4]) ? [$match[3], $match[4]] : $match[3];
                 } else {
                     $info[$lastKey][] = $match[2];
                 }
@@ -370,13 +370,13 @@ class Environment extends BaseSystemResource
      */
     protected static function cleanPhpInfo($info, $recursive = false)
     {
-        static $excludeKeys = array('directive', 'variable',);
+        static $excludeKeys = ['directive', 'variable',];
 
-        $clean = array();
+        $clean = [];
 
         //  Remove images and move nested args to root
         if (!$recursive && isset($info[0], $info[0][0]) && is_array($info[0])) {
-            $info['general'] = array();
+            $info['general'] = [];
 
             foreach ($info[0] as $key => $value) {
                 if (is_numeric($key) || in_array(strtolower($key), $excludeKeys)) {

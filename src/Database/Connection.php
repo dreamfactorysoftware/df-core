@@ -886,6 +886,15 @@ abstract class Connection
         return null;
     }
 
+    public function getSchemaExtrasForFieldsReferenced($table_name, $field_names, $select = '*')
+    {
+        if ($this->extraStore) {
+            return $this->extraStore->getSchemaExtrasForFieldsReferenced($table_name, $field_names, $select);
+        }
+
+        return null;
+    }
+
     public function getSchemaExtrasForRelated($table_name, $related_names, $select = '*')
     {
         if ($this->extraStore) {

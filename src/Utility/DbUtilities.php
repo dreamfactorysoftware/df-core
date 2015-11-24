@@ -19,40 +19,6 @@ class DbUtilities
     //*************************************************************************
 
     /**
-     * @param $avail_fields
-     *
-     * @return string
-     */
-    public static function getPrimaryKeyFieldFromDescribe($avail_fields)
-    {
-        foreach ($avail_fields as $field_info) {
-            if ($field_info->isPrimaryKey) {
-                return $field_info->name;
-            }
-        }
-
-        return '';
-    }
-
-    /**
-     * @param array   $avail_fields
-     * @param boolean $names_only Return only an array of names, otherwise return all properties
-     *
-     * @return array
-     */
-    public static function getPrimaryKeys($avail_fields, $names_only = false)
-    {
-        $keys = [];
-        foreach ($avail_fields as $info) {
-            if ($info->isPrimaryKey) {
-                $keys[] = ($names_only ? $info->name : $info);
-            }
-        }
-
-        return $keys;
-    }
-
-    /**
      * @param array $original
      *
      * @return array

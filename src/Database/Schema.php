@@ -338,6 +338,27 @@ abstract class Schema
                 }
             }
         }
+        if (!empty($extras = $this->connection->getSchemaExtrasForFieldsReferenced($name, '*'))) {
+            foreach ($extras as $extra) {
+                if (!empty($columnName = (isset($extra['ref_fields'])) ? $extra['ref_fields'] : null)) {
+                    if (null !== $column = $table->getColumn($columnName)) {
+
+                        // Add it to our foreign references as well
+                        $relatedInfo = [
+                            'field'              => $column->name,
+                            'is_virtual'         => true,
+                            'is_foreign_service' => ($extra['service_id'] !== $extra['ref_service_id']),
+                            'ref_service_id'     => $extra['service_id'],
+                            'ref_table'          => $extra['table'],
+                            'ref_fields'         => $extra['field'],
+                        ];
+                        $relation = new RelationSchema(RelationSchema::HAS_MANY, $relatedInfo);
+
+                        $table->addRelation($relation);
+                    }
+                }
+            }
+        }
         if (!empty($extras = $this->connection->getSchemaExtrasForRelated($name, '*'))) {
             foreach ($extras as $extra) {
                 if (!empty($relatedName = (isset($extra['relationship'])) ? $extra['relationship'] : null)) {

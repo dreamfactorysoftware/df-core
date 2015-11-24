@@ -80,6 +80,38 @@ trait DbSchemaExtras
 
     /**
      * @param string         $table_name
+     * @param string | array $field_names
+     * @param string | array $select
+     *
+     * @throws \InvalidArgumentException
+     * @return array
+     */
+    public function getSchemaExtrasForFieldsReferenced($table_name, $field_names = '*', $select = '*')
+    {
+        if (empty($field_names)) {
+            return [];
+        }
+
+        if ('*' === $field_names) {
+            return DbFieldExtras::whereRefServiceId($this->getServiceId())
+                ->whereRefTable($table_name)
+                ->get()
+                ->toArray();
+        }
+
+        if (false === $values = DbUtilities::validateAsArray($field_names, ',', true)) {
+            throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
+        }
+
+        return DbFieldExtras::whereRefServiceId($this->getServiceId())
+            ->whereRefTable($table_name)
+            ->whereIn('ref_fields', $values)
+            ->get()
+            ->toArray();
+    }
+
+    /**
+     * @param string         $table_name
      * @param string | array $related_names
      * @param string | array $select
      *

@@ -22,6 +22,13 @@ interface DbExtrasInterface
 
     /**
      * @param string         $table_name
+     * @param string | array $field_names
+     * @param string | array $select
+     */
+    public function getSchemaExtrasForFieldsReferenced($table_name, $field_names = '*', $select = '*');
+
+    /**
+     * @param string         $table_name
      * @param string | array $related_names
      * @param string | array $select
      */

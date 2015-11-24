@@ -25,6 +25,9 @@ namespace DreamFactory\Core\Models;
  * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereServiceId($value)
  * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereTable($value)
  * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereField($value)
+ * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereRefServiceId($value)
+ * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereRefTable($value)
+ * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereRefFields($value)
  */
 class DbFieldExtras extends BaseSystemModel
 {

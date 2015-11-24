@@ -4,11 +4,30 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
-- Adding virtual relationships for both inter-service and service to service for SQL DB services.
 
 ### Changed
 
 ### Fixed
+
+## [0.1.4] - 2015-11-24
+### Added
+- Virtual foreign keys (relationships) for both inter-service and service to service for SQL DB services.
+- Aliasing, label and description for relationships.
+- Always fetch option for relationships.
+- This changelog!
+
+### Changed
+- Updating user profile now returns an updated session token.
+- Removed references to "managed" usage, moved to self-contained library.
+- PHP scripting now allows exception throwing.
+
+### Fixed
+- Filtering using the IN syntax.
+- Deleting of virtual fields.
+- Bug with DB function usage.
+- Node scripting escaping arguments.
+- Several SQL DB as server database compatibility issues.
+- Handling for some older MIME types like text/xml.
 
 ## [0.1.3] - 2015-11-13
 ### Added
@@ -30,7 +49,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.3...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.4...HEAD
+[0.1.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.3...0.1.4
 [0.1.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.2...0.1.3
 [0.1.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.1...0.1.2
 [0.1.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.0...0.1.1

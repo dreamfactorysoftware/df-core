@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.1.6] - 2015-11-30
+### Fixed
+- Field extras was overriding real SQL relationships when aliases or labels configured.
+
 ## [0.1.5] - 2015-11-30
 ### Fixed
 - Service config initialized properly for file service, empty array was causing provisioning issues.
@@ -53,7 +57,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.5...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.6...HEAD
+[0.1.6]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.5...0.1.6
 [0.1.5]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.4...0.1.5
 [0.1.4]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.3...0.1.4
 [0.1.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.2...0.1.3

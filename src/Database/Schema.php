@@ -305,8 +305,8 @@ abstract class Schema
             foreach ($extras as $extra) {
                 if (!empty($columnName = (isset($extra['field'])) ? $extra['field'] : null)) {
                     if (null !== $column = $table->getColumn($columnName)) {
-                        $column->fill($extra);
-                        if (isset($extra['ref_table'])) {
+                        if (!$column->isForeignKey && !empty($extra['ref_table'])) {
+                            $column->fill($extra); // include additional ref info
                             $column->isForeignKey = true;
                             $column->isVirtualForeignKey = true;
                             if (!empty($extra['service_id']) &&
@@ -326,6 +326,10 @@ abstract class Schema
                             $relation = new RelationSchema(RelationSchema::BELONGS_TO, $relatedInfo);
 
                             $table->addRelation($relation);
+                        } else {
+                            //  Exclude potential virtual reference info
+                            $refExtraFields = ['ref_service_id','ref_table','ref_fields','ref_on_update','ref_on_delete'];
+                            $column->fill(array_except($extra, $refExtraFields));
                         }
                     } elseif (ColumnSchema::TYPE_VIRTUAL ===
                         (isset($extra['extra_type']) ? $extra['extra_type'] : null)

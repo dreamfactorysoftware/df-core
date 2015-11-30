@@ -61,7 +61,7 @@ class Service extends BaseSystemModel
     /**
      * @var array Extra config to pass to any config handler
      */
-    protected $config = [];
+    protected $config;
 
     public function disableRelated()
     {

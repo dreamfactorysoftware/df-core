@@ -46,7 +46,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
         if (!empty($model)) {
             return $model->toArray();
         } else {
-            return [];
+            return null;
         }
     }
 

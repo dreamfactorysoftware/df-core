@@ -14,6 +14,18 @@ class FilePublicPath extends BaseServiceConfigModel
     /**
      * {@inheritdoc}
      */
+    public static function getConfig($id)
+    {
+        if (null === $config = parent::getConfig($id)) {
+            $config = ['public_path' => [], 'container' => null, 'service_id' => $id];
+        }
+
+        return $config;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public static function validateConfig($config, $create = true)
     {
         $validator = static::makeValidator($config, [

@@ -1,4 +1,4 @@
-## DreamFactory Core v0.1.2
+## DreamFactory Core v0.1.5
 
 [![Total Downloads](https://poser.pugx.org/dreamfactory/df-core/d/total.svg)](https://packagist.org/packages/dreamfactory/df-core)
 [![Latest Stable Version](https://poser.pugx.org/dreamfactory/df-core/v/stable.svg)](https://packagist.org/packages/dreamfactory/df-core)

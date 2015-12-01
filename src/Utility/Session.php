@@ -2,19 +2,19 @@
 
 namespace DreamFactory\Core\Utility;
 
+use Carbon\Carbon;
 use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\Lookup;
 use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
-use DreamFactory\Library\Utility\Curl;
-use Carbon\Carbon;
-use DreamFactory\Core\Exceptions\UnauthorizedException;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Models\User;
+use DreamFactory\Library\Utility\Curl;
+use DreamFactory\Library\Utility\Enums\Verbs;
 
 class Session
 {
@@ -93,7 +93,6 @@ class Session
             $tempCompStarPos = strpos($tempComponent, '*');
             $tempVerbs = ArrayUtils::get($svcInfo, 'verb_mask');
 
-            $temp = substr($component, 0, $tempCompStarPos) . '*';
             if (0 == strcasecmp($service, $tempService)) {
                 if (!empty($component)) {
                     if (0 == strcasecmp($component, $tempComponent)) {

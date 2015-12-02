@@ -235,7 +235,7 @@ class Environment extends BaseSystemResource
     {
         $oauth = ServiceModel::whereIn(
             'type',
-            ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google']
+            ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google', 'oauth_linkedin']
         )->whereIsActive(1)->get(['id', 'name', 'type', 'label']);
 
         $services = [];

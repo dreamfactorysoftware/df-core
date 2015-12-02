@@ -6,9 +6,11 @@ use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
+use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\ServiceHandler;
+use DreamFactory\Http\Middleware\AuthCheck;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Utility\Session;
 
@@ -26,7 +28,7 @@ class UserSessionResource extends BaseRestResource
     protected function handleGET()
     {
         $serviceName = $this->request->getParameter('service');
-        if(!empty($serviceName)){
+        if (!empty($serviceName)) {
             $service = ServiceHandler::getService($serviceName);
             $serviceModel = Service::find($service->getServiceId());
             $serviceType = $serviceModel->serviceType()->first();
@@ -35,9 +37,10 @@ class UserSessionResource extends BaseRestResource
             if ($serviceGroup !== ServiceTypeGroups::OAUTH) {
                 throw new BadRequestException('Invalid login service provided. Please use an OAuth service.');
             }
-            return $service->handleLogin($this->request->getDriver());
 
+            return $service->handleLogin($this->request->getDriver());
         }
+
         return Session::getPublicInfo();
     }
 
@@ -51,7 +54,7 @@ class UserSessionResource extends BaseRestResource
     protected function handlePOST()
     {
         $serviceName = $this->getPayloadData('service');
-        if(empty($serviceName)){
+        if (empty($serviceName)) {
             $serviceName = $this->request->getParameter('service');
         }
         if (!empty($serviceName)) {
@@ -74,7 +77,7 @@ class UserSessionResource extends BaseRestResource
             } elseif ($serviceGroup === ServiceTypeGroups::OAUTH) {
                 $oauthCallback = $this->request->getParameterAsBool('oauth_callback');
 
-                if(!empty($oauthCallback)) {
+                if (!empty($oauthCallback)) {
                     return $service->handleOAuthCallback();
                 } else {
                     return $service->handleLogin($this->request->getDriver());
@@ -82,8 +85,8 @@ class UserSessionResource extends BaseRestResource
             }
         } else {
             $credentials = [
-                'email'    => $this->getPayloadData('email'),
-                'password' => $this->getPayloadData('password'),
+                'email'        => $this->getPayloadData('email'),
+                'password'     => $this->getPayloadData('password'),
                 'is_sys_admin' => false
             ];
 
@@ -150,10 +153,24 @@ class UserSessionResource extends BaseRestResource
             $credentials['is_sys_admin'] = 1;
         }
 
-        if (Session::authenticate($credentials, $remember)) {
+        if (Session::authenticate($credentials, $remember, true, static::getAppId())) {
             return Session::getPublicInfo();
         } else {
             throw new UnauthorizedException('Invalid credentials supplied.');
         }
+    }
+
+    /**
+     * @return int|null
+     */
+    protected function getAppId()
+    {
+        $apiKey = AuthCheck::getApiKey($this->request->getDriver());
+
+        if (!empty($apiKey)) {
+            return App::getAppIdByApiKey($apiKey);
+        }
+
+        return null;
     }
 }

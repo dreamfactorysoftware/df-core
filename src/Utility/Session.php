@@ -383,14 +383,15 @@ class Session
     }
 
     /**
-     * @param array $credentials
-     * @param bool  $remember
-     * @param bool  $login
+     * @param array   $credentials
+     * @param bool    $remember
+     * @param bool    $login
+     * @param integer $appId
      *
      * @return bool
      * @throws \Exception
      */
-    public static function authenticate(array $credentials, $remember = false, $login = true)
+    public static function authenticate(array $credentials, $remember = false, $login = true, $appId = null)
     {
         if (\Auth::attempt($credentials, false, false)) {
             $user = \Auth::getLastAttempted();
@@ -399,7 +400,7 @@ class Session
                 $user->last_login_date = Carbon::now()->toDateTimeString();
                 $user->confirm_code = 'y';
                 $user->save();
-                Session::setUserInfoWithJWT($user, $remember);
+                Session::setUserInfoWithJWT($user, $remember, $appId);
             }
 
             return true;
@@ -441,10 +442,11 @@ class Session
      *
      * @param  array|User $user
      * @param bool        $forever
+     * @param integer     $appId
      *
      * @return bool
      */
-    public static function setUserInfoWithJWT($user, $forever = false)
+    public static function setUserInfoWithJWT($user, $forever = false, $appId = null)
     {
         $userInfo = null;
         if ($user instanceof User) {
@@ -458,7 +460,13 @@ class Session
             $token = JWTUtilities::makeJWTByUser($id, $email, $forever);
             static::setSessionToken($token);
 
-            return static::setUserInfo($userInfo);
+            if (!empty($appId) && !$user->is_sys_admin) {
+                static::setSessionData($appId, $id);
+
+                return true;
+            } else {
+                return static::setUserInfo($userInfo);
+            }
         }
 
         return false;

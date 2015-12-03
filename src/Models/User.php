@@ -81,6 +81,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
     /**
      * Input validation rules.
+     *
      * @type array
      */
     protected $rules = [
@@ -205,15 +206,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             if (ArrayUtils::getBool($params, 'admin') && !empty($password)) {
                 $model->password = ArrayUtils::get($record, 'password');
             }
-
-            $oldEmail = $model->email;
-
             $model->update($record);
-
-            if (('user@example.com' === $oldEmail) && ('user@example.com' !== $model->email)) {
-                // Register user
-                RegisterContact::registerUser($model);
-            }
 
             return static::buildResult($model, $params);
         } catch (\Exception $ex) {
@@ -223,6 +216,25 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 throw $ex;
             }
         }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function update(array $attributes = [])
+    {
+        $oldEmail = $this->email;
+        $updated = parent::update($attributes);
+
+        if ($updated && $this->is_sys_admin) {
+            $newEmail = $this->email;
+            if (('user@example.com' === $oldEmail) && ('user@example.com' !== $newEmail)) {
+                // Register user
+                RegisterContact::registerUser($this);
+            }
+        }
+
+        return $updated;
     }
 
     /**

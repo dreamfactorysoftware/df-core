@@ -2,19 +2,19 @@
 
 namespace DreamFactory\Core\Utility;
 
+use Carbon\Carbon;
 use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\Lookup;
 use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
-use DreamFactory\Library\Utility\Curl;
-use Carbon\Carbon;
-use DreamFactory\Core\Exceptions\UnauthorizedException;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Models\User;
+use DreamFactory\Library\Utility\Curl;
+use DreamFactory\Library\Utility\Enums\Verbs;
 
 class Session
 {
@@ -93,7 +93,6 @@ class Session
             $tempCompStarPos = strpos($tempComponent, '*');
             $tempVerbs = ArrayUtils::get($svcInfo, 'verb_mask');
 
-            $temp = substr($component, 0, $tempCompStarPos) . '*';
             if (0 == strcasecmp($service, $tempService)) {
                 if (!empty($component)) {
                     if (0 == strcasecmp($component, $tempComponent)) {
@@ -384,14 +383,15 @@ class Session
     }
 
     /**
-     * @param array $credentials
-     * @param bool  $remember
-     * @param bool  $login
+     * @param array   $credentials
+     * @param bool    $remember
+     * @param bool    $login
+     * @param integer $appId
      *
      * @return bool
      * @throws \Exception
      */
-    public static function authenticate(array $credentials, $remember = false, $login = true)
+    public static function authenticate(array $credentials, $remember = false, $login = true, $appId = null)
     {
         if (\Auth::attempt($credentials, false, false)) {
             $user = \Auth::getLastAttempted();
@@ -400,7 +400,7 @@ class Session
                 $user->last_login_date = Carbon::now()->toDateTimeString();
                 $user->confirm_code = 'y';
                 $user->save();
-                Session::setUserInfoWithJWT($user, $remember);
+                Session::setUserInfoWithJWT($user, $remember, $appId);
             }
 
             return true;
@@ -442,10 +442,11 @@ class Session
      *
      * @param  array|User $user
      * @param bool        $forever
+     * @param integer     $appId
      *
      * @return bool
      */
-    public static function setUserInfoWithJWT($user, $forever = false)
+    public static function setUserInfoWithJWT($user, $forever = false, $appId = null)
     {
         $userInfo = null;
         if ($user instanceof User) {
@@ -459,7 +460,13 @@ class Session
             $token = JWTUtilities::makeJWTByUser($id, $email, $forever);
             static::setSessionToken($token);
 
-            return static::setUserInfo($userInfo);
+            if (!empty($appId) && !$user->is_sys_admin) {
+                static::setSessionData($appId, $id);
+
+                return true;
+            } else {
+                return static::setUserInfo($userInfo);
+            }
         }
 
         return false;

@@ -24,9 +24,17 @@ use Validator;
  * @property string  $first_name
  * @property string  $last_name
  * @property string  $email
- * @property string  $description
+ * @property string  $phone
+ * @property string  $confirm_code
+ * @property string  $remember_token
+ * @property string  $adldap
+ * @property string  $oauth_provider
+ * @property string  $security_question
+ * @property string  $security_answer
+ * @property int     $default_app_id
  * @property boolean $is_active
  * @property boolean $is_sys_admin
+ * @property string  $last_login_date
  * @property string  $created_date
  * @property string  $last_modified_date
  * @method static \Illuminate\Database\Query\Builder|User whereId($value)
@@ -73,6 +81,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
     /**
      * Input validation rules.
+     *
      * @type array
      */
     protected $rules = [
@@ -197,15 +206,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             if (ArrayUtils::getBool($params, 'admin') && !empty($password)) {
                 $model->password = ArrayUtils::get($record, 'password');
             }
-
-            $oldEmail = $model->email;
-
             $model->update($record);
-
-            if (('user@example.com' === $oldEmail) && ('user@example.com' !== $model->email)) {
-                // Register user
-                RegisterContact::registerUser($model);
-            }
 
             return static::buildResult($model, $params);
         } catch (\Exception $ex) {
@@ -215,6 +216,25 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 throw $ex;
             }
         }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function update(array $attributes = [])
+    {
+        $oldEmail = $this->email;
+        $updated = parent::update($attributes);
+
+        if ($updated && $this->is_sys_admin) {
+            $newEmail = $this->email;
+            if (('user@example.com' === $oldEmail) && ('user@example.com' !== $newEmail)) {
+                // Register user
+                RegisterContact::registerUser($this);
+            }
+        }
+
+        return $updated;
     }
 
     /**

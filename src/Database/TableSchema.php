@@ -139,6 +139,10 @@ class TableSchema extends TableNameSchema
     {
         $out = parent::toArray($use_alias);
 
+        $out['name'] = $this->displayName;
+        $out['primary_key'] = $this->primaryKey;
+        $out['name_field'] = $this->nameField;
+
         $fields = [];
         /** @var ColumnSchema $column */
         foreach ($this->columns as $column) {
@@ -152,10 +156,6 @@ class TableSchema extends TableNameSchema
             $relations[] = $relation->toArray($use_alias);
         }
         $out['related'] = $relations;
-
-        $out['primary_key'] = $this->primaryKey;
-        $out['name_field'] = $this->nameField;
-        $out['name'] = $this->displayName;
 
         return $out;
     }

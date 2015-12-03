@@ -193,7 +193,7 @@ class RelationSchema
             'ref_on_update'               => $this->refOnUpdate,
             'ref_on_delete'               => $this->refOnDelete,
             'is_foreign_junction_service' => $this->isForeignJunctionService,
-            'junction_service_id'         => $this->junctionTable,
+            'junction_service_id'         => $this->junctionServiceId,
             'junction_table'              => $this->junctionTable,
             'junction_field'              => $this->junctionField,
             'junction_ref_field'          => $this->junctionRefField,

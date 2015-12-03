@@ -41,7 +41,7 @@ abstract class BaseService extends BaseRestService
     {
         parent::__construct($settings);
 
-        $config = ArrayUtils::get($settings, 'config', []);
+        $config = (ArrayUtils::get($settings, 'config', []))? : [];
         $this->setParameters($config);
         $this->setTransport($config);
         $this->setMailer();

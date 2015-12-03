@@ -29,6 +29,7 @@ class Environment extends BaseSystemResource
             'version_current'   => \Config::get('df.version'),
             'version_latest'    => \Config::get('df.version'),
             'upgrade_available' => false,
+            'bitnami_demo'      => static::isDemoApplication(),
             'is_hosted'         => env('DF_MANAGED', false),
             'host'              => php_uname('n'),
         ];
@@ -72,6 +73,16 @@ class Environment extends BaseSystemResource
         }
 
         return $result;
+    }
+
+    /**
+     * Determines whether the instance is a one hour bitnami demo.
+     *
+     * @return bool
+     */
+    public static function isDemoApplication()
+    {
+        return file_exists($_SERVER["DOCUMENT_ROOT"] . "/../../.bitnamimeta/demo_machine");
     }
 
     protected static function getApps()
@@ -235,7 +246,7 @@ class Environment extends BaseSystemResource
     {
         $oauth = ServiceModel::whereIn(
             'type',
-            ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google']
+            ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google', 'oauth_linkedin']
         )->whereIsActive(1)->get(['id', 'name', 'type', 'label']);
 
         $services = [];

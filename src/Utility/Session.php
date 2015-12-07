@@ -67,6 +67,11 @@ class Session
                 VerbsMask::DELETE_MASK;
         }
 
+        $roleId = Session::getRoleId();
+        if ($roleId && !Role::getCachedInfo($roleId, 'is_active')) {
+            return false;
+        }
+
         $services = ArrayUtils::clean(static::get('role.services'));
         $service = strval($service);
         $component = strval($component);

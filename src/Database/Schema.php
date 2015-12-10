@@ -309,26 +309,32 @@ abstract class Schema
                             $column->fill($extra); // include additional ref info
                             $column->isForeignKey = true;
                             $column->isVirtualForeignKey = true;
-                            if (!empty($extra['service_id']) &&
-                                !empty($extra['ref_service_id']) &&
-                                ($extra['service_id'] !== $extra['ref_service_id'])
-                            ) {
+                            if (!empty($extra['ref_service'])) {
                                 $column->isForeignRefService = true;
                             }
 
                             // Add it to our foreign references as well
                             $relatedInfo =
                                 array_merge(array_except($extra, ['label', 'description']),
-                                    ['is_virtual'         => true,
-                                     'is_foreign_service' => $column->isForeignRefService,
-                                     'field'              => $column->name
+                                    [
+                                        'is_virtual'         => true,
+                                        'is_foreign_service' => $column->isForeignRefService,
+                                        'field'              => $column->name
                                     ]);
                             $relation = new RelationSchema(RelationSchema::BELONGS_TO, $relatedInfo);
 
                             $table->addRelation($relation);
                         } else {
                             //  Exclude potential virtual reference info
-                            $refExtraFields = ['ref_service_id','ref_table','ref_fields','ref_on_update','ref_on_delete'];
+                            $refExtraFields =
+                                [
+                                    'ref_service',
+                                    'ref_service_id',
+                                    'ref_table',
+                                    'ref_fields',
+                                    'ref_on_update',
+                                    'ref_on_delete'
+                                ];
                             $column->fill(array_except($extra, $refExtraFields));
                         }
                     } elseif (ColumnSchema::TYPE_VIRTUAL ===
@@ -351,7 +357,8 @@ abstract class Schema
                         $relatedInfo = [
                             'field'              => $column->name,
                             'is_virtual'         => true,
-                            'is_foreign_service' => ($extra['service_id'] !== $extra['ref_service_id']),
+                            'is_foreign_service' => !empty($extra['service']),
+                            'ref_service'        => (empty($extra['service']) ? null : $extra['service']),
                             'ref_service_id'     => $extra['service_id'],
                             'ref_table'          => $extra['table'],
                             'ref_fields'         => $extra['field'],
@@ -1045,7 +1052,8 @@ abstract class Schema
                     'db_function',
                     'is_virtual_foreign_key',
                     'is_foreign_ref_service',
-                    'ref_service_id'
+                    'ref_service',
+                    'ref_service_id',
                 ];
             $virtualFK = (isset($field['is_virtual_foreign_key']) && boolval($field['is_virtual_foreign_key']));
             if ($virtualFK) {
@@ -1057,6 +1065,7 @@ abstract class Schema
                 }
             } else {
                 // don't set this in the database extras
+                $field['ref_service'] = null;
                 $field['ref_service_id'] = null;
             }
             $extraNew = array_only($field, $extraTags);

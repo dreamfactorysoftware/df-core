@@ -91,7 +91,7 @@ class TableNameSchema
         ];
 
         if (!$use_alias) {
-            $out['alias'] = $this->alias;
+            $out = array_merge(['alias' => $this->alias], $out);
         }
 
         return $out;

@@ -4,6 +4,8 @@ namespace DreamFactory\Core\Resources;
 
 use Config;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Enums\DbComparisonOperators;
+use DreamFactory\Core\Enums\DbLogicalOperators;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
@@ -13,7 +15,6 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\DbUtilities;
-use DreamFactory\Core\Enums\DbFilterOperators;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -2190,38 +2191,38 @@ abstract class BaseDbTableResource extends BaseDbResource
     public static function compareByOperator($operator, $left_found, $left, $right)
     {
         switch ($operator) {
-            case DbFilterOperators::EQ:
+            case DbComparisonOperators::EQ:
                 return ($left == $right);
-            case DbFilterOperators::NE:
+            case DbComparisonOperators::NE:
                 return ($left != $right);
-            case DbFilterOperators::GT:
+            case DbComparisonOperators::GT:
                 return ($left > $right);
-            case DbFilterOperators::LT:
+            case DbComparisonOperators::LT:
                 return ($left < $right);
-            case DbFilterOperators::GE:
+            case DbComparisonOperators::GTE:
                 return ($left >= $right);
-            case DbFilterOperators::LE:
+            case DbComparisonOperators::LTE:
                 return ($left <= $right);
-            case DbFilterOperators::STARTS_WITH:
+            case DbComparisonOperators::STARTS_WITH:
                 return static::startsWith($left, $right);
-            case DbFilterOperators::ENDS_WITH:
+            case DbComparisonOperators::ENDS_WITH:
                 return static::endswith($left, $right);
-            case DbFilterOperators::CONTAINS:
+            case DbComparisonOperators::CONTAINS:
                 return (false !== strpos($left, $right));
-            case DbFilterOperators::IN:
+            case DbComparisonOperators::IN:
                 return ArrayUtils::isInList($right, $left);
-            case DbFilterOperators::NOT_IN:
+            case DbComparisonOperators::NOT_IN:
                 return !ArrayUtils::isInList($right, $left);
-            case DbFilterOperators::IS_NULL:
+            case DbComparisonOperators::IS_NULL:
                 return is_null($left);
-            case DbFilterOperators::IS_NOT_NULL:
+            case DbComparisonOperators::IS_NOT_NULL:
                 return !is_null($left);
-            case DbFilterOperators::DOES_EXIST:
+            case DbComparisonOperators::DOES_EXIST:
                 return ($left_found);
-            case DbFilterOperators::DOES_NOT_EXIST:
+            case DbComparisonOperators::DOES_NOT_EXIST:
                 return (!$left_found);
             default:
-                throw new InternalServerErrorException('Invalid server configuration detected.');
+                throw new InternalServerErrorException('Invalid server-side filter configuration detected.');
         }
     }
 
@@ -2756,6 +2757,47 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         return $first_array;
+    }
+
+    public static function padOperator($operator)
+    {
+        if (ctype_alpha($operator)) {
+            if (DbComparisonOperators::requiresNoValue($operator)) {
+                return ' ' . $operator;
+            }
+
+            return ' ' . $operator . ' ';
+        }
+
+        return $operator;
+    }
+
+    public static function localizeOperator($operator)
+    {
+        switch ($operator) {
+            // Logical
+            case DbLogicalOperators::AND_SYM:
+                return DbLogicalOperators::AND_STR;
+            case DbLogicalOperators::OR_SYM:
+                return DbLogicalOperators::OR_STR;
+            // Comparison
+            case DbComparisonOperators::EQ_STR:
+                return DbComparisonOperators::EQ;
+            case DbComparisonOperators::NE_STR:
+                return DbComparisonOperators::NE;
+            case DbComparisonOperators::NE_2:
+                return DbComparisonOperators::NE;
+            case DbComparisonOperators::GT_STR:
+                return DbComparisonOperators::GT;
+            case DbComparisonOperators::GTE_STR:
+                return DbComparisonOperators::GTE;
+            case DbComparisonOperators::LT_STR:
+                return DbComparisonOperators::LT;
+            case DbComparisonOperators::LTE_STR:
+                return DbComparisonOperators::LTE;
+            default:
+                return $operator;
+        }
     }
 
     /**

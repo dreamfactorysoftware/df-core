@@ -119,6 +119,10 @@ class ColumnSchema
      */
     public $refServiceId;
     /**
+     * @var string if a foreign key, then this is referenced service name
+     */
+    public $refService;
+    /**
      * @var string if a foreign key, then this is referenced table name
      */
     public $refTable;
@@ -575,6 +579,7 @@ class ColumnSchema
             'is_foreign_key'         => $this->isForeignKey,
             'is_virtual_foreign_key' => $this->isVirtualForeignKey,
             'is_foreign_ref_service' => $this->isForeignRefService,
+            'ref_service'            => $this->refService,
             'ref_service_id'         => $this->refServiceId,
             'ref_table'              => $this->refTable,
             'ref_fields'             => $this->refFields,
@@ -586,7 +591,7 @@ class ColumnSchema
         ];
 
         if (!$use_alias) {
-            $out['alias'] = $this->alias;
+            $out = array_merge(['alias' => $this->alias], $out);
         }
 
         return $out;

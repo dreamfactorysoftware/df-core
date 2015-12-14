@@ -904,6 +904,23 @@ class BaseModel extends Model
     }
 
     /**
+     * Performs a COUNT query based on query criteria supplied from api request.
+     *
+     * @param array $criteria
+     *
+     * @return int
+     */
+    public static function countByRequest(array $criteria = [])
+    {
+        /** @type \Illuminate\Database\Eloquent\Builder $builder */
+        if (!empty($condition = ArrayUtils::get($criteria, 'condition'))) {
+            return static::whereRaw($condition)->count();
+        }
+
+        return static::count();
+    }
+
+    /**
      * Saves the HasMany relational data. If id exists
      * then it updates the record otherwise it will
      * create the record.

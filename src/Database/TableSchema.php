@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Database;
 
+use DreamFactory\Library\Utility\Inflector;
+
 /**
  * TableSchema is the base class for representing the metadata of a database table.
  *
@@ -18,7 +20,7 @@ namespace DreamFactory\Core\Database;
  *
  * @property array $columnNames List of column names.
  */
-class TableSchema extends TableNameSchema
+class TableSchema
 {
     /**
      * @var string name of the schema that this table belongs to.
@@ -38,6 +40,26 @@ class TableSchema extends TableNameSchema
      *      is to be used by clients.
      */
     public $displayName;
+    /**
+     * @var string Optional alias for this table. This alias can be used in the API to access the table.
+     */
+    public $alias;
+    /**
+     * @var string Optional label for this table.
+     */
+    public $label;
+    /**
+     * @var string Optional plural form of the label for of this table.
+     */
+    public $plural;
+    /**
+     * @var string Optional public description of this table.
+     */
+    public $description;
+    /**
+     * @var boolean Table or View?.
+     */
+    public $isView = false;
     /**
      * @var string Optional field of this table that may contain a displayable name for each row/record.
      */
@@ -69,6 +91,46 @@ class TableSchema extends TableNameSchema
      * @var boolean Are any of the relationships required during fetch on this table?
      */
     public $fetchRequiresRelations = false;
+    /**
+     * @var boolean Has the full schema been discovered, or just name and type.
+     */
+    public $discoveryCompleted = false;
+
+    public function __construct(array $settings)
+    {
+        $this->fill($settings);
+    }
+
+    public function fill(array $settings)
+    {
+        foreach ($settings as $key => $value) {
+            if (!property_exists($this, $key)) {
+                // try camel cased
+                $camel = camel_case($key);
+                if (property_exists($this, $camel)) {
+                    $this->{$camel} = $value;
+                    continue;
+                }
+            }
+            // set real and virtual
+            $this->{$key} = $value;
+        }
+    }
+
+    public function getName($use_alias = false)
+    {
+        return ($use_alias && !empty($this->alias)) ? $this->alias : $this->name;
+    }
+
+    public function getLabel()
+    {
+        return (empty($this->label)) ? Inflector::camelize($this->getName(true), '_', true) : $this->label;
+    }
+
+    public function getPlural()
+    {
+        return (empty($this->plural)) ? Inflector::pluralize($this->getLabel()) : $this->plural;
+    }
 
     /**
      * Sets the named column metadata.
@@ -137,7 +199,17 @@ class TableSchema extends TableNameSchema
 
     public function toArray($use_alias = false)
     {
-        $out = parent::toArray($use_alias);
+        $out = [
+            'name'        => $this->getName($use_alias),
+            'is_view'     => $this->isView,
+            'label'       => $this->getLabel(),
+            'plural'      => $this->getPlural(),
+            'description' => $this->description,
+        ];
+
+        if (!$use_alias) {
+            $out = array_merge(['alias' => $this->alias], $out);
+        }
 
         $out['name'] = $this->displayName;
         $out['primary_key'] = $this->primaryKey;

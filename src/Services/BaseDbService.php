@@ -4,7 +4,7 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Contracts\CachedInterface;
-use DreamFactory\Core\Database\TableNameSchema;
+use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -99,7 +99,7 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
      * @param bool        $refresh
      * @param bool        $use_alias
      *
-     * @return TableNameSchema[]
+     * @return TableSchema[]
      */
     abstract public function getTableNames($schema = null, $refresh = false, $use_alias = false);
 

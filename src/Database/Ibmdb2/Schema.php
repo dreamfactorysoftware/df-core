@@ -2,8 +2,6 @@
 namespace DreamFactory\Core\Database\Ibmdb2;
 
 use DreamFactory\Core\Database\Expression;
-use DreamFactory\Core\Database\RelationSchema;
-use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
@@ -288,17 +286,10 @@ class Schema extends \DreamFactory\Core\Database\Schema
     }
 
     /**
-     * Loads the metadata for the specified table.
-     *
-     * @param string $name table name
-     *
-     * @return TableSchema driver dependent table metadata, null if the table does not exist.
+     * @inheritdoc
      */
-    protected function loadTable($name)
+    protected function loadTable(TableSchema $table)
     {
-        $table = new TableSchema($name);
-        $this->resolveTableNames($table, $name);
-
         if (!$this->findColumns($table)) {
             return null;
         }
@@ -601,19 +592,26 @@ SQL;
   ORDER BY TABNAME;
 SQL;
 
-        $defaultSchema = $this->getDefaultSchema();
-
         $params = (!empty($schema)) ? [':schema' => $schema] : [];
         $rows = $this->connection->createCommand($sql)->queryAll(true, $params);
 
+        $defaultSchema = $this->getDefaultSchema();
+        $addSchema = (!empty($schema) && ($defaultSchema !== $schema));
+
         $names = [];
         foreach ($rows as $row) {
-            $schema = isset($row['TABSCHEMA']) ? $row['TABSCHEMA'] : '';
+            $schemaName = isset($row['TABSCHEMA']) ? $row['TABSCHEMA'] : '';
             $name = isset($row['TABNAME']) ? $row['TABNAME'] : '';
-            if ($defaultSchema !== $schema) {
-                $name = $schema . '.' . $name;
+            $rawName = $this->quoteTableName($name);
+            if ($addSchema) {
+                $name = $schemaName . '.' . $name;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $rawName;
             }
-            $names[strtolower($name)] = new TableNameSchema($name, (0 === strcasecmp('V', $row['TYPE'])));
+            $settings = compact('schemaName','name', 'rawName');
+            $settings['displayName'] = $name;
+            $settings['isView'] = (0 === strcasecmp('V', $row['TYPE']));
+
+            $names[strtolower($name)] = new TableSchema($settings);
         }
 
         return $names;

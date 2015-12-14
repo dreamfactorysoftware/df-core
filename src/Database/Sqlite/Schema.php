@@ -3,7 +3,6 @@ namespace DreamFactory\Core\Database\Sqlite;
 
 use DreamFactory\Core\Database\Expression;
 use DreamFactory\Core\Database\RelationSchema;
-use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
@@ -262,7 +261,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
      *                              If this is not set, the next new row's primary key will have the max value of a
      *                              primary key plus one (i.e. sequence trimming).
      *
-     * @since 1.1
      */
     public function resetSequence($table, $value = null)
     {
@@ -293,7 +291,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
      * @param boolean $check  whether to turn on or off the integrity check.
      * @param string  $schema the schema of the tables. Defaults to empty string, meaning the current or default schema.
      *
-     * @since 1.1
      */
     public function checkIntegrity($check = true, $schema = '')
     {
@@ -316,7 +313,14 @@ class Schema extends \DreamFactory\Core\Database\Schema
 
         $names = [];
         foreach ($rows as $row) {
-            $names[strtolower($row)] = new TableNameSchema($row, false);
+            $name = $row;
+            $schemaName = null;
+            $rawName = $this->quoteTableName($name);
+            $settings = compact('schemaName','name', 'rawName');
+            $settings['displayName'] = $name;
+            $settings['isView'] = false;
+
+            $names[strtolower($name)] = new TableSchema($settings);
         }
 
         return $names;
@@ -333,18 +337,10 @@ class Schema extends \DreamFactory\Core\Database\Schema
     }
 
     /**
-     * Loads the metadata for the specified table.
-     *
-     * @param string $name table name
-     *
-     * @return TableSchema driver dependent table metadata. Null if the table does not exist.
+     * @inheritdoc
      */
-    protected function loadTable($name)
+    protected function loadTable(TableSchema $table)
     {
-        $table = new TableSchema($name);
-        $table->rawName = $this->quoteTableName($name);
-        $table->displayName = $name;
-
         if (!$this->findColumns($table)) {
             return null;
         }
@@ -430,7 +426,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
     protected function findConstraints($table)
     {
         $keys = [];
-        /** @type TableNameSchema $each */
+        /** @type TableSchema $each */
         foreach ($this->getTableNames() as $each) {
             $sql = "PRAGMA foreign_key_list({$each->name})";
             $fks = $this->connection->createCommand($sql)->queryAll();

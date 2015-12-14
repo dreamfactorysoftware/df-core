@@ -62,11 +62,11 @@ abstract class Schema
     /**
      * Loads the metadata for the specified table.
      *
-     * @param string $name table name
+     * @param TableSchema $table Any already known info about the table
      *
      * @return TableSchema driver dependent table metadata, null if the table does not exist.
      */
-    abstract protected function loadTable($name);
+    abstract protected function loadTable(TableSchema $table);
 
     /**
      * Constructor.
@@ -292,15 +292,18 @@ abstract class Schema
             $realName = $name;
         }
 
-        if (null === $table = $this->loadTable($realName)) {
+        // check if know anything about this table already
+        if (empty($this->tableNames[$name])) {
+            $this->getCachedTableNames();
+            if (empty($this->tableNames[$name])) {
+                return null;
+            }
+        }
+        if (null === $table = $this->loadTable($this->tableNames[$name])) {
             return null;
         }
 
         // merge db extras
-        if (!empty($extras = $this->connection->getSchemaExtrasForTables($name, false))) {
-            $extras = (isset($extras[0])) ? $extras[0] : null;
-            $table->fill($extras);
-        }
         if (!empty($extras = $this->connection->getSchemaExtrasForFields($name, '*'))) {
             foreach ($extras as $extra) {
                 if (!empty($columnName = (isset($extra['field'])) ? $extra['field'] : null)) {
@@ -421,33 +424,25 @@ abstract class Schema
      * @param bool   $include_views
      * @param bool   $refresh
      *
-     * @return TableNameSchema[] all table names in the database.
+     * @return TableSchema[] all table names in the database.
      */
     public function getTableNames($schema = '', $include_views = true, $refresh = false)
     {
-        if ($refresh) {
-            // go ahead and reset all schemas
-            $this->getCachedTableNames($include_views, $refresh);
-        }
+        // go ahead and reset all schemas if needed
+        $this->getCachedTableNames($include_views, $refresh);
         if (empty($schema)) {
-            $names = [];
-            foreach ($this->getSchemaNames() as $schema) {
-                if (!isset($this->tableNames[$schema])) {
-                    $this->getCachedTableNames($include_views);
-                }
-
-                $temp = (isset($this->tableNames[$schema]) ? $this->tableNames[$schema] : []);
-                $names = array_merge($names, $temp);
-            }
+            // return all
+            return $this->tableNames;
         } else {
-            if (!isset($this->tableNames[$schema])) {
-                $this->getCachedTableNames($include_views);
+            $names = [];
+            foreach ($this->tableNames as $key => $value) {
+                if ($value->schemaName === $schema) {
+                    $names[$key] = $value;
+                }
             }
 
-            $names = (isset($this->tableNames[$schema]) ? $this->tableNames[$schema] : []);
+            return $names;
         }
-
-        return $names;
     }
 
     /**
@@ -462,24 +457,23 @@ abstract class Schema
             (empty($this->tableNames) &&
                 (null === $this->tableNames = $this->connection->getFromCache('table_names')))
         ) {
-            $names = [];
+            $tables = [];
             foreach ($this->getSchemaNames($refresh) as $temp) {
-                /** @type TableNameSchema[] $tables */
-                $tables = $this->findTableNames($temp, $include_views);
-                ksort($tables, SORT_NATURAL); // sort alphabetically
-                // merge db extras
-                if (!empty($extrasEntries = $this->connection->getSchemaExtrasForTables(array_keys($tables), false))) {
-                    foreach ($extrasEntries as $extras) {
-                        if (!empty($extraName = strtolower(strval($extras['table'])))) {
-                            if (array_key_exists($extraName, $tables)) {
-                                $tables[$extraName]->fill($extras);
-                            }
+                /** @type TableSchema[] $tables */
+                $tables = array_merge($tables, $this->findTableNames($temp, $include_views));
+            }
+            ksort($tables, SORT_NATURAL); // sort alphabetically
+            // merge db extras
+            if (!empty($extrasEntries = $this->connection->getSchemaExtrasForTables(array_keys($tables), false))) {
+                foreach ($extrasEntries as $extras) {
+                    if (!empty($extraName = strtolower(strval($extras['table'])))) {
+                        if (array_key_exists($extraName, $tables)) {
+                            $tables[$extraName]->fill($extras);
                         }
                     }
                 }
-                $names[$temp] = $tables;
             }
-            $this->tableNames = $names;
+            $this->tableNames = $tables;
             $this->connection->addToCache('table_names', $this->tableNames, true);
         }
     }

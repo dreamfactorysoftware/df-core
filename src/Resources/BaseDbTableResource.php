@@ -9,7 +9,7 @@ use DreamFactory\Core\Enums\DbLogicalOperators;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
-use DreamFactory\Core\Database\TableNameSchema;
+use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Database\ColumnSchema;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
@@ -97,7 +97,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function listResources($schema = null, $refresh = false)
     {
-        /** @type TableNameSchema[] $result */
+        /** @type TableSchema[] $result */
         $result = $this->parent->getTableNames($schema, $refresh);
         $resources = [];
         foreach ($result as $table) {
@@ -139,7 +139,7 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $refresh = $this->request->getParameterAsBool(ApiOptions::REFRESH);
         $schema = $this->request->getParameter(ApiOptions::SCHEMA, '');
-        /** @type TableNameSchema[] $result */
+        /** @type TableSchema[] $result */
         $result = $this->parent->getTableNames($schema, $refresh);
         $resources = [];
         foreach ($result as $table) {

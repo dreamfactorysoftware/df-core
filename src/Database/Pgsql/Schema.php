@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Database\Pgsql;
 
-use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
@@ -299,16 +298,10 @@ class Schema extends \DreamFactory\Core\Database\Schema
     }
 
     /**
-     * Loads the metadata for the specified table.
-     *
-     * @param string $name table name
-     *
-     * @return TableSchema driver dependent table metadata.
+     * @inheritdoc
      */
-    protected function loadTable($name)
+    protected function loadTable(TableSchema $table)
     {
-        $table = new TableSchema($name);
-        $this->resolveTableNames($table, $name);
         if (!$this->findColumns($table)) {
             return null;
         }
@@ -557,17 +550,24 @@ EOD;
         }
 
         $defaultSchema = self::DEFAULT_SCHEMA;
+        $addSchema = (!empty($schema) && ($defaultSchema !== $schema));
 
         $rows = $this->connection->createCommand($sql)->queryAll();
 
         $names = [];
         foreach ($rows as $row) {
-            $schema = isset($row['table_schema']) ? $row['table_schema'] : '';
+            $schemaName = isset($row['table_schema']) ? $row['table_schema'] : '';
             $name = isset($row['table_name']) ? $row['table_name'] : '';
-            if ($defaultSchema !== $schema) {
-                $name = $schema . '.' . $name;
+            $rawName = $this->quoteTableName($name);
+            if ($addSchema) {
+                $name = $schemaName . '.' . $name;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $rawName;
             }
-            $names[strtolower($name)] = new TableNameSchema($name, (0 === strcasecmp('VIEW', $row['table_type'])));
+            $settings = compact('schemaName','name', 'rawName');
+            $settings['displayName'] = $name;
+            $settings['isView'] = (0 === strcasecmp('VIEW', $row['table_type']));
+
+            $names[strtolower($name)] = new TableSchema($settings);
         }
 
         return $names;

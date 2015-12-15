@@ -316,34 +316,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
     }
 
     /**
-     * Generates various kinds of table names.
-     *
-     * @param TableSchema $table the table instance
-     * @param string      $name  the unquoted table name
-     */
-    protected function resolveTableNames($table, $name)
-    {
-        $parts = explode('.', str_replace('"', '', $name));
-        if (isset($parts[1])) {
-            $schemaName = $parts[0];
-            $tableName = $parts[1];
-        } else {
-            $schemaName = $this->getDefaultSchema();
-            $tableName = $parts[0];
-        }
-
-        $table->name = $tableName;
-        $table->schemaName = $schemaName;
-        if ($schemaName === $this->getDefaultSchema()) {
-            $table->rawName = $this->quoteTableName($tableName);
-            $table->displayName = $tableName;
-        } else {
-            $table->rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($tableName);
-            $table->displayName = $schemaName . '.' . $tableName;
-        }
-    }
-
-    /**
      * Collects the table column metadata.
      *
      * @param TableSchema $table the table metadata
@@ -353,7 +325,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
     protected function findColumns($table)
     {
         $schemaName = $table->schemaName;
-        $tableName = $table->name;
+        $tableName = $table->tableName;
 
         $sql = <<<EOD
 SELECT a.column_name, a.data_type ||
@@ -525,15 +497,16 @@ EOD;
         $names = [];
         foreach ($rows as $row) {
             $schemaName = isset($row['TABLE_SCHEMA']) ? $row['TABLE_SCHEMA'] : '';
-            $name = isset($row['TABLE_NAME']) ? $row['TABLE_NAME'] : '';
-            $rawName = $this->quoteTableName($name);
+            $tableName = isset($row['TABLE_NAME']) ? $row['TABLE_NAME'] : '';
+            $isView = (0 === strcasecmp('VIEW', $row['TABLE_TYPE']));
             if ($addSchema) {
-                $name = $schemaName . '.' . $name;
-                $rawName = $this->quoteTableName($schemaName) . '.' . $rawName;
+                $name = $schemaName . '.' . $tableName;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($tableName);;
+            } else {
+                $name = $tableName;
+                $rawName = $this->quoteTableName($tableName);
             }
-            $settings = compact('schemaName','name', 'rawName');
-            $settings['displayName'] = $name;
-            $settings['isView'] = (0 === strcasecmp('VIEW', $row['TABLE_TYPE']));
+            $settings = compact('schemaName', 'tableName', 'name', 'rawName', 'isView');
 
             $names[strtolower($name)] = new TableSchema($settings);
         }

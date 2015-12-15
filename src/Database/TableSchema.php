@@ -23,23 +23,23 @@ use DreamFactory\Library\Utility\Inflector;
 class TableSchema
 {
     /**
-     * @var string name of the schema that this table belongs to.
+     * @var string Name of the schema that this table belongs to.
      */
     public $schemaName;
     /**
-     * @var string name of this table.
+     * @var string Name of this table without any additional schema declaration.
      */
-    public $name;
+    public $tableName;
     /**
-     * @var string raw name of this table. This is the quoted version of table name with optional schema name. It can
-     *      be directly used in SQLs.
+     * @var string Raw name of this table. This is the quoted version of table name with optional schema name.
+     * It can be directly used in SQL statements.
      */
     public $rawName;
     /**
-     * @var string public display name of this table. This is the table name with optional non-default schema name. It
-     *      is to be used by clients.
+     * @var string Public name of this table. This is the table name with optional non-default schema name.
+     * It is to be used by clients.
      */
-    public $displayName;
+    public $name;
     /**
      * @var string Optional alias for this table. This alias can be used in the API to access the table.
      */
@@ -104,6 +104,19 @@ class TableSchema
     public function fill(array $settings)
     {
         foreach ($settings as $key => $value) {
+            if ('field' === $key) {
+                // reconstitute columns
+                foreach($value as $field) {
+                    $temp = new ColumnSchema($field);
+                    $this->addColumn($temp);
+                }
+            } elseif ('related' === $key) {
+                // reconstitute relations
+                foreach( $value as $related) {
+                    $temp = new RelationSchema($related);
+                    $this->addRelation($temp);
+                }
+            }
             if (!property_exists($this, $key)) {
                 // try camel cased
                 $camel = camel_case($key);
@@ -167,6 +180,27 @@ class TableSchema
         return array_keys($this->columns);
     }
 
+    /**
+     * @param bool $use_alias
+     *
+     * @return ColumnSchema[]
+     */
+    public function getColumns($use_alias = false)
+    {
+        if ($use_alias) {
+            // re-index for alias usage, easier to find requested fields from client
+            $columns = [];
+            /** @var ColumnSchema $column */
+            foreach ($this->columns as $column) {
+                $columns[strtolower($column->getName(true))] = $column;
+            }
+
+            return $columns;
+        }
+
+        return $this->columns;
+    }
+
     public function addRelation(RelationSchema $relation)
     {
         if ($relation->alwaysFetch) {
@@ -197,6 +231,27 @@ class TableSchema
         return array_keys($this->columns);
     }
 
+    /**
+     * @param bool $use_alias
+     *
+     * @return RelationSchema[]
+     */
+    public function getRelations($use_alias = false)
+    {
+        if ($use_alias) {
+            // re-index for alias usage, easier to find requested fields from client
+            $relations = [];
+            /** @var RelationSchema $column */
+            foreach ($this->relations as $column) {
+                $relations[strtolower($column->getName(true))] = $column;
+            }
+
+            return $relations;
+        }
+
+        return $this->relations;
+    }
+
     public function toArray($use_alias = false)
     {
         $out = [
@@ -211,7 +266,6 @@ class TableSchema
             $out = array_merge(['alias' => $this->alias], $out);
         }
 
-        $out['name'] = $this->displayName;
         $out['primary_key'] = $this->primaryKey;
         $out['name_field'] = $this->nameField;
 

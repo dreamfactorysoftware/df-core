@@ -375,35 +375,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
     }
 
     /**
-     * Generates various kinds of table names.
-     *
-     * @param TableSchema $table the table instance
-     * @param string      $name  the unquoted table name
-     */
-    protected function resolveTableNames($table, $name)
-    {
-        $parts = explode('.', str_replace(['[', ']'], '', $name));
-        if (($c = count($parts)) == 2) {
-            // Only schema name and table name provided
-            $table->schemaName = $parts[0];
-            $table->name = $parts[1];
-            $table->rawName = $this->quoteTableName($table->schemaName) . '.' . $this->quoteTableName($table->name);
-            $table->displayName =
-                ($table->schemaName === $this->getDefaultSchema())
-                    ? $table->name
-                    : ($table->schemaName .
-                    '.' .
-                    $table->name);
-        } else {
-            // Only the name given, we need at least the default schema name
-            $table->schemaName = $this->getDefaultSchema();
-            $table->name = $parts[0];
-            $table->rawName = $this->quoteTableName($table->schemaName) . '.' . $this->quoteTableName($table->name);
-            $table->displayName = $table->name;
-        }
-    }
-
-    /**
      * Collects the foreign key column details for the given table.
      * Also, collects the foreign tables and columns that reference the given table.
      *
@@ -416,7 +387,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
         $sql = <<<EOD
 SELECT indextype,colnames FROM SYS.SYSINDEXES WHERE creator = :schema AND tname = :table
 EOD;
-        $params = [':schema' => $schema, ':table' => $table->name];
+        $params = [':schema' => $schema, ':table' => $table->tableName];
         $constraints = $this->connection->createCommand($sql)->queryAll(true, $params);
 
         foreach ($constraints as $key => $constraint) {
@@ -491,7 +462,8 @@ FROM SYS.SYSFOREIGNKEYS WHERE foreign_creator NOT IN ('SYS','dbo')
 EOD;
         $constraints = $this->connection->createCommand($sql)->queryAll();
         foreach ($constraints as &$constraint) {
-            list($constraint['column_name'], $constraint['referenced_column_name']) = explode(' IS ', $constraint['columns']);
+            list($constraint['column_name'], $constraint['referenced_column_name']) =
+                explode(' IS ', $constraint['columns']);
         }
 
         $this->buildTableRelations($table, $constraints);
@@ -507,7 +479,7 @@ EOD;
     protected function findColumns($table)
     {
         $sql = <<<SQL
-SELECT * FROM sys.syscolumns WHERE creator = '{$table->schemaName}' AND tname = '{$table->name}'
+SELECT * FROM sys.syscolumns WHERE creator = '{$table->schemaName}' AND tname = '{$table->tableName}'
 SQL;
 
         try {
@@ -607,18 +579,18 @@ SQL;
 
         $names = [];
         foreach ($rows as $row) {
-            $name = isset($row['tname']) ? $row['tname'] : '';
             $schemaName = isset($row['creator']) ? $row['creator'] : '';
-            $rawName = $this->quoteTableName($name);
+            $tableName = isset($row['tname']) ? $row['tname'] : '';
+            $isView = (false !== stripos($row['tabletype'], 'VIEW'));
             if ($addSchema) {
-                $name = $schemaName . '.' . $name;
-                $rawName = $this->quoteTableName($schemaName) . '.' . $rawName;
+                $name = $schemaName . '.' . $tableName;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($tableName);;
+            } else {
+                $name = $tableName;
+                $rawName = $this->quoteTableName($tableName);
             }
-            $settings = compact('schemaName','name', 'rawName');
-            $settings['displayName'] = $name;
-            $settings['isView'] = (false !== stripos($row['tabletype'], 'VIEW'));
+            $settings = compact('schemaName', 'tableName', 'name', 'rawName', 'isView');
             $settings['description'] = $row['remarks'];
-
             $names[strtolower($name)] = new TableSchema($settings);
         }
 

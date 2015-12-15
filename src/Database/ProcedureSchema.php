@@ -15,22 +15,22 @@ namespace DreamFactory\Core\Database;
 class ProcedureSchema
 {
     /**
-     * @var string name of the schema that this procedure belongs to.
+     * @var string Name of the schema that this procedure belongs to.
      */
     public $schemaName;
     /**
-     * @var string name of this procedure.
+     * @var string Name of this procedure.
      */
-    public $name;
+    public $procName;
     /**
-     * @var string raw name of this procedure. This is the quoted version of procedure name with optional schema name.
+     * @var string Raw name of this procedure. This is the quoted version of procedure name with optional schema name.
      *      It can be directly used in SQLs.
      */
     public $rawName;
     /**
-     * @var string public display name of this procedure. This is the procedure name with optional non-default schema
-     *      name. It is to be used by clients.
+     * @var string Public name of this procedure. This is the procedure name with optional non-default schema name.
+     *      It is to be used by clients.
      */
-    public $displayName;
+    public $name;
 
 }

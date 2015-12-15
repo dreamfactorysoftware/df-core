@@ -518,11 +518,7 @@ class ColumnSchema
             default :
                 $out = ($as_quoted_string) ? $this->rawName : $this->name;
                 if (!empty($this->alias)) {
-                    if ($as_quoted_string) {
-                        $out .= ' AS ' . $this->quoteColumnName($this->alias);
-                    } else {
-                        $out .= ' AS ' . $this->alias;
-                    }
+                    $out .= ' AS ' . $this->alias;
                 }
 
                 return $out;

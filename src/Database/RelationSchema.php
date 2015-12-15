@@ -126,31 +126,32 @@ class RelationSchema
      */
     public $junctionRefField;
 
-    public function __construct($type, array $settings)
+    public function __construct(array $settings)
     {
         $this->fill($settings);
 
-        $this->type = $type;
-        $table = $this->refTable;
-        if ($this->isForeignService && $this->refService) {
-            $table = $this->refService . '.' . $table;
-        }
-        switch ($this->type) {
-            case static::BELONGS_TO:
-                $this->name = $table . '_by_' . $this->field;
-                break;
-            case static::HAS_MANY:
-                $this->name = $table . '_by_' . $this->refFields;
-                break;
-            case static::MANY_MANY:
-                $junction = $this->junctionTable;
-                if ($this->isForeignJunctionService && $this->junctionService) {
-                    $junction = $this->junctionService . '.' . $junction;
-                }
-                $this->name = $table . '_by_' . $junction;
-                break;
-            default:
-                break;
+        if (empty($this->name)) {
+            $table = $this->refTable;
+            if ($this->isForeignService && $this->refService) {
+                $table = $this->refService . '.' . $table;
+            }
+            switch ($this->type) {
+                case static::BELONGS_TO:
+                    $this->name = $table . '_by_' . $this->field;
+                    break;
+                case static::HAS_MANY:
+                    $this->name = $table . '_by_' . $this->refFields;
+                    break;
+                case static::MANY_MANY:
+                    $junction = $this->junctionTable;
+                    if ($this->isForeignJunctionService && $this->junctionService) {
+                        $junction = $this->junctionService . '.' . $junction;
+                    }
+                    $this->name = $table . '_by_' . $junction;
+                    break;
+                default:
+                    break;
+            }
         }
     }
 

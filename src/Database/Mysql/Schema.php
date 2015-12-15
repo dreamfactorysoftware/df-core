@@ -335,32 +335,6 @@ MYSQL
     }
 
     /**
-     * Generates various kinds of table names.
-     *
-     * @param TableSchema $table the table instance
-     * @param string      $name  the unquoted table name
-     */
-    protected function resolveTableNames($table, $name)
-    {
-        $parts = explode('.', str_replace(['`', '"'], '', $name));
-        if (isset($parts[1])) {
-            $table->schemaName = $parts[0];
-            $table->name = $parts[1];
-            $table->rawName = $this->quoteTableName($table->schemaName) . '.' . $this->quoteTableName($table->name);
-            $table->displayName =
-                ($table->schemaName === $this->getDefaultSchema())
-                    ? $table->name
-                    : ($table->schemaName .
-                    '.' .
-                    $table->name);
-        } else {
-            $table->name = $parts[0];
-            $table->rawName = $this->quoteTableName($table->name);
-            $table->displayName = $table->name;
-        }
-    }
-
-    /**
      * Collects the table column metadata.
      *
      * @param TableSchema $table the table metadata
@@ -520,17 +494,17 @@ MYSQL;
         $names = [];
         foreach ($rows as $row) {
             $row = array_values($row);
-            $name = $row[0];
             $schemaName = $schema;
-            $rawName = $this->quoteTableName($name);
+            $tableName = $row[0];
+            $isView = (0 === strcasecmp('VIEW', $row[1]));
             if ($addSchema) {
-                $name = $schemaName . '.' . $name;
-                $rawName = $this->quoteTableName($schemaName) . '.' . $rawName;
+                $name = $schemaName . '.' . $tableName;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($tableName);;
+            } else {
+                $name = $tableName;
+                $rawName = $this->quoteTableName($tableName);
             }
-            $settings = compact('schemaName','name', 'rawName');
-            $settings['displayName'] = $name;
-            $settings['isView'] = (0 === strcasecmp('VIEW', $row[1]));
-
+            $settings = compact('schemaName', 'tableName', 'name', 'rawName', 'isView');
             $names[strtolower($name)] = new TableSchema($settings);
         }
 

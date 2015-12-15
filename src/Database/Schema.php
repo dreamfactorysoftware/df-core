@@ -171,13 +171,14 @@ abstract class Schema
         $constraints2 = $constraints;
 
         foreach ($constraints as $key => $constraint) {
+            $constraint = array_change_key_case($constraint, CASE_LOWER);
             $ts = $constraint['table_schema'];
             $tn = $constraint['table_name'];
             $cn = $constraint['column_name'];
             $rts = $constraint['referenced_table_schema'];
             $rtn = $constraint['referenced_table_name'];
             $rcn = $constraint['referenced_column_name'];
-            if ((0 == strcasecmp($tn, $table->name)) && (0 == strcasecmp($ts, $schema))) {
+            if ((0 == strcasecmp($tn, $table->tableName)) && (0 == strcasecmp($ts, $schema))) {
                 $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
                 $cnk = strtolower($cn);
                 $table->foreignKeys[$cnk] = [$name, $rcn];
@@ -192,15 +193,23 @@ abstract class Schema
 
                 // Add it to our foreign references as well
                 $relation =
-                    new RelationSchema(RelationSchema::BELONGS_TO,
-                        ['ref_table' => $name, 'ref_fields' => $rcn, 'field' => $cn]);
+                    new RelationSchema([
+                        'type'       => RelationSchema::BELONGS_TO,
+                        'ref_table'  => $name,
+                        'ref_fields' => $rcn,
+                        'field'      => $cn
+                    ]);
 
                 $table->addRelation($relation);
-            } elseif ((0 == strcasecmp($rtn, $table->name)) && (0 == strcasecmp($rts, $schema))) {
+            } elseif ((0 == strcasecmp($rtn, $table->tableName)) && (0 == strcasecmp($rts, $schema))) {
                 $name = ($ts == $defaultSchema) ? $tn : $ts . '.' . $tn;
                 $relation =
-                    new RelationSchema(RelationSchema::HAS_MANY,
-                        ['ref_table' => $name, 'ref_fields' => $cn, 'field' => $rcn]);
+                    new RelationSchema([
+                        'type'       => RelationSchema::HAS_MANY,
+                        'ref_table'  => $name,
+                        'ref_fields' => $cn,
+                        'field'      => $rcn
+                    ]);
 
                 $table->addRelation($relation);
 
@@ -208,6 +217,7 @@ abstract class Schema
                 foreach ($constraints2 as $key2 => $constraint2) {
                     if (0 != strcasecmp($key, $key2)) // not same key
                     {
+                        $constraint2 = array_change_key_case($constraint2, CASE_LOWER);
                         $ts2 = $constraint2['table_schema'];
                         $tn2 = $constraint2['table_name'];
                         $cn2 = $constraint2['column_name'];
@@ -216,21 +226,21 @@ abstract class Schema
                             $rts2 = $constraint2['referenced_table_schema'];
                             $rtn2 = $constraint2['referenced_table_name'];
                             $rcn2 = $constraint2['referenced_column_name'];
-                            if ((0 != strcasecmp($rts2, $schema)) || (0 != strcasecmp($rtn2, $table->name))
+                            if ((0 != strcasecmp($rts2, $schema)) || (0 != strcasecmp($rtn2, $table->tableName))
                             ) {
                                 $name2 = ($rts2 == $schema) ? $rtn2 : $rts2 . '.' . $rtn2;
                                 // not same as parent, i.e. via reference back to self
                                 // not the same key
                                 $relation =
-                                    new RelationSchema(RelationSchema::MANY_MANY,
-                                        [
-                                            'ref_table'          => $name2,
-                                            'ref_fields'         => $rcn2,
-                                            'field'              => $rcn,
-                                            'junction_table'     => $name,
-                                            'junction_field'     => $cn,
-                                            'junction_ref_field' => $cn2
-                                        ]);
+                                    new RelationSchema([
+                                        'type'               => RelationSchema::MANY_MANY,
+                                        'ref_table'          => $name2,
+                                        'ref_fields'         => $rcn2,
+                                        'field'              => $rcn,
+                                        'junction_table'     => $name,
+                                        'junction_field'     => $cn,
+                                        'junction_ref_field' => $cn2
+                                    ]);
 
                                 $table->addRelation($relation);
                             }
@@ -320,12 +330,12 @@ abstract class Schema
                             $relatedInfo =
                                 array_merge(array_except($extra, ['label', 'description']),
                                     [
+                                        'type'               => RelationSchema::BELONGS_TO,
                                         'is_virtual'         => true,
                                         'is_foreign_service' => $column->isForeignRefService,
                                         'field'              => $column->name
                                     ]);
-                            $relation = new RelationSchema(RelationSchema::BELONGS_TO, $relatedInfo);
-
+                            $relation = new RelationSchema($relatedInfo);
                             $table->addRelation($relation);
                         } else {
                             //  Exclude potential virtual reference info
@@ -358,6 +368,7 @@ abstract class Schema
 
                         // Add it to our foreign references as well
                         $relatedInfo = [
+                            'type'               => RelationSchema::HAS_MANY,
                             'field'              => $column->name,
                             'is_virtual'         => true,
                             'is_foreign_service' => !empty($extra['service']),
@@ -366,8 +377,7 @@ abstract class Schema
                             'ref_table'          => $extra['table'],
                             'ref_fields'         => $extra['field'],
                         ];
-                        $relation = new RelationSchema(RelationSchema::HAS_MANY, $relatedInfo);
-
+                        $relation = new RelationSchema($relatedInfo);
                         $table->addRelation($relation);
                     }
                 }

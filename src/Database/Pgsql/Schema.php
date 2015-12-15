@@ -322,34 +322,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
     }
 
     /**
-     * Generates various kinds of table names.
-     *
-     * @param TableSchema $table the table instance
-     * @param string      $name  the unquoted table name
-     */
-    protected function resolveTableNames($table, $name)
-    {
-        $parts = explode('.', str_replace('"', '', $name));
-        if (isset($parts[1])) {
-            $schemaName = $parts[0];
-            $tableName = $parts[1];
-        } else {
-            $schemaName = self::DEFAULT_SCHEMA;
-            $tableName = $parts[0];
-        }
-
-        $table->name = $tableName;
-        $table->schemaName = $schemaName;
-        if ($schemaName === self::DEFAULT_SCHEMA) {
-            $table->rawName = $this->quoteTableName($tableName);
-            $table->displayName = $tableName;
-        } else {
-            $table->rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($tableName);
-            $table->rawName = $schemaName . '.' . $tableName;
-        }
-    }
-
-    /**
      * Collects the table column metadata.
      *
      * @param TableSchema $table the table metadata
@@ -368,7 +340,7 @@ WHERE a.attnum > 0 AND NOT a.attisdropped
 ORDER BY a.attnum
 EOD;
         $command = $this->connection->createCommand($sql);
-        $command->bindValue(':table', $table->name);
+        $command->bindValue(':table', $table->tableName);
         $command->bindValue(':schema', $table->schemaName);
 
         if (($columns = $command->queryAll()) === []) {
@@ -485,7 +457,7 @@ EOD;
 				AND k.table_schema = :schema
 EOD;
         $command = $this->connection->createCommand($sql);
-        $command->bindValue(':table', $table->name);
+        $command->bindValue(':table', $table->tableName);
         $command->bindValue(':schema', $table->schemaName);
 
         $table->primaryKey = null;
@@ -494,7 +466,9 @@ EOD;
             $cnk = strtolower($name);
             if (isset($table->columns[$cnk])) {
                 $table->columns[$cnk]->isPrimaryKey = true;
-                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) && $table->columns[$cnk]->autoIncrement) {
+                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) &&
+                    $table->columns[$cnk]->autoIncrement
+                ) {
                     $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
                 }
                 if ($table->primaryKey === null) {
@@ -557,15 +531,16 @@ EOD;
         $names = [];
         foreach ($rows as $row) {
             $schemaName = isset($row['table_schema']) ? $row['table_schema'] : '';
-            $name = isset($row['table_name']) ? $row['table_name'] : '';
-            $rawName = $this->quoteTableName($name);
+            $tableName = isset($row['table_name']) ? $row['table_name'] : '';
+            $isView = (0 === strcasecmp('VIEW', $row['table_type']));
             if ($addSchema) {
-                $name = $schemaName . '.' . $name;
-                $rawName = $this->quoteTableName($schemaName) . '.' . $rawName;
+                $name = $schemaName . '.' . $tableName;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($tableName);;
+            } else {
+                $name = $tableName;
+                $rawName = $this->quoteTableName($tableName);
             }
-            $settings = compact('schemaName','name', 'rawName');
-            $settings['displayName'] = $name;
-            $settings['isView'] = (0 === strcasecmp('VIEW', $row['table_type']));
+            $settings = compact('schemaName', 'tableName', 'name', 'rawName', 'isView');
 
             $names[strtolower($name)] = new TableSchema($settings);
         }

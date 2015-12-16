@@ -257,10 +257,7 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
      *      print( "Found " + element + " in array\n" );
      * });
      *
-     * Please note that this requires a version of the V8 library above any that are currently
-     * distributed with popular distributions. As such, if this feature is not available
-     * (module loading), the "lodash" library will be automatically registered and injected
-     * into all script contexts.
+     * Please note that this requires a version of the V8 library equal to or above 0.2.0.
      *
      * @param array $extensions
      *
@@ -329,11 +326,6 @@ _wrapperResult = (function() {
 })();
 
 JS;
-
-        if (!static::$moduleLoaderAvailable) {
-            $enrobedScript =
-                \Cache::get('scripting.v8.extensions', static::loadScriptingModule('lodash')) . ';' . $enrobedScript;
-        }
 
         return $enrobedScript;
     }

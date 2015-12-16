@@ -49,9 +49,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
                     $default = 'CURRENT_TIMESTAMP';
-                    if (ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE === $type) {
-                        $default .= ' ON UPDATE CURRENT_TIMESTAMP';
-                    }
+                    // ON UPDATE CURRENT_TIMESTAMP not supported by Oracle, use triggers
                     $info['default'] = $default;
                 }
                 break;

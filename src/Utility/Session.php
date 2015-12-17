@@ -15,6 +15,8 @@ use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
+use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class Session
 {
@@ -429,6 +431,7 @@ class Session
 
     /**
      * @return bool
+     * @throws \Exception
      */
     public static function logout()
     {
@@ -437,7 +440,13 @@ class Session
             return false;
         }
 
-        JWTUtilities::invalidate($token);
+        try {
+            JWTUtilities::invalidate($token);
+        } catch (\Exception $e) {
+            if (!($e instanceof TokenBlacklistedException)) {
+                throw $e;
+            }
+        }
 
         return true;
     }

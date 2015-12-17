@@ -159,7 +159,7 @@ class App extends BaseSystemModel
         $cacheKey = 'app:' . $id;
         try {
             $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
-                $app = App::with('app_lookup_by_app_id')->whereId($id)->first();
+                $app = App::whereId('id', $id)->first();
 
                 if (empty($app)) {
                     throw new NotFoundException("App not found.");

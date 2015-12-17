@@ -1075,7 +1075,7 @@ abstract class Schema
             $extraNew = array_only($field, $extraTags);
             if ($oldField) {
                 $extraOld = array_only($oldField->toArray(), $extraTags);
-                $noDiff = ['picklist', 'db_function'];
+                $noDiff = ['picklist', 'validation', 'db_function'];
                 $extraNew = array_diff_assoc(array_except($extraNew, $noDiff), array_except($extraOld, $noDiff));
 
                 $oldPicklist = (is_array($oldField->picklist) ? $oldField->picklist : []);
@@ -1086,12 +1086,15 @@ abstract class Schema
                     $extraNew['picklist'] = $picklist;
                 }
 
+                $validation = (isset($field['validation'])) ? $field['validation'] : [];
+                $oldValidation = (is_array($oldField->validation) ? $oldField->validation : []);
+                if (json_encode($validation) !== json_encode($oldValidation)) {
+                    $extraNew['validation'] = $validation;
+                }
+
                 $dbFunction = (isset($field['db_function'])) ? $field['db_function'] : [];
                 $oldFunction = (is_array($oldField->dbFunction) ? $oldField->dbFunction : []);
-                if ((count($dbFunction) !== count($oldFunction)) ||
-                    !empty(array_diff($dbFunction, $oldFunction)) ||
-                    !empty(array_diff($oldFunction, $dbFunction))
-                ) {
+                if (json_encode($dbFunction) !== json_encode($oldFunction)) {
                     $extraNew['db_function'] = $dbFunction;
                 }
             }

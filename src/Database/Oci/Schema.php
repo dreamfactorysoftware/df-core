@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Database\Oci;
 
 use DreamFactory\Core\Database\Expression;
-use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
@@ -50,9 +49,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
                     $default = 'CURRENT_TIMESTAMP';
-                    if (ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE === $type) {
-                        $default .= ' ON UPDATE CURRENT_TIMESTAMP';
-                    }
+                    // ON UPDATE CURRENT_TIMESTAMP not supported by Oracle, use triggers
                     $info['default'] = $default;
                 }
                 break;
@@ -304,51 +301,16 @@ class Schema extends \DreamFactory\Core\Database\Schema
     }
 
     /**
-     * Loads the metadata for the specified table.
-     *
-     * @param string $name table name
-     *
-     * @return TableSchema driver dependent table metadata.
+     * @inheritdoc
      */
-    protected function loadTable($name)
+    protected function loadTable(TableSchema $table)
     {
-        $table = new TableSchema($name);
-        $this->resolveTableNames($table, $name);
-
         if (!$this->findColumns($table)) {
             return null;
         }
         $this->findConstraints($table);
 
         return $table;
-    }
-
-    /**
-     * Generates various kinds of table names.
-     *
-     * @param TableSchema $table the table instance
-     * @param string      $name  the unquoted table name
-     */
-    protected function resolveTableNames($table, $name)
-    {
-        $parts = explode('.', str_replace('"', '', $name));
-        if (isset($parts[1])) {
-            $schemaName = $parts[0];
-            $tableName = $parts[1];
-        } else {
-            $schemaName = $this->getDefaultSchema();
-            $tableName = $parts[0];
-        }
-
-        $table->name = $tableName;
-        $table->schemaName = $schemaName;
-        if ($schemaName === $this->getDefaultSchema()) {
-            $table->rawName = $this->quoteTableName($tableName);
-            $table->displayName = $tableName;
-        } else {
-            $table->rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($tableName);
-            $table->displayName = $schemaName . '.' . $tableName;
-        }
     }
 
     /**
@@ -361,7 +323,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
     protected function findColumns($table)
     {
         $schemaName = $table->schemaName;
-        $tableName = $table->name;
+        $tableName = $table->tableName;
 
         $sql = <<<EOD
 SELECT a.column_name, a.data_type ||
@@ -528,15 +490,23 @@ EOD;
         $defaultSchema = $this->getDefaultSchema();
 
         $rows = $this->connection->createCommand($sql)->queryAll();
+        $addSchema = (!empty($schema) && ($defaultSchema !== $schema));
 
         $names = [];
         foreach ($rows as $row) {
-            $schema = isset($row['TABLE_SCHEMA']) ? $row['TABLE_SCHEMA'] : '';
-            $name = isset($row['TABLE_NAME']) ? $row['TABLE_NAME'] : '';
-            if ($defaultSchema !== $schema) {
-                $name = $schema . '.' . $name;
+            $schemaName = isset($row['TABLE_SCHEMA']) ? $row['TABLE_SCHEMA'] : '';
+            $tableName = isset($row['TABLE_NAME']) ? $row['TABLE_NAME'] : '';
+            $isView = (0 === strcasecmp('VIEW', $row['TABLE_TYPE']));
+            if ($addSchema) {
+                $name = $schemaName . '.' . $tableName;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($tableName);;
+            } else {
+                $name = $tableName;
+                $rawName = $this->quoteTableName($tableName);
             }
-            $names[strtolower($name)] = new TableNameSchema($name, (0 === strcasecmp('VIEW', $row['TABLE_TYPE'])));
+            $settings = compact('schemaName', 'tableName', 'name', 'rawName', 'isView');
+
+            $names[strtolower($name)] = new TableSchema($settings);
         }
 
         return $names;

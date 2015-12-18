@@ -1,8 +1,6 @@
 <?php
 namespace DreamFactory\Core\Database\Mysql;
 
-use DreamFactory\Core\Database\RelationSchema;
-use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
@@ -242,7 +240,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
      * @param string $name table name
      *
      * @return string the properly quoted table name
-     * @since 1.1.6
      */
     public function quoteSimpleTableName($name)
     {
@@ -256,7 +253,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
      * @param string $name column name
      *
      * @return string the properly quoted column name
-     * @since 1.1.6
      */
     public function quoteSimpleColumnName($name)
     {
@@ -288,8 +284,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
      *                              If this is not set, the next new row's primary key will have the max value of a
      *                              primary key plus one (i.e. sequence trimming).
      *
-     * @return int|void
-     * @since 1.1
      */
     public function resetSequence($table, $value = null)
     {
@@ -320,7 +314,6 @@ MYSQL
      * @param boolean $check  whether to turn on or off the integrity check.
      * @param string  $schema the schema of the tables. Defaults to empty string, meaning the current or default schema.
      *
-     * @since 1.1
      */
     public function checkIntegrity($check = true, $schema = '')
     {
@@ -328,17 +321,10 @@ MYSQL
     }
 
     /**
-     * Loads the metadata for the specified table.
-     *
-     * @param string $name table name
-     *
-     * @return TableSchema driver dependent table metadata. Null if the table does not exist.
+     * @inheritdoc
      */
-    protected function loadTable($name)
+    protected function loadTable(TableSchema $table)
     {
-        $table = new TableSchema($name);
-        $this->resolveTableNames($table, $name);
-
         if (!$this->findColumns($table)) {
             return null;
         }
@@ -346,32 +332,6 @@ MYSQL
         $this->findConstraints($table);
 
         return $table;
-    }
-
-    /**
-     * Generates various kinds of table names.
-     *
-     * @param TableSchema $table the table instance
-     * @param string      $name  the unquoted table name
-     */
-    protected function resolveTableNames($table, $name)
-    {
-        $parts = explode('.', str_replace(['`', '"'], '', $name));
-        if (isset($parts[1])) {
-            $table->schemaName = $parts[0];
-            $table->name = $parts[1];
-            $table->rawName = $this->quoteTableName($table->schemaName) . '.' . $this->quoteTableName($table->name);
-            $table->displayName =
-                ($table->schemaName === $this->getDefaultSchema())
-                    ? $table->name
-                    : ($table->schemaName .
-                    '.' .
-                    $table->name);
-        } else {
-            $table->name = $parts[0];
-            $table->rawName = $this->quoteTableName($table->name);
-            $table->displayName = $table->name;
-        }
     }
 
     /**
@@ -516,9 +476,6 @@ MYSQL;
      */
     protected function findTableNames($schema = '', $include_views = true)
     {
-        $defaultSchema = $this->getDefaultSchema();
-        $addSchema = (!empty($schema) && ($defaultSchema !== $schema));
-
         $sql = 'SHOW FULL TABLES';
 
         if (!empty($schema)) {
@@ -531,14 +488,24 @@ MYSQL;
 
         $rows = $this->connection->createCommand($sql)->queryAll();
 
+        $defaultSchema = $this->getDefaultSchema();
+        $addSchema = (!empty($schema) && ($defaultSchema !== $schema));
+
         $names = [];
         foreach ($rows as $row) {
             $row = array_values($row);
-            $name = $row[0];
+            $schemaName = $schema;
+            $tableName = $row[0];
+            $isView = (0 === strcasecmp('VIEW', $row[1]));
             if ($addSchema) {
-                $name = $schema . '.' . $name;
+                $name = $schemaName . '.' . $tableName;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($tableName);;
+            } else {
+                $name = $tableName;
+                $rawName = $this->quoteTableName($tableName);
             }
-            $names[strtolower($name)] = new TableNameSchema($name, (0 === strcasecmp('VIEW', $row[1])));
+            $settings = compact('schemaName', 'tableName', 'name', 'rawName', 'isView');
+            $names[strtolower($name)] = new TableSchema($settings);
         }
 
         return $names;
@@ -613,24 +580,20 @@ MYSQL;
 
         // Move to the next result and get results
         $reader = $command->query();
-        $result = $reader->readAll();
-        if ($reader->nextResult()) {
-            // more data coming, make room
-            $result = [$result];
-            try {
-                do {
-                    $result[] = $reader->readAll();
-                } while ($reader->nextResult());
-            } catch (\Exception $ex) {
-                // mysql via pdo has issue of nextRowSet returning true one too many times
-                if (false !== strpos($ex->getMessage(), 'General Error')) {
-                    throw $ex;
-                }
+        $result = [];
+        try {
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        } catch (\Exception $ex) {
+            // mysql via pdo has issue of nextRowSet returning true one too many times
+            if (false !== strpos($ex->getMessage(), 'General Error')) {
+                throw $ex;
+            }
 
-                // if there is only one data set, just return it
-                if (1 == count($result)) {
-                    $result = $result[0];
-                }
+            // if there is only one data set, just return it
+            if (1 == count($result)) {
+                $result = $result[0];
             }
         }
 
@@ -693,24 +656,20 @@ MYSQL;
 
         // Move to the next result and get results
         $reader = $command->query();
-        $result = $reader->readAll();
-        if ($reader->nextResult()) {
-            // more data coming, make room
-            $result = [$result];
-            try {
-                do {
-                    $result[] = $reader->readAll();
-                } while ($reader->nextResult());
-            } catch (\Exception $ex) {
-                // mysql via pdo has issue of nextRowSet returning true one too many times
-                if (false !== strpos($ex->getMessage(), 'General Error')) {
-                    throw $ex;
-                }
+        $result = [];
+        try {
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        } catch (\Exception $ex) {
+            // mysql via pdo has issue of nextRowSet returning true one too many times
+            if (false !== strpos($ex->getMessage(), 'General Error')) {
+                throw $ex;
+            }
 
-                // if there is only one data set, just return it
-                if (1 == count($result)) {
-                    $result = $result[0];
-                }
+            // if there is only one data set, just return it
+            if (1 == count($result)) {
+                $result = $result[0];
             }
         }
 

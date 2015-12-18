@@ -3,7 +3,6 @@ namespace DreamFactory\Core\Database\Sqlite;
 
 use DreamFactory\Core\Database\Expression;
 use DreamFactory\Core\Database\RelationSchema;
-use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
@@ -262,7 +261,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
      *                              If this is not set, the next new row's primary key will have the max value of a
      *                              primary key plus one (i.e. sequence trimming).
      *
-     * @since 1.1
      */
     public function resetSequence($table, $value = null)
     {
@@ -293,7 +291,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
      * @param boolean $check  whether to turn on or off the integrity check.
      * @param string  $schema the schema of the tables. Defaults to empty string, meaning the current or default schema.
      *
-     * @since 1.1
      */
     public function checkIntegrity($check = true, $schema = '')
     {
@@ -316,7 +313,13 @@ class Schema extends \DreamFactory\Core\Database\Schema
 
         $names = [];
         foreach ($rows as $row) {
-            $names[strtolower($row)] = new TableNameSchema($row, false);
+            $schemaName = null;
+            $tableName = $row;
+            $isView = false;
+            $name = $row;
+            $rawName = $this->quoteTableName($name);
+            $settings = compact('schemaName', 'tableName', 'name', 'rawName', 'isView');
+            $names[strtolower($name)] = new TableSchema($settings);
         }
 
         return $names;
@@ -333,18 +336,10 @@ class Schema extends \DreamFactory\Core\Database\Schema
     }
 
     /**
-     * Loads the metadata for the specified table.
-     *
-     * @param string $name table name
-     *
-     * @return TableSchema driver dependent table metadata. Null if the table does not exist.
+     * @inheritdoc
      */
-    protected function loadTable($name)
+    protected function loadTable(TableSchema $table)
     {
-        $table = new TableSchema($name);
-        $table->rawName = $this->quoteTableName($name);
-        $table->displayName = $name;
-
         if (!$this->findColumns($table)) {
             return null;
         }
@@ -430,7 +425,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
     protected function findConstraints($table)
     {
         $keys = [];
-        /** @type TableNameSchema $each */
+        /** @type TableSchema $each */
         foreach ($this->getTableNames() as $each) {
             $sql = "PRAGMA foreign_key_list({$each->name})";
             $fks = $this->connection->createCommand($sql)->queryAll();
@@ -446,8 +441,12 @@ class Schema extends \DreamFactory\Core\Database\Schema
                     $table->foreignKeys[$key['from']] = [$key['table'], $key['to']];
                     // Add it to our foreign references as well
                     $relation =
-                        new RelationSchema(RelationSchema::BELONGS_TO,
-                            ['ref_table' => $key['table'], 'ref_fields' => $key['to'], 'field' => $key['from']]);
+                        new RelationSchema([
+                            'type'       => RelationSchema::BELONGS_TO,
+                            'ref_table'  => $key['table'],
+                            'ref_fields' => $key['to'],
+                            'field'      => $key['from']
+                        ]);
 
                     $table->addRelation($relation);
                 }
@@ -456,8 +455,12 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 foreach ($fks as $key => $fk) {
                     if ($fk['table'] === $table->name) {
                         $relation =
-                            new RelationSchema(RelationSchema::HAS_MANY,
-                                ['ref_table' => $each->name, 'ref_fields' => $fk['from'], 'field' => $fk['to']]);
+                            new RelationSchema([
+                                'type'       => RelationSchema::HAS_MANY,
+                                'ref_table'  => $each->name,
+                                'ref_fields' => $fk['from'],
+                                'field'      => $fk['to']
+                            ]);
 
                         $table->addRelation($relation);
                         $fks2 = $fks;
@@ -467,15 +470,15 @@ class Schema extends \DreamFactory\Core\Database\Schema
                                 // not same as parent, i.e. via reference back to self
                                 // not the same key
                                 $relation =
-                                    new RelationSchema(RelationSchema::MANY_MANY,
-                                        [
-                                            'ref_table'          => $fk2['table'],
-                                            'ref_fields'         => $fk['to'],
-                                            'field'              => $fk2['to'],
-                                            'junction_table'     => $each->name,
-                                            'junction_field'     => $fk['from'],
-                                            'junction_ref_field' => $fk2['from']
-                                        ]);
+                                    new RelationSchema([
+                                        'type'               => RelationSchema::MANY_MANY,
+                                        'ref_table'          => $fk2['table'],
+                                        'ref_fields'         => $fk['to'],
+                                        'field'              => $fk2['to'],
+                                        'junction_table'     => $each->name,
+                                        'junction_field'     => $fk['from'],
+                                        'junction_ref_field' => $fk2['from']
+                                    ]);
 
                                 $table->addRelation($relation);
                             }

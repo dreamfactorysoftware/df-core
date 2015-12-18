@@ -84,6 +84,7 @@ class Script extends BaseRestService
 
         $logOutput = $this->request->getParameterAsBool('log_output', true);
         $data = ['request' => $this->request->toArray()];
+        $data['resource'] = $this->resourcePath;
         $output = null;
         $result = ScriptEngineManager::runScript(
             $this->content,

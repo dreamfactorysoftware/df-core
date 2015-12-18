@@ -33,11 +33,6 @@ class CorsConfig extends BaseSystemModel
     ];
 
     /**
-     * @var bool
-     */
-    public $timestamps = false;
-
-    /**
      * {@inheritdoc}
      */
     public static function boot()

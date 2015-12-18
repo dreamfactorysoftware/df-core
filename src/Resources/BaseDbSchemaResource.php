@@ -2,7 +2,7 @@
 
 namespace DreamFactory\Core\Resources;
 
-use DreamFactory\Core\Database\TableNameSchema;
+use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
@@ -49,7 +49,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     public function listResources($schema = null, $refresh = false)
     {
-        /** @type TableNameSchema[] $result */
+        /** @type TableSchema[] $result */
         $result = $this->parent->getTableNames($schema, $refresh);
         $resources = [];
         foreach ($result as $table) {
@@ -91,7 +91,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         $refresh = $this->request->getParameterAsBool(ApiOptions::REFRESH);
         $schema = $this->request->getParameter(ApiOptions::SCHEMA, '');
 
-        /** @type TableNameSchema[] $result */
+        /** @type TableSchema[] $result */
         $result = $this->parent->getTableNames($schema, $refresh);
         $resources = [];
         foreach ($result as $table) {

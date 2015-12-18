@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Database;
 
+use DreamFactory\Library\Utility\Inflector;
+
 /**
  * TableSchema is the base class for representing the metadata of a database table.
  *
@@ -18,26 +20,46 @@ namespace DreamFactory\Core\Database;
  *
  * @property array $columnNames List of column names.
  */
-class TableSchema extends TableNameSchema
+class TableSchema
 {
     /**
-     * @var string name of the schema that this table belongs to.
+     * @var string Name of the schema that this table belongs to.
      */
     public $schemaName;
     /**
-     * @var string name of this table.
+     * @var string Name of this table without any additional schema declaration.
      */
-    public $name;
+    public $tableName;
     /**
-     * @var string raw name of this table. This is the quoted version of table name with optional schema name. It can
-     *      be directly used in SQLs.
+     * @var string Raw name of this table. This is the quoted version of table name with optional schema name.
+     * It can be directly used in SQL statements.
      */
     public $rawName;
     /**
-     * @var string public display name of this table. This is the table name with optional non-default schema name. It
-     *      is to be used by clients.
+     * @var string Public name of this table. This is the table name with optional non-default schema name.
+     * It is to be used by clients.
      */
-    public $displayName;
+    public $name;
+    /**
+     * @var string Optional alias for this table. This alias can be used in the API to access the table.
+     */
+    public $alias;
+    /**
+     * @var string Optional label for this table.
+     */
+    public $label;
+    /**
+     * @var string Optional plural form of the label for of this table.
+     */
+    public $plural;
+    /**
+     * @var string Optional public description of this table.
+     */
+    public $description;
+    /**
+     * @var boolean Table or View?.
+     */
+    public $isView = false;
     /**
      * @var string Optional field of this table that may contain a displayable name for each row/record.
      */
@@ -69,6 +91,59 @@ class TableSchema extends TableNameSchema
      * @var boolean Are any of the relationships required during fetch on this table?
      */
     public $fetchRequiresRelations = false;
+    /**
+     * @var boolean Has the full schema been discovered, or just name and type.
+     */
+    public $discoveryCompleted = false;
+
+    public function __construct(array $settings)
+    {
+        $this->fill($settings);
+    }
+
+    public function fill(array $settings)
+    {
+        foreach ($settings as $key => $value) {
+            if ('field' === $key) {
+                // reconstitute columns
+                foreach($value as $field) {
+                    $temp = new ColumnSchema($field);
+                    $this->addColumn($temp);
+                }
+            } elseif ('related' === $key) {
+                // reconstitute relations
+                foreach( $value as $related) {
+                    $temp = new RelationSchema($related);
+                    $this->addRelation($temp);
+                }
+            }
+            if (!property_exists($this, $key)) {
+                // try camel cased
+                $camel = camel_case($key);
+                if (property_exists($this, $camel)) {
+                    $this->{$camel} = $value;
+                    continue;
+                }
+            }
+            // set real and virtual
+            $this->{$key} = $value;
+        }
+    }
+
+    public function getName($use_alias = false)
+    {
+        return ($use_alias && !empty($this->alias)) ? $this->alias : $this->name;
+    }
+
+    public function getLabel()
+    {
+        return (empty($this->label)) ? Inflector::camelize($this->getName(true), '_', true) : $this->label;
+    }
+
+    public function getPlural()
+    {
+        return (empty($this->plural)) ? Inflector::pluralize($this->getLabel()) : $this->plural;
+    }
 
     /**
      * Sets the named column metadata.
@@ -105,6 +180,27 @@ class TableSchema extends TableNameSchema
         return array_keys($this->columns);
     }
 
+    /**
+     * @param bool $use_alias
+     *
+     * @return ColumnSchema[]
+     */
+    public function getColumns($use_alias = false)
+    {
+        if ($use_alias) {
+            // re-index for alias usage, easier to find requested fields from client
+            $columns = [];
+            /** @var ColumnSchema $column */
+            foreach ($this->columns as $column) {
+                $columns[strtolower($column->getName(true))] = $column;
+            }
+
+            return $columns;
+        }
+
+        return $this->columns;
+    }
+
     public function addRelation(RelationSchema $relation)
     {
         if ($relation->alwaysFetch) {
@@ -135,11 +231,41 @@ class TableSchema extends TableNameSchema
         return array_keys($this->columns);
     }
 
+    /**
+     * @param bool $use_alias
+     *
+     * @return RelationSchema[]
+     */
+    public function getRelations($use_alias = false)
+    {
+        if ($use_alias) {
+            // re-index for alias usage, easier to find requested fields from client
+            $relations = [];
+            /** @var RelationSchema $column */
+            foreach ($this->relations as $column) {
+                $relations[strtolower($column->getName(true))] = $column;
+            }
+
+            return $relations;
+        }
+
+        return $this->relations;
+    }
+
     public function toArray($use_alias = false)
     {
-        $out = parent::toArray($use_alias);
+        $out = [
+            'name'        => $this->getName($use_alias),
+            'is_view'     => $this->isView,
+            'label'       => $this->getLabel(),
+            'plural'      => $this->getPlural(),
+            'description' => $this->description,
+        ];
 
-        $out['name'] = $this->displayName;
+        if (!$use_alias) {
+            $out = array_merge(['alias' => $this->alias], $out);
+        }
+
         $out['primary_key'] = $this->primaryKey;
         $out['name_field'] = $this->nameField;
 

@@ -2,8 +2,6 @@
 namespace DreamFactory\Core\Database\Sqlanywhere;
 
 use DreamFactory\Core\Database\Expression;
-use DreamFactory\Core\Database\RelationSchema;
-use DreamFactory\Core\Database\TableNameSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
@@ -18,7 +16,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
      */
     public function getDefaultSchema($refresh = false)
     {
-        return strtoupper($this->connection->username);
+        return $this->connection->username;
     }
 
     protected function translateSimpleColumnTypes(array &$info)
@@ -275,7 +273,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
      * @param string $name table name
      *
      * @return string the properly quoted table name
-     * @since 1.1.6
      */
     public function quoteSimpleTableName($name)
     {
@@ -289,7 +286,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
      * @param string $name column name
      *
      * @return string the properly quoted column name
-     * @since 1.1.6
      */
     public function quoteSimpleColumnName($name)
     {
@@ -324,7 +320,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
      *                              If this is not set, the next new row's primary key will have the max value of a
      *                              primary key plus one (i.e. sequence trimming).
      *
-     * @since 1.1.6
      */
     public function resetSequence($table, $value = null)
     {
@@ -351,7 +346,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
      * @param boolean $check  whether to turn on or off the integrity check.
      * @param string  $schema the schema of the tables. Defaults to empty string, meaning the current or default schema.
      *
-     * @since 1.1.6
      */
     public function checkIntegrity($check = true, $schema = '')
     {
@@ -367,18 +361,10 @@ class Schema extends \DreamFactory\Core\Database\Schema
     }
 
     /**
-     * Loads the metadata for the specified table.
-     *
-     * @param string $name table name
-     *
-     * @return TableSchema driver dependent table metadata. Null if the table does not exist.
+     * @inheritdoc
      */
-    protected function loadTable($name)
+    protected function loadTable(TableSchema $table)
     {
-        $table = new TableSchema($name);
-        $this->resolveTableNames($table, $name);
-        //if (!in_array($table->name, $this->tableNames)) return null;
-
         if (!$this->findColumns($table)) {
             return null;
         }
@@ -386,35 +372,6 @@ class Schema extends \DreamFactory\Core\Database\Schema
         $this->findConstraints($table);
 
         return $table;
-    }
-
-    /**
-     * Generates various kinds of table names.
-     *
-     * @param TableSchema $table the table instance
-     * @param string      $name  the unquoted table name
-     */
-    protected function resolveTableNames($table, $name)
-    {
-        $parts = explode('.', str_replace(['[', ']'], '', $name));
-        if (($c = count($parts)) == 2) {
-            // Only schema name and table name provided
-            $table->schemaName = $parts[0];
-            $table->name = $parts[1];
-            $table->rawName = $this->quoteTableName($table->schemaName) . '.' . $this->quoteTableName($table->name);
-            $table->displayName =
-                ($table->schemaName === $this->getDefaultSchema())
-                    ? $table->name
-                    : ($table->schemaName .
-                    '.' .
-                    $table->name);
-        } else {
-            // Only the name given, we need at least the default schema name
-            $table->schemaName = $this->getDefaultSchema();
-            $table->name = $parts[0];
-            $table->rawName = $this->quoteTableName($table->schemaName) . '.' . $this->quoteTableName($table->name);
-            $table->displayName = $table->name;
-        }
     }
 
     /**
@@ -430,7 +387,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
         $sql = <<<EOD
 SELECT indextype,colnames FROM SYS.SYSINDEXES WHERE creator = :schema AND tname = :table
 EOD;
-        $params = [':schema' => $schema, ':table' => $table->name];
+        $params = [':schema' => $schema, ':table' => $table->tableName];
         $constraints = $this->connection->createCommand($sql)->queryAll(true, $params);
 
         foreach ($constraints as $key => $constraint) {
@@ -505,7 +462,8 @@ FROM SYS.SYSFOREIGNKEYS WHERE foreign_creator NOT IN ('SYS','dbo')
 EOD;
         $constraints = $this->connection->createCommand($sql)->queryAll();
         foreach ($constraints as &$constraint) {
-            list($constraint['column_name'], $constraint['referenced_column_name']) = explode(' IS ', $constraint['columns']);
+            list($constraint['column_name'], $constraint['referenced_column_name']) =
+                explode(' IS ', $constraint['columns']);
         }
 
         $this->buildTableRelations($table, $constraints);
@@ -521,7 +479,7 @@ EOD;
     protected function findColumns($table)
     {
         $sql = <<<SQL
-SELECT * FROM sys.syscolumns WHERE creator = '{$table->schemaName}' AND tname = '{$table->name}'
+SELECT * FROM sys.syscolumns WHERE creator = '{$table->schemaName}' AND tname = '{$table->tableName}'
 SQL;
 
         try {
@@ -575,7 +533,7 @@ SQL;
     protected function findSchemaNames()
     {
         $sql = <<<SQL
-SELECT user_name FROM sysuser WHERE user_name NOT IN ('SYS','dbo') and user_type IN (12,13,14)
+SELECT user_name FROM sysuser WHERE user_name NOT IN ('SYS','dbo','EXTENV_MAIN','EXTENV_WORKER') and user_type IN (12,13,14)
 SQL;
         try {
             if (false === $names = $this->connection->createCommand($sql)->queryColumn()) {
@@ -611,21 +569,29 @@ SQL;
         }
 
         $sql = <<<SQL
-SELECT tname, tabletype, remarks FROM sys.syscatalog WHERE {$condition} ORDER BY tname
+SELECT creator, tname, tabletype, remarks FROM sys.syscatalog WHERE {$condition} ORDER BY tname
 SQL;
 
-        $defaultSchema = $this->getDefaultSchema();
         $rows = $this->connection->createCommand($sql)->queryAll(true, $params);
+
+        $defaultSchema = $this->getDefaultSchema();
+        $addSchema = (!empty($schema) && ($defaultSchema !== $schema));
 
         $names = [];
         foreach ($rows as $row) {
-            $name = isset($row['tname']) ? $row['tname'] : '';
-            if (!empty($schema) && ($defaultSchema !== $schema)) {
-                $name = $schema . '.' . $name;
+            $schemaName = isset($row['creator']) ? $row['creator'] : '';
+            $tableName = isset($row['tname']) ? $row['tname'] : '';
+            $isView = (false !== stripos($row['tabletype'], 'VIEW'));
+            if ($addSchema) {
+                $name = $schemaName . '.' . $tableName;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($tableName);;
+            } else {
+                $name = $tableName;
+                $rawName = $this->quoteTableName($tableName);
             }
-            $table = new TableNameSchema($name, ('TABLE' !== $row['tabletype']));
-            $table->description = $row['remarks'];
-            $names[strtolower($name)] = $table;
+            $settings = compact('schemaName', 'tableName', 'name', 'rawName', 'isView');
+            $settings['description'] = $row['remarks'];
+            $names[strtolower($name)] = new TableSchema($settings);
         }
 
         return $names;
@@ -714,7 +680,6 @@ SQL;
             }
         }
 
-        $this->connection->createCommand('SET QUOTED_IDENTIFIER ON; SET ANSI_WARNINGS ON;')->execute();
         $sql = "$pre EXEC $name $paramStr; $post";
         $command = $this->connection->createCommand($sql);
 
@@ -904,31 +869,6 @@ SQL;
             $this->getColumnType($definition);
 
         return $sql;
-    }
-
-    /**
-     * @param ColumnSchema $field_info
-     * @param bool         $as_quoted_string
-     * @param string       $out_as
-     *
-     * @return string
-     */
-    public function parseFieldForSelect($field_info, $as_quoted_string = false, $out_as = null)
-    {
-        $field = ($as_quoted_string) ? $this->quoteColumnName($field_info->name) : $field_info->name;
-        $alias =
-            ($as_quoted_string) ? $this->quoteColumnName($field_info->getName(true)) : $field_info->getName(true);
-        switch ($field_info->dbType) {
-            case 'datetime':
-            case 'timestamp':
-                return "(CONVERT(nvarchar(30), $field, 127)) AS $alias";
-            case 'geometry':
-            case 'geography':
-            case 'hierarchyid':
-                return "($field.ToString()) AS $alias";
-            default :
-                return parent::parseFieldForSelect($field_info, $as_quoted_string, $out_as);
-        }
     }
 
     /**

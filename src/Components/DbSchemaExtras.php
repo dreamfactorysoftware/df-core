@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Core\Models\Service;
 use Log;
 use DreamFactory\Core\Models\DbFieldExtras;
 use DreamFactory\Core\Models\DbRelatedExtras;
@@ -61,21 +62,30 @@ trait DbSchemaExtras
         }
 
         if ('*' === $field_names) {
-            return DbFieldExtras::whereServiceId($this->getServiceId())
+            $result = DbFieldExtras::whereServiceId($this->getServiceId())
                 ->whereTable($table_name)
+                ->get()
+                ->toArray();
+        } else {
+
+            if (false === $values = DbUtilities::validateAsArray($field_names, ',', true)) {
+                throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
+            }
+
+            $result = DbFieldExtras::whereServiceId($this->getServiceId())
+                ->whereTable($table_name)
+                ->whereIn('field', $values)
                 ->get()
                 ->toArray();
         }
 
-        if (false === $values = DbUtilities::validateAsArray($field_names, ',', true)) {
-            throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
+        foreach ($result as &$extra) {
+            if (!empty($extra['ref_service_id']) && ($extra['ref_service_id'] != $extra['service_id'])) {
+                $extra['ref_service'] = Service::getCachedNameById($extra['ref_service_id']);
+            }
         }
 
-        return DbFieldExtras::whereServiceId($this->getServiceId())
-            ->whereTable($table_name)
-            ->whereIn('field', $values)
-            ->get()
-            ->toArray();
+        return $result;
     }
 
     /**
@@ -93,21 +103,29 @@ trait DbSchemaExtras
         }
 
         if ('*' === $field_names) {
-            return DbFieldExtras::whereRefServiceId($this->getServiceId())
+            $result = DbFieldExtras::whereRefServiceId($this->getServiceId())
                 ->whereRefTable($table_name)
+                ->get()
+                ->toArray();
+        } else {
+            if (false === $values = DbUtilities::validateAsArray($field_names, ',', true)) {
+                throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
+            }
+
+            $result = DbFieldExtras::whereRefServiceId($this->getServiceId())
+                ->whereRefTable($table_name)
+                ->whereIn('ref_fields', $values)
                 ->get()
                 ->toArray();
         }
 
-        if (false === $values = DbUtilities::validateAsArray($field_names, ',', true)) {
-            throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
+        foreach ($result as &$extra) {
+            if (!empty($extra['ref_service_id']) && ($extra['ref_service_id'] != $extra['service_id'])) {
+                $extra['service'] = Service::getCachedNameById($extra['service_id']);
+            }
         }
 
-        return DbFieldExtras::whereRefServiceId($this->getServiceId())
-            ->whereRefTable($table_name)
-            ->whereIn('ref_fields', $values)
-            ->get()
-            ->toArray();
+        return $result;
     }
 
     /**
@@ -177,8 +195,14 @@ trait DbSchemaExtras
                 !empty($field = ArrayUtils::get($extra, 'field'))
             ) {
                 if (!empty($extra['ref_table']) && empty($extra['ref_service_id'])) {
-                    // don't allow empty ref_service_id into the database, needs to be searchable from other services
-                    $extras['ref_service_id'] = $this->getServiceId();
+                    if (!empty($extra['ref_service'])) {
+                        // translate name to id for storage
+                        $extra['ref_service_id'] =
+                            Service::getCachedByName($extra['ref_service'], 'id', $this->getServiceId());
+                    } else {
+                        // don't allow empty ref_service_id into the database, needs to be searchable from other services
+                        $extras['ref_service_id'] = $this->getServiceId();
+                    }
                 }
                 DbFieldExtras::updateOrCreate([
                     'service_id' => $this->getServiceId(),

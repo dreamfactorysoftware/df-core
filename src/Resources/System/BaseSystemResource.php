@@ -159,9 +159,11 @@ class BaseSystemResource extends BaseRestResource
                 $data = $this->retrieveByIds($ids, $related);
             }
         } else {
-            $data = $this->retrieveByRequest($related);
+            $modelClass = $this->model;
+            $criteria = $this->getSelectionCriteria();
+            $data = $modelClass::selectByRequest($criteria, $related);
             if ($this->request->getParameterAsBool(ApiOptions::INCLUDE_COUNT)) {
-                $meta['count'] = count($data);
+                $meta['count'] = $modelClass::countByRequest($criteria);
             }
         }
 

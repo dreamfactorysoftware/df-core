@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Models;
 
 use \Cache;
-use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -103,10 +102,6 @@ class Role extends BaseSystemModel
 
                 if (empty($role)) {
                     throw new NotFoundException("Role not found.");
-                }
-
-                if (!$role->is_active) {
-                    throw new ForbiddenException("Role is not active.");
                 }
 
                 $roleInfo = $role->toArray();

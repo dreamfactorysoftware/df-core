@@ -73,8 +73,8 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
 
     public function parseFieldForSelect($as_quoted_string = false)
     {
-        $field = ($as_quoted_string) ? $this->quoteColumnName($this->name) : $this->name;
-        $alias = ($as_quoted_string) ? $this->quoteColumnName($this->getName(true)) : $this->getName(true);
+        $field = ($as_quoted_string) ? $this->rawName : $this->name;
+        $alias = $this->getName(true);
         switch ($this->dbType) {
             case 'datetime':
             case 'datetimeoffset':

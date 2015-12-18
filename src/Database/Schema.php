@@ -62,11 +62,11 @@ abstract class Schema
     /**
      * Loads the metadata for the specified table.
      *
-     * @param string $name table name
+     * @param TableSchema $table Any already known info about the table
      *
      * @return TableSchema driver dependent table metadata, null if the table does not exist.
      */
-    abstract protected function loadTable($name);
+    abstract protected function loadTable(TableSchema $table);
 
     /**
      * Constructor.
@@ -171,13 +171,14 @@ abstract class Schema
         $constraints2 = $constraints;
 
         foreach ($constraints as $key => $constraint) {
+            $constraint = array_change_key_case($constraint, CASE_LOWER);
             $ts = $constraint['table_schema'];
             $tn = $constraint['table_name'];
             $cn = $constraint['column_name'];
             $rts = $constraint['referenced_table_schema'];
             $rtn = $constraint['referenced_table_name'];
             $rcn = $constraint['referenced_column_name'];
-            if ((0 == strcasecmp($tn, $table->name)) && (0 == strcasecmp($ts, $schema))) {
+            if ((0 == strcasecmp($tn, $table->tableName)) && (0 == strcasecmp($ts, $schema))) {
                 $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
                 $cnk = strtolower($cn);
                 $table->foreignKeys[$cnk] = [$name, $rcn];
@@ -192,15 +193,23 @@ abstract class Schema
 
                 // Add it to our foreign references as well
                 $relation =
-                    new RelationSchema(RelationSchema::BELONGS_TO,
-                        ['ref_table' => $name, 'ref_fields' => $rcn, 'field' => $cn]);
+                    new RelationSchema([
+                        'type'       => RelationSchema::BELONGS_TO,
+                        'ref_table'  => $name,
+                        'ref_fields' => $rcn,
+                        'field'      => $cn
+                    ]);
 
                 $table->addRelation($relation);
-            } elseif ((0 == strcasecmp($rtn, $table->name)) && (0 == strcasecmp($rts, $schema))) {
+            } elseif ((0 == strcasecmp($rtn, $table->tableName)) && (0 == strcasecmp($rts, $schema))) {
                 $name = ($ts == $defaultSchema) ? $tn : $ts . '.' . $tn;
                 $relation =
-                    new RelationSchema(RelationSchema::HAS_MANY,
-                        ['ref_table' => $name, 'ref_fields' => $cn, 'field' => $rcn]);
+                    new RelationSchema([
+                        'type'       => RelationSchema::HAS_MANY,
+                        'ref_table'  => $name,
+                        'ref_fields' => $cn,
+                        'field'      => $rcn
+                    ]);
 
                 $table->addRelation($relation);
 
@@ -208,6 +217,7 @@ abstract class Schema
                 foreach ($constraints2 as $key2 => $constraint2) {
                     if (0 != strcasecmp($key, $key2)) // not same key
                     {
+                        $constraint2 = array_change_key_case($constraint2, CASE_LOWER);
                         $ts2 = $constraint2['table_schema'];
                         $tn2 = $constraint2['table_name'];
                         $cn2 = $constraint2['column_name'];
@@ -216,21 +226,21 @@ abstract class Schema
                             $rts2 = $constraint2['referenced_table_schema'];
                             $rtn2 = $constraint2['referenced_table_name'];
                             $rcn2 = $constraint2['referenced_column_name'];
-                            if ((0 != strcasecmp($rts2, $schema)) || (0 != strcasecmp($rtn2, $table->name))
+                            if ((0 != strcasecmp($rts2, $schema)) || (0 != strcasecmp($rtn2, $table->tableName))
                             ) {
                                 $name2 = ($rts2 == $schema) ? $rtn2 : $rts2 . '.' . $rtn2;
                                 // not same as parent, i.e. via reference back to self
                                 // not the same key
                                 $relation =
-                                    new RelationSchema(RelationSchema::MANY_MANY,
-                                        [
-                                            'ref_table'          => $name2,
-                                            'ref_fields'         => $rcn2,
-                                            'field'              => $rcn,
-                                            'junction_table'     => $name,
-                                            'junction_field'     => $cn,
-                                            'junction_ref_field' => $cn2
-                                        ]);
+                                    new RelationSchema([
+                                        'type'               => RelationSchema::MANY_MANY,
+                                        'ref_table'          => $name2,
+                                        'ref_fields'         => $rcn2,
+                                        'field'              => $rcn,
+                                        'junction_table'     => $name,
+                                        'junction_field'     => $cn,
+                                        'junction_ref_field' => $cn2
+                                    ]);
 
                                 $table->addRelation($relation);
                             }
@@ -292,15 +302,18 @@ abstract class Schema
             $realName = $name;
         }
 
-        if (null === $table = $this->loadTable($realName)) {
+        // check if know anything about this table already
+        if (empty($this->tableNames[$name])) {
+            $this->getCachedTableNames();
+            if (empty($this->tableNames[$name])) {
+                return null;
+            }
+        }
+        if (null === $table = $this->loadTable($this->tableNames[$name])) {
             return null;
         }
 
         // merge db extras
-        if (!empty($extras = $this->connection->getSchemaExtrasForTables($name, false))) {
-            $extras = (isset($extras[0])) ? $extras[0] : null;
-            $table->fill($extras);
-        }
         if (!empty($extras = $this->connection->getSchemaExtrasForFields($name, '*'))) {
             foreach ($extras as $extra) {
                 if (!empty($columnName = (isset($extra['field'])) ? $extra['field'] : null)) {
@@ -309,26 +322,32 @@ abstract class Schema
                             $column->fill($extra); // include additional ref info
                             $column->isForeignKey = true;
                             $column->isVirtualForeignKey = true;
-                            if (!empty($extra['service_id']) &&
-                                !empty($extra['ref_service_id']) &&
-                                ($extra['service_id'] !== $extra['ref_service_id'])
-                            ) {
+                            if (!empty($extra['ref_service'])) {
                                 $column->isForeignRefService = true;
                             }
 
                             // Add it to our foreign references as well
                             $relatedInfo =
                                 array_merge(array_except($extra, ['label', 'description']),
-                                    ['is_virtual'         => true,
-                                     'is_foreign_service' => $column->isForeignRefService,
-                                     'field'              => $column->name
+                                    [
+                                        'type'               => RelationSchema::BELONGS_TO,
+                                        'is_virtual'         => true,
+                                        'is_foreign_service' => $column->isForeignRefService,
+                                        'field'              => $column->name
                                     ]);
-                            $relation = new RelationSchema(RelationSchema::BELONGS_TO, $relatedInfo);
-
+                            $relation = new RelationSchema($relatedInfo);
                             $table->addRelation($relation);
                         } else {
                             //  Exclude potential virtual reference info
-                            $refExtraFields = ['ref_service_id','ref_table','ref_fields','ref_on_update','ref_on_delete'];
+                            $refExtraFields =
+                                [
+                                    'ref_service',
+                                    'ref_service_id',
+                                    'ref_table',
+                                    'ref_fields',
+                                    'ref_on_update',
+                                    'ref_on_delete'
+                                ];
                             $column->fill(array_except($extra, $refExtraFields));
                         }
                     } elseif (ColumnSchema::TYPE_VIRTUAL ===
@@ -349,15 +368,16 @@ abstract class Schema
 
                         // Add it to our foreign references as well
                         $relatedInfo = [
+                            'type'               => RelationSchema::HAS_MANY,
                             'field'              => $column->name,
                             'is_virtual'         => true,
-                            'is_foreign_service' => ($extra['service_id'] !== $extra['ref_service_id']),
+                            'is_foreign_service' => !empty($extra['service']),
+                            'ref_service'        => (empty($extra['service']) ? null : $extra['service']),
                             'ref_service_id'     => $extra['service_id'],
                             'ref_table'          => $extra['table'],
                             'ref_fields'         => $extra['field'],
                         ];
-                        $relation = new RelationSchema(RelationSchema::HAS_MANY, $relatedInfo);
-
+                        $relation = new RelationSchema($relatedInfo);
                         $table->addRelation($relation);
                     }
                 }
@@ -414,33 +434,25 @@ abstract class Schema
      * @param bool   $include_views
      * @param bool   $refresh
      *
-     * @return TableNameSchema[] all table names in the database.
+     * @return TableSchema[] all table names in the database.
      */
     public function getTableNames($schema = '', $include_views = true, $refresh = false)
     {
-        if ($refresh) {
-            // go ahead and reset all schemas
-            $this->getCachedTableNames($include_views, $refresh);
-        }
+        // go ahead and reset all schemas if needed
+        $this->getCachedTableNames($include_views, $refresh);
         if (empty($schema)) {
-            $names = [];
-            foreach ($this->getSchemaNames() as $schema) {
-                if (!isset($this->tableNames[$schema])) {
-                    $this->getCachedTableNames($include_views);
-                }
-
-                $temp = (isset($this->tableNames[$schema]) ? $this->tableNames[$schema] : []);
-                $names = array_merge($names, $temp);
-            }
+            // return all
+            return $this->tableNames;
         } else {
-            if (!isset($this->tableNames[$schema])) {
-                $this->getCachedTableNames($include_views);
+            $names = [];
+            foreach ($this->tableNames as $key => $value) {
+                if ($value->schemaName === $schema) {
+                    $names[$key] = $value;
+                }
             }
 
-            $names = (isset($this->tableNames[$schema]) ? $this->tableNames[$schema] : []);
+            return $names;
         }
-
-        return $names;
     }
 
     /**
@@ -455,24 +467,23 @@ abstract class Schema
             (empty($this->tableNames) &&
                 (null === $this->tableNames = $this->connection->getFromCache('table_names')))
         ) {
-            $names = [];
+            $tables = [];
             foreach ($this->getSchemaNames($refresh) as $temp) {
-                /** @type TableNameSchema[] $tables */
-                $tables = $this->findTableNames($temp, $include_views);
-                ksort($tables, SORT_NATURAL); // sort alphabetically
-                // merge db extras
-                if (!empty($extrasEntries = $this->connection->getSchemaExtrasForTables(array_keys($tables), false))) {
-                    foreach ($extrasEntries as $extras) {
-                        if (!empty($extraName = strtolower(strval($extras['table'])))) {
-                            if (array_key_exists($extraName, $tables)) {
-                                $tables[$extraName]->fill($extras);
-                            }
+                /** @type TableSchema[] $tables */
+                $tables = array_merge($tables, $this->findTableNames($temp, $include_views));
+            }
+            ksort($tables, SORT_NATURAL); // sort alphabetically
+            // merge db extras
+            if (!empty($extrasEntries = $this->connection->getSchemaExtrasForTables(array_keys($tables), false))) {
+                foreach ($extrasEntries as $extras) {
+                    if (!empty($extraName = strtolower(strval($extras['table'])))) {
+                        if (array_key_exists($extraName, $tables)) {
+                            $tables[$extraName]->fill($extras);
                         }
                     }
                 }
-                $names[$temp] = $tables;
             }
-            $this->tableNames = $names;
+            $this->tableNames = $tables;
             $this->connection->addToCache('table_names', $this->tableNames, true);
         }
     }
@@ -1045,7 +1056,8 @@ abstract class Schema
                     'db_function',
                     'is_virtual_foreign_key',
                     'is_foreign_ref_service',
-                    'ref_service_id'
+                    'ref_service',
+                    'ref_service_id',
                 ];
             $virtualFK = (isset($field['is_virtual_foreign_key']) && boolval($field['is_virtual_foreign_key']));
             if ($virtualFK) {
@@ -1057,12 +1069,13 @@ abstract class Schema
                 }
             } else {
                 // don't set this in the database extras
+                $field['ref_service'] = null;
                 $field['ref_service_id'] = null;
             }
             $extraNew = array_only($field, $extraTags);
             if ($oldField) {
                 $extraOld = array_only($oldField->toArray(), $extraTags);
-                $noDiff = ['picklist', 'db_function'];
+                $noDiff = ['picklist', 'validation', 'db_function'];
                 $extraNew = array_diff_assoc(array_except($extraNew, $noDiff), array_except($extraOld, $noDiff));
 
                 $oldPicklist = (is_array($oldField->picklist) ? $oldField->picklist : []);
@@ -1073,12 +1086,15 @@ abstract class Schema
                     $extraNew['picklist'] = $picklist;
                 }
 
+                $validation = (isset($field['validation'])) ? $field['validation'] : [];
+                $oldValidation = (is_array($oldField->validation) ? $oldField->validation : []);
+                if (json_encode($validation) !== json_encode($oldValidation)) {
+                    $extraNew['validation'] = $validation;
+                }
+
                 $dbFunction = (isset($field['db_function'])) ? $field['db_function'] : [];
                 $oldFunction = (is_array($oldField->dbFunction) ? $oldField->dbFunction : []);
-                if ((count($dbFunction) !== count($oldFunction)) ||
-                    !empty(array_diff($dbFunction, $oldFunction)) ||
-                    !empty(array_diff($oldFunction, $dbFunction))
-                ) {
+                if (json_encode($dbFunction) !== json_encode($oldFunction)) {
                     $extraNew['db_function'] = $dbFunction;
                 }
             }

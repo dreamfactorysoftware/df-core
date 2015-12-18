@@ -74,6 +74,10 @@ class RelationSchema
      */
     public $isForeignService = false;
     /**
+     * @var string|null The referenced service name
+     */
+    public $refService;
+    /**
      * @var integer|null The referenced service id
      */
     public $refServiceId;
@@ -102,7 +106,11 @@ class RelationSchema
      */
     public $isForeignJunctionService = false;
     /**
-     * @var string details the service of the pivot or junction table
+     * @var string details the service name of the pivot or junction table
+     */
+    public $junctionService;
+    /**
+     * @var integer details the service id of the pivot or junction table
      */
     public $junctionServiceId;
     /**
@@ -118,31 +126,32 @@ class RelationSchema
      */
     public $junctionRefField;
 
-    public function __construct($type, array $settings)
+    public function __construct(array $settings)
     {
         $this->fill($settings);
 
-        $this->type = $type;
-        $table = $this->refTable;
-        if ($this->isForeignService && $this->refServiceId) {
-            $table = Service::getCachedNameById($this->refServiceId) . '.' . $table;
-        }
-        switch ($this->type) {
-            case static::BELONGS_TO:
-                $this->name = $table . '_by_' . $this->field;
-                break;
-            case static::HAS_MANY:
-                $this->name = $table . '_by_' . $this->refFields;
-                break;
-            case static::MANY_MANY:
-                $junction = $this->junctionTable;
-                if ($this->isForeignJunctionService && $this->junctionServiceId) {
-                    $junction = Service::getCachedNameById($this->junctionServiceId) . '.' . $junction;
-                }
-                $this->name = $table . '_by_' . $junction;
-                break;
-            default:
-                break;
+        if (empty($this->name)) {
+            $table = $this->refTable;
+            if ($this->isForeignService && $this->refService) {
+                $table = $this->refService . '.' . $table;
+            }
+            switch ($this->type) {
+                case static::BELONGS_TO:
+                    $this->name = $table . '_by_' . $this->field;
+                    break;
+                case static::HAS_MANY:
+                    $this->name = $table . '_by_' . $this->refFields;
+                    break;
+                case static::MANY_MANY:
+                    $junction = $this->junctionTable;
+                    if ($this->isForeignJunctionService && $this->junctionService) {
+                        $junction = $this->junctionService . '.' . $junction;
+                    }
+                    $this->name = $table . '_by_' . $junction;
+                    break;
+                default:
+                    break;
+            }
         }
     }
 
@@ -187,12 +196,14 @@ class RelationSchema
             'field'                       => $this->field,
             'is_virtual'                  => $this->isVirtual,
             'is_foreign_service'          => $this->isForeignService,
+            'ref_service'                 => $this->refService,
             'ref_service_id'              => $this->refServiceId,
             'ref_table'                   => $this->refTable,
             'ref_fields'                  => $this->refFields,
             'ref_on_update'               => $this->refOnUpdate,
             'ref_on_delete'               => $this->refOnDelete,
             'is_foreign_junction_service' => $this->isForeignJunctionService,
+            'junction_service'            => $this->junctionService,
             'junction_service_id'         => $this->junctionServiceId,
             'junction_table'              => $this->junctionTable,
             'junction_field'              => $this->junctionField,
@@ -200,7 +211,7 @@ class RelationSchema
         ];
 
         if (!$use_alias) {
-            $out['alias'] = $this->alias;
+            $out = array_merge(['alias' => $this->alias], $out);
         }
 
         return $out;

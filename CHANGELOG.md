@@ -9,6 +9,25 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.1.8] - 2015-12-18
+### Added
+- Resource path added to script data object
+
+### Changed
+- Updating composer to allow php >= 5.5
+- Refactoring schema cache classes
+- Correcting table names for SQL Anywhere and Oracle
+- Remove loading of lodash by default on V8js scripting, use require() instead.
+
+### Fixed
+- Stored proc on MySQL issue when no data sets returned
+- Validation comparison in field schema updates
+- Deactivated admin account with active session cannot kill session from the UI
+- Rework filter handling of logical and comparison operators
+- Correcting include_count calculation on DB retrieve metadata
+- Fixing CORS config entries when using SQLite as system db
+- Fix Oracle use of timestamp defaults
+
 ## [0.1.7] - 2015-12-03
 ### Fixed
 - Email invites on users.
@@ -63,7 +82,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.7...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.8...HEAD
+[0.1.8]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.7...0.1.8
 [0.1.7]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.6...0.1.7
 [0.1.6]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.5...0.1.6
 [0.1.5]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.4...0.1.5

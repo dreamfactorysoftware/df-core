@@ -580,24 +580,20 @@ MYSQL;
 
         // Move to the next result and get results
         $reader = $command->query();
-        $result = $reader->readAll();
-        if ($reader->nextResult()) {
-            // more data coming, make room
-            $result = [$result];
-            try {
-                do {
-                    $result[] = $reader->readAll();
-                } while ($reader->nextResult());
-            } catch (\Exception $ex) {
-                // mysql via pdo has issue of nextRowSet returning true one too many times
-                if (false !== strpos($ex->getMessage(), 'General Error')) {
-                    throw $ex;
-                }
+        $result = [];
+        try {
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        } catch (\Exception $ex) {
+            // mysql via pdo has issue of nextRowSet returning true one too many times
+            if (false !== strpos($ex->getMessage(), 'General Error')) {
+                throw $ex;
+            }
 
-                // if there is only one data set, just return it
-                if (1 == count($result)) {
-                    $result = $result[0];
-                }
+            // if there is only one data set, just return it
+            if (1 == count($result)) {
+                $result = $result[0];
             }
         }
 
@@ -660,24 +656,20 @@ MYSQL;
 
         // Move to the next result and get results
         $reader = $command->query();
-        $result = $reader->readAll();
-        if ($reader->nextResult()) {
-            // more data coming, make room
-            $result = [$result];
-            try {
-                do {
-                    $result[] = $reader->readAll();
-                } while ($reader->nextResult());
-            } catch (\Exception $ex) {
-                // mysql via pdo has issue of nextRowSet returning true one too many times
-                if (false !== strpos($ex->getMessage(), 'General Error')) {
-                    throw $ex;
-                }
+        $result = [];
+        try {
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        } catch (\Exception $ex) {
+            // mysql via pdo has issue of nextRowSet returning true one too many times
+            if (false !== strpos($ex->getMessage(), 'General Error')) {
+                throw $ex;
+            }
 
-                // if there is only one data set, just return it
-                if (1 == count($result)) {
-                    $result = $result[0];
-                }
+            // if there is only one data set, just return it
+            if (1 == count($result)) {
+                $result = $result[0];
             }
         }
 

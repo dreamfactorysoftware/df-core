@@ -820,7 +820,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
-                                'enum'          => $tables,
+                                'options'       => $tables,
                             ],
                             [
                                 'name'          => 'refresh',
@@ -851,7 +851,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
-                                'enum'          => $tables,
+                                'options'       => $tables,
                             ],
                             [
                                 'name'          => 'schema',
@@ -882,7 +882,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
-                                'enum'          => $tables,
+                                'options'       => $tables,
                             ],
                             [
                                 'name'          => 'schema',
@@ -913,7 +913,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
-                                'enum'          => $tables,
+                                'options'       => $tables,
                             ],
                             [
                                 'name'          => 'schema',
@@ -941,7 +941,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
-                                'enum'          => $tables,
+                                'options'       => $tables,
                             ],
                         ],
                         'responseMessages' => $commonResponses,
@@ -970,7 +970,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
-                                'enum'          => $tables,
+                                'options'       => $tables,
                             ],
                             [
                                 'name'          => 'field_name',
@@ -1009,7 +1009,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
-                                'enum'          => $tables,
+                                'options'       => $tables,
                             ],
                             [
                                 'name'          => 'field_name',
@@ -1048,7 +1048,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
-                                'enum'          => $tables,
+                                'options'       => $tables,
                             ],
                             [
                                 'name'          => 'field_name',
@@ -1087,7 +1087,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                                 'type'          => 'string',
                                 'paramType'     => 'path',
                                 'required'      => true,
-                                'enum'          => $tables,
+                                'options'       => $tables,
                             ],
                             [
                                 'name'          => 'field_name',

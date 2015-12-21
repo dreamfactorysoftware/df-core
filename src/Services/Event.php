@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Collection;
 class Event extends BaseRestService
 {
     use DbRequestCriteria;
+
     //*************************************************************************
     //	Constants
     //*************************************************************************

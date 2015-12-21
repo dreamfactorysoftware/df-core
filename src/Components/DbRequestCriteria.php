@@ -17,12 +17,12 @@ use DreamFactory\Library\Utility\ArrayUtils;
  */
 trait DbRequestCriteria
 {
-    protected function getMaxRecordsReturned()
+    protected function getMaxRecordsReturnedLimit()
     {
         // some classes define their own default
         $default = defined('static::MAX_RECORDS_RETURNED') ? static::MAX_RECORDS_RETURNED : 1000;
 
-        return intval(\Config::get('df.db_max_records_returned', $default));
+        return intval(\Config::get('df.db.max_records_returned', $default));
     }
 
     /**
@@ -62,7 +62,7 @@ trait DbRequestCriteria
         }
 
         $value = intval($this->request->getParameter(ApiOptions::LIMIT));
-        $maxAllowed = $this->getMaxRecordsReturned();
+        $maxAllowed = $this->getMaxRecordsReturnedLimit();
         if (($value < 1) || ($value > $maxAllowed)) {
             // impose a limit to protect server
             $value = $maxAllowed;

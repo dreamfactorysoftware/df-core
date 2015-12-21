@@ -24,6 +24,23 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
     }
 
     /**
+     * Extracts the PHP type from DF type.
+     *
+     * @param string $type DF type
+     *
+     * @return string
+     */
+    public static function extractPhpType($type)
+    {
+        switch ($type) {
+            case static::TYPE_MONEY:
+                return 'string';
+        }
+
+        return parent::extractPhpType($type);
+    }
+
+    /**
      * Extracts size, precision and scale information from column's DB type.
      *
      * @param string $dbType the column's DB type

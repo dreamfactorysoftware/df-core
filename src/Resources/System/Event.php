@@ -185,11 +185,14 @@ class Event extends BaseRestResource
                         $apiProcessEvents[$method][] = "$path.$method.post_process";
                         $parameters = ArrayUtils::get($operation, 'parameters', []);
                         foreach ($parameters as $parameter) {
-                            if (('path' === ArrayUtils::get($parameter, 'paramType')) &&
-                                !empty($enums = ArrayUtils::get($parameter, 'enum'))
-                            ) {
-                                $name = ArrayUtils::get($parameter, 'name', '');
-                                $apiParameters[$name] = $enums;
+                            if ('path' === ArrayUtils::get($parameter, 'paramType')) {
+                                if (!empty($enums = ArrayUtils::get($parameter, 'enum'))) {
+                                    $name = ArrayUtils::get($parameter, 'name', '');
+                                    $apiParameters[$name] = $enums;
+                                } elseif (!empty($options = ArrayUtils::get($parameter, 'options'))) {
+                                    $name = ArrayUtils::get($parameter, 'name', '');
+                                    $apiParameters[$name] = $options;
+                                }
                             }
                         }
                     }
@@ -458,7 +461,7 @@ class Event extends BaseRestResource
                                 'type'          => 'string',
                                 'paramType'     => 'query',
                                 'required'      => false,
-                                'enum'          => [null, 'process', 'broadcast'],
+                                'enum'          => ['process', 'broadcast'],
                             ],
                             [
                                 'name'          => 'only_scripted',
@@ -498,7 +501,7 @@ class Event extends BaseRestResource
                                 'type'          => 'string',
                                 'paramType'     => 'query',
                                 'required'      => false,
-                                'enum'          => [null, 'process', 'broadcast'],
+                                'enum'          => ['process', 'broadcast'],
                             ],
                             [
                                 'name'          => 'only_scripted',

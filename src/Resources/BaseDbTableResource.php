@@ -2494,7 +2494,10 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected static function getMaxRecordsReturnedLimit()
     {
-        return intval(Config::get('df.db_max_records_returned', static::MAX_RECORDS_RETURNED));
+        // some classes define their own default
+        $default = defined('static::MAX_RECORDS_RETURNED') ? static::MAX_RECORDS_RETURNED : 1000;
+
+        return intval(\Config::get('df.db.max_records_returned', $default));
     }
 
     /**

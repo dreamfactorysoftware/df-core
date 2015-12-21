@@ -53,9 +53,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
                     $default = 'CURRENT_TIMESTAMP';
-                    if (ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE === $type) {
-                        $default .= ' ON UPDATE CURRENT_TIMESTAMP';
-                    }
+                    // ON UPDATE CURRENT_TIMESTAMP not supported by PostgreSQL, use triggers
                     $info['default'] = $default;
                 }
                 break;
@@ -858,9 +856,13 @@ MYSQL;
 
     public static function formatValue($value, $type)
     {
-        if (('int' === $type) && ('' === $value)) {
-            // Postgresql strangely returns "" for null integers
-            return null;
+        switch (strtolower(strval($type))) {
+            case 'int':
+            case 'integer':
+                if ('' === $value) {
+                    // Postgresql strangely returns "" for null integers
+                    return null;
+                }
         }
 
         return parent::formatValue($value, $type);

@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 ### Fixed
+- Fixed additional Email Service parameters from not showing on the admin UI.
 
 ## [0.1.10] - 2015-12-21
 ### Fixed

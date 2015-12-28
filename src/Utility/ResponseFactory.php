@@ -53,7 +53,7 @@ class ResponseFactory
         $resource = 'resource'
     ){
         if (empty($accepts)) {
-            $accepts = array_map('trim', explode(',', \Request::header('ACCEPT')));
+            $accepts = static::getAcceptedTypes();
         }
 
         if (empty($asFile)) {
@@ -192,6 +192,31 @@ class ResponseFactory
         return ['content' => $content, 'status' => $status, 'format' => $format];
     }
 
+    /**
+     * @param \Exception               $e
+     * @param \Illuminate\Http\Request $request
+     *
+     * @return array|mixed|string
+     */
+    public static function getException($e, $request)
+    {
+        $response = ResponseFactory::create($e);
+
+        return ResponseFactory::sendResponse($response);
+    }
+
+    /**
+     *
+     * @return array
+     */
+    public static function getAcceptedTypes()
+    {
+        $accepts = \Request::query('accept', \Request::header('ACCEPT'));
+        $accepts = array_map('trim', explode(',', $accepts));
+
+        return $accepts;
+    }
+
     protected static function acceptedContentType(array $accepts, $content_type)
     {
         // see if we match an accepts type, if so, go with it.
@@ -239,19 +264,5 @@ class ResponseFactory
         ];
 
         return $result;
-    }
-
-    /**
-     * @param \Exception               $e
-     * @param \Illuminate\Http\Request $request
-     *
-     * @return array|mixed|string
-     */
-    public static function getException($e, $request)
-    {
-        $response = ResponseFactory::create($e);
-        $accepts = explode(',', $request->header('ACCEPT'));
-
-        return ResponseFactory::sendResponse($response, $accepts);
     }
 }

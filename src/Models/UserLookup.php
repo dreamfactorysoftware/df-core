@@ -28,5 +28,5 @@ class UserLookup extends BaseSystemLookup
 
     protected $fillable = ['user_id', 'name', 'value', 'private', 'description'];
 
-    protected $casts = ['id' => 'integer', 'user_id' => 'integer', 'is_private' => 'boolean'];
+    protected $casts = ['id' => 'integer', 'user_id' => 'integer', 'private' => 'boolean'];
 }

@@ -64,10 +64,10 @@ class Swagger extends BaseRestService
         if (empty($name)) {
             // get all services names and clear them
             foreach (Service::available() as $name) {
-                \Cache::forget($name . 'json');
+                \Cache::forget($name . '.json');
             }
         } else {
-            \Cache::forget($name . 'json');
+            \Cache::forget($name . '.json');
         }
     }
 

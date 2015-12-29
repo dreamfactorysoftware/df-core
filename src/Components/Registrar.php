@@ -125,7 +125,15 @@ class Registrar implements RegistrarContract
                     $e->getCode());
             }
 
-            $emailService->sendEmail($data, $emailTemplate->body_text, $emailTemplate->body_html);
+            $bodyText = $emailTemplate->body_text;
+            if (empty($bodyText)) {
+                //Strip all html tags.
+                $bodyText = strip_tags($emailTemplate->body_html);
+                //Change any multi spaces to a single space for clarity.
+                $bodyText = preg_replace('/ +/', ' ', $bodyText);
+            }
+
+            $emailService->sendEmail($data, $bodyText, $emailTemplate->body_html);
         } catch (\Exception $e) {
             if ($deleteOnError) {
                 $user->delete();

@@ -10,6 +10,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Fixed additional Email Service parameters from not showing on the admin UI.
 
+## [0.1.11] - 2015-12-30
+### Fixed
+- Hotfix for API Doc caching issue.
+
 ## [0.1.10] - 2015-12-21
 ### Fixed
 - Fix API docs to not have table names as drop downs.
@@ -92,7 +96,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.10...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.11...HEAD
+[0.1.11]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.10...0.1.11
 [0.1.10]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.9...0.1.10
 [0.1.9]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.8...0.1.9
 [0.1.8]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.7...0.1.8

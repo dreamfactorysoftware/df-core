@@ -24,6 +24,8 @@ use DreamFactory\Library\Utility\ArrayUtils;
  */
 class BaseSystemLookup extends BaseSystemModel
 {
+    const PRIVATE_MASK = '**********';
+
     protected $fillable = ['name', 'value', 'private', 'description'];
 
     protected $casts = ['private' => 'boolean', 'id' => 'integer'];
@@ -40,9 +42,21 @@ class BaseSystemLookup extends BaseSystemModel
         $attributes = $this->attributesToArray();
 
         if (ArrayUtils::getBool($attributes, 'private')) {
-            $attributes['value'] = '**********';
+            $attributes['value'] = self::PRIVATE_MASK;
         }
 
         return array_merge($attributes, $this->relationsToArray());
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setAttribute($key, $value)
+    {
+        if ($key === 'value' && $value === self::PRIVATE_MASK && $this->exists) {
+            $value = $this->value;
+        }
+
+        parent::setAttribute($key, $value);
     }
 }

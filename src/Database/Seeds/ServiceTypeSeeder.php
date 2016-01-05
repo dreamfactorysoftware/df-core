@@ -2,6 +2,9 @@
 namespace DreamFactory\Core\Database\Seeds;
 
 use DreamFactory\Core\Enums\ServiceTypeGroups;
+use DreamFactory\Core\Models\BaseEmailServiceConfigModel;
+use DreamFactory\Core\Models\EmailServiceParameterConfig;
+use DreamFactory\Core\Models\LocalEmailConfig;
 use DreamFactory\Core\Models\MailGunConfig;
 use DreamFactory\Core\Models\MandrillConfig;
 use DreamFactory\Core\Models\SmtpConfig;
@@ -21,6 +24,8 @@ use DreamFactory\Core\Services\System;
 class ServiceTypeSeeder extends BaseModelSeeder
 {
     protected $modelClass = ServiceType::class;
+
+    protected $allowUpdate = true;
 
     protected $records = [
         [
@@ -71,7 +76,7 @@ class ServiceTypeSeeder extends BaseModelSeeder
         [
             'name'           => 'local_email',
             'class_name'     => Local::class,
-            'config_handler' => null,
+            'config_handler' => LocalEmailConfig::class,
             'label'          => 'Local Email Service',
             'description'    => 'Local email service using system configuration.',
             'group'          => ServiceTypeGroups::EMAIL,

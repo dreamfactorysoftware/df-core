@@ -37,7 +37,7 @@ class MandrillConfig extends CloudEmailConfig
         $schema = parent::getConfigSchema();
         $out = [];
         foreach ($schema as $key => $field) {
-            if ($field['name'] === 'key') {
+            if ($field['name'] === 'key' || $field['name'] === 'parameters') {
                 $out[] = $schema[$key];
             }
         }

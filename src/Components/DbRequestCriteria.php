@@ -50,9 +50,15 @@ trait DbRequestCriteria
         }
 
         if (null !== ($value = $this->request->getParameter(ApiOptions::FILTER))) {
-            $this->convertFilterToNative($value, $criteria['params'], [], $schema->columns);
-            $criteria['condition'] = $value;
-
+            $native = $this->convertFilterToNative($value, $criteria['params'], [], $schema->columns);
+            $criteria['condition'] = $native['where'];
+            if (is_array($native['params'])) {
+                if (is_array($criteria['params'])) {
+                    $criteria['params'] = array_merge($criteria['params'], $native['params']);
+                } else {
+                    $criteria['params'] = $native['params'];
+                }
+            }
             //	Add current user ID into parameter array if in condition, but not specified.
             if (false !== stripos($value, ':user_id')) {
                 if (!isset($criteria['params'][':user_id'])) {

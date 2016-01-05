@@ -203,8 +203,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             }
 
             $password = ArrayUtils::get($record, 'password');
-            if (ArrayUtils::getBool($params, 'admin') && !empty($password)) {
-                $model->password = ArrayUtils::get($record, 'password');
+            if (!empty($password)) {
+                $model->password = $password;
             }
             $model->update($record);
 

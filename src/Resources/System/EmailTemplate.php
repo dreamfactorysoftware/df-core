@@ -117,7 +117,7 @@ class EmailTemplate extends BaseSystemResource
             ],
         ];
 
-        $base['models'] = array_merge($base['models'], $models);
+        $base['definitions'] = array_merge($base['definitions'], $models);
 
         return $base;
     }

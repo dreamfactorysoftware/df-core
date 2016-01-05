@@ -3426,7 +3426,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             ],
         ];
 
-        $base['apis'] = array_merge($base['apis'], $apis);
+        $base['paths'] = array_merge($base['paths'], $apis);
 
         return $base;
     }

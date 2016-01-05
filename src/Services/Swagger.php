@@ -29,11 +29,11 @@ class Swagger extends BaseRestService
     /**
      * @const string The Swagger version
      */
-    const SWAGGER_VERSION = '1.2';
+    const SWAGGER_VERSION = '2.0';
     /**
      * @const string The private cache file
      */
-    const SWAGGER_CACHE_FILE = '_.json';
+    const SWAGGER_CACHE_FILE = 'swagger.json';
 
     //*************************************************************************
     //	Methods
@@ -51,11 +51,7 @@ class Swagger extends BaseRestService
             static::clearCache();
         }
 
-        if (empty($this->resource)) {
-            return $this->getSwagger();
-        }
-
-        return $this->getSwaggerForService($this->resource);
+        return $this->getSwagger();
     }
 
     public static function clearCache($name = null)
@@ -63,7 +59,7 @@ class Swagger extends BaseRestService
         \Cache::forget(static::SWAGGER_CACHE_FILE);
         if (empty($name)) {
             // get all services names and clear them
-            foreach (Service::available() as $name) {
+            foreach (Role::available() as $name) {
                 \Cache::forget($name . '.json');
             }
         } else {
@@ -83,20 +79,38 @@ class Swagger extends BaseRestService
         if (null === ($content = \Cache::get(static::SWAGGER_CACHE_FILE))) {
             \Log::info('Building Swagger cache');
 
+            //  Gather the services
+            $paths = [];
+            $definitions = [];
+
             //  Build services from database
             //  Pull any custom swagger docs
-            $result = Service::all(['name', 'description']);
+            $services = Service::all();
+            foreach ($services as $service) {
+                $name = $service->name;
+                try {
+                    $result = Service::getStoredContentForService($service);
+                    if (empty($result)) {
+                        throw new NotFoundException("No Swagger content found.");
+                    }
 
-            //  Gather the services
-            $services = [];
+                    $servicePaths = (isset($result['paths']) ? $result['paths'] : []);
+                    $serviceDefs = (isset($result['definitions']) ? $result['definitions'] : []);
 
-            //	Spin through services and pull the configs
-            foreach ($result as $service) {
-                // build main services list
-                $services[] = [
-                    'path'        => '/' . $service->name,
-                    'description' => $service->description
-                ];
+                    // replace service placeholders with value for this service instance
+                    $servicePaths =
+                        str_replace(['{service.name}', '{service.label}', '{service.description}'],
+                            [$name, $service->label, $service->description], $servicePaths);
+                    $servicePaths =
+                        str_replace(['{service.name}', '{service.label}', '{service.description}'],
+                            [$name, $service->label, $service->description], $servicePaths);
+
+                    //  Add to the pile
+                    $paths = array_merge($paths, $servicePaths);
+                    $definitions = array_merge($definitions, $serviceDefs);
+                } catch (\Exception $ex) {
+                    \Log::error("  * System error creating swagger file for service '$name'.\n{$ex->getMessage()}");
+                }
 
                 unset($service);
             }
@@ -105,77 +119,42 @@ class Swagger extends BaseRestService
             $description = <<<HTML
 HTML;
 
-            $resourceListing = [
-                'swaggerVersion' => static::SWAGGER_VERSION,
-                'apiVersion'     => \Config::get('df.api_version', static::API_VERSION),
+            $content = [
+                'swagger'        => static::SWAGGER_VERSION,
                 'authorizations' => ['apiKey' => ['type' => 'apiKey', 'passAs' => 'header']],
                 'info'           => [
                     'title'       => 'DreamFactory Live API Documentation',
                     'description' => $description,
+                    'version'     => \Config::get('df.api_version', static::API_VERSION),
                     //'termsOfServiceUrl' => 'http://www.dreamfactory.com/terms/',
-                    'contact'     => 'support@dreamfactory.com',
-                    'license'     => 'Apache 2.0',
-                    'licenseUrl'  => 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                    'contact'     => [
+                        'name'  => 'DreamFactory Support',
+                        'email' => 'support@dreamfactory.com',
+                        'url'   => "https://www.dreamfactory.com/support"
+                    ],
+                    'license'     => [
+                        'name' => 'Apache 2.0',
+                        'url'  => 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                    ]
                 ],
+                'host'           => 'df.local',
+                //'schemes'        => ['https'],
+                'basePath'       => '/api_docs',
+                'consumes'       => ['application/json'],
+                'produces'       => ['application/json'],
+                'paths'          => $paths,
+                'definitions'    => $definitions,
                 /**
                  * The events thrown that are relevant to Swagger
                  */
                 'events'         => [],
             ];
 
-            $content = array_merge($resourceListing, ['apis' => $services]);
             $content = json_encode($content, JSON_UNESCAPED_SLASHES);
 
             \Cache::forever(static::SWAGGER_CACHE_FILE, $content);
 
             \Log::info('Swagger cache build process complete');
-        }
-
-        return $content;
-    }
-
-    /**
-     * Main retrieve point for each service
-     *
-     * @param string $name Which service (name) to retrieve.
-     *
-     * @return string
-     * @throws NotFoundException
-     */
-    public function getSwaggerForService($name)
-    {
-        $cachePath = $name . '.json';
-
-        if (null === $content = \Cache::get($cachePath)) {
-            $service = Service::whereName($name)->get()->first();
-            if (empty($service)) {
-                throw new NotFoundException("Service '$name' not found.");
-            }
-
-            $content = [
-                'swaggerVersion' => static::SWAGGER_VERSION,
-                'apiVersion'     => \Config::get('df.api_version', static::API_VERSION),
-                'basePath'       => url('/api/v2'),
-            ];
-
-            try {
-                $result = Service::getStoredContentForService($service);
-
-                if (empty($result)) {
-                    throw new NotFoundException("No Swagger content found.");
-                }
-
-                $content = array_merge($content, $result);
-                $content = json_encode($content, JSON_UNESCAPED_SLASHES);
-
-                // replace service type placeholder with api name for this service instance
-                $content = str_replace('{api_name}', $name, $content);
-
-                // cache it for later access
-                \Cache::forever($cachePath, $content);
-            } catch (\Exception $ex) {
-                \Log::error("  * System error creating swagger file for service '$name'.\n{$ex->getMessage()}");
-            }
         }
 
         return $content;
@@ -252,7 +231,7 @@ HTML;
                         'type'        => 'string',
                         'description' => 'Version of the Swagger API.',
                     ],
-                    'apis'           => [
+                    'paths'           => [
                         'type'        => 'array',
                         'description' => 'Array of APIs.',
                         'items'       => [
@@ -276,14 +255,14 @@ HTML;
                         'type'        => 'string',
                         'description' => 'Base path of the API.',
                     ],
-                    'apis'           => [
+                    'paths'           => [
                         'type'        => 'array',
                         'description' => 'Array of APIs.',
                         'items'       => [
                             '$ref' => 'Api',
                         ],
                     ],
-                    'models'         => [
+                    'definitions'         => [
                         'type'        => 'array',
                         'description' => 'Array of API models.',
                         'items'       => [
@@ -316,6 +295,6 @@ HTML;
             ],
         ];
 
-        return ['apis' => $apis, 'models' => $models];
+        return ['paths' => $apis, 'definitions' => $models];
     }
 }

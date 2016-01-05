@@ -704,6 +704,6 @@ class BaseSystemResource extends BaseRestResource
             }
         }
 
-        return ['apis' => $apis, 'models' => $models];
+        return ['paths' => $apis, 'definitions' => $models];
     }
 }

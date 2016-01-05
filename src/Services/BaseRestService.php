@@ -65,7 +65,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
         return parent::handleRequest($request, $resource);
     }
 
-        /**
+    /**
      * Runs pre process tasks/scripts
      */
     protected function preProcess()
@@ -157,7 +157,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
 
         return [
             'ResourceList'       => [
-                'id'         => 'ResourceList',
+                'type'       => 'object',
                 'properties' => [
                     $wrapper => [
                         'type'        => 'array',
@@ -169,7 +169,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                 ],
             ],
             $name . 'Response'   => [
-                'id'         => $name . 'Response',
+                'type'       => 'object',
                 'properties' => [
                     $this->getResourceIdentifier() => [
                         'type'        => 'string',
@@ -178,19 +178,19 @@ class BaseRestService extends RestHandler implements ServiceInterface
                 ],
             ],
             $plural . 'Response' => [
-                'id'         => $plural . 'Response',
+                'type'       => 'object',
                 'properties' => [
                     $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of resources available to this service.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
+                            '$ref' => '#/definitions/' . $name . 'Response',
                         ],
                     ],
                 ],
             ],
             'Success'            => [
-                'id'         => 'Success',
+                'type'       => 'object',
                 'properties' => [
                     'success' => [
                         'type'        => 'boolean',
@@ -209,47 +209,40 @@ class BaseRestService extends RestHandler implements ServiceInterface
         $plural = Inflector::pluralize($name);
 
         return [
-            'resourcePath' => $path,
-            'produces'     => ['application/json', 'application/xml'],
-            'consumes'     => ['application/json', 'application/xml'],
-            'apis'         => [
-                [
-                    'path'        => $path,
-                    'description' => "Operations available for the {$this->label} service.",
-                    'operations'  => [
+            'paths'       => [
+                $path => [
+                    'get' =>
                         [
-                            'method'           => 'GET',
-                            'summary'          => 'getResourceList() - List all resource names.',
-                            'nickname'         => 'getResourceList',
-                            'notes'            => 'Return only a list of the resource identifiers.',
-                            'type'             => 'ResourceList',
-                            'event_name'       => [$eventPath . '.list'],
-                            'parameters'       => [
+                            'summary'     => 'getResources() - List all resource names.',
+                            'operationId' => 'getResources',
+                            'description' => 'Return only a list of the resource identifiers.',
+                            'type'        => 'ResourceList',
+                            'event_name'  => [$eventPath . '.list'],
+                            'parameters'  => [
                                 ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
                                 ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
                                 ApiOptions::documentOption(ApiOptions::ID_FIELD),
                                 ApiOptions::documentOption(ApiOptions::ID_TYPE),
                                 ApiOptions::documentOption(ApiOptions::REFRESH),
                             ],
-                            'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        ],
-                        [
-                            'method'           => 'GET',
-                            'summary'          => 'getResources() - List all resources.',
-                            'nickname'         => 'getResources',
-                            'notes'            => 'List the resources available on this service. ',
-                            'type'             => $plural . 'Response',
-                            'event_name'       => [$eventPath . '.list'],
-                            'parameters'       => [
-                                ApiOptions::documentOption(ApiOptions::FIELDS),
-                                ApiOptions::documentOption(ApiOptions::REFRESH),
+                            'responses'   => [
+                                '200'     => [
+                                    'description' => 'Success',
+                                    'schema'      => [
+                                        '$ref' => '#/definitions/' .
+                                            $plural .
+                                            'Response'
+                                    ]
+                                ],
+                                'default' => [
+                                    'description' => 'Error',
+                                    'schema'      => ['$ref' => '#/definitions/Error']
+                                ]
                             ],
-                            'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         ],
-                    ],
                 ],
             ],
-            'models'       => $this->getApiDocModels()
+            'definitions' => $this->getApiDocModels()
         ];
     }
 }

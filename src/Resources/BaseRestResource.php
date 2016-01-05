@@ -199,7 +199,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         $pluralWords = Inflector::pluralize($words);
 
         return [
-            'apis'   => [
+            'paths'   => [
                 [
                     'path'        => $path,
                     'description' => "Operations for $words administration.",
@@ -239,7 +239,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                     ],
                 ],
             ],
-            'models' => $this->getApiDocModels()
+            'definitions' => $this->getApiDocModels()
         ];
     }
 }

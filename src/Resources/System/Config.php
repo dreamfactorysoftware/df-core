@@ -31,7 +31,7 @@ class Config extends BaseSystemResource
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $config = [];
 
-        $config['apis'] = [
+        $config['paths'] = [
             [
                 'path'        => $path,
                 'operations'  => [
@@ -86,7 +86,7 @@ class Config extends BaseSystemResource
             ],
         ];
 
-        $config['models'] = [
+        $config['definitions'] = [
             'ConfigRequest'  => [
                 'id'         => 'ConfigRequest',
                 'properties' => $commonProperties,

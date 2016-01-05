@@ -112,7 +112,7 @@ class Event extends BaseRestResource
         $broadcastEvents = [];
         $eventCount = 0;
 
-        foreach (ArrayUtils::get($data, 'apis', []) as $ixApi => $api) {
+        foreach (ArrayUtils::get($data, 'paths', []) as $ixApi => $api) {
             $apiProcessEvents = [];
             $apiBroadcastEvents = [];
             $apiParameters = [];
@@ -148,7 +148,7 @@ class Event extends BaseRestResource
                     }
 
                     //  Set into master record
-                    $data['apis'][$ixApi]['operations'][$ixOps]['event_name'] = $eventNames;
+                    $data['paths'][$ixApi]['operations'][$ixOps]['event_name'] = $eventNames;
 
                     foreach ($eventNames as $ixEventNames => $templateEventName) {
                         $eventName = str_replace(
@@ -175,7 +175,7 @@ class Event extends BaseRestResource
                         }
 
                         //  Set actual name in swagger file
-                        $data['apis'][$ixApi]['operations'][$ixOps]['event_name'][$ixEventNames] = $eventName;
+                        $data['paths'][$ixApi]['operations'][$ixOps]['event_name'][$ixEventNames] = $eventName;
 
                         $eventCount++;
                     }
@@ -619,6 +619,6 @@ class Event extends BaseRestResource
             $models = array_merge($models, $temp);
         }
 
-        return ['apis' => $apis, 'models' => $models];
+        return ['paths' => $apis, 'definitions' => $models];
     }
 }

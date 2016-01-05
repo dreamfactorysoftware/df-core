@@ -117,6 +117,6 @@ class Cache extends BaseRestResource
             ],
         ];
 
-        return ['apis' => $apis, 'models' => []];
+        return ['paths' => $apis, 'definitions' => []];
     }
 }

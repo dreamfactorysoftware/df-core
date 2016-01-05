@@ -240,7 +240,7 @@ abstract class BaseService extends BaseRestService
     {
         $base = parent::getApiDocInfo();
 
-        $base['apis'] = [
+        $base['paths'] = [
             [
                 'path'        => '/' . $this->name,
                 'operations'  => [
@@ -376,7 +376,7 @@ abstract class BaseService extends BaseRestService
             ],
         ];
 
-        $base['models'] = array_merge($base['models'], $models);
+        $base['definitions'] = array_merge($base['definitions'], $models);
 
         return $base;
     }

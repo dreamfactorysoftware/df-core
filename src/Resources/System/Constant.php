@@ -29,7 +29,7 @@ class Constant extends ReadOnlySystemResource
         $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
         $constant = [];
 
-        $constant['apis'] = [
+        $constant['paths'] = [
             [
                 'path'        => $path,
                 'operations'  => [
@@ -72,7 +72,7 @@ class Constant extends ReadOnlySystemResource
             ],
         ];
 
-        $constant['models'] = [
+        $constant['definitions'] = [
             'Constants' => [
                 'id'         => 'Constants',
                 'properties' => [

@@ -138,8 +138,8 @@ class Script extends BaseRestService
             'resourcePath' => '/' . $this->name,
             'produces'     => ['application/json', 'application/xml'],
             'consumes'     => ['application/json', 'application/xml'],
-            'apis'         => [],
-            'models'       => [],
+            'paths'         => [],
+            'definitions'       => [],
         ];
     }
 }

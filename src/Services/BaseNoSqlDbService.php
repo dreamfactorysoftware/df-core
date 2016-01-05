@@ -97,7 +97,7 @@ abstract class BaseNoSqlDbService extends BaseDbService
             ],
         ];
 
-        $base['models'] = array_merge($base['models'], $models);
+        $base['definitions'] = array_merge($base['definitions'], $models);
 
         return $base;
     }

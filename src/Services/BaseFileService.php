@@ -745,7 +745,7 @@ abstract class BaseFileService extends BaseRestService
         $commonResponses = ApiDocUtilities::getCommonResponses();
         $base = parent::getApiDocInfo();
 
-        $base['apis'] = [
+        $base['paths'] = [
             [
                 'path'        => $path,
                 'description' => 'Operations available for File Storage Service.',
@@ -1368,7 +1368,7 @@ abstract class BaseFileService extends BaseRestService
             ],
         ];
 
-        $base['models'] = array_merge($base['models'], $models);
+        $base['definitions'] = array_merge($base['definitions'], $models);
 
         return $base;
     }

@@ -153,17 +153,17 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
             $access = $this->getPermissions($resource->name);
             if (!empty($access)) {
                 $results = $resource->getApiDocInfo();
-                if (isset($results, $results['apis'])) {
-                    $apis = array_merge($apis, $results['apis']);
+                if (isset($results, $results['paths'])) {
+                    $apis = array_merge($apis, $results['paths']);
                 }
-                if (isset($results, $results['models'])) {
-                    $models = array_merge($models, $results['models']);
+                if (isset($results, $results['definitions'])) {
+                    $models = array_merge($models, $results['definitions']);
                 }
             }
         }
 
-        $base['apis'] = array_merge($base['apis'], $apis);
-        $base['models'] = array_merge($base['models'], $models);
+        $base['paths'] = array_merge($base['paths'], $apis);
+        $base['definitions'] = array_merge($base['definitions'], $models);
 
         return $base;
     }

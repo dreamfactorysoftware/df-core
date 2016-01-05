@@ -268,8 +268,9 @@ abstract class Schema
         $tables = $this->getTableNames();
 
         //	Search normal, return real name
-        if (false !== array_key_exists(strtolower($name), $tables)) {
-            return $returnName ? $tables[strtolower($name)]->name : true;
+        $ndx = strtolower($name);
+        if (false !== array_key_exists($ndx, $tables)) {
+            return $returnName ? $tables[$ndx]->name : true;
         }
 
         return false;
@@ -296,20 +297,21 @@ abstract class Schema
             }
         }
 
-        if ($this->connection->tablePrefix !== null && strpos($name, '{{') !== false) {
-            $realName = preg_replace('/\{\{(.*?)\}\}/', $this->connection->tablePrefix . '$1', $name);
-        } else {
-            $realName = $name;
-        }
+//        if ($this->connection->tablePrefix !== null && strpos($name, '{{') !== false) {
+//            $realName = preg_replace('/\{\{(.*?)\}\}/', $this->connection->tablePrefix . '$1', $name);
+//        } else {
+//            $realName = $name;
+//        }
 
         // check if know anything about this table already
-        if (empty($this->tableNames[$name])) {
+        $ndx = strtolower($name);
+        if (empty($this->tableNames[$ndx])) {
             $this->getCachedTableNames();
-            if (empty($this->tableNames[$name])) {
+            if (empty($this->tableNames[$ndx])) {
                 return null;
             }
         }
-        if (null === $table = $this->loadTable($this->tableNames[$name])) {
+        if (null === $table = $this->loadTable($this->tableNames[$ndx])) {
             return null;
         }
 

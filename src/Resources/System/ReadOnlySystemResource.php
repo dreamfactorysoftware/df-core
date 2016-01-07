@@ -211,7 +211,7 @@ class ReadOnlySystemResource extends BaseRestResource
                     [
                         'method'           => 'GET',
                         'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralWords . '.',
-                        'nickname'         => 'get' . $plural,
+                        'operationId'         => 'get' . $plural,
                         'type'             => $plural . 'Response',
                         'event_name'       => [$eventPath . '.list'],
                         'consumes'         => ['application/json', 'application/xml', 'text/csv'],
@@ -229,8 +229,8 @@ class ReadOnlySystemResource extends BaseRestResource
                             ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                             ApiOptions::documentOption(ApiOptions::FILE),
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            =>
+                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'description'            =>
                             'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
                             'By default, all records up to the maximum are returned. <br>' .
                             'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
@@ -246,23 +246,23 @@ class ReadOnlySystemResource extends BaseRestResource
                     [
                         'method'           => 'GET',
                         'summary'          => 'get' . $name . '() - Retrieve one ' . $words . '.',
-                        'nickname'         => 'get' . $name,
+                        'operationId'         => 'get' . $name,
                         'type'             => $name . 'Response',
                         'event_name'       => $eventPath . '.read',
                         'parameters'       => [
                             [
                                 'name'          => 'id',
                                 'description'   => 'Identifier of the record to retrieve.',
-                                'allowMultiple' => false,
+
                                 'type'          => 'string',
-                                'paramType'     => 'path',
+                                'in'     => 'path',
                                 'required'      => true,
                             ],
                             ApiOptions::documentOption(ApiOptions::FIELDS),
                             ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
+                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'description'            => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                     ],
                 ],
                 'description' => "Operations for individual $words administration.",

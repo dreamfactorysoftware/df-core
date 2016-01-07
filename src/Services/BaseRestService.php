@@ -156,18 +156,6 @@ class BaseRestService extends RestHandler implements ServiceInterface
         $wrapper = ResourcesWrapper::getWrapper();
 
         return [
-            'ResourceList'       => [
-                'type'       => 'object',
-                'properties' => [
-                    $wrapper => [
-                        'type'        => 'array',
-                        'description' => 'Array of accessible resources available to this service.',
-                        'items'       => [
-                            'type' => 'string',
-                        ],
-                    ],
-                ],
-            ],
             $name . 'Response'   => [
                 'type'       => 'object',
                 'properties' => [
@@ -189,15 +177,6 @@ class BaseRestService extends RestHandler implements ServiceInterface
                     ],
                 ],
             ],
-            'Success'            => [
-                'type'       => 'object',
-                'properties' => [
-                    'success' => [
-                        'type'        => 'boolean',
-                        'description' => 'True when API call was successful, false or error otherwise.',
-                    ],
-                ],
-            ],
         ];
     }
 
@@ -213,13 +192,13 @@ class BaseRestService extends RestHandler implements ServiceInterface
                 $path => [
                     'get' =>
                         [
-                            'summary'     => 'getResources() - List all resource names.',
-                            'operationId' => 'getResources',
-                            'description' => 'Return only a list of the resource identifiers.',
-                            'type'        => 'ResourceList',
+                            'tags' => [$this->name],
+                            'summary'     => 'get'.$name.'Resources() - List all resource names.',
+                            'operationId' => 'get'.$name.'Resources',
+                            'description' => 'Return a list of the resources available.',
                             'event_name'  => [$eventPath . '.list'],
                             'parameters'  => [
-                                ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
+                                ApiOptions::documentOption(ApiOptions::AS_LIST),
                                 ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
                                 ApiOptions::documentOption(ApiOptions::ID_FIELD),
                                 ApiOptions::documentOption(ApiOptions::ID_TYPE),

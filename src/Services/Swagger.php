@@ -6,6 +6,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 
 /**
  * Swagger
@@ -57,14 +58,6 @@ class Swagger extends BaseRestService
     public static function clearCache($name = null)
     {
         \Cache::forget(static::SWAGGER_CACHE_FILE);
-        if (empty($name)) {
-            // get all services names and clear them
-            foreach (Role::available() as $name) {
-                \Cache::forget($name . '.json');
-            }
-        } else {
-            \Cache::forget($name . '.json');
-        }
     }
 
     /**
@@ -80,14 +73,22 @@ class Swagger extends BaseRestService
             \Log::info('Building Swagger cache');
 
             //  Gather the services
+            $tags = [];
             $paths = [];
-            $definitions = [];
+            $definitions = static::getApiDocDefaultModels();
 
             //  Build services from database
             //  Pull any custom swagger docs
+            /** @type Service[] $services */
             $services = Service::all();
             foreach ($services as $service) {
                 $name = $service->name;
+                $tags[] = ['name' => $name, 'description' => $service->description];
+                // temp
+                if ($name != 'system') {
+                    continue;
+                }
+                // temp
                 try {
                     $result = Service::getStoredContentForService($service);
                     if (empty($result)) {
@@ -137,13 +138,14 @@ HTML;
                         'url'  => 'http://www.apache.org/licenses/LICENSE-2.0.html'
                     ]
                 ],
-                'host'           => 'df.local',
+                //'host'           => 'df.local',
                 //'schemes'        => ['https'],
-                'basePath'       => '/api_docs',
+                'basePath'       => '/api/v2',
                 'consumes'       => ['application/json'],
                 'produces'       => ['application/json'],
                 'paths'          => $paths,
                 'definitions'    => $definitions,
+                'tags'           => $tags,
                 /**
                  * The events thrown that are relevant to Swagger
                  */
@@ -160,6 +162,49 @@ HTML;
         return $content;
     }
 
+    public static function getApiDocDefaultModels()
+    {
+        $wrapper = ResourcesWrapper::getWrapper();
+
+        return [
+            'ResourceList' => [
+                'type'       => 'object',
+                'properties' => [
+                    $wrapper => [
+                        'type'        => 'array',
+                        'description' => 'Array of accessible resources available to this service.',
+                        'items'       => [
+                            'type' => 'string',
+                        ],
+                    ],
+                ],
+            ],
+            'Success'      => [
+                'type'       => 'object',
+                'properties' => [
+                    'success' => [
+                        'type'        => 'boolean',
+                        'description' => 'True when API call was successful, false or error otherwise.',
+                    ],
+                ],
+            ],
+            'Error'        => [
+                'type'       => 'object',
+                'properties' => [
+                    'code'    => [
+                        'type'        => 'integer',
+                        'format'      => 'int32',
+                        'description' => 'Error code.',
+                    ],
+                    'message' => [
+                        'type'        => 'string',
+                        'description' => 'String description of the error.',
+                    ],
+                ],
+            ],
+        ];
+    }
+
     public function getApiDocInfo()
     {
         $path = '/' . $this->name;
@@ -169,25 +214,25 @@ HTML;
                 'path'        => $path,
                 'operations'  => [
                     [
-                        'method'           => 'GET',
-                        'summary'          => 'getApiDocs() - Retrieve the base Swagger document.',
-                        'nickname'         => 'getApiDocs',
-                        'type'             => 'ApiDocsResponse',
-                        'event_name'       => $eventPath . '.list',
-                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'       => [
+                        'method'      => 'GET',
+                        'summary'     => 'getApiDocs() - Retrieve the base Swagger document.',
+                        'operationId' => 'getApiDocs',
+                        'type'        => 'ApiDocsResponse',
+                        'event_name'  => $eventPath . '.list',
+                        'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                        'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                        'parameters'  => [
                             [
                                 'name'          => 'file',
                                 'description'   => 'Download the results of the request as a file.',
-                                'allowMultiple' => false,
+
                                 'type'          => 'string',
-                                'paramType'     => 'query',
+                                'in'     => 'query',
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            => 'This returns the base Swagger file containing all API services.',
+                        'responses'   => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'description' => 'This returns the base Swagger file containing all API services.',
                     ],
                 ],
                 'description' => 'Operations for retrieving API documents.',
@@ -196,23 +241,23 @@ HTML;
                 'path'        => $path . '/{id}',
                 'operations'  => [
                     [
-                        'method'           => 'GET',
-                        'summary'          => 'getApiDoc() - Retrieve one API document.',
-                        'nickname'         => 'getApiDoc',
-                        'type'             => 'ApiDocResponse',
-                        'event_name'       => $eventPath . '.read',
-                        'parameters'       => [
+                        'method'      => 'GET',
+                        'summary'     => 'getApiDoc() - Retrieve one API document.',
+                        'operationId' => 'getApiDoc',
+                        'type'        => 'ApiDocResponse',
+                        'event_name'  => $eventPath . '.read',
+                        'parameters'  => [
                             [
                                 'name'          => 'id',
                                 'description'   => 'Identifier of the API document to retrieve.',
-                                'allowMultiple' => false,
+
                                 'type'          => 'string',
-                                'paramType'     => 'path',
+                                'in'     => 'path',
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            => '',
+                        'responses'   => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'description' => '',
                     ],
                 ],
                 'description' => 'Operations for individual API documents.',
@@ -231,7 +276,7 @@ HTML;
                         'type'        => 'string',
                         'description' => 'Version of the Swagger API.',
                     ],
-                    'paths'           => [
+                    'paths'          => [
                         'type'        => 'array',
                         'description' => 'Array of APIs.',
                         'items'       => [
@@ -255,14 +300,14 @@ HTML;
                         'type'        => 'string',
                         'description' => 'Base path of the API.',
                     ],
-                    'paths'           => [
+                    'paths'          => [
                         'type'        => 'array',
                         'description' => 'Array of APIs.',
                         'items'       => [
                             '$ref' => 'Api',
                         ],
                     ],
-                    'definitions'         => [
+                    'definitions'    => [
                         'type'        => 'array',
                         'description' => 'Array of API models.',
                         'items'       => [

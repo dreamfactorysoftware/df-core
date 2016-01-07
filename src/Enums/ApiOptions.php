@@ -134,6 +134,7 @@ class ApiOptions extends FactoryEnum
 
     protected static $swaggerMap = [
         self::IDS                  => [
+            'name'        => self::IDS,
             'type'        => 'array',
             'items'       => [
                 'type'   => 'integer',
@@ -143,6 +144,7 @@ class ApiOptions extends FactoryEnum
             'description' => 'Comma-delimited list of the identifiers of the records to retrieve.',
         ],
         self::ID_FIELD             => [
+            'name'        => self::ID_FIELD,
             'type'        => 'array',
             'items'       => [
                 'type' => 'string',
@@ -151,6 +153,7 @@ class ApiOptions extends FactoryEnum
             'description' => 'Comma-delimited list of the fields used as identifiers, used to override defaults or provide identifiers when none are provisioned.'
         ],
         self::ID_TYPE              => [
+            'name'        => self::ID_TYPE,
             'type'        => 'array',
             'items'       => [
                 'type' => 'string',
@@ -159,38 +162,45 @@ class ApiOptions extends FactoryEnum
             'description' => 'Comma-delimited list of the field types used as identifiers for the table, used to override defaults or provide identifiers when none are provisioned.'
         ],
         self::FILTER               => [
+            'name' => self::FILTER,
             'type'        => 'string',
             'in'          => 'query',
             'description' => 'SQL-like filter to limit the records to retrieve.'
         ],
         self::LIMIT                => [
+            'name'        => self::LIMIT,
             'type'        => 'integer',
             'format'      => 'int32',
             'in'          => 'query',
             'description' => 'Set to limit the filter results.'
         ],
         self::ORDER                => [
+            'name'        => self::ORDER,
             'type'        => 'string',
             'in'          => 'query',
             'description' => 'SQL-like order containing field and direction for filter results.'
         ],
         self::GROUP                => [
+            'name'        => self::GROUP,
             'type'        => 'string',
             'in'          => 'query',
             'description' => 'Comma-delimited list of the fields used for grouping of filter results.'
         ],
         self::HAVING               => [
+            'name'        => self::HAVING,
             'type'        => 'string',
             'in'          => 'query',
             'description' => 'SQL-like filter to limit the results after the grouping of filter results.'
         ],
         self::OFFSET               => [
+            'name'        => self::OFFSET,
             'type'        => 'integer',
             'format'      => 'int32',
             'in'          => 'query',
             'description' => 'Set to offset the filter results to a particular record count.'
         ],
         self::FIELDS               => [
+            'name'        => self::FIELDS,
             'type'        => 'array',
             'items'       => [
                 'type' => 'string',
@@ -199,16 +209,19 @@ class ApiOptions extends FactoryEnum
             'description' => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier.'
         ],
         self::CONTINUES            => [
+            'name'        => self::CONTINUES,
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'In batch scenarios where supported, continue processing even after one action fails. Default behavior is to halt and return results up to the first point of failure.'
         ],
         self::ROLLBACK             => [
+            'name'        => self::ROLLBACK,
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'In batch scenarios where supported, rollback all actions if one action fails. Default behavior is to halt and return results up to the first point of failure.'
         ],
         self::RELATED              => [
+            'name'        => self::RELATED,
             'type'        => 'array',
             'items'       => [
                 'type' => 'string',
@@ -217,56 +230,67 @@ class ApiOptions extends FactoryEnum
             'description' => 'Comma-delimited list of related names to retrieve for each resource.'
         ],
         self::ALLOW_RELATED_DELETE => [
+            'name'        => self::ALLOW_RELATED_DELETE,
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'Set to true to allow related records to be deleted on parent update.'
         ],
         self::INCLUDE_ACCESS       => [
+            'name'        => self::INCLUDE_ACCESS,
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'Include the access permissions for the returned resource.'
         ],
         self::INCLUDE_COUNT        => [
+            'name'        => self::INCLUDE_COUNT,
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'Include the total number of filter results in returned metadata.'
         ],
         self::INCLUDE_SCHEMA       => [
+            'name'        => self::INCLUDE_SCHEMA,
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'Include the schema of the table queried in returned metadata.'
         ],
         self::AS_LIST              => [
+            'name'        => self::AS_LIST,
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'Return only a list of the resource identifiers.'
         ],
         self::AS_ACCESS_LIST       => [
+            'name'        => self::AS_ACCESS_LIST,
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'Returns a list of the resources for role access designation.'
         ],
         self::REFRESH              => [
+            'name'        => self::REFRESH,
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'Refresh any cached resource list on the server.'
         ],
         self::REGENERATE           => [
+            'name'        => self::SCHEMA,
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'Generate a new API key for this application.'
         ],
         self::FORCE                => [
+            'name'        => self::FORCE,
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'Set to true to delete all resources in the given table, folder, etc.'
         ],
         self::FILE                 => [
+            'name'        => self::FILE,
             'type'        => 'string',
             'in'          => 'query',
             'description' => 'Download the results of the request as a file.'
         ],
         self::SCHEMA               => [
+            'name'        => self::SCHEMA,
             'type'        => 'string',
             'in'          => 'query',
             'description' => 'Select only a single schema of a database. Not applicable on all database services.'
@@ -277,11 +301,15 @@ class ApiOptions extends FactoryEnum
     {
         if (isset(static::$swaggerMap[$option])) {
             $found = static::$swaggerMap[$option];
-            return array_merge($found, [
-                'name'        => $option,
-                'required'    => $required,
-                'default'     => $default,
-            ]);
+            $found['name'] = $option;
+            if ($required) {
+                $found['required'] = true;
+            }
+            if (isset($default)) {
+                $found['default'] = $default;
+            }
+
+            return $found;
         }
 
         return null;

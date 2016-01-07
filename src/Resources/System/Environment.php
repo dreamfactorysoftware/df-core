@@ -450,14 +450,14 @@ class Environment extends BaseSystemResource
                     [
                         'method'           => 'GET',
                         'summary'          => 'getEnvironment() - Retrieve system environment.',
-                        'nickname'         => 'getEnvironment',
+                        'operationId'         => 'getEnvironment',
                         'type'             => 'EnvironmentResponse',
                         'event_name'       => $eventPath . '.list',
                         'consumes'         => ['application/json', 'application/xml', 'text/csv'],
                         'produces'         => ['application/json', 'application/xml', 'text/csv'],
                         'parameters'       => [],
-                        'responseMessages' => [],
-                        'notes'            =>
+                        'responses' => [],
+                        'description'            =>
                             'Minimum environment information given without a valid user session.' .
                             ' More information given based on user privileges.',
                     ],

@@ -247,38 +247,38 @@ abstract class BaseService extends BaseRestService
                     [
                         'method'           => 'POST',
                         'summary'          => 'sendEmail() - Send an email created from posted data and/or a template.',
-                        'nickname'         => 'sendEmail',
+                        'operationId'         => 'sendEmail',
                         'type'             => 'EmailResponse',
                         'event_name'       => 'email.sent',
                         'parameters'       => [
                             [
                                 'name'          => 'template',
                                 'description'   => 'Optional template name to base email on.',
-                                'allowMultiple' => false,
+
                                 'type'          => 'string',
-                                'paramType'     => 'query',
+                                'in'     => 'query',
                                 'required'      => false,
                             ],
                             [
                                 'name'          => 'template_id',
                                 'description'   => 'Optional template id to base email on.',
-                                'allowMultiple' => false,
+
                                 'type'          => 'integer',
                                 'format'        => 'int32',
-                                'paramType'     => 'query',
+                                'in'     => 'query',
                                 'required'      => false,
                             ],
                             [
                                 'name'          => 'data',
                                 'description'   => 'Data containing name-value pairs used for provisioning emails.',
-                                'allowMultiple' => false,
+
                                 'type'          => 'EmailRequest',
-                                'paramType'     => 'body',
+                                'in'     => 'body',
                                 'required'      => false,
                             ],
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses(),
-                        'notes'            =>
+                        'responses' => ApiDocUtilities::getCommonResponses(),
+                        'description'            =>
                             'If a template is not used with all required fields, then they must be included in the request. ' .
                             'If the \'from\' address is not provisioned in the service, then it must be included in the request.',
                     ],

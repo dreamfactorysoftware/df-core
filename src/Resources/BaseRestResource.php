@@ -154,7 +154,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
 
         return [
             $plural . 'List'     => [
-                'id'         => $plural . 'List',
+                'type'         => 'object',
                 'properties' => [
                     $wrapper => [
                         'type'        => 'array',
@@ -166,7 +166,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                 ],
             ],
             $name . 'Response'   => [
-                'id'         => $name . 'Response',
+                'type'       => 'object',
                 'properties' => [
                     $this->getResourceIdentifier() => [
                         'type'        => 'string',
@@ -175,13 +175,13 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                 ],
             ],
             $plural . 'Response' => [
-                'id'         => $plural . 'Response',
+                'type'       => 'object',
                 'properties' => [
                     $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of resources available to this path.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
+                            '$ref' => '#/definitions/' . $name . 'Response',
                         ],
                     ],
                 ],
@@ -191,52 +191,45 @@ class BaseRestResource extends RestHandler implements ResourceInterface
 
     public function getApiDocInfo()
     {
-        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $serviceName = $this->getServiceName();
+        $path = '/' . $serviceName . '/' . $this->getFullPathName();
+        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
         $name = Inflector::camelize($this->name);
         $plural = Inflector::pluralize($name);
         $words = str_replace('_', ' ', $this->name);
         $pluralWords = Inflector::pluralize($words);
 
         return [
-            'paths'   => [
-                [
-                    'path'        => $path,
-                    'description' => "Operations for $words administration.",
-                    'operations'  => [
+            'paths'       => [
+                $path => [
+                    'get' =>
                         [
-                            'method'           => 'GET',
-                            'summary'          => 'get' .
-                                $plural .
-                                'List() - List all ' .
-                                $pluralWords .
-                                ' identifiers.',
-                            'nickname'         => 'get' . $plural . 'List',
-                            'notes'            => 'Return only a list of the resource identifiers.',
-                            'type'             => $plural . 'List',
-                            'event_name'       => [$eventPath . '.list'],
-                            'parameters'       => [
-                                ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
+                            'tags' => [$serviceName],
+                            'summary'     => 'get' . $plural .'() - List all ' . $pluralWords,
+                            'operationId' => 'get' . $plural,
+                            'description' => 'Return a list of the resource identifiers.',
+                            'event_name'  => [$eventPath . '.list'],
+                            'parameters'  => [
+                                ApiOptions::documentOption(ApiOptions::AS_LIST),
                                 ApiOptions::documentOption(ApiOptions::ID_FIELD),
                                 ApiOptions::documentOption(ApiOptions::ID_TYPE),
                                 ApiOptions::documentOption(ApiOptions::REFRESH),
                             ],
-                            'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        ],
-                        [
-                            'method'           => 'GET',
-                            'summary'          => 'get' . $plural . '() - List all ' . $pluralWords . '.',
-                            'nickname'         => 'get' . $plural,
-                            'notes'            => 'List the resources available on this service. ',
-                            'type'             => $plural . 'Response',
-                            'event_name'       => [$eventPath . '.list'],
-                            'parameters'       => [
-                                ApiOptions::documentOption(ApiOptions::FIELDS),
-                                ApiOptions::documentOption(ApiOptions::REFRESH),
+                            'responses'   => [
+                                '200'     => [
+                                    'description' => 'Success',
+                                    'schema'      => [
+                                        '$ref' => '#/definitions/' .
+                                            $plural .
+                                            'Response'
+                                    ]
+                                ],
+                                'default' => [
+                                    'description' => 'Error',
+                                    'schema'      => ['$ref' => '#/definitions/Error']
+                                ]
                             ],
-                            'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
                         ],
-                    ],
                 ],
             ],
             'definitions' => $this->getApiDocModels()

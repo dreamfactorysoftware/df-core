@@ -57,7 +57,7 @@ class System extends BaseRestService
             /** @var BaseRestResource $resource */
             $resource = $this->instantiateResource($className, $resourceInfo);
 
-            $name = ArrayUtils::get($resourceInfo, static::RESOURCE_IDENTIFIER, '') . '/';
+            $name = ArrayUtils::get($resourceInfo, static::RESOURCE_IDENTIFIER, '');
             $access = $this->getPermissions($name);
             if (!empty($access)) {
                 $results = $resource->getApiDocInfo();

@@ -112,32 +112,32 @@ class UserProfileResource extends BaseRestResource
                     [
                         'method'           => 'GET',
                         'summary'          => 'getProfile() - Retrieve the current user\'s profile information.',
-                        'nickname'         => 'getProfile',
+                        'operationId'         => 'getProfile',
                         'type'             => 'ProfileResponse',
                         'event_name'       => $eventPath . '.read',
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([401, 500]),
-                        'notes'            =>
+                        'responses' => ApiDocUtilities::getCommonResponses([401, 500]),
+                        'description'            =>
                             'A valid current session is required to use this API. ' .
                             'This profile, along with password, is the only things that the user can directly change.',
                     ],
                     [
                         'method'           => 'POST',
                         'summary'          => 'updateProfile() - Update the current user\'s profile information.',
-                        'nickname'         => 'updateProfile',
+                        'operationId'         => 'updateProfile',
                         'type'             => 'Success',
                         'event_name'       => $eventPath . '.update',
                         'parameters'       => [
                             [
                                 'name'          => 'body',
                                 'description'   => 'Data containing name-value pairs for the user profile.',
-                                'allowMultiple' => false,
+
                                 'type'          => 'ProfileRequest',
-                                'paramType'     => 'body',
+                                'in'     => 'body',
                                 'required'      => true,
                             ],
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            => 'Update the display name, phone, etc., as well as, security question and answer.',
+                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'description'            => 'Update the display name, phone, etc., as well as, security question and answer.',
                     ],
                 ],
                 'description' => 'Operations on a user\'s profile.',

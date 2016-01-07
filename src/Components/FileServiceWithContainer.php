@@ -12,7 +12,7 @@ trait FileServiceWithContainer
                 unset($pathSchema[$k]['values']);
                 $pathSchema[$k]['label'] = 'Container';
                 $pathSchema[$k]['description'] =
-                    'Enter a Container (root directory) for your storage service. It will be created if does not exit already.';
+                    'Enter a Container (root directory) for your storage service. It will be created if it does not exist already.';
             }
         }
     }

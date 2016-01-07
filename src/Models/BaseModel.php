@@ -2,6 +2,9 @@
 
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Components\Cacheable;
+use DreamFactory\Core\Contracts\CacheInterface;
+use DreamFactory\Core\Database\Connection;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
@@ -12,7 +15,6 @@ use DreamFactory\Core\Components\ConnectionAdapter;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Database\ColumnSchema;
 use DreamFactory\Core\Database\RelationSchema;
-use DreamFactory\Core\Database\Schema;
 use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Components\Builder as DfBuilder;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -27,18 +29,20 @@ use DB;
  *
  * @package DreamFactory\Core\Models
  */
-class BaseModel extends Model
+class BaseModel extends Model implements CacheInterface
 {
+    use Cacheable;
+
     const TABLE_TO_MODEL_MAP_CACHE_KEY = 'system.table_model_map';
 
     const TABLE_TO_MODEL_MAP_CACHE_TTL = 60;
 
     /**
-     * SqlDbCore Schema object.
+     * Database Connection object.
      *
-     * @var Schema
+     * @var Connection
      */
-    protected $schema = null;
+    protected $adaptedConnection = null;
 
     /**
      * SqlDbCore TableSchema
@@ -732,41 +736,13 @@ class BaseModel extends Model
     }
 
     /**
-     * Gets the SqlDbCore Schema object.
-     *
-     * @return Schema
-     * @throws \Exception
-     */
-    public function getSchema()
-    {
-        if (empty($this->schema)) {
-            $connection = $this->getConnection();
-            $adaptedConnection = ConnectionAdapter::getLegacyConnection($connection);
-            $this->schema = $adaptedConnection->getSchema();
-        }
-
-        return $this->schema;
-    }
-
-    /**
      * Gets table references from table schema.
      *
      * @return array
      */
     public function getReferences()
     {
-        if (empty($this->references)) {
-            if (empty($this->schema)) {
-                $this->getSchema();
-            }
-            if (empty($this->tableSchema)) {
-                $this->getTableSchema();
-            }
-
-            $this->references = $this->tableSchema->relations;
-        }
-
-        return $this->references;
+        return $this->getTableSchema()->relations;
     }
 
     /**
@@ -776,14 +752,14 @@ class BaseModel extends Model
      */
     public function getTableSchema()
     {
-        if (empty($this->tableSchema)) {
-            if (empty($this->schema)) {
-                $this->getSchema();
-            }
-            $this->tableSchema = $this->schema->getTable($this->table);
+        if (empty($this->adaptedConnection)) {
+            $connection = $this->getConnection();
+            $this->adaptedConnection = ConnectionAdapter::getLegacyConnection($connection);
+            $this->cachePrefix = 'model_' . $this->getTable() . ':';
+            $this->adaptedConnection->setCache($this);
         }
 
-        return $this->tableSchema;
+        return $this->adaptedConnection->getSchema()->getTable($this->table);
     }
 
     /**

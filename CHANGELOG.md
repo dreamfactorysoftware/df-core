@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.1.13] - 2016-01-07
+### Fixed
+- Add caching for system table schema pulls from database
+
 ## [0.1.12] - 2016-01-05
 ### Fixed
 - Fix table name case issue with cache lookup for SQL DB services.
@@ -101,7 +105,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.12...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.13...HEAD
+[0.1.13]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.12...0.1.13
 [0.1.12]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.11...0.1.12
 [0.1.11]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.10...0.1.11
 [0.1.10]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.9...0.1.10

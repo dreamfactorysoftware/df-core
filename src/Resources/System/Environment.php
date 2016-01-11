@@ -434,46 +434,35 @@ class Environment extends BaseSystemResource
 
     public function getApiDocInfo()
     {
-        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $serviceName = $this->getServiceName();
+        $path = '/' . $serviceName . '/' . $this->getFullPathName();
+        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
         $name = Inflector::camelize($this->name);
-        $plural = Inflector::pluralize($name);
-        $words = str_replace('_', ' ', $this->name);
-        $pluralWords = Inflector::pluralize($words);
-        $wrapper = ResourcesWrapper::getWrapper();
 
         $apis = [
-            [
-                'path'        => $path,
-                'description' => "Operations for retrieving system environment.",
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getEnvironment() - Retrieve system environment.',
-                        'operationId'         => 'getEnvironment',
-                        'type'             => 'EnvironmentResponse',
-                        'event_name'       => $eventPath . '.list',
-                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'       => [],
-                        'responses' => [],
-                        'description'            =>
-                            'Minimum environment information given without a valid user session.' .
-                            ' More information given based on user privileges.',
-                    ],
+            $path => [
+                'get' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'getEnvironment() - Retrieve system environment.',
+                    'operationId' => 'getEnvironment',
+                    'event_name'  => $eventPath . '.list',
+                    'responses'  => ['200' => ['schema' => ['$ref' => '#/definitions/EnvironmentResponse']]],
+                    'description' =>
+                        'Minimum environment information given without a valid user session.' .
+                        ' More information given based on user privileges.',
                 ],
             ],
         ];
 
         $models = [
             'EnvironmentResponse' => [
-                'id'         => 'EnvironmentResponse',
+                'type'       => 'object',
                 'properties' => [
                     'platform'       => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
+                            '$ref' => '#/definitions/' . $name . 'Response',
                         ],
                     ],
                     'authentication' => [
@@ -484,14 +473,14 @@ class Environment extends BaseSystemResource
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
+                            '$ref' => '#/definitions/' . $name . 'Response',
                         ],
                     ],
                     'no_app_group'   => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
+                            '$ref' => '#/definitions/' . $name . 'Response',
                         ],
                     ],
                     'config'         => [

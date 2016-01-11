@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Models\BaseSystemModel;
-use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -27,44 +26,56 @@ class Config extends BaseSystemResource
 
     public function getApiDocInfo()
     {
-        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $serviceName = $this->getServiceName();
+        $path = '/' . $serviceName . '/' . $this->getFullPathName();
+        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
         $config = [];
 
         $config['paths'] = [
-            [
-                'path'        => $path,
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getConfig() - Retrieve system configuration properties.',
-                        'operationId'         => 'getConfig',
-                        'type'             => 'ConfigResponse',
-                        'event_name'       => $eventPath . '.read',
-                        'description'            => 'The retrieved properties control how the system behaves.',
-                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                    ],
-                    [
-                        'method'           => 'POST',
-                        'summary'          => 'setConfig() - Update one or more system configuration properties.',
-                        'operationId'         => 'setConfig',
-                        'type'             => 'ConfigResponse',
-                        'event_name'       => $eventPath . '.update',
-                        'description'            => 'Post data should be an array of properties.',
-                        'parameters'       => [
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Data containing name-value pairs of properties to set.',
-
-                                'type'          => 'ConfigRequest',
-                                'in'     => 'body',
-                                'required'      => true,
-                            ],
+            $path => [
+                'get'  => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'getConfig() - Retrieve system configuration properties.',
+                    'operationId' => 'getConfig',
+                    'event_name'  => $eventPath . '.read',
+                    'description' => 'The retrieved properties control how the system behaves.',
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Config',
+                            'schema'      => ['$ref' => '#/definitions/ConfigResponse']
                         ],
-                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
                     ],
                 ],
-                'description' => 'Operations for system configuration options.',
+                'post' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'setConfig() - Update one or more system configuration properties.',
+                    'operationId' => 'setConfig',
+                    'event_name'  => $eventPath . '.update',
+                    'description' => 'Post data should be an array of properties.',
+                    'parameters'  => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of properties to set.',
+                            'schema'      => ['$ref' => '#/definitions/ConfigRequest'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
             ],
         ];
 
@@ -88,11 +99,11 @@ class Config extends BaseSystemResource
 
         $config['definitions'] = [
             'ConfigRequest'  => [
-                'id'         => 'ConfigRequest',
+                'type'       => 'object',
                 'properties' => $commonProperties,
             ],
             'ConfigResponse' => [
-                'id'         => 'ConfigResponse',
+                'type'       => 'object',
                 'properties' => $commonProperties,
             ],
         ];

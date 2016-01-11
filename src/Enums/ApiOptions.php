@@ -134,35 +134,38 @@ class ApiOptions extends FactoryEnum
 
     protected static $swaggerMap = [
         self::IDS                  => [
-            'name'        => self::IDS,
-            'type'        => 'array',
-            'items'       => [
+            'name'             => self::IDS,
+            'type'             => 'array',
+            'collectionFormat' => 'csv',
+            'items'            => [
                 'type'   => 'integer',
                 'format' => 'int32'
             ],
-            'in'          => 'query',
-            'description' => 'Comma-delimited list of the identifiers of the records to retrieve.',
+            'in'               => 'query',
+            'description'      => 'Comma-delimited list of the identifiers of the records to retrieve.',
         ],
         self::ID_FIELD             => [
-            'name'        => self::ID_FIELD,
-            'type'        => 'array',
-            'items'       => [
+            'name'             => self::ID_FIELD,
+            'type'             => 'array',
+            'collectionFormat' => 'csv',
+            'items'            => [
                 'type' => 'string',
             ],
-            'in'          => 'query',
-            'description' => 'Comma-delimited list of the fields used as identifiers, used to override defaults or provide identifiers when none are provisioned.'
+            'in'               => 'query',
+            'description'      => 'Comma-delimited list of the fields used as identifiers, used to override defaults or provide identifiers when none are provisioned.'
         ],
         self::ID_TYPE              => [
-            'name'        => self::ID_TYPE,
-            'type'        => 'array',
-            'items'       => [
+            'name'             => self::ID_TYPE,
+            'type'             => 'array',
+            'collectionFormat' => 'csv',
+            'items'            => [
                 'type' => 'string',
             ],
-            'in'          => 'query',
-            'description' => 'Comma-delimited list of the field types used as identifiers for the table, used to override defaults or provide identifiers when none are provisioned.'
+            'in'               => 'query',
+            'description'      => 'Comma-delimited list of the field types used as identifiers for the table, used to override defaults or provide identifiers when none are provisioned.'
         ],
         self::FILTER               => [
-            'name' => self::FILTER,
+            'name'        => self::FILTER,
             'type'        => 'string',
             'in'          => 'query',
             'description' => 'SQL-like filter to limit the records to retrieve.'
@@ -200,13 +203,14 @@ class ApiOptions extends FactoryEnum
             'description' => 'Set to offset the filter results to a particular record count.'
         ],
         self::FIELDS               => [
-            'name'        => self::FIELDS,
-            'type'        => 'array',
-            'items'       => [
+            'name'             => self::FIELDS,
+            'type'             => 'array',
+            'collectionFormat' => 'csv',
+            'items'            => [
                 'type' => 'string',
             ],
-            'in'          => 'query',
-            'description' => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier.'
+            'in'               => 'query',
+            'description'      => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier.'
         ],
         self::CONTINUES            => [
             'name'        => self::CONTINUES,
@@ -221,13 +225,14 @@ class ApiOptions extends FactoryEnum
             'description' => 'In batch scenarios where supported, rollback all actions if one action fails. Default behavior is to halt and return results up to the first point of failure.'
         ],
         self::RELATED              => [
-            'name'        => self::RELATED,
-            'type'        => 'array',
-            'items'       => [
+            'name'             => self::RELATED,
+            'type'             => 'array',
+            'collectionFormat' => 'csv',
+            'items'            => [
                 'type' => 'string',
             ],
-            'in'          => 'query',
-            'description' => 'Comma-delimited list of related names to retrieve for each resource.'
+            'in'               => 'query',
+            'description'      => 'Comma-delimited list of related names to retrieve for each resource.'
         ],
         self::ALLOW_RELATED_DELETE => [
             'name'        => self::ALLOW_RELATED_DELETE,

@@ -2,7 +2,6 @@
 
 namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 
 class Constant extends ReadOnlySystemResource
@@ -25,67 +24,76 @@ class Constant extends ReadOnlySystemResource
 
     public function getApiDocInfo()
     {
-        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $serviceName = $this->getServiceName();
+        $path = '/' . $serviceName . '/' . $this->getFullPathName();
+        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
         $constant = [];
 
         $constant['paths'] = [
-            [
-                'path'        => $path,
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getConstants() - Retrieve all platform enumerated constants.',
-                        'operationId'         => 'getConstants',
-                        'type'             => 'Constants',
-                        'event_name'       => $eventPath . '.list',
-                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'description'            => 'Returns an object containing every enumerated type and its constant values',
-                    ],
-                ],
-                'description' => 'Operations for retrieving platform constants.',
-            ],
-            [
-                'path'        => $path . '/{type}',
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getConstant() - Retrieve one constant type enumeration.',
-                        'operationId'         => 'getConstant',
-                        'type'             => 'Constant',
-                        'event_name'       => $eventPath . '.read',
-                        'parameters'       => [
-                            [
-                                'name'          => 'type',
-                                'description'   => 'Identifier of the enumeration type to retrieve.',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
+            $path             => [
+                'get' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'getConstants() - Retrieve all platform enumerated constants.',
+                    'operationId' => 'getConstants',
+                    'event_name'  => $eventPath . '.list',
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Constants',
+                            'schema'      => ['$ref' => '#/definitions/Constants']
                         ],
-                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'description'            => 'Returns , all fields and no relations are returned.',
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
                     ],
+                    'description' => 'Returns an object containing every enumerated type and its constant values',
                 ],
-                'description' => 'Operations for retrieval individual platform constant enumerations.',
+            ],
+            $path . '/{type}' => [
+                'get' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'getConstant() - Retrieve one constant type enumeration.',
+                    'operationId' => 'getConstant',
+                    'event_name'  => $eventPath . '.read',
+                    'parameters'  => [
+                        [
+                            'name'        => 'type',
+                            'description' => 'Identifier of the enumeration type to retrieve.',
+
+                            'type'     => 'string',
+                            'in'       => 'path',
+                            'required' => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Constant',
+                            'schema'      => ['$ref' => '#/definitions/Constant']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Returns a constant value.',
+                ],
             ],
         ];
 
         $constant['definitions'] = [
             'Constants' => [
-                'id'         => 'Constants',
+                'type'       => 'object',
                 'properties' => [
                     'type_name' => [
                         'type'  => 'array',
                         'items' => [
-                            '$ref' => 'Constant',
+                            '$ref' => '#/definitions/Constant',
                         ],
                     ],
                 ],
             ],
             'Constant'  => [
-                'id'         => 'Constant',
+                'type'       => 'object',
                 'properties' => [
                     'name' => [
                         'type'  => 'array',

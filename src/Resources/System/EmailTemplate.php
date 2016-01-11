@@ -31,21 +31,21 @@ class EmailTemplate extends BaseSystemResource
                 'type'        => 'array',
                 'description' => 'Single or multiple receiver addresses.',
                 'items'       => [
-                    '$ref' => 'EmailAddress',
+                    '$ref' => '#/definitions/EmailAddress',
                 ],
             ],
             'cc'          => [
                 'type'        => 'array',
                 'description' => 'Optional CC receiver addresses.',
                 'items'       => [
-                    '$ref' => 'EmailAddress',
+                    '$ref' => '#/definitions/EmailAddress',
                 ],
             ],
             'bcc'         => [
                 'type'        => 'array',
                 'description' => 'Optional BCC receiver addresses.',
                 'items'       => [
-                    '$ref' => 'EmailAddress',
+                    '$ref' => '#/definitions/EmailAddress',
                 ],
             ],
             'subject'     => [

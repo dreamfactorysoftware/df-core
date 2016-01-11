@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Services\Email;
 
 use App;
-use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\Session;
 use Illuminate\Mail\Message;
 use Swift_Transport as SwiftTransport;
@@ -41,7 +40,7 @@ abstract class BaseService extends BaseRestService
     {
         parent::__construct($settings);
 
-        $config = (ArrayUtils::get($settings, 'config', []))? : [];
+        $config = (ArrayUtils::get($settings, 'config', [])) ?: [];
         $this->setParameters($config);
         $this->setTransport($config);
         $this->setMailer();
@@ -238,58 +237,57 @@ abstract class BaseService extends BaseRestService
 
     public function getApiDocInfo()
     {
-        $base = parent::getApiDocInfo();
-
-        $base['paths'] = [
-            [
-                'path'        => '/' . $this->name,
-                'operations'  => [
-                    [
-                        'method'           => 'POST',
-                        'summary'          => 'sendEmail() - Send an email created from posted data and/or a template.',
-                        'operationId'         => 'sendEmail',
-                        'type'             => 'EmailResponse',
-                        'event_name'       => 'email.sent',
-                        'parameters'       => [
-                            [
-                                'name'          => 'template',
-                                'description'   => 'Optional template name to base email on.',
-
-                                'type'          => 'string',
-                                'in'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'template_id',
-                                'description'   => 'Optional template id to base email on.',
-
-                                'type'          => 'integer',
-                                'format'        => 'int32',
-                                'in'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'data',
-                                'description'   => 'Data containing name-value pairs used for provisioning emails.',
-
-                                'type'          => 'EmailRequest',
-                                'in'     => 'body',
-                                'required'      => false,
-                            ],
+        $paths = [
+            '/' . $this->name => [
+                'post' => [
+                    'tags'        => [$this->name],
+                    'summary'     => 'sendEmail() - Send an email created from posted data and/or a template.',
+                    'operationId' => 'sendEmail',
+                    'event_name'  => 'email.sent',
+                    'parameters'  => [
+                        [
+                            'name'        => 'template',
+                            'description' => 'Optional template name to base email on.',
+                            'type'        => 'string',
+                            'in'          => 'query',
+                            'required'    => false,
                         ],
-                        'responses' => ApiDocUtilities::getCommonResponses(),
-                        'description'            =>
-                            'If a template is not used with all required fields, then they must be included in the request. ' .
-                            'If the \'from\' address is not provisioned in the service, then it must be included in the request.',
+                        [
+                            'name'        => 'template_id',
+                            'description' => 'Optional template id to base email on.',
+                            'type'        => 'integer',
+                            'format'      => 'int32',
+                            'in'          => 'query',
+                            'required'    => false,
+                        ],
+                        [
+                            'name'        => 'data',
+                            'description' => 'Data containing name-value pairs used for provisioning emails.',
+                            'schema'      => ['$ref' => '#/definitions/EmailRequest'],
+                            'in'          => 'body',
+                            'required'    => false,
+                        ],
                     ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Send Email Response',
+                            'schema'      => ['$ref' => '#/definitions/EmailResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' =>
+                        'If a template is not used with all required fields, then they must be included in the request. ' .
+                        'If the \'from\' address is not provisioned in the service, then it must be included in the request.',
                 ],
-                'description' => 'Operations on a email service.',
             ],
         ];
 
-        $models = [
+        $definitions = [
             'EmailResponse' => [
-                'id'         => 'EmailResponse',
+                'type'       => 'object',
                 'properties' => [
                     'count' => [
                         'type'        => 'integer',
@@ -299,7 +297,7 @@ abstract class BaseService extends BaseRestService
                 ],
             ],
             'EmailRequest'  => [
-                'id'         => 'EmailRequest',
+                'type'       => 'object',
                 'properties' => [
                     'template'       => [
                         'type'        => 'string',
@@ -314,21 +312,21 @@ abstract class BaseService extends BaseRestService
                         'type'        => 'Array',
                         'description' => 'Required single or multiple receiver addresses.',
                         'items'       => [
-                            '$ref' => 'EmailAddress',
+                            '$ref' => '#/definitions/EmailAddress',
                         ],
                     ],
                     'cc'             => [
                         'type'        => 'Array',
                         'description' => 'Optional CC receiver addresses.',
                         'items'       => [
-                            '$ref' => 'EmailAddress',
+                            '$ref' => '#/definitions/EmailAddress',
                         ],
                     ],
                     'bcc'            => [
                         'type'        => 'Array',
                         'description' => 'Optional BCC receiver addresses.',
                         'items'       => [
-                            '$ref' => 'EmailAddress',
+                            '$ref' => '#/definitions/EmailAddress',
                         ],
                     ],
                     'subject'        => [
@@ -362,7 +360,7 @@ abstract class BaseService extends BaseRestService
                 ],
             ],
             'EmailAddress'  => [
-                'id'         => 'EmailAddress',
+                'type'       => 'object',
                 'properties' => [
                     'name'  => [
                         'type'        => 'string',
@@ -376,8 +374,6 @@ abstract class BaseService extends BaseRestService
             ],
         ];
 
-        $base['definitions'] = array_merge($base['definitions'], $models);
-
-        return $base;
+        return ['paths' => $paths, 'definitions' => $definitions];
     }
 }

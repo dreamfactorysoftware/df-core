@@ -7,7 +7,6 @@ use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Utility\ApiDocUtilities;
 
 class UserProfileResource extends BaseRestResource
 {
@@ -103,44 +102,56 @@ class UserProfileResource extends BaseRestResource
 
     public function getApiDocInfo()
     {
-        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $serviceName = $this->getServiceName();
+        $path = '/' . $serviceName . '/' . $this->getFullPathName();
+        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
         $apis = [
-            [
-                'path'        => $path,
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getProfile() - Retrieve the current user\'s profile information.',
-                        'operationId'         => 'getProfile',
-                        'type'             => 'ProfileResponse',
-                        'event_name'       => $eventPath . '.read',
-                        'responses' => ApiDocUtilities::getCommonResponses([401, 500]),
-                        'description'            =>
-                            'A valid current session is required to use this API. ' .
-                            'This profile, along with password, is the only things that the user can directly change.',
-                    ],
-                    [
-                        'method'           => 'POST',
-                        'summary'          => 'updateProfile() - Update the current user\'s profile information.',
-                        'operationId'         => 'updateProfile',
-                        'type'             => 'Success',
-                        'event_name'       => $eventPath . '.update',
-                        'parameters'       => [
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Data containing name-value pairs for the user profile.',
-
-                                'type'          => 'ProfileRequest',
-                                'in'     => 'body',
-                                'required'      => true,
-                            ],
+            $path => [
+                'get'  => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'getProfile() - Retrieve the current user\'s profile information.',
+                    'operationId' => 'getProfile',
+                    'event_name'  => $eventPath . '.read',
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Profile',
+                            'schema'      => ['$ref' => '#/definitions/ProfileResponse']
                         ],
-                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'description'            => 'Update the display name, phone, etc., as well as, security question and answer.',
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
                     ],
+                    'description' =>
+                        'A valid current session is required to use this API. ' .
+                        'This profile, along with password, is the only things that the user can directly change.',
                 ],
-                'description' => 'Operations on a user\'s profile.',
+                'post' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'updateProfile() - Update the current user\'s profile information.',
+                    'operationId' => 'updateProfile',
+                    'event_name'  => $eventPath . '.update',
+                    'parameters'  => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs for the user profile.',
+                            'schema'      => ['$ref' => '#/definitions/ProfileRequest'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Update the display name, phone, etc., as well as, security question and answer.',
+                ],
             ],
         ];
 
@@ -178,7 +189,7 @@ class UserProfileResource extends BaseRestResource
 
         $models = [
             'ProfileRequest'  => [
-                'id'         => 'ProfileRequest',
+                'type'       => 'object',
                 'properties' => array_merge(
                     $commonProfile,
                     [
@@ -190,7 +201,7 @@ class UserProfileResource extends BaseRestResource
                 ),
             ],
             'ProfileResponse' => [
-                'id'         => 'ProfileResponse',
+                'type'       => 'object',
                 'properties' => $commonProfile,
             ],
         ];

@@ -436,7 +436,7 @@ class BaseSystemResource extends BaseRestResource
         $apis = [
             $path           => [
                 'get'    => [
-                    'tags' => [$serviceName],
+                    'tags'        => [$serviceName],
                     'summary'     => 'get' . $plural . '() - Retrieve one or more ' . $pluralWords . '.',
                     'operationId' => 'get' . $plural,
                     'event_name'  => [$eventPath . '.list'],
@@ -478,7 +478,7 @@ class BaseSystemResource extends BaseRestResource
                         'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                 ],
                 'post'   => [
-                    'tags' => [$serviceName],
+                    'tags'        => [$serviceName],
                     'summary'     => 'create' . $plural . '() - Create one or more ' . $pluralWords . '.',
                     'operationId' => 'create' . $plural,
                     'event_name'  => $eventPath . '.create',
@@ -486,21 +486,21 @@ class BaseSystemResource extends BaseRestResource
                     'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
                         [
-                            'name'          => 'body',
-                            'description'   => 'Data containing name-value pairs of records to create.',
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of records to create.',
                             'in'          => 'body',
-                            'schema'      => ['$ref' => '#/definitions/'.$plural . 'Request'],
-                            'required'      => true,
+                            'schema'      => ['$ref' => '#/definitions/' . $plural . 'Request'],
+                            'required'    => true,
                         ],
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                         [
-                            'name'          => 'X-HTTP-METHOD',
-                            'description'   => 'Override request using POST to tunnel other http request, such as DELETE.',
-                            'enum'          => ['GET', 'PUT', 'PATCH', 'DELETE'],
-                            'type'          => 'string',
-                            'in'     => 'header',
-                            'required'      => false,
+                            'name'        => 'X-HTTP-METHOD',
+                            'description' => 'Override request using POST to tunnel other http request, such as DELETE.',
+                            'enum'        => ['GET', 'PUT', 'PATCH', 'DELETE'],
+                            'type'        => 'string',
+                            'in'          => 'header',
+                            'required'    => false,
                         ],
                     ],
                     'responses'   => [
@@ -523,7 +523,7 @@ class BaseSystemResource extends BaseRestResource
                         'use \'fields\' and \'related\' to return more info.',
                 ],
                 'patch'  => [
-                    'tags' => [$serviceName],
+                    'tags'        => [$serviceName],
                     'summary'     => 'update' . $plural . '() - Update one or more ' . $pluralWords . '.',
                     'operationId' => 'update' . $plural,
                     'event_name'  => $eventPath . '.update',
@@ -531,11 +531,11 @@ class BaseSystemResource extends BaseRestResource
                     'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
                         [
-                            'name'          => 'body',
-                            'description'   => 'Data containing name-value pairs of records to update.',
-                            'in'     => 'body',
-                            'schema'      => ['$ref' => '#/definitions/'.$plural . 'Request'],
-                            'required'      => true,
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of records to update.',
+                            'in'          => 'body',
+                            'schema'      => ['$ref' => '#/definitions/' . $plural . 'Request'],
+                            'required'    => true,
                         ],
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FIELDS),
@@ -561,18 +561,18 @@ class BaseSystemResource extends BaseRestResource
                         'use \'fields\' and \'related\' to return more info.',
                 ],
                 'delete' => [
-                    'tags' => [$serviceName],
+                    'tags'        => [$serviceName],
                     'summary'     => 'delete' . $plural . '() - Delete one or more ' . $pluralWords . '.',
                     'operationId' => 'delete' . $plural,
                     'event_name'  => $eventPath . '.delete',
                     'parameters'  => [
                         [
-                            'name'          => 'force',
-                            'description'   => 'Set force to true to delete all records in this table, otherwise \'ids\' parameter is required.',
-                            'type'          => 'boolean',
-                            'in'     => 'query',
-                            'required'      => false,
-                            'default'       => false,
+                            'name'        => 'force',
+                            'description' => 'Set force to true to delete all records in this table, otherwise \'ids\' parameter is required.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'required'    => false,
+                            'default'     => false,
                         ],
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FIELDS),
@@ -601,18 +601,18 @@ class BaseSystemResource extends BaseRestResource
             ],
             $path . '/{id}' => [
                 'get'    => [
-                    'tags' => [$serviceName],
+                    'tags'        => [$serviceName],
                     'summary'     => 'get' . $name . '() - Retrieve one ' . $words . '.',
                     'operationId' => 'get' . $name,
                     'event_name'  => $eventPath . '.read',
                     'parameters'  => [
                         [
-                            'name'          => 'id',
-                            'description'   => 'Identifier of the record to retrieve.',
+                            'name'        => 'id',
+                            'description' => 'Identifier of the record to retrieve.',
 
-                            'type'          => 'string',
-                            'in'     => 'path',
-                            'required'      => true,
+                            'type'     => 'string',
+                            'in'       => 'path',
+                            'required' => true,
                         ],
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
@@ -634,24 +634,24 @@ class BaseSystemResource extends BaseRestResource
                     'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                 ],
                 'patch'  => [
-                    'tags' => [$serviceName],
+                    'tags'        => [$serviceName],
                     'summary'     => 'update' . $name . '() - Update one ' . $words . '.',
                     'operationId' => 'update' . $name,
                     'event_name'  => $eventPath . '.update',
                     'parameters'  => [
                         [
-                            'name'          => 'id',
-                            'description'   => 'Identifier of the record to update.',
-                            'type'          => 'string',
-                            'in'     => 'path',
-                            'required'      => true,
+                            'name'        => 'id',
+                            'description' => 'Identifier of the record to update.',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
                         ],
                         [
-                            'name'          => 'body',
-                            'description'   => 'Data containing name-value pairs of fields to update.',
-                            'in'     => 'body',
-                            'schema'      => ['$ref' => '#/definitions/'.$name . 'Request'],
-                            'required'      => true,
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of fields to update.',
+                            'in'          => 'body',
+                            'schema'      => ['$ref' => '#/definitions/' . $name . 'Request'],
+                            'required'    => true,
                         ],
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
@@ -675,17 +675,17 @@ class BaseSystemResource extends BaseRestResource
                         'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
                 ],
                 'delete' => [
-                    'tags' => [$serviceName],
+                    'tags'        => [$serviceName],
                     'summary'     => 'delete' . $name . '() - Delete one ' . $words . '.',
                     'operationId' => 'delete' . $name,
                     'event_name'  => $eventPath . '.delete',
                     'parameters'  => [
                         [
-                            'name'          => 'id',
-                            'description'   => 'Identifier of the record to delete.',
-                            'type'          => 'string',
-                            'in'     => 'path',
-                            'required'      => true,
+                            'name'        => 'id',
+                            'description' => 'Identifier of the record to delete.',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
                         ],
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
@@ -717,7 +717,7 @@ class BaseSystemResource extends BaseRestResource
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => '#/definitions/'.$name . 'Request',
+                            '$ref' => '#/definitions/' . $name . 'Request',
                         ],
                     ],
                     ApiOptions::IDS => [
@@ -737,7 +737,7 @@ class BaseSystemResource extends BaseRestResource
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => '#/definitions/'.$name . 'Response',
+                            '$ref' => '#/definitions/' . $name . 'Response',
                         ],
                     ],
                     'meta'   => [

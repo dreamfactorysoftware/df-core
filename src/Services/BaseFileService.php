@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\FileUtilities;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
@@ -742,524 +741,479 @@ abstract class BaseFileService extends BaseRestService
     {
         $path = '/' . $this->name;
         $eventPath = $this->name;
-        $commonResponses = ApiDocUtilities::getCommonResponses();
         $base = parent::getApiDocInfo();
 
         $base['paths'] = [
-            [
-                'path'        => $path,
-                'description' => 'Operations available for File Storage Service.',
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getResourceList() - List all resource names.',
-                        'operationId'         => 'getResourceList',
-                        'description'            => 'Return only a list of the resource identifiers.',
-                        'type'             => 'ResourceList',
-                        'event_name'       => [$this->name . '.list'],
-                        'parameters'       => [
-                            ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
-                            ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
-                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                            ApiOptions::documentOption(ApiOptions::REFRESH),
+            $path                     => [
+                'get' => [
+                    'tags'        => [$this->name],
+                    'summary'     => 'getResources() - List all resources.',
+                    'operationId' => 'getResources',
+                    'event_name'  => [$eventPath . '.list',],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/ResourceList']
                         ],
-                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
                     ],
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getResources() - List all resources.',
-                        'operationId'         => 'getResources',
-                        'type'             => 'ResourceList',
-                        'event_name'       => [$eventPath . '.list',],
-                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'description'            => 'List the resources (folders and files) available in this storage. ',
-                        'parameters'       => [
-                            [
-                                'name'          => 'include_folders',
-                                'description'   => 'Include folders in the returned listing.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => true,
-                            ],
-                            [
-                                'name'          => 'include_files',
-                                'description'   => 'Include files in the returned listing.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => true,
-                            ],
-                            [
-                                'name'          => 'full_tree',
-                                'description'   => 'List the contents of all sub-folders as well.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                            [
-                                'name'          => 'zip',
-                                'description'   => 'Return the content of the path as a zip file.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
+                    'description' => 'List the resources (folders and files) available in this storage. ',
+                    'parameters'  => [
+                        ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
+                        ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                        ApiOptions::documentOption(ApiOptions::REFRESH),
+                        [
+                            'name'         => 'include_folders',
+                            'description'  => 'Include folders in the returned listing.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => true,
+                        ],
+                        [
+                            'name'         => 'include_files',
+                            'description'  => 'Include files in the returned listing.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => true,
+                        ],
+                        [
+                            'name'         => 'full_tree',
+                            'description'  => 'List the contents of all sub-folders as well.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => false,
+                        ],
+                        [
+                            'name'         => 'zip',
+                            'description'  => 'Return the content of the path as a zip file.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => false,
                         ],
                     ],
                 ],
             ],
-            [
-                'path'        => $path . '/{folder_path}/',
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getFolder() - List the folder\'s content, including properties.',
-                        'operationId'         => 'getFolder',
-                        'type'             => 'FolderResponse',
-                        'event_name'       => [$eventPath . '.{folder_path}.describe'],
-                        'parameters'       => [
-                            [
-                                'name'          => 'folder_path',
-                                'description'   => 'The path of the folder you want to retrieve. This can be a sub-folder, with each level separated by a \'/\'',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'include_properties',
-                                'description'   => 'Return any properties of the folder in the response.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                            [
-                                'name'          => 'include_folders',
-                                'description'   => 'Include folders in the returned listing.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => true,
-                            ],
-                            [
-                                'name'          => 'include_files',
-                                'description'   => 'Include files in the returned listing.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => true,
-                            ],
-                            [
-                                'name'          => 'full_tree',
-                                'description'   => 'List the contents of all sub-folders as well.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                            [
-                                'name'          => 'zip',
-                                'description'   => 'Return the content of the folder as a zip file.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
+            $path . '/{folder_path}/' => [
+                'get'    => [
+                    'tags'        => [$this->name],
+                    'summary'     => 'getFolder() - List the folder\'s content, including properties.',
+                    'operationId' => 'getFolder',
+                    'event_name'  => [$eventPath . '.{folder_path}.describe'],
+                    'parameters'  => [
+                        [
+                            'name'        => 'folder_path',
+                            'description' => 'The path of the folder you want to retrieve. This can be a sub-folder, with each level separated by a \'/\'',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
                         ],
-                        'responses' => $commonResponses,
-                        'description'            =>
-                            'Use \'include_properties\' to get properties of the folder. ' .
-                            'Use the \'include_folders\' and/or \'include_files\' to modify the listing.',
+                        [
+                            'name'         => 'include_properties',
+                            'description'  => 'Return any properties of the folder in the response.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => false,
+                        ],
+                        [
+                            'name'         => 'include_folders',
+                            'description'  => 'Include folders in the returned listing.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => true,
+                        ],
+                        [
+                            'name'         => 'include_files',
+                            'description'  => 'Include files in the returned listing.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => true,
+                        ],
+                        [
+                            'name'         => 'full_tree',
+                            'description'  => 'List the contents of all sub-folders as well.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => false,
+                        ],
+                        [
+                            'name'         => 'zip',
+                            'description'  => 'Return the content of the folder as a zip file.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => false,
+                        ],
                     ],
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getFolderProperties() - List the folder\'s properties.',
-                        'operationId'         => 'getFolderProperties',
-                        'type'             => 'Folder',
-                        'event_name'       => [$eventPath . '.{folder_path}.describe'],
-                        'parameters'       => [
-                            [
-                                'name'          => 'folder_path',
-                                'description'   => 'The path of the folder you want to retrieve. This can be a sub-folder, with each level separated by a \'/\'',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'include_properties',
-                                'description'   => 'Return any properties of the folder in the response.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => true,
-                                'defaultValue'  => true,
-                            ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/FolderResponse']
                         ],
-                        'responses' => $commonResponses,
-                        'description'            => 'Use \'include_properties\' to get properties of the folder.',
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
                     ],
-                    [
-                        'method'           => 'POST',
-                        'summary'          => 'createFolder() - Create a folder and/or add content.',
-                        'operationId'         => 'createFolder',
-                        'type'             => 'FolderResponse',
-                        'event_name'       => [
-                            $eventPath . '.{folder_path}.create',
-                            $eventPath . '.folder_created'
-                        ],
-                        'parameters'       => [
-                            [
-                                'name'          => 'folder_path',
-                                'description'   => 'The path of the folder where you want to put the contents. This can be a sub-folder, with each level separated by a \'/\'',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Array of folders and/or files.',
-
-                                'type'          => 'FolderRequest',
-                                'in'     => 'body',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'url',
-                                'description'   => 'The full URL of the file to upload.',
-
-                                'type'          => 'string',
-                                'in'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'extract',
-                                'description'   => 'Extract an uploaded zip file into the folder.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                            [
-                                'name'          => 'clean',
-                                'description'   => 'Option when \'extract\' is true, clean the current folder before extracting files and folders.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                            [
-                                'name'          => 'check_exist',
-                                'description'   => 'If true, the request fails when the file or folder to create already exists.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                            [
-                                'name'          => 'X-HTTP-METHOD',
-                                'description'   => 'Override request using POST to tunnel other http request, such as DELETE.',
-                                'enum'          => ['GET', 'PUT', 'PATCH', 'DELETE'],
-
-                                'type'          => 'string',
-                                'in'     => 'header',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responses' => $commonResponses,
-                        'description'            => 'Post data as an array of folders and/or files. Folders are created if they do not exist',
-                    ],
-                    [
-                        'method'           => 'PATCH',
-                        'summary'          => 'updateFolderProperties() - Update folder properties.',
-                        'operationId'         => 'updateFolderProperties',
-                        'type'             => 'Folder',
-                        'event_name'       => [
-                            $eventPath . '.{folder_path}.update',
-                            $eventPath . '.folder_updated'
-                        ],
-                        'parameters'       => [
-                            [
-                                'name'          => 'folder_path',
-                                'description'   => 'The path of the folder you want to update. This can be a sub-folder, with each level separated by a \'/\'',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Array of folder properties.',
-
-                                'type'          => 'Folder',
-                                'in'     => 'body',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responses' => $commonResponses,
-                        'description'            => 'Post body as an array of folder properties.',
-                    ],
-                    [
-                        'method'           => 'DELETE',
-                        'summary'          => 'deleteFolder() - Delete one folder and/or its contents.',
-                        'operationId'         => 'deleteFolder',
-                        'type'             => 'FolderResponse',
-                        'event_name'       => [
-                            $eventPath . '.{folder_path}.delete',
-                            $eventPath . '.folder_deleted'
-                        ],
-                        'parameters'       => [
-                            [
-                                'name'          => 'folder_path',
-                                'description'   => 'The path of the folder where you want to delete contents. This can be a sub-folder, with each level separated by a \'/\'',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'force',
-                                'description'   => 'Set to true to force delete on a non-empty folder.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'content_only',
-                                'description'   => 'Set to true to only delete the content of the folder.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responses' => $commonResponses,
-                        'description'            =>
-                            'Set \'content_only\' to true to delete the sub-folders and files contained, but not the folder. ' .
-                            'Set \'force\' to true to delete a non-empty folder. ' .
-                            'Alternatively, to delete by a listing of sub-folders and files, ' .
-                            'use the POST request with X-HTTP-METHOD = DELETE header and post listing.',
-                    ],
+                    'description' =>
+                        'Use \'include_properties\' to get properties of the folder. ' .
+                        'Use the \'include_folders\' and/or \'include_files\' to modify the listing.',
                 ],
-                'description' => 'Operations on folders.',
+                'post'   => [
+                    'tags'        => [$this->name],
+                    'summary'     => 'createFolder() - Create a folder and/or add content.',
+                    'operationId' => 'createFolder',
+                    'event_name'  => [
+                        $eventPath . '.{folder_path}.create',
+                        $eventPath . '.folder_created'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'folder_path',
+                            'description' => 'The path of the folder where you want to put the contents. This can be a sub-folder, with each level separated by a \'/\'',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
+                        ],
+                        [
+                            'name'        => 'body',
+                            'description' => 'Array of folders and/or files.',
+                            'schema'      => ['$ref' => '#/definitions/FolderRequest'],
+                            'in'          => 'body',
+                            'required'    => false,
+                        ],
+                        [
+                            'name'        => 'url',
+                            'description' => 'The full URL of the file to upload.',
+                            'type'        => 'string',
+                            'in'          => 'query',
+                            'required'    => false,
+                        ],
+                        [
+                            'name'         => 'extract',
+                            'description'  => 'Extract an uploaded zip file into the folder.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => false,
+                        ],
+                        [
+                            'name'         => 'clean',
+                            'description'  => 'Option when \'extract\' is true, clean the current folder before extracting files and folders.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => false,
+                        ],
+                        [
+                            'name'         => 'check_exist',
+                            'description'  => 'If true, the request fails when the file or folder to create already exists.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => false,
+                        ],
+                        [
+                            'name'        => 'X-HTTP-METHOD',
+                            'description' => 'Override request using POST to tunnel other http request, such as DELETE.',
+                            'enum'        => ['GET', 'PUT', 'PATCH', 'DELETE'],
+                            'type'        => 'string',
+                            'in'          => 'header',
+                            'required'    => false,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/FolderResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data as an array of folders and/or files. Folders are created if they do not exist',
+                ],
+                'patch'  => [
+                    'tags'        => [$this->name],
+                    'summary'     => 'updateFolderProperties() - Update folder properties.',
+                    'operationId' => 'updateFolderProperties',
+                    'event_name'  => [
+                        $eventPath . '.{folder_path}.update',
+                        $eventPath . '.folder_updated'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'folder_path',
+                            'description' => 'The path of the folder you want to update. This can be a sub-folder, with each level separated by a \'/\'',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
+                        ],
+                        [
+                            'name'        => 'body',
+                            'description' => 'Array of folder properties.',
+                            'schema'      => ['$ref' => '#/definitions/FolderRequest'],
+                            'in'          => 'body',
+                            'required'    => false,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Folder',
+                            'schema'      => ['$ref' => '#/definitions/Folder']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post body as an array of folder properties.',
+                ],
+                'delete' => [
+                    'tags'        => [$this->name],
+                    'summary'     => 'deleteFolder() - Delete one folder and/or its contents.',
+                    'operationId' => 'deleteFolder',
+                    'event_name'  => [
+                        $eventPath . '.{folder_path}.delete',
+                        $eventPath . '.folder_deleted'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'folder_path',
+                            'description' => 'The path of the folder where you want to delete contents. This can be a sub-folder, with each level separated by a \'/\'',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
+                        ],
+                        [
+                            'name'        => 'force',
+                            'description' => 'Set to true to force delete on a non-empty folder.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'required'    => false,
+                        ],
+                        [
+                            'name'        => 'content_only',
+                            'description' => 'Set to true to only delete the content of the folder.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'required'    => false,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/FolderResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' =>
+                        'Set \'content_only\' to true to delete the sub-folders and files contained, but not the folder. ' .
+                        'Set \'force\' to true to delete a non-empty folder. ' .
+                        'Alternatively, to delete by a listing of sub-folders and files, ' .
+                        'use the POST request with X-HTTP-METHOD = DELETE header and post listing.',
+                ],
             ],
-            [
-                'path'        => $path . '/{file_path}',
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getFile() - Download the file contents and/or its properties.',
-                        'operationId'         => 'getFile',
-                        'type'             => 'FileResponse',
-                        'event_name'       => [
-                            $eventPath . '.{file_path}.download',
-                            $eventPath . '.file_downloaded'
-                        ],
-                        'parameters'       => [
-                            [
-                                'name'          => 'file_path',
-                                'description'   => 'Path and name of the file to retrieve.',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'download',
-                                'description'   => 'Prompt the user to download the file from the browser.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                        ],
-                        'responses' => $commonResponses,
-                        'description'            =>
-                            'By default, the file is streamed to the browser. ' .
-                            'Use the \'download\' parameter to prompt for download.',
+            $path . '/{file_path}'    => [
+                'get'    => [
+                    'tags'        => [$this->name],
+                    'summary'     => 'getFile() - Download the file contents and/or its properties.',
+                    'operationId' => 'getFile',
+                    'event_name'  => [
+                        $eventPath . '.{file_path}.download',
+                        $eventPath . '.file_downloaded'
                     ],
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getFileProperties() - Download the file properties.',
-                        'operationId'         => 'getFileProperties',
-                        'type'             => 'File',
-                        'event_name'       => [
-                            $eventPath . '.{file_path}.describe',
-                            $eventPath . '.file_described'
+                    'parameters'  => [
+                        [
+                            'name'        => 'file_path',
+                            'description' => 'Path and name of the file to retrieve.',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
                         ],
-                        'parameters'       => [
-                            [
-                                'name'          => 'file_path',
-                                'description'   => 'Path and name of the file to retrieve.',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'include_properties',
-                                'description'   => 'Return properties of the file.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
-                            [
-                                'name'          => 'content',
-                                'description'   => 'Return the content as base64 of the file, only applies when \'include_properties\' is true.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                                'defaultValue'  => false,
-                            ],
+                        [
+                            'name'         => 'download',
+                            'description'  => 'Prompt the user to download the file from the browser.',
+                            'type'         => 'boolean',
+                            'in'           => 'query',
+                            'required'     => false,
+                            'defaultValue' => false,
                         ],
-                        'responses' => $commonResponses,
-                        'description'            =>
-                            'Use the \'include_properties\' parameter (optionally add \'content\' to include base64 content) to list properties of the file.',
                     ],
-                    [
-                        'method'           => 'POST',
-                        'summary'          => 'createFile() - Create a new file.',
-                        'operationId'         => 'createFile',
-                        'type'             => 'FileResponse',
-                        'event_name'       => [
-                            $eventPath . '.{file_path}.create',
-                            $eventPath . '.file_created'
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'File',
+                            'schema'      => ['$ref' => '#/definitions/FileResponse']
                         ],
-                        'parameters'       => [
-                            [
-                                'name'          => 'file_path',
-                                'description'   => 'Path and name of the file to create.',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'check_exist',
-                                'description'   => 'If true, the request fails when the file to create already exists.',
-
-                                'type'          => 'boolean',
-                                'in'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Content and/or properties of the file.',
-
-                                'type'          => 'FileRequest',
-                                'in'     => 'body',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responses' => $commonResponses,
-                        'description'            => 'Post body should be the contents of the file or an object with file properties.',
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
                     ],
-                    [
-                        'method'           => 'PUT',
-                        'summary'          => 'replaceFile() - Update content of the file.',
-                        'operationId'         => 'replaceFile',
-                        'type'             => 'FileResponse',
-                        'event_name'       => [
-                            $eventPath . '.{file_path}.update',
-                            $eventPath . '.file_updated'
-                        ],
-                        'parameters'       => [
-                            [
-                                'name'          => 'file_path',
-                                'description'   => 'Path and name of the file to update.',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'body',
-                                'description'   => 'The content of the file.',
-
-                                'type'          => 'FileRequest',
-                                'in'     => 'body',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responses' => $commonResponses,
-                        'description'            => 'Post body should be the contents of the file.',
-                    ],
-                    [
-                        'method'           => 'PATCH',
-                        'summary'          => 'updateFileProperties() - Update properties of the file.',
-                        'operationId'         => 'updateFileProperties',
-                        'type'             => 'File',
-                        'event_name'       => [
-                            $eventPath . '.{file_path}.update',
-                            $eventPath . '.file_updated'
-                        ],
-                        'parameters'       => [
-                            [
-                                'name'          => 'file_path',
-                                'description'   => 'Path and name of the file to update.',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Properties of the file.',
-
-                                'type'          => 'File',
-                                'in'     => 'body',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responses' => $commonResponses,
-                        'description'            => 'Post body should be an array of file properties.',
-                    ],
-                    [
-                        'method'           => 'DELETE',
-                        'summary'          => 'deleteFile() - Delete one file.',
-                        'operationId'         => 'deleteFile',
-                        'type'             => 'FileResponse',
-                        'event_name'       => [
-                            $eventPath . '.{file_path}.delete',
-                            $eventPath . '.file_deleted'
-                        ],
-                        'parameters'       => [
-                            [
-                                'name'          => 'file_path',
-                                'description'   => 'Path and name of the file to delete.',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                        ],
-                        'responses' => $commonResponses,
-                        'description'            => 'Careful, this removes the given file from the storage.',
-                    ],
+                    'description' =>
+                        'By default, the file is streamed to the browser. ' .
+                        'Use the \'download\' parameter to prompt for download.',
                 ],
-                'description' => 'Operations on individual files.',
+                'post'   => [
+                    'tags'        => [$this->name],
+                    'summary'     => 'createFile() - Create a new file.',
+                    'operationId' => 'createFile',
+                    'event_name'  => [
+                        $eventPath . '.{file_path}.create',
+                        $eventPath . '.file_created'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'file_path',
+                            'description' => 'Path and name of the file to create.',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
+                        ],
+                        [
+                            'name'        => 'check_exist',
+                            'description' => 'If true, the request fails when the file to create already exists.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'required'    => false,
+                        ],
+                        [
+                            'name'        => 'body',
+                            'description' => 'Content and/or properties of the file.',
+                            'schema'      => ['$ref' => '#/definitions/FileRequest'],
+                            'in'          => 'body',
+                            'required'    => false,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/FileResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post body should be the contents of the file or an object with file properties.',
+                ],
+                'put'    => [
+                    'tags'        => [$this->name],
+                    'summary'     => 'replaceFile() - Update content of the file.',
+                    'operationId' => 'replaceFile',
+                    'event_name'  => [
+                        $eventPath . '.{file_path}.update',
+                        $eventPath . '.file_updated'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'file_path',
+                            'description' => 'Path and name of the file to update.',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
+                        ],
+                        [
+                            'name'        => 'body',
+                            'description' => 'The content of the file.',
+                            'in'          => 'body',
+                            'schema'      => ['$ref' => '#/definitions/FileRequest'],
+                            'required'    => false,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/FileResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post body should be the contents of the file.',
+                ],
+                'patch'  => [
+                    'tags'        => [$this->name],
+                    'summary'     => 'updateFileProperties() - Update properties of the file.',
+                    'operationId' => 'updateFileProperties',
+                    'event_name'  => [
+                        $eventPath . '.{file_path}.update',
+                        $eventPath . '.file_updated'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'file_path',
+                            'description' => 'Path and name of the file to update.',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
+                        ],
+                        [
+                            'name'        => 'body',
+                            'description' => 'Properties of the file.',
+                            'schema'      => ['$ref' => '#/definitions/File'],
+                            'in'          => 'body',
+                            'required'    => false,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'File',
+                            'schema'      => ['$ref' => '#/definitions/File']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post body should be an array of file properties.',
+                ],
+                'delete' => [
+                    'tags'        => [$this->name],
+                    'summary'     => 'deleteFile() - Delete one file.',
+                    'operationId' => 'deleteFile',
+                    'event_name'  => [
+                        $eventPath . '.{file_path}.delete',
+                        $eventPath . '.file_deleted'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'file_path',
+                            'description' => 'Path and name of the file to delete.',
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/FileResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Careful, this removes the given file from the storage.',
+                ],
             ],
         ];
 
@@ -1305,11 +1259,11 @@ abstract class BaseFileService extends BaseRestService
 
         $models = [
             'FileRequest'    => [
-                'id'         => 'FileRequest',
+                'type'       => 'object',
                 'properties' => $commonFile,
             ],
             'FileResponse'   => [
-                'id'         => 'FileResponse',
+                'type'       => 'object',
                 'properties' => array_merge(
                     $commonFile,
                     [
@@ -1325,7 +1279,7 @@ abstract class BaseFileService extends BaseRestService
                 ),
             ],
             'FolderRequest'  => [
-                'id'         => 'FolderRequest',
+                'type'       => 'object',
                 'properties' => array_merge(
                     $commonFolder,
                     [
@@ -1333,14 +1287,14 @@ abstract class BaseFileService extends BaseRestService
                             'type'        => 'array',
                             'description' => 'An array of resources to operate on.',
                             'items'       => [
-                                '$ref' => 'ResourceRequest',
+                                '$ref' => '#/definitions/ResourceRequest',
                             ],
                         ],
                     ]
                 ),
             ],
             'FolderResponse' => [
-                'id'         => 'FolderResponse',
+                'type'       => 'object',
                 'properties' => array_merge(
                     $commonFolder,
                     [
@@ -1352,18 +1306,18 @@ abstract class BaseFileService extends BaseRestService
                             'type'        => 'array',
                             'description' => 'An array of contained resources.',
                             'items'       => [
-                                '$ref' => 'FolderResponse',
+                                '$ref' => '#/definitions/FolderResponse',
                             ],
                         ],
                     ]
                 ),
             ],
             'File'           => [
-                'id'         => 'File',
+                'type'       => 'object',
                 'properties' => $commonFile,
             ],
             'Folder'         => [
-                'id'         => 'Folder',
+                'type'       => 'object',
                 'properties' => $commonFolder,
             ],
         ];

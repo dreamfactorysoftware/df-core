@@ -126,20 +126,8 @@ class Script extends BaseRestService
         return $output;
     }
 
-    // override base class for API Docs, get from custom config
-    public function getApiDocModels()
-    {
-        return [];
-    }
-
     public function getApiDocInfo()
     {
-        return [
-            'resourcePath' => '/' . $this->name,
-            'produces'     => ['application/json', 'application/xml'],
-            'consumes'     => ['application/json', 'application/xml'],
-            'paths'         => [],
-            'definitions'       => [],
-        ];
+        return ['paths' => [], 'definitions' => []];
     }
 }

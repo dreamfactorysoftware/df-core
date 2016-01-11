@@ -5,7 +5,6 @@ namespace DreamFactory\Core\Resources\System;
 use DreamFactory\Core\Components\DbRequestCriteria;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -195,8 +194,9 @@ class ReadOnlySystemResource extends BaseRestResource
 
     public function getApiDocInfo()
     {
-        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $serviceName = $this->getServiceName();
+        $path = '/' . $serviceName . '/' . $this->getFullPathName();
+        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
         $name = Inflector::camelize($this->name);
         $plural = Inflector::pluralize($name);
         $words = str_replace('_', ' ', $this->name);
@@ -204,83 +204,91 @@ class ReadOnlySystemResource extends BaseRestResource
         $wrapper = ResourcesWrapper::getWrapper();
 
         $apis = [
-            [
-                'path'        => $path,
-                'description' => "Operations for $words administration.",
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'get' . $plural . '() - Retrieve one or more ' . $pluralWords . '.',
-                        'operationId'         => 'get' . $plural,
-                        'type'             => $plural . 'Response',
-                        'event_name'       => [$eventPath . '.list'],
-                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'       => [
-                            ApiOptions::documentOption(ApiOptions::IDS),
-                            ApiOptions::documentOption(ApiOptions::FILTER),
-                            ApiOptions::documentOption(ApiOptions::LIMIT),
-                            ApiOptions::documentOption(ApiOptions::ORDER),
-                            ApiOptions::documentOption(ApiOptions::GROUP),
-                            ApiOptions::documentOption(ApiOptions::OFFSET),
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
-                            ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
-                            ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
-                            ApiOptions::documentOption(ApiOptions::FILE),
-                        ],
-                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'description'            =>
-                            'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
-                            'By default, all records up to the maximum are returned. <br>' .
-                            'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
-                            'By default, all fields and no relations are returned for each record. <br>' .
-                            'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
-                            'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
+            $path           => [
+                'get' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' . $plural . '() - Retrieve one or more ' . $pluralWords . '.',
+                    'operationId' => 'get' . $plural,
+                    'event_name'  => [$eventPath . '.list'],
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
+                        ApiOptions::documentOption(ApiOptions::IDS),
+                        ApiOptions::documentOption(ApiOptions::FILTER),
+                        ApiOptions::documentOption(ApiOptions::LIMIT),
+                        ApiOptions::documentOption(ApiOptions::ORDER),
+                        ApiOptions::documentOption(ApiOptions::GROUP),
+                        ApiOptions::documentOption(ApiOptions::OFFSET),
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
+                        ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
+                        ApiOptions::documentOption(ApiOptions::FILE),
                     ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/'.$plural.'Response']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' =>
+                        'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
+                        'By default, all records up to the maximum are returned. <br>' .
+                        'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
+                        'By default, all fields and no relations are returned for each record. <br>' .
+                        'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
+                        'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                 ],
             ],
-            [
-                'path'        => $path . '/{id}',
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'get' . $name . '() - Retrieve one ' . $words . '.',
-                        'operationId'         => 'get' . $name,
-                        'type'             => $name . 'Response',
-                        'event_name'       => $eventPath . '.read',
-                        'parameters'       => [
-                            [
-                                'name'          => 'id',
-                                'description'   => 'Identifier of the record to retrieve.',
+            $path . '/{id}' => [
+                'get' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' . $name . '() - Retrieve one ' . $words . '.',
+                    'operationId' => 'get' . $name,
+                    'event_name'  => $eventPath . '.read',
+                    'parameters'  => [
+                        [
+                            'name'        => 'id',
+                            'description' => 'Identifier of the record to retrieve.',
 
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
-                            ],
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
+                            'type'     => 'string',
+                            'in'       => 'path',
+                            'required' => true,
                         ],
-                        'responses' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'description'            => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/'.$name.'Response']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                 ],
-                'description' => "Operations for individual $words administration.",
             ],
         ];
 
         $models = [
             $plural . 'Request'  => [
-                'id'         => $plural . 'Request',
+                'type'       => 'object',
                 'properties' => [
-                    $wrapper => [
+                    $wrapper        => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Request',
+                            '$ref' => '#/definitions/' . $name . 'Request',
                         ],
                     ],
-                    ApiOptions::IDS    => [
+                    ApiOptions::IDS => [
                         'type'        => 'array',
                         'description' => 'Array of system record identifiers, used for batch GET, PUT, PATCH, and DELETE.',
                         'items'       => [
@@ -291,13 +299,13 @@ class ReadOnlySystemResource extends BaseRestResource
                 ],
             ],
             $plural . 'Response' => [
-                'id'         => $plural . 'Response',
+                'type'       => 'object',
                 'properties' => [
                     $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
+                            '$ref' => '#/definitions/' . $name . 'Response',
                         ],
                     ],
                     'meta'   => [
@@ -307,7 +315,7 @@ class ReadOnlySystemResource extends BaseRestResource
                 ],
             ],
             'Metadata'           => [
-                'id'         => 'Metadata',
+                'type'       => 'object',
                 'properties' => [
                     'schema' => [
                         'type'        => 'array',

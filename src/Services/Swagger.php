@@ -5,8 +5,8 @@ use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Library\Utility\Inflector;
 
 /**
  * Swagger
@@ -84,11 +84,6 @@ class Swagger extends BaseRestService
             foreach ($services as $service) {
                 $name = $service->name;
                 $tags[] = ['name' => $name, 'description' => $service->description];
-                // temp
-                if ($name != 'system') {
-                    continue;
-                }
-                // temp
                 try {
                     $result = Service::getStoredContentForService($service);
                     if (empty($result)) {
@@ -129,9 +124,9 @@ HTML;
                     'version'     => \Config::get('df.api_version', static::API_VERSION),
                     //'termsOfServiceUrl' => 'http://www.dreamfactory.com/terms/',
                     'contact'     => [
-                        'name'  => 'DreamFactory Support',
+                        'name'  => 'DreamFactory Software, Inc.',
                         'email' => 'support@dreamfactory.com',
-                        'url'   => "https://www.dreamfactory.com/support"
+                        'url'   => "https://www.dreamfactory.com/"
                     ],
                     'license'     => [
                         'name' => 'Apache 2.0',
@@ -209,137 +204,91 @@ HTML;
     {
         $path = '/' . $this->name;
         $eventPath = $this->name;
-        $apis = [
-            [
-                'path'        => $path,
-                'operations'  => [
-                    [
-                        'method'      => 'GET',
-                        'summary'     => 'getApiDocs() - Retrieve the base Swagger document.',
-                        'operationId' => 'getApiDocs',
-                        'type'        => 'ApiDocsResponse',
-                        'event_name'  => $eventPath . '.list',
-                        'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'    => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'  => [
-                            [
-                                'name'          => 'file',
-                                'description'   => 'Download the results of the request as a file.',
+        $name = Inflector::camelize($this->name);
 
-                                'type'          => 'string',
-                                'in'     => 'query',
-                                'required'      => false,
+        return [
+            'paths'       => [
+                $path => [
+                    'get' =>
+                        [
+                            'tags'        => [$this->name],
+                            'summary'     => 'get' . $name . '() - Retrieve the Swagger document.',
+                            'operationId' => 'get' . $name,
+                            'event_name'  => $eventPath . '.retrieve',
+                            'parameters'  => [
+                                [
+                                    'name'        => 'file',
+                                    'description' => 'Download the results of the request as a file.',
+                                    'type'        => 'string',
+                                    'in'          => 'query',
+                                    'required'    => false,
+                                ],
+                            ],
+                            'responses'   => [
+                                '200'     => [
+                                    'description' => 'Swagger Object',
+                                    'schema'      => ['$ref' => '#/definitions/ApiDocsResponse']
+                                ],
+                                'default' => [
+                                    'description' => 'Error',
+                                    'schema'      => ['$ref' => '#/definitions/Error']
+                                ]
+                            ],
+                            'description' => 'This returns the Swagger file containing all API services.',
+                        ],
+                ],
+            ],
+            'definitions' => [
+                'ApiDocsResponse' => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'apiVersion'  => [
+                            'type'        => 'string',
+                            'description' => 'Version of the API.',
+                        ],
+                        'swagger'     => [
+                            'type'        => 'string',
+                            'description' => 'Version of the Swagger API.',
+                        ],
+                        'basePath'    => [
+                            'type'        => 'string',
+                            'description' => 'Base path of the API.',
+                        ],
+                        'paths'       => [
+                            'type'        => 'array',
+                            'description' => 'Array of API paths.',
+                            'items'       => [
+                                '$ref' => '#/definitions/Path',
                             ],
                         ],
-                        'responses'   => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'description' => 'This returns the base Swagger file containing all API services.',
-                    ],
-                ],
-                'description' => 'Operations for retrieving API documents.',
-            ],
-            [
-                'path'        => $path . '/{id}',
-                'operations'  => [
-                    [
-                        'method'      => 'GET',
-                        'summary'     => 'getApiDoc() - Retrieve one API document.',
-                        'operationId' => 'getApiDoc',
-                        'type'        => 'ApiDocResponse',
-                        'event_name'  => $eventPath . '.read',
-                        'parameters'  => [
-                            [
-                                'name'          => 'id',
-                                'description'   => 'Identifier of the API document to retrieve.',
-
-                                'type'          => 'string',
-                                'in'     => 'path',
-                                'required'      => true,
+                        'definitions' => [
+                            'type'        => 'array',
+                            'description' => 'Array of API definitions.',
+                            'items'       => [
+                                '$ref' => '#/definitions/Definition',
                             ],
                         ],
-                        'responses'   => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'description' => '',
                     ],
                 ],
-                'description' => 'Operations for individual API documents.',
-            ],
+                'Path'            => [
+                    'type'       => 'object',
+                    'properties' => [
+                        '__name__' => [
+                            'type'        => 'string',
+                            'description' => 'Path.',
+                        ],
+                    ],
+                ],
+                'Definition'      => [
+                    'type'       => 'object',
+                    'properties' => [
+                        '__name__' => [
+                            'type'        => 'string',
+                            'description' => 'Definition.',
+                        ],
+                    ],
+                ],
+            ]
         ];
-
-        $models = [
-            'ApiDocsResponse' => [
-                'id'         => 'ApiDocsResponse',
-                'properties' => [
-                    'apiVersion'     => [
-                        'type'        => 'string',
-                        'description' => 'Version of the API.',
-                    ],
-                    'swaggerVersion' => [
-                        'type'        => 'string',
-                        'description' => 'Version of the Swagger API.',
-                    ],
-                    'paths'          => [
-                        'type'        => 'array',
-                        'description' => 'Array of APIs.',
-                        'items'       => [
-                            '$ref' => 'Api',
-                        ],
-                    ],
-                ],
-            ],
-            'ApiDocResponse'  => [
-                'id'         => 'ApiDocResponse',
-                'properties' => [
-                    'apiVersion'     => [
-                        'type'        => 'string',
-                        'description' => 'Version of the API.',
-                    ],
-                    'swaggerVersion' => [
-                        'type'        => 'string',
-                        'description' => 'Version of the Swagger API.',
-                    ],
-                    'basePath'       => [
-                        'type'        => 'string',
-                        'description' => 'Base path of the API.',
-                    ],
-                    'paths'          => [
-                        'type'        => 'array',
-                        'description' => 'Array of APIs.',
-                        'items'       => [
-                            '$ref' => 'Api',
-                        ],
-                    ],
-                    'definitions'    => [
-                        'type'        => 'array',
-                        'description' => 'Array of API models.',
-                        'items'       => [
-                            '$ref' => 'Model',
-                        ],
-                    ],
-                ],
-            ],
-            'Api'             => [
-                'id'         => 'Api',
-                'properties' => [
-                    'path'        => [
-                        'type'        => 'string',
-                        'description' => 'Path to access the API.',
-                    ],
-                    'description' => [
-                        'type'        => 'string',
-                        'description' => 'Description of the API.',
-                    ],
-                ],
-            ],
-            'Model'           => [
-                'id'         => 'Model',
-                'properties' => [
-                    '__name__' => [
-                        'type'        => 'string',
-                        'description' => 'Model Definition.',
-                    ],
-                ],
-            ],
-        ];
-
-        return ['paths' => $apis, 'definitions' => $models];
     }
 }

@@ -19,7 +19,7 @@ abstract class BaseNoSqlDbService extends BaseDbService
                         'type'        => 'Array',
                         'description' => 'An array of table definitions.',
                         'items'       => [
-                            '$ref' => 'TableSchema',
+                            '$ref' => '#/definitions/TableSchema',
                         ],
                     ],
                 ],
@@ -51,7 +51,7 @@ abstract class BaseNoSqlDbService extends BaseDbService
                         'type'        => 'Array',
                         'description' => 'An array of available fields in each record.',
                         'items'       => [
-                            '$ref' => 'FieldSchema',
+                            '$ref' => '#/definitions/FieldSchema',
                         ],
                     ],
                 ],

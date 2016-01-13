@@ -5,13 +5,13 @@ namespace DreamFactory\Core\Resources\System;
 use DreamFactory\Core\Components\DbRequestCriteria;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Resources\BaseRestResource;
+use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Resources\BaseRestResource;
-use DreamFactory\Core\Models\BaseSystemModel;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -31,7 +31,7 @@ class ReadOnlySystemResource extends BaseRestResource
     /**
      * @var string DreamFactory\Core\Models\BaseSystemModel Model Class name.
      */
-    protected $model = null;
+    protected static $model = null;
 
     /**
      * @param array $settings
@@ -45,14 +45,12 @@ class ReadOnlySystemResource extends BaseRestResource
         ArrayUtils::set($settings, "verbAliases", $verbAliases);
 
         parent::__construct($settings);
-
-        $this->model = ArrayUtils::get($settings, "model_name", $this->model); // could be statically set
     }
 
-    protected function getResourceIdentifier()
+    protected static function getResourceIdentifier()
     {
         /** @var BaseSystemModel $modelClass */
-        $modelClass = $this->model;
+        $modelClass = static::$model;
         if ($modelClass) {
             return $modelClass::getPrimaryKeyStatic();
         }
@@ -71,7 +69,7 @@ class ReadOnlySystemResource extends BaseRestResource
     protected function retrieveById($id, array $related = [])
     {
         /** @var BaseSystemModel $modelClass */
-        $modelClass = $this->model;
+        $modelClass = static::$model;
         $criteria = $this->getSelectionCriteria();
         $fields = ArrayUtils::get($criteria, 'select');
         $data = $modelClass::selectById($id, $related, $fields);
@@ -90,7 +88,7 @@ class ReadOnlySystemResource extends BaseRestResource
     protected function retrieveByIds($ids, array $related = [])
     {
         /** @var BaseSystemModel $modelClass */
-        $modelClass = $this->model;
+        $modelClass = static::$model;
         $criteria = $this->getSelectionCriteria();
         $data = $modelClass::selectByIds($ids, $related, $criteria);
 
@@ -116,7 +114,8 @@ class ReadOnlySystemResource extends BaseRestResource
      */
     protected function retrieveByRequest(array $related = [])
     {
-        $modelClass = $this->model;
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = static::$model;
         $criteria = $this->getSelectionCriteria();
         $data = $modelClass::selectByRequest($criteria, $related);
 
@@ -167,7 +166,7 @@ class ReadOnlySystemResource extends BaseRestResource
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $data = ResourcesWrapper::cleanResources($data, $asList, $id, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
@@ -185,30 +184,40 @@ class ReadOnlySystemResource extends BaseRestResource
      */
     protected function getModel()
     {
-        if (empty($this->model) || !class_exists($this->model)) {
+        if (empty(static::$model) || !class_exists(static::$model)) {
             throw new ModelNotFoundException();
         }
 
-        return new $this->model;
+        return new static::$model;
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(\DreamFactory\Core\Models\Service $service, array $resource = [])
     {
-        $serviceName = $this->getServiceName();
-        $path = '/' . $serviceName . '/' . $this->getFullPathName();
-        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
-        $name = Inflector::camelize($this->name);
-        $plural = Inflector::pluralize($name);
-        $words = str_replace('_', ' ', $this->name);
-        $pluralWords = Inflector::pluralize($words);
+        $serviceName = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $pluralClass = Inflector::pluralize($class);
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
+//        $base = parent::getApiDocInfo($service, $resource);
         $wrapper = ResourcesWrapper::getWrapper();
 
         $apis = [
             $path           => [
-                'get' => [
+                'parameters' => [
+                    ApiOptions::documentOption(ApiOptions::FIELDS),
+                    ApiOptions::documentOption(ApiOptions::RELATED),
+                ],
+                'get'        => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'get' . $plural . '() - Retrieve one or more ' . $pluralWords . '.',
-                    'operationId' => 'get' . $plural,
+                    'summary'     => 'get' .
+                        $capitalized .
+                        $pluralClass .
+                        '() - Retrieve one or more ' .
+                        $pluralClass .
+                        '.',
+                    'operationId' => 'get' . $capitalized . $pluralClass,
                     'event_name'  => [$eventPath . '.list'],
                     'consumes'    => ['application/json', 'application/xml', 'text/csv'],
                     'produces'    => ['application/json', 'application/xml', 'text/csv'],
@@ -219,8 +228,6 @@ class ReadOnlySystemResource extends BaseRestResource
                         ApiOptions::documentOption(ApiOptions::ORDER),
                         ApiOptions::documentOption(ApiOptions::GROUP),
                         ApiOptions::documentOption(ApiOptions::OFFSET),
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                         ApiOptions::documentOption(ApiOptions::FILE),
@@ -228,7 +235,7 @@ class ReadOnlySystemResource extends BaseRestResource
                     'responses'   => [
                         '200'     => [
                             'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/'.$plural.'Response']
+                            'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
                         ],
                         'default' => [
                             'description' => 'Error',
@@ -245,27 +252,27 @@ class ReadOnlySystemResource extends BaseRestResource
                 ],
             ],
             $path . '/{id}' => [
-                'get' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'get' . $name . '() - Retrieve one ' . $words . '.',
-                    'operationId' => 'get' . $name,
-                    'event_name'  => $eventPath . '.read',
-                    'parameters'  => [
-                        [
-                            'name'        => 'id',
-                            'description' => 'Identifier of the record to retrieve.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                        ],
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
+                'parameters' => [
+                    [
+                        'name'        => 'id',
+                        'description' => 'Identifier of the record to retrieve.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
                     ],
+                    ApiOptions::documentOption(ApiOptions::FIELDS),
+                    ApiOptions::documentOption(ApiOptions::RELATED),
+                ],
+                'get'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
+                    'operationId' => 'get' . $capitalized . $class,
+                    'event_name'  => $eventPath . '.read',
+                    'parameters'  => [],
                     'responses'   => [
                         '200'     => [
                             'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/'.$name.'Response']
+                            'schema'      => ['$ref' => '#/definitions/' . $class . 'Response']
                         ],
                         'default' => [
                             'description' => 'Error',
@@ -278,14 +285,14 @@ class ReadOnlySystemResource extends BaseRestResource
         ];
 
         $models = [
-            $plural . 'Request'  => [
+            $pluralClass . 'Request'  => [
                 'type'       => 'object',
                 'properties' => [
                     $wrapper        => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => '#/definitions/' . $name . 'Request',
+                            '$ref' => '#/definitions/' . $class . 'Request',
                         ],
                     ],
                     ApiOptions::IDS => [
@@ -298,14 +305,14 @@ class ReadOnlySystemResource extends BaseRestResource
                     ],
                 ],
             ],
-            $plural . 'Response' => [
+            $pluralClass . 'Response' => [
                 'type'       => 'object',
                 'properties' => [
                     $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => '#/definitions/' . $name . 'Response',
+                            '$ref' => '#/definitions/' . $class . 'Response',
                         ],
                     ],
                     'meta'   => [
@@ -314,7 +321,7 @@ class ReadOnlySystemResource extends BaseRestResource
                     ],
                 ],
             ],
-            'Metadata'           => [
+            'Metadata'                => [
                 'type'       => 'object',
                 'properties' => [
                     'schema' => [
@@ -333,11 +340,14 @@ class ReadOnlySystemResource extends BaseRestResource
             ],
         ];
 
-        $model = $this->getModel();
-        if ($model) {
-            $temp = $model->toApiDocsModel($name);
-            if ($temp) {
-                $models = array_merge($models, $temp);
+        if (!empty(static::$model) && class_exists(static::$model)) {
+            /** @type BaseSystemModel $model */
+            $model = new static::$model;
+            if ($model) {
+                $temp = $model->toApiDocsModel($class);
+                if ($temp) {
+                    $models = array_merge($models, $temp);
+                }
             }
         }
 

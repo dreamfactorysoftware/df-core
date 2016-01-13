@@ -9,7 +9,6 @@ use DreamFactory\Core\Models\Config as SystemConfig;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\User\Services\User;
-use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -432,19 +431,21 @@ class Environment extends BaseSystemResource
         return $clean;
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(\DreamFactory\Core\Models\Service $service, array $resource = [])
     {
-        $serviceName = $this->getServiceName();
-        $path = '/' . $serviceName . '/' . $this->getFullPathName();
-        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
-        $name = Inflector::camelize($this->name);
+        $serviceName = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
 
         $apis = [
             $path => [
                 'get' => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'getEnvironment() - Retrieve system environment.',
-                    'operationId' => 'getEnvironment',
+                    'summary'     => 'get'.$capitalized.'Environment() - Retrieve system environment.',
+                    'operationId' => 'get'.$capitalized.'Environment',
                     'event_name'  => $eventPath . '.list',
                     'responses'  => ['200' => ['schema' => ['$ref' => '#/definitions/EnvironmentResponse']]],
                     'description' =>
@@ -462,7 +463,7 @@ class Environment extends BaseSystemResource
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => '#/definitions/' . $name . 'Response',
+                            'type' => 'string',
                         ],
                     ],
                     'authentication' => [
@@ -473,14 +474,14 @@ class Environment extends BaseSystemResource
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => '#/definitions/' . $name . 'Response',
+                            '$ref' => '#/definitions/AppsResponse',
                         ],
                     ],
                     'no_app_group'   => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => '#/definitions/' . $name . 'Response',
+                            '$ref' => '#/definitions/AppsResponse',
                         ],
                     ],
                     'config'         => [

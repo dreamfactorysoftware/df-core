@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -69,95 +70,123 @@ class Swagger extends BaseRestService
      */
     public function getSwagger()
     {
-        if (null === ($content = \Cache::get(static::SWAGGER_CACHE_FILE))) {
-            \Log::info('Building Swagger cache');
+//        if (null === ($content = \Cache::get(static::SWAGGER_CACHE_FILE))) {
+        \Log::info('Building Swagger cache');
 
-            //  Gather the services
-            $tags = [];
-            $paths = [];
-            $definitions = static::getApiDocDefaultModels();
+        //  Gather the services
+        $tags = [];
+        $paths = [];
+        $definitions = static::getDefaultModels();
+        $parameters = ApiOptions::getSwaggerGlobalParameters();
 
-            //  Build services from database
-            //  Pull any custom swagger docs
-            /** @type Service[] $services */
-            $services = Service::all();
-            foreach ($services as $service) {
-                $name = $service->name;
-                $tags[] = ['name' => $name, 'description' => $service->description];
-                try {
-                    $result = Service::getStoredContentForService($service);
-                    if (empty($result)) {
-                        throw new NotFoundException("No Swagger content found.");
-                    }
-
-                    $servicePaths = (isset($result['paths']) ? $result['paths'] : []);
-                    $serviceDefs = (isset($result['definitions']) ? $result['definitions'] : []);
-
-                    // replace service placeholders with value for this service instance
-                    $servicePaths =
-                        str_replace(['{service.name}', '{service.label}', '{service.description}'],
-                            [$name, $service->label, $service->description], $servicePaths);
-                    $servicePaths =
-                        str_replace(['{service.name}', '{service.label}', '{service.description}'],
-                            [$name, $service->label, $service->description], $servicePaths);
-
-                    //  Add to the pile
-                    $paths = array_merge($paths, $servicePaths);
-                    $definitions = array_merge($definitions, $serviceDefs);
-                } catch (\Exception $ex) {
-                    \Log::error("  * System error creating swagger file for service '$name'.\n{$ex->getMessage()}");
-                }
-
-                unset($service);
+        //  Build services from database
+        //  Pull any custom swagger docs
+        /** @type Service[] $services */
+        $services = Service::all();
+        foreach ($services as $service) {
+            if (!$service->is_active) {
+                continue;
             }
 
-            // cache main api listing file
-            $description = <<<HTML
+            $name = $service->name;
+            $tags[] = ['name' => $name, 'description' => $service->description];
+            try {
+                $result = Service::getStoredContentForService($service);
+                if (empty($result)) {
+                    throw new NotFoundException("No Swagger content found.");
+                }
+
+                $servicePaths = (isset($result['paths']) ? $result['paths'] : []);
+                $serviceDefs = (isset($result['definitions']) ? $result['definitions'] : []);
+
+                $lcName = strtolower($name);
+                $ucwName = Inflector::camelize($name);
+                $pluralName = Inflector::pluralize($name);
+                $pluralUcwName = Inflector::pluralize($ucwName);
+
+                // replace service placeholders with value for this service instance
+                $servicePaths =
+                    str_replace([
+                        '{service.name}',
+                        '{service.names}',
+                        '{service.Name}',
+                        '{service.Names}',
+                        '{service.label}',
+                        '{service.description}'
+                    ],
+                        [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
+                        $servicePaths);
+                $serviceDefs =
+                    str_replace([
+                        '{service.name}',
+                        '{service.names}',
+                        '{service.Name}',
+                        '{service.Names}',
+                        '{service.label}',
+                        '{service.description}'
+                    ],
+                        [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
+                        $serviceDefs);
+
+                //  Add to the pile
+                $paths = array_merge($paths, $servicePaths);
+                $definitions = array_merge($definitions, $serviceDefs);
+            } catch (\Exception $ex) {
+                \Log::error("  * System error creating swagger file for service '$name'.\n{$ex->getMessage()}");
+            }
+
+            unset($service);
+        }
+
+        // cache main api listing file
+        $description = <<<HTML
 HTML;
 
-            $content = [
-                'swagger'        => static::SWAGGER_VERSION,
-                'authorizations' => ['apiKey' => ['type' => 'apiKey', 'passAs' => 'header']],
-                'info'           => [
-                    'title'       => 'DreamFactory Live API Documentation',
-                    'description' => $description,
-                    'version'     => \Config::get('df.api_version', static::API_VERSION),
-                    //'termsOfServiceUrl' => 'http://www.dreamfactory.com/terms/',
-                    'contact'     => [
-                        'name'  => 'DreamFactory Software, Inc.',
-                        'email' => 'support@dreamfactory.com',
-                        'url'   => "https://www.dreamfactory.com/"
-                    ],
-                    'license'     => [
-                        'name' => 'Apache 2.0',
-                        'url'  => 'http://www.apache.org/licenses/LICENSE-2.0.html'
-                    ]
+        $content = [
+            'swagger'        => static::SWAGGER_VERSION,
+            'authorizations' => ['apiKey' => ['type' => 'apiKey', 'passAs' => 'header']],
+            'info'           => [
+                'title'       => 'DreamFactory Live API Documentation',
+                'description' => $description,
+                'version'     => \Config::get('df.api_version', static::API_VERSION),
+                //'termsOfServiceUrl' => 'http://www.dreamfactory.com/terms/',
+                'contact'     => [
+                    'name'  => 'DreamFactory Software, Inc.',
+                    'email' => 'support@dreamfactory.com',
+                    'url'   => "https://www.dreamfactory.com/"
                 ],
-                //'host'           => 'df.local',
-                //'schemes'        => ['https'],
-                'basePath'       => '/api/v2',
-                'consumes'       => ['application/json'],
-                'produces'       => ['application/json'],
-                'paths'          => $paths,
-                'definitions'    => $definitions,
-                'tags'           => $tags,
-                /**
-                 * The events thrown that are relevant to Swagger
-                 */
-                'events'         => [],
-            ];
+                'license'     => [
+                    'name' => 'Apache 2.0',
+                    'url'  => 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                ]
+            ],
+            //'host'           => 'df.local',
+            //'schemes'        => ['https'],
+            'basePath'       => '/api/v2',
+            'consumes'       => ['application/json'],
+            'produces'       => ['application/json'],
+            'paths'          => $paths,
+            'definitions'    => $definitions,
+            'tags'           => $tags,
+            'parameters'     => $parameters,
+            /**
+             * The events thrown that are relevant to Swagger
+             */
+            'events'         => [],
+        ];
 
-            $content = json_encode($content, JSON_UNESCAPED_SLASHES);
+        $content = json_encode($content, JSON_UNESCAPED_SLASHES);
 
-            \Cache::forever(static::SWAGGER_CACHE_FILE, $content);
+        \Cache::forever(static::SWAGGER_CACHE_FILE, $content);
 
-            \Log::info('Swagger cache build process complete');
-        }
+        \Log::info('Swagger cache build process complete');
+
+//        }
 
         return $content;
     }
 
-    public static function getApiDocDefaultModels()
+    public static function getDefaultModels()
     {
         $wrapper = ResourcesWrapper::getWrapper();
 
@@ -200,21 +229,20 @@ HTML;
         ];
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(Service $service)
     {
-        $path = '/' . $this->name;
-        $eventPath = $this->name;
-        $name = Inflector::camelize($this->name);
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
 
         return [
             'paths'       => [
-                $path => [
+                '/' . $name => [
                     'get' =>
                         [
-                            'tags'        => [$this->name],
-                            'summary'     => 'get' . $name . '() - Retrieve the Swagger document.',
-                            'operationId' => 'get' . $name,
-                            'event_name'  => $eventPath . '.retrieve',
+                            'tags'        => [$name],
+                            'summary'     => 'get' . $capitalized . '() - Retrieve the Swagger document.',
+                            'operationId' => 'get' . $capitalized,
+                            'event_name'  => $name . '.retrieve',
                             'parameters'  => [
                                 [
                                     'name'        => 'file',
@@ -226,8 +254,8 @@ HTML;
                             ],
                             'responses'   => [
                                 '200'     => [
-                                    'description' => 'Swagger Object',
-                                    'schema'      => ['$ref' => '#/definitions/ApiDocsResponse']
+                                    'description' => 'Swagger Response',
+                                    'schema'      => ['$ref' => '#/definitions/SwaggerResponse']
                                 ],
                                 'default' => [
                                     'description' => 'Error',
@@ -239,7 +267,7 @@ HTML;
                 ],
             ],
             'definitions' => [
-                'ApiDocsResponse' => [
+                'SwaggerResponse'   => [
                     'type'       => 'object',
                     'properties' => [
                         'apiVersion'  => [
@@ -258,19 +286,19 @@ HTML;
                             'type'        => 'array',
                             'description' => 'Array of API paths.',
                             'items'       => [
-                                '$ref' => '#/definitions/Path',
+                                '$ref' => '#/definitions/SwaggerPath',
                             ],
                         ],
                         'definitions' => [
                             'type'        => 'array',
                             'description' => 'Array of API definitions.',
                             'items'       => [
-                                '$ref' => '#/definitions/Definition',
+                                '$ref' => '#/definitions/SwaggerDefinition',
                             ],
                         ],
                     ],
                 ],
-                'Path'            => [
+                'SwaggerPath'       => [
                     'type'       => 'object',
                     'properties' => [
                         '__name__' => [
@@ -279,7 +307,7 @@ HTML;
                         ],
                     ],
                 ],
-                'Definition'      => [
+                'SwaggerDefinition' => [
                     'type'       => 'object',
                     'properties' => [
                         '__name__' => [

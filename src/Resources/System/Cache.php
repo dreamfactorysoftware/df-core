@@ -7,6 +7,7 @@ use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Models\ServiceCacheConfig;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Utility\ServiceHandler;
+use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
  * Class Cache
@@ -18,7 +19,7 @@ class Cache extends BaseRestResource
     /**
      * {@inheritdoc}
      */
-    protected function getResourceIdentifier()
+    protected static function getResourceIdentifier()
     {
         return 'name';
     }
@@ -68,11 +69,14 @@ class Cache extends BaseRestResource
         return ['success' => true];
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(\DreamFactory\Core\Models\Service $service, array $resource = [])
     {
-        $serviceName = $this->getServiceName();
-        $path = '/' . $serviceName . '/' . $this->getFullPathName();
-        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
+        $serviceName = strtolower($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
+
         $apis = [
             $path                => [
                 'delete' => [
@@ -104,10 +108,9 @@ class Cache extends BaseRestResource
                         [
                             'name'        => 'service',
                             'description' => 'Identifier of the service whose cache we are to delete.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
+                            'type'        => 'string',
+                            'in'          => 'path',
+                            'required'    => true,
                         ],
                     ],
                     'responses'   => [

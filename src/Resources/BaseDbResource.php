@@ -31,7 +31,7 @@ abstract class BaseDbResource extends BaseRestResource
     /**
      * {@inheritdoc}
      */
-    protected function getResourceIdentifier()
+    protected static function getResourceIdentifier()
     {
         return static::RESOURCE_IDENTIFIER;
     }

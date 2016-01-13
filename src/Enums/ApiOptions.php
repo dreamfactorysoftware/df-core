@@ -306,15 +306,19 @@ class ApiOptions extends FactoryEnum
     {
         if (isset(static::$swaggerMap[$option])) {
             $found = static::$swaggerMap[$option];
-            $found['name'] = $option;
-            if ($required) {
-                $found['required'] = true;
-            }
-            if (isset($default)) {
-                $found['default'] = $default;
-            }
+//            if ($required || isset($default)) {
+                // override, do not reference
+                if ($required) {
+                    $found['required'] = true;
+                }
+                if (isset($default)) {
+                    $found['default'] = $default;
+                }
 
-            return $found;
+                return $found;
+//            } else {
+//                return ['$ref' => '#/parameters/' . $option];
+//            }
         }
 
         return null;
@@ -376,5 +380,10 @@ class ApiOptions extends FactoryEnum
         }
 
         return 'string';
+    }
+
+    public static function getSwaggerGlobalParameters()
+    {
+        return array_values(static::$swaggerMap);
     }
 }

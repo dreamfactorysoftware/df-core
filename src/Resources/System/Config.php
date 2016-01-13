@@ -6,9 +6,11 @@ use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\Inflector;
 
 class Config extends BaseSystemResource
 {
+    protected static $model = \DreamFactory\Core\Models\Config::class;
 
     public function __construct($settings = [])
     {
@@ -20,23 +22,24 @@ class Config extends BaseSystemResource
         ArrayUtils::set($settings, "verbAliases", $verbAliases);
 
         parent::__construct($settings);
-
-        $this->model = \DreamFactory\Core\Models\Config::class;
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(\DreamFactory\Core\Models\Service $service, array $resource = [])
     {
-        $serviceName = $this->getServiceName();
-        $path = '/' . $serviceName . '/' . $this->getFullPathName();
-        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
+        $serviceName = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
         $config = [];
 
         $config['paths'] = [
             $path => [
                 'get'  => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'getConfig() - Retrieve system configuration properties.',
-                    'operationId' => 'getConfig',
+                    'summary'     => 'get'.$capitalized.'Config() - Retrieve system configuration properties.',
+                    'operationId' => 'get'.$capitalized.'Config',
                     'event_name'  => $eventPath . '.read',
                     'description' => 'The retrieved properties control how the system behaves.',
                     'responses'   => [
@@ -52,8 +55,8 @@ class Config extends BaseSystemResource
                 ],
                 'post' => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'setConfig() - Update one or more system configuration properties.',
-                    'operationId' => 'setConfig',
+                    'summary'     => 'set'.$capitalized.'Config() - Update one or more system configuration properties.',
+                    'operationId' => 'set'.$capitalized.'Config',
                     'event_name'  => $eventPath . '.update',
                     'description' => 'Post data should be an array of properties.',
                     'parameters'  => [
@@ -126,7 +129,7 @@ class Config extends BaseSystemResource
         $this->triggerActionEvent($this->response);
 
         /** @type BaseSystemModel $modelClass */
-        $modelClass = $this->model;
+        $modelClass = static::$model;
 
         return $modelClass::create($records);
     }

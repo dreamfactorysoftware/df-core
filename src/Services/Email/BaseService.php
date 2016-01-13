@@ -3,7 +3,9 @@
 namespace DreamFactory\Core\Services\Email;
 
 use App;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\Inflector;
 use Illuminate\Mail\Message;
 use Swift_Transport as SwiftTransport;
 use Swift_Mailer as SwiftMailer;
@@ -235,15 +237,19 @@ abstract class BaseService extends BaseRestService
         return $template->toArray();
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(Service $service)
     {
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
         $paths = [
-            '/' . $this->name => [
+            '/' . $name => [
                 'post' => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'sendEmail() - Send an email created from posted data and/or a template.',
-                    'operationId' => 'sendEmail',
-                    'event_name'  => 'email.sent',
+                    'tags'        => [$name],
+                    'summary'     => 'send' .
+                        $capitalized .
+                        'Email() - Send an email created from posted data and/or a template.',
+                    'operationId' => 'send' . $capitalized . 'Email',
+                    'event_name'  => $name . '.email_sent',
                     'parameters'  => [
                         [
                             'name'        => 'template',

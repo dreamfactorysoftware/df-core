@@ -8,6 +8,7 @@ use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Core\Utility\ResourcesWrapper;
@@ -15,6 +16,7 @@ use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Inflector;
 
 abstract class BaseDbSchemaResource extends BaseDbResource
 {
@@ -335,7 +337,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
             $result = $this->createTables($tables, $checkExist, $fields);
             $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
             $result = ResourcesWrapper::cleanResources($result, $asList, $idField, $fields);
         } else {
             if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
@@ -371,7 +373,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
             $result = $this->updateTables($tables, true, $fields);
             $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
             $result = ResourcesWrapper::cleanResources($result, $asList, $idField, $fields);
         } else {
             if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
@@ -407,7 +409,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
             $result = $this->updateTables($tables, false, $fields);
             $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
             $result = ResourcesWrapper::cleanResources($result, $asList, $idField, $fields);
         } else {
             if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
@@ -447,7 +449,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
             $result = $this->deleteTables($tables);
             $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
             $result = ResourcesWrapper::cleanResources($result, $asList, $idField, $fields);
         } else {
             if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
@@ -694,10 +696,372 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     abstract public function deleteField($table, $field);
 
-    public function getApiDocModels()
+    public static function getApiDocInfo(Service $service, array $resource = [])
     {
+        $serviceName = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
+        $base = parent::getApiDocInfo($service, $resource);
+
+        $add = [
+            'post'  => [
+                'tags'        => [$serviceName],
+                'summary'     => 'create'.$capitalized.'Tables() - Create one or more tables.',
+                'operationId' => 'create'.$capitalized.'Tables',
+                'event_name'  => $eventPath . '.create',
+                'parameters'  => [
+                    [
+                        'name'        => 'tables',
+                        'description' => 'Array of table definitions.',
+                        'schema'      => ['$ref' => '#/definitions/TableSchemas'],
+                        'in'          => 'body',
+                        'required'    => true,
+                    ],
+                ],
+                'responses'   => [
+                    '200'     => [
+                        'description' => 'Tables Created',
+                        'schema'      => ['$ref' => '#/definitions/Resources']
+                    ],
+                    'default' => [
+                        'description' => 'Error',
+                        'schema'      => ['$ref' => '#/definitions/Error']
+                    ]
+                ],
+                'description' => 'Post data should be a single table definition or an array of table definitions.',
+            ],
+            'put'   => [
+                'tags'        => [$serviceName],
+                'summary'     => 'replace'.$capitalized.'Tables() - Update (replace) one or more tables.',
+                'operationId' => 'replace'.$capitalized.'Tables',
+                'event_name'  => $eventPath . '.alter',
+                'parameters'  => [
+                    [
+                        'name'        => 'tables',
+                        'description' => 'Array of table definitions.',
+                        'schema'      => ['$ref' => '#/definitions/TableSchemas'],
+                        'in'          => 'body',
+                        'required'    => true,
+                    ],
+                ],
+                'responses'   => [
+                    '200'     => [
+                        'description' => 'Tables Updated',
+                        'schema'      => ['$ref' => '#/definitions/Resources']
+                    ],
+                    'default' => [
+                        'description' => 'Error',
+                        'schema'      => ['$ref' => '#/definitions/Error']
+                    ]
+                ],
+                'description' => 'Post data should be a single table definition or an array of table definitions.',
+            ],
+            'patch' => [
+                'tags'        => [$serviceName],
+                'summary'     => 'update'.$capitalized.'Tables() - Update (patch) one or more tables.',
+                'operationId' => 'update'.$capitalized.'Tables',
+                'event_name'  => $eventPath . '.alter',
+                'parameters'  => [
+                    [
+                        'name'        => 'tables',
+                        'description' => 'Array of table definitions.',
+                        'schema'      => ['$ref' => '#/definitions/TableSchemas'],
+                        'in'          => 'body',
+                        'required'    => true,
+                    ],
+                ],
+                'responses'   => [
+                    '200'     => [
+                        'description' => 'Tables Updated',
+                        'schema'      => ['$ref' => '#/definitions/Resources']
+                    ],
+                    'default' => [
+                        'description' => 'Error',
+                        'schema'      => ['$ref' => '#/definitions/Error']
+                    ]
+                ],
+                'description' => 'Post data should be a single table definition or an array of table definitions.',
+            ],
+        ];
+        $base['paths'][$path] = array_merge($base['paths'][$path], $add);
+
+        $apis = [
+            $path . '/{table_name}'              => [
+                'parameters'  => [
+                    [
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                ],
+                'get'    => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'describe'.$capitalized.'Table() - Retrieve table definition for the given table.',
+                    'operationId' => 'describe'.$capitalized.'Table',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.describe',
+                        $eventPath . '.table_described'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'refresh',
+                            'description' => 'Refresh any cached copy of the schema.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Table Schema',
+                            'schema'      => ['$ref' => '#/definitions/TableSchema']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'This describes the table, its fields and relations to other tables.',
+                ],
+                'post'   => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'create'.$capitalized.'Table() - Create a table with the given properties and fields.',
+                    'operationId' => 'create'.$capitalized.'Table',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.create',
+                        $eventPath . '.table_created'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'schema',
+                            'description' => 'Array of table properties and fields definitions.',
+                            'schema'      => ['$ref' => '#/definitions/TableSchema'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
+                ],
+                'put'    => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'replace'.$capitalized.'Table() - Update (replace) a table with the given properties.',
+                    'operationId' => 'replace'.$capitalized.'Table',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.alter',
+                        $eventPath . '.table_altered'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'schema',
+                            'description' => 'Array of field definitions.',
+                            'schema'      => ['$ref' => '#/definitions/TableSchema'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
+                ],
+                'patch'  => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'update'.$capitalized.'Table() - Update (patch) a table with the given properties.',
+                    'operationId' => 'update'.$capitalized.'Table',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.alter',
+                        $eventPath . '.table_altered'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'schema',
+                            'description' => 'Array of field definitions.',
+                            'schema'      => ['$ref' => '#/definitions/TableSchema'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
+                ],
+                'delete' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'delete'.$capitalized.'Table() - Delete (aka drop) the given table.',
+                    'operationId' => 'delete'.$capitalized.'Table',
+                    'event_name'  => [$eventPath . '.{table_name}.drop', $eventPath . '.table_dropped'],
+                    'parameters'  => [
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Careful, this drops the database table and all of its contents.',
+                ],
+            ],
+            $path . '/{table_name}/{field_name}' => [
+                'parameters'  => [
+                    [
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                    [
+                        'name'        => 'field_name',
+                        'description' => 'Name of the field to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                ],
+                'get'    => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'describe'.$capitalized.'Field() - Retrieve the definition of the given field for the given table.',
+                    'operationId' => 'describe'.$capitalized.'Field',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.{field_name}.describe',
+                        $eventPath . '.{table_name}.field_described'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'refresh',
+                            'description' => 'Refresh any cached copy of the schema.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Field Schema',
+                            'schema'      => ['$ref' => '#/definitions/FieldSchema']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'This describes the field and its properties.',
+                ],
+                'put'    => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'replace'.$capitalized.'Field() - Update one record by identifier.',
+                    'operationId' => 'replace'.$capitalized.'Field',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.{field_name}.alter',
+                        $eventPath . '.{table_name}.field_altered'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'properties',
+                            'description' => 'Array of field properties.',
+                            'schema'      => ['$ref' => '#/definitions/FieldSchema'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of field properties for the given field.',
+                ],
+                'patch'  => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'update'.$capitalized.'Field() - Update one record by identifier.',
+                    'operationId' => 'update'.$capitalized.'Field',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.{field_name}.alter',
+                        $eventPath . '.{table_name}.field_altered'
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'properties',
+                            'description' => 'Array of field properties.',
+                            'schema'      => ['$ref' => '#/definitions/FieldSchema'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of field properties for the given field.',
+                ],
+                'delete' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'delete'.$capitalized.'Field() - Remove the given field from the given table.',
+                    'operationId' => 'delete'.$capitalized.'Field',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.{field_name}.drop',
+                        $eventPath . '.{table_name}.field_dropped'
+                    ],
+                    'parameters'  => [],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Careful, this drops the database table field/column and all of its contents.',
+                ],
+            ],
+        ];
+
         $wrapper = ResourcesWrapper::getWrapper();
-        $base = parent::getApiDocModels();
         $models = [
             'Tables' => [
                 'type'       => 'object',
@@ -722,463 +1086,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
             ],
         ];
 
-        return array_merge($base, $models);
-    }
-
-    public function getApiDocInfo()
-    {
-        $serviceName = $this->getServiceName();
-        $path = '/' . $serviceName . '/' . $this->getFullPathName();
-        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
-        $base = parent::getApiDocInfo();
-        $tables = $this->listResources();
-
-        $add = [
-            'post'  => [
-                'tags'        => [$serviceName],
-                'summary'     => 'createTables() - Create one or more tables.',
-                'operationId' => 'createTables',
-                'event_name'  => $eventPath . '.create',
-                'parameters'  => [
-                    [
-                        'name'        => 'tables',
-                        'description' => 'Array of table definitions.',
-                        'schema'      => ['$ref' => '#/definitions/TableSchemas'],
-                        'in'          => 'body',
-                        'required'    => true,
-                    ],
-                ],
-                'responses'   => [
-                    '200'     => [
-                        'description' => 'Swagger Object',
-                        'schema'      => ['$ref' => '#/definitions/Resources']
-                    ],
-                    'default' => [
-                        'description' => 'Error',
-                        'schema'      => ['$ref' => '#/definitions/Error']
-                    ]
-                ],
-                'description' => 'Post data should be a single table definition or an array of table definitions.',
-            ],
-            'put'   => [
-                'tags'        => [$serviceName],
-                'summary'     => 'replaceTables() - Update (replace) one or more tables.',
-                'operationId' => 'replaceTables',
-                'event_name'  => $eventPath . '.alter',
-                'parameters'  => [
-                    [
-                        'name'        => 'tables',
-                        'description' => 'Array of table definitions.',
-                        'schema'      => ['$ref' => '#/definitions/TableSchemas'],
-                        'in'          => 'body',
-                        'required'    => true,
-                    ],
-                ],
-                'responses'   => [
-                    '200'     => [
-                        'description' => 'Swagger Object',
-                        'schema'      => ['$ref' => '#/definitions/Resources']
-                    ],
-                    'default' => [
-                        'description' => 'Error',
-                        'schema'      => ['$ref' => '#/definitions/Error']
-                    ]
-                ],
-                'description' => 'Post data should be a single table definition or an array of table definitions.',
-            ],
-            'patch' => [
-                'tags'        => [$serviceName],
-                'summary'     => 'updateTables() - Update (patch) one or more tables.',
-                'operationId' => 'updateTables',
-                'event_name'  => $eventPath . '.alter',
-                'parameters'  => [
-                    [
-                        'name'        => 'tables',
-                        'description' => 'Array of table definitions.',
-                        'schema'      => ['$ref' => '#/definitions/TableSchemas'],
-                        'in'          => 'body',
-                        'required'    => true,
-                    ],
-                ],
-                'responses'   => [
-                    '200'     => [
-                        'description' => 'Swagger Object',
-                        'schema'      => ['$ref' => '#/definitions/Resources']
-                    ],
-                    'default' => [
-                        'description' => 'Error',
-                        'schema'      => ['$ref' => '#/definitions/Error']
-                    ]
-                ],
-                'description' => 'Post data should be a single table definition or an array of table definitions.',
-            ],
-        ];
-        $base['paths'][$path] = array_merge($base['paths'][$path], $add);
-
-        $apis = [
-            $path . '/{table_name}'              => [
-                'get'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'describeTable() - Retrieve table definition for the given table.',
-                    'operationId' => 'describeTable',
-                    'event_name'  => [
-                        $eventPath . '.{table_name}.describe',
-                        $eventPath . '.table_described'
-                    ],
-                    'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                            'options'  => $tables,
-                        ],
-                        [
-                            'name'        => 'refresh',
-                            'description' => 'Refresh any cached copy of the schema.',
-
-                            'type'     => 'boolean',
-                            'in'       => 'query',
-                            'required' => false,
-                        ],
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Table Schema',
-                            'schema'      => ['$ref' => '#/definitions/TableSchema']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description' => 'This describes the table, its fields and relations to other tables.',
-                ],
-                'post'   => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'createTable() - Create a table with the given properties and fields.',
-                    'operationId' => 'createTable',
-                    'event_name'  => [
-                        $eventPath . '.{table_name}.create',
-                        $eventPath . '.table_created'
-                    ],
-                    'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                            'options'  => $tables,
-                        ],
-                        [
-                            'name'        => 'schema',
-                            'description' => 'Array of table properties and fields definitions.',
-                            'schema'      => ['$ref' => '#/definitions/TableSchema'],
-                            'in'          => 'body',
-                            'required'    => true,
-                        ],
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
-                ],
-                'put'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'replaceTable() - Update (replace) a table with the given properties.',
-                    'operationId' => 'replaceTable',
-                    'event_name'  => [
-                        $eventPath . '.{table_name}.alter',
-                        $eventPath . '.table_altered'
-                    ],
-                    'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                            'options'     => $tables,
-                        ],
-                        [
-                            'name'        => 'schema',
-                            'description' => 'Array of field definitions.',
-                            'schema'      => ['$ref' => '#/definitions/TableSchema'],
-                            'in'          => 'body',
-                            'required'    => true,
-                        ],
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
-                ],
-                'patch'  => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'updateTable() - Update (patch) a table with the given properties.',
-                    'operationId' => 'updateTable',
-                    'event_name'  => [
-                        $eventPath . '.{table_name}.alter',
-                        $eventPath . '.table_altered'
-                    ],
-                    'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                            'options'  => $tables,
-                        ],
-                        [
-                            'name'        => 'schema',
-                            'description' => 'Array of field definitions.',
-                            'schema'      => ['$ref' => '#/definitions/TableSchema'],
-                            'in'          => 'body',
-                            'required'    => true,
-                        ],
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
-                ],
-                'delete' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'deleteTable() - Delete (aka drop) the given table.',
-                    'operationId' => 'deleteTable',
-                    'event_name'  => [$eventPath . '.{table_name}.drop', $eventPath . '.table_dropped'],
-                    'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                            'options'  => $tables,
-                        ],
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description' => 'Careful, this drops the database table and all of its contents.',
-                ],
-            ],
-            $path . '/{table_name}/{field_name}' => [
-                'get'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'describeField() - Retrieve the definition of the given field for the given table.',
-                    'operationId' => 'describeField',
-                    'event_name'  => [
-                        $eventPath . '.{table_name}.{field_name}.describe',
-                        $eventPath . '.{table_name}.field_described'
-                    ],
-                    'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                            'options'  => $tables,
-                        ],
-                        [
-                            'name'        => 'field_name',
-                            'description' => 'Name of the field to perform operations on.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                        ],
-                        [
-                            'name'        => 'refresh',
-                            'description' => 'Refresh any cached copy of the schema.',
-
-                            'type'     => 'boolean',
-                            'in'       => 'query',
-                            'required' => false,
-                        ],
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Field Schema',
-                            'schema'      => ['$ref' => '#/definitions/FieldSchema']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description' => 'This describes the field and its properties.',
-                ],
-                'put'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'replaceField() - Update one record by identifier.',
-                    'operationId' => 'replaceField',
-                    'event_name'  => [
-                        $eventPath . '.{table_name}.{field_name}.alter',
-                        $eventPath . '.{table_name}.field_altered'
-                    ],
-                    'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                            'options'  => $tables,
-                        ],
-                        [
-                            'name'        => 'field_name',
-                            'description' => 'Name of the field to perform operations on.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                        ],
-                        [
-                            'name'        => 'properties',
-                            'description' => 'Array of field properties.',
-                            'schema'      => ['$ref' => '#/definitions/FieldSchema'],
-                            'in'          => 'body',
-                            'required'    => true,
-                        ],
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description' => 'Post data should be an array of field properties for the given field.',
-                ],
-                'patch'  => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'updateField() - Update one record by identifier.',
-                    'operationId' => 'updateField',
-                    'event_name'  => [
-                        $eventPath . '.{table_name}.{field_name}.alter',
-                        $eventPath . '.{table_name}.field_altered'
-                    ],
-                    'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                            'options'  => $tables,
-                        ],
-                        [
-                            'name'        => 'field_name',
-                            'description' => 'Name of the field to perform operations on.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                        ],
-                        [
-                            'name'        => 'properties',
-                            'description' => 'Array of field properties.',
-                            'schema'      => ['$ref' => '#/definitions/FieldSchema'],
-                            'in'          => 'body',
-                            'required'    => true,
-                        ],
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description' => 'Post data should be an array of field properties for the given field.',
-                ],
-                'delete' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'deleteField() - Remove the given field from the given table.',
-                    'operationId' => 'deleteField',
-                    'event_name'  => [
-                        $eventPath . '.{table_name}.{field_name}.drop',
-                        $eventPath . '.{table_name}.field_dropped'
-                    ],
-                    'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                            'options'     => $tables,
-                        ],
-                        [
-                            'name'        => 'field_name',
-                            'description' => 'Name of the field to perform operations on.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description' => 'Careful, this drops the database table field/column and all of its contents.',
-                ],
-            ],
-        ];
-
         $base['paths'] = array_merge($base['paths'], $apis);
+        $base['definitions'] = array_merge($base['definitions'], $models);
 
         return $base;
     }

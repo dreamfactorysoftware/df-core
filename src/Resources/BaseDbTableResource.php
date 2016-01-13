@@ -11,6 +11,7 @@ use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Database\ColumnSchema;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Utility\DbUtilities;
@@ -22,6 +23,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\Inflector;
 
 abstract class BaseDbTableResource extends BaseDbResource
 {
@@ -489,7 +491,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
@@ -536,7 +538,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
@@ -604,7 +606,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
@@ -671,7 +673,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
@@ -731,7 +733,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
@@ -2883,9 +2885,8 @@ abstract class BaseDbTableResource extends BaseDbResource
         return (substr($haystack, -strlen($needle)) === $needle);
     }
 
-    public function getApiDocModels()
+    public static function getApiDocModels()
     {
-        $base = parent::getApiDocModels();
         $wrapper = ResourcesWrapper::getWrapper();
         $commonProperties = [
             'id' => [
@@ -2895,7 +2896,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             ],
         ];
 
-        $models = [
+        return [
             'Tables'          => [
                 'type'       => 'object',
                 'properties' => [
@@ -2991,26 +2992,41 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
             ]
         ];
-
-        return array_merge($base, $models);
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(Service $service, array $resource = [])
     {
-        $serviceName = $this->getServiceName();
-        $path = '/' . $serviceName . '/' . $this->getFullPathName();
-        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
-        $base = parent::getApiDocInfo();
-        $tables = $this->listResources();
+        $serviceName = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
+        $base = parent::getApiDocInfo($service, $resource);
 
         $wrapper = ResourcesWrapper::getWrapper();
 
         $apis = [
             $path . '/{table_name}'      => [
-                'get'    => [
+                'parameters' => [
+                    [
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                    ApiOptions::documentOption(ApiOptions::CONTINUES),
+                    ApiOptions::documentOption(ApiOptions::ROLLBACK),
+                    ApiOptions::documentOption(ApiOptions::FIELDS),
+                    ApiOptions::documentOption(ApiOptions::RELATED),
+                ],
+                'get'        => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'getRecords() - Retrieve one or more records.',
-                    'operationId' => 'getRecords',
+                    'summary'     => 'get'.$capitalized.'Records() - Retrieve one or more records.',
+                    'operationId' => 'get'.$capitalized.'Records',
                     'description' =>
                         'Set the <b>filter</b> parameter to a SQL WHERE clause (optional native filter accepted in some scenarios) ' .
                         'to limit records returned or leave it blank to return all records up to the maximum limit.<br/> ' .
@@ -3029,26 +3045,13 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.table_selected',
                     ],
                     'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                            'options'     => $tables,
-                        ],
+                        ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                         ApiOptions::documentOption(ApiOptions::LIMIT),
                         ApiOptions::documentOption(ApiOptions::ORDER),
                         ApiOptions::documentOption(ApiOptions::GROUP),
                         ApiOptions::documentOption(ApiOptions::OFFSET),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
-                        ApiOptions::documentOption(ApiOptions::IDS),
-                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                        ApiOptions::documentOption(ApiOptions::CONTINUES),
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                         ApiOptions::documentOption(ApiOptions::FILE),
                     ],
@@ -3063,10 +3066,10 @@ abstract class BaseDbTableResource extends BaseDbResource
                         ]
                     ],
                 ],
-                'post'   => [
+                'post'       => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'createRecords() - Create one or more records.',
-                    'operationId' => 'createRecords',
+                    'summary'     => 'create'.$capitalized.'Records() - Create one or more records.',
+                    'operationId' => 'create'.$capitalized.'Records',
                     'description' =>
                         'Posted data should be an array of records wrapped in a <b>record</b> element.<br/> ' .
                         'By default, only the id property of the record is returned on success. ' .
@@ -3078,33 +3081,18 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'parameters'  =>
                         [
                             [
-                                'name'        => 'table_name',
-                                'description' => 'Name of the table to perform operations on.',
-                                'type'        => 'string',
-                                'in'          => 'path',
-                                'required'    => true,
-                                'options'     => $tables,
-                            ],
-                            [
                                 'name'        => 'body',
                                 'description' => 'Data containing name-value pairs of records to create.',
                                 'in'          => 'body',
                                 'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
                                 'required'    => true,
                             ],
-                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                            ApiOptions::documentOption(ApiOptions::CONTINUES),
-                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
                             [
                                 'name'        => 'X-HTTP-METHOD',
                                 'description' => 'Override request using POST to tunnel other http request, such as DELETE or GET passing a payload.',
                                 'enum'        => ['GET', 'PUT', 'PATCH', 'DELETE'],
                                 'type'        => 'string',
                                 'in'          => 'header',
-                                'required'    => false,
                             ],
                         ],
                     'responses'   => [
@@ -3118,10 +3106,10 @@ abstract class BaseDbTableResource extends BaseDbResource
                         ]
                     ],
                 ],
-                'put'    => [
+                'put'        => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'replaceRecords() - Update (replace) one or more records.',
-                    'operationId' => 'replaceRecords',
+                    'summary'     => 'replace'.$capitalized.'Records() - Update (replace) one or more records.',
+                    'operationId' => 'replace'.$capitalized.'Records',
                     'description' =>
                         'Post data should be an array of records wrapped in a <b>' .
                         $wrapper .
@@ -3138,14 +3126,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'parameters'  =>
                         [
                             [
-                                'name'        => 'table_name',
-                                'description' => 'Name of the table to perform operations on.',
-                                'type'        => 'string',
-                                'in'          => 'path',
-                                'required'    => true,
-                                'options'     => $tables,
-                            ],
-                            [
                                 'name'        => 'body',
                                 'description' => 'Data containing name-value pairs of records to update.',
                                 'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
@@ -3153,13 +3133,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'required'    => true,
                             ],
                             ApiOptions::documentOption(ApiOptions::IDS),
-                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                            ApiOptions::documentOption(ApiOptions::CONTINUES),
-                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
                             ApiOptions::documentOption(ApiOptions::FILTER),
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
                     'responses'   => [
                         '200'     => [
@@ -3172,10 +3146,10 @@ abstract class BaseDbTableResource extends BaseDbResource
                         ]
                     ],
                 ],
-                'patch'  => [
+                'patch'      => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'updateRecords() - Update (patch) one or more records.',
-                    'operationId' => 'updateRecords',
+                    'summary'     => 'update'.$capitalized.'Records() - Update (patch) one or more records.',
+                    'operationId' => 'update'.$capitalized.'Records',
                     'description' =>
                         'Post data should be an array of records containing at least the identifying fields for each record.<br/> ' .
                         'Posted body should be a single record with name-value pairs to update wrapped in a <b>record</b> tag.<br/> ' .
@@ -3190,14 +3164,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'parameters'  =>
                         [
                             [
-                                'name'        => 'table_name',
-                                'description' => 'Name of the table to perform operations on.',
-                                'type'        => 'string',
-                                'in'          => 'path',
-                                'required'    => true,
-                                'options'     => $tables,
-                            ],
-                            [
                                 'name'        => 'body',
                                 'description' => 'A single record containing name-value pairs of fields to update.',
                                 'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
@@ -3205,13 +3171,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'required'    => true,
                             ],
                             ApiOptions::documentOption(ApiOptions::IDS),
-                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                            ApiOptions::documentOption(ApiOptions::CONTINUES),
-                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
                             ApiOptions::documentOption(ApiOptions::FILTER),
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
                     'responses'   => [
                         '200'     => [
@@ -3224,10 +3184,10 @@ abstract class BaseDbTableResource extends BaseDbResource
                         ]
                     ],
                 ],
-                'delete' => [
+                'delete'     => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'deleteRecords() - Delete one or more records.',
-                    'operationId' => 'deleteRecords',
+                    'summary'     => 'delete'.$capitalized.'Records() - Delete one or more records.',
+                    'operationId' => 'delete'.$capitalized.'Records',
                     'description' =>
                         'Set the <b>ids</b> parameter to a list of record identifying (primary key) values to delete specific records.<br/> ' .
                         'Alternatively, to delete records by a large list of ids, pass the ids in the <b>body</b>.<br/> ' .
@@ -3245,29 +3205,14 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'parameters'  =>
                         [
                             [
-                                'name'        => 'table_name',
-                                'description' => 'Name of the table to perform operations on.',
-                                'type'        => 'string',
-                                'in'          => 'path',
-                                'required'    => true,
-                                'options'     => $tables,
-                            ],
-                            [
                                 'name'        => 'body',
                                 'description' => 'Data containing ids of records to delete.',
                                 'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
                                 'in'          => 'body',
-                                'required'    => false,
                             ],
                             ApiOptions::documentOption(ApiOptions::IDS),
-                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                            ApiOptions::documentOption(ApiOptions::CONTINUES),
-                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
                             ApiOptions::documentOption(ApiOptions::FILTER),
                             ApiOptions::documentOption(ApiOptions::FORCE),
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
                         ],
                     'responses'   => [
                         '200'     => [
@@ -3282,10 +3227,30 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
             ],
             $path . '/{table_name}/{id}' => [
+                'parameters'  => [
+                    [
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                    [
+                        'name'        => 'id',
+                        'description' => 'Identifier of the record to retrieve.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                    ApiOptions::documentOption(ApiOptions::FIELDS),
+                    ApiOptions::documentOption(ApiOptions::RELATED),
+                ],
                 'get'    => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'getRecord() - Retrieve one record by identifier.',
-                    'operationId' => 'getRecord',
+                    'summary'     => 'get'.$capitalized.'Record() - Retrieve one record by identifier.',
+                    'operationId' => 'get'.$capitalized.'Record',
                     'description' =>
                         'Use the <b>fields</b> parameter to limit properties that are returned. ' .
                         'By default, all fields are returned.',
@@ -3293,27 +3258,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.{id}.select',
                         $eventPath . '.record_selected',
                     ],
-                    'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                            'options'     => $tables,
-                        ],
-                        [
-                            'name'        => 'id',
-                            'description' => 'Identifier of the record to retrieve.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
-                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
-                    ],
+                    'parameters'  => [],
                     'responses'   => [
                         '200'     => [
                             'description' => 'Record',
@@ -3327,8 +3272,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
                 'put'    => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'replaceRecord() - Replace the content of one record by identifier.',
-                    'operationId' => 'replaceRecord',
+                    'summary'     => 'replace'.$capitalized.'Record() - Replace the content of one record by identifier.',
+                    'operationId' => 'replace'.$capitalized.'Record',
                     'description' =>
                         'Post data should be an array of fields for a single record.<br/> ' .
                         'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
@@ -3338,31 +3283,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                     ],
                     'parameters'  => [
                         [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                            'options'     => $tables,
-                        ],
-                        [
-                            'name'        => 'id',
-                            'description' => 'Identifier of the record to update.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
-                        [
                             'name'        => 'body',
                             'description' => 'Data containing name-value pairs of the replacement record.',
                             'schema'      => ['$ref' => '#/definitions/RecordRequest'],
                             'in'          => 'body',
                             'required'    => true,
                         ],
-                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
                     'responses'   => [
                         '200'     => [
@@ -3377,8 +3303,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
                 'patch'  => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'updateRecord() - Update (patch) one record by identifier.',
-                    'operationId' => 'updateRecord',
+                    'summary'     => 'update'.$capitalized.'Record() - Update (patch) one record by identifier.',
+                    'operationId' => 'update'.$capitalized.'Record',
                     'description' =>
                         'Post data should be an array of fields for a single record.<br/> ' .
                         'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
@@ -3388,30 +3314,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                     ],
                     'parameters'  => [
                         [
-                            'name'        => 'table_name',
-                            'description' => 'The name of the table you want to update.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                            'options'     => $tables,
-                        ],
-                        [
-                            'name'        => 'id',
-                            'description' => 'Identifier of the record to update.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
-                        [
                             'name'        => 'body',
                             'description' => 'Data containing name-value pairs of the fields to update.',
                             'schema'      => ['$ref' => '#/definitions/RecordRequest'],
                             'in'          => 'body',
                             'required'    => true,
                         ],
-                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
                     ],
                     'responses'   => [
                         '200'     => [
@@ -3426,33 +3334,14 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
                 'delete' => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'deleteRecord() - Delete one record by identifier.',
-                    'operationId' => 'deleteRecord',
+                    'summary'     => 'delete'.$capitalized.'Record() - Delete one record by identifier.',
+                    'operationId' => 'delete'.$capitalized.'Record',
                     'description' => 'Use the <b>fields</b> parameter to return more deleted properties. By default, the id is returned.',
                     'event_name'  => [
                         $eventPath . '.{table_name}.{id}.delete',
                         $eventPath . '.record_deleted',
                     ],
-                    'parameters'  => [
-                        [
-                            'name'        => 'table_name',
-                            'description' => 'Name of the table to perform operations on.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                            'options'     => $tables,
-                        ],
-                        [
-                            'name'        => 'id',
-                            'description' => 'Identifier of the record to delete.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
-                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                    ],
+                    'parameters'  => [],
                     'responses'   => [
                         '200'     => [
                             'description' => 'Record',
@@ -3468,6 +3357,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         ];
 
         $base['paths'] = array_merge($base['paths'], $apis);
+        $base['definitions'] = array_merge($base['definitions'], static::getApiDocModels());
 
         return $base;
     }

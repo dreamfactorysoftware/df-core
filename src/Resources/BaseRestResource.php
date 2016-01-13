@@ -9,9 +9,11 @@ use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
 
 /**
@@ -145,67 +147,25 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         return Session::getServicePermissions($this->getServiceName(), $path, $requestType);
     }
 
-    public function getApiDocModels()
+    public static function getApiDocInfo(Service $service, array $resource = [])
     {
-        $name = Inflector::camelize($this->name);
-        $plural = Inflector::pluralize($name);
+        $serviceName = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $pluralClass = Inflector::pluralize($class);
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
         $wrapper = ResourcesWrapper::getWrapper();
-
-        return [
-            $plural . 'List'     => [
-                'type'         => 'object',
-                'properties' => [
-                    $wrapper => [
-                        'type'        => 'array',
-                        'description' => 'Array of accessible resources available to this path.',
-                        'items'       => [
-                            'type' => 'string',
-                        ],
-                    ],
-                ],
-            ],
-            $name . 'Response'   => [
-                'type'       => 'object',
-                'properties' => [
-                    $this->getResourceIdentifier() => [
-                        'type'        => 'string',
-                        'description' => 'Identifier of the resource.',
-                    ],
-                ],
-            ],
-            $plural . 'Response' => [
-                'type'       => 'object',
-                'properties' => [
-                    $wrapper => [
-                        'type'        => 'array',
-                        'description' => 'Array of resources available to this path.',
-                        'items'       => [
-                            '$ref' => '#/definitions/' . $name . 'Response',
-                        ],
-                    ],
-                ],
-            ],
-        ];
-    }
-
-    public function getApiDocInfo()
-    {
-        $serviceName = $this->getServiceName();
-        $path = '/' . $serviceName . '/' . $this->getFullPathName();
-        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
-        $name = Inflector::camelize($this->name);
-        $plural = Inflector::pluralize($name);
-        $words = str_replace('_', ' ', $this->name);
-        $pluralWords = Inflector::pluralize($words);
 
         return [
             'paths'       => [
                 $path => [
                     'get' =>
                         [
-                            'tags' => [$serviceName],
-                            'summary'     => 'get' . $plural .'() - List all ' . $pluralWords,
-                            'operationId' => 'get' . $plural,
+                            'tags'        => [$serviceName],
+                            'summary'     => 'get' . $capitalized . $pluralClass . '() - List all ' . $pluralClass,
+                            'operationId' => 'get' . $capitalized . $pluralClass,
                             'description' => 'Return a list of the resource identifiers.',
                             'event_name'  => [$eventPath . '.list'],
                             'parameters'  => [
@@ -219,7 +179,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                                     'description' => 'Success',
                                     'schema'      => [
                                         '$ref' => '#/definitions/' .
-                                            $plural .
+                                            $pluralClass .
                                             'Response'
                                     ]
                                 ],
@@ -231,7 +191,41 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                         ],
                 ],
             ],
-            'definitions' => $this->getApiDocModels()
+            'definitions' => [
+                $pluralClass . 'List'     => [
+                    'type'       => 'object',
+                    'properties' => [
+                        $wrapper => [
+                            'type'        => 'array',
+                            'description' => 'Array of accessible resources available to this path.',
+                            'items'       => [
+                                'type' => 'string',
+                            ],
+                        ],
+                    ],
+                ],
+                $class . 'Response'   => [
+                    'type'       => 'object',
+                    'properties' => [
+                        static::getResourceIdentifier() => [
+                            'type'        => 'string',
+                            'description' => 'Identifier of the resource.',
+                        ],
+                    ],
+                ],
+                $pluralClass . 'Response' => [
+                    'type'       => 'object',
+                    'properties' => [
+                        $wrapper => [
+                            'type'        => 'array',
+                            'description' => 'Array of resources available to this path.',
+                            'items'       => [
+                                '$ref' => '#/definitions/' . $class . 'Response',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 }

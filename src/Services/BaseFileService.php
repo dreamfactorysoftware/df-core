@@ -3,15 +3,17 @@
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\FileUtilities;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Library\Utility\Inflector;
 
 /**
  * Class BaseFileService
@@ -106,7 +108,7 @@ abstract class BaseFileService extends BaseRestService
         return $this;
     }
 
-    protected function getResourceIdentifier()
+    protected static function getResourceIdentifier()
     {
         return 'path';
     }
@@ -179,7 +181,7 @@ abstract class BaseFileService extends BaseRestService
                 );
 
                 $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-                $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+                $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
                 $fields = $this->request->getParameter(ApiOptions::FIELDS, ApiOptions::FIELDS_ALL);
 
                 $result = ResourcesWrapper::cleanResources($result, $asList, $idField, $fields, true);
@@ -737,19 +739,19 @@ abstract class BaseFileService extends BaseRestService
         return $this->folderPath;
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(Service $service)
     {
-        $path = '/' . $this->name;
-        $eventPath = $this->name;
-        $base = parent::getApiDocInfo();
+        $base = parent::getApiDocInfo($service);
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
 
         $base['paths'] = [
-            $path                     => [
+            '/' . $name                     => [
                 'get' => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'getResources() - List all resources.',
-                    'operationId' => 'getResources',
-                    'event_name'  => [$eventPath . '.list',],
+                    'tags'        => [$name],
+                    'summary'     => 'get' . $capitalized . 'Resources() - List all resources.',
+                    'operationId' => 'get' . $capitalized . 'Resources',
+                    'event_name'  => [$name . '.list',],
                     'responses'   => [
                         '200'     => [
                             'description' => 'Success',
@@ -762,10 +764,8 @@ abstract class BaseFileService extends BaseRestService
                     ],
                     'description' => 'List the resources (folders and files) available in this storage. ',
                     'parameters'  => [
-                        ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
+                        ApiOptions::documentOption(ApiOptions::AS_LIST),
                         ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
-                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
                         ApiOptions::documentOption(ApiOptions::REFRESH),
                         [
                             'name'         => 'include_folders',
@@ -802,26 +802,29 @@ abstract class BaseFileService extends BaseRestService
                     ],
                 ],
             ],
-            $path . '/{folder_path}/' => [
-                'get'    => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'getFolder() - List the folder\'s content, including properties.',
-                    'operationId' => 'getFolder',
-                    'event_name'  => [$eventPath . '.{folder_path}.describe'],
+            '/' . $name . '/{folder_path}/' => [
+                'parameters' => [
+                    [
+                        'name'        => 'folder_path',
+                        'description' => 'The path of the folder you want to retrieve. This can be a sub-folder, with each level separated by a \'/\'',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                ],
+                'get'        => [
+                    'tags'        => [$name],
+                    'summary'     => 'get' .
+                        $capitalized .
+                        'Folder() - List the folder\'s content, including properties.',
+                    'operationId' => 'get' . $capitalized . 'Folder',
+                    'event_name'  => [$name . '.{folder_path}.describe'],
                     'parameters'  => [
-                        [
-                            'name'        => 'folder_path',
-                            'description' => 'The path of the folder you want to retrieve. This can be a sub-folder, with each level separated by a \'/\'',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
                         [
                             'name'         => 'include_properties',
                             'description'  => 'Return any properties of the folder in the response.',
                             'type'         => 'boolean',
                             'in'           => 'query',
-                            'required'     => false,
                             'defaultValue' => false,
                         ],
                         [
@@ -829,7 +832,6 @@ abstract class BaseFileService extends BaseRestService
                             'description'  => 'Include folders in the returned listing.',
                             'type'         => 'boolean',
                             'in'           => 'query',
-                            'required'     => false,
                             'defaultValue' => true,
                         ],
                         [
@@ -837,7 +839,6 @@ abstract class BaseFileService extends BaseRestService
                             'description'  => 'Include files in the returned listing.',
                             'type'         => 'boolean',
                             'in'           => 'query',
-                            'required'     => false,
                             'defaultValue' => true,
                         ],
                         [
@@ -845,7 +846,6 @@ abstract class BaseFileService extends BaseRestService
                             'description'  => 'List the contents of all sub-folders as well.',
                             'type'         => 'boolean',
                             'in'           => 'query',
-                            'required'     => false,
                             'defaultValue' => false,
                         ],
                         [
@@ -853,7 +853,6 @@ abstract class BaseFileService extends BaseRestService
                             'description'  => 'Return the content of the folder as a zip file.',
                             'type'         => 'boolean',
                             'in'           => 'query',
-                            'required'     => false,
                             'defaultValue' => false,
                         ],
                     ],
@@ -871,42 +870,32 @@ abstract class BaseFileService extends BaseRestService
                         'Use \'include_properties\' to get properties of the folder. ' .
                         'Use the \'include_folders\' and/or \'include_files\' to modify the listing.',
                 ],
-                'post'   => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'createFolder() - Create a folder and/or add content.',
-                    'operationId' => 'createFolder',
+                'post'       => [
+                    'tags'        => [$name],
+                    'summary'     => 'create' . $capitalized . 'Folder() - Create a folder and/or add content.',
+                    'operationId' => 'create' . $capitalized . 'Folder',
                     'event_name'  => [
-                        $eventPath . '.{folder_path}.create',
-                        $eventPath . '.folder_created'
+                        $name . '.{folder_path}.create',
+                        $name . '.folder_created'
                     ],
                     'parameters'  => [
-                        [
-                            'name'        => 'folder_path',
-                            'description' => 'The path of the folder where you want to put the contents. This can be a sub-folder, with each level separated by a \'/\'',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
                         [
                             'name'        => 'body',
                             'description' => 'Array of folders and/or files.',
                             'schema'      => ['$ref' => '#/definitions/FolderRequest'],
                             'in'          => 'body',
-                            'required'    => false,
                         ],
                         [
                             'name'        => 'url',
                             'description' => 'The full URL of the file to upload.',
                             'type'        => 'string',
                             'in'          => 'query',
-                            'required'    => false,
                         ],
                         [
                             'name'         => 'extract',
                             'description'  => 'Extract an uploaded zip file into the folder.',
                             'type'         => 'boolean',
                             'in'           => 'query',
-                            'required'     => false,
                             'defaultValue' => false,
                         ],
                         [
@@ -914,7 +903,6 @@ abstract class BaseFileService extends BaseRestService
                             'description'  => 'Option when \'extract\' is true, clean the current folder before extracting files and folders.',
                             'type'         => 'boolean',
                             'in'           => 'query',
-                            'required'     => false,
                             'defaultValue' => false,
                         ],
                         [
@@ -922,7 +910,6 @@ abstract class BaseFileService extends BaseRestService
                             'description'  => 'If true, the request fails when the file or folder to create already exists.',
                             'type'         => 'boolean',
                             'in'           => 'query',
-                            'required'     => false,
                             'defaultValue' => false,
                         ],
                         [
@@ -931,7 +918,6 @@ abstract class BaseFileService extends BaseRestService
                             'enum'        => ['GET', 'PUT', 'PATCH', 'DELETE'],
                             'type'        => 'string',
                             'in'          => 'header',
-                            'required'    => false,
                         ],
                     ],
                     'responses'   => [
@@ -946,28 +932,20 @@ abstract class BaseFileService extends BaseRestService
                     ],
                     'description' => 'Post data as an array of folders and/or files. Folders are created if they do not exist',
                 ],
-                'patch'  => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'updateFolderProperties() - Update folder properties.',
-                    'operationId' => 'updateFolderProperties',
+                'patch'      => [
+                    'tags'        => [$name],
+                    'summary'     => 'update' . $capitalized . 'FolderProperties() - Update folder properties.',
+                    'operationId' => 'update' . $capitalized . 'FolderProperties',
                     'event_name'  => [
-                        $eventPath . '.{folder_path}.update',
-                        $eventPath . '.folder_updated'
+                        $name . '.{folder_path}.update',
+                        $name . '.folder_updated'
                     ],
                     'parameters'  => [
-                        [
-                            'name'        => 'folder_path',
-                            'description' => 'The path of the folder you want to update. This can be a sub-folder, with each level separated by a \'/\'',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
                         [
                             'name'        => 'body',
                             'description' => 'Array of folder properties.',
                             'schema'      => ['$ref' => '#/definitions/FolderRequest'],
                             'in'          => 'body',
-                            'required'    => false,
                         ],
                     ],
                     'responses'   => [
@@ -982,35 +960,26 @@ abstract class BaseFileService extends BaseRestService
                     ],
                     'description' => 'Post body as an array of folder properties.',
                 ],
-                'delete' => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'deleteFolder() - Delete one folder and/or its contents.',
-                    'operationId' => 'deleteFolder',
+                'delete'     => [
+                    'tags'        => [$name],
+                    'summary'     => 'delete' . $capitalized . 'Folder() - Delete one folder and/or its contents.',
+                    'operationId' => 'delete' . $capitalized . 'Folder',
                     'event_name'  => [
-                        $eventPath . '.{folder_path}.delete',
-                        $eventPath . '.folder_deleted'
+                        $name . '.{folder_path}.delete',
+                        $name . '.folder_deleted'
                     ],
                     'parameters'  => [
-                        [
-                            'name'        => 'folder_path',
-                            'description' => 'The path of the folder where you want to delete contents. This can be a sub-folder, with each level separated by a \'/\'',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
                         [
                             'name'        => 'force',
                             'description' => 'Set to true to force delete on a non-empty folder.',
                             'type'        => 'boolean',
                             'in'          => 'query',
-                            'required'    => false,
                         ],
                         [
                             'name'        => 'content_only',
                             'description' => 'Set to true to only delete the content of the folder.',
                             'type'        => 'boolean',
                             'in'          => 'query',
-                            'required'    => false,
                         ],
                     ],
                     'responses'   => [
@@ -1030,29 +999,32 @@ abstract class BaseFileService extends BaseRestService
                         'use the POST request with X-HTTP-METHOD = DELETE header and post listing.',
                 ],
             ],
-            $path . '/{file_path}'    => [
-                'get'    => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'getFile() - Download the file contents and/or its properties.',
-                    'operationId' => 'getFile',
+            '/' . $name . '/{file_path}'    => [
+                'parameters' => [
+                    [
+                        'name'        => 'file_path',
+                        'description' => 'Path and name of the file to retrieve.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                ],
+                'get'        => [
+                    'tags'        => [$name],
+                    'summary'     => 'get' .
+                        $capitalized .
+                        'File() - Download the file contents and/or its properties.',
+                    'operationId' => 'get' . $capitalized . 'File',
                     'event_name'  => [
-                        $eventPath . '.{file_path}.download',
-                        $eventPath . '.file_downloaded'
+                        $name . '.{file_path}.download',
+                        $name . '.file_downloaded'
                     ],
                     'parameters'  => [
-                        [
-                            'name'        => 'file_path',
-                            'description' => 'Path and name of the file to retrieve.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
                         [
                             'name'         => 'download',
                             'description'  => 'Prompt the user to download the file from the browser.',
                             'type'         => 'boolean',
                             'in'           => 'query',
-                            'required'     => false,
                             'defaultValue' => false,
                         ],
                     ],
@@ -1070,35 +1042,26 @@ abstract class BaseFileService extends BaseRestService
                         'By default, the file is streamed to the browser. ' .
                         'Use the \'download\' parameter to prompt for download.',
                 ],
-                'post'   => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'createFile() - Create a new file.',
-                    'operationId' => 'createFile',
+                'post'       => [
+                    'tags'        => [$name],
+                    'summary'     => 'create' . $capitalized . 'File() - Create a new file.',
+                    'operationId' => 'create' . $capitalized . 'File',
                     'event_name'  => [
-                        $eventPath . '.{file_path}.create',
-                        $eventPath . '.file_created'
+                        $name . '.{file_path}.create',
+                        $name . '.file_created'
                     ],
                     'parameters'  => [
-                        [
-                            'name'        => 'file_path',
-                            'description' => 'Path and name of the file to create.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
                         [
                             'name'        => 'check_exist',
                             'description' => 'If true, the request fails when the file to create already exists.',
                             'type'        => 'boolean',
                             'in'          => 'query',
-                            'required'    => false,
                         ],
                         [
                             'name'        => 'body',
                             'description' => 'Content and/or properties of the file.',
                             'schema'      => ['$ref' => '#/definitions/FileRequest'],
                             'in'          => 'body',
-                            'required'    => false,
                         ],
                     ],
                     'responses'   => [
@@ -1113,28 +1076,20 @@ abstract class BaseFileService extends BaseRestService
                     ],
                     'description' => 'Post body should be the contents of the file or an object with file properties.',
                 ],
-                'put'    => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'replaceFile() - Update content of the file.',
-                    'operationId' => 'replaceFile',
+                'put'        => [
+                    'tags'        => [$name],
+                    'summary'     => 'replace' . $capitalized . 'File() - Update content of the file.',
+                    'operationId' => 'replace' . $capitalized . 'File',
                     'event_name'  => [
-                        $eventPath . '.{file_path}.update',
-                        $eventPath . '.file_updated'
+                        $name . '.{file_path}.update',
+                        $name . '.file_updated'
                     ],
                     'parameters'  => [
-                        [
-                            'name'        => 'file_path',
-                            'description' => 'Path and name of the file to update.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
                         [
                             'name'        => 'body',
                             'description' => 'The content of the file.',
                             'in'          => 'body',
                             'schema'      => ['$ref' => '#/definitions/FileRequest'],
-                            'required'    => false,
                         ],
                     ],
                     'responses'   => [
@@ -1149,28 +1104,20 @@ abstract class BaseFileService extends BaseRestService
                     ],
                     'description' => 'Post body should be the contents of the file.',
                 ],
-                'patch'  => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'updateFileProperties() - Update properties of the file.',
-                    'operationId' => 'updateFileProperties',
+                'patch'      => [
+                    'tags'        => [$name],
+                    'summary'     => 'update' . $capitalized . 'FileProperties() - Update properties of the file.',
+                    'operationId' => 'update' . $capitalized . 'FileProperties',
                     'event_name'  => [
-                        $eventPath . '.{file_path}.update',
-                        $eventPath . '.file_updated'
+                        $name . '.{file_path}.update',
+                        $name . '.file_updated'
                     ],
                     'parameters'  => [
-                        [
-                            'name'        => 'file_path',
-                            'description' => 'Path and name of the file to update.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
                         [
                             'name'        => 'body',
                             'description' => 'Properties of the file.',
                             'schema'      => ['$ref' => '#/definitions/File'],
                             'in'          => 'body',
-                            'required'    => false,
                         ],
                     ],
                     'responses'   => [
@@ -1185,23 +1132,15 @@ abstract class BaseFileService extends BaseRestService
                     ],
                     'description' => 'Post body should be an array of file properties.',
                 ],
-                'delete' => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'deleteFile() - Delete one file.',
-                    'operationId' => 'deleteFile',
+                'delete'     => [
+                    'tags'        => [$name],
+                    'summary'     => 'delete' . $capitalized . 'File() - Delete one file.',
+                    'operationId' => 'delete' . $capitalized . 'File',
                     'event_name'  => [
-                        $eventPath . '.{file_path}.delete',
-                        $eventPath . '.file_deleted'
+                        $name . '.{file_path}.delete',
+                        $name . '.file_deleted'
                     ],
-                    'parameters'  => [
-                        [
-                            'name'        => 'file_path',
-                            'description' => 'Path and name of the file to delete.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
-                    ],
+                    'parameters'  => [],
                     'responses'   => [
                         '200'     => [
                             'description' => 'Success',

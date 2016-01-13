@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Components\DbRequestCriteria;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
@@ -11,6 +12,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Models\EventSubscriber;
 use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Library\Utility\Inflector;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -37,7 +39,7 @@ class Event extends BaseRestService
     /**
      * @var \DreamFactory\Core\Models\BaseSystemModel Model Class name.
      */
-    protected $model = null;
+    protected static $model = EventSubscriber::class;
 
     //*************************************************************************
     //	Methods
@@ -49,7 +51,6 @@ class Event extends BaseRestService
     public function __construct($settings = [])
     {
         parent::__construct($settings);
-        $this->model = new EventSubscriber();
     }
 
     /**
@@ -177,7 +178,7 @@ class Event extends BaseRestService
         $result = $model::bulkCreate($records, $this->request->getParameters());
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
         return ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
@@ -220,7 +221,7 @@ class Event extends BaseRestService
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
         return $result;
@@ -254,7 +255,7 @@ class Event extends BaseRestService
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
         return $result;
@@ -268,25 +269,30 @@ class Event extends BaseRestService
      */
     protected function getModel()
     {
-        if (empty($this->model) || !class_exists($this->model)) {
+        if (empty(static::$model) || !class_exists(static::$model)) {
             throw new ModelNotFoundException();
         }
 
-        return new $this->model;
+        return new static::$model;
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(Service $service)
     {
-//        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
         $wrapper = ResourcesWrapper::getWrapper();
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
 
         $apis = [
-            '/' . $this->name           => [
-                'get'    => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'getEventSubscribers() - Retrieve one or more subscribers.',
-                    'operationId' => 'getEventSubscribers',
-                    'event_name'  => $this->name . '.subscriber.list',
+            '/' . $name           => [
+                'parameters' => [
+                    ApiOptions::documentOption(ApiOptions::FIELDS),
+                    ApiOptions::documentOption(ApiOptions::RELATED),
+                ],
+                'get'        => [
+                    'tags'        => [$name],
+                    'summary'     => 'get' . $capitalized . 'Subscribers() - Retrieve one or more subscribers.',
+                    'operationId' => 'get' . $capitalized . 'Subscribers',
+                    'event_name'  => $name . '.subscriber.list',
                     'consumes'    => ['application/json', 'application/xml', 'text/csv'],
                     'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
@@ -296,8 +302,6 @@ class Event extends BaseRestService
                         ApiOptions::documentOption(ApiOptions::ORDER),
                         ApiOptions::documentOption(ApiOptions::GROUP),
                         ApiOptions::documentOption(ApiOptions::OFFSET),
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                         ApiOptions::documentOption(ApiOptions::FILE),
@@ -320,11 +324,11 @@ class Event extends BaseRestService
                         'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
                         'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                 ],
-                'post'   => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'createEventSubscribers() - Create one or more subscribers.',
-                    'operationId' => 'createEventSubscribers',
-                    'event_name'  => $this->name . '.subscriber.create',
+                'post'       => [
+                    'tags'        => [$name],
+                    'summary'     => 'create' . $capitalized . 'Subscribers() - Create one or more subscribers.',
+                    'operationId' => 'create' . $capitalized . 'Subscribers',
+                    'event_name'  => $name . '.subscriber.create',
                     'consumes'    => ['application/json', 'application/xml', 'text/csv'],
                     'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
@@ -335,15 +339,12 @@ class Event extends BaseRestService
                             'in'          => 'body',
                             'required'    => true,
                         ],
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
                         [
                             'name'        => 'X-HTTP-METHOD',
                             'description' => 'Override request using POST to tunnel other http request, such as DELETE.',
                             'enum'        => ['GET', 'PUT', 'PATCH', 'DELETE'],
                             'type'        => 'string',
                             'in'          => 'header',
-                            'required'    => false,
                         ],
                     ],
                     'responses'   => [
@@ -361,13 +362,11 @@ class Event extends BaseRestService
                         'By default, only the id property of the record affected is returned on success, ' .
                         'use \'fields\' and \'related\' to return more info.',
                 ],
-                'patch'  => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'updateEventSubscribers() - Update one or more subscribers.',
-                    'operationId' => 'updateEventSubscribers',
-                    'event_name'  => $this->name . '.subscriber.update',
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                'patch'      => [
+                    'tags'        => [$name],
+                    'summary'     => 'update' . $capitalized . 'Subscribers() - Update one or more subscribers.',
+                    'operationId' => 'update' . $capitalized . 'Subscribers',
+                    'event_name'  => $name . '.subscriber.update',
                     'parameters'  => [
                         [
                             'name'        => 'body',
@@ -376,8 +375,6 @@ class Event extends BaseRestService
                             'in'          => 'body',
                             'required'    => true,
                         ],
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
                     'responses'   => [
                         '200'     => [
@@ -394,16 +391,14 @@ class Event extends BaseRestService
                         'By default, only the id property of the record is returned on success, ' .
                         'use \'fields\' and \'related\' to return more info.',
                 ],
-                'delete' => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'deleteEventSubscribers() - Delete one or more subscribers.',
-                    'operationId' => 'deleteEventSubscribers',
-                    'event_name'  => $this->name . '.subscriber.delete',
+                'delete'     => [
+                    'tags'        => [$name],
+                    'summary'     => 'delete' . $capitalized . 'Subscribers() - Delete one or more subscribers.',
+                    'operationId' => 'delete' . $capitalized . 'Subscribers',
+                    'event_name'  => $name . '.subscriber.delete',
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FORCE),
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
                     'responses'   => [
                         '200'     => [
@@ -422,24 +417,24 @@ class Event extends BaseRestService
                         'use the POST request with X-HTTP-METHOD = DELETE header and post records or ids.',
                 ],
             ],
-            '/' . $this->name . '/{id}' => [
-                'get'    => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'getEventSubscriber() - Retrieve one subscriber.',
-                    'operationId' => 'getEventSubscriber',
-                    'event_name'  => $this->name . '.subscriber.read',
-                    'parameters'  => [
-                        [
-                            'name'        => 'id',
-                            'description' => 'Identifier of the record to retrieve.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                        ],
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
+            '/' . $name . '/{id}' => [
+                'parameters' => [
+                    [
+                        'name'        => 'id',
+                        'description' => 'Identifier of the record to retrieve.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
                     ],
+                    ApiOptions::documentOption(ApiOptions::FIELDS),
+                    ApiOptions::documentOption(ApiOptions::RELATED),
+                ],
+                'get'        => [
+                    'tags'        => [$name],
+                    'summary'     => 'get' . $capitalized . 'Subscriber() - Retrieve one subscriber.',
+                    'operationId' => 'get' . $capitalized . 'Subscriber',
+                    'event_name'  => $name . '.subscriber.read',
+                    'parameters'  => [],
                     'responses'   => [
                         '200'     => [
                             'description' => 'Success',
@@ -452,19 +447,12 @@ class Event extends BaseRestService
                     ],
                     'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                 ],
-                'patch'  => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'updateEventSubscriber() - Update one subscriber.',
-                    'operationId' => 'updateEventSubscriber',
-                    'event_name'  => $this->name . '.subscriber.update',
+                'patch'      => [
+                    'tags'        => [$name],
+                    'summary'     => 'update' . $capitalized . 'Subscriber() - Update one subscriber.',
+                    'operationId' => 'update' . $capitalized . 'Subscriber',
+                    'event_name'  => $name . '.subscriber.update',
                     'parameters'  => [
-                        [
-                            'name'        => 'id',
-                            'description' => 'Identifier of the record to update.',
-                            'type'        => 'string',
-                            'in'          => 'path',
-                            'required'    => true,
-                        ],
                         [
                             'name'        => 'body',
                             'description' => 'Data containing name-value pairs of fields to update.',
@@ -472,8 +460,6 @@ class Event extends BaseRestService
                             'in'          => 'body',
                             'required'    => true,
                         ],
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
                     'responses'   => [
                         '200'     => [
@@ -489,22 +475,12 @@ class Event extends BaseRestService
                         'Post data should be an array of fields to update for a single record. <br>' .
                         'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
                 ],
-                'delete' => [
-                    'tags'        => [$this->name],
-                    'summary'     => 'deleteEventSubscriber() - Delete one subscriber.',
-                    'operationId' => 'deleteEventSubscriber',
-                    'event_name'  => $this->name . '.subscriber.delete',
+                'delete'     => [
+                    'tags'        => [$name],
+                    'summary'     => 'delete' . $capitalized . 'Subscriber() - Delete one subscriber.',
+                    'operationId' => 'delete' . $capitalized . 'Subscriber',
+                    'event_name'  => $name . '.subscriber.delete',
                     'parameters'  => [
-                        [
-                            'name'        => 'id',
-                            'description' => 'Identifier of the record to delete.',
-
-                            'type'     => 'string',
-                            'in'       => 'path',
-                            'required' => true,
-                        ],
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
                     'responses'   => [
                         '200'     => [

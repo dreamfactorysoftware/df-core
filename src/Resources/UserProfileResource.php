@@ -1,12 +1,14 @@
 <?php
 namespace DreamFactory\Core\Resources;
 
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Library\Utility\Inflector;
 
 class UserProfileResource extends BaseRestResource
 {
@@ -100,17 +102,21 @@ class UserProfileResource extends BaseRestResource
         return ['success' => true];
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(Service $service, array $resource = [])
     {
-        $serviceName = $this->getServiceName();
-        $path = '/' . $serviceName . '/' . $this->getFullPathName();
-        $eventPath = $serviceName . '.' . $this->getFullPathName('.');
+        $serviceName = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
+
         $apis = [
             $path => [
                 'get'  => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'getProfile() - Retrieve the current user\'s profile information.',
-                    'operationId' => 'getProfile',
+                    'summary'     => 'get'.$capitalized.'Profile() - Retrieve the current user\'s profile information.',
+                    'operationId' => 'get'.$capitalized.'Profile',
                     'event_name'  => $eventPath . '.read',
                     'responses'   => [
                         '200'     => [

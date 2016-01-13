@@ -9,11 +9,9 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\EventScript;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Resources\BaseRestResource;
-use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 
 /**
@@ -112,7 +110,7 @@ class Event extends BaseRestResource
         $broadcastEvents = [];
         $eventCount = 0;
 
-        foreach (ArrayUtils::get($data, 'apis', []) as $ixApi => $api) {
+        foreach (ArrayUtils::get($data, 'paths', []) as $ixApi => $api) {
             $apiProcessEvents = [];
             $apiBroadcastEvents = [];
             $apiParameters = [];
@@ -123,14 +121,14 @@ class Event extends BaseRestResource
             }
 
             $path = str_replace(
-                ['{api_name}', '/'],
+                ['{service.name}', '/'],
                 [$apiName, '.'],
                 trim($path, '/')
             );
 
-            foreach (ArrayUtils::get($api, 'operations', []) as $ixOps => $operation) {
+            foreach ($api as $ixOps => $operation) {
                 if (null !== ($eventNames = ArrayUtils::get($operation, 'event_name'))) {
-                    $method = strtolower(ArrayUtils::get($operation, 'method', Verbs::GET));
+                    $method = strtolower($ixOps);
 
                     if (is_string($eventNames) && false !== strpos($eventNames, ',')) {
                         $eventNames = explode(',', $eventNames);
@@ -148,12 +146,12 @@ class Event extends BaseRestResource
                     }
 
                     //  Set into master record
-                    $data['apis'][$ixApi]['operations'][$ixOps]['event_name'] = $eventNames;
+                    $data['paths'][$ixApi][$ixOps]['event_name'] = $eventNames;
 
                     foreach ($eventNames as $ixEventNames => $templateEventName) {
                         $eventName = str_replace(
                             [
-                                '{api_name}',
+                                '{service.name}',
                                 $apiName . '.' . $apiName . '.',
                                 '{action}',
                                 '{request.method}'
@@ -175,7 +173,7 @@ class Event extends BaseRestResource
                         }
 
                         //  Set actual name in swagger file
-                        $data['apis'][$ixApi]['operations'][$ixOps]['event_name'][$ixEventNames] = $eventName;
+                        $data['paths'][$ixApi][$ixOps]['event_name'][$ixEventNames] = $eventName;
 
                         $eventCount++;
                     }
@@ -185,7 +183,7 @@ class Event extends BaseRestResource
                         $apiProcessEvents[$method][] = "$path.$method.post_process";
                         $parameters = ArrayUtils::get($operation, 'parameters', []);
                         foreach ($parameters as $parameter) {
-                            if ('path' === ArrayUtils::get($parameter, 'paramType')) {
+                            if ('path' === ArrayUtils::get($parameter, 'in')) {
                                 if (!empty($enums = ArrayUtils::get($parameter, 'enum'))) {
                                     $name = ArrayUtils::get($parameter, 'name', '');
                                     $apiParameters[$name] = $enums;
@@ -201,10 +199,10 @@ class Event extends BaseRestResource
                 unset($operation);
             }
 
-            $processEvents[str_ireplace('{api_name}', $apiName, $path)]['verb'] = $apiProcessEvents;
+            $processEvents[str_ireplace('{service.name}', $apiName, $path)]['verb'] = $apiProcessEvents;
             $apiParameters = (empty($apiParameters)) ? null : $apiParameters;
-            $processEvents[str_ireplace('{api_name}', $apiName, $path)]['parameter'] = $apiParameters;
-            $broadcastEvents[str_ireplace('{api_name}', $apiName, $path)]['verb'] = $apiBroadcastEvents;
+            $processEvents[str_ireplace('{service.name}', $apiName, $path)]['parameter'] = $apiParameters;
+            $broadcastEvents[str_ireplace('{service.name}', $apiName, $path)]['verb'] = $apiBroadcastEvents;
 
             unset($apiProcessEvents, $apiBroadcastEvents, $apiParameters, $api);
         }
@@ -406,208 +404,149 @@ class Event extends BaseRestResource
         return EventScript::deleteById($this->resource, $this->request->getParameters());
     }
 
-    /**
-     * @return array
-     */
-    public function getApiDocInfo()
+    public static function getApiDocInfo(\DreamFactory\Core\Models\Service $service, array $resource = [])
     {
-        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
-        $name = Inflector::camelize($this->name);
-
-        // use the cached copy, don't try to create it here, infinite loop!
-        $results = \Cache::get(static::EVENT_CACHE_KEY, []);
-        $allEvents = [];
-        foreach ($results as $services) {
-            foreach ($services as $apis) {
-                foreach ($apis as $operations) {
-                    foreach ($operations['verb'] as $events) {
-                        foreach ($events as $event) {
-                            $allEvents[] = $event;
-                        }
-                    }
-                }
-            }
-        }
+        $serviceName = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
 
         $apis = [
-            [
-                'path'        => $path,
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getEventList() - Retrieve list of events.',
-                        'nickname'         => 'getEventList',
-                        'notes'            => 'A list of event names are returned.<br>' .
-                            'The list can be limited by service and/or by type.',
-                        'type'             => 'ResourceList',
-                        'event_name'       => $eventPath . '.list',
-                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'       => [
-                            ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
-                            [
-                                'name'          => 'service',
-                                'description'   => 'Get the events for only this service.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'type',
-                                'description'   => 'Get the events for only this type - process or broadcast.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'enum'          => ['process', 'broadcast'],
-                            ],
-                            [
-                                'name'          => 'only_scripted',
-                                'description'   => 'Get only the events that have associated scripts.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'default'       => false,
-                            ],
+            $path                   => [
+                'get' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' . $capitalized . 'EventList() - Retrieve list of events.',
+                    'operationId' => 'get' . $capitalized . 'EventList',
+                    'description' => 'A list of event names are returned.<br>' .
+                        'The list can be limited by service and/or by type.',
+                    'event_name'  => $eventPath . '.list',
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::AS_LIST),
+                        [
+                            'name'        => 'service',
+                            'description' => 'Get the events for only this service.',
+                            'type'        => 'string',
+                            'in'          => 'query',
+                            'required'    => false,
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        [
+                            'name'        => 'type',
+                            'description' => 'Get the events for only this type - process or broadcast.',
+                            'type'        => 'string',
+                            'in'          => 'query',
+                            'required'    => false,
+                            'enum'        => ['process', 'broadcast'],
+                        ],
+                        [
+                            'name'        => 'only_scripted',
+                            'description' => 'Get only the events that have associated scripts.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'required'    => false,
+                            'default'     => false,
+                        ],
                     ],
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getEventMap() - Retrieve full map of events.',
-                        'nickname'         => 'getEventMap',
-                        'notes'            => 'This returns a service to verb to event mapping.<br>' .
-                            'The list can be limited by service and/or by type.',
-                        'type'             => 'EventMap',
-                        'event_name'       => $eventPath . '.list',
-                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'       => [
-                            [
-                                'name'          => 'service',
-                                'description'   => 'Get the events for only this service.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                            [
-                                'name'          => 'type',
-                                'description'   => 'Get the events for only this type - process or broadcast.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'enum'          => ['process', 'broadcast'],
-                            ],
-                            [
-                                'name'          => 'only_scripted',
-                                'description'   => 'Get only the events that have associated scripts.',
-                                'allowMultiple' => false,
-                                'type'          => 'boolean',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                                'default'       => false,
-                            ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Resource List',
+                            'schema'      => ['$ref' => '#/definitions/ResourceList']
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
                     ],
                 ],
-                'description' => 'Operations for retrieving events.',
             ],
-            [
-                'path'        => $path . '/{event_name}',
-                'operations'  => [
+            $path . '/{event_name}' => [
+                'parameters' => [
                     [
-                        'method'           => 'GET',
-                        'summary'          => 'getEventScript() - Retrieve the script for an event.',
-                        'nickname'         => 'getEventScript',
-                        'notes'            =>
-                            'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
-                            'By default, all fields and no relations are returned for each record.',
-                        'type'             => 'EventScriptResponse',
-                        'event_name'       => $eventPath . '.{event_name}.read',
-                        'parameters'       => [
-                            [
-                                'name'          => 'event_name',
-                                'description'   => 'Identifier of the event to retrieve.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                                'enum'          => $allEvents,
-                            ],
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
-                            ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
-                            ApiOptions::documentOption(ApiOptions::FILE),
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'name'        => 'event_name',
+                        'description' => 'Identifier of the event to retrieve.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
                     ],
-                    [
-                        'method'           => 'POST',
-                        'summary'          => 'createEventScript() - Create a script for an event.',
-                        'nickname'         => 'createEventScript',
-                        'notes'            =>
-                            'Post data should be a single record containing required fields for a script. ' .
-                            'By default, only the event name of the record affected is returned on success, ' .
-                            'use \'fields\' and \'related\' to return more info.',
-                        'type'             => 'EventScriptResponse',
-                        'event_name'       => $eventPath . '.{event_name}.create',
-                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'       => [
-                            [
-                                'name'          => 'event_name',
-                                'description'   => 'Identifier of the event to retrieve.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                                'enum'          => $allEvents,
-                            ],
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Data containing name-value pairs of records to create.',
-                                'allowMultiple' => false,
-                                'type'          => 'EventScriptRequest',
-                                'paramType'     => 'body',
-                                'required'      => true,
-                            ],
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                    ApiOptions::documentOption(ApiOptions::FIELDS),
+                    ApiOptions::documentOption(ApiOptions::RELATED),
+                ],
+                'get'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' . $capitalized . 'EventScript() - Retrieve the script for an event.',
+                    'operationId' => 'get' . $capitalized . 'EventScript',
+                    'description' =>
+                        'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
+                        'By default, all fields and no relations are returned for each record.',
+                    'event_name'  => $eventPath . '.{event_name}.read',
+                    'parameters'  => [
+                        ApiOptions::documentOption(ApiOptions::FILE),
                     ],
-                    [
-                        'method'           => 'DELETE',
-                        'summary'          => 'delete' . $name . 'EventScript() - Delete an event scripts.',
-                        'nickname'         => 'delete' . $name . 'EventScript',
-                        'notes'            =>
-                            'By default, only the event name of the record deleted is returned on success. ' .
-                            'Use \'fields\' and \'related\' to return more properties of the deleted record.',
-                        'type'             => 'EventScriptResponse',
-                        'event_name'       => $eventPath . '.{event_name}.delete',
-                        'parameters'       => [
-                            [
-                                'name'          => 'event_name',
-                                'description'   => 'Identifier of the event to retrieve.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                                'enum'          => $allEvents,
-                            ],
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Event Script',
+                            'schema'      => ['$ref' => '#/definitions/EventScriptResponse']
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
                     ],
                 ],
-                'description' => 'Operations for scripts on individual events.',
+                'post'       => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'create' . $capitalized . 'EventScript() - Create a script for an event.',
+                    'operationId' => 'create' . $capitalized . 'EventScript',
+                    'description' =>
+                        'Post data should be a single record containing required fields for a script. ' .
+                        'By default, only the event name of the record affected is returned on success, ' .
+                        'use \'fields\' and \'related\' to return more info.',
+                    'event_name'  => $eventPath . '.{event_name}.create',
+                    'parameters'  => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of records to create.',
+                            'schema'      => ['$ref' => '#/definitions/EventScriptRequest'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Event Script',
+                            'schema'      => ['$ref' => '#/definitions/EventScriptResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
+                'delete'     => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'delete' . $capitalized . 'EventScript() - Delete an event scripts.',
+                    'operationId' => 'delete' . $capitalized . 'EventScript',
+                    'description' =>
+                        'By default, only the event name of the record deleted is returned on success. ' .
+                        'Use \'fields\' and \'related\' to return more properties of the deleted record.',
+                    'event_name'  => $eventPath . '.{event_name}.delete',
+                    'parameters'  => [],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
             ],
         ];
 
@@ -619,6 +558,6 @@ class Event extends BaseRestResource
             $models = array_merge($models, $temp);
         }
 
-        return ['apis' => $apis, 'models' => $models];
+        return ['paths' => $apis, 'definitions' => $models];
     }
 }

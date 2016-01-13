@@ -3,7 +3,7 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Components\DbRequestCriteria;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
@@ -12,6 +12,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Models\EventSubscriber;
 use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Library\Utility\Inflector;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -38,7 +39,7 @@ class Event extends BaseRestService
     /**
      * @var \DreamFactory\Core\Models\BaseSystemModel Model Class name.
      */
-    protected $model = null;
+    protected static $model = EventSubscriber::class;
 
     //*************************************************************************
     //	Methods
@@ -50,7 +51,6 @@ class Event extends BaseRestService
     public function __construct($settings = [])
     {
         parent::__construct($settings);
-        $this->model = new EventSubscriber();
     }
 
     /**
@@ -178,7 +178,7 @@ class Event extends BaseRestService
         $result = $model::bulkCreate($records, $this->request->getParameters());
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
         return ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
@@ -221,7 +221,7 @@ class Event extends BaseRestService
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
         return $result;
@@ -255,7 +255,7 @@ class Event extends BaseRestService
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
         return $result;
@@ -269,225 +269,243 @@ class Event extends BaseRestService
      */
     protected function getModel()
     {
-        if (empty($this->model) || !class_exists($this->model)) {
+        if (empty(static::$model) || !class_exists(static::$model)) {
             throw new ModelNotFoundException();
         }
 
-        return new $this->model;
+        return new static::$model;
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(Service $service)
     {
-//        $alwaysWrap = \Config::get('df.always_wrap_resources', false);
         $wrapper = ResourcesWrapper::getWrapper();
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
 
         $apis = [
-            [
-                'path'        => '/' . $this->name,
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getEventSubscribers() - Retrieve one or more subscribers.',
-                        'nickname'         => 'getEventSubscribers',
-                        'type'             => 'SubscribersResponse',
-                        'event_name'       => $this->name . '.subscriber.list',
-                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'       => [
-                            ApiOptions::documentOption(ApiOptions::IDS),
-                            ApiOptions::documentOption(ApiOptions::FILTER),
-                            ApiOptions::documentOption(ApiOptions::LIMIT),
-                            ApiOptions::documentOption(ApiOptions::ORDER),
-                            ApiOptions::documentOption(ApiOptions::GROUP),
-                            ApiOptions::documentOption(ApiOptions::OFFSET),
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
-                            ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
-                            ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
-                            ApiOptions::documentOption(ApiOptions::FILE),
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            =>
-                            'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
-                            'By default, all records up to the maximum are returned. <br>' .
-                            'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
-                            'By default, all fields and no relations are returned for each record. <br>' .
-                            'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
-                            'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
-                    ],
-                    [
-                        'method'           => 'POST',
-                        'summary'          => 'createEventSubscribers() - Create one or more subscribers.',
-                        'nickname'         => 'createEventSubscribers',
-                        'type'             => 'SubscribersResponse',
-                        'event_name'       => $this->name . '.subscriber.create',
-                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'       => [
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Data containing name-value pairs of records to create.',
-                                'allowMultiple' => false,
-                                'type'          => 'UsersRequest',
-                                'paramType'     => 'body',
-                                'required'      => true,
-                            ],
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
-                            [
-                                'name'          => 'X-HTTP-METHOD',
-                                'description'   => 'Override request using POST to tunnel other http request, such as DELETE.',
-                                'enum'          => ['GET', 'PUT', 'PATCH', 'DELETE'],
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'header',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            =>
-                            'Post data should be a single record or an array of records (shown). ' .
-                            'By default, only the id property of the record affected is returned on success, ' .
-                            'use \'fields\' and \'related\' to return more info.',
-                    ],
-                    [
-                        'method'           => 'PATCH',
-                        'summary'          => 'updateEventSubscribers() - Update one or more subscribers.',
-                        'nickname'         => 'updateEventSubscribers',
-                        'type'             => 'SubscribersResponse',
-                        'event_name'       => $this->name . '.subscriber.update',
-                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'       => [
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Data containing name-value pairs of records to update.',
-                                'allowMultiple' => false,
-                                'type'          => 'UsersRequest',
-                                'paramType'     => 'body',
-                                'required'      => true,
-                            ],
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            =>
-                            'Post data should be a single record or an array of records (shown). ' .
-                            'By default, only the id property of the record is returned on success, ' .
-                            'use \'fields\' and \'related\' to return more info.',
-                    ],
-                    [
-                        'method'           => 'DELETE',
-                        'summary'          => 'deleteEventSubscribers() - Delete one or more subscribers.',
-                        'nickname'         => 'deleteEventSubscribers',
-                        'type'             => 'SubscribersResponse',
-                        'event_name'       => $this->name . '.subscriber.delete',
-                        'parameters'       => [
-                            ApiOptions::documentOption(ApiOptions::IDS),
-                            ApiOptions::documentOption(ApiOptions::FORCE),
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            =>
-                            'By default, only the id property of the record deleted is returned on success. ' .
-                            'Use \'fields\' and \'related\' to return more properties of the deleted records. <br>' .
-                            'Alternatively, to delete by record or a large list of ids, ' .
-                            'use the POST request with X-HTTP-METHOD = DELETE header and post records or ids.',
-                    ],
+            '/' . $name           => [
+                'parameters' => [
+                    ApiOptions::documentOption(ApiOptions::FIELDS),
+                    ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
-                'description' => 'Operations for user administration.',
+                'get'        => [
+                    'tags'        => [$name],
+                    'summary'     => 'get' . $capitalized . 'Subscribers() - Retrieve one or more subscribers.',
+                    'operationId' => 'get' . $capitalized . 'Subscribers',
+                    'event_name'  => $name . '.subscriber.list',
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
+                        ApiOptions::documentOption(ApiOptions::IDS),
+                        ApiOptions::documentOption(ApiOptions::FILTER),
+                        ApiOptions::documentOption(ApiOptions::LIMIT),
+                        ApiOptions::documentOption(ApiOptions::ORDER),
+                        ApiOptions::documentOption(ApiOptions::GROUP),
+                        ApiOptions::documentOption(ApiOptions::OFFSET),
+                        ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
+                        ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
+                        ApiOptions::documentOption(ApiOptions::FILE),
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/SubscribersResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' =>
+                        'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
+                        'By default, all records up to the maximum are returned. <br>' .
+                        'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
+                        'By default, all fields and no relations are returned for each record. <br>' .
+                        'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
+                        'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
+                ],
+                'post'       => [
+                    'tags'        => [$name],
+                    'summary'     => 'create' . $capitalized . 'Subscribers() - Create one or more subscribers.',
+                    'operationId' => 'create' . $capitalized . 'Subscribers',
+                    'event_name'  => $name . '.subscriber.create',
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of records to create.',
+                            'schema'      => ['$ref' => '#/definitions/SubscribersRequest'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                        [
+                            'name'        => 'X-HTTP-METHOD',
+                            'description' => 'Override request using POST to tunnel other http request, such as DELETE.',
+                            'enum'        => ['GET', 'PUT', 'PATCH', 'DELETE'],
+                            'type'        => 'string',
+                            'in'          => 'header',
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/SubscribersResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' =>
+                        'Post data should be a single record or an array of records (shown). ' .
+                        'By default, only the id property of the record affected is returned on success, ' .
+                        'use \'fields\' and \'related\' to return more info.',
+                ],
+                'patch'      => [
+                    'tags'        => [$name],
+                    'summary'     => 'update' . $capitalized . 'Subscribers() - Update one or more subscribers.',
+                    'operationId' => 'update' . $capitalized . 'Subscribers',
+                    'event_name'  => $name . '.subscriber.update',
+                    'parameters'  => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of records to update.',
+                            'schema'      => ['$ref' => '#/definitions/SubscribersRequest'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/SubscribersResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' =>
+                        'Post data should be a single record or an array of records (shown). ' .
+                        'By default, only the id property of the record is returned on success, ' .
+                        'use \'fields\' and \'related\' to return more info.',
+                ],
+                'delete'     => [
+                    'tags'        => [$name],
+                    'summary'     => 'delete' . $capitalized . 'Subscribers() - Delete one or more subscribers.',
+                    'operationId' => 'delete' . $capitalized . 'Subscribers',
+                    'event_name'  => $name . '.subscriber.delete',
+                    'parameters'  => [
+                        ApiOptions::documentOption(ApiOptions::IDS),
+                        ApiOptions::documentOption(ApiOptions::FORCE),
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/SubscribersResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' =>
+                        'By default, only the id property of the record deleted is returned on success. ' .
+                        'Use \'fields\' and \'related\' to return more properties of the deleted records. <br>' .
+                        'Alternatively, to delete by record or a large list of ids, ' .
+                        'use the POST request with X-HTTP-METHOD = DELETE header and post records or ids.',
+                ],
             ],
-            [
-                'path'        => '/' . $this->name . '/{id}',
-                'operations'  => [
+            '/' . $name . '/{id}' => [
+                'parameters' => [
                     [
-                        'method'           => 'GET',
-                        'summary'          => 'getEventSubscriber() - Retrieve one subscriber.',
-                        'nickname'         => 'getEventSubscriber',
-                        'type'             => 'Subscriber',
-                        'event_name'       => $this->name . '.subscriber.read',
-                        'parameters'       => [
-                            [
-                                'name'          => 'id',
-                                'description'   => 'Identifier of the record to retrieve.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
+                        'name'        => 'id',
+                        'description' => 'Identifier of the record to retrieve.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
                     ],
-                    [
-                        'method'           => 'PATCH',
-                        'summary'          => 'updateEventSubscriber() - Update one subscriber.',
-                        'nickname'         => 'updateEventSubscriber',
-                        'type'             => 'Subscriber',
-                        'event_name'       => $this->name . '.subscriber.update',
-                        'parameters'       => [
-                            [
-                                'name'          => 'id',
-                                'description'   => 'Identifier of the record to update.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Data containing name-value pairs of fields to update.',
-                                'allowMultiple' => false,
-                                'type'          => 'UserRequest',
-                                'paramType'     => 'body',
-                                'required'      => true,
-                            ],
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            =>
-                            'Post data should be an array of fields to update for a single record. <br>' .
-                            'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
-                    ],
-                    [
-                        'method'           => 'DELETE',
-                        'summary'          => 'deleteEventSubscriber() - Delete one subscriber.',
-                        'nickname'         => 'deleteEventSubscriber',
-                        'type'             => 'Subscriber',
-                        'event_name'       => $this->name . '.subscriber.delete',
-                        'parameters'       => [
-                            [
-                                'name'          => 'id',
-                                'description'   => 'Identifier of the record to delete.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::RELATED),
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
-                    ],
+                    ApiOptions::documentOption(ApiOptions::FIELDS),
+                    ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
-                'description' => 'Operations for individual user administration.',
+                'get'        => [
+                    'tags'        => [$name],
+                    'summary'     => 'get' . $capitalized . 'Subscriber() - Retrieve one subscriber.',
+                    'operationId' => 'get' . $capitalized . 'Subscriber',
+                    'event_name'  => $name . '.subscriber.read',
+                    'parameters'  => [],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Subscriber']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
+                ],
+                'patch'      => [
+                    'tags'        => [$name],
+                    'summary'     => 'update' . $capitalized . 'Subscriber() - Update one subscriber.',
+                    'operationId' => 'update' . $capitalized . 'Subscriber',
+                    'event_name'  => $name . '.subscriber.update',
+                    'parameters'  => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of fields to update.',
+                            'schema'      => ['$ref' => '#/definitions/Subscriber'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Subscriber']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' =>
+                        'Post data should be an array of fields to update for a single record. <br>' .
+                        'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
+                ],
+                'delete'     => [
+                    'tags'        => [$name],
+                    'summary'     => 'delete' . $capitalized . 'Subscriber() - Delete one subscriber.',
+                    'operationId' => 'delete' . $capitalized . 'Subscriber',
+                    'event_name'  => $name . '.subscriber.delete',
+                    'parameters'  => [
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Subscriber']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
+                ],
             ],
         ];
 
         $models = [
             'SubscribersRequest'  => [
-                'id'         => 'SubscribersRequest',
+                'type'       => 'object',
                 'properties' => [
                     $wrapper        => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => 'Subscriber',
+                            '$ref' => '#/definitions/Subscriber',
                         ],
                     ],
                     ApiOptions::IDS => [
@@ -501,13 +519,13 @@ class Event extends BaseRestService
                 ],
             ],
             'SubscribersResponse' => [
-                'id'         => 'SubscribersResponse',
+                'type'       => 'object',
                 'properties' => [
                     $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => 'Subscriber',
+                            '$ref' => '#/definitions/Subscriber',
                         ],
                     ],
                     'meta'   => [
@@ -518,6 +536,6 @@ class Event extends BaseRestService
             ],
         ];
 
-        return ['apis' => $apis, 'models' => $models];
+        return ['paths' => $apis, 'definitions' => $models];
     }
 }

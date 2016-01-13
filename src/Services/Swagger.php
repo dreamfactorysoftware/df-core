@@ -1,11 +1,13 @@
 <?php
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Library\Utility\Inflector;
 
 /**
  * Swagger
@@ -29,11 +31,11 @@ class Swagger extends BaseRestService
     /**
      * @const string The Swagger version
      */
-    const SWAGGER_VERSION = '1.2';
+    const SWAGGER_VERSION = '2.0';
     /**
      * @const string The private cache file
      */
-    const SWAGGER_CACHE_FILE = '_.json';
+    const SWAGGER_CACHE_FILE = 'swagger.json';
 
     //*************************************************************************
     //	Methods
@@ -51,24 +53,12 @@ class Swagger extends BaseRestService
             static::clearCache();
         }
 
-        if (empty($this->resource)) {
-            return $this->getSwagger();
-        }
-
-        return $this->getSwaggerForService($this->resource);
+        return $this->getSwagger();
     }
 
     public static function clearCache($name = null)
     {
         \Cache::forget(static::SWAGGER_CACHE_FILE);
-        if (empty($name)) {
-            // get all services names and clear them
-            foreach (Service::available() as $name) {
-                \Cache::forget($name . '.json');
-            }
-        } else {
-            \Cache::forget($name . '.json');
-        }
     }
 
     /**
@@ -80,242 +70,253 @@ class Swagger extends BaseRestService
      */
     public function getSwagger()
     {
-        if (null === ($content = \Cache::get(static::SWAGGER_CACHE_FILE))) {
-            \Log::info('Building Swagger cache');
+//        if (null === ($content = \Cache::get(static::SWAGGER_CACHE_FILE))) {
+        \Log::info('Building Swagger cache');
 
-            //  Build services from database
-            //  Pull any custom swagger docs
-            $result = Service::all(['name', 'description']);
+        //  Gather the services
+        $tags = [];
+        $paths = [];
+        $definitions = static::getDefaultModels();
+        $parameters = ApiOptions::getSwaggerGlobalParameters();
 
-            //  Gather the services
-            $services = [];
-
-            //	Spin through services and pull the configs
-            foreach ($result as $service) {
-                // build main services list
-                $services[] = [
-                    'path'        => '/' . $service->name,
-                    'description' => $service->description
-                ];
-
-                unset($service);
+        //  Build services from database
+        //  Pull any custom swagger docs
+        /** @type Service[] $services */
+        $services = Service::all();
+        foreach ($services as $service) {
+            if (!$service->is_active) {
+                continue;
             }
 
-            // cache main api listing file
-            $description = <<<HTML
-HTML;
-
-            $resourceListing = [
-                'swaggerVersion' => static::SWAGGER_VERSION,
-                'apiVersion'     => \Config::get('df.api_version', static::API_VERSION),
-                'authorizations' => ['apiKey' => ['type' => 'apiKey', 'passAs' => 'header']],
-                'info'           => [
-                    'title'       => 'DreamFactory Live API Documentation',
-                    'description' => $description,
-                    //'termsOfServiceUrl' => 'http://www.dreamfactory.com/terms/',
-                    'contact'     => 'support@dreamfactory.com',
-                    'license'     => 'Apache 2.0',
-                    'licenseUrl'  => 'http://www.apache.org/licenses/LICENSE-2.0.html'
-                ],
-                /**
-                 * The events thrown that are relevant to Swagger
-                 */
-                'events'         => [],
-            ];
-
-            $content = array_merge($resourceListing, ['apis' => $services]);
-            $content = json_encode($content, JSON_UNESCAPED_SLASHES);
-
-            \Cache::forever(static::SWAGGER_CACHE_FILE, $content);
-
-            \Log::info('Swagger cache build process complete');
-        }
-
-        return $content;
-    }
-
-    /**
-     * Main retrieve point for each service
-     *
-     * @param string $name Which service (name) to retrieve.
-     *
-     * @return string
-     * @throws NotFoundException
-     */
-    public function getSwaggerForService($name)
-    {
-        $cachePath = $name . '.json';
-
-        if (null === $content = \Cache::get($cachePath)) {
-            $service = Service::whereName($name)->get()->first();
-            if (empty($service)) {
-                throw new NotFoundException("Service '$name' not found.");
-            }
-
-            $content = [
-                'swaggerVersion' => static::SWAGGER_VERSION,
-                'apiVersion'     => \Config::get('df.api_version', static::API_VERSION),
-                'basePath'       => url('/api/v2'),
-            ];
-
+            $name = $service->name;
+            $tags[] = ['name' => $name, 'description' => $service->description];
             try {
                 $result = Service::getStoredContentForService($service);
-
                 if (empty($result)) {
                     throw new NotFoundException("No Swagger content found.");
                 }
 
-                $content = array_merge($content, $result);
-                $content = json_encode($content, JSON_UNESCAPED_SLASHES);
+                $servicePaths = (isset($result['paths']) ? $result['paths'] : []);
+                $serviceDefs = (isset($result['definitions']) ? $result['definitions'] : []);
 
-                // replace service type placeholder with api name for this service instance
-                $content = str_replace('{api_name}', $name, $content);
+                $lcName = strtolower($name);
+                $ucwName = Inflector::camelize($name);
+                $pluralName = Inflector::pluralize($name);
+                $pluralUcwName = Inflector::pluralize($ucwName);
 
-                // cache it for later access
-                \Cache::forever($cachePath, $content);
+                // replace service placeholders with value for this service instance
+                $servicePaths =
+                    str_replace([
+                        '{service.name}',
+                        '{service.names}',
+                        '{service.Name}',
+                        '{service.Names}',
+                        '{service.label}',
+                        '{service.description}'
+                    ],
+                        [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
+                        $servicePaths);
+                $serviceDefs =
+                    str_replace([
+                        '{service.name}',
+                        '{service.names}',
+                        '{service.Name}',
+                        '{service.Names}',
+                        '{service.label}',
+                        '{service.description}'
+                    ],
+                        [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
+                        $serviceDefs);
+
+                //  Add to the pile
+                $paths = array_merge($paths, $servicePaths);
+                $definitions = array_merge($definitions, $serviceDefs);
             } catch (\Exception $ex) {
                 \Log::error("  * System error creating swagger file for service '$name'.\n{$ex->getMessage()}");
             }
+
+            unset($service);
         }
+
+        // cache main api listing file
+        $description = <<<HTML
+HTML;
+
+        $content = [
+            'swagger'        => static::SWAGGER_VERSION,
+            'authorizations' => ['apiKey' => ['type' => 'apiKey', 'passAs' => 'header']],
+            'info'           => [
+                'title'       => 'DreamFactory Live API Documentation',
+                'description' => $description,
+                'version'     => \Config::get('df.api_version', static::API_VERSION),
+                //'termsOfServiceUrl' => 'http://www.dreamfactory.com/terms/',
+                'contact'     => [
+                    'name'  => 'DreamFactory Software, Inc.',
+                    'email' => 'support@dreamfactory.com',
+                    'url'   => "https://www.dreamfactory.com/"
+                ],
+                'license'     => [
+                    'name' => 'Apache 2.0',
+                    'url'  => 'http://www.apache.org/licenses/LICENSE-2.0.html'
+                ]
+            ],
+            //'host'           => 'df.local',
+            //'schemes'        => ['https'],
+            'basePath'       => '/api/v2',
+            'consumes'       => ['application/json'],
+            'produces'       => ['application/json'],
+            'paths'          => $paths,
+            'definitions'    => $definitions,
+            'tags'           => $tags,
+            'parameters'     => $parameters,
+            /**
+             * The events thrown that are relevant to Swagger
+             */
+            'events'         => [],
+        ];
+
+        $content = json_encode($content, JSON_UNESCAPED_SLASHES);
+
+        \Cache::forever(static::SWAGGER_CACHE_FILE, $content);
+
+        \Log::info('Swagger cache build process complete');
+
+//        }
 
         return $content;
     }
 
-    public function getApiDocInfo()
+    public static function getDefaultModels()
     {
-        $path = '/' . $this->name;
-        $eventPath = $this->name;
-        $apis = [
-            [
-                'path'        => $path,
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getApiDocs() - Retrieve the base Swagger document.',
-                        'nickname'         => 'getApiDocs',
-                        'type'             => 'ApiDocsResponse',
-                        'event_name'       => $eventPath . '.list',
-                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'       => [
-                            [
-                                'name'          => 'file',
-                                'description'   => 'Download the results of the request as a file.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'query',
-                                'required'      => false,
-                            ],
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            => 'This returns the base Swagger file containing all API services.',
-                    ],
-                ],
-                'description' => 'Operations for retrieving API documents.',
-            ],
-            [
-                'path'        => $path . '/{id}',
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getApiDoc() - Retrieve one API document.',
-                        'nickname'         => 'getApiDoc',
-                        'type'             => 'ApiDocResponse',
-                        'event_name'       => $eventPath . '.read',
-                        'parameters'       => [
-                            [
-                                'name'          => 'id',
-                                'description'   => 'Identifier of the API document to retrieve.',
-                                'allowMultiple' => false,
-                                'type'          => 'string',
-                                'paramType'     => 'path',
-                                'required'      => true,
-                            ],
-                        ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        'notes'            => '',
-                    ],
-                ],
-                'description' => 'Operations for individual API documents.',
-            ],
-        ];
+        $wrapper = ResourcesWrapper::getWrapper();
 
-        $models = [
-            'ApiDocsResponse' => [
-                'id'         => 'ApiDocsResponse',
+        return [
+            'ResourceList' => [
+                'type'       => 'object',
                 'properties' => [
-                    'apiVersion'     => [
-                        'type'        => 'string',
-                        'description' => 'Version of the API.',
-                    ],
-                    'swaggerVersion' => [
-                        'type'        => 'string',
-                        'description' => 'Version of the Swagger API.',
-                    ],
-                    'apis'           => [
+                    $wrapper => [
                         'type'        => 'array',
-                        'description' => 'Array of APIs.',
+                        'description' => 'Array of accessible resources available to this service.',
                         'items'       => [
-                            '$ref' => 'Api',
+                            'type' => 'string',
                         ],
                     ],
                 ],
             ],
-            'ApiDocResponse'  => [
-                'id'         => 'ApiDocResponse',
+            'Success'      => [
+                'type'       => 'object',
                 'properties' => [
-                    'apiVersion'     => [
-                        'type'        => 'string',
-                        'description' => 'Version of the API.',
-                    ],
-                    'swaggerVersion' => [
-                        'type'        => 'string',
-                        'description' => 'Version of the Swagger API.',
-                    ],
-                    'basePath'       => [
-                        'type'        => 'string',
-                        'description' => 'Base path of the API.',
-                    ],
-                    'apis'           => [
-                        'type'        => 'array',
-                        'description' => 'Array of APIs.',
-                        'items'       => [
-                            '$ref' => 'Api',
-                        ],
-                    ],
-                    'models'         => [
-                        'type'        => 'array',
-                        'description' => 'Array of API models.',
-                        'items'       => [
-                            '$ref' => 'Model',
-                        ],
+                    'success' => [
+                        'type'        => 'boolean',
+                        'description' => 'True when API call was successful, false or error otherwise.',
                     ],
                 ],
             ],
-            'Api'             => [
-                'id'         => 'Api',
+            'Error'        => [
+                'type'       => 'object',
                 'properties' => [
-                    'path'        => [
-                        'type'        => 'string',
-                        'description' => 'Path to access the API.',
+                    'code'    => [
+                        'type'        => 'integer',
+                        'format'      => 'int32',
+                        'description' => 'Error code.',
                     ],
-                    'description' => [
+                    'message' => [
                         'type'        => 'string',
-                        'description' => 'Description of the API.',
-                    ],
-                ],
-            ],
-            'Model'           => [
-                'id'         => 'Model',
-                'properties' => [
-                    '__name__' => [
-                        'type'        => 'string',
-                        'description' => 'Model Definition.',
+                        'description' => 'String description of the error.',
                     ],
                 ],
             ],
         ];
+    }
 
-        return ['apis' => $apis, 'models' => $models];
+    public static function getApiDocInfo(Service $service)
+    {
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+
+        return [
+            'paths'       => [
+                '/' . $name => [
+                    'get' =>
+                        [
+                            'tags'        => [$name],
+                            'summary'     => 'get' . $capitalized . '() - Retrieve the Swagger document.',
+                            'operationId' => 'get' . $capitalized,
+                            'event_name'  => $name . '.retrieve',
+                            'parameters'  => [
+                                [
+                                    'name'        => 'file',
+                                    'description' => 'Download the results of the request as a file.',
+                                    'type'        => 'string',
+                                    'in'          => 'query',
+                                    'required'    => false,
+                                ],
+                            ],
+                            'responses'   => [
+                                '200'     => [
+                                    'description' => 'Swagger Response',
+                                    'schema'      => ['$ref' => '#/definitions/SwaggerResponse']
+                                ],
+                                'default' => [
+                                    'description' => 'Error',
+                                    'schema'      => ['$ref' => '#/definitions/Error']
+                                ]
+                            ],
+                            'description' => 'This returns the Swagger file containing all API services.',
+                        ],
+                ],
+            ],
+            'definitions' => [
+                'SwaggerResponse'   => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'apiVersion'  => [
+                            'type'        => 'string',
+                            'description' => 'Version of the API.',
+                        ],
+                        'swagger'     => [
+                            'type'        => 'string',
+                            'description' => 'Version of the Swagger API.',
+                        ],
+                        'basePath'    => [
+                            'type'        => 'string',
+                            'description' => 'Base path of the API.',
+                        ],
+                        'paths'       => [
+                            'type'        => 'array',
+                            'description' => 'Array of API paths.',
+                            'items'       => [
+                                '$ref' => '#/definitions/SwaggerPath',
+                            ],
+                        ],
+                        'definitions' => [
+                            'type'        => 'array',
+                            'description' => 'Array of API definitions.',
+                            'items'       => [
+                                '$ref' => '#/definitions/SwaggerDefinition',
+                            ],
+                        ],
+                    ],
+                ],
+                'SwaggerPath'       => [
+                    'type'       => 'object',
+                    'properties' => [
+                        '__name__' => [
+                            'type'        => 'string',
+                            'description' => 'Path.',
+                        ],
+                    ],
+                ],
+                'SwaggerDefinition' => [
+                    'type'       => 'object',
+                    'properties' => [
+                        '__name__' => [
+                            'type'        => 'string',
+                            'description' => 'Definition.',
+                        ],
+                    ],
+                ],
+            ]
+        ];
     }
 }

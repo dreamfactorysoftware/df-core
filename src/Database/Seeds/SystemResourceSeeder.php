@@ -1,10 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database\Seeds;
 
-use DreamFactory\Core\Models\CorsConfig;
-use DreamFactory\Core\Models\SystemCustom;
 use DreamFactory\Core\Models\SystemResource;
-use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Resources\System\Admin;
 use DreamFactory\Core\Resources\System\App;
 use DreamFactory\Core\Resources\System\AppGroup;
@@ -33,7 +30,6 @@ class SystemResourceSeeder extends BaseModelSeeder
             'label'       => 'Administrators',
             'description' => 'Allows configuration of system administrators.',
             'class_name'  => Admin::class,
-            'model_name'  => User::class,
         ],
         [
             'name'        => 'cache',
@@ -60,14 +56,12 @@ class SystemResourceSeeder extends BaseModelSeeder
             'label'       => 'CORS Configuration',
             'description' => 'Allows configuration of CORS system settings.',
             'class_name'  => Cors::class,
-            'model_name'  => CorsConfig::class,
         ],
         [
             'name'        => 'email_template',
             'label'       => 'Email Templates',
             'description' => 'Allows configuration of email templates.',
             'class_name'  => EmailTemplate::class,
-            'model_name'  => \DreamFactory\Core\Models\EmailTemplate::class,
         ],
         [
             'name'        => 'environment',
@@ -88,28 +82,24 @@ class SystemResourceSeeder extends BaseModelSeeder
             'label'       => 'Lookup Keys',
             'description' => 'Allows configuration of lookup keys.',
             'class_name'  => Lookup::class,
-            'model_name'  => \DreamFactory\Core\Models\Lookup::class,
         ],
         [
             'name'        => 'role',
             'label'       => 'Roles',
             'description' => 'Allows role configuration.',
             'class_name'  => Role::class,
-            'model_name'  => \DreamFactory\Core\Models\Role::class,
         ],
         [
             'name'        => 'service',
             'label'       => 'Services',
             'description' => 'Allows configuration of services.',
             'class_name'  => Service::class,
-            'model_name'  => \DreamFactory\Core\Models\Service::class,
         ],
         [
             'name'        => 'service_type',
             'label'       => 'Service Types',
             'description' => 'Read-only system service types.',
             'class_name'  => ServiceType::class,
-            'model_name'  => \DreamFactory\Core\Models\ServiceType::class,
             'read_only'   => true,
         ],
         [
@@ -117,7 +107,6 @@ class SystemResourceSeeder extends BaseModelSeeder
             'label'       => 'Script Types',
             'description' => 'Read-only system scripting types.',
             'class_name'  => ScriptType::class,
-            'model_name'  => \DreamFactory\Core\Models\ScriptType::class,
             'read_only'   => true,
         ],
         [
@@ -125,28 +114,24 @@ class SystemResourceSeeder extends BaseModelSeeder
             'label'       => 'Custom Settings',
             'description' => 'Allows configuration of system-wide custom settings.',
             'class_name'  => Setting::class,
-            'model_name'  => \DreamFactory\Core\Models\Setting::class,
         ],
         [
             'name'        => 'app',
             'label'       => 'Apps',
             'description' => 'Allows management of user application(s)',
             'class_name'  => App::class,
-            'model_name'  => \DreamFactory\Core\Models\App::class,
         ],
         [
             'name'        => 'app_group',
             'label'       => 'App Groups',
             'description' => 'Allows grouping of user application(s)',
             'class_name'  => AppGroup::class,
-            'model_name'  => \DreamFactory\Core\Models\AppGroup::class,
         ],
         [
             'name'        => 'custom',
             'label'       => 'Custom Settings',
             'description' => 'Allows for creating system-wide custom settings',
             'class_name'  => Custom::class,
-            'model_name'  => SystemCustom::class
         ]
     ];
 }

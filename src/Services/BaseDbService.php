@@ -6,11 +6,15 @@ use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Resources\BaseDbResource;
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Inflector;
 
 abstract class BaseDbService extends BaseRestService implements CachedInterface
 {
@@ -23,7 +27,7 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
     /**
      * @var array Array of resource defining arrays
      */
-    protected $resources = [];
+    protected static $resources = [];
     /**
      * @type bool
      */
@@ -60,7 +64,7 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
         $refresh = $this->request->getParameterAsBool(ApiOptions::REFRESH);
         $schema = $this->request->getParameter(ApiOptions::SCHEMA, '');
 
-        foreach ($this->resources as $resourceInfo) {
+        foreach (static::$resources as $resourceInfo) {
             $className = $resourceInfo['class_name'];
 
             if (!class_exists($className)) {
@@ -91,7 +95,7 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
      */
     public function getResources($only_handlers = false)
     {
-        return ($only_handlers) ? $this->resources : array_values($this->resources);
+        return ($only_handlers) ? static::$resources : array_values(static::$resources);
     }
 
     /**
@@ -130,40 +134,35 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
         }
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getApiDocInfo()
+    public static function getApiDocInfo(Service $service)
     {
-        $base = parent::getApiDocInfo();
+        $base = parent::getApiDocInfo($service);
 
         $apis = [];
         $models = [];
-        foreach ($this->resources as $resourceInfo) {
-            $className = $resourceInfo['class_name'];
+        foreach (static::$resources as $resourceInfo) {
+            $resourceClass = ArrayUtils::get($resourceInfo, 'class_name');
 
-            if (!class_exists($className)) {
+            if (!class_exists($resourceClass)) {
                 throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
-                    $this->resourcePath);
+                    $resourceClass);
             }
 
-            /** @var BaseDbResource $resource */
-            $resource = $this->instantiateResource($className, $resourceInfo);
-
-            $access = $this->getPermissions($resource->name);
+            $resourceName = ArrayUtils::get($resourceInfo, static::RESOURCE_IDENTIFIER);
+            $access = Session::getServicePermissions($service->name, $resourceName, ServiceRequestorTypes::API);
             if (!empty($access)) {
-                $results = $resource->getApiDocInfo();
-                if (isset($results, $results['apis'])) {
-                    $apis = array_merge($apis, $results['apis']);
+                $results = $resourceClass::getApiDocInfo($service, $resourceInfo);
+                if (isset($results, $results['paths'])) {
+                    $apis = array_merge($apis, $results['paths']);
                 }
-                if (isset($results, $results['models'])) {
-                    $models = array_merge($models, $results['models']);
+                if (isset($results, $results['definitions'])) {
+                    $models = array_merge($models, $results['definitions']);
                 }
             }
         }
 
-        $base['apis'] = array_merge($base['apis'], $apis);
-        $base['models'] = array_merge($base['models'], $models);
+        $base['paths'] = array_merge($base['paths'], $apis);
+        $base['definitions'] = array_merge($base['definitions'], $models);
 
         return $base;
     }

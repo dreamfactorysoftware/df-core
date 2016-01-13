@@ -14,6 +14,11 @@ use DreamFactory\Core\Services\BaseFileService;
 class App extends BaseSystemResource
 {
     /**
+     * @var string DreamFactory\Core\Models\BaseSystemModel Model Class name.
+     */
+    protected static $model = AppModel::class;
+
+    /**
      * Handles GET action
      *
      * @return array|null
@@ -59,7 +64,7 @@ class App extends BaseSystemResource
         if (!empty($this->resource)) {
             if ($this->request->getParameterAsBool(ApiOptions::REGENERATE)) {
                 /** @var AppModel $appClass */
-                $appClass = $this->model;
+                $appClass = static::$model;
                 $app = $appClass::find($this->resource)->first();
                 $app->api_key = $appClass::generateApiKey($app->name);
                 $app->save();

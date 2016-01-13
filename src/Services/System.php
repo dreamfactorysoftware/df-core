@@ -2,10 +2,14 @@
 
 namespace DreamFactory\Core\Services;
 
-use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Resources\BaseRestResource;
+use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\SystemResource;
+use DreamFactory\Library\Utility\Inflector;
 
 class System extends BaseRestService
 {
@@ -23,9 +27,8 @@ class System extends BaseRestService
     public function getAccessList()
     {
         $list = parent::getAccessList();
-        $nameField = $this->getResourceIdentifier();
-        foreach ($this->getResources() as $resource)
-        {
+        $nameField = static::getResourceIdentifier();
+        foreach ($this->getResources() as $resource) {
             $name = ArrayUtils::get($resource, $nameField);
             if (!empty($this->getPermissions())) {
                 $list[] = $name . '/';
@@ -36,42 +39,36 @@ class System extends BaseRestService
         return $list;
     }
 
-    /**
-     * {@inheritdoc}
-     */
-    public function getApiDocInfo()
+    public static function getApiDocInfo(Service $service)
     {
-        $base = parent::getApiDocInfo();
+        $base = parent::getApiDocInfo($service);
 
         $apis = [];
         $models = [];
+        $resources = SystemResource::all()->toArray();
+        foreach ($resources as $resourceInfo) {
+            $resourceClass = ArrayUtils::get($resourceInfo, 'class_name');
 
-        foreach ($this->getResources(true) as $resourceInfo) {
-            $className = ArrayUtils::get($resourceInfo, 'class_name');
-
-            if (!class_exists($className)) {
+            if (!class_exists($resourceClass)) {
                 throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
-                    $this->resourcePath);
+                    $resourceClass);
             }
 
-            /** @var BaseRestResource $resource */
-            $resource = $this->instantiateResource($className, $resourceInfo);
-
-            $name = ArrayUtils::get($resourceInfo, static::RESOURCE_IDENTIFIER, '') . '/';
-            $access = $this->getPermissions($name);
+            $resourceName = ArrayUtils::get($resourceInfo, static::RESOURCE_IDENTIFIER);
+            $access = Session::getServicePermissions($service->name, $resourceName, ServiceRequestorTypes::API);
             if (!empty($access)) {
-                $results = $resource->getApiDocInfo();
-                if (isset($results, $results['apis'])) {
-                    $apis = array_merge($apis, $results['apis']);
+                $results = $resourceClass::getApiDocInfo($service, $resourceInfo);
+                if (isset($results, $results['paths'])) {
+                    $apis = array_merge($apis, $results['paths']);
                 }
-                if (isset($results, $results['models'])) {
-                    $models = array_merge($models, $results['models']);
+                if (isset($results, $results['definitions'])) {
+                    $models = array_merge($models, $results['definitions']);
                 }
             }
         }
 
-        $base['apis'] = array_merge($base['apis'], $apis);
-        $base['models'] = array_merge($base['models'], $models);
+        $base['paths'] = array_merge($base['paths'], $apis);
+        $base['definitions'] = array_merge($base['definitions'], $models);
 
         return $base;
     }

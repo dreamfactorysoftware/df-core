@@ -94,7 +94,6 @@ class CreateSystemTables extends Migration
                 $t->string('class_name');
                 $t->string('label', 80);
                 $t->string('description')->nullable();
-                $t->string('model_name')->nullable();
                 $t->boolean('singleton')->default(0);
                 $t->boolean('read_only')->default(0);
                 $t->timestamp('created_date');

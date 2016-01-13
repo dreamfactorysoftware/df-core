@@ -431,7 +431,7 @@ abstract class RestHandler implements RequestHandlerInterface
      * @return string
      * @throws BadRequestException
      */
-    protected function getResourceIdentifier()
+    protected static function getResourceIdentifier()
     {
         throw new BadRequestException('No known identifier for resources.');
     }
@@ -473,7 +473,7 @@ abstract class RestHandler implements RequestHandlerInterface
         if (is_array($resources)) {
             $includeAccess = $this->request->getParameterAsBool(ApiOptions::INCLUDE_ACCESS);
             $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
             $fields = $this->request->getParameter(ApiOptions::FIELDS);
             if (!$asList && $includeAccess) {
                 foreach ($resources as &$resource) {

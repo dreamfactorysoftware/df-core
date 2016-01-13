@@ -3,13 +3,14 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Models\BaseSystemModel;
-use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\Inflector;
 
 class Config extends BaseSystemResource
 {
+    protected static $model = \DreamFactory\Core\Models\Config::class;
 
     public function __construct($settings = [])
     {
@@ -21,50 +22,63 @@ class Config extends BaseSystemResource
         ArrayUtils::set($settings, "verbAliases", $verbAliases);
 
         parent::__construct($settings);
-
-        $this->model = \DreamFactory\Core\Models\Config::class;
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(\DreamFactory\Core\Models\Service $service, array $resource = [])
     {
-        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
+        $serviceName = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
         $config = [];
 
-        $config['apis'] = [
-            [
-                'path'        => $path,
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getConfig() - Retrieve system configuration properties.',
-                        'nickname'         => 'getConfig',
-                        'type'             => 'ConfigResponse',
-                        'event_name'       => $eventPath . '.read',
-                        'notes'            => 'The retrieved properties control how the system behaves.',
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                    ],
-                    [
-                        'method'           => 'POST',
-                        'summary'          => 'setConfig() - Update one or more system configuration properties.',
-                        'nickname'         => 'setConfig',
-                        'type'             => 'ConfigResponse',
-                        'event_name'       => $eventPath . '.update',
-                        'notes'            => 'Post data should be an array of properties.',
-                        'parameters'       => [
-                            [
-                                'name'          => 'body',
-                                'description'   => 'Data containing name-value pairs of properties to set.',
-                                'allowMultiple' => false,
-                                'type'          => 'ConfigRequest',
-                                'paramType'     => 'body',
-                                'required'      => true,
-                            ],
+        $config['paths'] = [
+            $path => [
+                'get'  => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get'.$capitalized.'Config() - Retrieve system configuration properties.',
+                    'operationId' => 'get'.$capitalized.'Config',
+                    'event_name'  => $eventPath . '.read',
+                    'description' => 'The retrieved properties control how the system behaves.',
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Config',
+                            'schema'      => ['$ref' => '#/definitions/ConfigResponse']
                         ],
-                        'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
                     ],
                 ],
-                'description' => 'Operations for system configuration options.',
+                'post' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'set'.$capitalized.'Config() - Update one or more system configuration properties.',
+                    'operationId' => 'set'.$capitalized.'Config',
+                    'event_name'  => $eventPath . '.update',
+                    'description' => 'Post data should be an array of properties.',
+                    'parameters'  => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of properties to set.',
+                            'schema'      => ['$ref' => '#/definitions/ConfigRequest'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
             ],
         ];
 
@@ -86,13 +100,13 @@ class Config extends BaseSystemResource
             ],
         ];
 
-        $config['models'] = [
+        $config['definitions'] = [
             'ConfigRequest'  => [
-                'id'         => 'ConfigRequest',
+                'type'       => 'object',
                 'properties' => $commonProperties,
             ],
             'ConfigResponse' => [
-                'id'         => 'ConfigResponse',
+                'type'       => 'object',
                 'properties' => $commonProperties,
             ],
         ];
@@ -115,7 +129,7 @@ class Config extends BaseSystemResource
         $this->triggerActionEvent($this->response);
 
         /** @type BaseSystemModel $modelClass */
-        $modelClass = $this->model;
+        $modelClass = static::$model;
 
         return $modelClass::create($records);
     }

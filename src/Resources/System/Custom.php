@@ -2,8 +2,15 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Models\SystemCustom;
+
 class Custom extends BaseSystemResource
 {
+    /**
+     * @var string DreamFactory\Core\Models\BaseSystemModel Model Class name.
+     */
+    protected static $model = SystemCustom::class;
+
     /**
      * Retrieves records by id.
      *

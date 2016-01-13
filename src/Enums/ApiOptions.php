@@ -132,70 +132,196 @@ class ApiOptions extends FactoryEnum
         self::GROUP  => ['group_by'],
     ];
 
-    protected static $typeMap = [
-        // only include non-strings here for speed
-        self::LIMIT                => 'integer',
-        self::OFFSET               => 'integer',
-        self::CONTINUES            => 'boolean',
-        self::ROLLBACK             => 'boolean',
-        self::INCLUDE_ACCESS       => 'boolean',
-        self::INCLUDE_COUNT        => 'boolean',
-        self::INCLUDE_SCHEMA       => 'boolean',
-        self::AS_LIST              => 'boolean',
-        self::AS_ACCESS_LIST       => 'boolean',
-        self::REFRESH              => 'boolean',
-        self::REGENERATE           => 'boolean',
-        self::FORCE                => 'boolean',
-        self::ALLOW_RELATED_DELETE => 'boolean',
-    ];
-
-    protected static $descriptionMap = [
-        self::IDS                  => 'Comma-delimited list of the identifiers of the records to retrieve.',
-        self::ID_FIELD             => 'Comma-delimited list of the fields used as identifiers, used to override defaults or provide identifiers when none are provisioned.',
-        self::ID_TYPE              => 'Comma-delimited list of the field types used as identifiers for the table, used to override defaults or provide identifiers when none are provisioned.',
-        self::FILTER               => 'SQL-like filter to limit the records to retrieve.',
-        self::LIMIT                => 'Set to limit the filter results.',
-        self::ORDER                => 'SQL-like order containing field and direction for filter results.',
-        self::GROUP                => 'Comma-delimited list of the fields used for grouping of filter results.',
-        self::HAVING               => 'SQL-like filter to limit the results after the grouping of filter results.',
-        self::OFFSET               => 'Set to offset the filter results to a particular record count.',
-        self::FIELDS               => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier.',
-        self::CONTINUES            => 'In batch scenarios where supported, continue processing even after one action fails. Default behavior is to halt and return results up to the first point of failure.',
-        self::ROLLBACK             => 'In batch scenarios where supported, rollback all actions if one action fails. Default behavior is to halt and return results up to the first point of failure.',
-        self::RELATED              => 'Comma-delimited list of related names to retrieve for each resource.',
-        self::ALLOW_RELATED_DELETE => 'Set to true to allow related records to be deleted on parent update.',
-        self::INCLUDE_ACCESS       => 'Include the access permissions for the returned resource.',
-        self::INCLUDE_COUNT        => 'Include the total number of filter results in returned metadata.',
-        self::INCLUDE_SCHEMA       => 'Include the schema of the table queried in returned metadata.',
-        self::FILE                 => 'Download the results of the request as a file.',
-        self::AS_LIST              => 'Return only a list of the resource identifiers.',
-        self::AS_ACCESS_LIST       => 'Returns a list of the resources for role access designation.',
-        self::REFRESH              => 'Refresh any cached resource list on the server.',
-        self::REGENERATE           => 'Generate a new API key for this application.',
-        self::SCHEMA               => 'Select only a single schema of a database. Not applicable on all database services.',
-        self::FORCE                => 'Set to true to delete all resources in the given table, folder, etc.',
-    ];
-
-    protected static $multipleMap = [
-        // only put ones that allow multiple here
-        self::IDS,
-        self::FIELDS,
-        self::GROUP,
-        self::RELATED,
+    protected static $swaggerMap = [
+        self::IDS                  => [
+            'name'             => self::IDS,
+            'type'             => 'array',
+            'collectionFormat' => 'csv',
+            'items'            => [
+                'type'   => 'integer',
+                'format' => 'int32'
+            ],
+            'in'               => 'query',
+            'description'      => 'Comma-delimited list of the identifiers of the records to retrieve.',
+        ],
+        self::ID_FIELD             => [
+            'name'             => self::ID_FIELD,
+            'type'             => 'array',
+            'collectionFormat' => 'csv',
+            'items'            => [
+                'type' => 'string',
+            ],
+            'in'               => 'query',
+            'description'      => 'Comma-delimited list of the fields used as identifiers, used to override defaults or provide identifiers when none are provisioned.'
+        ],
+        self::ID_TYPE              => [
+            'name'             => self::ID_TYPE,
+            'type'             => 'array',
+            'collectionFormat' => 'csv',
+            'items'            => [
+                'type' => 'string',
+            ],
+            'in'               => 'query',
+            'description'      => 'Comma-delimited list of the field types used as identifiers for the table, used to override defaults or provide identifiers when none are provisioned.'
+        ],
+        self::FILTER               => [
+            'name'        => self::FILTER,
+            'type'        => 'string',
+            'in'          => 'query',
+            'description' => 'SQL-like filter to limit the records to retrieve.'
+        ],
+        self::LIMIT                => [
+            'name'        => self::LIMIT,
+            'type'        => 'integer',
+            'format'      => 'int32',
+            'in'          => 'query',
+            'description' => 'Set to limit the filter results.'
+        ],
+        self::ORDER                => [
+            'name'        => self::ORDER,
+            'type'        => 'string',
+            'in'          => 'query',
+            'description' => 'SQL-like order containing field and direction for filter results.'
+        ],
+        self::GROUP                => [
+            'name'        => self::GROUP,
+            'type'        => 'string',
+            'in'          => 'query',
+            'description' => 'Comma-delimited list of the fields used for grouping of filter results.'
+        ],
+        self::HAVING               => [
+            'name'        => self::HAVING,
+            'type'        => 'string',
+            'in'          => 'query',
+            'description' => 'SQL-like filter to limit the results after the grouping of filter results.'
+        ],
+        self::OFFSET               => [
+            'name'        => self::OFFSET,
+            'type'        => 'integer',
+            'format'      => 'int32',
+            'in'          => 'query',
+            'description' => 'Set to offset the filter results to a particular record count.'
+        ],
+        self::FIELDS               => [
+            'name'             => self::FIELDS,
+            'type'             => 'array',
+            'collectionFormat' => 'csv',
+            'items'            => [
+                'type' => 'string',
+            ],
+            'in'               => 'query',
+            'description'      => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier.'
+        ],
+        self::CONTINUES            => [
+            'name'        => self::CONTINUES,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'In batch scenarios where supported, continue processing even after one action fails. Default behavior is to halt and return results up to the first point of failure.'
+        ],
+        self::ROLLBACK             => [
+            'name'        => self::ROLLBACK,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'In batch scenarios where supported, rollback all actions if one action fails. Default behavior is to halt and return results up to the first point of failure.'
+        ],
+        self::RELATED              => [
+            'name'             => self::RELATED,
+            'type'             => 'array',
+            'collectionFormat' => 'csv',
+            'items'            => [
+                'type' => 'string',
+            ],
+            'in'               => 'query',
+            'description'      => 'Comma-delimited list of related names to retrieve for each resource.'
+        ],
+        self::ALLOW_RELATED_DELETE => [
+            'name'        => self::ALLOW_RELATED_DELETE,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'Set to true to allow related records to be deleted on parent update.'
+        ],
+        self::INCLUDE_ACCESS       => [
+            'name'        => self::INCLUDE_ACCESS,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'Include the access permissions for the returned resource.'
+        ],
+        self::INCLUDE_COUNT        => [
+            'name'        => self::INCLUDE_COUNT,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'Include the total number of filter results in returned metadata.'
+        ],
+        self::INCLUDE_SCHEMA       => [
+            'name'        => self::INCLUDE_SCHEMA,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'Include the schema of the table queried in returned metadata.'
+        ],
+        self::AS_LIST              => [
+            'name'        => self::AS_LIST,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'Return only a list of the resource identifiers.'
+        ],
+        self::AS_ACCESS_LIST       => [
+            'name'        => self::AS_ACCESS_LIST,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'Returns a list of the resources for role access designation.'
+        ],
+        self::REFRESH              => [
+            'name'        => self::REFRESH,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'Refresh any cached resource list on the server.'
+        ],
+        self::REGENERATE           => [
+            'name'        => self::SCHEMA,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'Generate a new API key for this application.'
+        ],
+        self::FORCE                => [
+            'name'        => self::FORCE,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'Set to true to delete all resources in the given table, folder, etc.'
+        ],
+        self::FILE                 => [
+            'name'        => self::FILE,
+            'type'        => 'string',
+            'in'          => 'query',
+            'description' => 'Download the results of the request as a file.'
+        ],
+        self::SCHEMA               => [
+            'name'        => self::SCHEMA,
+            'type'        => 'string',
+            'in'          => 'query',
+            'description' => 'Select only a single schema of a database. Not applicable on all database services.'
+        ],
     ];
 
     public static function documentOption($option, $required = false, $default = null)
     {
-        return [
-            'name'          => $option,
-            'description'   => static::getDescription($option),
-            'allowMultiple' => static::doesAllowMultiple($option),
-            'type'          => static::getType($option),
-            'format'        => 'int32',
-            'paramType'     => 'query',
-            'required'      => $required,
-            'default'       => $default,
-        ];
+        if (isset(static::$swaggerMap[$option])) {
+            $found = static::$swaggerMap[$option];
+//            if ($required || isset($default)) {
+                // override, do not reference
+                if ($required) {
+                    $found['required'] = true;
+                }
+                if (isset($default)) {
+                    $found['default'] = $default;
+                }
+
+                return $found;
+//            } else {
+//                return ['$ref' => '#/parameters/' . $option];
+//            }
+        }
+
+        return null;
     }
 
     public static function checkArray($option, $params, $default = null)
@@ -249,24 +375,15 @@ class ApiOptions extends FactoryEnum
 
     public static function getType($option)
     {
-        if (isset(static::$typeMap[$option])) {
-            return static::$typeMap[$option];
+        if (isset(static::$swaggerMap[$option], static::$swaggerMap[$option]['type'])) {
+            return static::$swaggerMap[$option]['type'];
         }
 
         return 'string';
     }
 
-    public static function getDescription($option)
+    public static function getSwaggerGlobalParameters()
     {
-        if (isset(static::$descriptionMap[$option])) {
-            return static::$descriptionMap[$option];
-        }
-
-        return '';
-    }
-
-    public static function doesAllowMultiple($option)
-    {
-        return in_array($option, static::$multipleMap);
+        return array_values(static::$swaggerMap);
     }
 }

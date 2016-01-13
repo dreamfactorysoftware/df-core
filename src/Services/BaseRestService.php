@@ -5,7 +5,9 @@ namespace DreamFactory\Core\Services;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\ForbiddenException;
-use DreamFactory\Core\Utility\ApiDocUtilities;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Components\RestHandler;
 use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
@@ -15,6 +17,7 @@ use DreamFactory\Core\Events\ServicePreProcess;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -65,7 +68,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
         return parent::handleRequest($request, $resource);
     }
 
-        /**
+    /**
      * Runs pre process tasks/scripts
      */
     protected function preProcess()
@@ -104,7 +107,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
     /**
      * {@inheritdoc}
      */
-    protected function getResourceIdentifier()
+    protected static function getResourceIdentifier()
     {
         return static::RESOURCE_IDENTIFIER;
     }
@@ -149,107 +152,67 @@ class BaseRestService extends RestHandler implements ServiceInterface
         return parent::handleGET();
     }
 
-    public function getApiDocModels()
+    public static function getApiDocInfo(Service $service)
     {
-        $name = Inflector::camelize($this->name);
-        $plural = Inflector::pluralize($name);
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $pluralClass = Inflector::pluralize($class);
         $wrapper = ResourcesWrapper::getWrapper();
 
         return [
-            'ResourceList'       => [
-                'id'         => 'ResourceList',
-                'properties' => [
-                    $wrapper => [
-                        'type'        => 'array',
-                        'description' => 'Array of accessible resources available to this service.',
-                        'items'       => [
-                            'type' => 'string',
+            'paths'       => [
+                '/' . $name => [
+                    'get' => [
+                        'tags'        => [$name],
+                        'summary'     => 'get' . $capitalized . 'Resources() - Get resources for this service.',
+                        'operationId' => 'get' . $capitalized . 'Resources',
+                        'description' => 'Return an array of the resources available.',
+                        'event_name'  => [$name . '.list'],
+                        'parameters'  => [
+                            ApiOptions::documentOption(ApiOptions::AS_LIST),
+                            ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
+                            ApiOptions::documentOption(ApiOptions::INCLUDE_ACCESS),
+                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                            ApiOptions::documentOption(ApiOptions::REFRESH),
                         ],
-                    ],
-                ],
-            ],
-            $name . 'Response'   => [
-                'id'         => $name . 'Response',
-                'properties' => [
-                    $this->getResourceIdentifier() => [
-                        'type'        => 'string',
-                        'description' => 'Identifier of the resource.',
-                    ],
-                ],
-            ],
-            $plural . 'Response' => [
-                'id'         => $plural . 'Response',
-                'properties' => [
-                    $wrapper => [
-                        'type'        => 'array',
-                        'description' => 'Array of resources available to this service.',
-                        'items'       => [
-                            '$ref' => $name . 'Response',
-                        ],
-                    ],
-                ],
-            ],
-            'Success'            => [
-                'id'         => 'Success',
-                'properties' => [
-                    'success' => [
-                        'type'        => 'boolean',
-                        'description' => 'True when API call was successful, false or error otherwise.',
-                    ],
-                ],
-            ],
-        ];
-    }
-
-    public function getApiDocInfo()
-    {
-        $path = '/' . $this->name;
-        $eventPath = $this->name;
-        $name = Inflector::camelize($this->name);
-        $plural = Inflector::pluralize($name);
-
-        return [
-            'resourcePath' => $path,
-            'produces'     => ['application/json', 'application/xml'],
-            'consumes'     => ['application/json', 'application/xml'],
-            'apis'         => [
-                [
-                    'path'        => $path,
-                    'description' => "Operations available for the {$this->label} service.",
-                    'operations'  => [
-                        [
-                            'method'           => 'GET',
-                            'summary'          => 'getResourceList() - List all resource names.',
-                            'nickname'         => 'getResourceList',
-                            'notes'            => 'Return only a list of the resource identifiers.',
-                            'type'             => 'ResourceList',
-                            'event_name'       => [$eventPath . '.list'],
-                            'parameters'       => [
-                                ApiOptions::documentOption(ApiOptions::AS_LIST, true, true),
-                                ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
-                                ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                ApiOptions::documentOption(ApiOptions::REFRESH),
+                        'responses'   => [
+                            '200'     => [
+                                'description' => 'Success',
+                                'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
                             ],
-                            'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
-                        ],
-                        [
-                            'method'           => 'GET',
-                            'summary'          => 'getResources() - List all resources.',
-                            'nickname'         => 'getResources',
-                            'notes'            => 'List the resources available on this service. ',
-                            'type'             => $plural . 'Response',
-                            'event_name'       => [$eventPath . '.list'],
-                            'parameters'       => [
-                                ApiOptions::documentOption(ApiOptions::FIELDS),
-                                ApiOptions::documentOption(ApiOptions::REFRESH),
-                            ],
-                            'responseMessages' => ApiDocUtilities::getCommonResponses([400, 401, 500]),
+                            'default' => [
+                                'description' => 'Error',
+                                'schema'      => ['$ref' => '#/definitions/Error']
+                            ]
                         ],
                     ],
                 ],
             ],
-            'models'       => $this->getApiDocModels()
+            'definitions' => [
+                $class . 'Response'       => [
+                    'type'       => 'object',
+                    'properties' => [
+                        static::getResourceIdentifier() => [
+                            'type'        => 'string',
+                            'description' => 'Identifier of the resource.',
+                        ],
+                    ],
+                ],
+                $pluralClass . 'Response' => [
+                    'type'       => 'object',
+                    'properties' => [
+                        $wrapper => [
+                            'type'        => 'array',
+                            'description' => 'Array of resources available to this service.',
+                            'items'       => [
+                                '$ref' => '#/definitions/' . $name . 'Response',
+                            ],
+                        ],
+                    ],
+                ],
+            ]
         ];
     }
 }

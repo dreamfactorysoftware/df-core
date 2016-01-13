@@ -1266,7 +1266,7 @@ class BaseModel extends Model implements CacheInterface
                             if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => 'Related' . $refModel . 'Response'],
+                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record directly",
                                     'required'    => false
                                 ];
@@ -1275,7 +1275,7 @@ class BaseModel extends Model implements CacheInterface
                             if (array_key_exists($relation->name, $responseRelatives)) {
                                 $responseRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => 'Related' . $refModel . 'Response'],
+                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record directly",
                                     'required'    => false
                                 ];
@@ -1289,7 +1289,7 @@ class BaseModel extends Model implements CacheInterface
                             if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => 'Related' . $refModel . 'Request'],
+                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Request'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
                                     'required'    => false
                                 ];
@@ -1298,7 +1298,7 @@ class BaseModel extends Model implements CacheInterface
                             if (array_key_exists($relation->name, $responseRelatives)) {
                                 $responseRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => 'Related' . $refModel . 'Response'],
+                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
                                     'required'    => false
                                 ];
@@ -1314,19 +1314,21 @@ class BaseModel extends Model implements CacheInterface
 
             return [
                 $name . 'Request'              => [
-                    'id'         => $name . 'Request',
-                    'properties' => $requestFields + $requestRelatives
+                    'type'       => 'object',
+                    //                    'properties' => $requestFields + $requestRelatives
+                    'properties' => $requestFields
                 ],
                 $name . 'Response'             => [
-                    'id'         => $name . 'Response',
-                    'properties' => $responseFields + $responseRelatives
+                    'type'       => 'object',
+                    //                    'properties' => $responseFields + $responseRelatives
+                    'properties' => $responseFields
                 ],
                 'Related' . $name . 'Request'  => [
-                    'id'         => 'Related' . $name . 'Request',
+                    'type'       => 'object',
                     'properties' => $requestFields
                 ],
                 'Related' . $name . 'Response' => [
-                    'id'         => 'Related' . $name . 'Response',
+                    'type'       => 'object',
                     'properties' => $responseFields
                 ]
             ];

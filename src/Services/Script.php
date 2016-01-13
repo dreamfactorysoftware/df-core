@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Services;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -126,20 +127,8 @@ class Script extends BaseRestService
         return $output;
     }
 
-    // override base class for API Docs, get from custom config
-    public function getApiDocModels()
+    public static function getApiDocInfo(Service $service)
     {
-        return [];
-    }
-
-    public function getApiDocInfo()
-    {
-        return [
-            'resourcePath' => '/' . $this->name,
-            'produces'     => ['application/json', 'application/xml'],
-            'consumes'     => ['application/json', 'application/xml'],
-            'apis'         => [],
-            'models'       => [],
-        ];
+        return ['paths' => [], 'definitions' => []];
     }
 }

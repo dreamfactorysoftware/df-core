@@ -232,12 +232,9 @@ class Service extends BaseSystemModel
         if (is_string($content)) {
             $content = json_decode($content, true);
         } else {
+            /** @var BaseRestService $serviceClass */
             $serviceClass = $service->serviceType()->first()->class_name;
-            $settings = $service->toArray();
-
-            /** @var BaseRestService $obj */
-            $obj = new $serviceClass($settings);
-            $content = $obj->getApiDocInfo();
+            $content = $serviceClass::getApiDocInfo($service);
         }
 
         return $content;

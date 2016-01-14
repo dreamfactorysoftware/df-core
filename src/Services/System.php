@@ -8,6 +8,7 @@ use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\SystemResource;
+use DreamFactory\Library\Utility\Inflector;
 
 class System extends BaseRestService
 {
@@ -53,8 +54,7 @@ class System extends BaseRestService
             }
 
             $resourceName = ArrayUtils::get($resourceInfo, static::RESOURCE_IDENTIFIER);
-            $access = Session::getServicePermissions($service->name, $resourceName, ServiceRequestorTypes::API);
-            if (!empty($access)) {
+            if (Session::checkForAnyServicePermissions($service->name, $resourceName)) {
                 $results = $resourceClass::getApiDocInfo($service, $resourceInfo);
                 if (isset($results, $results['paths'])) {
                     $apis = array_merge($apis, $results['paths']);

@@ -103,7 +103,7 @@ class Swagger extends BaseRestService
             /** @type Service[] $services */
             $services = Service::all();
             foreach ($services as $service) {
-                if (!$service->is_active || !Session::getServicePermissions($service->name)) {
+                if (!$service->is_active || !Session::checkForAnyServicePermissions($service->name)) {
                     continue;
                 }
 

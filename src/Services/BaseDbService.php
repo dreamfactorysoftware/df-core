@@ -148,8 +148,7 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
             }
 
             $resourceName = ArrayUtils::get($resourceInfo, static::RESOURCE_IDENTIFIER);
-            $access = Session::getServicePermissions($service->name, $resourceName, ServiceRequestorTypes::API);
-            if (!empty($access)) {
+            if (Session::checkForAnyServicePermissions($service->name, $resourceName)) {
                 $results = $resourceClass::getApiDocInfo($service, $resourceInfo);
                 if (isset($results, $results['paths'])) {
                     $apis = array_merge($apis, $results['paths']);

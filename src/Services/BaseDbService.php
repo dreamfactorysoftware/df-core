@@ -14,7 +14,6 @@ use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Resources\BaseDbResource;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Inflector;
 
 abstract class BaseDbService extends BaseRestService implements CachedInterface
 {

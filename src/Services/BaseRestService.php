@@ -5,9 +5,7 @@ namespace DreamFactory\Core\Services;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\ForbiddenException;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Components\RestHandler;
 use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
@@ -17,7 +15,6 @@ use DreamFactory\Core\Events\ServicePreProcess;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 
@@ -173,6 +170,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                             ApiOptions::documentOption(ApiOptions::AS_LIST),
                             ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
                             ApiOptions::documentOption(ApiOptions::INCLUDE_ACCESS),
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
                             ApiOptions::documentOption(ApiOptions::ID_FIELD),
                             ApiOptions::documentOption(ApiOptions::ID_TYPE),
                             ApiOptions::documentOption(ApiOptions::REFRESH),
@@ -207,7 +205,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                             'type'        => 'array',
                             'description' => 'Array of resources available to this service.',
                             'items'       => [
-                                '$ref' => '#/definitions/' . $name . 'Response',
+                                '$ref' => '#/definitions/' . $class . 'Response',
                             ],
                         ],
                     ],

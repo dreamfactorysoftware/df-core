@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class CreateSystemTables extends Migration
 {
@@ -12,10 +13,20 @@ class CreateSystemTables extends Migration
      */
     public function up()
     {
+        $driver = Schema::getConnection()->getDriverName();
+        $sqlsrv = (('sqlsrv' === $driver) || ('dblib' === $driver));
+        // Even though we take care of this scenario in the code,
+        // SQL Server does not allow potential cascading loops,
+        // so set the default no action and clear out created/modified by another user when deleting a user.
+        $userOnDelete = ($sqlsrv ? 'no action' : 'set null');
+
+        $output = new ConsoleOutput();
+        $output->writeln("Migration driver used: $driver");
+
         // User table
         Schema::create(
             'user',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->string('name');
                 $t->string('first_name')->nullable();
@@ -34,16 +45,16 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // User Lookup Keys
         Schema::create(
             'user_lookup',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->integer('user_id')->unsigned();
                 $t->foreign('user_id')->references('id')->on('user')->onDelete('cascade');
@@ -54,13 +65,13 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
-        //Password reset table
+        // Password reset table
         Schema::create(
             'password_resets',
             function (Blueprint $t){
@@ -104,7 +115,7 @@ class CreateSystemTables extends Migration
         // Services
         Schema::create(
             'service',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->string('name', 40)->unique();
                 $t->string('label', 80);
@@ -117,9 +128,9 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
@@ -167,7 +178,7 @@ class CreateSystemTables extends Migration
         // Event Subscriber
         Schema::create(
             'event_subscriber',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->string('name', 80)->unique();
                 $t->string('type');
@@ -175,16 +186,16 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // Event Scripts
         Schema::create(
             'event_script',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->string('name', 80)->primary();
                 $t->string('type', 40);
                 $t->foreign('type')->references('name')->on('script_type')->onDelete('cascade');
@@ -195,16 +206,16 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // Roles
         Schema::create(
             'role',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->string('name', 64)->unique();
                 $t->string('description')->nullable();
@@ -212,16 +223,16 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // Roles to Services Allowed Accesses
         Schema::create(
             'role_service_access',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->integer('role_id')->unsigned();
                 $t->foreign('role_id')->references('id')->on('role')->onDelete('cascade');
@@ -235,16 +246,16 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // Role Lookup Keys
         Schema::create(
             'role_lookup',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->integer('role_id')->unsigned();
                 $t->foreign('role_id')->references('id')->on('role')->onDelete('cascade');
@@ -255,32 +266,32 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // System Settings
         Schema::create(
             'system_setting',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->string('name')->unique();
                 $t->text('value')->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // System Lookups
         Schema::create(
             'system_lookup',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->string('name')->unique();
                 $t->text('value')->nullable();
@@ -289,16 +300,16 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // Email Templates
         Schema::create(
             'email_template',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->string('name', 64)->unique();
                 $t->string('description')->nullable();
@@ -316,16 +327,16 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // Database Table Extras
         Schema::create(
             'db_table_extras',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->integer('service_id')->unsigned();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
@@ -338,18 +349,18 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // Database Field Extras
         Schema::create(
             'db_field_extras',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
-                $t->integer('service_id')->unsigned()->nullable();
+                $t->integer('service_id')->unsigned();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->string('table');
                 $t->string('field');
@@ -362,32 +373,32 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // System Configuration
         Schema::create(
             'system_config',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->string('db_version', 32)->primary();
                 $t->boolean('login_with_user_name')->default(0);
                 $t->integer('default_app_id')->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         //Cors config table
         Schema::create(
             'cors_config',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->string('path')->unique();
                 $t->string('origin');
@@ -398,9 +409,9 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
@@ -445,7 +456,7 @@ class CreateSystemTables extends Migration
         // Applications
         Schema::create(
             'app',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->string('name', 64)->unique();
                 $t->string('api_key')->nullable();
@@ -465,16 +476,16 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // App Lookup Keys
         Schema::create(
             'app_lookup',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->integer('app_id')->unsigned();
                 $t->foreign('app_id')->references('id')->on('app')->onDelete('cascade');
@@ -485,25 +496,25 @@ class CreateSystemTables extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
         // Application Groups - visual aid for Launchpad only
         Schema::create(
             'app_group',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->string('name', 64)->unique();
                 $t->string('description')->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
 
@@ -568,15 +579,15 @@ class CreateSystemTables extends Migration
         // create system customizations
         Schema::create(
             'system_custom',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->string('name')->primary();
                 $t->longText('value')->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
     }

@@ -2097,7 +2097,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 continue;
                             }
 
-                            $fieldVal = $this->parseValueForSet($fieldVal, $fieldInfo);
+                            try {
+                                $fieldVal = $this->parseValueForSet($fieldVal, $fieldInfo);
+                            } catch (ForbiddenException $ex) {
+                                unset($record[$name]);
+                                continue;
+                            }
 
                             $parsed[$fieldInfo->name] = $fieldVal;
                             unset($record[$name]);

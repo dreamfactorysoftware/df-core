@@ -18,6 +18,9 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
         if ((false !== strpos($dbType, 'varchar')) && (null === $this->size)) {
             $this->type = static::TYPE_TEXT;
         }
+        if ((0 === strcasecmp($dbType, 'timestamp')) || (0 === strcasecmp($dbType, 'rowversion'))) {
+            $this->type = static::TYPE_BIGINT;
+        }
     }
 
     /**
@@ -79,6 +82,9 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
             case 'datetime':
             case 'datetimeoffset':
                 return "(CONVERT(nvarchar(30), $field, 127)) AS $alias";
+            case 'timestamp': // deprecated, not a real timestamp, but internal rowversion
+            case 'rowversion':
+                return "CAST($field AS BIGINT) AS $alias";
             case 'geometry':
             case 'geography':
             case 'hierarchyid':

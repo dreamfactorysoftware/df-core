@@ -1145,7 +1145,10 @@ class BaseModel extends Model implements CacheInterface
             static::$tableToModelMap = \Cache::get(static::TABLE_TO_MODEL_MAP_CACHE_KEY, []);
             if (empty(static::$tableToModelMap)) {
                 if (empty($system = Service::whereType('system')->first(['id']))) {
-                    throw new NotFoundException("Could not find a service with type 'system'.");
+                    return [];
+                    // can't throw an exception here because it gets called by the seeder on startup
+                    // before all of the services, including system, are initialized in the database
+//                    throw new NotFoundException("Could not find a service with type 'system'.");
                 }
 
                 static::$tableToModelMap =

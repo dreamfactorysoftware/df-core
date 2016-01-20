@@ -201,7 +201,7 @@ trait DbSchemaExtras
                             Service::getCachedByName($extra['ref_service'], 'id', $this->getServiceId());
                     } else {
                         // don't allow empty ref_service_id into the database, needs to be searchable from other services
-                        $extras['ref_service_id'] = $this->getServiceId();
+                        $extra['ref_service_id'] = $this->getServiceId();
                     }
                 }
                 DbFieldExtras::updateOrCreate([

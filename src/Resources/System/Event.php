@@ -110,15 +110,10 @@ class Event extends BaseRestResource
         $broadcastEvents = [];
         $eventCount = 0;
 
-        foreach (ArrayUtils::get($data, 'paths', []) as $ixApi => $api) {
+        foreach (ArrayUtils::get($data, 'paths', []) as $path => $api) {
             $apiProcessEvents = [];
             $apiBroadcastEvents = [];
             $apiParameters = [];
-
-            if (null === ($path = ArrayUtils::get($api, 'path'))) {
-                \Log::notice('  * Missing "path" in Swagger definition: ' . $apiName);
-                continue;
-            }
 
             $path = str_replace(
                 ['{service.name}', '/'],
@@ -146,7 +141,7 @@ class Event extends BaseRestResource
                     }
 
                     //  Set into master record
-                    $data['paths'][$ixApi][$ixOps]['event_name'] = $eventNames;
+                    $data[$path][$ixOps]['event_name'] = $eventNames;
 
                     foreach ($eventNames as $ixEventNames => $templateEventName) {
                         $eventName = str_replace(
@@ -173,7 +168,7 @@ class Event extends BaseRestResource
                         }
 
                         //  Set actual name in swagger file
-                        $data['paths'][$ixApi][$ixOps]['event_name'][$ixEventNames] = $eventName;
+                        $data[$path][$ixOps]['event_name'][$ixEventNames] = $eventName;
 
                         $eventCount++;
                     }

@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\EventScript;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Resources\BaseRestResource;
+use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -73,12 +74,7 @@ class Event extends BaseRestResource
         foreach ($result as $service) {
             $apiName = $service->name;
             try {
-                if (empty($content = ServiceModel::getStoredContentForService($service))) {
-                    throw new \Exception('  * No event content found for service.');
-                    continue;
-                }
-
-                $serviceEvents = static::parseSwaggerEvents($apiName, $content);
+                $serviceEvents = static::parseSwaggerEvents($service);
 
                 //	Parse the events while we get the chance...
                 $processEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'process', []);
@@ -92,39 +88,57 @@ class Event extends BaseRestResource
 
         static::$eventMap = ['process' => $processEventMap, 'broadcast' => $broadcastEventMap];
 
-        //	Write event cache file
-        \Cache::forever(static::EVENT_CACHE_KEY, static::$eventMap);
-
         \Log::info('Event cache build process complete');
     }
 
     /**
-     * @param string $apiName
-     * @param array  $data
+     * @param ServiceModel $service
      *
      * @return array
+     * @throws \Exception
      */
-    protected static function parseSwaggerEvents($apiName, &$data)
+    protected static function parseSwaggerEvents(ServiceModel $service)
     {
+        if (empty($content = ServiceModel::getStoredContentForService($service))) {
+            throw new \Exception('  * No event content found for service.');
+        }
+
+        /** @var BaseRestService $serviceClass */
+        $accessList = [];
+        if ($service->is_active) {
+            $serviceClass = $service->serviceType()->first()->class_name;
+            $settings = $service->toArray();
+            /** @var BaseRestService $obj */
+            $obj = new $serviceClass($settings);
+            $accessList = $obj->getAccessList();
+        }
+
         $processEvents = [];
         $broadcastEvents = [];
         $eventCount = 0;
 
-        foreach (ArrayUtils::get($data, 'paths', []) as $path => $api) {
+        foreach (ArrayUtils::get($content, 'paths', []) as $path => $api) {
             $apiProcessEvents = [];
             $apiBroadcastEvents = [];
             $apiParameters = [];
+            $pathParameters = [];
 
-            $path = str_replace(
+            $eventPath = str_replace(
                 ['{service.name}', '/'],
-                [$apiName, '.'],
+                [$service->name, '.'],
                 trim($path, '/')
             );
+            $resourcePath = ltrim(strstr(trim($path, '/'), '/'), '/');
+            $replacePos = strpos($resourcePath, '{');
 
             foreach ($api as $ixOps => $operation) {
-                if (null !== ($eventNames = ArrayUtils::get($operation, 'event_name'))) {
-                    $method = strtolower($ixOps);
+                if ('parameters' === $ixOps) {
+                    $pathParameters = $operation;
+                    continue;
+                }
 
+                $method = strtolower($ixOps);
+                if (null !== ($eventNames = ArrayUtils::get($operation, 'event_name'))) {
                     if (is_string($eventNames) && false !== strpos($eventNames, ',')) {
                         $eventNames = explode(',', $eventNames);
 
@@ -140,21 +154,14 @@ class Event extends BaseRestResource
                         $eventNames = [$eventNames];
                     }
 
-                    //  Set into master record
-                    $data[$path][$ixOps]['event_name'] = $eventNames;
-
                     foreach ($eventNames as $ixEventNames => $templateEventName) {
                         $eventName = str_replace(
                             [
                                 '{service.name}',
-                                $apiName . '.' . $apiName . '.',
-                                '{action}',
                                 '{request.method}'
                             ],
                             [
-                                $apiName,
-                                'system.' . $apiName . '.',
-                                $method,
+                                $service->name,
                                 $method,
                             ],
                             $templateEventName
@@ -167,25 +174,44 @@ class Event extends BaseRestResource
                             $apiBroadcastEvents[$method][] = $eventName;
                         }
 
-                        //  Set actual name in swagger file
-                        $data[$path][$ixOps]['event_name'][$ixEventNames] = $eventName;
-
                         $eventCount++;
                     }
+                }
 
-                    if (!isset($apiProcessEvents[$method])) {
-                        $apiProcessEvents[$method][] = "$path.$method.pre_process";
-                        $apiProcessEvents[$method][] = "$path.$method.post_process";
-                        $parameters = ArrayUtils::get($operation, 'parameters', []);
-                        foreach ($parameters as $parameter) {
-                            if ('path' === ArrayUtils::get($parameter, 'in')) {
-                                if (!empty($enums = ArrayUtils::get($parameter, 'enum'))) {
-                                    $name = ArrayUtils::get($parameter, 'name', '');
-                                    $apiParameters[$name] = $enums;
-                                } elseif (!empty($options = ArrayUtils::get($parameter, 'options'))) {
-                                    $name = ArrayUtils::get($parameter, 'name', '');
-                                    $apiParameters[$name] = $options;
+                if (!isset($apiProcessEvents[$method])) {
+                    $apiProcessEvents[$method][] = "$eventPath.$method.pre_process";
+                    $apiProcessEvents[$method][] = "$eventPath.$method.post_process";
+                    $parameters = ArrayUtils::get($operation, 'parameters', []);
+                    if (!empty($pathParameters)){
+                        $parameters = array_merge($pathParameters, $parameters);
+                    }
+                    foreach ($parameters as $parameter) {
+                        $type = ArrayUtils::get($parameter, 'in', '');
+                        if ('path' === $type) {
+                            $name = ArrayUtils::get($parameter, 'name', '');
+                            $options = ArrayUtils::get($parameter, 'enum', ArrayUtils::get($parameter, 'options'));
+                            if (empty($options) && !empty($accessList) && (false !== $replacePos)) {
+                                $checkFirstOption = strstr(substr($resourcePath, $replacePos + 1), '}', true);
+                                if ($name !== $checkFirstOption) {
+                                    continue;
                                 }
+                                $options = [];
+                                // try to match any access path
+                                foreach ($accessList as $access) {
+                                    $access = rtrim($access, '/*');
+                                    if (!empty($access) && (strlen($access) > $replacePos)) {
+                                        if (0 === substr_compare($access, $resourcePath, 0, $replacePos)) {
+                                            $option = substr($access, $replacePos);
+                                            if (false !== strpos($option, '/')){
+                                                $option = strstr($option, '/', true);
+                                            }
+                                            $options[] = $option;
+                                        }
+                                    }
+                                }
+                            }
+                            if (!empty($options)) {
+                                $apiParameters[$name] = array_values(array_unique($options));
                             }
                         }
                     }
@@ -194,10 +220,10 @@ class Event extends BaseRestResource
                 unset($operation);
             }
 
-            $processEvents[str_ireplace('{service.name}', $apiName, $path)]['verb'] = $apiProcessEvents;
+            $processEvents[$eventPath]['verb'] = $apiProcessEvents;
             $apiParameters = (empty($apiParameters)) ? null : $apiParameters;
-            $processEvents[str_ireplace('{service.name}', $apiName, $path)]['parameter'] = $apiParameters;
-            $broadcastEvents[str_ireplace('{service.name}', $apiName, $path)]['verb'] = $apiBroadcastEvents;
+            $processEvents[$eventPath]['parameter'] = $apiParameters;
+            $broadcastEvents[$eventPath]['verb'] = $apiBroadcastEvents;
 
             unset($apiProcessEvents, $apiBroadcastEvents, $apiParameters, $api);
         }
@@ -210,19 +236,23 @@ class Event extends BaseRestResource
     /**
      * Retrieves the cached event map or triggers a rebuild
      *
+     * @param bool $refresh
+     *
      * @return array
      */
-    public static function getEventMap()
+    public static function getEventMap($refresh = false)
     {
         if (!empty(static::$eventMap)) {
             return static::$eventMap;
         }
 
-        static::$eventMap = \Cache::get(static::EVENT_CACHE_KEY);
+        static::$eventMap = ($refresh ? [] : \Cache::get(static::EVENT_CACHE_KEY));
 
         //	If we still have no event map, build it.
         if (empty(static::$eventMap)) {
             static::buildEventMaps();
+            //	Write event cache file
+            \Cache::forever(static::EVENT_CACHE_KEY, static::$eventMap);
         }
 
         return static::$eventMap;
@@ -260,6 +290,7 @@ class Event extends BaseRestResource
      */
     protected function handleGET()
     {
+        $refresh = $this->request->getParameterAsBool('refresh');
         if (empty($this->resource)) {
             $service = $this->request->getParameter('service');
             $type = $this->request->getParameter('type');
@@ -280,7 +311,7 @@ class Event extends BaseRestResource
                 return ResourcesWrapper::cleanResources(array_values(array_unique($scripts)));
             }
 
-            $results = $this->getEventMap();
+            $results = $this->getEventMap($refresh);
             $allEvents = [];
             switch ($type) {
                 case 'process':

@@ -3,7 +3,6 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;

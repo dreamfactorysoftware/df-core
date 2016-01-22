@@ -128,7 +128,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
         return Session::getServicePermissions($this->name, $resource, $requestType);
     }
 
-    protected function getAccessList()
+    public function getAccessList()
     {
         if (!empty($this->getPermissions())) {
             return ['', '*'];

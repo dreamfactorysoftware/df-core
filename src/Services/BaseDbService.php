@@ -60,8 +60,8 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
     public function getAccessList()
     {
         $output = parent::getAccessList();
-        $refresh = $this->request->getParameterAsBool(ApiOptions::REFRESH);
-        $schema = $this->request->getParameter(ApiOptions::SCHEMA, '');
+        $refresh = ($this->request ? $this->request->getParameterAsBool(ApiOptions::REFRESH) : false);
+        $schema = ($this->request ? $this->request->getParameter(ApiOptions::SCHEMA, '') : false);
 
         foreach (static::$resources as $resourceInfo) {
             $className = $resourceInfo['class_name'];

@@ -45,14 +45,6 @@ abstract class BaseDbTableResource extends BaseDbResource
     //*************************************************************************
 
     /**
-     * @var array
-     */
-    protected $payload = [];
-    /**
-     * @var array
-     */
-    protected $options = [];
-    /**
      * @var boolean
      */
     protected $useBlendFormat = true;
@@ -192,82 +184,11 @@ abstract class BaseDbTableResource extends BaseDbResource
         return $out;
     }
 
-    /**
-     *
-     *
-     * IMPORTANT: The representation of the data will be placed back into the original location/position in the $record
-     * from which it was "normalized". This means that any client-side handlers will have to deal with the bogus
-     * determinations. Just be aware.
-     *
-     * Below is a side-by-side comparison of record data as shown sent by or returned to the caller, and sent to an
-     * event handler.
-     *
-     *  REST API v1.0                           Event Representation
-     *  -------------                           --------------------
-     *  Single row...                           Add a 'record' key and make it look like a multi-row
-     *
-     *      array(                              array(
-     *          'id' => 1,                          'record' => array(
-     *      )                                           0 => array( 'id' => 1, ),
-     *                                              ),
-     *                                          ),
-     *
-     * Multi-row...                             Stays the same...or gets wrapped by adding a 'record' key
-     *
-     *      array(                              array(
-     *          'record' => array(                  'record' =>  array(
-     *              0 => array( 'id' => 1 ),            0 => array( 'id' => 1 ),
-     *              1 => array( 'id' => 2 ),            1 => array( 'id' => 2 ),
-     *              2 => array( 'id' => 3 ),            2 => array( 'id' => 3 ),
-     *          ),                                  ),
-     *      )                                   )
-     *
-     * or...
-     *
-     *      array(                              array(
-     *          0 => array( 'id' => 1 ),            'record' =>  array(
-     *          1 => array( 'id' => 2 ),                0 => array( 'id' => 1 ),
-     *          2 => array( 'id' => 3 ),                1 => array( 'id' => 2 ),
-     *      ),                                          2 => array( 'id' => 3 ),
-     *                                              ),
-     *                                          )
-     */
     protected function detectRequestMembers()
     {
-        $wrapper = ResourcesWrapper::getWrapper();
-        // override - don't call parent class here
-        $this->payload = $this->getPayloadData();
-
         if (!empty($this->resource)) {
-            if (!empty($this->resourceId)) {
-                if (!empty($this->payload)) {
-                    // fix wrapper on posted single record
-                    if (!isset($this->payload[$wrapper])) {
-                        // single records don't use the record wrapper, so wrap it
-                        $this->payload = [$wrapper => [$this->payload]];
-                    }
-                }
-            } elseif (ArrayUtils::isArrayNumeric($this->payload)) {
-                // import from csv, etc doesn't include a wrapper, so wrap it
-                $this->payload = [$wrapper => $this->payload];
-            } else {
-                if (!empty($this->payload)) {
-                    switch ($this->request->getMethod()) {
-                        case Verbs::POST:
-                        case Verbs::PUT:
-                        case Verbs::PATCH:
-                        case Verbs::MERGE:
-                            // fix wrapper on posted single record
-                            if (!isset($this->payload[$wrapper])) {
-                                // stuff it back in for event
-                                $this->payload[$wrapper] = [$this->payload];
-                            }
-                            break;
-                    }
-                }
-            }
-
-            $this->options = $this->request->getParameters();
+            $payload = $this->getPayloadData();
+            $options = $this->request->getParameters();
 
             // merge in possible payload options
             $optionNames = [
@@ -283,18 +204,22 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ApiOptions::ROLLBACK
             ];
 
+            $updateOptions = false;
             foreach ($optionNames as $key => $value) {
-                if (!array_key_exists($value, $this->options)) {
-                    if (array_key_exists($value, $this->payload)) {
-                        $this->options[$value] = $this->payload[$value];
+                if (!array_key_exists($value, $options)) {
+                    if (array_key_exists($value, $payload)) {
+                        $updateOptions = true;
+                        $options[$value] = $payload[$value];
                     } elseif (!empty($otherNames = ApiOptions::getAliases($value))) {
                         foreach ($otherNames as $other) {
-                            if (!array_key_exists($other, $this->options)) {
-                                if (array_key_exists($other, $this->payload)) {
-                                    $this->options[$value] = $this->payload[$other];
+                            if (!array_key_exists($other, $options)) {
+                                if (array_key_exists($other, $payload)) {
+                                    $updateOptions = true;
+                                    $options[$value] = $payload[$other];
                                 }
                             } else {
-                                $this->options[$value] = $this->options[$other];
+                                $updateOptions = true;
+                                $options[$value] = $options[$other];
                             }
                         }
                     }
@@ -304,8 +229,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             // set defaults if not present
             if (Verbs::GET == $this->request->getMethod()) {
                 // default for GET should be "return all fields"
-                if (!array_key_exists(ApiOptions::FIELDS, $this->options)) {
-                    $this->options[ApiOptions::FIELDS] = '*';
+                if (!array_key_exists(ApiOptions::FIELDS, $options)) {
+                    $updateOptions = true;
+                    $options[ApiOptions::FIELDS] = '*';
                 }
             }
 
@@ -314,7 +240,12 @@ abstract class BaseDbTableResource extends BaseDbResource
             if (null !=
                 $ssFilters = Session::getServiceFilters($this->getRequestedAction(), $this->parent->name, $resource)
             ) {
-                $this->options['ss_filters'] = $ssFilters;
+                $updateOptions = true;
+                $options['ss_filters'] = $ssFilters;
+            }
+
+            if ($updateOptions) {
+                $this->request->setParameters($options);
             }
         }
     }
@@ -466,25 +397,27 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
         }
 
+        $options = $this->request->getParameters();
+
         if (!empty($this->resourceId)) {
             //	Single resource by ID
-            $result = $this->retrieveRecordById($tableName, $this->resourceId, $this->options);
+            $result = $this->retrieveRecordById($tableName, $this->resourceId, $options);
             $this->triggerActionEvent($result);
 
             return $result;
         }
 
-        if (!empty($ids = ArrayUtils::get($this->options, ApiOptions::IDS))) {
+        if (!empty($ids = ArrayUtils::get($options, ApiOptions::IDS))) {
             //	Multiple resources by ID
-            $result = $this->retrieveRecordsByIds($tableName, $ids, $this->options);
-        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->payload))) {
+            $result = $this->retrieveRecordsByIds($tableName, $ids, $options);
+        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
             // passing records to have them updated with new or more values, id field required
-            $result = $this->retrieveRecords($tableName, $records, $this->options);
+            $result = $this->retrieveRecords($tableName, $records, $options);
         } else {
-            $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
-            $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
+            $filter = ArrayUtils::get($options, ApiOptions::FILTER);
+            $params = ArrayUtils::get($options, ApiOptions::PARAMS, []);
 
-            $result = $this->retrieveRecordsByFilter($tableName, $filter, $params, $this->options);
+            $result = $this->retrieveRecordsByFilter($tableName, $filter, $params, $options);
         }
 
         $meta = ArrayUtils::get($result, 'meta');
@@ -525,14 +458,15 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $records = ResourcesWrapper::unwrapResources($this->payload);
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
         if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
         }
 
         $this->triggerActionEvent($this->response);
 
-        $result = $this->createRecords($tableName, $records, $this->options);
+        $options = $this->request->getParameters();
+        $result = $this->createRecords($tableName, $records, $options);
 
         $meta = ArrayUtils::get($result, 'meta');
         unset($result['meta']);
@@ -562,10 +496,12 @@ abstract class BaseDbTableResource extends BaseDbResource
             return false;
         }
 
-        $records = ResourcesWrapper::unwrapResources($this->payload);
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
         if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
         }
+
+        $options = $this->request->getParameters();
 
         $this->triggerActionEvent($this->response);
 
@@ -576,29 +512,29 @@ abstract class BaseDbTableResource extends BaseDbResource
         if (!empty($this->resourceId)) {
             $record = ArrayUtils::get($records, 0, $records);
 
-            return $this->updateRecordById($tableName, $record, $this->resourceId, $this->options);
+            return $this->updateRecordById($tableName, $record, $this->resourceId, $options);
         }
 
-        $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
+        $ids = ArrayUtils::get($options, ApiOptions::IDS);
 
         if (!empty($ids)) {
             $record = ArrayUtils::get($records, 0, $records);
 
-            $result = $this->updateRecordsByIds($tableName, $record, $ids, $this->options);
+            $result = $this->updateRecordsByIds($tableName, $record, $ids, $options);
         } else {
-            $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
+            $filter = ArrayUtils::get($options, ApiOptions::FILTER);
             if (!empty($filter)) {
                 $record = ArrayUtils::get($records, 0, $records);
-                $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
+                $params = ArrayUtils::get($options, ApiOptions::PARAMS, []);
                 $result = $this->updateRecordsByFilter(
                     $tableName,
                     $record,
                     $filter,
                     $params,
-                    $this->options
+                    $options
                 );
             } else {
-                $result = $this->updateRecords($tableName, $records, $this->options);
+                $result = $this->updateRecords($tableName, $records, $options);
             }
         }
 
@@ -630,7 +566,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             return false;
         }
 
-        $records = ResourcesWrapper::unwrapResources($this->payload);
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
         if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
         }
@@ -641,31 +577,33 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
         }
 
+        $options = $this->request->getParameters();
+
         if (!empty($this->resourceId)) {
             $record = ArrayUtils::get($records, 0, $records);
 
-            return $this->patchRecordById($tableName, $record, $this->resourceId, $this->options);
+            return $this->patchRecordById($tableName, $record, $this->resourceId, $options);
         }
 
-        $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
+        $ids = ArrayUtils::get($options, ApiOptions::IDS);
 
         if (!empty($ids)) {
             $record = ArrayUtils::get($records, 0, $records);
-            $result = $this->patchRecordsByIds($tableName, $record, $ids, $this->options);
+            $result = $this->patchRecordsByIds($tableName, $record, $ids, $options);
         } else {
-            $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
+            $filter = ArrayUtils::get($options, ApiOptions::FILTER);
             if (!empty($filter)) {
                 $record = ArrayUtils::get($records, 0, $records);
-                $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
+                $params = ArrayUtils::get($options, ApiOptions::PARAMS, []);
                 $result = $this->patchRecordsByFilter(
                     $tableName,
                     $record,
                     $filter,
                     $params,
-                    $this->options
+                    $options
                 );
             } else {
-                $result = $this->patchRecords($tableName, $records, $this->options);
+                $result = $this->patchRecords($tableName, $records, $options);
             }
         }
 
@@ -703,28 +641,30 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
         }
 
+        $options = $this->request->getParameters();
+
         if (!empty($this->resourceId)) {
-            return $this->deleteRecordById($tableName, $this->resourceId, $this->options);
+            return $this->deleteRecordById($tableName, $this->resourceId, $options);
         }
 
-        $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
+        $ids = ArrayUtils::get($options, ApiOptions::IDS);
         if (!empty($ids)) {
-            $result = $this->deleteRecordsByIds($tableName, $ids, $this->options);
+            $result = $this->deleteRecordsByIds($tableName, $ids, $options);
         } else {
-            $records = ResourcesWrapper::unwrapResources($this->payload);
+            $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
             if (!empty($records)) {
-                $result = $this->deleteRecords($tableName, $records, $this->options);
+                $result = $this->deleteRecords($tableName, $records, $options);
             } else {
-                $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
+                $filter = ArrayUtils::get($options, ApiOptions::FILTER);
                 if (!empty($filter)) {
-                    $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
-                    $result = $this->deleteRecordsByFilter($tableName, $filter, $params, $this->options);
+                    $params = ArrayUtils::get($options, ApiOptions::PARAMS, []);
+                    $result = $this->deleteRecordsByFilter($tableName, $filter, $params, $options);
                 } else {
-                    if (!ArrayUtils::getBool($this->options, ApiOptions::FORCE)) {
+                    if (!ArrayUtils::getBool($options, ApiOptions::FORCE)) {
                         throw new BadRequestException('No filter or records given for delete request.');
                     }
 
-                    return $this->truncateTable($tableName, $this->options);
+                    return $this->truncateTable($tableName, $options);
                 }
             }
         }
@@ -3030,8 +2970,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
                 'get'        => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'get'.$capitalized.'Records() - Retrieve one or more records.',
-                    'operationId' => 'get'.$capitalized.'Records',
+                    'summary'     => 'get' . $capitalized . 'Records() - Retrieve one or more records.',
+                    'operationId' => 'get' . $capitalized . 'Records',
                     'description' =>
                         'Set the <b>filter</b> parameter to a SQL WHERE clause (optional native filter accepted in some scenarios) ' .
                         'to limit records returned or leave it blank to return all records up to the maximum limit.<br/> ' .
@@ -3073,8 +3013,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
                 'post'       => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'create'.$capitalized.'Records() - Create one or more records.',
-                    'operationId' => 'create'.$capitalized.'Records',
+                    'summary'     => 'create' . $capitalized . 'Records() - Create one or more records.',
+                    'operationId' => 'create' . $capitalized . 'Records',
                     'description' =>
                         'Posted data should be an array of records wrapped in a <b>record</b> element.<br/> ' .
                         'By default, only the id property of the record is returned on success. ' .
@@ -3113,8 +3053,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
                 'put'        => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'replace'.$capitalized.'Records() - Update (replace) one or more records.',
-                    'operationId' => 'replace'.$capitalized.'Records',
+                    'summary'     => 'replace' . $capitalized . 'Records() - Update (replace) one or more records.',
+                    'operationId' => 'replace' . $capitalized . 'Records',
                     'description' =>
                         'Post data should be an array of records wrapped in a <b>' .
                         $wrapper .
@@ -3153,8 +3093,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
                 'patch'      => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'update'.$capitalized.'Records() - Update (patch) one or more records.',
-                    'operationId' => 'update'.$capitalized.'Records',
+                    'summary'     => 'update' . $capitalized . 'Records() - Update (patch) one or more records.',
+                    'operationId' => 'update' . $capitalized . 'Records',
                     'description' =>
                         'Post data should be an array of records containing at least the identifying fields for each record.<br/> ' .
                         'Posted body should be a single record with name-value pairs to update wrapped in a <b>record</b> tag.<br/> ' .
@@ -3191,8 +3131,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
                 'delete'     => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'delete'.$capitalized.'Records() - Delete one or more records.',
-                    'operationId' => 'delete'.$capitalized.'Records',
+                    'summary'     => 'delete' . $capitalized . 'Records() - Delete one or more records.',
+                    'operationId' => 'delete' . $capitalized . 'Records',
                     'description' =>
                         'Set the <b>ids</b> parameter to a list of record identifying (primary key) values to delete specific records.<br/> ' .
                         'Alternatively, to delete records by a large list of ids, pass the ids in the <b>body</b>.<br/> ' .
@@ -3232,7 +3172,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
             ],
             $path . '/{table_name}/{id}' => [
-                'parameters'  => [
+                'parameters' => [
                     [
                         'name'        => 'table_name',
                         'description' => 'Name of the table to perform operations on.',
@@ -3252,10 +3192,10 @@ abstract class BaseDbTableResource extends BaseDbResource
                     ApiOptions::documentOption(ApiOptions::FIELDS),
                     ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
-                'get'    => [
+                'get'        => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'get'.$capitalized.'Record() - Retrieve one record by identifier.',
-                    'operationId' => 'get'.$capitalized.'Record',
+                    'summary'     => 'get' . $capitalized . 'Record() - Retrieve one record by identifier.',
+                    'operationId' => 'get' . $capitalized . 'Record',
                     'description' =>
                         'Use the <b>fields</b> parameter to limit properties that are returned. ' .
                         'By default, all fields are returned.',
@@ -3275,10 +3215,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                         ]
                     ],
                 ],
-                'put'    => [
+                'put'        => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'replace'.$capitalized.'Record() - Replace the content of one record by identifier.',
-                    'operationId' => 'replace'.$capitalized.'Record',
+                    'summary'     => 'replace' .
+                        $capitalized .
+                        'Record() - Replace the content of one record by identifier.',
+                    'operationId' => 'replace' . $capitalized . 'Record',
                     'description' =>
                         'Post data should be an array of fields for a single record.<br/> ' .
                         'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
@@ -3306,10 +3248,10 @@ abstract class BaseDbTableResource extends BaseDbResource
                         ]
                     ],
                 ],
-                'patch'  => [
+                'patch'      => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'update'.$capitalized.'Record() - Update (patch) one record by identifier.',
-                    'operationId' => 'update'.$capitalized.'Record',
+                    'summary'     => 'update' . $capitalized . 'Record() - Update (patch) one record by identifier.',
+                    'operationId' => 'update' . $capitalized . 'Record',
                     'description' =>
                         'Post data should be an array of fields for a single record.<br/> ' .
                         'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
@@ -3337,10 +3279,10 @@ abstract class BaseDbTableResource extends BaseDbResource
                         ]
                     ],
                 ],
-                'delete' => [
+                'delete'     => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'delete'.$capitalized.'Record() - Delete one record by identifier.',
-                    'operationId' => 'delete'.$capitalized.'Record',
+                    'summary'     => 'delete' . $capitalized . 'Record() - Delete one record by identifier.',
+                    'operationId' => 'delete' . $capitalized . 'Record',
                     'description' => 'Use the <b>fields</b> parameter to return more deleted properties. By default, the id is returned.',
                     'event_name'  => [
                         $eventPath . '.{table_name}.{id}.delete',

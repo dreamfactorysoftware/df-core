@@ -133,7 +133,7 @@ abstract class BaseFileService extends BaseRestService
         throw new NotFoundException("Resource '{$this->resource}' not found for service '{$this->name}'.");
     }
 
-    protected function getAccessList()
+    public function getAccessList()
     {
         $list = parent::getAccessList();
 

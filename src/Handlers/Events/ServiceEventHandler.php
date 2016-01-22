@@ -143,7 +143,7 @@ class ServiceEventHandler
         $data = [
             'request'  => $event->request->toArray(),
             'resource' => $event->resource,
-            'response' => $event->response
+            'response' => $event->response->toArray()
         ];
 
         if (null !== $result = $this->handleEventScript($name, $data)) {

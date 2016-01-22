@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Components;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Contracts\RequestHandlerInterface;
@@ -14,6 +15,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Contracts\ResourceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use Illuminate\Http\RedirectResponse;
 
 /**
  * Class RestHandler
@@ -274,7 +276,13 @@ abstract class RestHandler implements RequestHandlerInterface
                 $this->triggerActionEvent($result, null, null, true);
             }
 
-            return $result;
+            if ($result instanceof ServiceResponseInterface) {
+                return $result;
+            } elseif ($result instanceof RedirectResponse) {
+                return $result;
+            }
+
+            return ResponseFactory::create($result, $this->nativeFormat);
         }
 
         //	Otherwise just return false

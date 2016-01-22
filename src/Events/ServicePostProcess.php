@@ -20,10 +20,10 @@ class ServicePostProcess extends Event
     /**
      * Create a new event instance.
      *
-     * @param string                         $service
-     * @param ServiceRequestInterface        $request
-     * @param array|ServiceResponseInterface $response
-     * @param mixed                          $resource
+     * @param string                   $service
+     * @param ServiceRequestInterface  $request
+     * @param ServiceResponseInterface $response
+     * @param mixed                    $resource
      */
     public function __construct($service, $request, &$response, $resource = null)
     {

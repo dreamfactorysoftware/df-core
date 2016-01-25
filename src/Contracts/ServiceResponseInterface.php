@@ -44,12 +44,12 @@ interface ServiceResponseInterface extends HttpStatusCodeInterface
      *
      * @return ServiceResponseInterface
      */
-    public function setContentFormat($format);
+    public function setDataFormat($format);
 
     /**
      * @return int DataFormats
      */
-    public function getContentFormat();
+    public function getDataFormat();
 
     /**
      * @return array All attributes as an array

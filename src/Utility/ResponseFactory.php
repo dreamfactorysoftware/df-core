@@ -21,19 +21,14 @@ class ResponseFactory
 {
     /**
      * @param mixed       $content
-     * @param int         $format
-     * @param int         $status
      * @param string|null $content_type
+     * @param int         $status
      *
      * @return ServiceResponse
      */
-    public static function create(
-        $content,
-        $format = DataFormats::PHP_ARRAY,
-        $status = ServiceResponseInterface::HTTP_OK,
-        $content_type = null
-    ){
-        return new ServiceResponse($content, $format, $status, $content_type);
+    public static function create($content, $content_type = null, $status = ServiceResponseInterface::HTTP_OK)
+    {
+        return new ServiceResponse($content, $content_type, $status);
     }
 
     /**
@@ -86,7 +81,7 @@ class ResponseFactory
         }
 
         $content = $response->getContent();
-        $format = $response->getContentFormat();
+        $format = $response->getDataFormat();
 
         if (empty($content) && is_null($format)) {
             // No content and type specified. (File stream already handled by service)
@@ -137,9 +132,7 @@ class ResponseFactory
             $reformatted = DataFormatter::reformatData($content, $format, $acceptFormat);
         }
 
-        $responseHeaders = [
-            "Content-Type" => $contentType
-        ];
+        $responseHeaders = ["Content-Type" => $contentType];
         if (!empty($asFile)) {
             $responseHeaders['Content-Disposition'] = 'attachment; filename="' . $asFile . '";';
         }
@@ -167,12 +160,8 @@ class ResponseFactory
     public static function sendScriptResponse(ServiceResponseInterface $response)
     {
         $content = $response->getContent();
-        $format = $response->getContentFormat();
-
-        if (empty($content) && is_null($format)) {
-            // No content and type specified. (File stream already handled by service)
-            return null;
-        }
+        $contentType = $response->getContentType();
+        $format = $response->getDataFormat();
 
         $status = $response->getStatusCode();
         //  In case the status code is not a valid HTTP Status code
@@ -189,7 +178,7 @@ class ResponseFactory
             $format = DataFormats::PHP_ARRAY;
         }
 
-        return ['content' => $content, 'status' => $status, 'format' => $format];
+        return ['status_code' => $status, 'content' => $content, 'content_type' => $contentType, 'format' => $format];
     }
 
     /**

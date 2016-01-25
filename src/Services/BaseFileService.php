@@ -4,6 +4,8 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Events\ResourcePostProcess;
+use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -147,6 +149,50 @@ abstract class BaseFileService extends BaseRestService
     }
 
     /**
+     * Runs pre process tasks/scripts
+     */
+    protected function preProcess()
+    {
+        if (!empty($this->filePath)) {
+            // Try the generic table event
+            /** @noinspection PhpUnusedLocalVariableInspection */
+            $results = \Event::fire(
+                new ResourcePreProcess($this->name, '{file_path}', $this->request, $this->filePath)
+            );
+        } elseif (!empty($this->folderPath)) {
+            // Try the generic table event
+            /** @noinspection PhpUnusedLocalVariableInspection */
+            $results = \Event::fire(
+                new ResourcePreProcess($this->name, '{folder_path}', $this->request, $this->folderPath)
+            );
+        } else {
+            parent::preProcess();
+        }
+    }
+
+    /**
+     * Runs post process tasks/scripts
+     */
+    protected function postProcess()
+    {
+        if (!empty($this->filePath)) {
+            $event =
+                new ResourcePostProcess($this->name, '{file_path}', $this->request, $this->response,
+                    $this->filePath);
+            /** @noinspection PhpUnusedLocalVariableInspection */
+            $results = \Event::fire($event);
+        } elseif (!empty($this->folderPath)) {
+            $event =
+                new ResourcePostProcess($this->name, '{folder_path}', $this->request, $this->response,
+                    $this->folderPath);
+            /** @noinspection PhpUnusedLocalVariableInspection */
+            $results = \Event::fire($event);
+        } else {
+            parent::postProcess();
+        }
+    }
+
+    /**
      * Handles GET actions.
      *
      * @return \DreamFactory\Core\Utility\ServiceResponse
@@ -167,8 +213,7 @@ abstract class BaseFileService extends BaseRestService
                 unlink($zipFileName);
 
                 // output handled by file handler, short the response here
-                $this->setNativeFormat(null);
-                $result = null;
+                return ResponseFactory::create(null, null, null);
             } elseif ($this->request->getParameterAsBool('include_properties')) {
                 $result = $this->driver->getFolderProperties($this->container, $this->folderPath);
             } else {
@@ -198,8 +243,7 @@ abstract class BaseFileService extends BaseRestService
                 $this->streamFile($this->container, $this->filePath, $download);
 
                 // output handled by file handler, short the response here
-                $this->setNativeFormat(null);
-                $result = null;
+                return ResponseFactory::create(null, null, null);
             }
         }
 
@@ -329,7 +373,7 @@ abstract class BaseFileService extends BaseRestService
             }
         }
 
-        return ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
+        return ResponseFactory::create($result, null, ServiceResponseInterface::HTTP_CREATED);
     }
 
     /**
@@ -1264,23 +1308,5 @@ abstract class BaseFileService extends BaseRestService
         $base['definitions'] = array_merge($base['definitions'], $models);
 
         return $base;
-    }
-
-    /**
-     * Runs pre process tasks/scripts
-     */
-    protected function preProcess()
-    {
-        // Pre process not supported on file services
-        return true;
-    }
-
-    /**
-     * Runs post process tasks/scripts
-     */
-    protected function postProcess()
-    {
-        // Post process not supported on file services
-        return true;
     }
 }

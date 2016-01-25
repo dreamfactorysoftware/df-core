@@ -239,7 +239,6 @@ abstract class BaseEngineAdapter
     {
         $result = Curl::request($method, $url, $payload, $curlOptions);
         $contentType = Curl::getInfo('content_type');
-        $format = DataFormats::fromMimeType($contentType);
         $status = Curl::getLastHttpCode();
         if ($status >= 300) {
             if (!is_string($result)) {
@@ -249,7 +248,7 @@ abstract class BaseEngineAdapter
             throw new RestException($status, $result, $status);
         }
 
-        return ResponseFactory::create($result, $format, $status, $contentType);
+        return ResponseFactory::create($result, $contentType, $status);
     }
 
     /**

@@ -113,10 +113,11 @@ class Script extends BaseRestService
             $scriptResult = ArrayUtils::get($result, 'script_result', []);
             if (!empty($response = ArrayUtils::get($result, 'response', []))) {
                 $content = ArrayUtils::get($response, 'content');
-                $status = ArrayUtils::get($response, 'status', ServiceResponseInterface::HTTP_OK);
-                $format = ArrayUtils::get($response, 'format', DataFormats::PHP_ARRAY);
+                $contentType = ArrayUtils::get($response, 'content_type');
+                $status = ArrayUtils::get($response, 'status_code', ServiceResponseInterface::HTTP_OK);
+//                $format = ArrayUtils::get($response, 'format', DataFormats::PHP_ARRAY);
 
-                return ResponseFactory::create($content, $format, $status);
+                return ResponseFactory::create($content, $contentType, $status);
             }
 
             return $scriptResult;

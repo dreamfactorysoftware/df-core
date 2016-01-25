@@ -8,7 +8,6 @@ use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Contracts\RequestHandlerInterface;
-use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -61,10 +60,6 @@ abstract class RestHandler implements RequestHandlerInterface
      * @var string HTTP Action Verb
      */
     protected $originalAction = null;
-    /**
-     * @var int|null Native data format of this service - DataFormats enum value.
-     */
-    protected $nativeFormat = DataFormats::PHP_ARRAY;
     /**
      * @var string Resource name.
      */
@@ -282,7 +277,7 @@ abstract class RestHandler implements RequestHandlerInterface
                 return $result;
             }
 
-            return ResponseFactory::create($result, $this->nativeFormat);
+            return ResponseFactory::create($result);
         }
 
         //	Otherwise just return false
@@ -393,16 +388,6 @@ abstract class RestHandler implements RequestHandlerInterface
         $this->resourceId = ArrayUtils::get($this->resourceArray, 1);
 
         return $this;
-    }
-
-    /**
-     * Sets the output format of the result.
-     *
-     * @param int $outputFormat
-     */
-    protected function setNativeFormat($outputFormat = null)
-    {
-        $this->nativeFormat = $outputFormat;
     }
 
     /**

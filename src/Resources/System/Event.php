@@ -383,7 +383,7 @@ class Event extends BaseRestResource
             throw new NotFoundException("Script not found.");
         }
 
-        return ResponseFactory::create($foundModel->toArray(), $this->nativeFormat);
+        return ResponseFactory::create($foundModel->toArray());
     }
 
     /**

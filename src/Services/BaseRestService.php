@@ -82,9 +82,6 @@ class BaseRestService extends RestHandler implements ServiceInterface
         $event = new ServicePostProcess($this->name, $this->request, $this->response, $this->resourcePath);
         /** @noinspection PhpUnusedLocalVariableInspection */
         $results = \Event::fire($event);
-
-        // todo doing something wrong that I have to copy this array back over
-        $this->response = $event->response;
     }
 
     /**
@@ -98,7 +95,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
             return $this->response;
         }
 
-        return ResponseFactory::create($this->response, $this->nativeFormat);
+        return ResponseFactory::create($this->response);
     }
 
     /**

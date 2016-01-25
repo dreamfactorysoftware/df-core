@@ -227,7 +227,7 @@ class BaseSystemResource extends BaseRestResource
         $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
 
-        return ResponseFactory::create($result, $this->nativeFormat, ServiceResponseInterface::HTTP_CREATED);
+        return ResponseFactory::create($result, null, ServiceResponseInterface::HTTP_CREATED);
     }
 
     /**

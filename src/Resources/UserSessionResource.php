@@ -10,7 +10,6 @@ use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\ServiceHandler;
-use DreamFactory\Http\Middleware\AuthCheck;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Utility\Session;
 
@@ -30,6 +29,7 @@ class UserSessionResource extends BaseRestResource
         $serviceName = $this->request->getParameter('service');
         if (!empty($serviceName)) {
             $service = ServiceHandler::getService($serviceName);
+            /** @type Service $serviceModel */
             $serviceModel = Service::find($service->getServiceId());
             $serviceType = $serviceModel->serviceType()->first();
             $serviceGroup = $serviceType->group;
@@ -57,33 +57,7 @@ class UserSessionResource extends BaseRestResource
         if (empty($serviceName)) {
             $serviceName = $this->request->getParameter('service');
         }
-        if (!empty($serviceName)) {
-            $service = ServiceHandler::getService($serviceName);
-            $serviceModel = Service::find($service->getServiceId());
-            $serviceType = $serviceModel->serviceType()->first();
-            $serviceGroup = $serviceType->group;
-
-            if (!in_array($serviceGroup, [ServiceTypeGroups::OAUTH, ServiceTypeGroups::LDAP])) {
-                throw new BadRequestException('Invalid login service provided. Please use an OAuth or AD/Ldap service.');
-            }
-
-            if ($serviceGroup === ServiceTypeGroups::LDAP) {
-                $credentials = [
-                    'username' => $this->getPayloadData('username'),
-                    'password' => $this->getPayloadData('password')
-                ];
-
-                return $service->handleLogin($credentials, $this->getPayloadData('remember_me'));
-            } elseif ($serviceGroup === ServiceTypeGroups::OAUTH) {
-                $oauthCallback = $this->request->getParameterAsBool('oauth_callback');
-
-                if (!empty($oauthCallback)) {
-                    return $service->handleOAuthCallback();
-                } else {
-                    return $service->handleLogin($this->request->getDriver());
-                }
-            }
-        } else {
+        if (empty($serviceName)) {
             $credentials = [
                 'email'        => $this->getPayloadData('email'),
                 'password'     => $this->getPayloadData('password'),
@@ -91,6 +65,32 @@ class UserSessionResource extends BaseRestResource
             ];
 
             return $this->handleLogin($credentials, boolval($this->getPayloadData('remember_me')));
+        }
+
+        $service = ServiceHandler::getService($serviceName);
+        /** @type Service $serviceModel */
+        $serviceModel = Service::find($service->getServiceId());
+        $serviceType = $serviceModel->serviceType()->first();
+        $serviceGroup = $serviceType->group;
+
+        switch ($serviceGroup) {
+            case ServiceTypeGroups::LDAP:
+                $credentials = [
+                    'username' => $this->getPayloadData('username'),
+                    'password' => $this->getPayloadData('password')
+                ];
+
+                return $service->handleLogin($credentials, $this->getPayloadData('remember_me'));
+            case ServiceTypeGroups::OAUTH:
+                $oauthCallback = $this->request->getParameterAsBool('oauth_callback');
+
+                if (!empty($oauthCallback)) {
+                    return $service->handleOAuthCallback();
+                } else {
+                    return $service->handleLogin($this->request->getDriver());
+                }
+            default:
+                throw new BadRequestException('Invalid login service provided. Please use an OAuth or AD/Ldap service.');
         }
     }
 
@@ -153,7 +153,7 @@ class UserSessionResource extends BaseRestResource
             $credentials['is_sys_admin'] = 1;
         }
 
-        if (Session::authenticate($credentials, $remember, true, static::getAppId())) {
+        if (Session::authenticate($credentials, $remember, true, $this->getAppId())) {
             return Session::getPublicInfo();
         } else {
             throw new UnauthorizedException('Invalid credentials supplied.');
@@ -165,7 +165,8 @@ class UserSessionResource extends BaseRestResource
      */
     protected function getAppId()
     {
-        $apiKey = AuthCheck::getApiKey($this->request->getDriver());
+        //Check for API key in request parameters.
+        $apiKey = $this->request->getApiKey();
 
         if (!empty($apiKey)) {
             return App::getAppIdByApiKey($apiKey);

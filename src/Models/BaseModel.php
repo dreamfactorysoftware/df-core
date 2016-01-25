@@ -85,6 +85,13 @@ class BaseModel extends Model implements CacheInterface
     protected $rules = [];
 
     /**
+     * Validation error messages
+     *
+     * @type array
+     */
+    protected $validationMessages = [];
+
+    /**
      * Stores validation errors.
      *
      * @type array
@@ -109,7 +116,7 @@ class BaseModel extends Model implements CacheInterface
         if (empty($this->rules) || empty($data)) {
             return true;
         } else {
-            $validator = \Validator::make($data, $this->rules);
+            $validator = \Validator::make($data, $this->rules, $this->validationMessages);
 
             if ($validator->fails()) {
                 $this->errors = $validator->errors()->getMessages();

@@ -38,6 +38,14 @@ class Service extends BaseSystemModel
 
     protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config'];
 
+    protected $rules = [
+        'name' => 'regex:/(^[A-Za-z0-9_\-]+$)+/'
+    ];
+
+    protected $validationMessages = [
+        'regex' => 'Service name should only contain letters, numbers, and underscores.'
+    ];
+
     protected $guarded = [
         'id',
         'mutable',
@@ -304,6 +312,7 @@ class Service extends BaseSystemModel
     public static function getCachedNameById($id)
     {
         $cacheKey = 'service_id:' . $id;
+
         return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
             $service = static::whereId($id)->first(['name']);
 

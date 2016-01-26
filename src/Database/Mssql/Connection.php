@@ -42,7 +42,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
         }
 
         // http://php.net/manual/en/ref.pdo-dblib.connection.php
-        return 'dblib:host=localhost:1433;dbname=database';
+        return 'dblib:host=localhost:1433;dbname=database;charset=UTF-8';
     }
 
     public function __construct($dsn = '', $username = '', $password = '')

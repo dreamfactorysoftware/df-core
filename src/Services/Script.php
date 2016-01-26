@@ -110,7 +110,6 @@ class Script extends BaseRestService
 
         //  The script runner should return an array
         if (is_array($result) && isset($result['__tag__'])) {
-            $scriptResult = ArrayUtils::get($result, 'script_result', []);
             if (!empty($response = ArrayUtils::get($result, 'response', []))) {
                 $content = ArrayUtils::get($response, 'content');
                 $contentType = ArrayUtils::get($response, 'content_type');
@@ -120,12 +119,13 @@ class Script extends BaseRestService
                 return ResponseFactory::create($content, $contentType, $status);
             }
 
-            return $scriptResult;
+            $scriptResult = ArrayUtils::get($result, 'script_result', []);
+            return ResponseFactory::create($scriptResult);
         } else {
             Log::error('  * Script did not return an array: ' . print_r($result, true));
         }
 
-        return $output;
+        return ResponseFactory::create($output);
     }
 
     public static function getApiDocInfo(Service $service)

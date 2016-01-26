@@ -27,7 +27,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
     public static function getSampleDsn()
     {
         // http://php.net/manual/en/ref.pdo-mysql.connection.php
-        return 'mysql:host=localhost;port=3306;dbname=db';
+        return 'mysql:host=localhost;port=3306;dbname=db;charset=utf8';
     }
 
     public function getSchema()

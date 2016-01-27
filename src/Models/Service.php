@@ -43,7 +43,7 @@ class Service extends BaseSystemModel
     ];
 
     protected $validationMessages = [
-        'regex' => 'Service name should only contain letters, numbers, and underscores.'
+        'regex' => 'Service name should only contain letters, numbers, underscores and dashes.'
     ];
 
     protected $guarded = [

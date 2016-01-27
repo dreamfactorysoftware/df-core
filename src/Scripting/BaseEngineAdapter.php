@@ -237,6 +237,21 @@ abstract class BaseEngineAdapter
      */
     protected static function externalRequest($method, $url, $payload = [], $curlOptions = [])
     {
+        if (!empty($curlOptions)) {
+            $options = [];
+
+            foreach ($curlOptions as $key => $value) {
+                if (!is_numeric($key)) {
+                    if (defined($key)) {
+                        $options[constant($key)] = $value;
+                    }
+                }
+            }
+
+            $curlOptions = $options;
+            unset($options);
+        }
+
         $result = Curl::request($method, $url, $payload, $curlOptions);
         $contentType = Curl::getInfo('content_type');
         $status = Curl::getLastHttpCode();
@@ -263,21 +278,6 @@ abstract class BaseEngineAdapter
     {
         if (null === $payload || 'null' == $payload) {
             $payload = [];
-        }
-
-        if (!empty($curlOptions)) {
-            $options = [];
-
-            foreach ($curlOptions as $key => $value) {
-                if (!is_numeric($key)) {
-                    if (defined($key)) {
-                        $options[constant($key)] = $value;
-                    }
-                }
-            }
-
-            $curlOptions = $options;
-            unset($options);
         }
 
         try {

@@ -187,8 +187,11 @@ class ResponseFactory
      *
      * @return array|mixed|string
      */
-    public static function getException($e, $request)
-    {
+    public static function getException(
+        $e,
+        /** @noinspection PhpUnusedParameterInspection */
+        $request
+    ){
         $response = ResponseFactory::create($e);
 
         return ResponseFactory::sendResponse($response);

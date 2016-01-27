@@ -81,7 +81,8 @@ class DfCorsServiceProvider extends ServiceProvider
             $cors = \DB::table('cors_config')->whereRaw('enabled = 1')->get();
         } catch (\Exception $e){
             if($e instanceof QueryException || $e instanceof \PDOException){
-                \Log::alert('Could not get cors config from DB - '.$e->getMessage());
+                isset($this->app,$this->app['log']) && \Log::alert('Could not get cors config from DB - '.$e->getMessage());
+
                 return [];
             } else {
                 throw $e;

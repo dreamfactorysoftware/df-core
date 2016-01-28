@@ -2005,10 +2005,11 @@ abstract class BaseDbTableResource extends BaseDbResource
                         break;
                     default:
                         $name = strtolower($fieldInfo->getName(true));
-                        // overwrite some undercover fields
-                        if ($fieldInfo->autoIncrement || 'virtual' === $fieldInfo->type) {
-                            // should I error this?
-                            // drop for now
+                        // need to check for virtual or api_read_only validation here.
+                        if (('virtual' === $fieldInfo->type) ||
+                            isset($fieldInfo->validation, $fieldInfo->validation['api_read_only'])
+                        ) {
+                            // if read only, drop it
                             unset($record[$name]);
                             continue;
                         }

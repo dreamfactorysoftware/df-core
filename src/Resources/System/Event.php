@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\EventScript;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Resources\BaseRestResource;
+use DreamFactory\Core\Services\BaseFileService;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
@@ -110,7 +111,12 @@ class Event extends BaseRestResource
             $settings = $service->toArray();
             /** @var BaseRestService $obj */
             $obj = new $serviceClass($settings);
-            $accessList = $obj->getAccessList();
+            if ($obj instanceof BaseFileService){
+                // don't want the full folder list here
+                $accessList = (empty($obj->getPermissions()) ? [] : ['', '*']);
+            } else {
+                $accessList = $obj->getAccessList();
+            }
         }
 
         $processEvents = [];
@@ -182,7 +188,7 @@ class Event extends BaseRestResource
                     $apiProcessEvents[$method][] = "$eventPath.$method.pre_process";
                     $apiProcessEvents[$method][] = "$eventPath.$method.post_process";
                     $parameters = ArrayUtils::get($operation, 'parameters', []);
-                    if (!empty($pathParameters)){
+                    if (!empty($pathParameters)) {
                         $parameters = array_merge($pathParameters, $parameters);
                     }
                     foreach ($parameters as $parameter) {
@@ -202,7 +208,7 @@ class Event extends BaseRestResource
                                     if (!empty($access) && (strlen($access) > $replacePos)) {
                                         if (0 === substr_compare($access, $resourcePath, 0, $replacePos)) {
                                             $option = substr($access, $replacePos);
-                                            if (false !== strpos($option, '/')){
+                                            if (false !== strpos($option, '/')) {
                                                 $option = strstr($option, '/', true);
                                             }
                                             $options[] = $option;

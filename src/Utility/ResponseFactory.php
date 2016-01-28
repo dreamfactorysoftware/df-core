@@ -80,15 +80,15 @@ class ResponseFactory
             $accepts[] = config('df.default_response_type');
         }
 
+        $status = $response->getStatusCode();
         $content = $response->getContent();
         $format = $response->getDataFormat();
 
-        if (empty($content) && is_null($format)) {
+        if (is_null($content) && is_null($status)) {
             // No content and type specified. (File stream already handled by service)
             return null;
         }
 
-        $status = $response->getStatusCode();
         //  In case the status code is not a valid HTTP Status code
         if (!in_array($status, HttpStatusCodes::getDefinedConstants())) {
             //  Do necessary translation here. Default is Internal server error.

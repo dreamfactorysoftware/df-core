@@ -22,7 +22,7 @@ class AppSeeder extends BaseModelSeeder
             'description' => 'A Swagger-base application allowing documentation viewing and testing of the API.',
             'is_active'   => true,
             'type'        => 3,
-            'path'        => 'swagger-ui/dist/index.html'
+            'path'        => 'df-swagger-ui/dist/index.html'
         ],
         [
             'name'        => 'file_manager',

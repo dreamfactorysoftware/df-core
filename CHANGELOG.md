@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 ### Fixed
+- Fixed filtering on system/admin API.
+- Fixed an issue with email service configs not saving.
 
 ## [0.1.13] - 2016-01-07
 ### Fixed

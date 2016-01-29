@@ -402,7 +402,6 @@ abstract class BaseDbTableResource extends BaseDbResource
         if (!empty($this->resourceId)) {
             //	Single resource by ID
             $result = $this->retrieveRecordById($tableName, $this->resourceId, $options);
-            $this->triggerActionEvent($result);
 
             return $result;
         }
@@ -430,8 +429,6 @@ abstract class BaseDbTableResource extends BaseDbResource
         if (!empty($meta)) {
             $result['meta'] = $meta;
         }
-
-        $this->triggerActionEvent($result);
 
         return $result;
     }
@@ -462,8 +459,6 @@ abstract class BaseDbTableResource extends BaseDbResource
         if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
         }
-
-        $this->triggerActionEvent($this->response);
 
         $options = $this->request->getParameters();
         $result = $this->createRecords($tableName, $records, $options);
@@ -496,23 +491,19 @@ abstract class BaseDbTableResource extends BaseDbResource
             return false;
         }
 
-        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
-        if (empty($records)) {
-            throw new BadRequestException('No record(s) detected in request.');
-        }
-
-        $options = $this->request->getParameters();
-
-        $this->triggerActionEvent($this->response);
-
         if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
             throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
         }
 
-        if (!empty($this->resourceId)) {
-            $record = ArrayUtils::get($records, 0, $records);
+        $options = $this->request->getParameters();
 
-            return $this->updateRecordById($tableName, $record, $this->resourceId, $options);
+        if (!empty($this->resourceId)) {
+            return $this->updateRecordById($tableName, $this->getPayloadData(), $this->resourceId, $options);
+        }
+
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+        if (empty($records)) {
+            throw new BadRequestException('No record(s) detected in request.');
         }
 
         $ids = ArrayUtils::get($options, ApiOptions::IDS);
@@ -566,13 +557,6 @@ abstract class BaseDbTableResource extends BaseDbResource
             return false;
         }
 
-        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
-        if (empty($records)) {
-            throw new BadRequestException('No record(s) detected in request.');
-        }
-
-        $this->triggerActionEvent($this->response);
-
         if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
             throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
         }
@@ -580,9 +564,12 @@ abstract class BaseDbTableResource extends BaseDbResource
         $options = $this->request->getParameters();
 
         if (!empty($this->resourceId)) {
-            $record = ArrayUtils::get($records, 0, $records);
+            return $this->patchRecordById($tableName, $this->getPayloadData(), $this->resourceId, $options);
+        }
 
-            return $this->patchRecordById($tableName, $record, $this->resourceId, $options);
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+        if (empty($records)) {
+            throw new BadRequestException('No record(s) detected in request.');
         }
 
         $ids = ArrayUtils::get($options, ApiOptions::IDS);
@@ -634,8 +621,6 @@ abstract class BaseDbTableResource extends BaseDbResource
             // not currently supported, maybe batch opportunity?
             return false;
         }
-
-        $this->triggerActionEvent($this->response);
 
         if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
             throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');

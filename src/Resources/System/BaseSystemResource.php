@@ -219,8 +219,6 @@ class BaseSystemResource extends BaseRestResource
             throw new BadRequestException('No record(s) detected in request.');
         }
 
-        $this->triggerActionEvent($this->response);
-
         $result = $this->bulkCreate($records, $this->request->getParameters());
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
@@ -300,8 +298,6 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handlePATCH()
     {
-        $this->triggerActionEvent($this->response);
-
         if (!empty($this->resource)) {
             $result = $this->updateById($this->resource, $this->getPayloadData(), $this->request->getParameters());
         } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
@@ -383,8 +379,6 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handleDELETE()
     {
-        $this->triggerActionEvent($this->response);
-
         if (!empty($this->resource)) {
             $result = $this->deleteById($this->resource, $this->request->getParameters());
         } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {

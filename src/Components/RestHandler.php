@@ -266,11 +266,6 @@ abstract class RestHandler implements RequestHandlerInterface
         if ($methodToCall) {
             $result = call_user_func($methodToCall);
 
-            //  Only GETs trigger after the call
-            if (Verbs::GET == $this->action) {
-                $this->triggerActionEvent($result, null, null, true);
-            }
-
             if ($result instanceof ServiceResponseInterface) {
                 return $result;
             } elseif ($result instanceof RedirectResponse) {
@@ -521,18 +516,5 @@ abstract class RestHandler implements RequestHandlerInterface
     protected function handleDELETE()
     {
         return false;
-    }
-
-    /**
-     * Triggers the appropriate event for the action /service/resource_path.
-     *
-     * @param      $result
-     * @param null $eventName
-     * @param null $event
-     * @param bool $isPostProcess
-     */
-    protected function triggerActionEvent(&$result, $eventName = null, $event = null, $isPostProcess = false)
-    {
-        // TODO figure this out
     }
 }

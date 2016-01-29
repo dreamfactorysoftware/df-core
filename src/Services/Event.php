@@ -172,8 +172,6 @@ class Event extends BaseRestService
             throw new BadRequestException('No record(s) detected in request.');
         }
 
-        $this->triggerActionEvent($this->response);
-
         $model = $this->getModel();
         $result = $model::bulkCreate($records, $this->request->getParameters());
 
@@ -202,8 +200,6 @@ class Event extends BaseRestService
     protected function handlePATCH()
     {
         $modelClass = $this->getModel();
-
-        $this->triggerActionEvent($this->response);
 
         if (!empty($this->resource)) {
             $result =
@@ -236,7 +232,6 @@ class Event extends BaseRestService
      */
     protected function handleDELETE()
     {
-        $this->triggerActionEvent($this->response);
         $modelClass = $this->getModel();
 
         if (!empty($this->resource)) {

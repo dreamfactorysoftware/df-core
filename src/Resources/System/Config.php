@@ -126,8 +126,6 @@ class Config extends BaseSystemResource
             throw new BadRequestException('No record detected in request.');
         }
 
-        $this->triggerActionEvent($this->response);
-
         /** @type BaseSystemModel $modelClass */
         $modelClass = static::$model;
 

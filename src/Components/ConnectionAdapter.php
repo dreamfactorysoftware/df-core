@@ -135,7 +135,7 @@ class ConnectionAdapter
         if (in_array('dblib', static::getAvailableDrivers())) {
             return static::getDblibDsn($config);
         } else {
-            return static::getSqlSrvDsn($config);
+            return static::getNonDblibDsn($config);
         }
     }
 

@@ -8,8 +8,29 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 
 ### Fixed
+
+## [0.2.0]
+### Added
+- Events now supported for File services
+- Events now supported Remote Web Services (based on swagger definition given)
+- Scripts now allow tailoring content type and status code.
+- XML to JSON conversion now handles namespaces.
+
+### Changed
+- **MAJOR** Updated code base to use OpenAPI (fka Swagger) Specification 2.0 from 1.2
+- API Doc (api_docs) service is now one file to work with new Swagger UI 2.0
+- API Doc is now role-based
+- Scripting services no longer need to "return" data. Event "response" available, see wiki for details.
+
+### Fixed
 - Fixed filtering on system/admin API.
 - Fixed an issue with email service configs not saving.
+- Several system schema changes to allow for SQL Server as system database.
+- Database relationship bug fixes.
+- Affecting request on preprocess scripts fixed.
+- Scripting bug for user/session usage fixed.
+- Email services configuration saving fixed.
+- Better handling of read-only fields from database (i.e. SQL Server rowversion and timestamp)
 
 ## [0.1.13] - 2016-01-07
 ### Fixed
@@ -107,7 +128,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.13...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.13...0.2.0
 [0.1.13]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.12...0.1.13
 [0.1.12]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.11...0.1.12
 [0.1.11]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.10...0.1.11

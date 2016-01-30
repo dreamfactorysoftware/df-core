@@ -7,6 +7,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Services\Swagger;
+use DreamFactory\Library\Utility\Inflector;
 
 /**
  * Service
@@ -237,6 +238,25 @@ class Service extends BaseSystemModel
         $info = $service->serviceDocs()->first();
         $content = (isset($info)) ? $info->content : null;
         if (is_string($content)) {
+            $name = $service->name;
+            $lcName = strtolower($name);
+            $ucwName = Inflector::camelize($name);
+            $pluralName = Inflector::pluralize($name);
+            $pluralUcwName = Inflector::pluralize($ucwName);
+
+            // replace service placeholders with value for this service instance
+            $content =
+                str_replace([
+                    '{service.name}',
+                    '{service.names}',
+                    '{service.Name}',
+                    '{service.Names}',
+                    '{service.label}',
+                    '{service.description}'
+                ],
+                    [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
+                    $content);
+
             $content = json_decode($content, true);
         } else {
             /** @var BaseRestService $serviceClass */

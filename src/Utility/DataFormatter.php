@@ -81,7 +81,7 @@ class DataFormatter
                         return static::arrayToCsv($data);
 
                     case DataFormats::TEXT:
-                        return json_encode(['response' => $data]);
+                        return json_encode($data);
 
                     case DataFormats::PHP_ARRAY:
                         return $data;
@@ -102,11 +102,33 @@ class DataFormatter
                         return static::arrayToCsv($data);
 
                     case DataFormats::TEXT:
-                        return json_encode(['response' => $data]);
+                        return json_encode($data);
 
                     case DataFormats::PHP_ARRAY:
                         return $data;
                 }
+                break;
+
+            case DataFormats::RAW:
+            case DataFormats::TEXT:
+                // treat as string for the most part
+                switch ($targetFormat) {
+                    case DataFormats::JSON:
+                        return json_encode($data);
+
+                    case DataFormats::XML:
+                        $root = config('df.xml_response_root', 'dfapi');
+
+                        return '<?xml version="1.0" ?>' . "<$root>$data</$root>";
+
+                    case DataFormats::CSV:
+                    case DataFormats::TEXT:
+                        return $data;
+
+                    case DataFormats::PHP_ARRAY:
+                        return [$data];
+                }
+                break;
         }
 
         return false;
@@ -318,13 +340,13 @@ class DataFormatter
             $namespaces = $xml->getNamespaces();
             if (0 === $xml->count() && !empty($namespaces)) {
                 $perNamespace = [];
-                foreach($namespaces as $prefix=>$uri) {
+                foreach ($namespaces as $prefix => $uri) {
                     if (false === $nsXml = simplexml_load_string($xml_string, null, 0, $prefix, true)) {
                         throw new \Exception("Invalid XML Namespace ($prefix) Data: ");
                     }
                     $perNamespace[$prefix] = $nsXml;
                 }
-                if (1 === count($perNamespace)){
+                if (1 === count($perNamespace)) {
                     return current($perNamespace);
                 }
 
@@ -332,7 +354,7 @@ class DataFormatter
             }
 
             return $xml;
-        } catch (\Exception $ex){
+        } catch (\Exception $ex) {
             $xmlstr = explode("\n", $xml_string);
             $errstr = "[INVALIDREQUEST]: Invalid XML Data: ";
             foreach (libxml_get_errors() as $error) {

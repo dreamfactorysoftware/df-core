@@ -148,6 +148,91 @@ class Session
     }
 
     /**
+     * @param string $service   - API name of the service
+     * @param string $component - API component/resource name
+     * @param int    $requestor - Entity type requesting the service
+     *
+     * @returns array
+     */
+    public static function checkForAnyServicePermissions($service, $component = null, $requestor = ServiceRequestorTypes::API)
+    {
+        if (static::isSysAdmin()) {
+            return true;
+        }
+
+        $roleId = Session::getRoleId();
+        if ($roleId && !Role::getCachedInfo($roleId, 'is_active')) {
+            return false;
+        }
+
+        $services = ArrayUtils::clean(static::get('role.services'));
+        $service = strval($service);
+        $component = strval($component);
+
+        //  If exact match found take it, otherwise follow up the chain as necessary
+        //  All - Service - Component - Sub-component
+        $allAllowed = VerbsMask::NONE_MASK;
+        $allFound = false;
+        $serviceAllowed = VerbsMask::NONE_MASK;
+        $serviceFound = false;
+        $componentAllowed = VerbsMask::NONE_MASK;
+        $componentFound = false;
+        $exactAllowed = VerbsMask::NONE_MASK;
+        $exactFound = false;
+        foreach ($services as $svcInfo) {
+            $tempRequestors = ArrayUtils::get($svcInfo, 'requestor_mask', ServiceRequestorTypes::API);
+            if (!($requestor & $tempRequestors)) {
+                //  Requestor type not found in allowed requestors, skip access setting
+                continue;
+            }
+
+            $tempService = strval(ArrayUtils::get($svcInfo, 'service'));
+            $tempComponent = strval(ArrayUtils::get($svcInfo, 'component'));
+            $tempCompStarPos = strpos($tempComponent, '*');
+            $tempVerbs = ArrayUtils::get($svcInfo, 'verb_mask');
+
+            if (0 == strcasecmp($service, $tempService)) {
+                if (!empty($component)) {
+                    if (0 == strcasecmp($component, $tempComponent)) {
+                        // exact match
+                        $exactAllowed |= $tempVerbs;
+                        $exactFound = true;
+                    } elseif ($tempCompStarPos &&
+                        (0 == strcasecmp(substr($component, 0, $tempCompStarPos) . '*', $tempComponent))
+                    ) {
+                        $componentAllowed |= $tempVerbs;
+                        $componentFound = true;
+                    } elseif ('*' == $tempComponent) {
+                        $serviceAllowed |= $tempVerbs;
+                        $serviceFound = true;
+                    }
+                } else {
+                        $serviceAllowed |= $tempVerbs;
+                        $serviceFound = true;
+                }
+            } else {
+                if (empty($tempService) && (('*' == $tempComponent) || (empty($tempComponent) && empty($component)))
+                ) {
+                    $allAllowed |= $tempVerbs;
+                    $allFound = true;
+                }
+            }
+        }
+
+        if ($exactFound) {
+            return (VerbsMask::NONE_MASK !== $exactAllowed);
+        } elseif ($componentFound) {
+            return (VerbsMask::NONE_MASK !== $componentAllowed);
+        } elseif ($serviceFound) {
+            return (VerbsMask::NONE_MASK !== $serviceAllowed);
+        } elseif ($allFound) {
+            return (VerbsMask::NONE_MASK !== $allAllowed);
+        }
+
+        return false;
+    }
+
+    /**
      * @param string $action - requested REST action
      *
      * @return string

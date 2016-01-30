@@ -43,6 +43,9 @@ class BaseEmailServiceConfigModel extends BaseServiceConfigModel
                 throw new BadRequestException('Web service parameters must be an array.');
             }
             EmailServiceParameterConfig::setConfig($id, $params);
+            unset($config['parameters']);
         }
+
+        parent::setConfig($id, $config);
     }
 }

@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Database\Mssql;
 
 use DreamFactory\Core\Database\Expression;
+use DreamFactory\Core\Exceptions\ForbiddenException;
 
 /**
  * Schema is the class for retrieving metadata information from a MS SQL Server database.
@@ -41,7 +42,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
                 // check foreign tables
                 break;
 
-            case 'datetime':
+            case ColumnSchema::TYPE_DATETIME:
                 $info['type'] = 'datetime2';
                 break;
             case ColumnSchema::TYPE_TIMESTAMP:
@@ -1006,6 +1007,11 @@ MYSQL;
             case ColumnSchema::TYPE_BOOLEAN:
                 $value = (filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 1 : 0);
                 break;
+        }
+        switch ($field_info->dbType) {
+            case 'rowversion':
+            case 'timestamp':
+                throw new ForbiddenException('Field type not able to be set.');
         }
 
         return $value;

@@ -1146,6 +1146,9 @@ abstract class Schema
                     $commands = array_merge($commands, $pkExtras);
                     break;
                 case ColumnSchema::TYPE_VIRTUAL:
+                    if ($oldField && (ColumnSchema::TYPE_VIRTUAL !== $oldField->type)){
+                        throw new \Exception("Field '$name' already exists as non-virtual in table '$table_name'.");
+                    }
                     $extraNew['extra_type'] = $type;
                     $extraNew['table'] = $table_name;
                     $extraNew['field'] = $name;

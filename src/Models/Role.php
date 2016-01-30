@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Models;
 
 use \Cache;
 use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -49,6 +50,7 @@ class Role extends BaseSystemModel
                     JWTUtilities::invalidateTokenByRoleId($role->id);
                 }
                 \Cache::forget('role:' . $role->id);
+                Swagger::clearCache($role->id);
             }
         );
 
@@ -56,6 +58,7 @@ class Role extends BaseSystemModel
             function (Role $role){
                 JWTUtilities::invalidateTokenByRoleId($role->id);
                 \Cache::forget('role:' . $role->id);
+                Swagger::clearCache($role->id);
             }
         );
     }

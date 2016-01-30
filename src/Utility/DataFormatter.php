@@ -81,7 +81,7 @@ class DataFormatter
                         return static::arrayToCsv($data);
 
                     case DataFormats::TEXT:
-                        return json_encode(['response' => $data]);
+                        return json_encode($data);
 
                     case DataFormats::PHP_ARRAY:
                         return $data;
@@ -102,11 +102,33 @@ class DataFormatter
                         return static::arrayToCsv($data);
 
                     case DataFormats::TEXT:
-                        return json_encode(['response' => $data]);
+                        return json_encode($data);
 
                     case DataFormats::PHP_ARRAY:
                         return $data;
                 }
+                break;
+
+            case DataFormats::RAW:
+            case DataFormats::TEXT:
+                // treat as string for the most part
+                switch ($targetFormat) {
+                    case DataFormats::JSON:
+                        return json_encode($data);
+
+                    case DataFormats::XML:
+                        $root = config('df.xml_response_root', 'dfapi');
+
+                        return '<?xml version="1.0" ?>' . "<$root>$data</$root>";
+
+                    case DataFormats::CSV:
+                    case DataFormats::TEXT:
+                        return $data;
+
+                    case DataFormats::PHP_ARRAY:
+                        return [$data];
+                }
+                break;
         }
 
         return false;
@@ -310,8 +332,29 @@ class DataFormatter
         }
 
         libxml_use_internal_errors(true);
-        $xml = simplexml_load_string($xml_string);
-        if (!$xml) {
+        try {
+            if (false === $xml = simplexml_load_string($xml_string)) {
+                throw new \Exception("Invalid XML Data: ");
+            }
+            // check for namespace
+            $namespaces = $xml->getNamespaces();
+            if (0 === $xml->count() && !empty($namespaces)) {
+                $perNamespace = [];
+                foreach ($namespaces as $prefix => $uri) {
+                    if (false === $nsXml = simplexml_load_string($xml_string, null, 0, $prefix, true)) {
+                        throw new \Exception("Invalid XML Namespace ($prefix) Data: ");
+                    }
+                    $perNamespace[$prefix] = $nsXml;
+                }
+                if (1 === count($perNamespace)) {
+                    return current($perNamespace);
+                }
+
+                return $perNamespace;
+            }
+
+            return $xml;
+        } catch (\Exception $ex) {
             $xmlstr = explode("\n", $xml_string);
             $errstr = "[INVALIDREQUEST]: Invalid XML Data: ";
             foreach (libxml_get_errors() as $error) {
@@ -320,8 +363,6 @@ class DataFormatter
             libxml_clear_errors();
             throw new \Exception($errstr);
         }
-
-        return $xml;
     }
 
     /**
@@ -628,7 +669,7 @@ class DataFormatter
         $data = static::export($data);
 
         if (version_compare(PHP_VERSION, '5.4', '>=')) {
-            $options = JSON_UNESCAPED_SLASHES | (false !== $prettyPrint ? JSON_PRETTY_PRINT : 0);
+            $options = JSON_UNESCAPED_SLASHES | (false !== $prettyPrint ? JSON_PRETTY_PRINT : 0) | JSON_NUMERIC_CHECK;
 
             return json_encode($data, $options);
         }

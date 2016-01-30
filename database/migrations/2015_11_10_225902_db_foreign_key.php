@@ -12,9 +12,16 @@ class DbForeignKey extends Migration
      */
     public function up()
     {
+        $driver = Schema::getConnection()->getDriverName();
+        $sqlsrv = (('sqlsrv' === $driver) || ('dblib' === $driver));
+        // Even though we take care of this scenario in the code,
+        // SQL Server does not allow potential cascading loops,
+        // so set the default no action and clear out created/modified by another user when deleting a user.
+        $userOnDelete = ($sqlsrv ? 'no action' : 'set null');
+
         Schema::table('db_field_extras', function (Blueprint $t) {
             $t->integer('ref_service_id')->unsigned()->nullable();
-            $t->foreign('ref_service_id')->references('id')->on('service')->onDelete('cascade');
+            $t->foreign('ref_service_id')->references('id')->on('service');
             $t->string('ref_table')->nullable();
             $t->string('ref_fields')->nullable();
             $t->string('ref_on_update')->nullable();
@@ -24,9 +31,9 @@ class DbForeignKey extends Migration
         // Database Relationship Extras
         Schema::create(
             'db_relationship_extras',
-            function (Blueprint $t){
+            function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
-                $t->integer('service_id')->unsigned()->nullable();
+                $t->integer('service_id')->unsigned();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->string('table');
                 $t->string('relationship');
@@ -39,9 +46,9 @@ class DbForeignKey extends Migration
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete('set null');
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
             }
         );
     }

@@ -38,21 +38,21 @@ class Php extends BaseEngineAdapter implements ScriptingEngineInterface
      */
     public function executeString($script, $identifier, array &$data = [], array $engineArguments = [])
     {
-        // TODO: Implement executeString() method.
         $data['__tag__'] = 'exposed_event';
 
-        try {
-            $platform = static::buildPlatformAccess($identifier);
-            $event = &$data;
+        $platform = static::buildPlatformAccess($identifier);
+        $event = &$data;
 
-            $event['script_result'] = eval($script);
-
-            return $event;
-        } catch (\Exception $ex) {
-            $message = $ex->getMessage();
-            Log::error($message = "Exception executing PHP: $message");
-            throw $ex;
+        // todo Look for a better way!
+        $enrobedScript = $this->enrobeScript($script);
+        if (false === $event = @eval($enrobedScript)){
+            $error = error_get_last();
+            $message = (isset($error['message']) ? $error['message']: null);
+            Log::error("Exception executing PHP script: $message");
+            return null;
         }
+
+        return $event;
     }
 
     /**
@@ -79,6 +79,32 @@ class Php extends BaseEngineAdapter implements ScriptingEngineInterface
     public static function shutdown()
     {
         // TODO: Implement shutdown() method.
+    }
+
+    /**
+     * @param string $script
+     *
+     * @return string
+     */
+    protected function enrobeScript($script)
+    {
+        $enrobedScript = <<<'PHP'
+    try {
+
+PHP;
+        $enrobedScript .= "$script";
+
+        $enrobedScript .= <<<'PHP'
+	}
+	catch ( \Exception $ex ) {
+		$event['script_result'] = ['error' => $ex->getMessage()];
+		$event['exception'] = $ex;
+	}
+
+	return $event;
+PHP;
+
+        return $enrobedScript;
     }
 
     protected function safe_eval($code, &$status)

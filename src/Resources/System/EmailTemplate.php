@@ -2,50 +2,50 @@
 
 namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Library\Utility\Inflector;
-
 class EmailTemplate extends BaseSystemResource
 {
-    public function getApiDocInfo()
-    {
-        $base = parent::getApiDocInfo();
+    /**
+     * @var string DreamFactory\Core\Models\BaseSystemModel Model Class name.
+     */
+    protected static $model = \DreamFactory\Core\Models\EmailTemplate::class;
 
-        $name = Inflector::camelize($this->name);
-        $lower = Inflector::camelize($this->name, null, false, true);
+    public static function getApiDocInfo(\DreamFactory\Core\Models\Service $service, array $resource = [])
+    {
+        $base = parent::getApiDocInfo($service, $resource);
 
         $commonProperties = [
             'id'          => [
                 'type'        => 'integer',
                 'format'      => 'int32',
-                'description' => 'Identifier of this ' . $lower . '.',
+                'description' => 'Identifier of this template.',
             ],
             'name'        => [
                 'type'        => 'string',
-                'description' => 'Displayable name of this ' . $lower . '.',
+                'description' => 'Displayable name of this template.',
             ],
             'description' => [
                 'type'        => 'string',
-                'description' => 'Description of this ' . $lower . '.',
+                'description' => 'Description of this template.',
             ],
             'to'          => [
                 'type'        => 'array',
                 'description' => 'Single or multiple receiver addresses.',
                 'items'       => [
-                    '$ref' => 'EmailAddress',
+                    '$ref' => '#/definitions/EmailAddress',
                 ],
             ],
             'cc'          => [
                 'type'        => 'array',
                 'description' => 'Optional CC receiver addresses.',
                 'items'       => [
-                    '$ref' => 'EmailAddress',
+                    '$ref' => '#/definitions/EmailAddress',
                 ],
             ],
             'bcc'         => [
                 'type'        => 'array',
                 'description' => 'Optional BCC receiver addresses.',
                 'items'       => [
-                    '$ref' => 'EmailAddress',
+                    '$ref' => '#/definitions/EmailAddress',
                 ],
             ],
             'subject'     => [
@@ -91,19 +91,19 @@ class EmailTemplate extends BaseSystemResource
         ];
 
         $models = [
-            $name . 'Request'  => [
-                'id'         => $name . 'Request',
+            'EmailTemplateRequest'  => [
+                'type'         => 'object',
                 'properties' => $commonProperties,
             ],
-            $name . 'Response' => [
-                'id'         => $name . 'Response',
+            'EmailTemplateResponse' => [
+                'type'         => 'object',
                 'properties' => array_merge(
                     $commonProperties,
                     $stampProperties
                 ),
             ],
             'EmailAddress'     => [
-                'id'         => 'EmailAddress',
+                'type'         => 'object',
                 'properties' => [
                     'name'  => [
                         'type'        => 'string',
@@ -117,7 +117,7 @@ class EmailTemplate extends BaseSystemResource
             ],
         ];
 
-        $base['models'] = array_merge($base['models'], $models);
+        $base['definitions'] = array_merge($base['definitions'], $models);
 
         return $base;
     }

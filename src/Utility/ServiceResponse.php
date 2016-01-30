@@ -2,9 +2,9 @@
 
 namespace DreamFactory\Core\Utility;
 
+use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
-use DreamFactory\Core\Enums\DataFormats;
 
 class ServiceResponse implements ServiceResponseInterface
 {
@@ -30,21 +30,24 @@ class ServiceResponse implements ServiceResponseInterface
     protected $dataFormat = null;
 
     /**
-     * @param mixed  $content      Response content
-     * @param int    $format       Data Format of content
-     * @param int    $status       HTTP Status code
-     * @param string $content_type Content Type of content
+     * @param mixed       $content      Response content
+     * @param string|null $content_type Content Type of content
+     * @param int         $status       HTTP Status code
      */
-    public function __construct(
-        $content = null,
-        $format = DataFormats::PHP_ARRAY,
-        $status = ServiceResponseInterface::HTTP_OK,
-        $content_type = null
-    ){
+    public function __construct($content = null, $content_type = null, $status = self::HTTP_OK)
+    {
         $this->content = $content;
-        $this->dataFormat = $format;
-        $this->statusCode = $status;
         $this->contentType = $content_type;
+        if (!empty($content_type)) {
+            $this->dataFormat = DataFormats::fromMimeType($content_type);
+        } elseif (is_array($content)) {
+            $this->dataFormat = DataFormats::PHP_ARRAY;
+        } elseif (is_object($content)) {
+            $this->dataFormat = DataFormats::PHP_OBJECT;
+        } else {
+            $this->dataFormat = DataFormats::RAW;
+        }
+        $this->statusCode = $status;
     }
 
     /**
@@ -104,7 +107,7 @@ class ServiceResponse implements ServiceResponseInterface
     /**
      * {@inheritdoc}
      */
-    public function setContentFormat($format)
+    public function setDataFormat($format)
     {
         $this->dataFormat = $format;
 
@@ -114,7 +117,7 @@ class ServiceResponse implements ServiceResponseInterface
     /**
      * {@inheritdoc}
      */
-    public function getContentFormat()
+    public function getDataFormat()
     {
         return $this->dataFormat;
     }
@@ -128,6 +131,7 @@ class ServiceResponse implements ServiceResponseInterface
             'status_code'  => $this->getStatusCode(),
             'content_type' => $this->getContentType(),
             'content'      => $this->getContent(),
+            'format'       => $this->getDataFormat(),
         ];
     }
 
@@ -137,9 +141,10 @@ class ServiceResponse implements ServiceResponseInterface
     public function mergeFromArray(array $data)
     {
         $this->setStatusCode(ArrayUtils::get($data, 'status_code'));
-        if (ArrayUtils::getBool($data, 'payload_changed')) {
-            $this->setContentType(ArrayUtils::get($data, 'content_type'));
+        if (ArrayUtils::getBool($data, 'content_changed')) {
             $this->setContent(ArrayUtils::get($data, 'content'));
+            $this->setContentType(ArrayUtils::get($data, 'content_type'));
+            $this->setDataFormat(ArrayUtils::get($data, 'format'));
         }
     }
 }

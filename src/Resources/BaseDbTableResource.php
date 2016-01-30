@@ -11,9 +11,9 @@ use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Database\ColumnSchema;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Utility\ApiDocUtilities;
 use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
@@ -23,6 +23,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\Inflector;
 
 abstract class BaseDbTableResource extends BaseDbResource
 {
@@ -43,14 +44,6 @@ abstract class BaseDbTableResource extends BaseDbResource
     //	Members
     //*************************************************************************
 
-    /**
-     * @var array
-     */
-    protected $payload = [];
-    /**
-     * @var array
-     */
-    protected $options = [];
     /**
      * @var boolean
      */
@@ -191,82 +184,11 @@ abstract class BaseDbTableResource extends BaseDbResource
         return $out;
     }
 
-    /**
-     *
-     *
-     * IMPORTANT: The representation of the data will be placed back into the original location/position in the $record
-     * from which it was "normalized". This means that any client-side handlers will have to deal with the bogus
-     * determinations. Just be aware.
-     *
-     * Below is a side-by-side comparison of record data as shown sent by or returned to the caller, and sent to an
-     * event handler.
-     *
-     *  REST API v1.0                           Event Representation
-     *  -------------                           --------------------
-     *  Single row...                           Add a 'record' key and make it look like a multi-row
-     *
-     *      array(                              array(
-     *          'id' => 1,                          'record' => array(
-     *      )                                           0 => array( 'id' => 1, ),
-     *                                              ),
-     *                                          ),
-     *
-     * Multi-row...                             Stays the same...or gets wrapped by adding a 'record' key
-     *
-     *      array(                              array(
-     *          'record' => array(                  'record' =>  array(
-     *              0 => array( 'id' => 1 ),            0 => array( 'id' => 1 ),
-     *              1 => array( 'id' => 2 ),            1 => array( 'id' => 2 ),
-     *              2 => array( 'id' => 3 ),            2 => array( 'id' => 3 ),
-     *          ),                                  ),
-     *      )                                   )
-     *
-     * or...
-     *
-     *      array(                              array(
-     *          0 => array( 'id' => 1 ),            'record' =>  array(
-     *          1 => array( 'id' => 2 ),                0 => array( 'id' => 1 ),
-     *          2 => array( 'id' => 3 ),                1 => array( 'id' => 2 ),
-     *      ),                                          2 => array( 'id' => 3 ),
-     *                                              ),
-     *                                          )
-     */
     protected function detectRequestMembers()
     {
-        $wrapper = ResourcesWrapper::getWrapper();
-        // override - don't call parent class here
-        $this->payload = $this->getPayloadData();
-
         if (!empty($this->resource)) {
-            if (!empty($this->resourceId)) {
-                if (!empty($this->payload)) {
-                    // fix wrapper on posted single record
-                    if (!isset($this->payload[$wrapper])) {
-                        // single records don't use the record wrapper, so wrap it
-                        $this->payload = [$wrapper => [$this->payload]];
-                    }
-                }
-            } elseif (ArrayUtils::isArrayNumeric($this->payload)) {
-                // import from csv, etc doesn't include a wrapper, so wrap it
-                $this->payload = [$wrapper => $this->payload];
-            } else {
-                if (!empty($this->payload)) {
-                    switch ($this->request->getMethod()) {
-                        case Verbs::POST:
-                        case Verbs::PUT:
-                        case Verbs::PATCH:
-                        case Verbs::MERGE:
-                            // fix wrapper on posted single record
-                            if (!isset($this->payload[$wrapper])) {
-                                // stuff it back in for event
-                                $this->payload[$wrapper] = [$this->payload];
-                            }
-                            break;
-                    }
-                }
-            }
-
-            $this->options = $this->request->getParameters();
+            $payload = $this->getPayloadData();
+            $options = $this->request->getParameters();
 
             // merge in possible payload options
             $optionNames = [
@@ -282,18 +204,22 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ApiOptions::ROLLBACK
             ];
 
+            $updateOptions = false;
             foreach ($optionNames as $key => $value) {
-                if (!array_key_exists($value, $this->options)) {
-                    if (array_key_exists($value, $this->payload)) {
-                        $this->options[$value] = $this->payload[$value];
+                if (!array_key_exists($value, $options)) {
+                    if (array_key_exists($value, $payload)) {
+                        $updateOptions = true;
+                        $options[$value] = $payload[$value];
                     } elseif (!empty($otherNames = ApiOptions::getAliases($value))) {
                         foreach ($otherNames as $other) {
-                            if (!array_key_exists($other, $this->options)) {
-                                if (array_key_exists($other, $this->payload)) {
-                                    $this->options[$value] = $this->payload[$other];
+                            if (!array_key_exists($other, $options)) {
+                                if (array_key_exists($other, $payload)) {
+                                    $updateOptions = true;
+                                    $options[$value] = $payload[$other];
                                 }
                             } else {
-                                $this->options[$value] = $this->options[$other];
+                                $updateOptions = true;
+                                $options[$value] = $options[$other];
                             }
                         }
                     }
@@ -303,8 +229,9 @@ abstract class BaseDbTableResource extends BaseDbResource
             // set defaults if not present
             if (Verbs::GET == $this->request->getMethod()) {
                 // default for GET should be "return all fields"
-                if (!array_key_exists(ApiOptions::FIELDS, $this->options)) {
-                    $this->options[ApiOptions::FIELDS] = '*';
+                if (!array_key_exists(ApiOptions::FIELDS, $options)) {
+                    $updateOptions = true;
+                    $options[ApiOptions::FIELDS] = '*';
                 }
             }
 
@@ -313,7 +240,12 @@ abstract class BaseDbTableResource extends BaseDbResource
             if (null !=
                 $ssFilters = Session::getServiceFilters($this->getRequestedAction(), $this->parent->name, $resource)
             ) {
-                $this->options['ss_filters'] = $ssFilters;
+                $updateOptions = true;
+                $options['ss_filters'] = $ssFilters;
+            }
+
+            if ($updateOptions) {
+                $this->request->setParameters($options);
             }
         }
     }
@@ -465,39 +397,38 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
         }
 
+        $options = $this->request->getParameters();
+
         if (!empty($this->resourceId)) {
             //	Single resource by ID
-            $result = $this->retrieveRecordById($tableName, $this->resourceId, $this->options);
-            $this->triggerActionEvent($result);
+            $result = $this->retrieveRecordById($tableName, $this->resourceId, $options);
 
             return $result;
         }
 
-        if (!empty($ids = ArrayUtils::get($this->options, ApiOptions::IDS))) {
+        if (!empty($ids = ArrayUtils::get($options, ApiOptions::IDS))) {
             //	Multiple resources by ID
-            $result = $this->retrieveRecordsByIds($tableName, $ids, $this->options);
-        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->payload))) {
+            $result = $this->retrieveRecordsByIds($tableName, $ids, $options);
+        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
             // passing records to have them updated with new or more values, id field required
-            $result = $this->retrieveRecords($tableName, $records, $this->options);
+            $result = $this->retrieveRecords($tableName, $records, $options);
         } else {
-            $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
-            $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
+            $filter = ArrayUtils::get($options, ApiOptions::FILTER);
+            $params = ArrayUtils::get($options, ApiOptions::PARAMS, []);
 
-            $result = $this->retrieveRecordsByFilter($tableName, $filter, $params, $this->options);
+            $result = $this->retrieveRecordsByFilter($tableName, $filter, $params, $options);
         }
 
         $meta = ArrayUtils::get($result, 'meta');
         unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
             $result['meta'] = $meta;
         }
-
-        $this->triggerActionEvent($result);
 
         return $result;
     }
@@ -524,20 +455,19 @@ abstract class BaseDbTableResource extends BaseDbResource
             throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
-        $records = ResourcesWrapper::unwrapResources($this->payload);
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
         if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.');
         }
 
-        $this->triggerActionEvent($this->response);
-
-        $result = $this->createRecords($tableName, $records, $this->options);
+        $options = $this->request->getParameters();
+        $result = $this->createRecords($tableName, $records, $options);
 
         $meta = ArrayUtils::get($result, 'meta');
         unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
@@ -561,43 +491,41 @@ abstract class BaseDbTableResource extends BaseDbResource
             return false;
         }
 
-        $records = ResourcesWrapper::unwrapResources($this->payload);
-        if (empty($records)) {
-            throw new BadRequestException('No record(s) detected in request.');
-        }
-
-        $this->triggerActionEvent($this->response);
-
         if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
             throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
         }
 
-        if (!empty($this->resourceId)) {
-            $record = ArrayUtils::get($records, 0, $records);
+        $options = $this->request->getParameters();
 
-            return $this->updateRecordById($tableName, $record, $this->resourceId, $this->options);
+        if (!empty($this->resourceId)) {
+            return $this->updateRecordById($tableName, $this->getPayloadData(), $this->resourceId, $options);
         }
 
-        $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+        if (empty($records)) {
+            throw new BadRequestException('No record(s) detected in request.');
+        }
+
+        $ids = ArrayUtils::get($options, ApiOptions::IDS);
 
         if (!empty($ids)) {
             $record = ArrayUtils::get($records, 0, $records);
 
-            $result = $this->updateRecordsByIds($tableName, $record, $ids, $this->options);
+            $result = $this->updateRecordsByIds($tableName, $record, $ids, $options);
         } else {
-            $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
+            $filter = ArrayUtils::get($options, ApiOptions::FILTER);
             if (!empty($filter)) {
                 $record = ArrayUtils::get($records, 0, $records);
-                $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
+                $params = ArrayUtils::get($options, ApiOptions::PARAMS, []);
                 $result = $this->updateRecordsByFilter(
                     $tableName,
                     $record,
                     $filter,
                     $params,
-                    $this->options
+                    $options
                 );
             } else {
-                $result = $this->updateRecords($tableName, $records, $this->options);
+                $result = $this->updateRecords($tableName, $records, $options);
             }
         }
 
@@ -605,7 +533,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
@@ -629,42 +557,40 @@ abstract class BaseDbTableResource extends BaseDbResource
             return false;
         }
 
-        $records = ResourcesWrapper::unwrapResources($this->payload);
-        if (empty($records)) {
-            throw new BadRequestException('No record(s) detected in request.');
-        }
-
-        $this->triggerActionEvent($this->response);
-
         if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
             throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
         }
 
-        if (!empty($this->resourceId)) {
-            $record = ArrayUtils::get($records, 0, $records);
+        $options = $this->request->getParameters();
 
-            return $this->patchRecordById($tableName, $record, $this->resourceId, $this->options);
+        if (!empty($this->resourceId)) {
+            return $this->patchRecordById($tableName, $this->getPayloadData(), $this->resourceId, $options);
         }
 
-        $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+        if (empty($records)) {
+            throw new BadRequestException('No record(s) detected in request.');
+        }
+
+        $ids = ArrayUtils::get($options, ApiOptions::IDS);
 
         if (!empty($ids)) {
             $record = ArrayUtils::get($records, 0, $records);
-            $result = $this->patchRecordsByIds($tableName, $record, $ids, $this->options);
+            $result = $this->patchRecordsByIds($tableName, $record, $ids, $options);
         } else {
-            $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
+            $filter = ArrayUtils::get($options, ApiOptions::FILTER);
             if (!empty($filter)) {
                 $record = ArrayUtils::get($records, 0, $records);
-                $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
+                $params = ArrayUtils::get($options, ApiOptions::PARAMS, []);
                 $result = $this->patchRecordsByFilter(
                     $tableName,
                     $record,
                     $filter,
                     $params,
-                    $this->options
+                    $options
                 );
             } else {
-                $result = $this->patchRecords($tableName, $records, $this->options);
+                $result = $this->patchRecords($tableName, $records, $options);
             }
         }
 
@@ -672,7 +598,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
@@ -696,34 +622,34 @@ abstract class BaseDbTableResource extends BaseDbResource
             return false;
         }
 
-        $this->triggerActionEvent($this->response);
-
         if (false === ($tableName = $this->doesTableExist($this->resource, true))) {
             throw new NotFoundException('Table "' . $this->resource . '" does not exist in the database.');
         }
 
+        $options = $this->request->getParameters();
+
         if (!empty($this->resourceId)) {
-            return $this->deleteRecordById($tableName, $this->resourceId, $this->options);
+            return $this->deleteRecordById($tableName, $this->resourceId, $options);
         }
 
-        $ids = ArrayUtils::get($this->options, ApiOptions::IDS);
+        $ids = ArrayUtils::get($options, ApiOptions::IDS);
         if (!empty($ids)) {
-            $result = $this->deleteRecordsByIds($tableName, $ids, $this->options);
+            $result = $this->deleteRecordsByIds($tableName, $ids, $options);
         } else {
-            $records = ResourcesWrapper::unwrapResources($this->payload);
+            $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
             if (!empty($records)) {
-                $result = $this->deleteRecords($tableName, $records, $this->options);
+                $result = $this->deleteRecords($tableName, $records, $options);
             } else {
-                $filter = ArrayUtils::get($this->options, ApiOptions::FILTER);
+                $filter = ArrayUtils::get($options, ApiOptions::FILTER);
                 if (!empty($filter)) {
-                    $params = ArrayUtils::get($this->options, ApiOptions::PARAMS, []);
-                    $result = $this->deleteRecordsByFilter($tableName, $filter, $params, $this->options);
+                    $params = ArrayUtils::get($options, ApiOptions::PARAMS, []);
+                    $result = $this->deleteRecordsByFilter($tableName, $filter, $params, $options);
                 } else {
-                    if (!ArrayUtils::getBool($this->options, ApiOptions::FORCE)) {
+                    if (!ArrayUtils::getBool($options, ApiOptions::FORCE)) {
                         throw new BadRequestException('No filter or records given for delete request.');
                     }
 
-                    return $this->truncateTable($tableName, $this->options);
+                    return $this->truncateTable($tableName, $options);
                 }
             }
         }
@@ -732,7 +658,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         unset($result['meta']);
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
         $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
@@ -2064,10 +1990,11 @@ abstract class BaseDbTableResource extends BaseDbResource
                         break;
                     default:
                         $name = strtolower($fieldInfo->getName(true));
-                        // overwrite some undercover fields
-                        if ($fieldInfo->autoIncrement || 'virtual' === $fieldInfo->type) {
-                            // should I error this?
-                            // drop for now
+                        // need to check for virtual or api_read_only validation here.
+                        if (('virtual' === $fieldInfo->type) ||
+                            isset($fieldInfo->validation, $fieldInfo->validation['api_read_only'])
+                        ) {
+                            // if read only, drop it
                             unset($record[$name]);
                             continue;
                         }
@@ -2096,7 +2023,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 continue;
                             }
 
-                            $fieldVal = $this->parseValueForSet($fieldVal, $fieldInfo);
+                            try {
+                                $fieldVal = $this->parseValueForSet($fieldVal, $fieldInfo);
+                            } catch (ForbiddenException $ex) {
+                                unset($record[$name]);
+                                continue;
+                            }
 
                             $parsed[$fieldInfo->name] = $fieldVal;
                             unset($record[$name]);
@@ -2884,9 +2816,8 @@ abstract class BaseDbTableResource extends BaseDbResource
         return (substr($haystack, -strlen($needle)) === $needle);
     }
 
-    public function getApiDocModels()
+    public static function getApiDocModels()
     {
-        $base = parent::getApiDocModels();
         $wrapper = ResourcesWrapper::getWrapper();
         $commonProperties = [
             'id' => [
@@ -2896,21 +2827,21 @@ abstract class BaseDbTableResource extends BaseDbResource
             ],
         ];
 
-        $models = [
+        return [
             'Tables'          => [
-                'id'         => 'Tables',
+                'type'       => 'object',
                 'properties' => [
                     $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of tables and their properties.',
                         'items'       => [
-                            '$ref' => 'Table',
+                            '$ref' => '#/definitions/Table',
                         ],
                     ],
                 ],
             ],
             'Table'           => [
-                'id'         => 'Table',
+                'type'       => 'object',
                 'properties' => [
                     'name' => [
                         'type'        => 'string',
@@ -2919,18 +2850,18 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
             ],
             'RecordRequest'   => [
-                'id'         => 'RecordRequest',
+                'type'       => 'object',
                 'properties' =>
                     $commonProperties
             ],
             'RecordsRequest'  => [
-                'id'         => 'RecordsRequest',
+                'type'       => 'object',
                 'properties' => [
                     $wrapper           => [
                         'type'        => 'array',
                         'description' => 'Array of records.',
                         'items'       => [
-                            '$ref' => 'RecordRequest',
+                            '$ref' => '#/definitions/RecordRequest',
                         ],
                     ],
                     ApiOptions::IDS    => [
@@ -2955,17 +2886,17 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
             ],
             'RecordResponse'  => [
-                'id'         => 'RecordResponse',
+                'type'       => 'object',
                 'properties' => $commonProperties
             ],
             'RecordsResponse' => [
-                'id'         => 'RecordsResponse',
+                'type'       => 'object',
                 'properties' => [
                     $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system user records.',
                         'items'       => [
-                            '$ref' => 'RecordResponse',
+                            '$ref' => '#/definitions/RecordResponse',
                         ],
                     ],
                     'meta'   => [
@@ -2975,7 +2906,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
             ],
             'Metadata'        => [
-                'id'         => 'Metadata',
+                'type'       => 'object',
                 'properties' => [
                     'schema' => [
                         'type'        => 'array',
@@ -2992,441 +2923,374 @@ abstract class BaseDbTableResource extends BaseDbResource
                 ],
             ]
         ];
-
-        return array_merge($base, $models);
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(Service $service, array $resource = [])
     {
-        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
-        $base = parent::getApiDocInfo();
-        $tables = $this->listResources();
+        $serviceName = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
+        $base = parent::getApiDocInfo($service, $resource);
 
-        $commonResponses = ApiDocUtilities::getCommonResponses();
         $wrapper = ResourcesWrapper::getWrapper();
 
         $apis = [
-            [
-                'path'        => $path . '/{table_name}',
-                'description' => 'Operations for table records administration.',
-                'operations'  =>
+            $path . '/{table_name}'      => [
+                'parameters' => [
                     [
-                        [
-                            'method'           => 'GET',
-                            'summary'          => 'getRecords() - Retrieve one or more records.',
-                            'nickname'         => 'getRecords',
-                            'notes'            =>
-                                'Set the <b>filter</b> parameter to a SQL WHERE clause (optional native filter accepted in some scenarios) ' .
-                                'to limit records returned or leave it blank to return all records up to the maximum limit.<br/> ' .
-                                'Set the <b>limit</b> parameter with or without a filter to return a specific amount of records.<br/> ' .
-                                'Use the <b>offset</b> parameter along with the <b>limit</b> parameter to page through sets of records.<br/> ' .
-                                'Set the <b>order</b> parameter to SQL ORDER_BY clause containing field and optional direction (<field_name> [ASC|DESC]) to order the returned records.<br/> ' .
-                                'Alternatively, to send the <b>filter</b> with or without <b>params</b> as posted data, ' .
-                                'use the getRecordsByPost() POST request and post a filter with or without params.<br/>' .
-                                'Pass the identifying field values as a comma-separated list in the <b>ids</b> parameter.<br/> ' .
-                                'Use the <b>id_field</b> and <b>id_type</b> parameters to override or specify detail for identifying fields where applicable.<br/> ' .
-                                'Alternatively, to send the <b>ids</b> as posted data, use the getRecordsByPost() POST request.<br/> ' .
-                                'Use the <b>fields</b> parameter to limit properties returned for each record. ' .
-                                'By default, all fields are returned for all records. ',
-                            'type'             => 'RecordsResponse',
-                            'event_name'       => [
-                                $eventPath . '.{table_name}.select',
-                                $eventPath . '.table_selected',
-                            ],
-                            'parameters'       => [
-                                [
-                                    'name'          => 'table_name',
-                                    'description'   => 'Name of the table to perform operations on.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'string',
-                                    'paramType'     => 'path',
-                                    'required'      => true,
-                                    'options'       => $tables,
-                                ],
-                                ApiOptions::documentOption(ApiOptions::FILTER),
-                                ApiOptions::documentOption(ApiOptions::LIMIT),
-                                ApiOptions::documentOption(ApiOptions::ORDER),
-                                ApiOptions::documentOption(ApiOptions::GROUP),
-                                ApiOptions::documentOption(ApiOptions::OFFSET),
-                                ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
-                                ApiOptions::documentOption(ApiOptions::IDS),
-                                ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                ApiOptions::documentOption(ApiOptions::CONTINUES),
-                                ApiOptions::documentOption(ApiOptions::FIELDS),
-                                ApiOptions::documentOption(ApiOptions::RELATED),
-                                ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
-                                ApiOptions::documentOption(ApiOptions::FILE),
-                            ],
-                            'responseMessages' => $commonResponses,
-                        ],
-                        [
-                            'method'           => 'POST',
-                            'summary'          => 'createRecords() - Create one or more records.',
-                            'nickname'         => 'createRecords',
-                            'notes'            =>
-                                'Posted data should be an array of records wrapped in a <b>record</b> element.<br/> ' .
-                                'By default, only the id property of the record is returned on success. ' .
-                                'Use <b>fields</b> parameter to return more info.',
-                            'type'             => 'RecordsResponse',
-                            'event_name'       => [
-                                $eventPath . '.{table_name}.insert',
-                                $eventPath . '.table_inserted',
-                            ],
-                            'parameters'       =>
-                                [
-                                    [
-                                        'name'          => 'table_name',
-                                        'description'   => 'Name of the table to perform operations on.',
-                                        'allowMultiple' => false,
-                                        'type'          => 'string',
-                                        'paramType'     => 'path',
-                                        'required'      => true,
-                                        'options'       => $tables,
-                                    ],
-                                    [
-                                        'name'          => 'body',
-                                        'description'   => 'Data containing name-value pairs of records to create.',
-                                        'allowMultiple' => false,
-                                        'type'          => 'RecordsRequest',
-                                        'paramType'     => 'body',
-                                        'required'      => true,
-                                    ],
-                                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                    ApiOptions::documentOption(ApiOptions::CONTINUES),
-                                    ApiOptions::documentOption(ApiOptions::ROLLBACK),
-                                    ApiOptions::documentOption(ApiOptions::FIELDS),
-                                    ApiOptions::documentOption(ApiOptions::RELATED),
-                                    [
-                                        'name'          => 'X-HTTP-METHOD',
-                                        'description'   => 'Override request using POST to tunnel other http request, such as DELETE or GET passing a payload.',
-                                        'enum'          => ['GET','PUT','PATCH','DELETE'],
-                                        'allowMultiple' => false,
-                                        'type'          => 'string',
-                                        'paramType'     => 'header',
-                                        'required'      => false,
-                                    ],
-                                ],
-                            'responseMessages' => $commonResponses,
-                        ],
-                        [
-                            'method'           => 'PUT',
-                            'summary'          => 'replaceRecords() - Update (replace) one or more records.',
-                            'nickname'         => 'replaceRecords',
-                            'notes'            =>
-                                'Post data should be an array of records wrapped in a <b>' .
-                                $wrapper .
-                                '</b> tag.<br/> ' .
-                                'If ids or filter is used, posted body should be a single record with name-value pairs ' .
-                                'to update, wrapped in a <b>' .
-                                $wrapper .
-                                '</b> tag.<br/> ' .
-                                'Ids can be included via URL parameter or included in the posted body.<br/> ' .
-                                'Filter can be included via URL parameter or included in the posted body.<br/> ' .
-                                'By default, only the id property of the record is returned on success. ' .
-                                'Use <b>fields</b> parameter to return more info.',
-                            'type'             => 'RecordsResponse',
-                            'event_name'       => [$eventPath . '.{table_name}.update', $eventPath . '.table_updated',],
-                            'parameters'       =>
-                                [
-                                    [
-                                        'name'          => 'table_name',
-                                        'description'   => 'Name of the table to perform operations on.',
-                                        'allowMultiple' => false,
-                                        'type'          => 'string',
-                                        'paramType'     => 'path',
-                                        'required'      => true,
-                                        'options'       => $tables,
-                                    ],
-                                    [
-                                        'name'          => 'body',
-                                        'description'   => 'Data containing name-value pairs of records to update.',
-                                        'allowMultiple' => false,
-                                        'type'          => 'RecordsRequest',
-                                        'paramType'     => 'body',
-                                        'required'      => true,
-                                    ],
-                                    ApiOptions::documentOption(ApiOptions::IDS),
-                                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                    ApiOptions::documentOption(ApiOptions::CONTINUES),
-                                    ApiOptions::documentOption(ApiOptions::ROLLBACK),
-                                    ApiOptions::documentOption(ApiOptions::FILTER),
-                                    ApiOptions::documentOption(ApiOptions::FIELDS),
-                                    ApiOptions::documentOption(ApiOptions::RELATED),
-                                ],
-                            'responseMessages' => $commonResponses,
-                        ],
-                        [
-                            'method'           => 'PATCH',
-                            'summary'          => 'updateRecords() - Update (patch) one or more records.',
-                            'nickname'         => 'updateRecords',
-                            'notes'            =>
-                                'Post data should be an array of records containing at least the identifying fields for each record.<br/> ' .
-                                'Posted body should be a single record with name-value pairs to update wrapped in a <b>record</b> tag.<br/> ' .
-                                'Ids can be included via URL parameter or included in the posted body.<br/> ' .
-                                'Filter can be included via URL parameter or included in the posted body.<br/> ' .
-                                'By default, only the id property of the record is returned on success. ' .
-                                'Use <b>fields</b> parameter to return more info.',
-                            'type'             => 'RecordsResponse',
-                            'event_name'       => [
-                                $eventPath . '.{table_name}.update',
-                                $eventPath . '.table_updated',
-                            ],
-                            'parameters'       =>
-                                [
-                                    [
-                                        'name'          => 'table_name',
-                                        'description'   => 'Name of the table to perform operations on.',
-                                        'allowMultiple' => false,
-                                        'type'          => 'string',
-                                        'paramType'     => 'path',
-                                        'required'      => true,
-                                        'options'       => $tables,
-                                    ],
-                                    [
-                                        'name'          => 'body',
-                                        'description'   => 'A single record containing name-value pairs of fields to update.',
-                                        'allowMultiple' => false,
-                                        'type'          => 'RecordsRequest',
-                                        'paramType'     => 'body',
-                                        'required'      => true,
-                                    ],
-                                    ApiOptions::documentOption(ApiOptions::IDS),
-                                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                    ApiOptions::documentOption(ApiOptions::CONTINUES),
-                                    ApiOptions::documentOption(ApiOptions::ROLLBACK),
-                                    ApiOptions::documentOption(ApiOptions::FILTER),
-                                    ApiOptions::documentOption(ApiOptions::FIELDS),
-                                    ApiOptions::documentOption(ApiOptions::RELATED),
-                                ],
-                            'responseMessages' => $commonResponses,
-                        ],
-                        [
-                            'method'           => 'DELETE',
-                            'summary'          => 'deleteRecords() - Delete one or more records.',
-                            'nickname'         => 'deleteRecords',
-                            'notes'            =>
-                                'Set the <b>ids</b> parameter to a list of record identifying (primary key) values to delete specific records.<br/> ' .
-                                'Alternatively, to delete records by a large list of ids, pass the ids in the <b>body</b>.<br/> ' .
-                                'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ' .
-                                'Set the <b>filter</b> parameter to a SQL WHERE clause to delete specific records, ' .
-                                'otherwise set <b>force</b> to true to clear the table.<br/> ' .
-                                'Alternatively, to delete by a complicated filter or to use parameter replacement, pass the filter with or without params as the <b>body</b>.<br/> ' .
-                                'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ' .
-                                'Set the <b>body</b> to an array of records, minimally including the identifying fields, to delete specific records.<br/> ' .
-                                'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ',
-                            'type'             => 'RecordsResponse',
-                            'event_name'       => [
-                                $eventPath . '.{table_name}.delete',
-                                $eventPath . '.table_deleted',
-                            ],
-                            'parameters'       =>
-                                [
-                                    [
-                                        'name'          => 'table_name',
-                                        'description'   => 'Name of the table to perform operations on.',
-                                        'allowMultiple' => false,
-                                        'type'          => 'string',
-                                        'paramType'     => 'path',
-                                        'required'      => true,
-                                        'options'       => $tables,
-                                    ],
-                                    [
-                                        'name'          => 'body',
-                                        'description'   => 'Data containing ids of records to delete.',
-                                        'allowMultiple' => false,
-                                        'type'          => 'RecordsRequest',
-                                        'paramType'     => 'body',
-                                        'required'      => false,
-                                    ],
-                                    ApiOptions::documentOption(ApiOptions::IDS),
-                                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                    ApiOptions::documentOption(ApiOptions::CONTINUES),
-                                    ApiOptions::documentOption(ApiOptions::ROLLBACK),
-                                    ApiOptions::documentOption(ApiOptions::FILTER),
-                                    ApiOptions::documentOption(ApiOptions::FORCE),
-                                    ApiOptions::documentOption(ApiOptions::FIELDS),
-                                    ApiOptions::documentOption(ApiOptions::RELATED),
-                                ],
-                            'responseMessages' => $commonResponses,
-                        ],
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
                     ],
+                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                    ApiOptions::documentOption(ApiOptions::CONTINUES),
+                    ApiOptions::documentOption(ApiOptions::ROLLBACK),
+                    ApiOptions::documentOption(ApiOptions::FIELDS),
+                    ApiOptions::documentOption(ApiOptions::RELATED),
+                ],
+                'get'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' . $capitalized . 'Records() - Retrieve one or more records.',
+                    'operationId' => 'get' . $capitalized . 'Records',
+                    'description' =>
+                        'Set the <b>filter</b> parameter to a SQL WHERE clause (optional native filter accepted in some scenarios) ' .
+                        'to limit records returned or leave it blank to return all records up to the maximum limit.<br/> ' .
+                        'Set the <b>limit</b> parameter with or without a filter to return a specific amount of records.<br/> ' .
+                        'Use the <b>offset</b> parameter along with the <b>limit</b> parameter to page through sets of records.<br/> ' .
+                        'Set the <b>order</b> parameter to SQL ORDER_BY clause containing field and optional direction (<field_name> [ASC|DESC]) to order the returned records.<br/> ' .
+                        'Alternatively, to send the <b>filter</b> with or without <b>params</b> as posted data, ' .
+                        'use the getRecordsByPost() POST request and post a filter with or without params.<br/>' .
+                        'Pass the identifying field values as a comma-separated list in the <b>ids</b> parameter.<br/> ' .
+                        'Use the <b>id_field</b> and <b>id_type</b> parameters to override or specify detail for identifying fields where applicable.<br/> ' .
+                        'Alternatively, to send the <b>ids</b> as posted data, use the getRecordsByPost() POST request.<br/> ' .
+                        'Use the <b>fields</b> parameter to limit properties returned for each record. ' .
+                        'By default, all fields are returned for all records. ',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.select',
+                        $eventPath . '.table_selected',
+                    ],
+                    'parameters'  => [
+                        ApiOptions::documentOption(ApiOptions::IDS),
+                        ApiOptions::documentOption(ApiOptions::FILTER),
+                        ApiOptions::documentOption(ApiOptions::LIMIT),
+                        ApiOptions::documentOption(ApiOptions::ORDER),
+                        ApiOptions::documentOption(ApiOptions::GROUP),
+                        ApiOptions::documentOption(ApiOptions::OFFSET),
+                        ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
+                        ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
+                        ApiOptions::documentOption(ApiOptions::FILE),
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Records',
+                            'schema'      => ['$ref' => '#/definitions/RecordsResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
+                'post'       => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'create' . $capitalized . 'Records() - Create one or more records.',
+                    'operationId' => 'create' . $capitalized . 'Records',
+                    'description' =>
+                        'Posted data should be an array of records wrapped in a <b>record</b> element.<br/> ' .
+                        'By default, only the id property of the record is returned on success. ' .
+                        'Use <b>fields</b> parameter to return more info.',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.insert',
+                        $eventPath . '.table_inserted',
+                    ],
+                    'parameters'  =>
+                        [
+                            [
+                                'name'        => 'body',
+                                'description' => 'Data containing name-value pairs of records to create.',
+                                'in'          => 'body',
+                                'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
+                                'required'    => true,
+                            ],
+                            [
+                                'name'        => 'X-HTTP-METHOD',
+                                'description' => 'Override request using POST to tunnel other http request, such as DELETE or GET passing a payload.',
+                                'enum'        => ['GET', 'PUT', 'PATCH', 'DELETE'],
+                                'type'        => 'string',
+                                'in'          => 'header',
+                            ],
+                        ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Records',
+                            'schema'      => ['$ref' => '#/definitions/RecordsResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
+                'put'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'replace' . $capitalized . 'Records() - Update (replace) one or more records.',
+                    'operationId' => 'replace' . $capitalized . 'Records',
+                    'description' =>
+                        'Post data should be an array of records wrapped in a <b>' .
+                        $wrapper .
+                        '</b> tag.<br/> ' .
+                        'If ids or filter is used, posted body should be a single record with name-value pairs ' .
+                        'to update, wrapped in a <b>' .
+                        $wrapper .
+                        '</b> tag.<br/> ' .
+                        'Ids can be included via URL parameter or included in the posted body.<br/> ' .
+                        'Filter can be included via URL parameter or included in the posted body.<br/> ' .
+                        'By default, only the id property of the record is returned on success. ' .
+                        'Use <b>fields</b> parameter to return more info.',
+                    'event_name'  => [$eventPath . '.{table_name}.update', $eventPath . '.table_updated',],
+                    'parameters'  =>
+                        [
+                            [
+                                'name'        => 'body',
+                                'description' => 'Data containing name-value pairs of records to update.',
+                                'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
+                                'in'          => 'body',
+                                'required'    => true,
+                            ],
+                            ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::FILTER),
+                        ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Records',
+                            'schema'      => ['$ref' => '#/definitions/RecordsResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
+                'patch'      => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'update' . $capitalized . 'Records() - Update (patch) one or more records.',
+                    'operationId' => 'update' . $capitalized . 'Records',
+                    'description' =>
+                        'Post data should be an array of records containing at least the identifying fields for each record.<br/> ' .
+                        'Posted body should be a single record with name-value pairs to update wrapped in a <b>record</b> tag.<br/> ' .
+                        'Ids can be included via URL parameter or included in the posted body.<br/> ' .
+                        'Filter can be included via URL parameter or included in the posted body.<br/> ' .
+                        'By default, only the id property of the record is returned on success. ' .
+                        'Use <b>fields</b> parameter to return more info.',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.update',
+                        $eventPath . '.table_updated',
+                    ],
+                    'parameters'  =>
+                        [
+                            [
+                                'name'        => 'body',
+                                'description' => 'A single record containing name-value pairs of fields to update.',
+                                'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
+                                'in'          => 'body',
+                                'required'    => true,
+                            ],
+                            ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::FILTER),
+                        ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Records',
+                            'schema'      => ['$ref' => '#/definitions/RecordsResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
+                'delete'     => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'delete' . $capitalized . 'Records() - Delete one or more records.',
+                    'operationId' => 'delete' . $capitalized . 'Records',
+                    'description' =>
+                        'Set the <b>ids</b> parameter to a list of record identifying (primary key) values to delete specific records.<br/> ' .
+                        'Alternatively, to delete records by a large list of ids, pass the ids in the <b>body</b>.<br/> ' .
+                        'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ' .
+                        'Set the <b>filter</b> parameter to a SQL WHERE clause to delete specific records, ' .
+                        'otherwise set <b>force</b> to true to clear the table.<br/> ' .
+                        'Alternatively, to delete by a complicated filter or to use parameter replacement, pass the filter with or without params as the <b>body</b>.<br/> ' .
+                        'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ' .
+                        'Set the <b>body</b> to an array of records, minimally including the identifying fields, to delete specific records.<br/> ' .
+                        'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.delete',
+                        $eventPath . '.table_deleted',
+                    ],
+                    'parameters'  =>
+                        [
+                            [
+                                'name'        => 'body',
+                                'description' => 'Data containing ids of records to delete.',
+                                'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
+                                'in'          => 'body',
+                            ],
+                            ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::FILTER),
+                            ApiOptions::documentOption(ApiOptions::FORCE),
+                        ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Records',
+                            'schema'      => ['$ref' => '#/definitions/RecordsResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
             ],
-            [
-                'path'        => $path . '/{table_name}/{id}',
-                'description' => 'Operations for single record administration.',
-                'operations'  =>
+            $path . '/{table_name}/{id}' => [
+                'parameters' => [
                     [
-                        [
-                            'method'           => 'GET',
-                            'summary'          => 'getRecord() - Retrieve one record by identifier.',
-                            'nickname'         => 'getRecord',
-                            'notes'            =>
-                                'Use the <b>fields</b> parameter to limit properties that are returned. ' .
-                                'By default, all fields are returned.',
-                            'type'             => 'RecordResponse',
-                            'event_name'       => [
-                                $eventPath . '.{table_name}.{id}.select',
-                                $eventPath . '.record_selected',
-                            ],
-                            'parameters'       => [
-                                [
-                                    'name'          => 'table_name',
-                                    'description'   => 'Name of the table to perform operations on.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'string',
-                                    'paramType'     => 'path',
-                                    'required'      => true,
-                                    'options'       => $tables,
-                                ],
-                                [
-                                    'name'          => 'id',
-                                    'description'   => 'Identifier of the record to retrieve.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'string',
-                                    'paramType'     => 'path',
-                                    'required'      => true,
-                                ],
-                                ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                ApiOptions::documentOption(ApiOptions::FIELDS),
-                                ApiOptions::documentOption(ApiOptions::RELATED),
-                            ],
-                            'responseMessages' => $commonResponses,
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                    [
+                        'name'        => 'id',
+                        'description' => 'Identifier of the record to retrieve.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                    ApiOptions::documentOption(ApiOptions::FIELDS),
+                    ApiOptions::documentOption(ApiOptions::RELATED),
+                ],
+                'get'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' . $capitalized . 'Record() - Retrieve one record by identifier.',
+                    'operationId' => 'get' . $capitalized . 'Record',
+                    'description' =>
+                        'Use the <b>fields</b> parameter to limit properties that are returned. ' .
+                        'By default, all fields are returned.',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.{id}.select',
+                        $eventPath . '.record_selected',
+                    ],
+                    'parameters'  => [],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Record',
+                            'schema'      => ['$ref' => '#/definitions/RecordResponse']
                         ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
+                'put'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'replace' .
+                        $capitalized .
+                        'Record() - Replace the content of one record by identifier.',
+                    'operationId' => 'replace' . $capitalized . 'Record',
+                    'description' =>
+                        'Post data should be an array of fields for a single record.<br/> ' .
+                        'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.{id}.update',
+                        $eventPath . '.record_updated',
+                    ],
+                    'parameters'  => [
                         [
-                            'method'           => 'PUT',
-                            'summary'          => 'replaceRecord() - Replace the content of one record by identifier.',
-                            'nickname'         => 'replaceRecord',
-                            'notes'            =>
-                                'Post data should be an array of fields for a single record.<br/> ' .
-                                'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
-                            'type'             => 'RecordResponse',
-                            'event_name'       => [
-                                $eventPath . '.{table_name}.{id}.update',
-                                $eventPath . '.record_updated',
-                            ],
-                            'parameters'       => [
-                                [
-                                    'name'          => 'table_name',
-                                    'description'   => 'Name of the table to perform operations on.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'string',
-                                    'paramType'     => 'path',
-                                    'required'      => true,
-                                    'options'       => $tables,
-                                ],
-                                [
-                                    'name'          => 'id',
-                                    'description'   => 'Identifier of the record to update.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'string',
-                                    'paramType'     => 'path',
-                                    'required'      => true,
-                                ],
-                                [
-                                    'name'          => 'body',
-                                    'description'   => 'Data containing name-value pairs of the replacement record.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'RecordRequest',
-                                    'paramType'     => 'body',
-                                    'required'      => true,
-                                ],
-                                ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                ApiOptions::documentOption(ApiOptions::FIELDS),
-                                ApiOptions::documentOption(ApiOptions::RELATED),
-                            ],
-                            'responseMessages' => $commonResponses,
-                        ],
-                        [
-                            'method'           => 'PATCH',
-                            'summary'          => 'updateRecord() - Update (patch) one record by identifier.',
-                            'nickname'         => 'updateRecord',
-                            'notes'            =>
-                                'Post data should be an array of fields for a single record.<br/> ' .
-                                'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
-                            'type'             => 'RecordResponse',
-                            'event_name'       => [
-                                $eventPath . '.{table_name}.{id}.update',
-                                $eventPath . '.record_updated',
-                            ],
-                            'parameters'       => [
-                                [
-                                    'name'          => 'table_name',
-                                    'description'   => 'The name of the table you want to update.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'string',
-                                    'paramType'     => 'path',
-                                    'required'      => true,
-                                    'options'       => $tables,
-                                ],
-                                [
-                                    'name'          => 'id',
-                                    'description'   => 'Identifier of the record to update.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'string',
-                                    'paramType'     => 'path',
-                                    'required'      => true,
-                                ],
-                                [
-                                    'name'          => 'body',
-                                    'description'   => 'Data containing name-value pairs of the fields to update.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'RecordRequest',
-                                    'paramType'     => 'body',
-                                    'required'      => true,
-                                ],
-                                ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ],
-                            'responseMessages' => $commonResponses,
-                        ],
-                        [
-                            'method'           => 'DELETE',
-                            'summary'          => 'deleteRecord() - Delete one record by identifier.',
-                            'nickname'         => 'deleteRecord',
-                            'notes'            => 'Use the <b>fields</b> parameter to return more deleted properties. By default, the id is returned.',
-                            'type'             => 'RecordResponse',
-                            'event_name'       => [
-                                $eventPath . '.{table_name}.{id}.delete',
-                                $eventPath . '.record_deleted',
-                            ],
-                            'parameters'       => [
-                                [
-                                    'name'          => 'table_name',
-                                    'description'   => 'Name of the table to perform operations on.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'string',
-                                    'paramType'     => 'path',
-                                    'required'      => true,
-                                    'options'       => $tables,
-                                ],
-                                [
-                                    'name'          => 'id',
-                                    'description'   => 'Identifier of the record to delete.',
-                                    'allowMultiple' => false,
-                                    'type'          => 'string',
-                                    'paramType'     => 'path',
-                                    'required'      => true,
-                                ],
-                                ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ],
-                            'responseMessages' => $commonResponses,
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of the replacement record.',
+                            'schema'      => ['$ref' => '#/definitions/RecordRequest'],
+                            'in'          => 'body',
+                            'required'    => true,
                         ],
                     ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Record',
+                            'schema'      => ['$ref' => '#/definitions/RecordResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
+                'patch'      => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'update' . $capitalized . 'Record() - Update (patch) one record by identifier.',
+                    'operationId' => 'update' . $capitalized . 'Record',
+                    'description' =>
+                        'Post data should be an array of fields for a single record.<br/> ' .
+                        'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.{id}.update',
+                        $eventPath . '.record_updated',
+                    ],
+                    'parameters'  => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of the fields to update.',
+                            'schema'      => ['$ref' => '#/definitions/RecordRequest'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Record',
+                            'schema'      => ['$ref' => '#/definitions/RecordResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
+                'delete'     => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'delete' . $capitalized . 'Record() - Delete one record by identifier.',
+                    'operationId' => 'delete' . $capitalized . 'Record',
+                    'description' => 'Use the <b>fields</b> parameter to return more deleted properties. By default, the id is returned.',
+                    'event_name'  => [
+                        $eventPath . '.{table_name}.{id}.delete',
+                        $eventPath . '.record_deleted',
+                    ],
+                    'parameters'  => [],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Record',
+                            'schema'      => ['$ref' => '#/definitions/RecordResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                ],
             ],
         ];
 
-        $base['apis'] = array_merge($base['apis'], $apis);
+        $base['paths'] = array_merge($base['paths'], $apis);
+        $base['definitions'] = array_merge($base['definitions'], static::getApiDocModels());
 
         return $base;
     }

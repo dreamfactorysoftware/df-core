@@ -9,6 +9,11 @@ use DreamFactory\Core\Models\User;
 
 class Admin extends BaseSystemResource
 {
+    /**
+     * @var string DreamFactory\Core\Models\BaseSystemModel Model Class name.
+     */
+    protected static $model = User::class;
+
     protected $resources = [
         Password::RESOURCE_NAME => [
             'name'       => Password::RESOURCE_NAME,
@@ -90,7 +95,7 @@ class Admin extends BaseSystemResource
     protected function retrieveById($id, array $related = [])
     {
         /** @var User $modelClass */
-        $modelClass = $this->model;
+        $modelClass = static::$model;
         $criteria = $this->getSelectionCriteria();
         $fields = ArrayUtils::get($criteria, 'select');
         $model = $modelClass::whereIsSysAdmin(1)->with($related)->find($id, $fields);
@@ -176,7 +181,7 @@ class Admin extends BaseSystemResource
         $condition = ArrayUtils::get($criteria, 'condition');
 
         if (!empty($condition)) {
-            $condition .= " AND is_sys_admin = '1' ";
+            $condition = "($condition) AND is_sys_admin = '1' ";
         } else {
             $condition = " is_sys_admin = '1'";
         }

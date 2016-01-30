@@ -9,7 +9,6 @@ use DreamFactory\Core\Models\Config as SystemConfig;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\User\Services\User;
-use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -432,48 +431,39 @@ class Environment extends BaseSystemResource
         return $clean;
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo(\DreamFactory\Core\Models\Service $service, array $resource = [])
     {
-        $path = '/' . $this->getServiceName() . '/' . $this->getFullPathName();
-        $eventPath = $this->getServiceName() . '.' . $this->getFullPathName('.');
-        $name = Inflector::camelize($this->name);
-        $plural = Inflector::pluralize($name);
-        $words = str_replace('_', ' ', $this->name);
-        $pluralWords = Inflector::pluralize($words);
-        $wrapper = ResourcesWrapper::getWrapper();
+        $serviceName = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $path = '/' . $serviceName . '/' . $resourceName;
+        $eventPath = $serviceName . '.' . $resourceName;
 
         $apis = [
-            [
-                'path'        => $path,
-                'description' => "Operations for retrieving system environment.",
-                'operations'  => [
-                    [
-                        'method'           => 'GET',
-                        'summary'          => 'getEnvironment() - Retrieve system environment.',
-                        'nickname'         => 'getEnvironment',
-                        'type'             => 'EnvironmentResponse',
-                        'event_name'       => $eventPath . '.list',
-                        'consumes'         => ['application/json', 'application/xml', 'text/csv'],
-                        'produces'         => ['application/json', 'application/xml', 'text/csv'],
-                        'parameters'       => [],
-                        'responseMessages' => [],
-                        'notes'            =>
-                            'Minimum environment information given without a valid user session.' .
-                            ' More information given based on user privileges.',
-                    ],
+            $path => [
+                'get' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get'.$capitalized.'Environment() - Retrieve system environment.',
+                    'operationId' => 'get'.$capitalized.'Environment',
+                    'event_name'  => $eventPath . '.list',
+                    'responses'  => ['200' => ['schema' => ['$ref' => '#/definitions/EnvironmentResponse']]],
+                    'description' =>
+                        'Minimum environment information given without a valid user session.' .
+                        ' More information given based on user privileges.',
                 ],
             ],
         ];
 
         $models = [
             'EnvironmentResponse' => [
-                'id'         => 'EnvironmentResponse',
+                'type'       => 'object',
                 'properties' => [
                     'platform'       => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
+                            'type' => 'string',
                         ],
                     ],
                     'authentication' => [
@@ -484,14 +474,14 @@ class Environment extends BaseSystemResource
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
+                            '$ref' => '#/definitions/AppsResponse',
                         ],
                     ],
                     'no_app_group'   => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => $name . 'Response',
+                            '$ref' => '#/definitions/AppsResponse',
                         ],
                     ],
                     'config'         => [
@@ -506,92 +496,6 @@ class Environment extends BaseSystemResource
             ],
         ];
 
-        return ['apis' => $apis, 'models' => $models];
+        return ['paths' => $apis, 'definitions' => $models];
     }
-
-    /*
-     *
-{
-  "platform": {
-    "version_current": "2.0.0",
-    "version_latest": "2.0.0",
-    "upgrade_available": false,
-    "is_hosted": false,
-    "host": "DF-Lees-MBP"
-  },
-  "authentication": {
-    "admin": {
-      "path": "system/admin/session",
-      "verb": "POST",
-      "payload": {
-        "email": "string",
-        "password": "string",
-        "remember_me": "bool"
-      }
-    },
-    "user": {
-      "path": "user/session",
-      "verb": "POST",
-      "payload": {
-        "email": "string",
-        "password": "string",
-        "remember_me": "bool"
-      }
-    },
-    "oauth": [],
-    "adldap": []
-  },
-  "app_group": [],
-  "no_group_app": [
-    {
-      "id": 1,
-      "name": "admin",
-      "description": "An application for administering this instance.",
-      "url": "http://df.local/dreamfactory/dist/index.html",
-      "is_default": false,
-      "allow_fullscreen_toggle": true,
-      "requires_fullscreen": false,
-      "toggle_location": "top"
-    },
-    {
-      "id": 2,
-      "name": "swagger",
-      "description": "A Swagger-base application allowing viewing and testing API documentation.",
-      "url": "http://df.local/swagger/index.html",
-      "is_default": false,
-      "allow_fullscreen_toggle": true,
-      "requires_fullscreen": false,
-      "toggle_location": "top"
-    },
-    {
-      "id": 3,
-      "name": "filemanager",
-      "description": "An application for managing file services.",
-      "url": "http://df.local/filemanager/index.html",
-      "is_default": false,
-      "allow_fullscreen_toggle": true,
-      "requires_fullscreen": false,
-      "toggle_location": "top"
-    }
-  ],
-  "config": {
-    "always_wrap_resources": true,
-    "resources_wrapper": "resource",
-    "db": {
-      "max_records_returned": 1000,
-      "time_format": null,
-      "date_format": null,
-      "datetime_format": null,
-      "timestamp_format": null
-    }
-  },
-  "server": {
-    "server_os": "darwin",
-    "release": "14.4.0",
-    "version": "Darwin Kernel Version 14.4.0: Thu May 28 11:35:04 PDT 2015; root:xnu-2782.30.5~1/RELEASE_X86_64",
-    "host": "DF-Lees-MBP",
-    "machine": "x86_64"
-  },
-  "php": {
-    */
 }

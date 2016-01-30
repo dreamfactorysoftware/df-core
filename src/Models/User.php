@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\RegisterContact;
+use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\Session;
@@ -269,6 +270,48 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             }
 
             $result = static::buildResult($model, $params);
+
+            $driver = $model->getConnection()->getDriverName();
+            if (('sqlsrv' === $driver) || ('dblib' === $driver)) {
+                $references = $model->getReferences();
+                /** @type RelationSchema $reference */
+                foreach ($references as $reference) {
+                    if ((RelationSchema::HAS_MANY === $reference->type) &&
+                        (('created_by_id' === $reference->refFields) ||
+                            ('last_modified_by_id' === $reference->refFields))
+                    ) {
+                        $stmt =
+                            'update [' .
+                            $reference->refTable .
+                            '] set [' .
+                            $reference->refFields .
+                            '] = null where [' .
+                            $reference->refFields .
+                            '] = ' .
+                            $id;
+                        if (0 !== $rows = \DB::update($stmt)) {
+                            \Log::debug('found rows: ' . $rows);
+                        }
+                    } elseif ((RelationSchema::BELONGS_TO === $reference->type) &&
+                        (('created_by_id' === $reference->field) ||
+                            ('last_modified_by_id' === $reference->field))
+                    ) {
+                        $stmt =
+                            'update [' .
+                            $reference->refTable .
+                            '] set [' .
+                            $reference->field .
+                            '] = null where [' .
+                            $reference->field .
+                            '] = ' .
+                            $id . ' and ['.$reference->refFields .'] != '. $id;
+                        if (0 !== $rows = \DB::update($stmt)) {
+                            \Log::debug('found rows: ' . $rows);
+                        }
+                    }
+                }
+            }
+
             $model->delete();
 
             return $result;

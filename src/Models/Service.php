@@ -3,11 +3,11 @@ namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Services\Swagger;
+use DreamFactory\Library\Utility\Inflector;
 
 /**
  * Service
@@ -38,6 +38,14 @@ class Service extends BaseSystemModel
     protected $table = 'service';
 
     protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config'];
+
+    protected $rules = [
+        'name' => 'regex:/(^[A-Za-z0-9_\-]+$)+/'
+    ];
+
+    protected $validationMessages = [
+        'regex' => 'Service name should only contain letters, numbers, underscores and dashes.'
+    ];
 
     protected $guarded = [
         'id',
@@ -94,7 +102,7 @@ class Service extends BaseSystemModel
 
                 // Any changes to services needs to produce a new event list
                 Event::clearCache();
-                Swagger::clearCache($service->name);
+                Swagger::flush();
             }
         );
 
@@ -118,7 +126,7 @@ class Service extends BaseSystemModel
 
                 // Any changes to services needs to produce a new event list
                 Event::clearCache();
-                Swagger::clearCache($service->name);
+                Swagger::flush();
             }
         );
     }
@@ -230,14 +238,30 @@ class Service extends BaseSystemModel
         $info = $service->serviceDocs()->first();
         $content = (isset($info)) ? $info->content : null;
         if (is_string($content)) {
+            $name = $service->name;
+            $lcName = strtolower($name);
+            $ucwName = Inflector::camelize($name);
+            $pluralName = Inflector::pluralize($name);
+            $pluralUcwName = Inflector::pluralize($ucwName);
+
+            // replace service placeholders with value for this service instance
+            $content =
+                str_replace([
+                    '{service.name}',
+                    '{service.names}',
+                    '{service.Name}',
+                    '{service.Names}',
+                    '{service.label}',
+                    '{service.description}'
+                ],
+                    [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
+                    $content);
+
             $content = json_decode($content, true);
         } else {
+            /** @var BaseRestService $serviceClass */
             $serviceClass = $service->serviceType()->first()->class_name;
-            $settings = $service->toArray();
-
-            /** @var BaseRestService $obj */
-            $obj = new $serviceClass($settings);
-            $content = $obj->getApiDocInfo();
+            $content = $serviceClass::getApiDocInfo($service);
         }
 
         return $content;
@@ -308,6 +332,7 @@ class Service extends BaseSystemModel
     public static function getCachedNameById($id)
     {
         $cacheKey = 'service_id:' . $id;
+
         return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
             $service = static::whereId($id)->first(['name']);
 

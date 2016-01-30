@@ -2,8 +2,8 @@
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
-use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -59,7 +59,7 @@ class Script extends BaseRestService
         Session::replaceLookups($config, true);
 
         if (null === ($this->content = ArrayUtils::get($config, 'content', null, true))) {
-            throw new \InvalidArgumentException('Script content can not be empty.');
+//            throw new \InvalidArgumentException('Script content can not be empty.');
         }
 
         if (null === ($this->engineConfig = ArrayUtils::get($config, 'engine', null, true))) {
@@ -82,9 +82,18 @@ class Script extends BaseRestService
             throw new BadRequestException('The action "' . $this->action . '" is not supported.');
         }
 
+        $data =
+            [
+                'request'  => $this->request->toArray(),
+                'response' => [
+                    'content'      => null,
+                    'content_type' => null,
+                    'status_code'  => ServiceResponseInterface::HTTP_OK
+                ],
+                'resource' => $this->resourcePath
+            ];
+
         $logOutput = $this->request->getParameterAsBool('log_output', true);
-        $data = ['request' => $this->request->toArray()];
-        $data['resource'] = $this->resourcePath;
         $output = null;
         $result = ScriptEngineManager::runScript(
             $this->content,
@@ -109,37 +118,28 @@ class Script extends BaseRestService
 
         //  The script runner should return an array
         if (is_array($result) && isset($result['__tag__'])) {
-            $scriptResult = ArrayUtils::get($result, 'script_result', []);
             if (!empty($response = ArrayUtils::get($result, 'response', []))) {
                 $content = ArrayUtils::get($response, 'content');
-                $status = ArrayUtils::get($response, 'status', ServiceResponseInterface::HTTP_OK);
-                $format = ArrayUtils::get($response, 'format', DataFormats::PHP_ARRAY);
+                $contentType = ArrayUtils::get($response, 'content_type');
+                $status = ArrayUtils::get($response, 'status_code', ServiceResponseInterface::HTTP_OK);
 
-                return ResponseFactory::create($content, $format, $status);
+//                $format = ArrayUtils::get($response, 'format', DataFormats::PHP_ARRAY);
+
+                return ResponseFactory::create($content, $contentType, $status);
             }
 
-            return $scriptResult;
+            $scriptResult = ArrayUtils::get($result, 'script_result', []);
+
+            return ResponseFactory::create($scriptResult);
         } else {
             Log::error('  * Script did not return an array: ' . print_r($result, true));
         }
 
-        return $output;
+        return ResponseFactory::create($output);
     }
 
-    // override base class for API Docs, get from custom config
-    public function getApiDocModels()
+    public static function getApiDocInfo(Service $service)
     {
-        return [];
-    }
-
-    public function getApiDocInfo()
-    {
-        return [
-            'resourcePath' => '/' . $this->name,
-            'produces'     => ['application/json', 'application/xml'],
-            'consumes'     => ['application/json', 'application/xml'],
-            'apis'         => [],
-            'models'       => [],
-        ];
+        return ['paths' => [], 'definitions' => []];
     }
 }

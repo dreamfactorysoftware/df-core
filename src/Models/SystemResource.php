@@ -36,7 +36,7 @@ class SystemResource extends BaseModel
 
     protected $primaryKey = 'name';
 
-    protected $fillable = ['name', 'label', 'description', 'singleton', 'class_name', 'model_name', 'read_only'];
+    protected $fillable = ['name', 'label', 'description', 'singleton', 'class_name', 'read_only'];
 
     protected $casts = ['singleton' => 'boolean', 'read_only' => 'boolean'];
 

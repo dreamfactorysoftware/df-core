@@ -3,18 +3,18 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Contracts\RequestHandlerInterface;
-use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Contracts\ResourceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use Illuminate\Http\RedirectResponse;
 
 /**
  * Class RestHandler
@@ -60,10 +60,6 @@ abstract class RestHandler implements RequestHandlerInterface
      * @var string HTTP Action Verb
      */
     protected $originalAction = null;
-    /**
-     * @var int|null Native data format of this service - DataFormats enum value.
-     */
-    protected $nativeFormat = DataFormats::PHP_ARRAY;
     /**
      * @var string Resource name.
      */
@@ -270,12 +266,13 @@ abstract class RestHandler implements RequestHandlerInterface
         if ($methodToCall) {
             $result = call_user_func($methodToCall);
 
-            //  Only GETs trigger after the call
-            if (Verbs::GET == $this->action) {
-                $this->triggerActionEvent($result, null, null, true);
+            if ($result instanceof ServiceResponseInterface) {
+                return $result;
+            } elseif ($result instanceof RedirectResponse) {
+                return $result;
             }
 
-            return $result;
+            return ResponseFactory::create($result);
         }
 
         //	Otherwise just return false
@@ -389,16 +386,6 @@ abstract class RestHandler implements RequestHandlerInterface
     }
 
     /**
-     * Sets the output format of the result.
-     *
-     * @param int $outputFormat
-     */
-    protected function setNativeFormat($outputFormat = null)
-    {
-        $this->nativeFormat = $outputFormat;
-    }
-
-    /**
      * @param null $key
      * @param null $default
      *
@@ -431,7 +418,7 @@ abstract class RestHandler implements RequestHandlerInterface
      * @return string
      * @throws BadRequestException
      */
-    protected function getResourceIdentifier()
+    protected static function getResourceIdentifier()
     {
         throw new BadRequestException('No known identifier for resources.');
     }
@@ -473,7 +460,7 @@ abstract class RestHandler implements RequestHandlerInterface
         if (is_array($resources)) {
             $includeAccess = $this->request->getParameterAsBool(ApiOptions::INCLUDE_ACCESS);
             $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, $this->getResourceIdentifier());
+            $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
             $fields = $this->request->getParameter(ApiOptions::FIELDS);
             if (!$asList && $includeAccess) {
                 foreach ($resources as &$resource) {
@@ -529,18 +516,5 @@ abstract class RestHandler implements RequestHandlerInterface
     protected function handleDELETE()
     {
         return false;
-    }
-
-    /**
-     * Triggers the appropriate event for the action /service/resource_path.
-     *
-     * @param      $result
-     * @param null $eventName
-     * @param null $event
-     * @param bool $isPostProcess
-     */
-    protected function triggerActionEvent(&$result, $eventName = null, $event = null, $isPostProcess = false)
-    {
-        // TODO figure this out
     }
 }

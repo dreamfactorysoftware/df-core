@@ -96,15 +96,14 @@ trait Cacheable
      */
     public function addToCache($key, $value, $forever = false)
     {
-            $fullKey = $this->makeCacheKey($key);
+        $fullKey = $this->makeCacheKey($key);
 
-            if ($forever){
-                Cache::forever($fullKey, $value);
-            }
-            else {
-                Cache::put($fullKey, $value, $this->cacheTTL);
-            }
-            $this->addKeys($key);
+        if ($forever) {
+            Cache::forever($fullKey, $value);
+        } else {
+            Cache::put($fullKey, $value, $this->cacheTTL);
+        }
+        $this->addKeys($key);
     }
 
     /**
@@ -114,12 +113,12 @@ trait Cacheable
      */
     public function removeFromCache($key)
     {
-            $fullKey = $this->makeCacheKey($key);
-            if (!Cache::forget($fullKey)) {
-                return false;
-            }
+        $fullKey = $this->makeCacheKey($key);
+        if (!Cache::forget($fullKey)) {
+            return false;
+        }
 
-            $this->removeKeys($key);
+        $this->removeKeys($key);
 
         return true;
     }

@@ -223,11 +223,6 @@ console.log(JSON.stringify(_wrapperResult));
 
 JS;
 
-//        if (!static::$moduleLoaderAvailable) {
-//            $enrobedScript =
-//                \Cache::get('scripting.nodejs.extensions', static::loadScriptingModule('lodash')) . ';' . $enrobedScript;
-//        }
-
         return $this->commandPath . ' -e ' . escapeshellarg($enrobedScript);
     }
 }

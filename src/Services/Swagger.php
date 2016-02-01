@@ -118,35 +118,6 @@ class Swagger extends BaseRestService
                     $servicePaths = (isset($result['paths']) ? $result['paths'] : []);
                     $serviceDefs = (isset($result['definitions']) ? $result['definitions'] : []);
 
-                    $lcName = strtolower($name);
-                    $ucwName = Inflector::camelize($name);
-                    $pluralName = Inflector::pluralize($name);
-                    $pluralUcwName = Inflector::pluralize($ucwName);
-
-                    // replace service placeholders with value for this service instance
-                    $servicePaths =
-                        str_replace([
-                            '{service.name}',
-                            '{service.names}',
-                            '{service.Name}',
-                            '{service.Names}',
-                            '{service.label}',
-                            '{service.description}'
-                        ],
-                            [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
-                            $servicePaths);
-                    $serviceDefs =
-                        str_replace([
-                            '{service.name}',
-                            '{service.names}',
-                            '{service.Name}',
-                            '{service.Names}',
-                            '{service.label}',
-                            '{service.description}'
-                        ],
-                            [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
-                            $serviceDefs);
-
                     //  Add to the pile
                     $paths = array_merge($paths, $servicePaths);
                     $definitions = array_merge($definitions, $serviceDefs);

@@ -12,6 +12,7 @@ use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ServicePreProcess;
 use DreamFactory\Core\Events\ServicePostProcess;
 use \Log;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class ServiceEventHandler
 {
@@ -143,7 +144,7 @@ class ServiceEventHandler
         $data = [
             'request'  => $event->request->toArray(),
             'resource' => $event->resource,
-            'response' => $event->response->toArray()
+            'response' => ($event->response instanceof RedirectResponse) ? [] : $event->response->toArray()
         ];
 
         if (null !== $result = $this->handleEventScript($name, $data)) {

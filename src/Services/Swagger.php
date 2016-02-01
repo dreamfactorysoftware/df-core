@@ -165,8 +165,6 @@ HTML;
                 'events'         => [],
             ];
 
-            $content = json_encode($content, JSON_UNESCAPED_SLASHES);
-
             static::addToCache($roleId, $content, true);
 
             \Log::info('Swagger cache build process complete');

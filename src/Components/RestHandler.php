@@ -14,7 +14,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Contracts\ResourceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
-use Illuminate\Http\RedirectResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 /**
  * Class RestHandler

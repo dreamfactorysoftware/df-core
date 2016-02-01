@@ -304,7 +304,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                             '] = null where [' .
                             $reference->field .
                             '] = ' .
-                            $id . ' and ['.$reference->refFields .'] != '. $id;
+                            $id . ' and [' . $reference->refFields . '] != ' . $id;
                         if (0 !== $rows = \DB::update($stmt)) {
                             \Log::debug('found rows: ' . $rows);
                         }
@@ -343,6 +343,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     {
         if (!empty($password)) {
             $password = bcrypt($password);
+            JWTUtilities::invalidateTokenByUserId($this->id);
         }
 
         $this->attributes['password'] = $password;

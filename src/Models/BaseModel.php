@@ -898,7 +898,9 @@ class BaseModel extends Model implements CacheInterface
     {
         /** @type \Illuminate\Database\Eloquent\Builder $builder */
         if (!empty($condition = ArrayUtils::get($criteria, 'condition'))) {
-            return static::whereRaw($condition)->count();
+            $params = ArrayUtils::get($criteria, 'params', []);
+
+            return static::whereRaw($condition, $params)->count();
         }
 
         return static::count();

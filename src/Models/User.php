@@ -15,6 +15,7 @@ use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Model;
+use DreamFactory\Core\Utility\DataFormatter;
 use Validator;
 
 /**
@@ -132,6 +133,30 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     }
 
     /**
+     * @param $password
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    public static function validatePassword($password)
+    {
+        $data = [
+            'password' => $password
+        ];
+
+        $rule = [
+            'password' => 'required|min:6'
+        ];
+
+        $validator = Validator::make($data, $rule);
+
+        if ($validator->fails()) {
+            $msg = $validator->errors()->getMessages();
+            $errorString = DataFormatter::validationErrorsToString($msg);
+            throw new BadRequestException('Invalid data supplied.' . $errorString, null, null, $msg);
+        }
+    }
+
+    /**
      * {@inheritdoc}
      */
     protected static function createInternal($record, $params = [])
@@ -153,6 +178,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 $record['name'] = $name;
             }
 
+            $password = ArrayUtils::get($record, 'password');
+            static::validatePassword($password);
             $model = static::create($record);
 
             if (ArrayUtils::getBool($params, 'admin') &&
@@ -161,7 +188,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 $model->is_sys_admin = 1;
             }
 
-            $model->password = ArrayUtils::get($record, 'password');
+            $model->password = $password;
             $model->save();
         } catch (\PDOException $e) {
             throw $e;
@@ -206,6 +233,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             $password = ArrayUtils::get($record, 'password');
             if (!empty($password)) {
                 $model->password = $password;
+                static::validatePassword($password);
             }
             $model->update($record);
 

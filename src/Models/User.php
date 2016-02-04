@@ -144,7 +144,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         ];
 
         $rule = [
-            'password' => 'required|min:6'
+            'password' => 'min:6'
         ];
 
         $validator = Validator::make($data, $rule);

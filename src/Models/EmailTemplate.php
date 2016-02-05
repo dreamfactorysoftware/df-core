@@ -52,4 +52,74 @@ class EmailTemplate extends BaseSystemModel
     protected $rules = [
         'name' => 'required'
     ];
+
+    /**
+     * @param $value
+     *
+     * @return string
+     */
+    protected static function getJSONIfArray($value)
+    {
+        if (is_array($value)) {
+            return json_encode($value);
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param $value
+     *
+     * @return mixed
+     */
+    protected static function getArrayIfJSON($value)
+    {
+        if (is_array($value)) {
+            return $value;
+        } else {
+            $toArray = json_decode($value, true);
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                return $toArray;
+            } else {
+                return $value;
+            }
+        }
+    }
+
+    /** @inheritdoc */
+    public function setToAttribute($to)
+    {
+        $this->attributes['to'] = static::getJSONIfArray($to);
+    }
+
+    /** @inheritdoc */
+    public function getToAttribute($to)
+    {
+        return static::getArrayIfJSON($to);
+    }
+
+    /** @inheritdoc */
+    public function setCcAttribute($cc)
+    {
+        $this->attributes['cc'] = static::getJSONIfArray($cc);
+    }
+
+    /** @inheritdoc */
+    public function getCcAttribute($cc)
+    {
+        return static::getArrayIfJSON($cc);
+    }
+
+    /** @inheritdoc */
+    public function setBccAttribute($bcc)
+    {
+        $this->attributes['bcc'] = static::getJSONIfArray($bcc);
+    }
+
+    /** @inheritdoc */
+    public function getBccAttribute($bcc)
+    {
+        return static::getArrayIfJSON($bcc);
+    }
 }

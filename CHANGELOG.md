@@ -9,13 +9,19 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-## [0.2.1]
+## [0.2.2] - 2016-02-08
+### Fixed
+- Allow backward compatibility with "return" in scripts
+- Usage of arrays for to, cc, etc in email templates
+- Password restriction consistent usage
+
+## [0.2.1] - 2016-02-01
 ### Fixed
 - Swagger role-based caching formatting issue.
 - OAuth redirect issue.
 - user/custom route not saving correctly.
 
-## [0.2.0]
+## [0.2.0] - 2016-01-29
 ### Added
 - Events now supported for File services
 - Events now supported Remote Web Services (based on swagger definition given)
@@ -134,7 +140,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.1...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.2...HEAD
+[0.2.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.13...0.2.0
 [0.1.13]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.12...0.1.13

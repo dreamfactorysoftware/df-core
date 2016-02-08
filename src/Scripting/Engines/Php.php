@@ -89,12 +89,18 @@ class Php extends BaseEngineAdapter implements ScriptingEngineInterface
     protected function enrobeScript($script)
     {
         $enrobedScript = <<<'PHP'
+
     try {
+        $closure = function() use (&$event, $platform) {
 
 PHP;
         $enrobedScript .= "$script";
 
         $enrobedScript .= <<<'PHP'
+
+    	};
+
+        $event['script_result'] = $closure();
 	}
 	catch ( \Exception $ex ) {
 		$event['script_result'] = ['error' => $ex->getMessage()];

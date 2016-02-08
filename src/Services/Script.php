@@ -105,37 +105,48 @@ class Script extends BaseRestService
         );
 
         if (!empty($output) && $logOutput) {
-            \Log::info("Script '{$this->name}' output:" . PHP_EOL . $output . PHP_EOL);
+            Log::info("Script '{$this->name}' output:" . PHP_EOL . $output . PHP_EOL);
         }
 
         //  Bail on errors...
-        if (is_array($result) && isset($result['script_result'], $result['script_result']['error'])) {
-            throw new InternalServerErrorException($result['script_result']['error']);
-        }
-        if (is_array($result) && isset($result['exception'])) {
-            throw new InternalServerErrorException(ArrayUtils::get($result, 'exception', ''));
+        if (!is_array($result)) {
+            // Should this return to client as error?
+            Log::error('  * Script did not return an array: ' . print_r($result, true));
+
+            return ResponseFactory::create($output);
         }
 
-        //  The script runner should return an array
-        if (is_array($result) && isset($result['__tag__'])) {
-            if (!empty($response = ArrayUtils::get($result, 'response', []))) {
-                $content = ArrayUtils::get($response, 'content');
-                $contentType = ArrayUtils::get($response, 'content_type');
-                $status = ArrayUtils::get($response, 'status_code', ServiceResponseInterface::HTTP_OK);
+        if (isset($result['exception'])) {
+            $ex = $result['exception'];
+            if ($ex instanceof \Exception) {
+                throw $ex;
+            }
+            throw new InternalServerErrorException(strval($result['exception']));
+        }
+
+        $directResponse = (isset($result['script_result']) ? $result['script_result'] : null);
+        if (isset($directResponse, $directResponse['error'])) {
+            throw new InternalServerErrorException($directResponse['error']);
+        }
+
+        // check for "return" results
+        if (!empty($directResponse)) {
+
+            return ResponseFactory::create($directResponse);
+        }
+
+        $response = (isset($result['response']) ? $result['response'] : null);
+        if (is_array($response) && !empty($response)) {
+            $content = ArrayUtils::get($response, 'content');
+            $contentType = ArrayUtils::get($response, 'content_type');
+            $status = ArrayUtils::get($response, 'status_code', ServiceResponseInterface::HTTP_OK);
 
 //                $format = ArrayUtils::get($response, 'format', DataFormats::PHP_ARRAY);
 
-                return ResponseFactory::create($content, $contentType, $status);
-            }
-
-            $scriptResult = ArrayUtils::get($result, 'script_result', []);
-
-            return ResponseFactory::create($scriptResult);
-        } else {
-            Log::error('  * Script did not return an array: ' . print_r($result, true));
+            return ResponseFactory::create($content, $contentType, $status);
         }
 
-        return ResponseFactory::create($output);
+        return ResponseFactory::create($response);
     }
 
     public static function getApiDocInfo(Service $service)

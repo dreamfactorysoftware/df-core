@@ -31,6 +31,15 @@ trait StaticCacheable
     protected static $cacheKeys = [];
 
     /**
+     *
+     * @return string The cache prefix associated with this service
+     */
+    protected static function getCachePrefix()
+    {
+        return static::$cachePrefix;
+    }
+
+    /**
      * @param string|array $keys
      */
     protected static function addKeys($keys)
@@ -39,7 +48,7 @@ trait StaticCacheable
             array_unique(array_merge(ArrayUtils::clean(static::getCacheKeys()), ArrayUtils::clean($keys)));
 
         // Save the keys to cache
-        Cache::forever(static::$cachePrefix . 'cache_keys', static::$cacheKeys);
+        Cache::forever(static::getCachePrefix() . 'cache_keys', static::$cacheKeys);
     }
 
     /**
@@ -50,7 +59,7 @@ trait StaticCacheable
         static::$cacheKeys = array_diff(ArrayUtils::clean(static::getCacheKeys()), ArrayUtils::clean($keys));
 
         // Save the map to cache
-        Cache::forever(static::$cachePrefix . 'cache_keys', static::$cacheKeys);
+        Cache::forever(static::getCachePrefix() . 'cache_keys', static::$cacheKeys);
     }
 
     /**
@@ -60,7 +69,7 @@ trait StaticCacheable
     protected static function getCacheKeys()
     {
         if (empty(static::$cacheKeys)) {
-            static::$cacheKeys = Cache::get(static::$cachePrefix . 'cache_keys', []);
+            static::$cacheKeys = Cache::get(static::getCachePrefix() . 'cache_keys', []);
         }
 
         return ArrayUtils::clean(static::$cacheKeys);
@@ -73,7 +82,7 @@ trait StaticCacheable
      */
     protected static function makeCacheKey($name)
     {
-        return static::$cachePrefix . $name;
+        return static::getCachePrefix() . $name;
     }
 
     /**

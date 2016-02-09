@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.2.3] - 2016-02-09
+### Fixed
+- Static cache prefix not getting used correctly.
+
 ## [0.2.2] - 2016-02-08
 ### Fixed
 - Allow backward compatibility with "return" in scripts
@@ -140,7 +144,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.2...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.3...HEAD
+[0.2.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.1.13...0.2.0

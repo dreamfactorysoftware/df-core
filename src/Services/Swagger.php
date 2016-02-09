@@ -41,8 +41,6 @@ class Swagger extends BaseRestService
     //	Members
     //*************************************************************************
 
-    protected static $cache_prefix = 'swagger';
-
     /**
      * @var int|null Native data format of this service - DataFormats enum value.
      */
@@ -51,6 +49,15 @@ class Swagger extends BaseRestService
     //*************************************************************************
     //	Methods
     //*************************************************************************
+
+    /**
+     *
+     * @return string The cache prefix associated with this service
+     */
+    protected static function getCachePrefix()
+    {
+        return static::SWAGGER_CACHE_PREFIX;
+    }
 
     /**
      * @return array|string|bool
@@ -84,8 +91,8 @@ class Swagger extends BaseRestService
     public function getSwagger()
     {
         if (Session::isSysAdmin()){
-            $roleId = 0;
-        } elseif (empty($roleId = Session::getRoleId())) {
+            $roleId = 'admin';
+        } elseif (empty($roleId = strval(Session::getRoleId()))) {
             throw new UnauthorizedException("Valid role or administrator required.");
         }
 

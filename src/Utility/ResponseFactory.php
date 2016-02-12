@@ -86,6 +86,8 @@ class ResponseFactory
 
         if (is_null($content) && is_null($status)) {
             // No content and type specified. (File stream already handled by service)
+            \Log::info('[RESPONSE] File stream');
+
             return null;
         }
 
@@ -112,6 +114,8 @@ class ResponseFactory
         // see if we match an accepts type, if so, go with it.
         $accepts = ArrayUtils::clean($accepts);
         if (!empty($contentType) && static::acceptedContentType($accepts, $contentType)) {
+            \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
+
             return DfResponse::create($content, $status, ["Content-Type" => $contentType]);
         }
 
@@ -143,8 +147,12 @@ class ResponseFactory
                     : $contentType;
             $responseHeaders['Content-Type'] = $contentType;
 
+            \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
+
             return DfResponse::create($content, $status, $responseHeaders);
         } else if (false !== $reformatted) {
+            \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
+
             return DfResponse::create($reformatted, $status, $responseHeaders);
         }
 

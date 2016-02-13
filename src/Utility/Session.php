@@ -16,7 +16,6 @@ use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
-use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class Session
 {
@@ -154,8 +153,11 @@ class Session
      *
      * @returns array
      */
-    public static function checkForAnyServicePermissions($service, $component = null, $requestor = ServiceRequestorTypes::API)
-    {
+    public static function checkForAnyServicePermissions(
+        $service,
+        $component = null,
+        $requestor = ServiceRequestorTypes::API
+    ){
         if (static::isSysAdmin()) {
             return true;
         }
@@ -207,8 +209,8 @@ class Session
                         $serviceFound = true;
                     }
                 } else {
-                        $serviceAllowed |= $tempVerbs;
-                        $serviceFound = true;
+                    $serviceAllowed |= $tempVerbs;
+                    $serviceFound = true;
                 }
             } else {
                 if (empty($tempService) && (('*' == $tempComponent) || (empty($tempComponent) && empty($component)))
@@ -628,6 +630,7 @@ class Session
         $combinedLookup = LookupKey::combineLookups($systemLookup, $appLookup, $roleLookup, $userLookup);
 
         Session::put('lookup', ArrayUtils::get($combinedLookup, 'lookup'));
+        //Actual values of the secret keys. For internal use only.
         Session::put('lookup_secret', ArrayUtils::get($combinedLookup, 'lookup_secret'));
     }
 

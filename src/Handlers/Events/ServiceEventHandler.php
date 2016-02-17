@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Handlers\Events;
 
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -177,9 +178,11 @@ class ServiceEventHandler
         $model = EventScript::with('script_type_by_type')->whereName($name)->whereIsActive(true)->first();
         if (!empty($model)) {
             $output = null;
+            $content = $model->content;
+            Session::replaceLookups($content, true);
 
             $result = ScriptEngineManager::runScript(
-                $model->content,
+                $content,
                 $name,
                 $model->script_type_by_type->toArray(),
                 ArrayUtils::clean($model->config),

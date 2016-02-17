@@ -4,14 +4,17 @@ namespace DreamFactory\Core\Utility;
 
 use Carbon\Carbon;
 use DreamFactory\Core\Models\App;
+use DreamFactory\Core\Models\AppLookup;
 use DreamFactory\Core\Models\Lookup;
 use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\RoleLookup;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
+use DreamFactory\Core\Models\UserLookup;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -339,6 +342,34 @@ class Session
         return null;
     }
 
+    public static function combineLookups($systemLookup = [], $appLookup = [], $roleLookup = [], $userLookup = [])
+    {
+        $lookup = [];
+        $secretLookup = [];
+
+        static::addLookupsToMap(Lookup::class, $systemLookup, $lookup, $secretLookup);
+        static::addLookupsToMap(RoleLookup::class, $roleLookup, $lookup, $secretLookup);
+        static::addLookupsToMap(AppLookup::class, $appLookup, $lookup, $secretLookup);
+        static::addLookupsToMap(UserLookup::class, $userLookup, $lookup, $secretLookup);
+
+        return [
+            'lookup'        => $lookup,
+            'lookup_secret' => $secretLookup //Actual values of the secret keys. For internal use only.
+        ];
+    }
+
+    protected static function addLookupsToMap($model, $lookups, array &$map, array &$mapSecret)
+    {
+        foreach ($lookups as $lookup) {
+            if ($lookup['private']) {
+                $secretLookup = $model::find($lookup['id']);
+                $mapSecret[$lookup['name']] = $secretLookup->value;
+            } else {
+                $map[$lookup['name']] = $lookup['value'];
+            }
+        }
+    }
+
     /**
      * @param string $lookup
      * @param string $value
@@ -436,8 +467,16 @@ class Session
             }
         }
 
-        $control = $use_private ? 'lookup_secret' : 'lookup';
-        $lookups = static::get($control);
+        if ($use_private) {
+            $lookups = static::get('lookup_secret');
+            if (isset($lookups, $lookups[$lookup])) {
+                $value = $lookups[$lookup];
+
+                return true;
+            }
+        }
+        // non-private
+        $lookups = static::get('lookup');
         if (isset($lookups, $lookups[$lookup])) {
             $value = $lookups[$lookup];
 
@@ -627,7 +666,7 @@ class Session
         $roleLookup = (!empty($roleInfo['role_lookup_by_role_id'])) ? $roleInfo['role_lookup_by_role_id'] : [];
         $userLookup = (!empty($userInfo['user_lookup_by_user_id'])) ? $userInfo['user_lookup_by_user_id'] : [];
 
-        $combinedLookup = LookupKey::combineLookups($systemLookup, $appLookup, $roleLookup, $userLookup);
+        $combinedLookup = static::combineLookups($systemLookup, $appLookup, $roleLookup, $userLookup);
 
         Session::put('lookup', ArrayUtils::get($combinedLookup, 'lookup'));
         //Actual values of the secret keys. For internal use only.

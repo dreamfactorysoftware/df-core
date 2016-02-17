@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
@@ -47,5 +48,22 @@ class UserAppRole extends BaseModel
         }
 
         return false;
+    }
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::saved(
+            function (UserAppRole $map){
+                Session::setRoleIdByAppIdAndUserId($map->app_id, $map->user_id, $map->role_id);
+            }
+        );
+
+        static::deleted(
+            function (UserAppRole $map){
+                Session::setRoleIdByAppIdAndUserId($map->app_id, $map->user_id, null);
+            }
+        );
     }
 }

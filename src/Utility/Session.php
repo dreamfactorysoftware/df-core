@@ -738,21 +738,32 @@ class Session
      */
     public static function getRoleIdByAppIdAndUserId($app_id, $user_id)
     {
-        $appIdUserIdToRoleIdMap = \Cache::get('appIdUserIdToRoleIdMap', []);
+        $map = \Cache::get('appIdUserIdToRoleIdMap', []);
 
-        if (isset($appIdUserIdToRoleIdMap[$app_id], $appIdUserIdToRoleIdMap[$app_id][$user_id])) {
-            return $appIdUserIdToRoleIdMap[$app_id][$user_id];
+        if (isset($map[$app_id], $map[$app_id][$user_id])) {
+            return $map[$app_id][$user_id];
         }
 
-        $map = UserAppRole::whereUserId($user_id)->whereAppId($app_id)->first(['role_id']);
-        if ($map) {
-            $appIdUserIdToRoleIdMap[$app_id][$user_id] = $map->role_id;
-            \Cache::put('appIdUserIdToRoleIdMap', $appIdUserIdToRoleIdMap, \Config::get('df.default_cache_ttl'));
+        $model = UserAppRole::whereUserId($user_id)->whereAppId($app_id)->first(['role_id']);
+        if ($model) {
+            $map[$app_id][$user_id] = $model->role_id;
+            \Cache::put('appIdUserIdToRoleIdMap', $map, \Config::get('df.default_cache_ttl'));
 
-            return $map->role_id;
+            return $model->role_id;
         }
 
         return null;
+    }
+
+    public static function setRoleIdByAppIdAndUserId($app_id, $user_id, $role_id)
+    {
+        $map = \Cache::get('appIdUserIdToRoleIdMap', []);
+        if (empty($role_id)) {
+            unset($map[$app_id][$user_id]);
+        } else {
+            $map[$app_id][$user_id] = $role_id;
+        }
+        \Cache::put('appIdUserIdToRoleIdMap', $map, \Config::get('df.default_cache_ttl'));
     }
 
     /**

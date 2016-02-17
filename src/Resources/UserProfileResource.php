@@ -114,11 +114,13 @@ class UserProfileResource extends BaseRestResource
         $apis = [
             $path => [
                 'get'  => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'get'.$capitalized.'Profile() - Retrieve the current user\'s profile information.',
-                    'operationId' => 'get'.$capitalized.'Profile',
-                    'event_name'  => $eventPath . '.read',
-                    'responses'   => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'get' .
+                        $capitalized .
+                        'Profile() - Retrieve the current user\'s profile information.',
+                    'operationId'       => 'get' . $capitalized . 'Profile',
+                    'x-publishedEvents' => [$eventPath . '.read'],
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Profile',
                             'schema'      => ['$ref' => '#/definitions/ProfileResponse']
@@ -128,16 +130,16 @@ class UserProfileResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' =>
+                    'description'       =>
                         'A valid current session is required to use this API. ' .
                         'This profile, along with password, is the only things that the user can directly change.',
                 ],
                 'post' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'updateProfile() - Update the current user\'s profile information.',
-                    'operationId' => 'updateProfile',
-                    'event_name'  => $eventPath . '.update',
-                    'parameters'  => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'updateProfile() - Update the current user\'s profile information.',
+                    'operationId'       => 'updateProfile',
+                    'x-publishedEvents' => [$eventPath . '.update'],
+                    'parameters'        => [
                         [
                             'name'        => 'body',
                             'description' => 'Data containing name-value pairs for the user profile.',
@@ -146,7 +148,7 @@ class UserProfileResource extends BaseRestResource
                             'required'    => true,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -156,7 +158,7 @@ class UserProfileResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Update the display name, phone, etc., as well as, security question and answer.',
+                    'description'       => 'Update the display name, phone, etc., as well as, security question and answer.',
                 ],
             ],
         ];

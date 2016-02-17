@@ -80,12 +80,12 @@ class Cache extends BaseRestResource
         $apis = [
             $path                => [
                 'delete' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'deleteAllCache() - Delete all cache.',
-                    'operationId' => 'deleteAllCache',
-                    'event_name'  => $eventPath . '.delete',
-                    'parameters'  => [],
-                    'responses'   => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'deleteAllCache() - Delete all cache.',
+                    'operationId'       => 'deleteAllCache',
+                    'x-publishedEvents' => [$eventPath . '.delete'],
+                    'parameters'        => [],
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -95,16 +95,16 @@ class Cache extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'This clears all cached information in the system. Doing so may impact the performance of the system.',
+                    'description'       => 'This clears all cached information in the system. Doing so may impact the performance of the system.',
                 ],
             ],
             $path . '/{service}' => [
                 'delete' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'deleteServiceCache() - Delete cache for one service.',
-                    'operationId' => 'deleteServiceCache',
-                    'event_name'  => $eventPath . '{service}.delete',
-                    'parameters'  => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'deleteServiceCache() - Delete cache for one service.',
+                    'operationId'       => 'deleteServiceCache',
+                    'x-publishedEvents' => [$eventPath . '{service}.delete'],
+                    'parameters'        => [
                         [
                             'name'        => 'service',
                             'description' => 'Identifier of the service whose cache we are to delete.',
@@ -113,7 +113,7 @@ class Cache extends BaseRestResource
                             'required'    => true,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -123,7 +123,7 @@ class Cache extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'This clears all cached information related to a particular service. Doing so may impact the performance of the service.',
+                    'description'       => 'This clears all cached information related to a particular service. Doing so may impact the performance of the service.',
                 ],
             ],
         ];

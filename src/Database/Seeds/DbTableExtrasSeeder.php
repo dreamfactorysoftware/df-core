@@ -17,7 +17,7 @@ use DreamFactory\Core\Models\ScriptType;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\ServiceDoc;
 use DreamFactory\Core\Models\ServiceType;
-use DreamFactory\Core\Models\Setting;
+use DreamFactory\Core\Models\SystemCustom;
 use DreamFactory\Core\Models\SystemResource;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
@@ -103,8 +103,8 @@ class DbTableExtrasSeeder extends BaseModelSeeder
             'model' => EmailTemplate::class,
         ],
         [
-            'table' => 'system_setting',
-            'model' => Setting::class,
+            'table' => 'system_custom',
+            'model' => SystemCustom::class,
         ],
         [
             'table' => 'system_lookup',

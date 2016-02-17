@@ -163,18 +163,22 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                 $path => [
                     'get' =>
                         [
-                            'tags'        => [$serviceName],
-                            'summary'     => 'get' . $capitalized . $pluralClass . '() - List all ' . $pluralClass,
-                            'operationId' => 'get' . $capitalized . $pluralClass,
-                            'description' => 'Return a list of the resource identifiers.',
-                            'event_name'  => [$eventPath . '.list'],
-                            'parameters'  => [
+                            'tags'              => [$serviceName],
+                            'summary'           => 'get' .
+                                $capitalized .
+                                $pluralClass .
+                                '() - List all ' .
+                                $pluralClass,
+                            'operationId'       => 'get' . $capitalized . $pluralClass,
+                            'description'       => 'Return a list of the resource identifiers.',
+                            'x-publishedEvents' => [$eventPath . '.list'],
+                            'parameters'        => [
                                 ApiOptions::documentOption(ApiOptions::AS_LIST),
                                 ApiOptions::documentOption(ApiOptions::ID_FIELD),
                                 ApiOptions::documentOption(ApiOptions::ID_TYPE),
                                 ApiOptions::documentOption(ApiOptions::REFRESH),
                             ],
-                            'responses'   => [
+                            'responses'         => [
                                 '200'     => [
                                     'description' => 'Success',
                                     'schema'      => [
@@ -204,7 +208,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                         ],
                     ],
                 ],
-                $class . 'Response'   => [
+                $class . 'Response'       => [
                     'type'       => 'object',
                     'properties' => [
                         static::getResourceIdentifier() => [

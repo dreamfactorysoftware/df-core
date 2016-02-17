@@ -37,11 +37,13 @@ class Constant extends ReadOnlySystemResource
             'paths' => [
                 $path             => [
                     'get' => [
-                        'tags'        => [$serviceName],
-                        'summary'     => 'get' . $capitalized . '() - Retrieve all platform enumerated constants.',
-                        'operationId' => 'get' . $capitalized . 'Constants',
-                        'event_name'  => $eventPath . '.list',
-                        'responses'   => [
+                        'tags'              => [$serviceName],
+                        'summary'           => 'get' .
+                            $capitalized .
+                            '() - Retrieve all platform enumerated constants.',
+                        'operationId'       => 'get' . $capitalized . 'Constants',
+                        'x-publishedEvents' => $eventPath . '.list',
+                        'responses'         => [
                             '200'     => [
                                 'description' => 'Constants',
                                 'schema'      => ['$ref' => '#/definitions/Constants']
@@ -51,26 +53,27 @@ class Constant extends ReadOnlySystemResource
                                 'schema'      => ['$ref' => '#/definitions/Error']
                             ]
                         ],
-                        'description' => 'Returns an object containing every enumerated type and its constant values',
+                        'description'       => 'Returns an object containing every enumerated type and its constant values',
                     ],
                 ],
                 $path . '/{type}' => [
                     'get' => [
-                        'tags'        => [$serviceName],
-                        'summary'     => 'get' . $capitalized . 'Constant() - Retrieve one constant type enumeration.',
-                        'operationId' => 'get' . $capitalized . 'Constant',
-                        'event_name'  => $eventPath . '.read',
-                        'parameters'  => [
+                        'tags'              => [$serviceName],
+                        'summary'           => 'get' .
+                            $capitalized .
+                            'Constant() - Retrieve one constant type enumeration.',
+                        'operationId'       => 'get' . $capitalized . 'Constant',
+                        'x-publishedEvents' => $eventPath . '.read',
+                        'parameters'        => [
                             [
                                 'name'        => 'type',
                                 'description' => 'Identifier of the enumeration type to retrieve.',
-
-                                'type'     => 'string',
-                                'in'       => 'path',
-                                'required' => true,
+                                'type'        => 'string',
+                                'in'          => 'path',
+                                'required'    => true,
                             ],
                         ],
-                        'responses'   => [
+                        'responses'         => [
                             '200'     => [
                                 'description' => 'Constant',
                                 'schema'      => ['$ref' => '#/definitions/Constant']
@@ -80,7 +83,7 @@ class Constant extends ReadOnlySystemResource
                                 'schema'      => ['$ref' => '#/definitions/Error']
                             ]
                         ],
-                        'description' => 'Returns a constant value.',
+                        'description'       => 'Returns a constant value.',
                     ],
                 ],
             ],

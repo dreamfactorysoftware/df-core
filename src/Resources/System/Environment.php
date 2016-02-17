@@ -443,12 +443,17 @@ class Environment extends BaseSystemResource
         $apis = [
             $path => [
                 'get' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'get'.$capitalized.'Environment() - Retrieve system environment.',
-                    'operationId' => 'get'.$capitalized.'Environment',
-                    'event_name'  => $eventPath . '.list',
-                    'responses'  => ['200' => ['schema' => ['$ref' => '#/definitions/EnvironmentResponse']]],
-                    'description' =>
+                    'tags'              => [$serviceName],
+                    'summary'           => 'get' . $capitalized . 'Environment() - Retrieve system environment.',
+                    'operationId'       => 'get' . $capitalized . 'Environment',
+                    'x-publishedEvents' => $eventPath . '.list',
+                    'responses'         => [
+                        '200' => [
+                            'description' => 'Environment',
+                            'schema'      => ['$ref' => '#/definitions/EnvironmentResponse']
+                        ]
+                    ],
+                    'description'       =>
                         'Minimum environment information given without a valid user session.' .
                         ' More information given based on user privileges.',
                 ],
@@ -460,37 +465,93 @@ class Environment extends BaseSystemResource
                 'type'       => 'object',
                 'properties' => [
                     'platform'       => [
-                        'type'        => 'array',
-                        'description' => 'Array of system records.',
-                        'items'       => [
-                            'type' => 'string',
+                        'type'        => 'object',
+                        'description' => 'System platform properties.',
+                        'properties'  => [
+                            'version_current'   => [
+                                'type' => 'string',
+                            ],
+                            'version_latest'    => [
+                                'type' => 'string',
+                            ],
+                            'upgrade_available' => [
+                                'type' => 'boolean',
+                            ],
+                            'is_hosted'         => [
+                                'type' => 'boolean',
+                            ],
+                            'host'              => [
+                                'type' => 'string',
+                            ],
                         ],
                     ],
                     'authentication' => [
-                        'type'        => 'Metadata',
-                        'description' => 'Array of metadata returned for GET requests.',
+                        'type'        => 'object',
+                        'description' => 'Authentication options for this server.',
+                        'properties'  => [
+                            'version_current'   => [
+                                'type' => 'string',
+                            ],
+                            'version_latest'    => [
+                                'type' => 'string',
+                            ],
+                            'upgrade_available' => [
+                                'type' => 'boolean',
+                            ],
+                            'is_hosted'         => [
+                                'type' => 'boolean',
+                            ],
+                            'host'              => [
+                                'type' => 'string',
+                            ],
+                        ],
                     ],
                     'app_group'      => [
                         'type'        => 'array',
-                        'description' => 'Array of system records.',
+                        'description' => 'Array of groups apps by group name.',
                         'items'       => [
                             '$ref' => '#/definitions/AppsResponse',
                         ],
                     ],
                     'no_app_group'   => [
                         'type'        => 'array',
-                        'description' => 'Array of system records.',
+                        'description' => 'Array of ungrouped apps.',
                         'items'       => [
                             '$ref' => '#/definitions/AppsResponse',
                         ],
                     ],
                     'config'         => [
-                        'type'        => 'Metadata',
-                        'description' => 'Array of metadata returned for GET requests.',
+                        'type'        => 'object',
+                        'description' => 'System config properties.',
+                        'properties'  => [
+                            'resources_wrapper'     => [
+                                'type' => 'string',
+                            ],
+                            'always_wrap_resources' => [
+                                'type' => 'boolean',
+                            ],
+                        ],
                     ],
                     'server'         => [
-                        'type'        => 'Metadata',
-                        'description' => 'Array of metadata returned for GET requests.',
+                        'type'        => 'object',
+                        'description' => 'System server properties.',
+                        'properties'  => [
+                            'server_os' => [
+                                'type' => 'string',
+                            ],
+                            'release'   => [
+                                'type' => 'string',
+                            ],
+                            'version'   => [
+                                'type' => 'string',
+                            ],
+                            'machine'   => [
+                                'type' => 'string',
+                            ],
+                            'host'      => [
+                                'type' => 'string',
+                            ],
+                        ],
                     ],
                 ],
             ],

@@ -701,6 +701,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         $serviceName = strtolower($service->name);
         $capitalized = Inflector::camelize($service->name);
         $class = trim(strrchr(static::class, '\\'), '\\');
+        $pluralClass = Inflector::pluralize($class);
         $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
         $eventPath = $serviceName . '.' . $resourceName;
@@ -708,11 +709,11 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
         $add = [
             'post'  => [
-                'tags'        => [$serviceName],
-                'summary'     => 'create'.$capitalized.'Tables() - Create one or more tables.',
-                'operationId' => 'create'.$capitalized.'Tables',
-                'event_name'  => $eventPath . '.create',
-                'parameters'  => [
+                'tags'              => [$serviceName],
+                'summary'           => 'create' . $capitalized . 'Tables() - Create one or more tables.',
+                'operationId'       => 'create' . $capitalized . 'Tables',
+                'x-publishedEvents' => [$eventPath . '.create'],
+                'parameters'        => [
                     [
                         'name'        => 'tables',
                         'description' => 'Array of table definitions.',
@@ -721,24 +722,24 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'required'    => true,
                     ],
                 ],
-                'responses'   => [
+                'responses'         => [
                     '200'     => [
                         'description' => 'Tables Created',
-                        'schema'      => ['$ref' => '#/definitions/Resources']
+                        'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
                     ],
                     'default' => [
                         'description' => 'Error',
                         'schema'      => ['$ref' => '#/definitions/Error']
                     ]
                 ],
-                'description' => 'Post data should be a single table definition or an array of table definitions.',
+                'description'       => 'Post data should be a single table definition or an array of table definitions.',
             ],
             'put'   => [
-                'tags'        => [$serviceName],
-                'summary'     => 'replace'.$capitalized.'Tables() - Update (replace) one or more tables.',
-                'operationId' => 'replace'.$capitalized.'Tables',
-                'event_name'  => $eventPath . '.alter',
-                'parameters'  => [
+                'tags'              => [$serviceName],
+                'summary'           => 'replace' . $capitalized . 'Tables() - Update (replace) one or more tables.',
+                'operationId'       => 'replace' . $capitalized . 'Tables',
+                'x-publishedEvents' => [$eventPath . '.alter'],
+                'parameters'        => [
                     [
                         'name'        => 'tables',
                         'description' => 'Array of table definitions.',
@@ -747,24 +748,24 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'required'    => true,
                     ],
                 ],
-                'responses'   => [
+                'responses'         => [
                     '200'     => [
                         'description' => 'Tables Updated',
-                        'schema'      => ['$ref' => '#/definitions/Resources']
+                        'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
                     ],
                     'default' => [
                         'description' => 'Error',
                         'schema'      => ['$ref' => '#/definitions/Error']
                     ]
                 ],
-                'description' => 'Post data should be a single table definition or an array of table definitions.',
+                'description'       => 'Post data should be a single table definition or an array of table definitions.',
             ],
             'patch' => [
-                'tags'        => [$serviceName],
-                'summary'     => 'update'.$capitalized.'Tables() - Update (patch) one or more tables.',
-                'operationId' => 'update'.$capitalized.'Tables',
-                'event_name'  => $eventPath . '.alter',
-                'parameters'  => [
+                'tags'              => [$serviceName],
+                'summary'           => 'update' . $capitalized . 'Tables() - Update (patch) one or more tables.',
+                'operationId'       => 'update' . $capitalized . 'Tables',
+                'x-publishedEvents' => [$eventPath . '.alter'],
+                'parameters'        => [
                     [
                         'name'        => 'tables',
                         'description' => 'Array of table definitions.',
@@ -773,24 +774,24 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'required'    => true,
                     ],
                 ],
-                'responses'   => [
+                'responses'         => [
                     '200'     => [
                         'description' => 'Tables Updated',
-                        'schema'      => ['$ref' => '#/definitions/Resources']
+                        'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
                     ],
                     'default' => [
                         'description' => 'Error',
                         'schema'      => ['$ref' => '#/definitions/Error']
                     ]
                 ],
-                'description' => 'Post data should be a single table definition or an array of table definitions.',
+                'description'       => 'Post data should be a single table definition or an array of table definitions.',
             ],
         ];
         $base['paths'][$path] = array_merge($base['paths'][$path], $add);
 
         $apis = [
             $path . '/{table_name}'              => [
-                'parameters'  => [
+                'parameters' => [
                     [
                         'name'        => 'table_name',
                         'description' => 'Name of the table to perform operations on.',
@@ -799,15 +800,17 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'required'    => true,
                     ],
                 ],
-                'get'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'describe'.$capitalized.'Table() - Retrieve table definition for the given table.',
-                    'operationId' => 'describe'.$capitalized.'Table',
-                    'event_name'  => [
+                'get'        => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'describe' .
+                        $capitalized .
+                        'Table() - Retrieve table definition for the given table.',
+                    'operationId'       => 'describe' . $capitalized . 'Table',
+                    'x-publishedEvents' => [
                         $eventPath . '.{table_name}.describe',
                         $eventPath . '.table_described'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'refresh',
                             'description' => 'Refresh any cached copy of the schema.',
@@ -815,7 +818,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'in'          => 'query',
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Table Schema',
                             'schema'      => ['$ref' => '#/definitions/TableSchema']
@@ -825,17 +828,19 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'This describes the table, its fields and relations to other tables.',
+                    'description'       => 'This describes the table, its fields and relations to other tables.',
                 ],
-                'post'   => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'create'.$capitalized.'Table() - Create a table with the given properties and fields.',
-                    'operationId' => 'create'.$capitalized.'Table',
-                    'event_name'  => [
+                'post'       => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'create' .
+                        $capitalized .
+                        'Table() - Create a table with the given properties and fields.',
+                    'operationId'       => 'create' . $capitalized . 'Table',
+                    'x-publishedEvents' => [
                         $eventPath . '.{table_name}.create',
                         $eventPath . '.table_created'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'schema',
                             'description' => 'Array of table properties and fields definitions.',
@@ -844,7 +849,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'required'    => true,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -854,17 +859,19 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
+                    'description'       => 'Post data should be an array of field properties for a single record or an array of fields.',
                 ],
-                'put'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'replace'.$capitalized.'Table() - Update (replace) a table with the given properties.',
-                    'operationId' => 'replace'.$capitalized.'Table',
-                    'event_name'  => [
+                'put'        => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'replace' .
+                        $capitalized .
+                        'Table() - Update (replace) a table with the given properties.',
+                    'operationId'       => 'replace' . $capitalized . 'Table',
+                    'x-publishedEvents' => [
                         $eventPath . '.{table_name}.alter',
                         $eventPath . '.table_altered'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'schema',
                             'description' => 'Array of field definitions.',
@@ -873,7 +880,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'required'    => true,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -883,17 +890,19 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
+                    'description'       => 'Post data should be an array of field properties for a single record or an array of fields.',
                 ],
-                'patch'  => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'update'.$capitalized.'Table() - Update (patch) a table with the given properties.',
-                    'operationId' => 'update'.$capitalized.'Table',
-                    'event_name'  => [
+                'patch'      => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'update' .
+                        $capitalized .
+                        'Table() - Update (patch) a table with the given properties.',
+                    'operationId'       => 'update' . $capitalized . 'Table',
+                    'x-publishedEvents' => [
                         $eventPath . '.{table_name}.alter',
                         $eventPath . '.table_altered'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'schema',
                             'description' => 'Array of field definitions.',
@@ -902,7 +911,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'required'    => true,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -912,16 +921,16 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
+                    'description'       => 'Post data should be an array of field properties for a single record or an array of fields.',
                 ],
-                'delete' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'delete'.$capitalized.'Table() - Delete (aka drop) the given table.',
-                    'operationId' => 'delete'.$capitalized.'Table',
-                    'event_name'  => [$eventPath . '.{table_name}.drop', $eventPath . '.table_dropped'],
-                    'parameters'  => [
+                'delete'     => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'delete' . $capitalized . 'Table() - Delete (aka drop) the given table.',
+                    'operationId'       => 'delete' . $capitalized . 'Table',
+                    'x-publishedEvents' => [$eventPath . '.{table_name}.drop', $eventPath . '.table_dropped'],
+                    'parameters'        => [
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -931,11 +940,11 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Careful, this drops the database table and all of its contents.',
+                    'description'       => 'Careful, this drops the database table and all of its contents.',
                 ],
             ],
             $path . '/{table_name}/{field_name}' => [
-                'parameters'  => [
+                'parameters' => [
                     [
                         'name'        => 'table_name',
                         'description' => 'Name of the table to perform operations on.',
@@ -951,15 +960,17 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         'required'    => true,
                     ],
                 ],
-                'get'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'describe'.$capitalized.'Field() - Retrieve the definition of the given field for the given table.',
-                    'operationId' => 'describe'.$capitalized.'Field',
-                    'event_name'  => [
+                'get'        => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'describe' .
+                        $capitalized .
+                        'Field() - Retrieve the definition of the given field for the given table.',
+                    'operationId'       => 'describe' . $capitalized . 'Field',
+                    'x-publishedEvents' => [
                         $eventPath . '.{table_name}.{field_name}.describe',
                         $eventPath . '.{table_name}.field_described'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'refresh',
                             'description' => 'Refresh any cached copy of the schema.',
@@ -967,7 +978,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'in'          => 'query',
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Field Schema',
                             'schema'      => ['$ref' => '#/definitions/FieldSchema']
@@ -977,17 +988,17 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'This describes the field and its properties.',
+                    'description'       => 'This describes the field and its properties.',
                 ],
-                'put'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'replace'.$capitalized.'Field() - Update one record by identifier.',
-                    'operationId' => 'replace'.$capitalized.'Field',
-                    'event_name'  => [
+                'put'        => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'replace' . $capitalized . 'Field() - Update one record by identifier.',
+                    'operationId'       => 'replace' . $capitalized . 'Field',
+                    'x-publishedEvents' => [
                         $eventPath . '.{table_name}.{field_name}.alter',
                         $eventPath . '.{table_name}.field_altered'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'properties',
                             'description' => 'Array of field properties.',
@@ -996,7 +1007,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'required'    => true,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -1006,17 +1017,17 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post data should be an array of field properties for the given field.',
+                    'description'       => 'Post data should be an array of field properties for the given field.',
                 ],
-                'patch'  => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'update'.$capitalized.'Field() - Update one record by identifier.',
-                    'operationId' => 'update'.$capitalized.'Field',
-                    'event_name'  => [
+                'patch'      => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'update' . $capitalized . 'Field() - Update one record by identifier.',
+                    'operationId'       => 'update' . $capitalized . 'Field',
+                    'x-publishedEvents' => [
                         $eventPath . '.{table_name}.{field_name}.alter',
                         $eventPath . '.{table_name}.field_altered'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'properties',
                             'description' => 'Array of field properties.',
@@ -1025,7 +1036,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'required'    => true,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -1035,18 +1046,20 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post data should be an array of field properties for the given field.',
+                    'description'       => 'Post data should be an array of field properties for the given field.',
                 ],
-                'delete' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'delete'.$capitalized.'Field() - Remove the given field from the given table.',
-                    'operationId' => 'delete'.$capitalized.'Field',
-                    'event_name'  => [
+                'delete'     => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'delete' .
+                        $capitalized .
+                        'Field() - Remove the given field from the given table.',
+                    'operationId'       => 'delete' . $capitalized . 'Field',
+                    'x-publishedEvents' => [
                         $eventPath . '.{table_name}.{field_name}.drop',
                         $eventPath . '.{table_name}.field_dropped'
                     ],
-                    'parameters'  => [],
-                    'responses'   => [
+                    'parameters'        => [],
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -1056,7 +1069,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Careful, this drops the database table field/column and all of its contents.',
+                    'description'       => 'Careful, this drops the database table field/column and all of its contents.',
                 ],
             ],
         ];

@@ -111,7 +111,7 @@ class Event extends BaseRestResource
             $settings = $service->toArray();
             /** @var BaseRestService $obj */
             $obj = new $serviceClass($settings);
-            if ($obj instanceof BaseFileService){
+            if ($obj instanceof BaseFileService) {
                 // don't want the full folder list here
                 $accessList = (empty($obj->getPermissions()) ? [] : ['', '*']);
             } else {
@@ -144,7 +144,7 @@ class Event extends BaseRestResource
                 }
 
                 $method = strtolower($ixOps);
-                if (null !== ($eventNames = ArrayUtils::get($operation, 'event_name'))) {
+                if (null !== ($eventNames = ArrayUtils::get($operation, 'x-publishedEvents'))) {
                     if (is_string($eventNames) && false !== strpos($eventNames, ',')) {
                         $eventNames = explode(',', $eventNames);
 
@@ -448,15 +448,15 @@ class Event extends BaseRestResource
         $apis = [
             $path                   => [
                 'get' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'get' . $capitalized . 'EventList() - Retrieve list of events.',
-                    'operationId' => 'get' . $capitalized . 'EventList',
-                    'description' => 'A list of event names are returned.<br>' .
+                    'tags'              => [$serviceName],
+                    'summary'           => 'get' . $capitalized . 'EventList() - Retrieve list of events.',
+                    'operationId'       => 'get' . $capitalized . 'EventList',
+                    'description'       => 'A list of event names are returned.<br>' .
                         'The list can be limited by service and/or by type.',
-                    'event_name'  => $eventPath . '.list',
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'  => [
+                    'x-publishedEvents' => $eventPath . '.list',
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::AS_LIST),
@@ -484,7 +484,7 @@ class Event extends BaseRestResource
                             'default'     => false,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Resource List',
                             'schema'      => ['$ref' => '#/definitions/ResourceList']
@@ -509,17 +509,17 @@ class Event extends BaseRestResource
                     ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
                 'get'        => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'get' . $capitalized . 'EventScript() - Retrieve the script for an event.',
-                    'operationId' => 'get' . $capitalized . 'EventScript',
-                    'description' =>
+                    'tags'              => [$serviceName],
+                    'summary'           => 'get' . $capitalized . 'EventScript() - Retrieve the script for an event.',
+                    'operationId'       => 'get' . $capitalized . 'EventScript',
+                    'description'       =>
                         'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
                         'By default, all fields and no relations are returned for each record.',
-                    'event_name'  => $eventPath . '.{event_name}.read',
-                    'parameters'  => [
+                    'x-publishedEvents' => $eventPath . '.{event_name}.read',
+                    'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::FILE),
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Event Script',
                             'schema'      => ['$ref' => '#/definitions/EventScriptResponse']
@@ -531,15 +531,15 @@ class Event extends BaseRestResource
                     ],
                 ],
                 'post'       => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'create' . $capitalized . 'EventScript() - Create a script for an event.',
-                    'operationId' => 'create' . $capitalized . 'EventScript',
-                    'description' =>
+                    'tags'              => [$serviceName],
+                    'summary'           => 'create' . $capitalized . 'EventScript() - Create a script for an event.',
+                    'operationId'       => 'create' . $capitalized . 'EventScript',
+                    'description'       =>
                         'Post data should be a single record containing required fields for a script. ' .
                         'By default, only the event name of the record affected is returned on success, ' .
                         'use \'fields\' and \'related\' to return more info.',
-                    'event_name'  => $eventPath . '.{event_name}.create',
-                    'parameters'  => [
+                    'x-publishedEvents' => $eventPath . '.{event_name}.create',
+                    'parameters'        => [
                         [
                             'name'        => 'body',
                             'description' => 'Data containing name-value pairs of records to create.',
@@ -548,7 +548,7 @@ class Event extends BaseRestResource
                             'required'    => true,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Event Script',
                             'schema'      => ['$ref' => '#/definitions/EventScriptResponse']
@@ -560,15 +560,15 @@ class Event extends BaseRestResource
                     ],
                 ],
                 'delete'     => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'delete' . $capitalized . 'EventScript() - Delete an event scripts.',
-                    'operationId' => 'delete' . $capitalized . 'EventScript',
-                    'description' =>
+                    'tags'              => [$serviceName],
+                    'summary'           => 'delete' . $capitalized . 'EventScript() - Delete an event scripts.',
+                    'operationId'       => 'delete' . $capitalized . 'EventScript',
+                    'description'       =>
                         'By default, only the event name of the record deleted is returned on success. ' .
                         'Use \'fields\' and \'related\' to return more properties of the deleted record.',
-                    'event_name'  => $eventPath . '.{event_name}.delete',
-                    'parameters'  => [],
-                    'responses'   => [
+                    'x-publishedEvents' => $eventPath . '.{event_name}.delete',
+                    'parameters'        => [],
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']

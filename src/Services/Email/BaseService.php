@@ -244,13 +244,13 @@ abstract class BaseService extends BaseRestService
         $paths = [
             '/' . $name => [
                 'post' => [
-                    'tags'        => [$name],
-                    'summary'     => 'send' .
+                    'tags'              => [$name],
+                    'summary'           => 'send' .
                         $capitalized .
                         'Email() - Send an email created from posted data and/or a template.',
-                    'operationId' => 'send' . $capitalized . 'Email',
-                    'event_name'  => $name . '.email_sent',
-                    'parameters'  => [
+                    'operationId'       => 'send' . $capitalized . 'Email',
+                    'x-publishedEvents' => $name . '.email_sent',
+                    'parameters'        => [
                         [
                             'name'        => 'template',
                             'description' => 'Optional template name to base email on.',
@@ -274,7 +274,7 @@ abstract class BaseService extends BaseRestService
                             'required'    => false,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Send Email Response',
                             'schema'      => ['$ref' => '#/definitions/EmailResponse']
@@ -284,7 +284,7 @@ abstract class BaseService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' =>
+                    'description'       =>
                         'If a template is not used with all required fields, then they must be included in the request. ' .
                         'If the \'from\' address is not provisioned in the service, then it must be included in the request.',
                 ],
@@ -315,21 +315,21 @@ abstract class BaseService extends BaseRestService
                         'description' => 'Email Template id to base email on.',
                     ],
                     'to'             => [
-                        'type'        => 'Array',
+                        'type'        => 'array',
                         'description' => 'Required single or multiple receiver addresses.',
                         'items'       => [
                             '$ref' => '#/definitions/EmailAddress',
                         ],
                     ],
                     'cc'             => [
-                        'type'        => 'Array',
+                        'type'        => 'array',
                         'description' => 'Optional CC receiver addresses.',
                         'items'       => [
                             '$ref' => '#/definitions/EmailAddress',
                         ],
                     ],
                     'bcc'            => [
-                        'type'        => 'Array',
+                        'type'        => 'array',
                         'description' => 'Optional BCC receiver addresses.',
                         'items'       => [
                             '$ref' => '#/definitions/EmailAddress',

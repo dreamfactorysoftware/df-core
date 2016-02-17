@@ -272,22 +272,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // System Settings
-        Schema::create(
-            'system_setting',
-            function (Blueprint $t) use ($userOnDelete){
-                $t->increments('id');
-                $t->string('name')->unique();
-                $t->text('value')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-            }
-        );
-
         // System Lookups
         Schema::create(
             'system_lookup',
@@ -629,8 +613,6 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('role');
         // Email Templates
         Schema::dropIfExists('email_template');
-        // System Custom Settings
-        Schema::dropIfExists('system_setting');
         // System Lookup Keys
         Schema::dropIfExists('system_lookup');
         // Services

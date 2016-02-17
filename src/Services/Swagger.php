@@ -90,7 +90,7 @@ class Swagger extends BaseRestService
      */
     public function getSwagger()
     {
-        if (Session::isSysAdmin()){
+        if (Session::isSysAdmin()) {
             $roleId = 'admin';
         } elseif (empty($roleId = strval(Session::getRoleId()))) {
             throw new UnauthorizedException("Valid role or administrator required.");
@@ -140,9 +140,9 @@ class Swagger extends BaseRestService
 HTML;
 
             $content = [
-                'swagger'        => static::SWAGGER_VERSION,
-                'authorizations' => ['apiKey' => ['type' => 'apiKey', 'passAs' => 'header']],
-                'info'           => [
+                'swagger'             => static::SWAGGER_VERSION,
+                'securityDefinitions' => ['apiKey' => ['type' => 'apiKey', 'name' => 'api_key', 'in' => 'header']],
+                'info'                => [
                     'title'       => 'DreamFactory Live API Documentation',
                     'description' => $description,
                     'version'     => \Config::get('df.api_version', static::API_VERSION),
@@ -159,17 +159,13 @@ HTML;
                 ],
                 //'host'           => 'df.local',
                 //'schemes'        => ['https'],
-                'basePath'       => '/api/v2',
-                'consumes'       => ['application/json'],
-                'produces'       => ['application/json'],
-                'paths'          => $paths,
-                'definitions'    => $definitions,
-                'tags'           => $tags,
-                'parameters'     => $parameters,
-                /**
-                 * The events thrown that are relevant to Swagger
-                 */
-                'events'         => [],
+                'basePath'            => '/api/v2',
+                'consumes'            => ['application/json'],
+                'produces'            => ['application/json'],
+                'paths'               => $paths,
+                'definitions'         => $definitions,
+                'tags'                => $tags,
+                'parameters'          => $parameters,
             ];
 
             static::addToCache($roleId, $content, true);
@@ -233,11 +229,11 @@ HTML;
                 '/' . $name => [
                     'get' =>
                         [
-                            'tags'        => [$name],
-                            'summary'     => 'get' . $capitalized . '() - Retrieve the Swagger document.',
-                            'operationId' => 'get' . $capitalized,
-                            'event_name'  => $name . '.retrieve',
-                            'parameters'  => [
+                            'tags'              => [$name],
+                            'summary'           => 'get' . $capitalized . '() - Retrieve the Swagger document.',
+                            'operationId'       => 'get' . $capitalized,
+                            'x-publishedEvents' => $name . '.retrieve',
+                            'parameters'        => [
                                 [
                                     'name'        => 'file',
                                     'description' => 'Download the results of the request as a file.',
@@ -246,7 +242,7 @@ HTML;
                                     'required'    => false,
                                 ],
                             ],
-                            'responses'   => [
+                            'responses'         => [
                                 '200'     => [
                                     'description' => 'Swagger Response',
                                     'schema'      => ['$ref' => '#/definitions/SwaggerResponse']
@@ -256,7 +252,7 @@ HTML;
                                     'schema'      => ['$ref' => '#/definitions/Error']
                                 ]
                             ],
-                            'description' => 'This returns the Swagger file containing all API services.',
+                            'description'       => 'This returns the Swagger file containing all API services.',
                         ],
                 ],
             ],

@@ -792,11 +792,11 @@ abstract class BaseFileService extends BaseRestService
         $base['paths'] = [
             '/' . $name                     => [
                 'get' => [
-                    'tags'        => [$name],
-                    'summary'     => 'get' . $capitalized . 'Resources() - List all resources.',
-                    'operationId' => 'get' . $capitalized . 'Resources',
-                    'event_name'  => [$name . '.list',],
-                    'responses'   => [
+                    'tags'              => [$name],
+                    'summary'           => 'get' . $capitalized . 'Resources() - List all resources.',
+                    'operationId'       => 'get' . $capitalized . 'Resources',
+                    'x-publishedEvents' => [$name . '.list',],
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/ResourceList']
@@ -806,42 +806,42 @@ abstract class BaseFileService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'List the resources (folders and files) available in this storage. ',
-                    'parameters'  => [
+                    'description'       => 'List the resources (folders and files) available in this storage. ',
+                    'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::AS_LIST),
                         ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
                         ApiOptions::documentOption(ApiOptions::REFRESH),
                         [
-                            'name'         => 'include_folders',
-                            'description'  => 'Include folders in the returned listing.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'required'     => false,
-                            'defaultValue' => true,
+                            'name'        => 'include_folders',
+                            'description' => 'Include folders in the returned listing.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'required'    => false,
+                            'default'     => true,
                         ],
                         [
-                            'name'         => 'include_files',
-                            'description'  => 'Include files in the returned listing.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'required'     => false,
-                            'defaultValue' => true,
+                            'name'        => 'include_files',
+                            'description' => 'Include files in the returned listing.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'required'    => false,
+                            'default'     => true,
                         ],
                         [
-                            'name'         => 'full_tree',
-                            'description'  => 'List the contents of all sub-folders as well.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'required'     => false,
-                            'defaultValue' => false,
+                            'name'        => 'full_tree',
+                            'description' => 'List the contents of all sub-folders as well.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'required'    => false,
+                            'default'     => false,
                         ],
                         [
-                            'name'         => 'zip',
-                            'description'  => 'Return the content of the path as a zip file.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'required'     => false,
-                            'defaultValue' => false,
+                            'name'        => 'zip',
+                            'description' => 'Return the content of the path as a zip file.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'required'    => false,
+                            'default'     => false,
                         ],
                     ],
                 ],
@@ -857,50 +857,50 @@ abstract class BaseFileService extends BaseRestService
                     ],
                 ],
                 'get'        => [
-                    'tags'        => [$name],
-                    'summary'     => 'get' .
+                    'tags'              => [$name],
+                    'summary'           => 'get' .
                         $capitalized .
                         'Folder() - List the folder\'s content, including properties.',
-                    'operationId' => 'get' . $capitalized . 'Folder',
-                    'event_name'  => [$name . '.{folder_path}.describe'],
-                    'parameters'  => [
+                    'operationId'       => 'get' . $capitalized . 'Folder',
+                    'x-publishedEvents' => [$name . '.{folder_path}.describe'],
+                    'parameters'        => [
                         [
-                            'name'         => 'include_properties',
-                            'description'  => 'Return any properties of the folder in the response.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'defaultValue' => false,
+                            'name'        => 'include_properties',
+                            'description' => 'Return any properties of the folder in the response.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => false,
                         ],
                         [
-                            'name'         => 'include_folders',
-                            'description'  => 'Include folders in the returned listing.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'defaultValue' => true,
+                            'name'        => 'include_folders',
+                            'description' => 'Include folders in the returned listing.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => true,
                         ],
                         [
-                            'name'         => 'include_files',
-                            'description'  => 'Include files in the returned listing.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'defaultValue' => true,
+                            'name'        => 'include_files',
+                            'description' => 'Include files in the returned listing.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => true,
                         ],
                         [
-                            'name'         => 'full_tree',
-                            'description'  => 'List the contents of all sub-folders as well.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'defaultValue' => false,
+                            'name'        => 'full_tree',
+                            'description' => 'List the contents of all sub-folders as well.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => false,
                         ],
                         [
-                            'name'         => 'zip',
-                            'description'  => 'Return the content of the folder as a zip file.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'defaultValue' => false,
+                            'name'        => 'zip',
+                            'description' => 'Return the content of the folder as a zip file.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => false,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/FolderResponse']
@@ -910,19 +910,19 @@ abstract class BaseFileService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' =>
+                    'description'       =>
                         'Use \'include_properties\' to get properties of the folder. ' .
                         'Use the \'include_folders\' and/or \'include_files\' to modify the listing.',
                 ],
                 'post'       => [
-                    'tags'        => [$name],
-                    'summary'     => 'create' . $capitalized . 'Folder() - Create a folder and/or add content.',
-                    'operationId' => 'create' . $capitalized . 'Folder',
-                    'event_name'  => [
+                    'tags'              => [$name],
+                    'summary'           => 'create' . $capitalized . 'Folder() - Create a folder and/or add content.',
+                    'operationId'       => 'create' . $capitalized . 'Folder',
+                    'x-publishedEvents' => [
                         $name . '.{folder_path}.create',
                         $name . '.folder_created'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'body',
                             'description' => 'Array of folders and/or files.',
@@ -936,25 +936,25 @@ abstract class BaseFileService extends BaseRestService
                             'in'          => 'query',
                         ],
                         [
-                            'name'         => 'extract',
-                            'description'  => 'Extract an uploaded zip file into the folder.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'defaultValue' => false,
+                            'name'        => 'extract',
+                            'description' => 'Extract an uploaded zip file into the folder.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => false,
                         ],
                         [
-                            'name'         => 'clean',
-                            'description'  => 'Option when \'extract\' is true, clean the current folder before extracting files and folders.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'defaultValue' => false,
+                            'name'        => 'clean',
+                            'description' => 'Option when \'extract\' is true, clean the current folder before extracting files and folders.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => false,
                         ],
                         [
-                            'name'         => 'check_exist',
-                            'description'  => 'If true, the request fails when the file or folder to create already exists.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'defaultValue' => false,
+                            'name'        => 'check_exist',
+                            'description' => 'If true, the request fails when the file or folder to create already exists.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => false,
                         ],
                         [
                             'name'        => 'X-HTTP-METHOD',
@@ -964,7 +964,7 @@ abstract class BaseFileService extends BaseRestService
                             'in'          => 'header',
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/FolderResponse']
@@ -974,17 +974,17 @@ abstract class BaseFileService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post data as an array of folders and/or files. Folders are created if they do not exist',
+                    'description'       => 'Post data as an array of folders and/or files. Folders are created if they do not exist',
                 ],
                 'patch'      => [
-                    'tags'        => [$name],
-                    'summary'     => 'update' . $capitalized . 'FolderProperties() - Update folder properties.',
-                    'operationId' => 'update' . $capitalized . 'FolderProperties',
-                    'event_name'  => [
+                    'tags'              => [$name],
+                    'summary'           => 'update' . $capitalized . 'FolderProperties() - Update folder properties.',
+                    'operationId'       => 'update' . $capitalized . 'FolderProperties',
+                    'x-publishedEvents' => [
                         $name . '.{folder_path}.update',
                         $name . '.folder_updated'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'body',
                             'description' => 'Array of folder properties.',
@@ -992,7 +992,7 @@ abstract class BaseFileService extends BaseRestService
                             'in'          => 'body',
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Folder',
                             'schema'      => ['$ref' => '#/definitions/Folder']
@@ -1002,17 +1002,19 @@ abstract class BaseFileService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post body as an array of folder properties.',
+                    'description'       => 'Post body as an array of folder properties.',
                 ],
                 'delete'     => [
-                    'tags'        => [$name],
-                    'summary'     => 'delete' . $capitalized . 'Folder() - Delete one folder and/or its contents.',
-                    'operationId' => 'delete' . $capitalized . 'Folder',
-                    'event_name'  => [
+                    'tags'              => [$name],
+                    'summary'           => 'delete' .
+                        $capitalized .
+                        'Folder() - Delete one folder and/or its contents.',
+                    'operationId'       => 'delete' . $capitalized . 'Folder',
+                    'x-publishedEvents' => [
                         $name . '.{folder_path}.delete',
                         $name . '.folder_deleted'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'force',
                             'description' => 'Set to true to force delete on a non-empty folder.',
@@ -1026,7 +1028,7 @@ abstract class BaseFileService extends BaseRestService
                             'in'          => 'query',
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/FolderResponse']
@@ -1036,7 +1038,7 @@ abstract class BaseFileService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' =>
+                    'description'       =>
                         'Set \'content_only\' to true to delete the sub-folders and files contained, but not the folder. ' .
                         'Set \'force\' to true to delete a non-empty folder. ' .
                         'Alternatively, to delete by a listing of sub-folders and files, ' .
@@ -1054,25 +1056,25 @@ abstract class BaseFileService extends BaseRestService
                     ],
                 ],
                 'get'        => [
-                    'tags'        => [$name],
-                    'summary'     => 'get' .
+                    'tags'              => [$name],
+                    'summary'           => 'get' .
                         $capitalized .
                         'File() - Download the file contents and/or its properties.',
-                    'operationId' => 'get' . $capitalized . 'File',
-                    'event_name'  => [
+                    'operationId'       => 'get' . $capitalized . 'File',
+                    'x-publishedEvents' => [
                         $name . '.{file_path}.download',
                         $name . '.file_downloaded'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
-                            'name'         => 'download',
-                            'description'  => 'Prompt the user to download the file from the browser.',
-                            'type'         => 'boolean',
-                            'in'           => 'query',
-                            'defaultValue' => false,
+                            'name'        => 'download',
+                            'description' => 'Prompt the user to download the file from the browser.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => false,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'File',
                             'schema'      => ['$ref' => '#/definitions/FileResponse']
@@ -1082,19 +1084,19 @@ abstract class BaseFileService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' =>
+                    'description'       =>
                         'By default, the file is streamed to the browser. ' .
                         'Use the \'download\' parameter to prompt for download.',
                 ],
                 'post'       => [
-                    'tags'        => [$name],
-                    'summary'     => 'create' . $capitalized . 'File() - Create a new file.',
-                    'operationId' => 'create' . $capitalized . 'File',
-                    'event_name'  => [
+                    'tags'              => [$name],
+                    'summary'           => 'create' . $capitalized . 'File() - Create a new file.',
+                    'operationId'       => 'create' . $capitalized . 'File',
+                    'x-publishedEvents' => [
                         $name . '.{file_path}.create',
                         $name . '.file_created'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'check_exist',
                             'description' => 'If true, the request fails when the file to create already exists.',
@@ -1108,7 +1110,7 @@ abstract class BaseFileService extends BaseRestService
                             'in'          => 'body',
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/FileResponse']
@@ -1118,17 +1120,17 @@ abstract class BaseFileService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post body should be the contents of the file or an object with file properties.',
+                    'description'       => 'Post body should be the contents of the file or an object with file properties.',
                 ],
                 'put'        => [
-                    'tags'        => [$name],
-                    'summary'     => 'replace' . $capitalized . 'File() - Update content of the file.',
-                    'operationId' => 'replace' . $capitalized . 'File',
-                    'event_name'  => [
+                    'tags'              => [$name],
+                    'summary'           => 'replace' . $capitalized . 'File() - Update content of the file.',
+                    'operationId'       => 'replace' . $capitalized . 'File',
+                    'x-publishedEvents' => [
                         $name . '.{file_path}.update',
                         $name . '.file_updated'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'body',
                             'description' => 'The content of the file.',
@@ -1136,7 +1138,7 @@ abstract class BaseFileService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/FileRequest'],
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/FileResponse']
@@ -1146,17 +1148,19 @@ abstract class BaseFileService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post body should be the contents of the file.',
+                    'description'       => 'Post body should be the contents of the file.',
                 ],
                 'patch'      => [
-                    'tags'        => [$name],
-                    'summary'     => 'update' . $capitalized . 'FileProperties() - Update properties of the file.',
-                    'operationId' => 'update' . $capitalized . 'FileProperties',
-                    'event_name'  => [
+                    'tags'              => [$name],
+                    'summary'           => 'update' .
+                        $capitalized .
+                        'FileProperties() - Update properties of the file.',
+                    'operationId'       => 'update' . $capitalized . 'FileProperties',
+                    'x-publishedEvents' => [
                         $name . '.{file_path}.update',
                         $name . '.file_updated'
                     ],
-                    'parameters'  => [
+                    'parameters'        => [
                         [
                             'name'        => 'body',
                             'description' => 'Properties of the file.',
@@ -1164,7 +1168,7 @@ abstract class BaseFileService extends BaseRestService
                             'in'          => 'body',
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'File',
                             'schema'      => ['$ref' => '#/definitions/File']
@@ -1174,18 +1178,18 @@ abstract class BaseFileService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post body should be an array of file properties.',
+                    'description'       => 'Post body should be an array of file properties.',
                 ],
                 'delete'     => [
-                    'tags'        => [$name],
-                    'summary'     => 'delete' . $capitalized . 'File() - Delete one file.',
-                    'operationId' => 'delete' . $capitalized . 'File',
-                    'event_name'  => [
+                    'tags'              => [$name],
+                    'summary'           => 'delete' . $capitalized . 'File() - Delete one file.',
+                    'operationId'       => 'delete' . $capitalized . 'File',
+                    'x-publishedEvents' => [
                         $name . '.{file_path}.delete',
                         $name . '.file_deleted'
                     ],
-                    'parameters'  => [],
-                    'responses'   => [
+                    'parameters'        => [],
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/FileResponse']
@@ -1195,7 +1199,7 @@ abstract class BaseFileService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Careful, this removes the given file from the storage.',
+                    'description'       => 'Careful, this removes the given file from the storage.',
                 ],
             ],
         ];
@@ -1270,7 +1274,7 @@ abstract class BaseFileService extends BaseRestService
                             'type'        => 'array',
                             'description' => 'An array of resources to operate on.',
                             'items'       => [
-                                '$ref' => '#/definitions/ResourceRequest',
+                                '$ref' => '#/definitions/FileRequest',
                             ],
                         ],
                     ]
@@ -1289,7 +1293,7 @@ abstract class BaseFileService extends BaseRestService
                             'type'        => 'array',
                             'description' => 'An array of contained resources.',
                             'items'       => [
-                                '$ref' => '#/definitions/FolderResponse',
+                                '$ref' => '#/definitions/FileResponse',
                             ],
                         ],
                     ]

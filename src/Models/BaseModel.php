@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\Cacheable;
+use DreamFactory\Core\Components\SchemaToOpenApiDefinition;
 use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Database\Connection;
 use DreamFactory\Core\Enums\ApiOptions;
@@ -13,7 +14,6 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Components\ConnectionAdapter;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Database\ColumnSchema;
 use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Components\Builder as DfBuilder;
@@ -31,7 +31,7 @@ use DB;
  */
 class BaseModel extends Model implements CacheInterface
 {
-    use Cacheable;
+    use Cacheable, SchemaToOpenApiDefinition;
 
     const TABLE_TO_MODEL_MAP_CACHE_KEY = 'system.table_model_map';
 
@@ -1230,30 +1230,27 @@ class BaseModel extends Model implements CacheInterface
     {
         $schema = $this->getTableSchema();
         if ($schema) {
-            $requestFields = [];
-            $responseFields = array_flip($this->getArrayableItems(array_keys($schema->columns)));
-            /** @var ColumnSchema $field */
-            foreach ($schema->columns as $field) {
-                if ($this->isFillable($field->name)) {
-                    $requestFields[$field->name] = [
-                        'type'        => $field->type,
-                        'description' => $field->comment,
-                        'required'    => $field->getRequired()
-                    ];
+            $definition = static::fromTableSchema($schema);
+            $requestFields = (isset($definition['properties']) ? $definition['properties'] : []);
+            $returnable = array_flip($this->getArrayableItems(array_keys($schema->columns)));
+            $responseFields = [];
+            $required = (isset($definition['required']) ? $definition['required'] : []);
+            foreach ($requestFields as $field => $value) {
+                if (!$this->isFillable($field)) {
+                    unset($requestFields[$field]);
                 }
 
-                if (array_key_exists($field->name, $responseFields)) {
-                    $responseFields[$field->name] = [
-                        'type'        => $field->type,
-                        'description' => $field->comment,
-                        'required'    => $field->getRequired()
-                    ];
+                if (array_key_exists($field, $returnable)) {
+                    $responseFields[$field] = $value;
                 }
             }
 
             $requestRelatives = [];
-            $responseRelatives = array_flip($this->getArrayableItems(array_keys($schema->relations)));
+            $returnableRelatives = array_flip($this->getArrayableItems(array_keys($schema->relations)));
+            $responseRelatives = [];
+            // todo Need a workaround, the following is problematic due to some models not being directly exposed in API
             /** @var RelationSchema $relation */
+            /*
             foreach ($schema->relations as $relation) {
                 $refModel = static::tableNameToModel($relation->refTable);
 
@@ -1264,17 +1261,13 @@ class BaseModel extends Model implements CacheInterface
                         case RelationSchema::BELONGS_TO:
                             if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
-                                    'type'        => 'Related' . $refModel . 'Request',
-                                    'description' => "A single $refModel record that this record potentially belongs to.",
-                                    'required'    => false
+                                    '$ref' => '#/definitions/Related' . $refModel . 'Request',
                                 ];
                             }
 
-                            if (array_key_exists($relation->name, $responseRelatives)) {
+                            if (array_key_exists($relation->name, $returnableRelatives)) {
                                 $responseRelatives[$relation->name] = [
-                                    'type'        => 'Related' . $refModel . 'Response',
-                                    'description' => "A single $refModel record that this record potentially belongs to.",
-                                    'required'    => false
+                                    '$ref' => '#/definitions/Related' . $refModel . 'Response',
                                 ];
                             }
                             break;
@@ -1284,16 +1277,14 @@ class BaseModel extends Model implements CacheInterface
                                     'type'        => 'array',
                                     'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record directly",
-                                    'required'    => false
                                 ];
                             }
 
-                            if (array_key_exists($relation->name, $responseRelatives)) {
+                            if (array_key_exists($relation->name, $returnableRelatives)) {
                                 $responseRelatives[$relation->name] = [
                                     'type'        => 'array',
                                     'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record directly",
-                                    'required'    => false
                                 ];
                             }
                             break;
@@ -1307,47 +1298,51 @@ class BaseModel extends Model implements CacheInterface
                                     'type'        => 'array',
                                     'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Request'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
-                                    'required'    => false
                                 ];
                             }
 
-                            if (array_key_exists($relation->name, $responseRelatives)) {
+                            if (array_key_exists($relation->name, $returnableRelatives)) {
                                 $responseRelatives[$relation->name] = [
                                     'type'        => 'array',
                                     'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
-                                    'required'    => false
                                 ];
                             }
                             break;
                     }
                 }
             }
+            */
 
             if (empty($name)) {
                 $name = static::getModelBaseName(basename(get_class($this)));
             }
 
-            return [
-                $name . 'Request'              => [
+            $definitions = [];
+            if (!empty($requestFields)) {
+                $definitions[$name . 'Request'] = [
                     'type'       => 'object',
-                    //                    'properties' => $requestFields + $requestRelatives
+                    'required'   => $required,
+                    'properties' => $requestFields + $requestRelatives
+                ];
+                $definitions['Related' . $name . 'Request'] = [
+                    'type'       => 'object',
+                    'required'   => $required,
                     'properties' => $requestFields
-                ],
-                $name . 'Response'             => [
+                ];
+            }
+            if (!empty($responseFields)) {
+                $definitions[$name . 'Response'] = [
                     'type'       => 'object',
-                    //                    'properties' => $responseFields + $responseRelatives
-                    'properties' => $responseFields
-                ],
-                'Related' . $name . 'Request'  => [
-                    'type'       => 'object',
-                    'properties' => $requestFields
-                ],
-                'Related' . $name . 'Response' => [
+                    'properties' => $responseFields + $responseRelatives
+                ];
+                $definitions['Related' . $name . 'Response'] = [
                     'type'       => 'object',
                     'properties' => $responseFields
-                ]
-            ];
+                ];
+            }
+
+            return $definitions;
         }
 
         return null;

@@ -2730,8 +2730,29 @@ abstract class BaseDbTableResource extends BaseDbResource
                 return DbComparisonOperators::LT;
             case DbComparisonOperators::LTE_STR:
                 return DbComparisonOperators::LTE;
+            // Value-Modifying Operators
+            case DbComparisonOperators::CONTAINS:
+            case DbComparisonOperators::STARTS_WITH:
+            case DbComparisonOperators::ENDS_WITH:
+                return DbComparisonOperators::LIKE;
             default:
                 return $operator;
+        }
+    }
+
+    public static function modifyValueByOperator($operator, &$value)
+    {
+        switch ($operator) {
+            // Value-Modifying Operators
+            case DbComparisonOperators::CONTAINS:
+                $value = '%'.$value.'%';
+                break;
+            case DbComparisonOperators::STARTS_WITH:
+                $value = $value.'%';
+                break;
+            case DbComparisonOperators::ENDS_WITH:
+                $value = '%'.$value;
+                break;
         }
     }
 

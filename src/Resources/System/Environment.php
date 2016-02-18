@@ -61,6 +61,21 @@ class Environment extends BaseSystemResource
         $result['config'] = $config;
 
         if (SessionUtilities::isSysAdmin()) {
+            $dbDriver = \Config::get('database.default');
+            $result['config']['db']['driver'] = $dbDriver;
+            if ($result['config']['db']['driver'] === 'sqlite') {
+                $result['config']['db']['sqlite_storage'] = \Config::get('df.db.sqlite_storage');
+            }
+            $result['platform']['install_path'] = base_path() . DIRECTORY_SEPARATOR;
+            $result['platform']['log_path'] = env('DF_MANAGED_LOG_PATH', storage_path('logs')) . DIRECTORY_SEPARATOR;
+            $result['platform']['log_mode'] = \Config::get('app.log');
+            $result['platform']['log_level'] = \Config::get('df.log_level');
+            $result['platform']['cache_driver'] = \Config::get('cache.default');
+
+            if ($result['platform']['cache_driver'] === 'file') {
+                $result['platform']['cache_path'] = \Config::get('cache.stores.file.path') . DIRECTORY_SEPARATOR;
+            }
+
             $result['server'] = [
                 'server_os' => strtolower(php_uname('s')),
                 'release'   => php_uname('r'),

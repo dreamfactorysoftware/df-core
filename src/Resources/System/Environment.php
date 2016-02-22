@@ -33,6 +33,12 @@ class Environment extends BaseSystemResource
             'host'              => php_uname('n'),
         ];
 
+        $result['client'] = [
+            "user_agent" => \Request::header('User-Agent'),
+            "ip_address" => \Request::getClientIp(),
+            "locale"     => \Request::getLocale()
+        ];
+
         $login = static::getLoginApi();
         $apps = static::getApps();
         $groupedApps = ArrayUtils::get($apps, 0);

@@ -346,7 +346,7 @@ class BaseModel extends Model implements CacheInterface
      * @return bool|int
      * @throws \Exception
      */
-    public function update(array $attributes = [])
+    public function update(array $attributes = [], array $options = [])
     {
         $relations = [];
         $transaction = false;

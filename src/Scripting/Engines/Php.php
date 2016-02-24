@@ -40,6 +40,7 @@ class Php extends BaseEngineAdapter implements ScriptingEngineInterface
     {
         $data['__tag__'] = 'exposed_event';
 
+        /** @noinspection PhpUnusedLocalVariableInspection */
         $platform = static::buildPlatformAccess($identifier);
         $event = &$data;
 

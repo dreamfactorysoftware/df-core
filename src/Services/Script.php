@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
@@ -71,9 +72,12 @@ class Script extends BaseRestService
 
     /**
      * @return bool|mixed
+     * @throws
      * @throws \DreamFactory\Core\Events\Exceptions\ScriptException
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\RestException
+     * @throws \DreamFactory\Core\Exceptions\ServiceUnavailableException
      */
     protected function processRequest()
     {
@@ -110,42 +114,47 @@ class Script extends BaseRestService
 
         //  Bail on errors...
         if (!is_array($result)) {
+            $message = 'Script did not return an expected format: ' . print_r($result, true);
             // Should this return to client as error?
-            Log::error('  * Script did not return an array: ' . print_r($result, true));
-
-            return ResponseFactory::create($output);
+            Log::error($message);
+            throw new InternalServerErrorException($message);
         }
 
         if (isset($result['exception'])) {
             $ex = $result['exception'];
             if ($ex instanceof \Exception) {
                 throw $ex;
+            } elseif (is_array($ex)) {
+                $code = ArrayUtils::get($ex, 'code', null);
+                $message = ArrayUtils::get($ex, 'message', 'Unknown scripting error.');
+                $status = ArrayUtils::get($ex, 'status_code', ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+                throw new RestException($status, $message, $code);
             }
-            throw new InternalServerErrorException(strval($result['exception']));
+            throw new InternalServerErrorException(strval($ex));
         }
 
-        $directResponse = (isset($result['script_result']) ? $result['script_result'] : null);
-        if (isset($directResponse, $directResponse['error'])) {
-            throw new InternalServerErrorException($directResponse['error']);
+        // check for directly returned results, otherwise check for "response"
+        $response = (isset($result['script_result']) ? $result['script_result'] : null);
+        if (isset($response, $response['error'])) {
+            throw new InternalServerErrorException($response['error']);
         }
 
-        // check for "return" results
-        if (!empty($directResponse)) {
-
-            return ResponseFactory::create($directResponse);
+        if (empty($response)) {
+            $response = (isset($result['response']) ? $result['response'] : null);
         }
 
-        $response = (isset($result['response']) ? $result['response'] : null);
-        if (is_array($response) && !empty($response)) {
+        // check if this is a "response" array
+        if (is_array($response) && (isset($response['content']) || isset($response['status_code']))) {
             $content = ArrayUtils::get($response, 'content');
             $contentType = ArrayUtils::get($response, 'content_type');
             $status = ArrayUtils::get($response, 'status_code', ServiceResponseInterface::HTTP_OK);
 
-//                $format = ArrayUtils::get($response, 'format', DataFormats::PHP_ARRAY);
+//            $format = ArrayUtils::get($response, 'format', DataFormats::PHP_ARRAY);
 
             return ResponseFactory::create($content, $contentType, $status);
         }
 
+        // otherwise assume raw content
         return ResponseFactory::create($response);
     }
 

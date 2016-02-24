@@ -367,30 +367,20 @@ abstract class BaseEngineAdapter
             return static::inlineRequest(Verbs::GET, $path, $payload, $curlOptions);
         };
 
-        $api->put = function ($path, $payload = null, $curlOptions = []){
-            return static::inlineRequest(Verbs::PUT, $path, $payload, $curlOptions);
-        };
-
         $api->post = function ($path, $payload = null, $curlOptions = []){
             return static::inlineRequest(Verbs::POST, $path, $payload, $curlOptions);
         };
 
-        $api->delete = function ($path, $payload = null, $curlOptions = []){
-            return static::inlineRequest(Verbs::DELETE, $path, $payload, $curlOptions);
+        $api->put = function ($path, $payload = null, $curlOptions = []){
+            return static::inlineRequest(Verbs::PUT, $path, $payload, $curlOptions);
         };
 
         $api->patch = function ($path, $payload = null, $curlOptions = []){
             return static::inlineRequest(Verbs::PATCH, $path, $payload, $curlOptions);
         };
 
-        $api->includeScript = function ($fileName){
-            $fileName = storage_path(DIRECTORY_SEPARATOR . 'scripts') . DIRECTORY_SEPARATOR . $fileName;
-
-            if (!file_exists($fileName)) {
-                return false;
-            }
-
-            return file_get_contents(storage_path(DIRECTORY_SEPARATOR . 'scripts') . DIRECTORY_SEPARATOR . $fileName);
+        $api->delete = function ($path, $payload = null, $curlOptions = []){
+            return static::inlineRequest(Verbs::DELETE, $path, $payload, $curlOptions);
         };
 
         return $api;

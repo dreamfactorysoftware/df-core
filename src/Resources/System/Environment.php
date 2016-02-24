@@ -30,7 +30,7 @@ class Environment extends BaseSystemResource
             'upgrade_available' => false,
             'bitnami_demo'      => static::isDemoApplication(),
             'is_hosted'         => env('DF_MANAGED', false),
-            'host'              => php_uname('n'),
+            'host'              => php_uname('n')
         ];
 
         $result['client'] = [
@@ -82,6 +82,11 @@ class Environment extends BaseSystemResource
                 $result['platform']['cache_path'] = \Config::get('cache.stores.file.path') . DIRECTORY_SEPARATOR;
             }
 
+            $packages = static::getInstalledPackagesInfo();
+            if (!empty($packages)) {
+                $result['platform']['packages'] = $packages;
+            }
+
             $result['server'] = [
                 'server_os' => strtolower(php_uname('s')),
                 'release'   => php_uname('r'),
@@ -90,6 +95,41 @@ class Environment extends BaseSystemResource
                 'machine'   => php_uname('m'),
             ];
             $result['php'] = static::getPhpInfo();
+        }
+
+        return $result;
+    }
+
+    public static function getInstalledPackagesInfo()
+    {
+        $lockFile = base_path() . DIRECTORY_SEPARATOR . 'composer.lock';
+        $result = [];
+
+        try {
+            if (file_exists($lockFile)) {
+                $json = file_get_contents($lockFile);
+                $array = json_decode($json, true);
+                $packages = ArrayUtils::get($array, 'packages', []);
+
+                foreach ($packages as $package) {
+                    $name = ArrayUtils::get($package, 'name');
+                    if (substr($name, 0, 16) === 'dreamfactory/df-') {
+                        $result[] = [
+                            'name'    => substr($name, 13),
+                            'version' => ArrayUtils::get($package, 'version')
+                        ];
+                    }
+                }
+            } else {
+                \Log::warning(
+                    'Failed to get installed packages information. composer.lock file not found at ' .
+                    $lockFile
+                );
+                $result = ['error' => 'composer.lock file not found'];
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Failed to get installed packages information. ' . $e->getMessage());
+            $result = ['error' => 'Failed to get installed packages information. See log for details.'];
         }
 
         return $result;

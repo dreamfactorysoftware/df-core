@@ -250,7 +250,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     /**
      * {@inheritdoc}
      */
-    public function update(array $attributes = [])
+    public function update(array $attributes = [], array $options = [])
     {
         $oldEmail = $this->email;
         $updated = parent::update($attributes);

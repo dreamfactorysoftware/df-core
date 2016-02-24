@@ -1,8 +1,9 @@
 <?php
 namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Core\Exceptions\NotFoundException;
 use Log;
+use Dotenv\Dotenv;
+use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
@@ -1347,8 +1348,8 @@ class FileUtilities
                  * Using a new instance of dotenv to get the
                  * most update to .env file content for reading.
                  */
-                $dotenv = new \Dotenv();
-                $dotenv->load(base_path());
+                $dotenv = new Dotenv(base_path());
+                $dotenv->load();
 
                 $search = $key . '=' . getenv($key);
                 $replace = $key . '=' . $value;

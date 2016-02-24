@@ -113,12 +113,10 @@ class Environment extends BaseSystemResource
 
                 foreach ($packages as $package) {
                     $name = ArrayUtils::get($package, 'name');
-                    if (substr($name, 0, 16) === 'dreamfactory/df-') {
-                        $result[] = [
-                            'name'    => substr($name, 13),
-                            'version' => ArrayUtils::get($package, 'version')
-                        ];
-                    }
+                    $result[] = [
+                        'name'    => $name,
+                        'version' => ArrayUtils::get($package, 'version')
+                    ];
                 }
             } else {
                 \Log::warning(

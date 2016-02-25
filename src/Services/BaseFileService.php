@@ -845,6 +845,136 @@ abstract class BaseFileService extends BaseRestService
                         ],
                     ],
                 ],
+                'post'       => [
+                    'tags'              => [$name],
+                    'summary'           => 'create' . $capitalized . 'Content() - Create some folders and/or files.',
+                    'operationId'       => 'create' . $capitalized . 'Content',
+                    'x-publishedEvents' => [
+                        $name . '.create',
+                        $name . '.content_created'
+                    ],
+                    'parameters'        => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Array of folders and/or files.',
+                            'schema'      => ['$ref' => '#/definitions/FolderRequest'],
+                            'in'          => 'body',
+                        ],
+                        [
+                            'name'        => 'url',
+                            'description' => 'The full URL of the file to upload.',
+                            'type'        => 'string',
+                            'in'          => 'query',
+                        ],
+                        [
+                            'name'        => 'extract',
+                            'description' => 'Extract an uploaded zip file into the folder.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => false,
+                        ],
+                        [
+                            'name'        => 'clean',
+                            'description' => 'Option when \'extract\' is true, clean the current folder before extracting files and folders.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => false,
+                        ],
+                        [
+                            'name'        => 'check_exist',
+                            'description' => 'If true, the request fails when the file or folder to create already exists.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'default'     => false,
+                        ],
+                        [
+                            'name'        => 'X-HTTP-METHOD',
+                            'description' => 'Override request using POST to tunnel other http request, such as DELETE.',
+                            'enum'        => ['GET', 'PUT', 'PATCH', 'DELETE'],
+                            'type'        => 'string',
+                            'in'          => 'header',
+                        ],
+                    ],
+                    'responses'         => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/FolderResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description'       => 'Post data as an array of folders and/or files. Folders are created if they do not exist',
+                ],
+                'patch'      => [
+                    'tags'              => [$name],
+                    'summary'           => 'update' . $capitalized . 'ContainerProperties() - Update container properties.',
+                    'operationId'       => 'update' . $capitalized . 'ContainerProperties',
+                    'x-publishedEvents' => [
+                        $name . '.update',
+                        $name . '.container_updated'
+                    ],
+                    'parameters'        => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Array of container properties.',
+                            'schema'      => ['$ref' => '#/definitions/FolderRequest'],
+                            'in'          => 'body',
+                        ],
+                    ],
+                    'responses'         => [
+                        '200'     => [
+                            'description' => 'Folder',
+                            'schema'      => ['$ref' => '#/definitions/Folder']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description'       => 'Post body as an array of folder properties.',
+                ],
+                'delete'     => [
+                    'tags'              => [$name],
+                    'summary'           => 'delete' .
+                        $capitalized .
+                        'Content() - Delete some container contents.',
+                    'operationId'       => 'delete' . $capitalized . 'Content',
+                    'x-publishedEvents' => [
+                        $name . '.delete',
+                        $name . '.content_deleted'
+                    ],
+                    'parameters'        => [
+                        [
+                            'name'        => 'force',
+                            'description' => 'Set to true to force delete on a non-empty folder.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                        ],
+                        [
+                            'name'        => 'content_only',
+                            'description' => 'Set to true to only delete the content of the container.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                        ],
+                    ],
+                    'responses'         => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/FolderResponse']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description'       =>
+                        'Set \'content_only\' to true to delete the sub-folders and files contained, but not the container. ' .
+                        'Set \'force\' to true to delete a non-empty folder. ' .
+                        'Alternatively, to delete by a listing of sub-folders and files, ' .
+                        'use the POST request with X-HTTP-METHOD = DELETE header and post listing.',
+                ],
             ],
             '/' . $name . '/{folder_path}/' => [
                 'parameters' => [

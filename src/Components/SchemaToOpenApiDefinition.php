@@ -63,7 +63,7 @@ trait SchemaToOpenApiDefinition
         return [
             'type'        => $type,
             'format'      => $format,
-            'description' => $column->comment,
+            'description' => strval($column->comment),
         ];
     }
 

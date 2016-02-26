@@ -4,10 +4,15 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- Added a new DF_LOG_LEVEL environment option.
+- Added ability to log REQUEST and RESPONSE under log level INFO.
+- Added extra server side and client side information on the config tab of admin app.
 
 ### Changed
+- Changed BaseModel and UserModel's update method signature to match with Eloquent Model's update method (Laravel 5.2)
 
 ### Fixed
+- Fixed a bug that prevented private lookup keys to be used in service credentials. 
 
 ## [0.2.3] - 2016-02-09
 ### Fixed

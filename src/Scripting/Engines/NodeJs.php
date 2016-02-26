@@ -74,7 +74,8 @@ class NodeJs extends BaseEngineAdapter implements ScriptingEngineInterface
 
         $extensions = ArrayUtils::get($settings, 'extensions', [], true);
         // accept comma-delimited string
-        $this->extensions = (is_string($extensions)) ? array_map('trim', explode(',', trim($extensions, ','))) : $extensions;
+        $this->extensions =
+            (is_string($extensions)) ? array_map('trim', explode(',', trim($extensions, ','))) : $extensions;
 
         static::startup($settings);
     }
@@ -105,26 +106,42 @@ class NodeJs extends BaseEngineAdapter implements ScriptingEngineInterface
     {
         $data['__tag__'] = 'exposed_event';
 
+        $runnerShell = $this->enrobeScript($script, $data, static::buildPlatformAccess($identifier));
+
+        $output = null;
+        $return = null;
         try {
-            $runnerShell = $this->enrobeScript($script, $data, static::buildPlatformAccess($identifier));
-
-            $output = null;
-            $return = null;
             $result = exec($runnerShell, $output, $return);
-            if ($return > 0){
-                throw new InternalServerErrorException('Node script returned with error code: ' . $return);
-            }
-            $outStr = implode('', $output);
-            $outArr = json_decode($outStr, true);
-
-            return $outArr;
         } catch (\Exception $ex) {
             $message = $ex->getMessage();
-
             Log::error($message = "Exception executing javascript: $message");
+
+            return null;
         }
 
-        return null;
+        if ($return > 0) {
+            throw new InternalServerErrorException('Node script returned with error code: ' . $return);
+        }
+
+        if (is_array($output)) {
+            foreach ($output as $item) {
+                if (is_string($item)){
+                    if ((strlen($item) > 10) && (0 === substr_compare($item, '{"request"', 0, 10))) {
+                        $data = json_decode($item, true);
+                    } else {
+                        echo $item;
+                    }
+                }
+            }
+        } elseif (is_string($output)) {
+            if ((strlen($output) > 10) && (0 === substr_compare($output, '{"request"', 0, 10))) {
+                $data = json_decode($output, true);
+            } else {
+                echo $output;
+            }
+        }
+
+        return $data;
     }
 
     /**
@@ -219,8 +236,8 @@ _wrapperResult = (function() {
 	return _event;
 
 })();
-console.log(JSON.stringify(_wrapperResult));
 
+console.log(JSON.stringify(_wrapperResult));
 JS;
 
         return $this->commandPath . ' -e ' . escapeshellarg($enrobedScript);

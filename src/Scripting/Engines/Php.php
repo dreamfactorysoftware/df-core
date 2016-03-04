@@ -45,6 +45,7 @@ class Php extends BaseEngineAdapter implements ScriptingEngineInterface
         $event = &$data;
 
         // todo Look for a better way!
+        $script = static::stripPhpTag($script);
         $enrobedScript = $this->enrobeScript($script);
         if (false === $event = @eval($enrobedScript)){
             $error = error_get_last();
@@ -54,6 +55,29 @@ class Php extends BaseEngineAdapter implements ScriptingEngineInterface
         }
 
         return $event;
+    }
+
+    /**
+     * Removes any <?PHP tags.
+     *
+     * @param $script
+     *
+     * @return mixed|string
+     */
+    protected static function stripPhpTag($script)
+    {
+        $script = trim($script);
+        $tagOpen = strtolower(substr($script, 0, 5));
+        $tagClose = substr($script, strlen($script)-2);
+
+        if('<?php' === $tagOpen){
+            $script = substr($script, 5);
+        }
+        if('?>' === $tagClose){
+            $script = substr($script, 0, (strlen($script)-2));
+        }
+
+        return $script;
     }
 
     /**

@@ -156,7 +156,7 @@ class ResponseFactory
             return DfResponse::create($reformatted, $status, $responseHeaders);
         }
 
-        throw new BadRequestException('Content in response can not be resolved to acceptable content type.');
+        return DfResponse::create('Content in response can not be resolved to acceptable content type.', HttpStatusCodes::HTTP_BAD_REQUEST);
     }
 
     /**

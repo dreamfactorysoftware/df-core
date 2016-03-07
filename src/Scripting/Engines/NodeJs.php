@@ -101,6 +101,7 @@ class NodeJs extends BaseEngineAdapter implements ScriptingEngineInterface
      * @param array  $engineArguments An array of arguments to pass when executing the string
      *
      * @return mixed
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
     public function executeString($script, $identifier, array &$data = [], array $engineArguments = [])
     {
@@ -111,6 +112,7 @@ class NodeJs extends BaseEngineAdapter implements ScriptingEngineInterface
         $output = null;
         $return = null;
         try {
+            /** @noinspection PhpUnusedLocalVariableInspection */
             $result = exec($runnerShell, $output, $return);
         } catch (\Exception $ex) {
             $message = $ex->getMessage();

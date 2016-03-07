@@ -7,12 +7,22 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Added a new DF_LOG_LEVEL environment option.
 - Added ability to log REQUEST and RESPONSE under log level INFO.
 - Added extra server side and client side information on the config tab of admin app.
+- Updated Node.js scripting to support callbacks in scripts and log all console.log output to dreamfactory's log.
+- Support non-DreamFactory (<dfapi>) XML wrapper on incoming data.
+- Support for simplified DB filter operators "contains", "starts with" and "ends with"
+- Lookups now supported in scripts. Lookup notations (i.e. {lookup_name}) get replaced before script is run.
 
 ### Changed
 - Changed BaseModel and UserModel's update method signature to match with Eloquent Model's update method (Laravel 5.2)
 
 ### Fixed
 - Fixed a bug that prevented private lookup keys to be used in service credentials. 
+- Field parameter when field names have spaces in them (supported in some db column names).
+- Swagger doc for file services path root operations, adding back POST,PUT,PATCH,DELETE.
+- Swagger output for SQLite as server database, had null instead of empty string for description fields.
+- Support for SQL Server image type (legacy type still used in some customer DBs)
+- Much Swagger output cleanup to pass validation.
+- Cache reset issue on user-app-role assignment.
 
 ## [0.2.3] - 2016-02-09
 ### Fixed

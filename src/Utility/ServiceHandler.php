@@ -54,6 +54,19 @@ class ServiceHandler
         $request = new ServiceRequest();
         $request->setApiVersion($version);
 
+        \Log::info('[REQUEST]', [
+            'API Version' => $request->getApiVersion(),
+            'Method'      => $request->getMethod(),
+            'Service'     => $service,
+            'Resource'    => $resource
+        ]);
+
+        \Log::debug('[REQUEST]', [
+            'Parameters' => json_encode($request->getParameters(), JSON_UNESCAPED_SLASHES),
+            'API Key'    => $request->getHeader('X_DREAMFACTORY_API_KEY'),
+            'JWT'        => $request->getHeader('X_DREAMFACTORY_SESSION_TOKEN')
+        ]);
+
         return self::getService($service)->handleRequest($request, $resource);
     }
 
@@ -67,20 +80,27 @@ class ServiceHandler
     }
 
     /**
-     * @param string      $verb
-     * @param string      $service
-     * @param null  $resource
-     * @param array $query
-     * @param null  $payload
-     * @param null  $format
-     * @param array $header
+     * @param string $verb
+     * @param string $service
+     * @param null   $resource
+     * @param array  $query
+     * @param null   $payload
+     * @param null   $format
+     * @param array  $header
      *
      * @return \DreamFactory\Core\Contracts\ServiceResponseInterface|mixed
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \Exception
      */
-    public static function handleRequest($verb, $service, $resource = null, $query = [], $payload = null, $format = null, $header = [])
-    {
+    public static function handleRequest(
+        $verb,
+        $service,
+        $resource = null,
+        $query = [],
+        $payload = null,
+        $format = null,
+        $header = []
+    ){
         $_FILES = []; // reset so that internal calls can handle other files.
         $request = new ServiceRequest();
         $request->setMethod($verb);
@@ -98,7 +118,7 @@ class ServiceHandler
 
         $response = self::getService($service)->handleRequest($request, $resource);
 
-        if($response instanceof ServiceResponseInterface){
+        if ($response instanceof ServiceResponseInterface) {
             return $response->getContent();
         } else {
             return $response;

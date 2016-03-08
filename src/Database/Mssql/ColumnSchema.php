@@ -44,7 +44,7 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
         } elseif ($this->type === static::TYPE_TIMESTAMP) {
             $this->defaultValue = null;
         } else {
-            parent::extractDefault(str_replace(array('(', ')', "'"), '', $defaultValue));
+            parent::extractDefault(str_replace(['(', ')', "'"], '', $defaultValue));
         }
     }
 
@@ -78,10 +78,15 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
     {
         $field = ($as_quoted_string) ? $this->rawName : $this->name;
         $alias = $this->getName(true);
+        if ($as_quoted_string && !ctype_alnum($alias)) {
+            $alias = '[' . $alias . ']';
+        }
         switch ($this->dbType) {
             case 'datetime':
             case 'datetimeoffset':
                 return "(CONVERT(nvarchar(30), $field, 127)) AS $alias";
+            case 'image':
+                return "(CONVERT(varbinary(max), $field)) AS $alias";
             case 'timestamp': // deprecated, not a real timestamp, but internal rowversion
             case 'rowversion':
                 return "CAST($field AS BIGINT) AS $alias";

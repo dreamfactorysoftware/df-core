@@ -1315,8 +1315,10 @@ class Command
                     $params[$n] = $v;
                 }
             } else {
-                $placeholders[] = ':' . $name;
-                $params[':' . $name] = $value;
+                // need to support spaces in field names
+                $placeholder = ':' . str_replace(' ', '_', $name);
+                $placeholders[] = $placeholder;
+                $params[$placeholder] = $value;
             }
         }
         $sql =
@@ -1356,10 +1358,10 @@ class Command
                     $params[$n] = $v;
                 }
             } else {
-                // DF yii not supporting spaces in field names
-                $paramName = str_replace(' ', '_', $name);
-                $lines[] = $this->connection->quoteColumnName($name) . '=:' . $paramName;
-                $params[':' . $paramName] = $value;
+                // need to support spaces in field names
+                $placeholder = ':' . str_replace(' ', '_', $name);
+                $lines[] = $this->connection->quoteColumnName($name) . '=' . $placeholder;
+                $params[$placeholder] = $value;
             }
         }
         $sql = 'UPDATE ' . $this->connection->quoteTableName($table) . ' SET ' . implode(', ', $lines);

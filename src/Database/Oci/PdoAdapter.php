@@ -21,7 +21,7 @@ class PdoAdapter extends \PDO
     {
         $persistent = false;
         $db = substr($dsn, strpos($dsn, 'dbname=') + 7);
-        $charset = null;
+        $charset = 'UTF8';
         $sessionMode = null;
 
         if (!defined('OCI_NO_AUTO_COMMIT')) {

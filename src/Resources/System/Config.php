@@ -37,12 +37,14 @@ class Config extends BaseSystemResource
         $config['paths'] = [
             $path => [
                 'get'  => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'get'.$capitalized.'Config() - Retrieve system configuration properties.',
-                    'operationId' => 'get'.$capitalized.'Config',
-                    'event_name'  => $eventPath . '.read',
-                    'description' => 'The retrieved properties control how the system behaves.',
-                    'responses'   => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'get' .
+                        $capitalized .
+                        'Config() - Retrieve system configuration properties.',
+                    'operationId'       => 'get' . $capitalized . 'Config',
+                    'x-publishedEvents' => $eventPath . '.read',
+                    'description'       => 'The retrieved properties control how the system behaves.',
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Config',
                             'schema'      => ['$ref' => '#/definitions/ConfigResponse']
@@ -54,12 +56,14 @@ class Config extends BaseSystemResource
                     ],
                 ],
                 'post' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'set'.$capitalized.'Config() - Update one or more system configuration properties.',
-                    'operationId' => 'set'.$capitalized.'Config',
-                    'event_name'  => $eventPath . '.update',
-                    'description' => 'Post data should be an array of properties.',
-                    'parameters'  => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'set' .
+                        $capitalized .
+                        'Config() - Update one or more system configuration properties.',
+                    'operationId'       => 'set' . $capitalized . 'Config',
+                    'x-publishedEvents' => $eventPath . '.update',
+                    'description'       => 'Post data should be an array of properties.',
+                    'parameters'        => [
                         [
                             'name'        => 'body',
                             'description' => 'Data containing name-value pairs of properties to set.',
@@ -68,7 +72,7 @@ class Config extends BaseSystemResource
                             'required'    => true,
                         ],
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']

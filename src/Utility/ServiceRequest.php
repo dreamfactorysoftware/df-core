@@ -214,26 +214,25 @@ class ServiceRequest implements ServiceRequestInterface
         $data = DataFormatter::xmlToArray($content);
         $rootTag = config('df.xml_request_root');
 
-        if (!empty($content) && (empty($data) || empty(ArrayUtils::get($data, $rootTag)))) {
-            throw new BadRequestException('Invalid XML payload supplied.');
+        if (!empty($content) && (empty($data) || !empty(ArrayUtils::get($data, $rootTag)))) {
+            $data = $data[$rootTag];
         }
-        $payload = $data[$rootTag];
 
         // Store the content so that formatting is only done once.
-        $this->contentAsArray = (empty($payload)) ? [] : $payload;
+        $this->contentAsArray = (empty($data)) ? [] : $data;
         $this->content = $content;
 
         if (null === $key) {
-            if (empty($payload)) {
+            if (empty($data)) {
                 return [];
             } else {
-                return $payload;
+                return $data;
             }
         } else {
-            if (empty($payload)) {
+            if (empty($data)) {
                 return $default;
             } else {
-                return ArrayUtils::get($payload, $key, $default);
+                return ArrayUtils::get($data, $key, $default);
             }
         }
     }

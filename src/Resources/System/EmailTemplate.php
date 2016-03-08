@@ -61,12 +61,10 @@ class EmailTemplate extends BaseSystemResource
                 'description' => 'Escaped HTML version of the body.',
             ],
             'from'        => [
-                'type'        => 'EmailAddress',
-                'description' => 'Required sender name and email.',
+                '$ref' => '#/definitions/EmailAddress',
             ],
             'reply_to'    => [
-                'type'        => 'EmailAddress',
-                'description' => 'Optional reply to name and email.',
+                '$ref' => '#/definitions/EmailAddress',
             ],
             'defaults'    => [
                 'type'        => 'array',
@@ -92,18 +90,18 @@ class EmailTemplate extends BaseSystemResource
 
         $models = [
             'EmailTemplateRequest'  => [
-                'type'         => 'object',
+                'type'       => 'object',
                 'properties' => $commonProperties,
             ],
             'EmailTemplateResponse' => [
-                'type'         => 'object',
+                'type'       => 'object',
                 'properties' => array_merge(
                     $commonProperties,
                     $stampProperties
                 ),
             ],
-            'EmailAddress'     => [
-                'type'         => 'object',
+            'EmailAddress'          => [
+                'type'       => 'object',
                 'properties' => [
                     'name'  => [
                         'type'        => 'string',

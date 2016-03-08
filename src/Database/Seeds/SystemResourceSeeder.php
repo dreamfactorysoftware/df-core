@@ -18,7 +18,6 @@ use DreamFactory\Core\Resources\System\Role;
 use DreamFactory\Core\Resources\System\ScriptType;
 use DreamFactory\Core\Resources\System\Service;
 use DreamFactory\Core\Resources\System\ServiceType;
-use DreamFactory\Core\Resources\System\Setting;
 
 class SystemResourceSeeder extends BaseModelSeeder
 {
@@ -108,12 +107,6 @@ class SystemResourceSeeder extends BaseModelSeeder
             'description' => 'Read-only system scripting types.',
             'class_name'  => ScriptType::class,
             'read_only'   => true,
-        ],
-        [
-            'name'        => 'setting',
-            'label'       => 'Custom Settings',
-            'description' => 'Allows configuration of system-wide custom settings.',
-            'class_name'  => Setting::class,
         ],
         [
             'name'        => 'app',

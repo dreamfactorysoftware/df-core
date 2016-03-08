@@ -158,12 +158,12 @@ class BaseRestService extends RestHandler implements ServiceInterface
             'paths'       => [
                 '/' . $name => [
                     'get' => [
-                        'tags'        => [$name],
-                        'summary'     => 'get' . $capitalized . 'Resources() - Get resources for this service.',
-                        'operationId' => 'get' . $capitalized . 'Resources',
-                        'description' => 'Return an array of the resources available.',
-                        'event_name'  => [$name . '.list'],
-                        'parameters'  => [
+                        'tags'              => [$name],
+                        'summary'           => 'get' . $capitalized . 'Resources() - Get resources for this service.',
+                        'operationId'       => 'get' . $capitalized . 'Resources',
+                        'description'       => 'Return an array of the resources available.',
+                        'x-publishedEvents' => [$name . '.list'],
+                        'parameters'        => [
                             ApiOptions::documentOption(ApiOptions::AS_LIST),
                             ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
                             ApiOptions::documentOption(ApiOptions::INCLUDE_ACCESS),
@@ -172,7 +172,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                             ApiOptions::documentOption(ApiOptions::ID_TYPE),
                             ApiOptions::documentOption(ApiOptions::REFRESH),
                         ],
-                        'responses'   => [
+                        'responses'         => [
                             '200'     => [
                                 'description' => 'Success',
                                 'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']

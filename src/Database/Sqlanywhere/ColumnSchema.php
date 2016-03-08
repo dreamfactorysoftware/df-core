@@ -94,6 +94,9 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
     {
         $field = ($as_quoted_string) ? $this->rawName : $this->name;
         $alias = $this->getName(true);
+        if ($as_quoted_string && !ctype_alnum($alias)){
+            $alias = '['.$alias.']';
+        }
         switch ($this->dbType) {
             case 'datetime':
             case 'datetimeoffset':

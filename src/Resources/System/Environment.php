@@ -30,7 +30,13 @@ class Environment extends BaseSystemResource
             'upgrade_available' => false,
             'bitnami_demo'      => static::isDemoApplication(),
             'is_hosted'         => env('DF_MANAGED', false),
-            'host'              => php_uname('n'),
+            'host'              => php_uname('n')
+        ];
+
+        $result['client'] = [
+            "user_agent" => \Request::header('User-Agent'),
+            "ip_address" => \Request::getClientIp(),
+            "locale"     => \Request::getLocale()
         ];
 
         $login = static::getLoginApi();
@@ -61,6 +67,26 @@ class Environment extends BaseSystemResource
         $result['config'] = $config;
 
         if (SessionUtilities::isSysAdmin()) {
+            $dbDriver = \Config::get('database.default');
+            $result['config']['db']['driver'] = $dbDriver;
+            if ($result['config']['db']['driver'] === 'sqlite') {
+                $result['config']['db']['sqlite_storage'] = \Config::get('df.db.sqlite_storage');
+            }
+            $result['platform']['install_path'] = base_path() . DIRECTORY_SEPARATOR;
+            $result['platform']['log_path'] = env('DF_MANAGED_LOG_PATH', storage_path('logs')) . DIRECTORY_SEPARATOR;
+            $result['platform']['log_mode'] = \Config::get('app.log');
+            $result['platform']['log_level'] = \Config::get('df.log_level');
+            $result['platform']['cache_driver'] = \Config::get('cache.default');
+
+            if ($result['platform']['cache_driver'] === 'file') {
+                $result['platform']['cache_path'] = \Config::get('cache.stores.file.path') . DIRECTORY_SEPARATOR;
+            }
+
+            $packages = static::getInstalledPackagesInfo();
+            if (!empty($packages)) {
+                $result['platform']['packages'] = $packages;
+            }
+
             $result['server'] = [
                 'server_os' => strtolower(php_uname('s')),
                 'release'   => php_uname('r'),
@@ -69,6 +95,39 @@ class Environment extends BaseSystemResource
                 'machine'   => php_uname('m'),
             ];
             $result['php'] = static::getPhpInfo();
+        }
+
+        return $result;
+    }
+
+    public static function getInstalledPackagesInfo()
+    {
+        $lockFile = base_path() . DIRECTORY_SEPARATOR . 'composer.lock';
+        $result = [];
+
+        try {
+            if (file_exists($lockFile)) {
+                $json = file_get_contents($lockFile);
+                $array = json_decode($json, true);
+                $packages = ArrayUtils::get($array, 'packages', []);
+
+                foreach ($packages as $package) {
+                    $name = ArrayUtils::get($package, 'name');
+                    $result[] = [
+                        'name'    => $name,
+                        'version' => ArrayUtils::get($package, 'version')
+                    ];
+                }
+            } else {
+                \Log::warning(
+                    'Failed to get installed packages information. composer.lock file not found at ' .
+                    $lockFile
+                );
+                $result = ['error' => 'composer.lock file not found'];
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Failed to get installed packages information. ' . $e->getMessage());
+            $result = ['error' => 'Failed to get installed packages information. See log for details.'];
         }
 
         return $result;
@@ -443,12 +502,17 @@ class Environment extends BaseSystemResource
         $apis = [
             $path => [
                 'get' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'get'.$capitalized.'Environment() - Retrieve system environment.',
-                    'operationId' => 'get'.$capitalized.'Environment',
-                    'event_name'  => $eventPath . '.list',
-                    'responses'  => ['200' => ['schema' => ['$ref' => '#/definitions/EnvironmentResponse']]],
-                    'description' =>
+                    'tags'              => [$serviceName],
+                    'summary'           => 'get' . $capitalized . 'Environment() - Retrieve system environment.',
+                    'operationId'       => 'get' . $capitalized . 'Environment',
+                    'x-publishedEvents' => $eventPath . '.list',
+                    'responses'         => [
+                        '200' => [
+                            'description' => 'Environment',
+                            'schema'      => ['$ref' => '#/definitions/EnvironmentResponse']
+                        ]
+                    ],
+                    'description'       =>
                         'Minimum environment information given without a valid user session.' .
                         ' More information given based on user privileges.',
                 ],
@@ -460,37 +524,93 @@ class Environment extends BaseSystemResource
                 'type'       => 'object',
                 'properties' => [
                     'platform'       => [
-                        'type'        => 'array',
-                        'description' => 'Array of system records.',
-                        'items'       => [
-                            'type' => 'string',
+                        'type'        => 'object',
+                        'description' => 'System platform properties.',
+                        'properties'  => [
+                            'version_current'   => [
+                                'type' => 'string',
+                            ],
+                            'version_latest'    => [
+                                'type' => 'string',
+                            ],
+                            'upgrade_available' => [
+                                'type' => 'boolean',
+                            ],
+                            'is_hosted'         => [
+                                'type' => 'boolean',
+                            ],
+                            'host'              => [
+                                'type' => 'string',
+                            ],
                         ],
                     ],
                     'authentication' => [
-                        'type'        => 'Metadata',
-                        'description' => 'Array of metadata returned for GET requests.',
+                        'type'        => 'object',
+                        'description' => 'Authentication options for this server.',
+                        'properties'  => [
+                            'version_current'   => [
+                                'type' => 'string',
+                            ],
+                            'version_latest'    => [
+                                'type' => 'string',
+                            ],
+                            'upgrade_available' => [
+                                'type' => 'boolean',
+                            ],
+                            'is_hosted'         => [
+                                'type' => 'boolean',
+                            ],
+                            'host'              => [
+                                'type' => 'string',
+                            ],
+                        ],
                     ],
                     'app_group'      => [
                         'type'        => 'array',
-                        'description' => 'Array of system records.',
+                        'description' => 'Array of groups apps by group name.',
                         'items'       => [
                             '$ref' => '#/definitions/AppsResponse',
                         ],
                     ],
                     'no_app_group'   => [
                         'type'        => 'array',
-                        'description' => 'Array of system records.',
+                        'description' => 'Array of ungrouped apps.',
                         'items'       => [
                             '$ref' => '#/definitions/AppsResponse',
                         ],
                     ],
                     'config'         => [
-                        'type'        => 'Metadata',
-                        'description' => 'Array of metadata returned for GET requests.',
+                        'type'        => 'object',
+                        'description' => 'System config properties.',
+                        'properties'  => [
+                            'resources_wrapper'     => [
+                                'type' => 'string',
+                            ],
+                            'always_wrap_resources' => [
+                                'type' => 'boolean',
+                            ],
+                        ],
                     ],
                     'server'         => [
-                        'type'        => 'Metadata',
-                        'description' => 'Array of metadata returned for GET requests.',
+                        'type'        => 'object',
+                        'description' => 'System server properties.',
+                        'properties'  => [
+                            'server_os' => [
+                                'type' => 'string',
+                            ],
+                            'release'   => [
+                                'type' => 'string',
+                            ],
+                            'version'   => [
+                                'type' => 'string',
+                            ],
+                            'machine'   => [
+                                'type' => 'string',
+                            ],
+                            'host'      => [
+                                'type' => 'string',
+                            ],
+                        ],
                     ],
                 ],
             ],

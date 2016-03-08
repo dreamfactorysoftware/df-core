@@ -210,18 +210,18 @@ class ReadOnlySystemResource extends BaseRestResource
                     ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
                 'get'        => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'get' .
+                    'tags'              => [$serviceName],
+                    'summary'           => 'get' .
                         $capitalized .
                         $pluralClass .
                         '() - Retrieve one or more ' .
                         $pluralClass .
                         '.',
-                    'operationId' => 'get' . $capitalized . $pluralClass,
-                    'event_name'  => [$eventPath . '.list'],
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'  => [
+                    'operationId'       => 'get' . $capitalized . $pluralClass,
+                    'x-publishedEvents' => [$eventPath . '.list'],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                         ApiOptions::documentOption(ApiOptions::LIMIT),
@@ -232,7 +232,7 @@ class ReadOnlySystemResource extends BaseRestResource
                         ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                         ApiOptions::documentOption(ApiOptions::FILE),
                     ],
-                    'responses'   => [
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
@@ -242,7 +242,7 @@ class ReadOnlySystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' =>
+                    'description'       =>
                         'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
                         'By default, all records up to the maximum are returned. <br>' .
                         'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
@@ -264,12 +264,12 @@ class ReadOnlySystemResource extends BaseRestResource
                     ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
                 'get'        => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
-                    'operationId' => 'get' . $capitalized . $class,
-                    'event_name'  => $eventPath . '.read',
-                    'parameters'  => [],
-                    'responses'   => [
+                    'tags'              => [$serviceName],
+                    'summary'           => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
+                    'operationId'       => 'get' . $capitalized . $class,
+                    'x-publishedEvents' => [$eventPath . '.read'],
+                    'parameters'        => [],
+                    'responses'         => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/' . $class . 'Response']
@@ -279,32 +279,12 @@ class ReadOnlySystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
+                    'description'       => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                 ],
             ],
         ];
 
         $models = [
-            $pluralClass . 'Request'  => [
-                'type'       => 'object',
-                'properties' => [
-                    $wrapper        => [
-                        'type'        => 'array',
-                        'description' => 'Array of system records.',
-                        'items'       => [
-                            '$ref' => '#/definitions/' . $class . 'Request',
-                        ],
-                    ],
-                    ApiOptions::IDS => [
-                        'type'        => 'array',
-                        'description' => 'Array of system record identifiers, used for batch GET, PUT, PATCH, and DELETE.',
-                        'items'       => [
-                            'type'   => 'integer',
-                            'format' => 'int32',
-                        ],
-                    ],
-                ],
-            ],
             $pluralClass . 'Response' => [
                 'type'       => 'object',
                 'properties' => [
@@ -316,8 +296,7 @@ class ReadOnlySystemResource extends BaseRestResource
                         ],
                     ],
                     'meta'   => [
-                        'type'        => 'Metadata',
-                        'description' => 'Array of metadata returned for GET requests.',
+                        '$ref' => '#/definitions/Metadata',
                     ],
                 ],
             ],

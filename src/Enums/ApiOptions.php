@@ -384,6 +384,6 @@ class ApiOptions extends FactoryEnum
 
     public static function getSwaggerGlobalParameters()
     {
-        return array_values(static::$swaggerMap);
+        return static::$swaggerMap;
     }
 }

@@ -4,19 +4,21 @@ namespace DreamFactory\Core\Utility;
 
 use Carbon\Carbon;
 use DreamFactory\Core\Models\App;
+use DreamFactory\Core\Models\AppLookup;
 use DreamFactory\Core\Models\Lookup;
 use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\RoleLookup;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
+use DreamFactory\Core\Models\UserLookup;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
-use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 
 class Session
 {
@@ -154,8 +156,11 @@ class Session
      *
      * @returns array
      */
-    public static function checkForAnyServicePermissions($service, $component = null, $requestor = ServiceRequestorTypes::API)
-    {
+    public static function checkForAnyServicePermissions(
+        $service,
+        $component = null,
+        $requestor = ServiceRequestorTypes::API
+    ){
         if (static::isSysAdmin()) {
             return true;
         }
@@ -207,8 +212,8 @@ class Session
                         $serviceFound = true;
                     }
                 } else {
-                        $serviceAllowed |= $tempVerbs;
-                        $serviceFound = true;
+                    $serviceAllowed |= $tempVerbs;
+                    $serviceFound = true;
                 }
             } else {
                 if (empty($tempService) && (('*' == $tempComponent) || (empty($tempComponent) && empty($component)))
@@ -337,6 +342,34 @@ class Session
         return null;
     }
 
+    public static function combineLookups($systemLookup = [], $appLookup = [], $roleLookup = [], $userLookup = [])
+    {
+        $lookup = [];
+        $secretLookup = [];
+
+        static::addLookupsToMap(Lookup::class, $systemLookup, $lookup, $secretLookup);
+        static::addLookupsToMap(RoleLookup::class, $roleLookup, $lookup, $secretLookup);
+        static::addLookupsToMap(AppLookup::class, $appLookup, $lookup, $secretLookup);
+        static::addLookupsToMap(UserLookup::class, $userLookup, $lookup, $secretLookup);
+
+        return [
+            'lookup'        => $lookup,
+            'lookup_secret' => $secretLookup //Actual values of the secret keys. For internal use only.
+        ];
+    }
+
+    protected static function addLookupsToMap($model, $lookups, array &$map, array &$mapSecret)
+    {
+        foreach ($lookups as $lookup) {
+            if ($lookup['private']) {
+                $secretLookup = $model::find($lookup['id']);
+                $mapSecret[$lookup['name']] = $secretLookup->value;
+            } else {
+                $map[$lookup['name']] = $lookup['value'];
+            }
+        }
+    }
+
     /**
      * @param string $lookup
      * @param string $value
@@ -434,8 +467,16 @@ class Session
             }
         }
 
-        $control = $use_private ? 'lookup_secret' : 'lookup';
-        $lookups = static::get($control);
+        if ($use_private) {
+            $lookups = static::get('lookup_secret');
+            if (isset($lookups, $lookups[$lookup])) {
+                $value = $lookups[$lookup];
+
+                return true;
+            }
+        }
+        // non-private
+        $lookups = static::get('lookup');
         if (isset($lookups, $lookups[$lookup])) {
             $value = $lookups[$lookup];
 
@@ -582,6 +623,7 @@ class Session
     {
         if (!empty($user)) {
             \Session::put('user.id', ArrayUtils::get($user, 'id'));
+            \Session::put('user.name', ArrayUtils::get($user, 'name'));
             \Session::put('user.display_name', ArrayUtils::get($user, 'name'));
             \Session::put('user.first_name', ArrayUtils::get($user, 'first_name'));
             \Session::put('user.last_name', ArrayUtils::get($user, 'last_name'));
@@ -625,9 +667,10 @@ class Session
         $roleLookup = (!empty($roleInfo['role_lookup_by_role_id'])) ? $roleInfo['role_lookup_by_role_id'] : [];
         $userLookup = (!empty($userInfo['user_lookup_by_user_id'])) ? $userInfo['user_lookup_by_user_id'] : [];
 
-        $combinedLookup = LookupKey::combineLookups($systemLookup, $appLookup, $roleLookup, $userLookup);
+        $combinedLookup = static::combineLookups($systemLookup, $appLookup, $roleLookup, $userLookup);
 
         Session::put('lookup', ArrayUtils::get($combinedLookup, 'lookup'));
+        //Actual values of the secret keys. For internal use only.
         Session::put('lookup_secret', ArrayUtils::get($combinedLookup, 'lookup_secret'));
     }
 
@@ -735,21 +778,32 @@ class Session
      */
     public static function getRoleIdByAppIdAndUserId($app_id, $user_id)
     {
-        $appIdUserIdToRoleIdMap = \Cache::get('appIdUserIdToRoleIdMap', []);
+        $map = \Cache::get('appIdUserIdToRoleIdMap', []);
 
-        if (isset($appIdUserIdToRoleIdMap[$app_id], $appIdUserIdToRoleIdMap[$app_id][$user_id])) {
-            return $appIdUserIdToRoleIdMap[$app_id][$user_id];
+        if (isset($map[$app_id], $map[$app_id][$user_id])) {
+            return $map[$app_id][$user_id];
         }
 
-        $map = UserAppRole::whereUserId($user_id)->whereAppId($app_id)->first(['role_id']);
-        if ($map) {
-            $appIdUserIdToRoleIdMap[$app_id][$user_id] = $map->role_id;
-            \Cache::put('appIdUserIdToRoleIdMap', $appIdUserIdToRoleIdMap, \Config::get('df.default_cache_ttl'));
+        $model = UserAppRole::whereUserId($user_id)->whereAppId($app_id)->first(['role_id']);
+        if ($model) {
+            $map[$app_id][$user_id] = $model->role_id;
+            \Cache::put('appIdUserIdToRoleIdMap', $map, \Config::get('df.default_cache_ttl'));
 
-            return $map->role_id;
+            return $model->role_id;
         }
 
         return null;
+    }
+
+    public static function setRoleIdByAppIdAndUserId($app_id, $user_id, $role_id)
+    {
+        $map = \Cache::get('appIdUserIdToRoleIdMap', []);
+        if (empty($role_id)) {
+            unset($map[$app_id][$user_id]);
+        } else {
+            $map[$app_id][$user_id] = $role_id;
+        }
+        \Cache::put('appIdUserIdToRoleIdMap', $map, \Config::get('df.default_cache_ttl'));
     }
 
     /**

@@ -1,18 +1,20 @@
 <?php
 namespace DreamFactory\Core\Handlers\Events;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\Models\EventScript;
-use DreamFactory\Core\Scripting\ScriptEngineManager;
-use Illuminate\Contracts\Events\Dispatcher;
 use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ServicePreProcess;
 use DreamFactory\Core\Events\ServicePostProcess;
-use \Log;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Models\EventScript;
+use DreamFactory\Core\Scripting\ScriptEngineManager;
+use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\ArrayUtils;
+use Illuminate\Contracts\Events\Dispatcher;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use \Log;
 
 class ServiceEventHandler
 {
@@ -169,44 +171,75 @@ class ServiceEventHandler
      * @param array  $event
      *
      * @return array|null
-     * @throws InternalServerErrorException
+     * @throws
      * @throws \DreamFactory\Core\Events\Exceptions\ScriptException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\RestException
+     * @throws \DreamFactory\Core\Exceptions\ServiceUnavailableException
      */
     protected function handleEventScript($name, &$event)
     {
         $model = EventScript::with('script_type_by_type')->whereName($name)->whereIsActive(true)->first();
-        if (!empty($model)) {
-            $output = null;
+        if (empty($model)) {
+            return null;
+        }
+        $output = null;
+        $content = $model->content;
+        Session::replaceLookups($content, true);
 
-            $result = ScriptEngineManager::runScript(
-                $model->content,
-                $name,
-                $model->script_type_by_type->toArray(),
-                ArrayUtils::clean($model->config),
-                $event,
-                $output
-            );
+        $result = ScriptEngineManager::runScript(
+            $content,
+            $name,
+            $model->script_type_by_type->toArray(),
+            ArrayUtils::clean($model->config),
+            $event,
+            $output
+        );
 
-            //  Bail on errors...
-            if (is_array($result) && isset($result['script_result'], $result['script_result']['error'])) {
-                throw new InternalServerErrorException($result['script_result']['error']);
-            }
-            if (is_array($result) && isset($result['exception'])) {
-                throw new InternalServerErrorException(ArrayUtils::get($result, 'exception',''));
-            }
+        if (!empty($output)) {
+            Log::info("Script '$name' output:" . PHP_EOL . $output . PHP_EOL);
+        }
 
-            //  The script runner should return an array
-            if (!is_array($result) || !isset($result['__tag__'])) {
-                Log::error('  * Script did not return an array: ' . print_r($result, true));
-            }
-
-            if (!empty($output)) {
-                Log::info('  * Script "' . $name . '" output:' . PHP_EOL . $output . PHP_EOL);
-            }
+        //  Bail on errors...
+        if (!is_array($result)) {
+            // Should this return to client as error?
+            Log::error('  * Script did not return an array: ' . print_r($result, true));
 
             return $result;
         }
 
-        return null;
+        if (isset($result['exception'])) {
+            $ex = $result['exception'];
+            if ($ex instanceof \Exception) {
+                throw $ex;
+            } elseif (is_array($ex)) {
+                $code = ArrayUtils::get($ex, 'code', null);
+                $message = ArrayUtils::get($ex, 'message', 'Unknown scripting error.');
+                $status = ArrayUtils::get($ex, 'status_code', ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+                throw new RestException($status, $message, $code);
+            }
+            throw new InternalServerErrorException(strval($ex));
+        }
+
+        // check for directly returned results, otherwise check for "response"
+        $directResponse = (isset($result['script_result']) ? $result['script_result'] : null);
+        if (isset($directResponse, $directResponse['error'])) {
+            throw new InternalServerErrorException($directResponse['error']);
+        }
+
+        // check for "return" results
+        if (!empty($directResponse)) {
+            // could be formatted array or raw content
+            if (is_array($directResponse) && (isset($directResponse['content']) || isset($directResponse['status_code']))) {
+                $result['response'] = $directResponse;
+            } else {
+
+                // otherwise must be raw content, assumes 200
+                $result['response']['content'] = $directResponse;
+                $result['response']['content_changed'] = true;
+            }
+        }
+
+        return $result;
     }
 }

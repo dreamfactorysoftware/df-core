@@ -389,6 +389,9 @@ EOD;
                     $seq = stristr($trig, '.nextval', true);
                     $seq = substr($seq, strrpos($seq, ' ') + 1);
                     $table->sequenceName = $seq;
+                    if (ColumnSchema::TYPE_INTEGER === $c->type) {
+                        $c->type = ColumnSchema::TYPE_ID;
+                    }
                 }
             }
         }

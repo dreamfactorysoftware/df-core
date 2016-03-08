@@ -13,6 +13,7 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
      */
     public function extractType($dbType)
     {
+        parent::extractType($dbType);
         if (strpos($dbType, 'FLOAT') !== false) {
             $this->phpType = 'double';
         }

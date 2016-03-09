@@ -17,9 +17,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
     {
         if (!extension_loaded('sqlite3')) {
             if ($throw_exception) {
-                throw new ServiceUnavailableException("Required extension 'sqlite3' is not installed or loaded.");
-            } else {
-                return false;
+                \Log::notice("Required extension 'sqlite3' is not detected, but may be compiled in.");
             }
         }
 

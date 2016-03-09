@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+
+### Changed
+
+### Fixed
+
+## [0.2.4]
+### Added
 - Added a new DF_LOG_LEVEL environment option.
 - Added ability to log REQUEST and RESPONSE under log level INFO.
 - Added extra server side and client side information on the config tab of admin app.
@@ -159,7 +166,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.3...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.4...HEAD
+[0.2.4]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.3...0.2.4
 [0.2.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.1...0.2.2
 [0.2.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.0...0.2.1

@@ -10,9 +10,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
     {
         if (!extension_loaded('ibm_db2')) {
             if ($throw_exception) {
-                throw new \Exception("Required extension or module 'ibm_db2' is not installed or loaded.");
-            } else {
-                return false;
+                \Log::notice("Required extension 'ibm_db2' is not detected, but may be compiled in.");
             }
         }
 

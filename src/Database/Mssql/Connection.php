@@ -20,9 +20,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
 
         if (!extension_loaded($extension)) {
             if ($throw_exception) {
-                throw new \Exception("Required extension or module '$extension' is not installed or loaded.");
-            } else {
-                return false;
+                \Log::notice("Required extension '$extension' is not detected, but may be compiled in.");
             }
         }
 

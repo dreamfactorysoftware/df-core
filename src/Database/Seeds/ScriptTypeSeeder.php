@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Database\Seeds;
 use DreamFactory\Core\Models\ScriptType;
 use DreamFactory\Core\Scripting\Engines\NodeJs;
 use DreamFactory\Core\Scripting\Engines\Php;
+use DreamFactory\Core\Scripting\Engines\Python;
 use DreamFactory\Core\Scripting\Engines\V8Js;
 
 class ScriptTypeSeeder extends BaseModelSeeder
@@ -16,6 +17,13 @@ class ScriptTypeSeeder extends BaseModelSeeder
             'class_name'  => Php::class,
             'label'       => 'PHP',
             'description' => 'Script handler using native PHP.',
+            'sandboxed'   => false
+        ],
+        [
+            'name'        => 'python',
+            'class_name'  => Python::class,
+            'label'       => 'Python',
+            'description' => 'Script handler using native Python.',
             'sandboxed'   => false
         ],
         [

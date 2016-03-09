@@ -10,9 +10,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
     {
         if (!extension_loaded('pgsql')) {
             if ($throw_exception) {
-                throw new \Exception("Required extension or module 'pgsql' is not installed or loaded.");
-            } else {
-                return false;
+                \Log::notice("Required extension 'pgsql' is not detected, but may be compiled in.");
             }
         }
 

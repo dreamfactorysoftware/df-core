@@ -11,9 +11,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
         $extension = 'mssql';
         if (!extension_loaded($extension)) {
             if ($throw_exception) {
-                throw new \Exception("Required extension or module 'mssql' is not installed or loaded.");
-            } else {
-                return false;
+                \Log::notice("Required extension 'mssql' is not detected, but may be compiled in.");
             }
         }
 

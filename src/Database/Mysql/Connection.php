@@ -10,9 +10,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
     {
         if (!extension_loaded('mysql') && !extension_loaded('mysqlnd')) {
             if ($throw_exception) {
-                throw new \Exception("Required extension or module 'mysql' is not installed or loaded.");
-            } else {
-                return false;
+                \Log::notice("Required extension 'mysql' is not detected, but may be compiled in.");
             }
         }
 

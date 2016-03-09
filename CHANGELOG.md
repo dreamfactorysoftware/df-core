@@ -9,7 +9,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
-## [0.2.4]
+## [0.2.5] - 2016-03-09
+### Fixed
+- Catch internal exception thrown when converting request to event for scripting.
+
+## [0.2.4] - 2016-03-08
 ### Added
 - Added a new DF_LOG_LEVEL environment option.
 - Added ability to log REQUEST and RESPONSE under log level INFO.
@@ -166,7 +170,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.4...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.5...HEAD
+[0.2.5]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.4...0.2.5
 [0.2.4]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.3...0.2.4
 [0.2.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.2...0.2.3
 [0.2.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.1...0.2.2

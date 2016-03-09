@@ -245,12 +245,18 @@ trait InternalServiceRequest
      */
     public function toArray()
     {
+        try {
+            $payload = $this->getPayloadData();
+        } catch (\Exception $ex) {
+            $payload = null;
+        }
+
         return [
             'api_version'  => $this->getApiVersion(),
             'method'       => $this->getMethod(),
             'parameters'   => $this->getParameters(),
             'headers'      => $this->getHeaders(),
-            'payload'      => $this->getPayloadData(),
+            'payload'      => $payload,
             'content'      => $this->getContent(),
             'content_type' => $this->getContentType(),
         ];

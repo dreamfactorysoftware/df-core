@@ -64,6 +64,13 @@ class Python extends BaseEngineAdapter implements ScriptingEngineInterface
             }
         }
 
+        if($data === null){
+            if(is_array($output)){
+                $output = print_r($output, true);
+            }
+            Log::warning('Python script returned unsupported format: ' . $output);
+        }
+
         return $data;
     }
 

@@ -1991,10 +1991,14 @@ abstract class BaseDbTableResource extends BaseDbResource
                     default:
                         $name = strtolower($fieldInfo->getName(true));
                         // need to check for virtual or api_read_only validation here.
-                        if (('virtual' === $fieldInfo->type) ||
+                        if ((ColumnSchema::TYPE_VIRTUAL === $fieldInfo->type) ||
                             isset($fieldInfo->validation, $fieldInfo->validation['api_read_only'])
                         ) {
-                            // if read only, drop it
+                            unset($record[$name]);
+                            continue;
+                        }
+                        // need to check for id in record and remove it, as some DBs complain.
+                        if ($for_update && (ColumnSchema::TYPE_ID === $fieldInfo->type)) {
                             unset($record[$name]);
                             continue;
                         }

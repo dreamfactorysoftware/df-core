@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.2.7] - 2016-03-11
+### Fixed
+- Squelch auto-incrementing identifier fields from update.
+
 ## [0.2.6] - 2016-03-09
 ### Fixed
 - Casting UserAppRole model id as integer to make sure id is always an integer type even when mysqlnd driver is not used.
@@ -175,6 +179,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
 [Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.6...HEAD
+[0.2.7]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.6...0.2.7
 [0.2.6]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.5...0.2.6
 [0.2.5]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.4...0.2.5
 [0.2.4]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.3...0.2.4

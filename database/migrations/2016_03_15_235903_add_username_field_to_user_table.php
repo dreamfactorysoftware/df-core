@@ -12,7 +12,7 @@ class AddUsernameFieldToUserTable extends Migration
      */
     public function up()
     {
-        if (!Schema::hasColumn('user', 'ad_username')) {
+        if (!Schema::hasColumn('user', 'username')) {
             Schema::table(
                 'user',
                 function (Blueprint $t){

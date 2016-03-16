@@ -68,6 +68,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      */
     protected $fillable = [
         'name',
+        'username',
         'first_name',
         'last_name',
         'email',

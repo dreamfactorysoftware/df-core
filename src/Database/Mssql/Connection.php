@@ -8,6 +8,10 @@ class Connection extends \DreamFactory\Core\Database\Connection
 {
     public $pdoClass = 'DreamFactory\Core\Database\Mssql\PdoAdapter';
 
+    // These are on by default for sqlsrv driver, but not dblib.
+    // Also, can't use 'SET ANSI_DEFAULTS ON', seems to return false positives for DROP TABLE etc. todo
+    public $initSQLs = ['SET QUOTED_IDENTIFIER ON;', 'SET ANSI_WARNINGS ON;', 'SET ANSI_NULLS ON;'];
+
     public static function checkRequirements($driver, $throw_exception = true)
     {
         if (substr(PHP_OS, 0, 3) == 'WIN') {

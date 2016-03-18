@@ -778,7 +778,6 @@ EOD;
             }
         }
 
-        $this->connection->createCommand('SET QUOTED_IDENTIFIER ON; SET ANSI_WARNINGS ON;')->execute();
         $sql = "$pre EXEC $name $paramStr; $post";
         $command = $this->connection->createCommand($sql);
 

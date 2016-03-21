@@ -51,8 +51,7 @@ abstract class ExecutedEngine extends BaseEngineAdapter implements ScriptingEngi
         $output = null;
         $return = null;
         try {
-            /** @noinspection PhpUnusedLocalVariableInspection */
-            $result = $this->execute($runnerShell, $output, $return);
+            $this->execute($runnerShell, $output, $return);
         } catch (\Exception $ex) {
             $message = $ex->getMessage();
             Log::error($message = "Exception executing command based script: $message");
@@ -64,7 +63,11 @@ abstract class ExecutedEngine extends BaseEngineAdapter implements ScriptingEngi
             throw new InternalServerErrorException('Executed command returned with error code: ' . $return);
         }
 
-        return $this->processOutput($data, $output);
+        if (null !== $temp = $this->processOutput($output)) {
+            $data = $temp;
+        }
+
+        return $data;
     }
 
     /**
@@ -119,37 +122,42 @@ abstract class ExecutedEngine extends BaseEngineAdapter implements ScriptingEngi
     }
 
     /**
-     * @param array $data
      * @param array $output
-     * @param mixed $returned
      *
-     * @return string
+     * @return null|array
      */
-    protected function processOutput(
-        array &$data = [],
-        array $output = [],
-        /** @noinspection PhpUnusedParameterInspection */
-        $returned = null
-    ){
+    protected function processOutput(array $output = [])
+    {
+        $data = null;
         if (is_array($output)) {
             foreach ($output as $item) {
                 if (is_string($item)) {
-                    if ((strlen($item) > 10) && (0 === substr_compare($item, '{"request"', 0, 10))) {
-                        $data = json_decode($item, true);
+                    if ($this->checkOutputStringForData($item)) {
+                        $data = $this->transformOutputStringToData($item);
                     } else {
-                        echo $item;
+                        echo $item . PHP_EOL;
                     }
                 }
             }
         } elseif (is_string($output)) {
-            if ((strlen($output) > 10) && (0 === substr_compare($output, '{"request"', 0, 10))) {
-                $data = json_decode($output, true);
+            if ($this->checkOutputStringForData($output)) {
+                $data = $this->transformOutputStringToData($output);
             } else {
-                echo $output;
+                echo $output . PHP_EOL;
             }
         }
 
         return $data;
+    }
+
+    protected function checkOutputStringForData($output)
+    {
+        return ((strlen($output) > 10) && (0 === substr_compare($output, '{"request"', 0, 10)));
+    }
+
+    protected function transformOutputStringToData($output)
+    {
+        return json_decode($output, true);
     }
 
     /**

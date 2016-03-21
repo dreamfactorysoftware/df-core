@@ -2,8 +2,6 @@
 
 namespace DreamFactory\Core\Scripting\Engines;
 
-use Log;
-
 class Python extends ExecutedEngine
 {
     //*************************************************************************
@@ -15,13 +13,13 @@ class Python extends ExecutedEngine
      */
     public function __construct(array $settings = [])
     {
-        if (!isset($settings['command_name'])){
+        if (!isset($settings['command_name'])) {
             $settings['command_name'] = 'python';
         }
-        if (!isset($settings['command_path'])){
+        if (!isset($settings['command_path'])) {
             $settings['command_path'] = config('df.scripting.python_path');
         }
-        if (!isset($settings['supports_inline_execution'])){
+        if (!isset($settings['supports_inline_execution'])) {
             $settings['supports_inline_execution'] = true;
             $settings['inline_arguments'] = '-c';
         }
@@ -29,40 +27,15 @@ class Python extends ExecutedEngine
         parent::__construct($settings);
     }
 
-    protected function processOutput(array &$data = [], array $output = [], $returned = null)
+    protected function transformOutputStringToData($output)
     {
-        if (is_array($output)) {
-            foreach ($output as $item) {
-                if (is_string($item)) {
-                    if ((strlen($item) > 10) && (false !== substr_compare($item, '{"request"', 0, 10))) {
-                        $item =
-                            str_replace(["'{", "}',", "'", "True", "False", ":None", ": None"],
-                                ["{", "},", "\"", "true", "false", ":null", ": null"], $item);
-                        $data = json_decode($item, true);
-                    } else {
-                        echo $item;
-                    }
-                }
-            }
-        } elseif (is_string($output)) {
-            if ((strlen($output) > 10) && (0 === substr_compare($output, '{"request"', 0, 10))) {
-                $output =
-                    str_replace(["'{", "}',", "'", "True", "False", "None"], ["{", "},", "\"", "true", "false", "null"],
-                        $output);
-                $data = json_decode($output, true);
-            } else {
-                echo $output;
-            }
-        }
+        $output = str_replace(
+            ["'{", "}',", "'", "True", "False", "None"],
+            ["{", "},", "\"", "true", "false", "null"],
+            $output
+        );
 
-        if ($data === null) {
-            if (is_array($output)) {
-                $output = print_r($output, true);
-            }
-            Log::warning('Python script returned unsupported format: ' . $output);
-        }
-
-        return $data;
+        return parent::transformOutputStringToData($output);
     }
 
     protected function enrobeScript($script, array &$data = [], array $platform = [])

@@ -1,7 +1,8 @@
 <?php
 namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Core\Components\Package as Packager;
+
+use DreamFactory\Core\Components\Package\Exporter;
 
 class Package extends BaseSystemResource
 {
@@ -9,7 +10,7 @@ class Package extends BaseSystemResource
     {
         $manifest = $this->request->getPayloadData();
 
-        $package = new Packager($manifest);
+        $package = new Exporter($manifest);
 
         return $package->export();
 

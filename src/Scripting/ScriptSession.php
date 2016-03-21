@@ -1,8 +1,6 @@
 <?php
 namespace DreamFactory\Core\Scripting;
 
-use DreamFactory\Library\Utility\ArrayUtils;
-
 /**
  * V8Js scripting session object
  */
@@ -70,6 +68,6 @@ class ScriptSession
      */
     public function get($key, $defaultValue = null)
     {
-        return ArrayUtils::get($this->data, $key, $defaultValue);
+        return array_get($this->data, $key, $defaultValue);
     }
 }

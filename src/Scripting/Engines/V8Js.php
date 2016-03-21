@@ -1,11 +1,11 @@
 <?php
 namespace DreamFactory\Core\Scripting\Engines;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Scripting\BaseEngineAdapter;
+use DreamFactory\Library\Utility\Scalar;
 use \Log;
 
 /**
@@ -56,13 +56,13 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
             throw new ServiceUnavailableException("This instance cannot run server-side javascript scripts. The 'v8js' is not available.");
         }
 
-        $name = ArrayUtils::get($settings, 'name', self::EXPOSED_OBJECT_NAME, true);
-        $variables = ArrayUtils::get($settings, 'variables', [], true);
-        $extensions = ArrayUtils::get($settings, 'extensions', [], true);
+        $name = array_get($settings, 'name', self::EXPOSED_OBJECT_NAME);
+        $variables = array_get($settings, 'variables', []);
+        $extensions = array_get($settings, 'extensions', []);
         // accept comma-delimited string
         $extensions = (is_string($extensions)) ? array_map('trim', explode(',', trim($extensions, ','))) : $extensions;
-        $reportUncaughtExceptions = ArrayUtils::getBool($settings, 'report_uncaught_exceptions', false);
-        $logMemoryUsage = ArrayUtils::getBool($settings, 'log_memory_usage', false);
+        $reportUncaughtExceptions = Scalar::boolval(array_get($settings, 'report_uncaught_exceptions', false));
+        $logMemoryUsage = Scalar::boolval(array_get($settings, 'log_memory_usage', false));
 
         static::startup($settings);
 
@@ -115,7 +115,7 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
         }
 
         //  Register any extensions
-        if (null !== $extensions = ArrayUtils::get($options, 'extensions', [], true)) {
+        if (null !== $extensions = array_get($options, 'extensions', [])) {
             // accept comma-delimited string
             $extensions =
                 (is_string($extensions)) ? array_map('trim', explode(',', trim($extensions, ','))) : $extensions;
@@ -221,7 +221,7 @@ class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
         $module = trim(str_replace(["'", '"'], null, $module), ' /');
 
         //  Check the configured script paths
-        if (null === ($script = ArrayUtils::get(static::$libraries, $module))) {
+        if (null === ($script = array_get(static::$libraries, $module))) {
             $script = $module;
         }
 

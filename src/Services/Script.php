@@ -101,7 +101,7 @@ class Script extends BaseRestService
         $output = null;
         $result = ScriptEngineManager::runScript(
             $this->content,
-            'script.' . $this->name,
+            'service.' . $this->name,
             $this->engineConfig,
             $this->scriptConfig,
             $data,

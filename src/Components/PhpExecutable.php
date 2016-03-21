@@ -19,6 +19,10 @@ trait PhpExecutable
      */
     protected $commandPath;
     /**
+     * @var string Where command executable can be found.
+     */
+    protected $fileExtension;
+    /**
      * @var string|array Default arguments to pass to command line.
      */
     protected $arguments;
@@ -59,6 +63,7 @@ trait PhpExecutable
         $this->arguments = array_get($settings, 'arguments');
         $this->supportsInlineExecution = boolval(array_get($settings, 'supports_inline_execution', false));
         $this->inlineArguments = array_get($settings, 'inline_arguments');
+        $this->fileExtension = array_get($settings, 'file_extension');
     }
 
     public function execute($command, array &$output = null, &$return = null)
@@ -100,6 +105,9 @@ trait PhpExecutable
             if (!empty($payload)) {
                 if (empty($storage_location)) {
                     $storage_location = storage_path() . DIRECTORY_SEPARATOR . $this->commandName;
+                    if (is_string($this->fileExtension) && !empty($this->fileExtension)) {
+                        $storage_location .= '.'.$this->fileExtension;
+                    }
                 }
                 file_put_contents($storage_location, $payload);
                 $runnerShell .= ' ' . $storage_location;

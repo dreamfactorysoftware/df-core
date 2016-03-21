@@ -44,8 +44,7 @@ abstract class ExecutedEngine extends BaseEngineAdapter implements ScriptingEngi
         $data['__tag__'] = 'exposed_event';
 
         $enrobedScript = $this->enrobeScript($script, $data, static::buildPlatformAccess($identifier));
-
-        $filePath = storage_path('scripting' . DIRECTORY_SEPARATOR . $identifier);
+        $filePath = $this->getWritablePath($identifier);
         $runnerShell = $this->buildCommand($enrobedScript, $filePath);
 
         $output = null;
@@ -119,6 +118,16 @@ abstract class ExecutedEngine extends BaseEngineAdapter implements ScriptingEngi
         }
 
         return file_get_contents($fullScriptPath);
+    }
+
+    protected function getWritablePath($identifier)
+    {
+        $filePath = storage_path('scripting' . DIRECTORY_SEPARATOR . $identifier);
+        if ($this->fileExtension) {
+            $filePath .= '.' . $this->fileExtension;
+        }
+
+        return $filePath;
     }
 
     /**

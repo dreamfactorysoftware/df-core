@@ -19,6 +19,9 @@ class Python extends ExecutedEngine
         if (!isset($settings['command_path'])) {
             $settings['command_path'] = config('df.scripting.python_path');
         }
+        if (!isset($settings['file_extension'])){
+            $settings['file_extension'] = 'py';
+        }
         if (!isset($settings['supports_inline_execution'])) {
             $settings['supports_inline_execution'] = true;
             $settings['inline_arguments'] = '-c';

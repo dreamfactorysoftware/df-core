@@ -75,8 +75,8 @@ _wrapperResult = (function() {
     	})(_event, _platform);
 	}
 	catch ( _ex ) {
-		_event.script_result = {error:_ex.message};
-		_event.exception = _ex;
+		_event.script_result = {error: _ex.message};
+		_event.exception = {message: _ex.message, code: _ex.code};
 	}
 
 	return _event;

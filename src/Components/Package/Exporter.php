@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Utility\FileUtilities;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Services\BaseFileService;
 use Illuminate\Support\Arr;
 
 class Exporter
@@ -48,9 +49,11 @@ class Exporter
     public function export()
     {
         $this->gatherData();
+        //return $this->data;
         $this->initZipFile();
         $this->zipManifestFile();
         $this->zipResourceFiles();
+        $this->zipAppFiles();
         $this->zip->close();
 
         FileUtilities::sendFile($this->zipFilePath);
@@ -72,6 +75,47 @@ class Exporter
             foreach($resources as $resourceName => $records){
                 if(!$this->zip->addFromString($service.DIRECTORY_SEPARATOR.$resourceName.'.json', json_encode($records, JSON_UNESCAPED_SLASHES))){
                     throw new InternalServerErrorException("Failed to add ".$service.DIRECTORY_SEPARATOR.$resourceName.'.json');
+                }
+            }
+        }
+    }
+
+    protected function zipAppFiles()
+    {
+        $items = $this->package->getItems();
+        if(!empty(array_get($items, 'system.app_files'))){
+            $appFiles = array_get($items, 'system.app_files');
+            $apps = array_get($this->data, 'system.app');
+            foreach($appFiles as $appFile){
+                foreach($apps as $app){
+                    if(is_string($appFile) && $appFile === array_get($app, 'name')){
+                        break;
+                    } else if(is_int($appFile) && $appFile === array_get($app, 'id')){
+                        break;
+                    }
+                }
+                $appName = array_get($app, 'name');
+                $storageServiceId = array_get($app, 'storage_service_id');
+                $storageFolder = array_get($app, 'storage_container');
+
+                if (empty($storageServiceId)) {
+                    throw new InternalServerErrorException("Can not find storage service identifier for $appFile.");
+                }
+
+                /** @type BaseFileService $storage */
+                $storage = ServiceHandler::getServiceById($storageServiceId);
+                if (!$storage) {
+                    throw new InternalServerErrorException("Can not find storage service by identifier '$storageServiceId''.");
+                }
+
+                if (empty($storageFolder)) {
+                    if ($storage->driver()->containerExists($appName)) {
+                        $storage->driver()->getFolderAsZip($appName, '', $this->zip, $this->zipFilePath, true);
+                    }
+                } else {
+                    if ($storage->driver()->folderExists($storageFolder, $appName)) {
+                        $storage->driver()->getFolderAsZip($storageFolder, $appName, $this->zip, $this->zipFilePath, true);
+                    }
                 }
             }
         }

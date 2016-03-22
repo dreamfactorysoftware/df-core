@@ -1,17 +1,11 @@
 <?php
 namespace DreamFactory\Core\Scripting;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Events\EventDispatcher;
 use DreamFactory\Core\Events\PlatformEvent;
 use DreamFactory\Core\Resources\System\Config;
 use DreamFactory\Core\Resources\User\Session;
 use DreamFactory\Core\Utility\Platform;
-use DreamFactory\Core\Yii\Models\App;
-use DreamFactory\Yii\Utility\Pii;
-use Kisma\Core\Utility\Inflector;
-use Kisma\Core\Utility\Log;
-use Kisma\Core\Utility\Option;
 
 /**
  * Acts as a proxy between a DSP PHP $event and a server-side script
@@ -177,7 +171,7 @@ class ScriptEvent
             //  A slightly sanitized version of the actual HTTP request URI
             'request_path'     => $path,
             //  Indicator useful to halt propagation of this event, not necessarly because of errors...
-            'stop_propagation' => ArrayUtils::get($eventExtras, 'stop_propagation', false, true),
+            'stop_propagation' => array_get($eventExtras, 'stop_propagation', false),
             //	Dispatcher information
             'dispatcher_id'    => spl_object_hash($dispatcher),
             'dispatcher_type'  => Inflector::neutralize(get_class($dispatcher)),
@@ -246,12 +240,12 @@ class ScriptEvent
     public static function updateEventFromHandler(PlatformEvent &$event, array $exposedEvent = [])
     {
         //  Did propagation stop?
-        if (ArrayUtils::get($exposedEvent, 'stop_propagation', false)) {
+        if (array_get($exposedEvent, 'stop_propagation', false)) {
             $event->stopPropagation();
         }
 
-        $request = ArrayUtils::getDeep($exposedEvent, 'request', 'body');
-        $response = ArrayUtils::get($exposedEvent, 'response', false);
+        $request = array_get($exposedEvent, 'request.body');
+        $response = array_get($exposedEvent, 'response', false);
 
         if (!$response) {
 //            Log::debug( 'No response in exposed event' );

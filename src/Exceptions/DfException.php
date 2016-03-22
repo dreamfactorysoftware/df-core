@@ -40,7 +40,7 @@ class DfException extends \Exception
         }
 
         $this->context = $context;
-        parent::__construct($message, $code, $previous);
+        parent::__construct($message, (int)$code, $previous);
     }
 
     /**

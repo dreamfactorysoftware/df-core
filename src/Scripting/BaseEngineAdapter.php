@@ -1,14 +1,13 @@
 <?php
 namespace DreamFactory\Core\Scripting;
 
+use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ServiceHandler;
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Contracts\ScriptingEngineInterface;
-use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -57,7 +56,7 @@ abstract class BaseEngineAdapter
     public function __construct(array $settings = [])
     {
         //  Save off the engine
-        $this->engine = ArrayUtils::get($settings, 'engine', $this->engine);
+        $this->engine = array_get($settings, 'engine', $this->engine);
     }
 
     /**
@@ -69,7 +68,7 @@ abstract class BaseEngineAdapter
      */
     public static function startup($options = null)
     {
-        static::initializeLibraryPaths(ArrayUtils::get($options, 'library_paths', []));
+        static::initializeLibraryPaths(array_get($options, 'library_paths', []));
     }
 
     /**
@@ -99,7 +98,7 @@ abstract class BaseEngineAdapter
             // no longer support file paths for scripts?
         }
         //  Already read, return script
-        if (null !== ($script = ArrayUtils::get(static::$libraries, $name))) {
+        if (null !== ($script = array_get(static::$libraries, $name))) {
             return $returnContents ? file_get_contents($script) : $script;
         }
 
@@ -110,7 +109,7 @@ abstract class BaseEngineAdapter
             $check = $path . '/' . $script;
 
             if (is_file($check) && is_readable($check)) {
-                ArrayUtils::set(static::$libraries, $name, $check);
+                array_set(static::$libraries, $name, $check);
 
                 return $returnContents ? file_get_contents($check) : $check;
             }
@@ -130,13 +129,15 @@ abstract class BaseEngineAdapter
         static::$libraries = \Cache::get('scripting.libraries', []);
 
         //  Add ones from constructor
-        $libraryPaths = ArrayUtils::clean($libraryPaths);
+        $libraryPaths = (is_array($libraryPaths) ? $libraryPaths : []);
 
         //  Application storage script path
         $libraryPaths[] = storage_path('scripting');
 
         //  Merge in config libraries...
-        $libraryPaths = array_merge($libraryPaths, ArrayUtils::clean(\Config::get('df.scripting.paths', [])));
+        $configPaths = \Config::get('df.scripting.paths', []);
+        $configPaths = (is_array($configPaths) ? $configPaths : []);
+        $libraryPaths = array_merge($libraryPaths, $configPaths);
 
         //  Add them to collection if valid
         if (is_array($libraryPaths)) {
@@ -293,8 +294,8 @@ abstract class BaseEngineAdapter
                         foreach ($pArray as $k => $p) {
                             if (!empty($p)) {
                                 $tmp = explode('=', $p);
-                                $name = ArrayUtils::get($tmp, 0, $k);
-                                $value = ArrayUtils::get($tmp, 1);
+                                $name = array_get($tmp, 0, $k);
+                                $value = array_get($tmp, 1);
                                 $params[$name] = urldecode($value);
                             }
                         }

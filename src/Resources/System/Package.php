@@ -8,7 +8,7 @@ class Package extends BaseSystemResource
 {
     protected function handleGET()
     {
-        $manifest = $this->request->getPayloadData();
+        $manifest = json_decode($this->request->getParameter('manifest'), JSON_UNESCAPED_SLASHES);
 
         $package = new Exporter($manifest);
 

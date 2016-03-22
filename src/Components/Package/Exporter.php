@@ -6,6 +6,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Core\Utility\FileUtilities;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Illuminate\Support\Arr;
@@ -46,10 +47,34 @@ class Exporter
 
     public function export()
     {
-        $this->exportData();
-        $m = $this->generateManifest();
+        $this->gatherData();
+        $this->initZipFile();
+        $this->zipManifestFile();
+        $this->zipResourceFiles();
+        $this->zip->close();
 
-        return $this->data;
+        FileUtilities::sendFile($this->zipFilePath);
+
+        return null;
+    }
+
+    protected function zipManifestFile()
+    {
+        $manifest = $this->generateManifest();
+        if (!$this->zip->addFromString('package.json', json_encode($manifest, JSON_UNESCAPED_SLASHES))) {
+            throw new InternalServerErrorException("Failed to add manifest file.");
+        }
+    }
+    
+    protected function zipResourceFiles()
+    {
+        foreach($this->data as $service => $resources){
+            foreach($resources as $resourceName => $records){
+                if(!$this->zip->addFromString($service.DIRECTORY_SEPARATOR.$resourceName.'.json', json_encode($records, JSON_UNESCAPED_SLASHES))){
+                    throw new InternalServerErrorException("Failed to add ".$service.DIRECTORY_SEPARATOR.$resourceName.'.json');
+                }
+            }
+        }
     }
 
     protected function generateManifest()
@@ -64,36 +89,35 @@ class Exporter
 
         $requestedItems = $this->package->getItems();
 
-        foreach ($this->data as $service => $resources) {
-            foreach ($resources as $resourceName => $records) {
-                $names = [];
-                foreach ($records as $i => $record) {
-                    if (isset($record['name'])) {
-                        $names[] = $record['name'];
-                    } else {
-                        $names[] = $requestedItems[$service][$resourceName][$i];
+        foreach($requestedItems as $service => $resources){
+            foreach($resources as $resourceName => $details){
+                if(isset($this->data[$service][$resourceName])){
+                    $records = $this->data[$service][$resourceName];
+                    foreach($records as $i => $record){
+                        $manifest[$service][$resourceName][] = array_get($record, 'name', array_get($details, $i, []));
                     }
+                } else {
+                    $manifest[$service][$resourceName] = $details;
                 }
-                $manifest[$service][$resourceName] = $names;
             }
         }
 
         return $manifest;
     }
 
-    public function exportData()
+    public function gatherData()
     {
         $items = $this->package->getItems();
         foreach ($items as $service => $resources) {
             foreach ($resources as $resourceName => $details) {
                 if ($resourceName !== 'app_files') {
-                    $this->data[$service][$resourceName] = $this->exportResource($service, $resourceName, $details);
+                    $this->data[$service][$resourceName] = $this->gatherResource($service, $resourceName, $details);
                 }
             }
         }
     }
 
-    protected function exportResource($service, $resource, $details)
+    protected function gatherResource($service, $resource, $details)
     {
         $export = [];
         $params = [];
@@ -218,7 +242,7 @@ class Exporter
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
-    protected function initExportZipFile()
+    protected function initZipFile()
     {
         $host = php_uname('n');
         $filename = $host . '_' . date('Y-m-d_H:i:s', time());

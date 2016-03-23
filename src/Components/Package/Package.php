@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Components\Package;
 
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Models\Service;
 
 class Package
 {
@@ -13,7 +14,9 @@ class Package
     protected $manifest = [];
 
     /** @type array */
-    protected $items = [];
+    protected $storageItems = [];
+
+    protected $nonStorageItems = [];
 
     /** @type string */
     protected $dfVersion = '';
@@ -27,13 +30,12 @@ class Package
     /** @type array  */
     protected $data = [];
     
-    private static $metaFields = ['version', 'df_version', 'description', 'secured', 'created_date'];
+    private static $metaFields = ['version', 'df_version', 'description', 'secured', 'created_date', 'storage'];
 
     public function __construct($packageInfo)
     {
         if(is_array($packageInfo)) {
             $this->manifest = $packageInfo;
-            $this->isValid();
             $this->dfVersion = $this->manifest['df_version'];
             $this->secured = array_get($this->manifest, 'secured', false);
             $this->createdDate = array_get($this->manifest, 'created_date', date('Y-m-d H:i:s', time()));
@@ -53,7 +55,25 @@ class Package
     
     public function getItems()
     {
-        return $this->items;
+        return array_merge($this->nonStorageItems, $this->storageItems);
+    }
+    public function getNonStorageItems()
+    {
+        return $this->nonStorageItems;
+    }
+    
+    public function getStorageItems()
+    {
+        return $this->storageItems;
+    }
+
+    public function isFileService($serviceName)
+    {
+        $service = Service::with('service_type_by_type')->whereName($serviceName)->first();
+        $relations = $service->getRelation('service_type_by_type');
+        $group = $relations->group;
+
+        return ($group === 'File') ? true : false;
     }
     
     protected function isValid()
@@ -71,11 +91,15 @@ class Package
         $m = $this->manifest;
         foreach ($m as $item => $value) {
             if (!in_array($item, static::$metaFields)) {
-                $this->items[$item] = $value;
+                if($this->isFileService($item)){
+                    $this->storageItems[$item] = $value;
+                } else {
+                    $this->nonStorageItems[$item] = $value;
+                }
             }
         }
 
-        if (count($this->items) == 0) {
+        if (count($this->getItems()) == 0) {
             throw new InternalServerErrorException('No items found in package manifest.');
         }
     }

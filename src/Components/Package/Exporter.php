@@ -7,7 +7,6 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Resources\System\Environment;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Services\BaseFileService;
@@ -19,21 +18,8 @@ class Exporter
 
     const DEFAULT_STORAGE_FOLDER = '__EXPORTS';
 
-    private $package = null;
-
-    /**
-     * Package zip file.
-     *
-     * @type \ZipArchive
-     */
-    protected $zip = null;
-
-    /**
-     * Zip file full path.
-     *
-     * @type string
-     */
-    protected $zipFilePath = null;
+    /** @type \DreamFactory\Core\Components\Package\Package */
+    private $package;
 
     /**
      * Extracted data.
@@ -42,9 +28,9 @@ class Exporter
      */
     protected $data = [];
 
-    protected $storageService = null;
+    protected $storageService;
 
-    protected $storageFolder = null;
+    protected $storageFolder;
 
     protected $defaultRelation = [
         'system/role' => ['role_service_access_by_role_id']
@@ -60,11 +46,11 @@ class Exporter
     public function export()
     {
         $this->gatherData();
-        $this->initZipFile();
-        $this->zipManifestFile();
-        $this->zipResourceFiles();
-        $this->zipStorageFiles();
-        $url = $this->saveZipFile();
+        $this->package->initZipFile();
+        $this->addManifestFile();
+        $this->addResourceFiles();
+        $this->addStorageFiles();
+        $url = $this->package->saveZipFile($this->storageService, $this->storageFolder);
 
         return $url;
     }
@@ -83,40 +69,6 @@ class Exporter
         }
 
         return false;
-    }
-
-    protected function saveZipFile()
-    {
-        try {
-            $this->zip->close();
-
-            /** @type BaseFileService $storage */
-            $storage = ServiceHandler::getService($this->storageService);
-            $container = $storage->getContainerId();
-            if (!$storage->driver()->folderExists($container, $this->storageFolder)) {
-                $storage->driver()->createFolder($container, $this->storageFolder);
-            }
-            $storage->driver()->moveFile(
-                $container,
-                $this->storageFolder . '/' . basename($this->zipFilePath),
-                $this->zipFilePath
-            );
-            $url = Environment::getURI() .
-                '/' .
-                $this->storageService .
-                '/' .
-                $this->storageFolder .
-                '/' .
-                basename($this->zipFilePath);
-
-            return $url;
-        } catch (\Exception $e) {
-            throw new InternalServerErrorException(
-                'Failed to save the exported package using storage service ' .
-                $this->storageService . '. ' .
-                $e->getMessage()
-            );
-        }
     }
 
     protected function getStorageService($manifest)
@@ -143,33 +95,21 @@ class Exporter
         return $folder;
     }
 
-    protected function zipManifestFile()
+    protected function addManifestFile()
     {
-        $manifest = $this->generateManifest();
-        if (!$this->zip->addFromString('package.json', json_encode($manifest, JSON_UNESCAPED_SLASHES))) {
-            throw new InternalServerErrorException('Failed to add manifest file to the Zip Archive.');
-        }
+        $this->package->zipManifestFile($this->generateManifest());
     }
 
-    protected function zipResourceFiles()
+    protected function addResourceFiles()
     {
         foreach ($this->data as $service => $resources) {
             foreach ($resources as $resourceName => $records) {
-                if (!$this->zip->addFromString(
-                    $service . '/' . $resourceName . '.json',
-                    json_encode($records, JSON_UNESCAPED_SLASHES))
-                ) {
-                    throw new InternalServerErrorException("Failed to add " .
-                        $service .
-                        DIRECTORY_SEPARATOR .
-                        $resourceName .
-                        '.json to the Zip Archive.');
-                }
+                $this->package->zipResourceFile($service . '/' . $resourceName . '.json', $records);
             }
         }
     }
 
-    protected function zipStorageFiles()
+    protected function addStorageFiles()
     {
         $items = $this->package->getStorageItems();
         foreach ($items as $service => $resources) {
@@ -180,13 +120,7 @@ class Exporter
                 $zippedResource = $this->getStorageZip($service, $resource);
                 if ($zippedResource !== false) {
                     $newFileName = $service . '/' . str_replace('/', '_', rtrim($resource, '/')) . '.zip';
-                    if (!$this->zip->addFile($zippedResource, $newFileName)) {
-                        throw new InternalServerErrorException(
-                            'Failed to add contents of ' .
-                            $resource .
-                            ' to the Zip Archive.'
-                        );
-                    }
+                    $this->package->zipFile($zippedResource, $newFileName);
                 }
             }
         }
@@ -223,13 +157,7 @@ class Exporter
 
     protected function generateManifest()
     {
-        $manifest = [
-            'version'      => Package::VERSION,
-            'df_version'   => config('df.version'),
-            'secured'      => $this->package->isSecured(),
-            'description'  => '',
-            'created_date' => $this->package->getCreatedDate()
-        ];
+        $manifest = $this->package->getManifestHeader();
 
         $requestedItems = $this->package->getItems();
 
@@ -393,28 +321,5 @@ class Exporter
         } else {
             return $result;
         }
-    }
-
-    /**
-     * Initialize export zip file.
-     *
-     * @return bool
-     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
-     */
-    protected function initZipFile()
-    {
-        $host = php_uname('n');
-        $filename = $host . '_' . date('Y-m-d_H:i:s', time());
-        $zip = new \ZipArchive();
-        $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        $zipFileName = $tmpDir . $filename . '.zip';
-        $this->zip = $zip;
-        $this->zipFilePath = $zipFileName;
-
-        if (true !== $this->zip->open($zipFileName, \ZipArchive::CREATE)) {
-            throw new InternalServerErrorException('Failed to initiate package Zip Archive.');
-        }
-
-        return true;
     }
 }

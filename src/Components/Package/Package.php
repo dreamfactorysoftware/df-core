@@ -82,13 +82,30 @@ class Package
         return $this->storageItems;
     }
 
-    public function isFileService($serviceName)
+    public function isFileService($serviceName, $resources)
     {
         $service = Service::with('service_type_by_type')->whereName($serviceName)->first();
-        $relations = $service->getRelation('service_type_by_type');
-        $group = $relations->group;
+        if(!empty($service)) {
+            $relations = $service->getRelation('service_type_by_type');
+            $group = $relations->group;
 
-        return ($group === 'File') ? true : false;
+            return ($group === 'File') ? true : false;
+        } else {
+            if(is_string($resources)){
+                $resources = explode(',', $resources);
+            }
+            foreach ($resources as $resource){
+                if(is_string($resource)) {
+                    if (false !== $this->zip->locateName(
+                            $serviceName . '/' . rtrim($resource, '/') . '/' . md5($resource) . '.zip'
+                        )
+                    ) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
     
     protected function isValid()
@@ -140,13 +157,13 @@ class Package
 
     protected function getManifestFromZipFile()
     {
-        $zip = new \ZipArchive();
-        if(true !== $zip->open($this->zipFile))
+        $this->zip = new \ZipArchive();
+        if(true !== $this->zip->open($this->zipFile))
         {
             throw new InternalServerErrorException('Failed to open imported zip file.');
         }
 
-        $manifest = $zip->getFromName('package.json');
+        $manifest = $this->zip->getFromName('package.json');
         if(false === $manifest){
             throw new InternalServerErrorException('No package.json file found in the imported zip file.');
         }
@@ -160,7 +177,7 @@ class Package
         $m = $this->manifest;
         foreach ($m as $item => $value) {
             if (!in_array($item, static::$metaFields)) {
-                if($this->isFileService($item)){
+                if($this->isFileService($item, $value)){
                     $this->storageItems[$item] = $value;
                 } else {
                     $this->nonStorageItems[$item] = $value;
@@ -222,7 +239,7 @@ class Package
         $data = [];
         $json = $this->zip->getFromName($resourceFile);
         if(false !== $json){
-            $data = json_decode($resourceFile, JSON_UNESCAPED_SLASHES);
+            $data = json_decode($json, JSON_UNESCAPED_SLASHES);
         }
         return $data;
     }

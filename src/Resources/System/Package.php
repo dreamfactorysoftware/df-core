@@ -15,12 +15,15 @@ class Package extends BaseSystemResource
         }
 
         if(!empty($file)){
-            $package = new Importer($file);
+            $importer = new Importer($file);
+            $importer->import();
+            
+            return ['success' => true];
         } else {
             $manifest = $this->request->getPayloadData();
-            $package = new Exporter($manifest);
-            $url = $package->export();
-            $public = $package->isPublic();
+            $exporter = new Exporter($manifest);
+            $url = $exporter->export();
+            $public = $exporter->isPublic();
 
             return ['path' => $url, 'is_public' => $public];
         }

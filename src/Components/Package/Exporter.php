@@ -119,7 +119,7 @@ class Exporter
             foreach ($resources as $resource) {
                 $zippedResource = $this->getStorageZip($service, $resource);
                 if ($zippedResource !== false) {
-                    $newFileName = $service . '/' . str_replace('/', '_', rtrim($resource, '/')) . '.zip';
+                    $newFileName = $service . '/' . rtrim($resource, '/') . '/' . md5($resource) . '.zip';
                     $this->package->zipFile($zippedResource, $newFileName);
                 }
             }

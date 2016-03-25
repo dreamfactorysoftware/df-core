@@ -17,8 +17,8 @@ class Package extends BaseSystemResource
         if(!empty($file)){
             $importer = new Importer($file);
             $importer->import();
-            
-            return ['success' => true];
+
+            return ['success' => true, 'log'=>$importer->getLog()];
         } else {
             $manifest = $this->request->getPayloadData();
             $exporter = new Exporter($manifest);

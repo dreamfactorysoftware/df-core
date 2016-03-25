@@ -40,8 +40,8 @@ class Package
     
     /** @type array  */
     protected $zipFile = null;
-
-
+    
+    protected $destructible = [];
     
     private static $metaFields = ['version', 'df_version', 'description', 'secured', 'created_date', 'storage'];
 
@@ -55,6 +55,14 @@ class Package
             $this->manifest = $this->getManifestFromUrlImport($packageInfo);
         }
         $this->setManifestItems();
+    }
+
+    public function __destruct()
+    {
+        @unlink($this->zipFile);
+        foreach ($this->destructible as $d){
+            @unlink($d);
+        }
     }
 
     public function getManifestHeader()
@@ -242,6 +250,29 @@ class Package
             $data = json_decode($json, JSON_UNESCAPED_SLASHES);
         }
         return $data;
+    }
+
+    public function getZipFromZip($file)
+    {
+        $fh = $this->zip->getStream($file);
+        if (false !== $fh) {
+            $contents = null;
+            while (!feof($fh)) {
+                $contents .= fread($fh, 2);
+            }
+            $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $zipFile = $tmpDir . md5($file) . time() . '.zip';
+            file_put_contents($zipFile, $contents);
+
+            $zip = new \ZipArchive();
+            if (true !== $zip->open($zipFile)) {
+                throw new InternalServerErrorException('Error opening zip file ' . $file . '.');
+            }
+            $this->destructible[] = $zipFile;
+            
+            return $zip;
+        }
+        return null;
     }
 
     public function saveZipFile($storageService, $storageFolder)

@@ -35,12 +35,21 @@ class Exporter
     protected $defaultRelation = [
         'system/role' => ['role_service_access_by_role_id']
     ];
+    
+    protected $destructible = [];
 
     public function __construct(array $manifest)
     {
         $this->package = new Package($manifest);
         $this->storageService = $this->getStorageService($manifest);
         $this->storageFolder = $this->getStorageFolder($manifest);
+    }
+    
+    public function __destruct()
+    {
+        foreach ($this->destructible as $d){
+            @unlink($d);
+        }
     }
 
     public function export()
@@ -121,6 +130,7 @@ class Exporter
                 if ($zippedResource !== false) {
                     $newFileName = $service . '/' . rtrim($resource, '/') . '/' . md5($resource) . '.zip';
                     $this->package->zipFile($zippedResource, $newFileName);
+                    $this->destructible[] = $zippedResource;
                 }
             }
         }

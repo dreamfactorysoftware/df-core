@@ -12,10 +12,19 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Services\BaseFileService;
 use Illuminate\Support\Arr;
 
+/**
+ * Class Exporter.
+ * This class uses the Package instance and handles 
+ * everything to extract and export package file.
+ *
+ * @package DreamFactory\Core\Components\Package
+ */
 class Exporter
 {
+    /** Default storage for extracted package file. */
     const DEFAULT_STORAGE = 'files';
 
+    /** Default storage folder for extracted package file. */
     const DEFAULT_STORAGE_FOLDER = '__EXPORTS';
 
     /** @type \DreamFactory\Core\Components\Package\Package */
@@ -28,30 +37,70 @@ class Exporter
      */
     protected $data = [];
 
+    /**
+     * Storage service id or name. This storage
+     * service is used to store the extracted zip file.
+     *
+     * @type int|string
+     */
     protected $storageService;
 
+    /**
+     * Storage folder name. This storage folder
+     * is used to store the extracted zip file in.
+     *
+     * @type string
+     */
     protected $storageFolder;
 
+    /**
+     * Default relations to extract for a resource.
+     *
+     * @type array
+     */
     protected $defaultRelation = [
         'system/role' => ['role_service_access_by_role_id']
     ];
-    
+
+    /**
+     * Stores temp files to be deleted in __destruct.
+     *
+     * @type array
+     */
     protected $destructible = [];
 
+    /**
+     * Exporter constructor.
+     *
+     * @param array $manifest
+     */
     public function __construct(array $manifest)
     {
         $this->package = new Package($manifest);
         $this->storageService = $this->getStorageService($manifest);
         $this->storageFolder = $this->getStorageFolder($manifest);
     }
-    
+
+    /**
+     * Cleans up all temp files.
+     */
     public function __destruct()
     {
-        foreach ($this->destructible as $d){
+        foreach ($this->destructible as $d) {
             @unlink($d);
         }
     }
 
+    /**
+     * Extracts resources and exports the package file.
+     * Returns URL of the exported file.
+     *
+     * @return string
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
+     */
     public function export()
     {
         $this->gatherData();
@@ -64,6 +113,12 @@ class Exporter
         return $url;
     }
 
+    /**
+     * Checks to see if the URL of the exported zip file is
+     * publicly accessible.
+     *
+     * @return bool
+     */
     public function isPublic()
     {
         $service = Service::whereName($this->storageService)->first()->toArray();
@@ -80,6 +135,14 @@ class Exporter
         return false;
     }
 
+    /**
+     * Gets the storage service from the manifest
+     * to use for storing the exported zip file.
+     *
+     * @param $manifest
+     *
+     * @return mixed
+     */
     protected function getStorageService($manifest)
     {
         $storage = array_get($manifest, 'storage', static::DEFAULT_STORAGE);
@@ -87,13 +150,24 @@ class Exporter
             $name = array_get($storage, 'name', array_get($storage, 'id', static::DEFAULT_STORAGE));
             if (is_numeric($name)) {
                 $service = Service::find($name);
+
                 return $service->name;
             }
+
             return $name;
         }
+
         return $storage;
     }
 
+    /**
+     * Gets the storage folder from the manifest
+     * to use for storing the exported zip file in.
+     *
+     * @param $manifest
+     *
+     * @return string
+     */
     protected function getStorageFolder($manifest)
     {
         $folder = static::DEFAULT_STORAGE_FOLDER;
@@ -101,14 +175,25 @@ class Exporter
         if (is_array($storage)) {
             $folder = array_get($storage, 'folder', static::DEFAULT_STORAGE_FOLDER);
         }
+
         return $folder;
     }
 
+    /**
+     * Adds manifest file to the package.
+     *
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function addManifestFile()
     {
         $this->package->zipManifestFile($this->generateManifest());
     }
 
+    /**
+     * Adds resource files to the package.
+     *
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function addResourceFiles()
     {
         foreach ($this->data as $service => $resources) {
@@ -118,9 +203,14 @@ class Exporter
         }
     }
 
+    /**
+     * Adds app files or other storage files to the package.
+     *
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function addStorageFiles()
     {
-        $items = $this->package->getStorageItems();
+        $items = $this->package->getStorageServices();
         foreach ($items as $service => $resources) {
             if (is_string($resources)) {
                 $resources = explode(',', $resources);
@@ -136,6 +226,16 @@ class Exporter
         }
     }
 
+    /**
+     * Returns the path of the zip file containing
+     * app files or other storage files.
+     *
+     * @param $service
+     * @param $resource
+     *
+     * @return bool|string
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function getStorageZip($service, $resource)
     {
         /** @type BaseFileService $storage */
@@ -165,21 +265,27 @@ class Exporter
         return $zipFileName;
     }
 
+    /**
+     * Generates the package manifest.
+     *
+     * @return array
+     */
     protected function generateManifest()
     {
         $manifest = $this->package->getManifestHeader();
 
-        $requestedItems = $this->package->getItems();
+        $requestedItems = $this->package->getServices();
 
         foreach ($requestedItems as $service => $resources) {
             foreach ($resources as $resourceName => $details) {
                 if (isset($this->data[$service][$resourceName])) {
                     $records = $this->data[$service][$resourceName];
                     foreach ($records as $i => $record) {
-                        $manifest[$service][$resourceName][] = array_get($record, 'name', array_get($details, $i, []));
+                        $manifest['service'][$service][$resourceName][] =
+                            array_get($record, 'name', array_get($details, $i, []));
                     }
                 } else {
-                    $manifest[$service][$resourceName] = $details;
+                    $manifest['service'][$service][$resourceName] = $details;
                 }
             }
         }
@@ -187,10 +293,18 @@ class Exporter
         return $manifest;
     }
 
+    /**
+     * Extracts all non-storage resources for export.
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
+     */
     public function gatherData()
     {
         try {
-            $items = $this->package->getNonStorageItems();
+            $items = $this->package->getNonStorageServices();
             foreach ($items as $service => $resources) {
                 foreach ($resources as $resourceName => $details) {
                     $this->data[$service][$resourceName] = $this->gatherResource($service, $resourceName, $details);
@@ -207,6 +321,19 @@ class Exporter
         }
     }
 
+    /**
+     * Extracts a specific service/resource for export.
+     *
+     * @param string $service  service name
+     * @param string $resource resource name
+     * @param mixed  $details  resource details
+     *
+     * @return array|\DreamFactory\Core\Contracts\ServiceResponseInterface|mixed
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
+     * @throws \Exception
+     */
     protected function gatherResource($service, $resource, $details)
     {
         $export = [];
@@ -257,6 +384,18 @@ class Exporter
         return $export;
     }
 
+    /**
+     * Returns the full resource path for extracting a resource.
+     *
+     * @param string $service
+     * @param string $resource
+     * @param mixed  $id
+     * @param array  $params
+     *
+     * @return string
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
+     */
     protected function getResourcePath($service, $resource, $id, array &$params)
     {
         $api = strtolower($service . '/' . $resource);
@@ -287,6 +426,13 @@ class Exporter
         return $resource;
     }
 
+    /**
+     * Sets the default relations to extract for some resources.
+     *
+     * @param string $service
+     * @param string $resource
+     * @param array  $params
+     */
     protected function setDefaultRelations($service, $resource, &$params)
     {
         $api = strtolower($service . '/' . $resource);
@@ -304,6 +450,18 @@ class Exporter
         }
     }
 
+    /**
+     * Extracts a resource
+     *
+     * @param string $service
+     * @param string $resource
+     * @param array  $params
+     * @param null   $payload
+     *
+     * @return array|\DreamFactory\Core\Contracts\ServiceResponseInterface|mixed
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \Exception
+     */
     protected function getResource($service, $resource, $params = [], $payload = null)
     {
         try {

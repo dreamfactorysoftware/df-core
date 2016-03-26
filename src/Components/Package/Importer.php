@@ -13,20 +13,49 @@ use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Enums\Verbs;
 
+/**
+ * Class Importer.
+ * This class uses the Package instance and handles
+ * everything to import package file.
+ *
+ * @package DreamFactory\Core\Components\Package
+ */
 class Importer
 {
-    protected $package = null;
+    /** @type \DreamFactory\Core\Components\Package\Package */
+    protected $package;
 
+    /**
+     * Keeps an internal log of what's happening during the import process.
+     *
+     * @type array
+     */
     protected $log = [];
 
+    /**
+     * When this is true, import skips record that already exists.
+     *
+     * @type bool
+     */
     protected $ignoreExisting = true;
 
+    /**
+     * Importer constructor.
+     *
+     * @param mixed $package        Package info (uploaded file array or url of file)
+     * @param bool  $ignoreExisting Set true to ignore duplicates or false to throw exception.
+     */
     public function __construct($package, $ignoreExisting = true)
     {
         $this->package = new Package($package);
         $this->ignoreExisting = $ignoreExisting;
     }
 
+    /**
+     * Imports the packages.
+     *
+     * @throws \Exception
+     */
     public function import()
     {
         \DB::beginTransaction();
@@ -47,11 +76,22 @@ class Importer
         \DB::commit();
     }
 
+    /**
+     * Returns the internal log.
+     *
+     * @return array
+     */
     public function getLog()
     {
         return $this->log;
     }
 
+    /**
+     * Imports system/role
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function insertRole()
     {
         $data = $this->package->getResourceFromZip('system/role.json');
@@ -77,6 +117,12 @@ class Importer
         }
     }
 
+    /**
+     * Imports system/service
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function insertService()
     {
         $data = $this->package->getResourceFromZip('system/service.json');
@@ -121,6 +167,12 @@ class Importer
         }
     }
 
+    /**
+     * Imports Role Service Access relations for role.
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function insertRoleServiceAccess()
     {
         $rolesInZip = $this->package->getResourceFromZip('system/role.json');
@@ -175,6 +227,12 @@ class Importer
         }
     }
 
+    /**
+     * Imports system/app
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function insertApp()
     {
         $data = $this->package->getResourceFromZip('system/app.json');
@@ -225,9 +283,14 @@ class Importer
         }
     }
 
+    /**
+     * Imports resources that does not need to inserted in a specific order.
+     *
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function insertOtherResource()
     {
-        $items = $this->package->getNonStorageItems();
+        $items = $this->package->getNonStorageServices();
 
         foreach ($items as $service => $resources) {
             foreach ($resources as $resourceName => $details) {
@@ -253,6 +316,12 @@ class Importer
         }
     }
 
+    /**
+     * Imports system/event scripts.
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function insertEventScripts()
     {
         $data = $this->package->getResourceFromZip('system/event.json');
@@ -275,6 +344,15 @@ class Importer
         }
     }
 
+    /**
+     * Imports generic resources.
+     *
+     * @param string $service
+     * @param string $resource
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function insertGenericResources($service, $resource)
     {
         $data = $this->package->getResourceFromZip($service . '/' . $resource . '.json');
@@ -305,9 +383,12 @@ class Importer
         }
     }
 
+    /**
+     * Imports app files or other storage files from package.
+     */
     protected function storeFiles()
     {
-        $items = $this->package->getStorageItems();
+        $items = $this->package->getStorageServices();
 
         foreach ($items as $service => $resources) {
             if (is_string($resources)) {
@@ -330,12 +411,19 @@ class Importer
                         );
                     }
                 }
-            } catch (\Exception $e){
-                $this->log('error', 'Failed to store files for service '.$service.'. '.$e->getMessage());
+            } catch (\Exception $e) {
+                $this->log('error', 'Failed to store files for service ' . $service . '. ' . $e->getMessage());
             }
         }
     }
 
+    /**
+     * Finds and returns the new role id by old id.
+     *
+     * @param int $oldRoleId
+     *
+     * @return int|null
+     */
     protected function getNewRoleId($oldRoleId)
     {
         if (empty($oldRoleId)) {
@@ -361,6 +449,13 @@ class Importer
         return null;
     }
 
+    /**
+     * Finds and returns the new service id by old id.
+     *
+     * @param int $oldServiceId
+     *
+     * @return int|null
+     */
     protected function getNewServiceId($oldServiceId)
     {
         if (empty($oldServiceId)) {
@@ -387,7 +482,7 @@ class Importer
     }
 
     /**
-     * Store log in importer and write to system log.
+     * Stores internal log and write to system log.
      *
      * @param string $level
      * @param string $msg
@@ -432,6 +527,16 @@ class Importer
         }
     }
 
+    /**
+     * Removes records from packaged resource that already exists
+     * in the target instance.
+     *
+     * @param $data
+     * @param $service
+     * @param $resource
+     *
+     * @return array
+     */
     protected function cleanDuplicates($data, $service, $resource)
     {
         $cleaned = [];
@@ -463,6 +568,17 @@ class Importer
         return $cleaned;
     }
 
+    /**
+     * Checks to see if a resource record is a duplicate.
+     *
+     * @param string $service
+     * @param string $resource
+     * @param mixed  $value
+     * @param string $key
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
     protected function isDuplicate($service, $resource, $value, $key = 'name')
     {
         if ($this->ignoreExisting) {

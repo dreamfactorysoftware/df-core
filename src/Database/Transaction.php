@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Database;
 
+use Illuminate\Database\Connection;
+
 /**
  * Transaction represents a DB transaction.
  *
@@ -51,7 +53,7 @@ class Transaction
     public function commit()
     {
         if ($this->active && $this->connection->getActive()) {
-            $this->connection->getPdoInstance()->commit();
+            $this->connection->getPdo()->commit();
             $this->active = false;
         } else {
             throw new \Exception('Transaction is inactive and cannot perform commit or roll back operations.');
@@ -66,7 +68,7 @@ class Transaction
     public function rollback()
     {
         if ($this->active && $this->connection->getActive()) {
-            $this->connection->getPdoInstance()->rollBack();
+            $this->connection->getPdo()->rollBack();
             $this->active = false;
         } else {
             throw new \Exception('Transaction is inactive and cannot perform commit or roll back operations.');

@@ -1,21 +1,22 @@
 <?php
-namespace DreamFactory\Core\Database\Sqlanywhere;
 
-/**
- * Connection represents a connection to a SAP SQL Anywhere database.
- */
-class Connection extends \DreamFactory\Core\Database\Connection
+namespace DreamFactory\Core\Database;
+
+use DreamFactory\Core\Database\Sqlanywhere\Schema;
+use Illuminate\Database\Connection;
+
+class SqlAnywhereConnection extends Connection
 {
-    public static function checkRequirements($driver, $throw_exception = true)
+    use ConnectionExtension;
+
+    public function checkRequirements()
     {
         $extension = 'mssql';
         if (!extension_loaded($extension)) {
-            if ($throw_exception) {
-                \Log::notice("Required extension 'mssql' is not detected, but may be compiled in.");
-            }
+            throw new \Exception("Required extension 'mssql' is not detected, but may be compiled in.");
         }
 
-        return parent::checkRequirements('dblib', $throw_exception);
+        static::checkForPdoDriver('dblib');
     }
 
     public static function getDriverLabel()
@@ -29,7 +30,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
         return 'dblib:host=localhost:2638;dbname=database';
     }
 
-    public function __construct($dsn = '', $username = '', $password = '')
+    public function __construct($pdo, $database = '', $tablePrefix = '', array $config = [])
     {
         if (null !== $dumpLocation = config('df.db.freetds.dump')) {
             if (!putenv("TDSDUMP=$dumpLocation")) {
@@ -47,7 +48,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
             }
         }
 
-        parent::__construct($dsn, $username, $password);
+        parent::__construct($pdo, $database, $tablePrefix, $config);
     }
 
     public function getSchema()

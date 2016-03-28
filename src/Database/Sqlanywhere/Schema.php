@@ -16,7 +16,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
      */
     public function getDefaultSchema($refresh = false)
     {
-        return $this->connection->username;
+        return $this->connection->getUserName();
     }
 
     protected function translateSimpleColumnTypes(array &$info)

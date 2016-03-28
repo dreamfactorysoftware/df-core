@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Database;
 
+use Illuminate\Database\Connection;
+
 /**
  * Command represents an SQL statement to execute against a database.
  *
@@ -211,7 +213,7 @@ class Command
     {
         if ($this->statement == null) {
             try {
-                $this->statement = $this->getConnection()->getPdoInstance()->prepare($this->getText());
+                $this->statement = $this->getConnection()->getPdo()->prepare($this->getText());
                 $this->paramLog = [];
             } catch (\Exception $e) {
                 $errorInfo = $e instanceof \PDOException ? $e : null;
@@ -1460,7 +1462,7 @@ class Command
     {
         $schema = $this->getConnection()->getSchema();
         $n = $this->setText($schema->truncateTable($table))->execute();
-        if (strncasecmp($this->getConnection()->getDBName(), 'sqlite', 6) === 0) {
+        if (strncasecmp($this->getConnection()->getDriverName(), 'sqlite', 6) === 0) {
             $schema->resetSequence($schema->getTable($table));
         }
 

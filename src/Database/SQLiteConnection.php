@@ -1,27 +1,23 @@
 <?php
-namespace DreamFactory\Core\Database\Sqlite;
 
+namespace DreamFactory\Core\Database;
+
+use DreamFactory\Core\Database\Sqlite\Schema;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\Exceptions\ServiceUnavailableException;
-use DreamFactory\Managed\Support\Managed;
-use Illuminate\Support\Facades\Log;
 
-/**
- * Connection represents a connection to a Sqlite database.
- */
-class Connection extends \DreamFactory\Core\Database\Connection
+class SQLiteConnection extends \Illuminate\Database\SQLiteConnection
 {
+    use ConnectionExtension;
+
     public $initSQLs = ['PRAGMA foreign_keys=1'];
 
-    public static function checkRequirements($driver, $throw_exception = true)
+    public function checkRequirements()
     {
         if (!extension_loaded('sqlite3')) {
-            if ($throw_exception) {
-                \Log::notice("Required extension 'sqlite3' is not detected, but may be compiled in.");
-            }
+            throw new \Exception("Required extension 'sqlite3' is not detected, but may be compiled in.");
         }
 
-        return parent::checkRequirements('sqlite', $throw_exception);
+        static::checkForPdoDriver('sqlite');
     }
 
     public static function getDriverLabel()
@@ -35,8 +31,9 @@ class Connection extends \DreamFactory\Core\Database\Connection
         return 'sqlite:db.sq3';
     }
 
-    public function __construct($dsn = '', $username = '', $password = '')
+    public function __construct($pdo, $database = '', $tablePrefix = '', array $config = [])
     {
+        $dsn = isset($config['dsn']) ? $config['dsn'] : null;
         $file = substr($dsn, 7);
         if (false === strpos($file, DIRECTORY_SEPARATOR)) {
             // no directories involved, store it where we want to store it
@@ -50,10 +47,21 @@ class Connection extends \DreamFactory\Core\Database\Connection
                 throw new InternalServerErrorException('Failed to access storage path.');
             }
 
-            $dsn = 'sqlite:' . rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $file;
+            $config['dsn'] = 'sqlite:' . rtrim($storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $file;
         }
 
-        parent::__construct($dsn, $username, $password);
+        parent::__construct($pdo, $database, $tablePrefix, $config);
+    }
+
+    public static function adaptConfig(array &$config)
+    {
+        parent::adaptConfig($config);
+        $dsn = isset($config['dsn']) ? $config['dsn'] : null;
+        if (!empty($dsn)) {
+            if (!isset($config['database'])) {
+                $config['database'] = substr($dsn, 7);
+            }
+        }
     }
 
     public function getSchema()

@@ -1,20 +1,22 @@
 <?php
-namespace DreamFactory\Core\Database\Mysql;
 
-/**
- * Connection represents a connection to a MySQL database.
- */
-class Connection extends \DreamFactory\Core\Database\Connection
+namespace DreamFactory\Core\Database;
+
+use DreamFactory\Core\Database\Mysql\Schema;
+
+class MySqlConnection extends \Illuminate\Database\MySqlConnection
 {
-    public static function checkRequirements($driver, $throw_exception = true)
+    use ConnectionExtension;
+
+    public $emulatePrepare = true;
+
+    public function checkRequirements()
     {
         if (!extension_loaded('mysql') && !extension_loaded('mysqlnd')) {
-            if ($throw_exception) {
-                \Log::notice("Required extension 'mysql' is not detected, but may be compiled in.");
-            }
+            throw new \Exception("Required extension 'mysql' is not detected, but may be compiled in.");
         }
 
-        return parent::checkRequirements('mysql', $throw_exception);
+        static::checkForPdoDriver('mysql');
     }
 
     public static function getDriverLabel()

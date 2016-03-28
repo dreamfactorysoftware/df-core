@@ -6,13 +6,13 @@ use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Components\SchemaToOpenApiDefinition;
 use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Database\Connection;
+use DreamFactory\Core\Database\Connectors\ConnectionFactory;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Components\ConnectionAdapter;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableSchema;
@@ -761,7 +761,7 @@ class BaseModel extends Model implements CacheInterface
     {
         if (empty($this->adaptedConnection)) {
             $connection = $this->getConnection();
-            $this->adaptedConnection = ConnectionAdapter::getLegacyConnection($connection);
+            $this->adaptedConnection = ConnectionFactory::adaptConnection($connection);
             $this->cachePrefix = 'model_' . $this->getTable() . ':';
             $this->adaptedConnection->setCache($this);
         }

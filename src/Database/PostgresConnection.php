@@ -1,20 +1,20 @@
 <?php
-namespace DreamFactory\Core\Database\Pgsql;
 
-/**
- * Connection represents a connection to a PostgreSQL database.
- */
-class Connection extends \DreamFactory\Core\Database\Connection
+namespace DreamFactory\Core\Database;
+
+use DreamFactory\Core\Database\Pgsql\Schema;
+
+class PostgresConnection extends \Illuminate\Database\PostgresConnection
 {
-    public static function checkRequirements($driver, $throw_exception = true)
+    use ConnectionExtension;
+
+    public function checkRequirements()
     {
         if (!extension_loaded('pgsql')) {
-            if ($throw_exception) {
-                \Log::notice("Required extension 'pgsql' is not detected, but may be compiled in.");
-            }
+            throw new \Exception("Required extension 'pgsql' is not detected, but may be compiled in.");
         }
 
-        return parent::checkRequirements('pgsql', $throw_exception);
+        static::checkForPdoDriver('pgsql');
     }
 
     public static function getDriverLabel()

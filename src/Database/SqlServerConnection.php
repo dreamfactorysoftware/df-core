@@ -1,18 +1,18 @@
 <?php
-namespace DreamFactory\Core\Database\Mssql;
 
-/**
- * Connection represents a connection to a Microsoft SQL Server database.
- */
-class Connection extends \DreamFactory\Core\Database\Connection
+namespace DreamFactory\Core\Database;
+
+use DreamFactory\Core\Database\Mssql\Schema;
+
+class SqlServerConnection extends \Illuminate\Database\SqlServerConnection
 {
-    public $pdoClass = 'DreamFactory\Core\Database\Mssql\PdoAdapter';
+    use ConnectionExtension;
 
     // These are on by default for sqlsrv driver, but not dblib.
     // Also, can't use 'SET ANSI_DEFAULTS ON', seems to return false positives for DROP TABLE etc. todo
     public $initSQLs = ['SET QUOTED_IDENTIFIER ON;', 'SET ANSI_WARNINGS ON;', 'SET ANSI_NULLS ON;'];
 
-    public static function checkRequirements($driver, $throw_exception = true)
+    public function checkRequirements()
     {
         if (substr(PHP_OS, 0, 3) == 'WIN') {
             $driver = 'sqlsrv';
@@ -23,12 +23,10 @@ class Connection extends \DreamFactory\Core\Database\Connection
         }
 
         if (!extension_loaded($extension)) {
-            if ($throw_exception) {
-                \Log::notice("Required extension '$extension' is not detected, but may be compiled in.");
-            }
+            throw new \Exception("Required extension '$extension' is not detected, but may be compiled in.");
         }
 
-        return parent::checkRequirements($driver, $throw_exception);
+        static::checkForPdoDriver($driver);
     }
 
     public static function getDriverLabel()
@@ -47,11 +45,9 @@ class Connection extends \DreamFactory\Core\Database\Connection
         return 'dblib:host=localhost:1433;dbname=database;charset=UTF-8';
     }
 
-    public function __construct($dsn = '', $username = '', $password = '')
+    public function __construct($pdo, $database = '', $tablePrefix = '', array $config = [])
     {
         if (substr(PHP_OS, 0, 3) == 'WIN') {
-            // MS SQL Server on Windows
-            $this->pdoClass = 'DreamFactory\Core\Database\Mssql\SqlsrvPdoAdapter';
         } else {
             if (null !== $dumpLocation = config('df.db.freetds.dump')) {
                 if (!putenv("TDSDUMP=$dumpLocation")) {
@@ -70,7 +66,7 @@ class Connection extends \DreamFactory\Core\Database\Connection
             }
         }
 
-        parent::__construct($dsn, $username, $password);
+        parent::__construct($pdo, $database, $tablePrefix, $config);
     }
 
     public function getSchema()

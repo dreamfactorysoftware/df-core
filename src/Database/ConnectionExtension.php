@@ -97,71 +97,20 @@ use DreamFactory\Core\Contracts\CacheInterface;
  * @property array          $stats              The first element indicates the number of SQL statements executed,
  * and the second element the total time spent in SQL execution.
  */
-abstract class Connection
+trait ConnectionExtension
 {
-    /**
-     * @var string The Data Source Name, or DSN, contains the information required to connect to the database.
-     * @see http://www.php.net/manual/en/function.PDO-construct.php
-     *
-     * Note that if you're using GBK or BIG5 then it's highly recommended to
-     * update to PHP 5.3.6+ and to specify charset via DSN like
-     * 'mysql:dbname=mydatabase;host=127.0.0.1;charset=GBK;'.
-     */
-    public $connectionString;
-    /**
-     * @var string the username for establishing DB connection. Defaults to empty string.
-     */
-    public $username = '';
-    /**
-     * @var string the password for establishing DB connection. Defaults to empty string.
-     */
-    public $password = '';
-    /**
-     * @var boolean whether the database connection should be automatically established
-     * the component is being initialized. Defaults to true. Note, this property is only
-     * effective when the Connection object is used as an application component.
-     */
-    public $autoConnect = true;
-    /**
-     * @var string the charset used for database connection. The property is only used
-     * for MySQL and PostgreSQL databases. Defaults to null, meaning using default charset
-     * as specified by the database.
-     *
-     * Note that if you're using GBK or BIG5 then it's highly recommended to
-     * update to PHP 5.3.6+ and to specify charset via DSN like
-     * 'mysql:dbname=mydatabase;host=127.0.0.1;charset=GBK;'.
-     */
-    public $charset;
-    /**
-     * @var boolean whether to turn on prepare emulation. Defaults to false, meaning PDO
-     * will use the native prepare support if available. For some databases (such as MySQL),
-     * this may need to be set true so that PDO can emulate the prepare support to bypass
-     * the buggy native prepare support. Note, this property is only effective for PHP 5.1.3 or above.
-     * The default value is null, which will not change the ATTR_EMULATE_PREPARES value of PDO.
-     */
-    public $emulatePrepare;
-    /**
-     * @var string the default prefix for table names. Defaults to null, meaning no table prefix.
-     * By setting this property, any token like '{{tableName}}' in {@link Command::text} will
-     * be replaced by 'prefixTableName', where 'prefix' refers to this property value.
-     */
-    public $tablePrefix;
     /**
      * @var array list of SQL statements that should be executed right after the DB connection is established.
      */
-    public $initSQLs;
-    /**
-     * @var string Custom PDO wrapper class.
-     */
-    public $pdoClass = 'PDO';
+    protected $initSQLs;
     /**
      * @var CacheInterface
      */
-    public $cache = null;
+    protected $cache = null;
     /**
      * @var DbExtrasInterface
      */
-    public $extraStore = null;
+    protected $extraStore = null;
     /**
      * @var boolean
      */
@@ -175,10 +124,6 @@ abstract class Connection
      */
     protected $active = false;
     /**
-     * @var \PDO
-     */
-    protected $pdo;
-    /**
      * @var Transaction
      */
     protected $transaction;
@@ -186,6 +131,10 @@ abstract class Connection
      * @var Schema
      */
     protected $schema;
+    /**
+     * @var array
+     */
+    protected $config;
 
     public static function getDriverLabel()
     {
@@ -197,59 +146,83 @@ abstract class Connection
         return '';
     }
 
-    public static function checkRequirements($driver, $throw_exception = true)
+    /**
+     * @param string $driver
+     *
+     * @throws \Exception
+     */
+    public static function checkForPdoDriver($driver)
     {
         if (!extension_loaded('PDO')) {
-            if ($throw_exception) {
-                throw new \Exception("Required PDO extension is not installed or loaded.");
-            } else {
-                return false;
-            }
+            throw new \Exception("Required PDO extension is not installed or loaded.");
         }
 
         // see overrides for specific driver checks
         $drivers = \PDO::getAvailableDrivers();
         if (!in_array($driver, $drivers)) {
-            if ($throw_exception) {
-                throw new \Exception("Required PDO driver '$driver' is not installed or loaded properly.");
-            } else {
-                return false;
+            throw new \Exception("Required PDO driver '$driver' is not installed or loaded properly.");
+        }
+    }
+
+    public static function adaptConfig(array &$config)
+    {
+        $dsn = isset($config['dsn']) ? $config['dsn'] : null;
+        if (!empty($dsn)) {
+            if (!isset($config['host']) && (false !== ($pos = strpos($dsn, 'host=')))) {
+                $temp = substr($dsn, $pos + 5);
+                $config['host'] = (false !== $pos = strpos($temp, ';')) ? substr($temp, 0, $pos) : $temp;
+            }
+            if (!isset($config['port']) && (false !== ($pos = strpos($dsn, 'port=')))) {
+                $temp = substr($dsn, $pos + 5);
+                $config['port'] = (false !== $pos = strpos($temp, ';')) ? substr($temp, 0, $pos) : $temp;
+            }
+            if (!isset($config['database']) && (false !== ($pos = strpos($dsn, 'dbname=')))) {
+                $temp = substr($dsn, $pos + 7);
+                $config['database'] = (false !== $pos = strpos($temp, ';')) ? substr($temp, 0, $pos) : $temp;
+            }
+            if (!isset($config['charset'])) {
+                if (false !== ($pos = strpos($dsn, 'charset='))) {
+                    $temp = substr($dsn, $pos + 8);
+                    $config['charset'] = (false !== $pos = strpos($temp, ';')) ? substr($temp, 0, $pos) : $temp;
+                } else {
+                    $config['charset'] = 'utf8';
+                }
             }
         }
 
-        return true;
+        if (!isset($config['collation'])) {
+            $config['collation'] = 'utf8_unicode_ci';
+        }
+
+        // laravel database config requires options to be [], not null
+        if (array_key_exists('options', $config) && is_null($config['options'])) {
+            $config['options'] = [];
+        }
     }
 
     /**
-     * Constructor.
-     * Note, the DB connection is not established when this connection
-     * instance is created. Set {@link setActive active} property to true
-     * to establish the connection.
+     * Returns the name of the DB driver from a connection string
      *
-     * @param string $dsn                         The Data Source Name, or DSN, contains the information required to
-     *                                            connect to the database.
-     * @param string $username                    The user name for the DSN string.
-     * @param string $password                    The password for the DSN string.
+     * @param string $dsn The connection string
      *
-     * @see http://www.php.net/manual/en/function.PDO-construct.php
+     * @return string name of the DB driver
      */
-    public function __construct($dsn = '', $username = '', $password = '')
+    public static function getDriverFromDSN($dsn)
     {
-        $this->connectionString = $dsn;
-        $this->username = $username;
-        $this->password = $password;
+        if (is_string($dsn)) {
+            if (($pos = strpos($dsn, ':')) !== false) {
+                return strtolower(substr($dsn, 0, $pos));
+            }
+        }
+
+        return null;
     }
 
     /**
-     * Close the connection when serializing.
-     *
-     * @return array
+     * @throws \Exception
      */
-    public function __sleep()
+    public function checkRequirements()
     {
-        $this->close();
-
-        return array_keys(get_object_vars($this));
     }
 
     /**
@@ -309,123 +282,9 @@ abstract class Connection
         $this->defaultSchemaOnly = $defaultSchemaOnly;
     }
 
-    /**
-     * Returns the name of the DB driver from a connection string
-     *
-     * @param string $dsn The connection string
-     *
-     * @return string name of the DB driver
-     */
-    public static function getDriverFromDSN($dsn)
+    public function getUserName()
     {
-        if (is_string($dsn)) {
-            if (($pos = strpos($dsn, ':')) !== false) {
-                return strtolower(substr($dsn, 0, $pos));
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Initializes the component.
-     * This method is required by {@link IApplicationComponent} and is invoked by application
-     * when the Connection is used as an application component.
-     * If you override this method, make sure to call the parent implementation
-     * so that the component can be marked as initialized.
-     */
-    public function init()
-    {
-        if ($this->autoConnect) {
-            $this->setActive(true);
-        }
-    }
-
-    /**
-     * Returns whether the DB connection is established.
-     *
-     * @return boolean whether the DB connection is established
-     */
-    public function getActive()
-    {
-        return $this->active;
-    }
-
-    /**
-     * Open or close the DB connection.
-     *
-     * @param boolean $value whether to open or close DB connection
-     *
-     * @throws \Exception if connection fails
-     */
-    public function setActive($value)
-    {
-        if ($value != $this->active) {
-            if ($value) {
-                $this->open();
-            } else {
-                $this->close();
-            }
-        }
-    }
-
-    /**
-     * Opens DB connection if it is currently not
-     *
-     * @throws \Exception if connection fails
-     */
-    protected function open()
-    {
-        if ($this->pdo === null) {
-            if (empty($this->connectionString)) {
-                throw new \Exception('Connection.connectionString cannot be empty.');
-            }
-            try {
-                $this->pdo = $this->createPdoInstance();
-                $this->initConnection($this->pdo);
-                $this->active = true;
-            } catch (\PDOException $e) {
-                \Log::error($e->errorInfo);
-                throw new \Exception(
-                    'Connection failed to open the DB connection: ' . $e->getMessage(), (int)$e->getCode()
-                );
-            }
-        }
-    }
-
-    /**
-     * Closes the currently active DB connection.
-     * It does nothing if the connection is already closed.
-     */
-    protected function close()
-    {
-        $this->pdo = null;
-        $this->active = false;
-        $this->schema = null;
-    }
-
-    /**
-     * Creates the PDO instance.
-     * When some functionalities are missing in the pdo driver, we may use
-     * an adapter class to provide them.
-     *
-     * @throws \Exception when failed to open DB connection
-     * @return \PDO the pdo instance
-     */
-    protected function createPdoInstance()
-    {
-        $pdoClass = $this->pdoClass;
-        if (!class_exists($pdoClass)) {
-            throw new \Exception("Connection is unable to find PDO class '{$pdoClass}'. Make sure PDO is installed correctly.");
-        }
-
-        @$instance = new $pdoClass($this->connectionString, $this->username, $this->password, $this->attributes);
-
-        if (!$instance) {
-            throw new \Exception('Connection failed to open the DB connection.');
-        }
-
-        return $instance;
+        return array_get($this->config, 'username');
     }
 
     /**
@@ -442,6 +301,10 @@ abstract class Connection
             $pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES, $this->emulatePrepare);
         }
 
+        if (!empty($attributes = array_get($this->config, 'attributes'))) {
+            $this->setAttributes($attributes);
+        }
+
         $driver = strtolower($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME));
         if ($this->charset !== null) {
             if (in_array($driver, ['pgsql', 'mysql', 'mysqli'])) {
@@ -453,16 +316,6 @@ abstract class Connection
                 $pdo->exec($sql);
             }
         }
-    }
-
-    /**
-     * Returns the PDO instance.
-     *
-     * @return \PDO the PDO instance, null if the connection is not established yet
-     */
-    public function getPdoInstance()
-    {
-        return $this->pdo;
     }
 
     /**
@@ -478,8 +331,6 @@ abstract class Connection
      */
     public function createCommand($query = null)
     {
-        $this->setActive(true);
-
         return new Command($this, $query);
     }
 
@@ -507,7 +358,7 @@ abstract class Connection
     public function beginTransaction()
     {
         $this->setActive(true);
-        $this->pdo->beginTransaction();
+        $this->getPdo()->beginTransaction();
 
         return $this->transaction = new Transaction($this);
     }
@@ -542,7 +393,7 @@ abstract class Connection
     {
         $this->setActive(true);
 
-        return $this->pdo->lastInsertId($sequenceName);
+        return $this->getPdo()->lastInsertId($sequenceName);
     }
 
     /**
@@ -560,7 +411,7 @@ abstract class Connection
         }
 
         $this->setActive(true);
-        if (($value = $this->pdo->quote($str)) !== false) {
+        if (($value = $this->getPdo()->quote($str)) !== false) {
             return $value;
         } else  // the driver doesn't support quote (e.g. oci)
         {
@@ -705,20 +556,6 @@ abstract class Connection
     }
 
     /**
-     * Returns the name of the DB driver
-     *
-     * @return string name of the DB driver
-     */
-    public function getDBName()
-    {
-        if (($pos = strpos($this->connectionString, ':')) !== false) {
-            return strtolower(substr($this->connectionString, 0, $pos));
-        }
-
-        return $this->getAttribute(\PDO::ATTR_DRIVER_NAME);
-    }
-
-    /**
      * Returns the version information of the DB driver.
      *
      * @return string the version information of the DB driver
@@ -791,7 +628,7 @@ abstract class Connection
     {
         $this->setActive(true);
 
-        return $this->pdo->getAttribute($name);
+        return $this->getPdo()->getAttribute($name);
     }
 
     /**
@@ -804,8 +641,9 @@ abstract class Connection
      */
     public function setAttribute($name, $value)
     {
-        if ($this->pdo instanceof \PDO) {
-            $this->pdo->setAttribute($name, $value);
+        $pdo = $this->getPdo();
+        if ($pdo instanceof \PDO) {
+            $pdo->setAttribute($name, $value);
         } else {
             $this->attributes[$name] = $value;
         }
@@ -836,20 +674,6 @@ abstract class Connection
         foreach ($values as $name => $value) {
             $this->attributes[$name] = $value;
         }
-    }
-
-    /**
-     * Returns the statistical results of SQL executions.
-     * The results returned include the number of SQL statements executed and
-     * the total time spent.
-     * In order to use this method, {@link enableProfiling} has to be set true.
-     *
-     * @return array the first element indicates the number of SQL statements executed,
-     * and the second element the total time spent in SQL execution.
-     */
-    public function getStats()
-    {
-        return [];
     }
 
     public function getFromCache($key)

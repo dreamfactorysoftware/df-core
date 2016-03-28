@@ -531,11 +531,11 @@ class ColumnSchema
             case null:
                 $type = $this->getDbFunctionType();
                 $pdoType = $this->extractPdoType($type);
-                $phpType = (is_null($pdoType)) ? $type : null;
+                $phpType = $type;
                 break;
             default:
                 $pdoType = ($this->allowNull) ? null : $this->pdoType;
-                $phpType = (is_null($pdoType)) ? $this->phpType : null;
+                $phpType = $this->phpType;
                 break;
         }
 

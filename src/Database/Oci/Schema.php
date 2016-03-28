@@ -281,7 +281,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
      */
     public function getDefaultSchema($refresh = false)
     {
-        return strtoupper($this->connection->username);
+        return strtoupper($this->connection->getUserName());
     }
 
     /**

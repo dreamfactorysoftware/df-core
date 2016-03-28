@@ -1,23 +1,21 @@
 <?php
-namespace DreamFactory\Core\Database\Oci;
 
-/**
- * Connection represents a connection to a Oracle database.
- */
-class Connection extends \DreamFactory\Core\Database\Connection
+namespace DreamFactory\Core\Database;
+
+use DreamFactory\Core\Database\Oci\Schema;
+
+class OracleConnection extends \Yajra\Oci8\Oci8Connection
 {
+    use ConnectionExtension;
+
     public $pdoClass = 'DreamFactory\Core\Database\Oci\PdoAdapter';
 
-    public static function checkRequirements($driver, $throw_exception = true)
+    public function checkRequirements()
     {
         if (!extension_loaded('oci8')) {
-            if ($throw_exception) {
-                \Log::notice("Required extension 'oci8' is not detected, but may be compiled in.");
-            }
+            throw new \Exception("Required extension 'oci8' is not detected, but may be compiled in.");
         }
-
         // don't call parent method here, no need for PDO driver
-        return true;
     }
 
     public static function getDriverLabel()

@@ -26,6 +26,9 @@ class Package
     /** Import file extension */
     const FILE_EXTENSION = 'zip';
 
+    /** Password length for secured package */
+    const PASSWORD_LENGTH = 6;
+
     /** @type array */
     protected $manifest = [];
 
@@ -37,9 +40,6 @@ class Package
     /** @type string */
     protected $dfVersion = '';
 
-    /** @type bool */
-    protected $secured = false;
-
     /** @type string */
     protected $createdDate = '';
 
@@ -48,6 +48,9 @@ class Package
 
     /** @type array */
     protected $zipFile = null;
+
+    /** @type string|null */
+    protected $password = null;
 
     /**
      * Stores temp files to be deleted in __destruct.
@@ -90,6 +93,16 @@ class Package
     }
 
     /**
+     * Sets password for secured package.
+     *
+     * @param $password
+     */
+    public function setPassword($password)
+    {
+        $this->password = $password;
+    }
+
+    /**
      * Returns standard manifest header.
      *
      * @return array
@@ -99,10 +112,106 @@ class Package
         return [
             'version'      => static::VERSION,
             'df_version'   => config('df.version'),
-            'secured'      => $this->secured,
+            'secured'      => $this->isSecured(),
             'description'  => '',
             'created_date' => date('Y-m-d H:i:s', time())
         ];
+    }
+
+    /**
+     * Gets the storage service from the manifest
+     * to use for storing the exported zip file.
+     *
+     * @param $default
+     *
+     * @return mixed
+     */
+    public function getExportStorageService($default = null)
+    {
+        $storage = array_get($this->manifest, 'storage', $default);
+
+        if (is_array($storage)) {
+            $name = array_get($storage, 'name', array_get($storage, 'id', $default));
+            if (is_numeric($name)) {
+                $service = Service::find($name);
+
+                return $service->name;
+            }
+
+            return $name;
+        }
+
+        return $storage;
+    }
+
+    /**
+     * Gets the storage folder from the manifest
+     * to use for storing the exported zip file in.
+     *
+     * @param $default
+     *
+     * @return string
+     */
+    public function getExportStorageFolder($default = null)
+    {
+        return array_get($this->manifest, 'storage.folder', array_get($this->manifest, 'storage.path', $default));
+    }
+
+    /**
+     * Returns the filename for export file.
+     *
+     * @return string
+     */
+    public function getExportFilename()
+    {
+        $host = php_uname('n');
+        $default = $host . '_' . date('Y-m-d_H:i:s', time());
+        $filename = array_get(
+            $this->manifest,
+            'storage.filename',
+            array_get($this->manifest, 'storage.file', $default)
+        );
+
+        if (strpos($filename, static::FILE_EXTENSION) === false) {
+            $filename .= '.' . static::FILE_EXTENSION;
+        }
+
+        return $filename;
+    }
+
+    /**
+     * Checks to see if packaged is secured.
+     * Secured package has all its system/service config encrypted.
+     *
+     * @return bool
+     */
+    public function isSecured()
+    {
+        $secured = array_get($this->manifest, 'secured', false);
+
+        return boolval($secured);
+    }
+
+    /**
+     * Returns the password to use for encrypting/decrypting package.
+     *
+     * @return string|null
+     * @throws BadRequestException
+     */
+    public function getPassword()
+    {
+        $password = array_get($this->manifest, 'password', $this->password);
+        if ($this->isSecured()) {
+            if (empty($password)) {
+                throw new BadRequestException('Password is required for secured package.');
+            } else if (strlen($password) < static::PASSWORD_LENGTH) {
+                throw new BadRequestException(
+                    'Password must be at least ' . static::PASSWORD_LENGTH . ' characters long for secured package.'
+                );
+            }
+        }
+
+        return $password;
     }
 
     /**
@@ -286,6 +395,7 @@ class Package
     protected function setManifestItems()
     {
         $m = $this->manifest;
+
         if (isset($m['service']) && is_array($m['service'])) {
             foreach ($m['service'] as $item => $value) {
                 if ($this->isFileService($item, $value)) {
@@ -309,11 +419,10 @@ class Package
      */
     public function initZipFile()
     {
-        $host = php_uname('n');
-        $filename = $host . '_' . date('Y-m-d_H:i:s', time());
+        $filename = $this->getExportFilename();
         $zip = new \ZipArchive();
         $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        $zipFileName = $tmpDir . $filename . '.' . static::FILE_EXTENSION;
+        $zipFileName = $tmpDir . $filename;
         $this->zip = $zip;
         $this->zipFile = $zipFileName;
 

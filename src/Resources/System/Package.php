@@ -6,6 +6,7 @@ use DreamFactory\Core\Components\Package\Importer;
 
 class Package extends BaseSystemResource
 {
+    /** @inheritdoc */
     protected function handlePOST()
     {
         // Get uploaded file
@@ -18,7 +19,10 @@ class Package extends BaseSystemResource
 
         if (!empty($file)) {
             //Import
-            $importer = new Importer($file);
+            $password = $this->request->input('password');
+            $package = new \DreamFactory\Core\Components\Package\Package($file);
+            $package->setPassword($password);
+            $importer = new Importer($package, true);
             $importer->import();
             $log = $importer->getLog();
 
@@ -26,7 +30,8 @@ class Package extends BaseSystemResource
         } else {
             //Export
             $manifest = $this->request->getPayloadData();
-            $exporter = new Exporter($manifest);
+            $package = new \DreamFactory\Core\Components\Package\Package($manifest);
+            $exporter = new Exporter($package);
             $url = $exporter->export();
             $public = $exporter->isPublic();
 

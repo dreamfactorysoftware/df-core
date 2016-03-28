@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Components\Package;
 
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\Service;
@@ -12,6 +13,9 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use Illuminate\Contracts\Encryption\DecryptException;
+use Illuminate\Encryption\Encrypter;
+use Illuminate\Support\Arr;
 
 /**
  * Class Importer.
@@ -42,12 +46,12 @@ class Importer
     /**
      * Importer constructor.
      *
-     * @param mixed $package        Package info (uploaded file array or url of file)
-     * @param bool  $ignoreExisting Set true to ignore duplicates or false to throw exception.
+     * @param Package $package        Package info (uploaded file array or url of file)
+     * @param bool    $ignoreExisting Set true to ignore duplicates or false to throw exception.
      */
     public function __construct($package, $ignoreExisting = true)
     {
-        $this->package = new Package($package);
+        $this->package = $package;
         $this->ignoreExisting = $ignoreExisting;
     }
 
@@ -129,6 +133,7 @@ class Importer
         $services = $this->cleanDuplicates($data, 'system', 'service');
 
         if (!empty($services)) {
+            $this->decryptServices($services);
             try {
                 foreach ($services as $i => $service) {
                     unset($service['id']);
@@ -629,5 +634,63 @@ class Importer
         }
 
         return false;
+    }
+
+    /**
+     * Decrypts services if package is secured with a password.
+     *
+     * @param $services
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\UnauthorizedException
+     */
+    protected function decryptServices(& $services)
+    {
+        $secured = $this->package->isSecured();
+
+        if ($secured) {
+            $password = $this->package->getPassword();
+            try {
+                // Using md5 of password to use a 32 char long key for Encrypter.
+                $crypt = new Encrypter(md5($password), config('app.cipher'));
+                if (Arr::isAssoc($services)) {
+                    if (isset($services['config'])) {
+                        $services['config'] = static::decryptServiceConfig($services['config'], $crypt);
+                    }
+                } else {
+                    foreach ($services as $i => $service) {
+                        if (isset($service['config'])) {
+                            $service['config'] = static::decryptServiceConfig($service['config'], $crypt);
+                            $services[$i] = $service;
+                        }
+                    }
+                }
+            } catch (DecryptException $e) {
+                throw new UnauthorizedException('Invalid password.');
+            }
+        }
+    }
+
+    /**
+     * Decrypts service config if package is secured with a password.
+     *
+     * @param array                            $config
+     * @param \Illuminate\Encryption\Encrypter $crypt
+     *
+     * @return array
+     */
+    protected static function decryptServiceConfig(array $config, Encrypter $crypt)
+    {
+        if (!empty($config)) {
+            foreach ($config as $key => $value) {
+                if (is_array($value)) {
+                    $config[$key] = static::decryptServiceConfig($value, $crypt);
+                } else if (is_string($value)) {
+                    $config[$key] = $crypt->decrypt($value);
+                }
+            }
+        }
+
+        return $config;
     }
 }

@@ -10,11 +10,12 @@ use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Services\BaseFileService;
+use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Arr;
 
 /**
  * Class Exporter.
- * This class uses the Package instance and handles 
+ * This class uses the Package instance and handles
  * everything to extract and export package file.
  *
  * @package DreamFactory\Core\Components\Package
@@ -72,13 +73,13 @@ class Exporter
     /**
      * Exporter constructor.
      *
-     * @param array $manifest
+     * @param Package $package
      */
-    public function __construct(array $manifest)
+    public function __construct($package)
     {
-        $this->package = new Package($manifest);
-        $this->storageService = $this->getStorageService($manifest);
-        $this->storageFolder = $this->getStorageFolder($manifest);
+        $this->package = $package;
+        $this->storageService = $this->package->getExportStorageService(static::DEFAULT_STORAGE);
+        $this->storageFolder = $this->package->getExportStorageFolder(static::DEFAULT_STORAGE_FOLDER);
     }
 
     /**
@@ -133,50 +134,6 @@ class Exporter
         }
 
         return false;
-    }
-
-    /**
-     * Gets the storage service from the manifest
-     * to use for storing the exported zip file.
-     *
-     * @param $manifest
-     *
-     * @return mixed
-     */
-    protected function getStorageService($manifest)
-    {
-        $storage = array_get($manifest, 'storage', static::DEFAULT_STORAGE);
-        if (is_array($storage)) {
-            $name = array_get($storage, 'name', array_get($storage, 'id', static::DEFAULT_STORAGE));
-            if (is_numeric($name)) {
-                $service = Service::find($name);
-
-                return $service->name;
-            }
-
-            return $name;
-        }
-
-        return $storage;
-    }
-
-    /**
-     * Gets the storage folder from the manifest
-     * to use for storing the exported zip file in.
-     *
-     * @param $manifest
-     *
-     * @return string
-     */
-    protected function getStorageFolder($manifest)
-    {
-        $folder = static::DEFAULT_STORAGE_FOLDER;
-        $storage = array_get($manifest, 'storage', null);
-        if (is_array($storage)) {
-            $folder = array_get($storage, 'folder', static::DEFAULT_STORAGE_FOLDER);
-        }
-
-        return $folder;
     }
 
     /**
@@ -480,14 +437,71 @@ class Exporter
         }
 
         if (is_string($result)) {
-            return ['value' => $result];
+            $result = ['value' => $result];
         } else if (Arr::isAssoc($result) &&
             config('df.always_wrap_resources') === true &&
             isset($result[config('df.resources_wrapper')])
         ) {
-            return $result[config('df.resources_wrapper')];
-        } else {
-            return $result;
+            $result = $result[config('df.resources_wrapper')];
         }
+
+        if ('system/service' === $service . '/' . $resource) {
+            $this->encryptServices($result);
+        }
+
+        return $result;
+    }
+
+    /**
+     * Encrypt services if package is secured with a password.
+     *
+     * @param $services
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    protected function encryptServices(& $services)
+    {
+        $secured = $this->package->isSecured();
+
+        if ($secured) {
+            $password = $this->package->getPassword();
+            // Using md5 of password to use a 32 char long key for Encrypter.
+            $crypt = new Encrypter(md5($password), config('app.cipher'));
+            if (Arr::isAssoc($services)) {
+                if (isset($services['config'])) {
+                    $services['config'] = static::encryptServiceConfig($services['config'], $crypt);
+                }
+            } else {
+                foreach ($services as $i => $service) {
+                    if (isset($service['config'])) {
+                        $service['config'] = static::encryptServiceConfig($service['config'], $crypt);
+                        $services[$i] = $service;
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Encrypts service config is package is secured with a password.
+     *
+     * @param array                            $config
+     * @param \Illuminate\Encryption\Encrypter $crypt
+     *
+     * @return array
+     */
+    protected static function encryptServiceConfig(array $config, Encrypter $crypt)
+    {
+        if (!empty($config)) {
+            foreach ($config as $key => $value) {
+                if (is_array($value)) {
+                    $config[$key] = static::encryptServiceConfig($value, $crypt);
+                } else if (is_string($value)) {
+                    $config[$key] = $crypt->encrypt($value);
+                }
+            }
+        }
+
+        return $config;
     }
 }

@@ -3,9 +3,31 @@ namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Components\Package\Exporter;
 use DreamFactory\Core\Components\Package\Importer;
+use DreamFactory\Core\Utility\FileUtilities;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Package extends BaseSystemResource
 {
+    /** @inheritdoc */
+    protected function handleGET()
+    {
+        $exporter = new Exporter(new \DreamFactory\Core\Components\Package\Package());
+        $manifest = $exporter->getManifestOnly();
+        if ($this->request->getParameterAsBool('as_file')) {
+            $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $fileName = $tmpDir . 'manifest_' . date('Y-m-d H:i:s', time()) . '.json';
+            file_put_contents($fileName, json_encode($manifest, JSON_UNESCAPED_SLASHES));
+
+            $rs = new StreamedResponse(function () use ($fileName){
+                FileUtilities::sendFile($fileName, true);
+            }, 200, ['Content-Type' => 'application/json', 'Content-Disposition' => 'attachment']);
+            $rs->send();
+            exit();
+        } else {
+            return $manifest;
+        }
+    }
+
     /** @inheritdoc */
     protected function handlePOST()
     {

@@ -137,6 +137,78 @@ class Exporter
     }
 
     /**
+     * Returns a manifest file for system-wide resources.
+     * 
+     * @return array
+     */
+    public function getManifestOnly()
+    {
+        $this->data['system']['role'] = $this->getAllResources('system', 'role', ['fields' => 'id,name']);
+        $this->data['system']['service'] = $this->getAllResources('system', 'service', ['fields' => 'id,name']);
+        $this->data['system']['app'] = $this->getAllResources('system', 'app', ['fields' => 'id,name']);
+        $this->data['system']['app_group'] = $this->getAllResources('system', 'app_group', ['fields' => 'id,name']);
+        $this->data['system']['user'] = $this->getAllResources('system', 'user', ['fields' => 'id,email']);
+        $this->data['system']['admin'] = $this->getAllResources('system', 'admin', ['fields' => 'id,email']);
+        $this->data['system']['custom'] = $this->getAllResources('system', 'custom');
+        $this->data['system']['cors'] = $this->getAllResources('system', 'cors', ['fields' => 'id,path']);
+        $this->data['system']['email_template'] =
+            $this->getAllResources('system', 'email_template', ['fields' => 'id,name']);
+        $this->data['system']['event'] =
+            $this->getAllResources('system', 'event', ['type' => 'process', 'only_scripted' => true]);
+        $this->data['system']['lookup'] = $this->getAllResources('system', 'lookup', ['fields' => 'id,name']);
+
+        $manifest = $this->package->getManifestHeader();
+        foreach ($this->data as $service => $resource) {
+            foreach ($resource as $resourceName => $records) {
+                foreach ($records as $record) {
+                    $api = $service . '/' . $resourceName;
+                    switch ($api) {
+                        case 'system/user':
+                        case 'system/admin':
+                            $manifest['service'][$service][$resourceName][] = array_get($record, 'email');
+                            break;
+                        case 'system/event':
+                            // Do not use array_get here as system/event names have dot (.) in them.
+                            $manifest['service'][$service][$resourceName][] = $record;
+                            break;
+                        case 'system/cors':
+                            $manifest['service'][$service][$resourceName][] = array_get($record, 'id');
+                            break;
+                        default:
+                            $manifest['service'][$service][$resourceName][] = array_get($record, 'name');
+                            break;
+                    }
+                }
+            }
+        }
+
+        return $manifest;
+    }
+
+    /**
+     * Returns all resources for service/resource.
+     * 
+     * @param       $service
+     * @param       $resource
+     * @param array $params
+     * @param null  $payload
+     *
+     * @return array|\DreamFactory\Core\Contracts\ServiceResponseInterface|mixed
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \Exception
+     */
+    protected function getAllResources($service, $resource, $params = [], $payload = null)
+    {
+        $resources = $this->getResource($service, $resource, $params, $payload);
+
+        if (Arr::isAssoc($resources)) {
+            $resources = [$resources];
+        }
+
+        return $resources;
+    }
+
+    /**
      * Adds manifest file to the package.
      *
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
@@ -238,8 +310,18 @@ class Exporter
                 if (isset($this->data[$service][$resourceName])) {
                     $records = $this->data[$service][$resourceName];
                     foreach ($records as $i => $record) {
-                        $manifest['service'][$service][$resourceName][] =
-                            array_get($record, 'name', array_get($details, $i, []));
+                        $api = $service . '/' . $resourceName;
+                        switch ($api) {
+                            case 'system/user':
+                            case 'system/admin':
+                                $manifest['service'][$service][$resourceName][] =
+                                    array_get($record, 'email', array_get($record, 'id', array_get($details, $i, [])));
+                                break;
+                            default:
+                                $manifest['service'][$service][$resourceName][] =
+                                    array_get($record, 'name', array_get($record, 'id', array_get($details, $i, [])));
+                                break;
+                        }
                     }
                 } else {
                     $manifest['service'][$service][$resourceName] = $details;
@@ -360,7 +442,7 @@ class Exporter
             case $service . '/_table':
             case $service . '/_proc':
             case $service . '/_func':
-                throw new NotImplementedException('Exporting _table resource is not supported.');
+                throw new NotImplementedException('Exporting ' . $resource . ' resource is not supported.');
                 break;
             case $service . '/_schema':
             case 'system/event':
@@ -427,7 +509,7 @@ class Exporter
             // Handle responses from system/custom and user/custom APIs
             $rSeg = explode('/', $resource);
             $api = $service . '/' . $rSeg[0];
-            if (in_array($api, ['system/custom', 'user/custom'])) {
+            if (isset($rSeg[1]) && in_array($api, ['system/custom', 'user/custom'])) {
                 $result = ['name' => $rSeg[1], 'value' => $result];
             }
         } catch (NotFoundException $e) {

@@ -68,7 +68,7 @@ class Package
      * @param $packageInfo
      * @param $deletePackageFile
      */
-    public function __construct($packageInfo, $deletePackageFile = true)
+    public function __construct($packageInfo = [], $deletePackageFile = true)
     {
         if (is_array($packageInfo) && $this->isUploadedFile($packageInfo)) {
             // Uploaded file. Import case.
@@ -427,18 +427,20 @@ class Package
     {
         $m = $this->manifest;
 
-        if (isset($m['service']) && is_array($m['service'])) {
-            foreach ($m['service'] as $item => $value) {
-                if ($this->isFileService($item, $value)) {
-                    $this->storageItems[$item] = $value;
-                } else {
-                    $this->nonStorageItems[$item] = $value;
+        if(!empty($m)) {
+            if (isset($m['service']) && is_array($m['service'])) {
+                foreach ($m['service'] as $item => $value) {
+                    if ($this->isFileService($item, $value)) {
+                        $this->storageItems[$item] = $value;
+                    } else {
+                        $this->nonStorageItems[$item] = $value;
+                    }
                 }
             }
-        }
 
-        if (count($this->getServices()) == 0) {
-            throw new InternalServerErrorException('No items found in package manifest.');
+            if (count($this->getServices()) == 0) {
+                throw new InternalServerErrorException('No items found in package manifest.');
+            }
         }
     }
 

@@ -47,7 +47,7 @@ class Importer
      * Importer constructor.
      *
      * @param Package $package        Package info (uploaded file array or url of file)
-     * @param bool    $ignoreExisting Set true to ignore duplicates or false to throw exception.
+     * @param bool  $ignoreExisting Set true to ignore duplicates or false to throw exception.
      */
     public function __construct($package, $ignoreExisting = true)
     {
@@ -299,23 +299,30 @@ class Importer
 
         foreach ($items as $service => $resources) {
             foreach ($resources as $resourceName => $details) {
-                $api = $service . '/' . $resourceName;
-                switch ($api) {
-                    case 'system/app':
-                    case 'system/role':
-                    case 'system/service':
-                    case 'system/event':
-                        // Skip; already imported at this point.
-                        break;
-                    case $service . '/_table':
-                    case $service . '/_proc':
-                    case $service . '/_func':
-                        // Not supported at this time.
-                        $this->log('warning', 'Skipping resource ' . $resourceName . '. Not supported.');
-                        break;
-                    default:
-                        $this->insertGenericResources($service, $resourceName);
-                        break;
+                try {
+                    $api = $service . '/' . $resourceName;
+                    switch ($api) {
+                        case 'system/app':
+                        case 'system/role':
+                        case 'system/service':
+                        case 'system/event':
+                            // Skip; already imported at this point.
+                            break;
+                        case $service . '/_table':
+                        case $service . '/_proc':
+                        case $service . '/_func':
+                            // Not supported at this time.
+                            $this->log('warning', 'Skipping resource ' . $resourceName . '. Not supported.');
+                            break;
+                        default:
+                            $this->insertGenericResources($service, $resourceName);
+                            break;
+                    }
+                } catch (UnauthorizedException $e){
+                    $this->log(
+                        'error',
+                        'Failed to insert resources for '.$service . '/' . $resourceName.'. '.$e->getMessage()
+                    );
                 }
             }
         }
@@ -545,28 +552,30 @@ class Importer
     protected function cleanDuplicates($data, $service, $resource)
     {
         $cleaned = [];
-        $api = $service . '/' . $resource;
+        if(!empty($data)) {
+            $api = $service . '/' . $resource;
 
-        switch ($api) {
-            case 'system/admin':
-            case 'system/user':
-                $key = 'email';
-                break;
-            default:
-                $key = 'name';
-        }
+            switch ($api) {
+                case 'system/admin':
+                case 'system/user':
+                    $key = 'email';
+                    break;
+                default:
+                    $key = 'name';
+            }
 
-        foreach ($data as $rec) {
-            if (!$this->isDuplicate($service, $resource, array_get($rec, $key), $key)) {
-                $cleaned[] = $rec;
-            } else {
-                $this->log(
-                    'notice',
-                    'Ignored duplicate found for ' .
-                    $service . '/' . $resource .
-                    ' with ' . $key .
-                    ' ' . array_get($rec, $key)
-                );
+            foreach ($data as $rec) {
+                if (!$this->isDuplicate($service, $resource, array_get($rec, $key), $key)) {
+                    $cleaned[] = $rec;
+                } else {
+                    $this->log(
+                        'notice',
+                        'Ignored duplicate found for ' .
+                        $service . '/' . $resource .
+                        ' with ' . $key .
+                        ' ' . array_get($rec, $key)
+                    );
+                }
             }
         }
 
@@ -648,7 +657,7 @@ class Importer
     {
         $secured = $this->package->isSecured();
 
-        if ($secured) {
+        if($secured){
             $password = $this->package->getPassword();
             try {
                 // Using md5 of password to use a 32 char long key for Encrypter.
@@ -665,27 +674,19 @@ class Importer
                         }
                     }
                 }
-            } catch (DecryptException $e) {
+            } catch (DecryptException $e){
                 throw new UnauthorizedException('Invalid password.');
             }
         }
     }
 
-    /**
-     * Decrypts service config if package is secured with a password.
-     *
-     * @param array                            $config
-     * @param \Illuminate\Encryption\Encrypter $crypt
-     *
-     * @return array
-     */
     protected static function decryptServiceConfig(array $config, Encrypter $crypt)
     {
-        if (!empty($config)) {
-            foreach ($config as $key => $value) {
-                if (is_array($value)) {
+        if(!empty($config)){
+            foreach ($config as $key => $value){
+                if(is_array($value)) {
                     $config[$key] = static::decryptServiceConfig($value, $crypt);
-                } else if (is_string($value)) {
+                } else if(is_string($value)){
                     $config[$key] = $crypt->decrypt($value);
                 }
             }

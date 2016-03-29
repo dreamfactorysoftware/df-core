@@ -59,12 +59,16 @@ class Package
      */
     protected $destructible = [];
 
+    /** @type bool  */
+    protected $deletePackageFile = true;
+
     /**
      * Package constructor.
      *
      * @param $packageInfo
+     * @param $deletePackageFile
      */
-    public function __construct($packageInfo)
+    public function __construct($packageInfo, $deletePackageFile = true)
     {
         if (is_array($packageInfo) && $this->isUploadedFile($packageInfo)) {
             // Uploaded file. Import case.
@@ -74,11 +78,16 @@ class Package
             // Supplied manifest. Export case.
             $this->manifest = $packageInfo;
         } else if (is_string($packageInfo)) {
-            // URL imported file. Import case.
-            $this->manifest = $this->getManifestFromUrlImport($packageInfo);
+            if (is_file($packageInfo)) {
+                $this->manifest = $this->getManifestFromLocalFile($packageInfo);
+            } else {
+                // URL imported file. Import case.
+                $this->manifest = $this->getManifestFromUrlImport($packageInfo);
+            }
             $this->isValid();
         }
         $this->setManifestItems();
+        $this->deletePackageFile = $deletePackageFile;
     }
 
     /**
@@ -86,7 +95,9 @@ class Package
      */
     public function __destruct()
     {
-        @unlink($this->zipFile);
+        if($this->deletePackageFile) {
+            @unlink($this->zipFile);
+        }
         foreach ($this->destructible as $d) {
             @unlink($d);
         }
@@ -289,7 +300,7 @@ class Package
      * Checks package validity.
      *
      * @return bool
-     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws InternalServerErrorException
      */
     protected function isValid()
     {
@@ -298,7 +309,7 @@ class Package
             return true;
         }
 
-        throw new InternalServerErrorException('Invalid package manifest supplied.');
+        throw new InternalServerErrorException('Invalid package supplied.');
     }
 
     /**
@@ -356,10 +367,30 @@ class Package
         }
 
         try {
-            // need to download and extract zip file and move contents to storage
             $this->zipFile = FileUtilities::importUrlFileToTemp($url);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to import package $url. {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to import package from $url. ". $ex->getMessage());
+        }
+
+        return $this->getManifestFromZipFile();
+    }
+
+    protected function getManifestFromLocalFile($file)
+    {
+        $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+
+        if (static::FILE_EXTENSION != $extension) {
+            throw new BadRequestException(
+                "Only package files ending with '" .
+                static::FILE_EXTENSION .
+                "' are allowed for import."
+            );
+        }
+
+        if(file_exists($file)){
+            $this->zipFile = $file;
+        } else  {
+            throw new InternalServerErrorException("Failed to import. File not found $file");
         }
 
         return $this->getManifestFromZipFile();

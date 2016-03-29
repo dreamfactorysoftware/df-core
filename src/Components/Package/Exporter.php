@@ -305,7 +305,7 @@ class Exporter
                 } else {
                     $params['ids'] = $ids;
                 }
-            } else if (!empty($filter)) {
+            } elseif (!empty($filter)) {
                 $params['filter'] = $filter;
             } else {
                 throw new BadRequestException('No resource ids or filter provided for ' .
@@ -318,7 +318,7 @@ class Exporter
             if (!empty($related)) {
                 if (is_string($related)) {
                     $params['related'] = $related;
-                } else if (is_array($related)) {
+                } elseif (is_array($related)) {
                     $params['related'] = implode(',', $related);
                 }
             }
@@ -358,11 +358,11 @@ class Exporter
         $api = strtolower($service . '/' . $resource);
         switch ($api) {
             case $service . '/_table':
+            case $service . '/_proc':
+            case $service . '/_func':
                 throw new NotImplementedException('Exporting _table resource is not supported.');
                 break;
             case $service . '/_schema':
-            case $service . '/_proc':
-            case $service . '/_func':
             case 'system/event':
             case 'system/custom':
             case 'user/custom':
@@ -375,7 +375,7 @@ class Exporter
             default:
                 if (is_numeric($id)) {
                     $resource .= '/' . $id;
-                } else if (is_string($id)) {
+                } elseif (is_string($id)) {
                     array_set($params, 'filter', 'name="' . $id . '"');
                 }
         }
@@ -438,7 +438,7 @@ class Exporter
 
         if (is_string($result)) {
             $result = ['value' => $result];
-        } else if (Arr::isAssoc($result) &&
+        } elseif (Arr::isAssoc($result) &&
             config('df.always_wrap_resources') === true &&
             isset($result[config('df.resources_wrapper')])
         ) {
@@ -496,7 +496,7 @@ class Exporter
             foreach ($config as $key => $value) {
                 if (is_array($value)) {
                     $config[$key] = static::encryptServiceConfig($value, $crypt);
-                } else if (is_string($value)) {
+                } elseif (is_string($value)) {
                     $config[$key] = $crypt->encrypt($value);
                 }
             }

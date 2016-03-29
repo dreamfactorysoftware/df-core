@@ -59,7 +59,7 @@ class Package
      */
     protected $destructible = [];
 
-    /** @type bool  */
+    /** @type bool */
     protected $deletePackageFile = true;
 
     /**
@@ -74,10 +74,10 @@ class Package
             // Uploaded file. Import case.
             $this->manifest = $this->getManifestFromUploadedFile($packageInfo);
             $this->isValid();
-        } else if (is_array($packageInfo)) {
+        } elseif (is_array($packageInfo)) {
             // Supplied manifest. Export case.
             $this->manifest = $packageInfo;
-        } else if (is_string($packageInfo)) {
+        } elseif (is_string($packageInfo)) {
             if (is_file($packageInfo)) {
                 $this->manifest = $this->getManifestFromLocalFile($packageInfo);
             } else {
@@ -95,7 +95,7 @@ class Package
      */
     public function __destruct()
     {
-        if($this->deletePackageFile) {
+        if ($this->deletePackageFile) {
             @unlink($this->zipFile);
         }
         foreach ($this->destructible as $d) {
@@ -215,7 +215,7 @@ class Package
         if ($this->isSecured()) {
             if (empty($password)) {
                 throw new BadRequestException('Password is required for secured package.');
-            } else if (strlen($password) < static::PASSWORD_LENGTH) {
+            } elseif (strlen($password) < static::PASSWORD_LENGTH) {
                 throw new BadRequestException(
                     'Password must be at least ' . static::PASSWORD_LENGTH . ' characters long for secured package.'
                 );
@@ -369,7 +369,7 @@ class Package
         try {
             $this->zipFile = FileUtilities::importUrlFileToTemp($url);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to import package from $url. ". $ex->getMessage());
+            throw new InternalServerErrorException("Failed to import package from $url. " . $ex->getMessage());
         }
 
         return $this->getManifestFromZipFile();
@@ -387,9 +387,9 @@ class Package
             );
         }
 
-        if(file_exists($file)){
+        if (file_exists($file)) {
             $this->zipFile = $file;
-        } else  {
+        } else {
             throw new InternalServerErrorException("Failed to import. File not found $file");
         }
 

@@ -47,7 +47,7 @@ class Importer
      * Importer constructor.
      *
      * @param Package $package        Package info (uploaded file array or url of file)
-     * @param bool  $ignoreExisting Set true to ignore duplicates or false to throw exception.
+     * @param bool    $ignoreExisting Set true to ignore duplicates or false to throw exception.
      */
     public function __construct($package, $ignoreExisting = true)
     {
@@ -318,10 +318,10 @@ class Importer
                             $this->insertGenericResources($service, $resourceName);
                             break;
                     }
-                } catch (UnauthorizedException $e){
+                } catch (UnauthorizedException $e) {
                     $this->log(
                         'error',
-                        'Failed to insert resources for '.$service . '/' . $resourceName.'. '.$e->getMessage()
+                        'Failed to insert resources for ' . $service . '/' . $resourceName . '. ' . $e->getMessage()
                     );
                 }
             }
@@ -552,7 +552,7 @@ class Importer
     protected function cleanDuplicates($data, $service, $resource)
     {
         $cleaned = [];
-        if(!empty($data)) {
+        if (!empty($data)) {
             $api = $service . '/' . $resource;
 
             switch ($api) {
@@ -657,7 +657,7 @@ class Importer
     {
         $secured = $this->package->isSecured();
 
-        if($secured){
+        if ($secured) {
             $password = $this->package->getPassword();
             try {
                 // Using md5 of password to use a 32 char long key for Encrypter.
@@ -674,7 +674,7 @@ class Importer
                         }
                     }
                 }
-            } catch (DecryptException $e){
+            } catch (DecryptException $e) {
                 throw new UnauthorizedException('Invalid password.');
             }
         }
@@ -682,11 +682,11 @@ class Importer
 
     protected static function decryptServiceConfig(array $config, Encrypter $crypt)
     {
-        if(!empty($config)){
-            foreach ($config as $key => $value){
-                if(is_array($value)) {
+        if (!empty($config)) {
+            foreach ($config as $key => $value) {
+                if (is_array($value)) {
                     $config[$key] = static::decryptServiceConfig($value, $crypt);
-                } else if(is_string($value)){
+                } elseif (is_string($value)) {
                     $config[$key] = $crypt->decrypt($value);
                 }
             }

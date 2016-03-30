@@ -861,6 +861,6 @@ SQL;
      */
     public function getTimestampForSet($update = false)
     {
-        return new Expression('(CURRENT_TIMESTAMP)');
+        return $this->connection->raw('(CURRENT_TIMESTAMP)');
     }
 }

@@ -306,11 +306,13 @@ class Schema extends \DreamFactory\Core\Database\Schema
         $this->findConstraints($table);
 
         if (is_string($table->primaryKey) && isset($this->sequences[$table->rawName . '.' . $table->primaryKey])) {
-            $table->sequenceName = $this->sequences[$table->rawName . '.' . $table->primaryKey];
+//            $table->sequenceName = $this->sequences[$table->rawName . '.' . $table->primaryKey];
+            $table->sequenceName = $table->primaryKey;
         } elseif (is_array($table->primaryKey)) {
             foreach ($table->primaryKey as $pk) {
                 if (isset($this->sequences[$table->rawName . '.' . $pk])) {
-                    $table->sequenceName = $this->sequences[$table->rawName . '.' . $pk];
+//                    $table->sequenceName = $this->sequences[$table->rawName . '.' . $pk];
+                    $table->sequenceName = $pk;
                     break;
                 }
             }
@@ -854,7 +856,7 @@ MYSQL;
         return $value;
     }
 
-    public static function formatValue($value, $type)
+    public function formatValue($value, $type)
     {
         switch (strtolower(strval($type))) {
             case 'int':

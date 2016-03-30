@@ -663,7 +663,7 @@ class Schema extends \DreamFactory\Core\Database\Schema
 
     public function getTimestampForSet($update = false)
     {
-        return new Expression("datetime('now')");
+        return $this->connection->raw("datetime('now')");
     }
 
     public function allowsSeparateForeignConstraint()

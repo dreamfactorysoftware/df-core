@@ -82,9 +82,9 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
             $alias = '[' . $alias . ']';
         }
         switch ($this->dbType) {
-            case 'datetime':
-            case 'datetimeoffset':
-                return "(CONVERT(nvarchar(30), $field, 127)) AS $alias";
+//            case 'datetime':
+//            case 'datetimeoffset':
+//                return "(CONVERT(nvarchar(30), $field, 127)) AS $alias";
             case 'image':
                 return "(CONVERT(varbinary(max), $field)) AS $alias";
             case 'timestamp': // deprecated, not a real timestamp, but internal rowversion

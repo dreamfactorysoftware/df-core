@@ -1,18 +1,19 @@
 <?php
 namespace DreamFactory\Core\Database;
 
+use DreamFactory\Core\Contracts\ConnectionInterface;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Library\Utility\Scalar;
 
 /**
  * Schema is the base class for retrieving metadata information.
  *
- * @property Connection     $connection     Database connection. The connection is active.
- * @property array          $tables         The metadata for all tables in the database.
+ * @property ConnectionInterface $connection     Database connection. The connection is active.
+ * @property array               $tables         The metadata for all tables in the database.
  * Each array element is an instance of {@link TableSchema} (or its child class).
  * The array keys are table names.
- * @property array          $tableNames     All table names in the database.
- * @property CommandBuilder $commandBuilder The SQL command builder for this connection.
+ * @property array               $tableNames     All table names in the database.
+ * @property CommandBuilder      $commandBuilder The SQL command builder for this connection.
  */
 abstract class Schema
 {
@@ -51,7 +52,7 @@ abstract class Schema
      */
     protected $functions = [];
     /**
-     * @var Connection
+     * @var ConnectionInterface
      */
     protected $connection;
     /**
@@ -71,7 +72,7 @@ abstract class Schema
     /**
      * Constructor.
      *
-     * @param Connection $conn database connection.
+     * @param ConnectionInterface $conn database connection.
      */
     public function __construct($conn)
     {
@@ -79,7 +80,7 @@ abstract class Schema
     }
 
     /**
-     * @return Connection database connection. The connection is active.
+     * @return ConnectionInterface database connection. The connection is active.
      */
     public function getDbConnection()
     {
@@ -921,12 +922,12 @@ abstract class Schema
         if (($pos = strrpos($name2, '.')) !== false) {
             $name2 = substr($name2, $pos + 1);
         }
-        if ($this->connection->tablePrefix !== null) {
+        if ($this->connection->getTablePrefix() !== null) {
             if (strpos($name1, '{') !== false) {
-                $name1 = $this->connection->tablePrefix . str_replace(['{', '}'], '', $name1);
+                $name1 = $this->connection->getTablePrefix() . str_replace(['{', '}'], '', $name1);
             }
             if (strpos($name2, '{') !== false) {
-                $name2 = $this->connection->tablePrefix . str_replace(['{', '}'], '', $name2);
+                $name2 = $this->connection->getTablePrefix() . str_replace(['{', '}'], '', $name2);
             }
         }
 
@@ -1113,9 +1114,12 @@ abstract class Schema
                 $settingsNew = array_diff_assoc($settingsNew, $settingsOld);
 
                 // may be an array due to expressions
-                $default = (isset($field['default'])) ? $field['default'] : null;
-                if ($default !== $oldField->defaultValue) {
-                    $settingsNew['default'] = $default;
+                if (array_key_exists('default', $field)){
+                    $default = $field['default'];
+                    if ($default !== $oldField->defaultValue) {
+                        $settingsNew['default'] = $default;
+                    }
+
                 }
 
                 // if empty, nothing to do here, check extras
@@ -1146,7 +1150,7 @@ abstract class Schema
                     $commands = array_merge($commands, $pkExtras);
                     break;
                 case ColumnSchema::TYPE_VIRTUAL:
-                    if ($oldField && (ColumnSchema::TYPE_VIRTUAL !== $oldField->type)){
+                    if ($oldField && (ColumnSchema::TYPE_VIRTUAL !== $oldField->type)) {
                         throw new \Exception("Field '$name' already exists as non-virtual in table '$table_name'.");
                     }
                     $extraNew['extra_type'] = $type;
@@ -1718,7 +1722,7 @@ abstract class Schema
      */
     public function getTimestampForSet($update = false)
     {
-        return new Expression('(NOW())');
+        return $this->connection->raw('(NOW())');
     }
 
     public function parseValueForSet($value, $field_info)
@@ -1726,7 +1730,7 @@ abstract class Schema
         return $value;
     }
 
-    public static function formatValue($value, $type)
+    public function formatValue($value, $type)
     {
         $type = strtolower(strval($type));
         switch ($type) {
@@ -1783,7 +1787,7 @@ abstract class Schema
         if (!empty($out_format)) {
             $in_value = (is_string($in_value) || is_null($in_value)) ? $in_value : strval($in_value);
             if (!empty($in_format)) {
-                if (false === $date = \DateTime::createfromFormat($in_format, $in_value)) {
+                if (false === $date = \DateTime::createFromFormat($in_format, $in_value)) {
                     \Log::error("Failed to format datetime from '$in_value'' to '$in_format'");
 
                     return $in_value;

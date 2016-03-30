@@ -2,15 +2,16 @@
 
 namespace DreamFactory\Core\Database;
 
-use DreamFactory\Core\Database\Mysql\Schema;
+use DreamFactory\Core\Contracts\ConnectionInterface;
+use DreamFactory\Core\Database\Mysql\Schema as MysqlSchema;
 
-class MySqlConnection extends \Illuminate\Database\MySqlConnection
+class MySqlConnection extends \Illuminate\Database\MySqlConnection implements ConnectionInterface
 {
     use ConnectionExtension;
 
     public $emulatePrepare = true;
 
-    public function checkRequirements()
+    public static function checkRequirements()
     {
         if (!extension_loaded('mysql') && !extension_loaded('mysqlnd')) {
             throw new \Exception("Required extension 'mysql' is not detected, but may be compiled in.");
@@ -32,10 +33,10 @@ class MySqlConnection extends \Illuminate\Database\MySqlConnection
 
     public function getSchema()
     {
-        if ($this->schema !== null) {
-            return $this->schema;
+        if ($this->schemaExtension === null) {
+            $this->schemaExtension = new MysqlSchema($this);
         }
 
-        return new Schema($this);
+        return $this->schemaExtension;
     }
 }

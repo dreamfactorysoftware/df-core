@@ -2,9 +2,10 @@
 
 namespace DreamFactory\Core\Database;
 
-use DreamFactory\Core\Database\Mssql\Schema;
+use DreamFactory\Core\Contracts\ConnectionInterface;
+use DreamFactory\Core\Database\Mssql\Schema as SqlSrvSchema;
 
-class SqlServerConnection extends \Illuminate\Database\SqlServerConnection
+class SqlServerConnection extends \Illuminate\Database\SqlServerConnection implements ConnectionInterface
 {
     use ConnectionExtension;
 
@@ -12,7 +13,7 @@ class SqlServerConnection extends \Illuminate\Database\SqlServerConnection
     // Also, can't use 'SET ANSI_DEFAULTS ON', seems to return false positives for DROP TABLE etc. todo
     public $initSQLs = ['SET QUOTED_IDENTIFIER ON;', 'SET ANSI_WARNINGS ON;', 'SET ANSI_NULLS ON;'];
 
-    public function checkRequirements()
+    public static function checkRequirements()
     {
         if (substr(PHP_OS, 0, 3) == 'WIN') {
             $driver = 'sqlsrv';
@@ -33,7 +34,7 @@ class SqlServerConnection extends \Illuminate\Database\SqlServerConnection
     {
         return 'SQL Server';
     }
-
+    
     public static function getSampleDsn()
     {
         if (substr(PHP_OS, 0, 3) == 'WIN') {
@@ -44,7 +45,7 @@ class SqlServerConnection extends \Illuminate\Database\SqlServerConnection
         // http://php.net/manual/en/ref.pdo-dblib.connection.php
         return 'dblib:host=localhost:1433;dbname=database;charset=UTF-8';
     }
-
+    
     public function __construct($pdo, $database = '', $tablePrefix = '', array $config = [])
     {
         if (substr(PHP_OS, 0, 3) == 'WIN') {
@@ -71,10 +72,10 @@ class SqlServerConnection extends \Illuminate\Database\SqlServerConnection
 
     public function getSchema()
     {
-        if ($this->schema !== null) {
-            return $this->schema;
+        if ($this->schemaExtension === null) {
+            $this->schemaExtension = new SqlSrvSchema($this);
         }
 
-        return new Schema($this);
+        return $this->schemaExtension;
     }
 }

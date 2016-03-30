@@ -871,16 +871,6 @@ SQL;
         return $sql;
     }
 
-    /**
-     * @param bool $update
-     *
-     * @return mixed
-     */
-    public function getTimestampForSet($update = false)
-    {
-        return new Expression('(SYSDATETIMEOFFSET())');
-    }
-
     public function parseValueForSet($value, $field_info)
     {
         switch ($field_info->type) {
@@ -892,7 +882,7 @@ SQL;
         return $value;
     }
 
-    public static function formatValue($value, $type)
+    public function formatValue($value, $type)
     {
         $value = parent::formatValue($value, $type);
 

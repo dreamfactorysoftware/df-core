@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database;
 
-use Illuminate\Database\Connection;
+use DreamFactory\Core\Contracts\ConnectionInterface;
 
 /**
  * Command represents an SQL statement to execute against a database.
@@ -34,7 +34,7 @@ use Illuminate\Database\Connection;
  * </pre>
  *
  * @property string        $text         The SQL statement to be executed.
- * @property Connection    $connection   The connection associated with this command.
+ * @property ConnectionInterface    $connection   The connection associated with this command.
  * @property \PDOStatement $pdoStatement The underlying PDOStatement for this command
  * It could be null if the statement is not prepared yet.
  * @property string        $select       The SELECT part (without 'SELECT') in the query.
@@ -71,7 +71,7 @@ class Command
     /**
      * Constructor.
      *
-     * @param Connection $connection    the database connection
+     * @param ConnectionInterface $connection    the database connection
      * @param mixed      $query         the DB query to be executed. This can be either
      *                                  a string representing a SQL statement, or an array whose name-value pairs
      *                                  will be used to set the corresponding properties of the created command object.
@@ -90,7 +90,7 @@ class Command
      * {@link setFetchMode FetchMode}. See {@link http://www.php.net/manual/en/function.PDOStatement-setFetchMode.php}
      * for more details.
      */
-    public function __construct(Connection $connection, $query = null)
+    public function __construct(ConnectionInterface $connection, $query = null)
     {
         $this->connection = $connection;
         if (is_array($query)) {
@@ -173,8 +173,8 @@ class Command
      */
     public function setText($value)
     {
-        if ($this->connection->tablePrefix !== null && $value != '') {
-            $this->text = preg_replace('/{{(.*?)}}/', $this->connection->tablePrefix . '\1', $value);
+        if ($this->connection->getTablePrefix() !== null && $value != '') {
+            $this->text = preg_replace('/{{(.*?)}}/', $this->connection->getTablePrefix() . '\1', $value);
         } else {
             $this->text = $value;
         }
@@ -184,7 +184,7 @@ class Command
     }
 
     /**
-     * @return Connection the connection associated with this command
+     * @return ConnectionInterface the connection associated with this command
      */
     public function getConnection()
     {

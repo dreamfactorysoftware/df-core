@@ -2,15 +2,16 @@
 
 namespace DreamFactory\Core\Database;
 
-use DreamFactory\Core\Database\Oci\Schema;
+use DreamFactory\Core\Contracts\ConnectionInterface;
+use DreamFactory\Core\Database\Oci\Schema as OciSchema;
 
-class OracleConnection extends \Yajra\Oci8\Oci8Connection
+class OracleConnection extends \Yajra\Oci8\Oci8Connection implements ConnectionInterface
 {
     use ConnectionExtension;
 
     public $pdoClass = 'DreamFactory\Core\Database\Oci\PdoAdapter';
 
-    public function checkRequirements()
+    public static function checkRequirements()
     {
         if (!extension_loaded('oci8')) {
             throw new \Exception("Required extension 'oci8' is not detected, but may be compiled in.");
@@ -31,10 +32,10 @@ class OracleConnection extends \Yajra\Oci8\Oci8Connection
 
     public function getSchema()
     {
-        if ($this->schema !== null) {
-            return $this->schema;
+        if ($this->schemaExtension === null) {
+            $this->schemaExtension = new OciSchema($this);
         }
 
-        return new Schema($this);
+        return $this->schemaExtension;
     }
 }

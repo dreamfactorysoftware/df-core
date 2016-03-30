@@ -2,13 +2,14 @@
 
 namespace DreamFactory\Core\Database;
 
-use DreamFactory\Core\Database\Pgsql\Schema;
+use DreamFactory\Core\Contracts\ConnectionInterface;
+use DreamFactory\Core\Database\Pgsql\Schema as PgsqlSchema;
 
-class PostgresConnection extends \Illuminate\Database\PostgresConnection
+class PostgresConnection extends \Illuminate\Database\PostgresConnection implements ConnectionInterface
 {
     use ConnectionExtension;
 
-    public function checkRequirements()
+    public static function checkRequirements()
     {
         if (!extension_loaded('pgsql')) {
             throw new \Exception("Required extension 'pgsql' is not detected, but may be compiled in.");
@@ -30,10 +31,10 @@ class PostgresConnection extends \Illuminate\Database\PostgresConnection
 
     public function getSchema()
     {
-        if ($this->schema !== null) {
-            return $this->schema;
+        if ($this->schemaExtension === null) {
+            $this->schemaExtension = new PgsqlSchema($this);
         }
 
-        return new Schema($this);
+        return $this->schemaExtension;
     }
 }

@@ -2,14 +2,19 @@
 
 namespace DreamFactory\Core\Database;
 
-use DreamFactory\Core\Database\Sqlanywhere\Schema;
+use Doctrine\DBAL\Driver\PDOSqlsrv\Driver as DoctrineDriver;
+use DreamFactory\Core\Contracts\ConnectionInterface;
+use DreamFactory\Core\Database\Query\Grammars\SqlAnywhereGrammar as QueryGrammar;
+use DreamFactory\Core\Database\Query\Processors\SqlAnywhereProcessor;
+use DreamFactory\Core\Database\Schema\Grammars\SqlAnywhereGrammar as SchemaGrammar;
+use DreamFactory\Core\Database\Sqlanywhere\Schema as SqlanywhereSchema;
 use Illuminate\Database\Connection;
 
-class SqlAnywhereConnection extends Connection
+class SqlAnywhereConnection extends Connection implements ConnectionInterface
 {
     use ConnectionExtension;
 
-    public function checkRequirements()
+    public static function checkRequirements()
     {
         $extension = 'mssql';
         if (!extension_loaded($extension)) {
@@ -53,10 +58,50 @@ class SqlAnywhereConnection extends Connection
 
     public function getSchema()
     {
-        if ($this->schema !== null) {
-            return $this->schema;
+        if ($this->schemaExtension === null) {
+            $this->schemaExtension = new SqlAnywhereSchema($this);
         }
 
-        return new Schema($this);
+        return $this->schemaExtension;
+    }
+
+    /**
+     * Get the default query grammar instance.
+     *
+     * @return QueryGrammar
+     */
+    protected function getDefaultQueryGrammar()
+    {
+        return $this->withTablePrefix(new QueryGrammar);
+    }
+
+    /**
+     * Get the default schema grammar instance.
+     *
+     * @return SchemaGrammar
+     */
+    protected function getDefaultSchemaGrammar()
+    {
+        return $this->withTablePrefix(new SchemaGrammar);
+    }
+
+    /**
+     * Get the default post processor instance.
+     *
+     * @return SqlAnywhereProcessor
+     */
+    protected function getDefaultPostProcessor()
+    {
+        return new SqlAnywhereProcessor;
+    }
+
+    /**
+     * Get the Doctrine DBAL driver.
+     *
+     * @return \Doctrine\DBAL\Driver\PDOSqlsrv\Driver
+     */
+    protected function getDoctrineDriver()
+    {
+        return new DoctrineDriver;
     }
 }

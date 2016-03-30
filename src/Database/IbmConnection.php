@@ -2,13 +2,13 @@
 
 namespace DreamFactory\Core\Database;
 
-use DreamFactory\Core\Database\Ibmdb2\Schema;
+use DreamFactory\Core\Database\Ibmdb2\Schema as IbmSchema;
 
 class IbmConnection
 {
     use ConnectionExtension;
 
-    public function checkRequirements()
+    public static function checkRequirements()
     {
         if (!extension_loaded('ibm_db2')) {
             throw new \Exception("Required extension 'ibm_db2' is not detected, but may be compiled in.");
@@ -30,10 +30,10 @@ class IbmConnection
 
     public function getSchema()
     {
-        if ($this->schema !== null) {
-            return $this->schema;
+        if ($this->schemaExtension === null) {
+            $this->schemaExtension = new IbmSchema($this);
         }
 
-        return new Schema($this);
+        return $this->schemaExtension;
     }
 }

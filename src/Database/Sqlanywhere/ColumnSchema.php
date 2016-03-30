@@ -98,9 +98,9 @@ class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
             $alias = '['.$alias.']';
         }
         switch ($this->dbType) {
-            case 'datetime':
-            case 'datetimeoffset':
-                return "(CONVERT(nvarchar(30), $field, 127)) AS $alias";
+//            case 'datetime':
+//            case 'datetimeoffset':
+//                return "(CONVERT(nvarchar(30), $field, 127)) AS $alias";
             case 'geometry':
             case 'geography':
             case 'hierarchyid':

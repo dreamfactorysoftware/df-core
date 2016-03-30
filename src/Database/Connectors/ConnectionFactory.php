@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Database\Connectors;
 
+use DreamFactory\Core\Contracts\ConnectionInterface;
 use DreamFactory\Core\Database\MySqlConnection;
 use DreamFactory\Core\Database\SqlAnywhereConnection;
 use DreamFactory\Core\Database\SQLiteConnection;
@@ -19,6 +20,26 @@ use Yajra\Oci8\Connectors\OracleConnector;
 
 class ConnectionFactory extends \Illuminate\Database\Connectors\ConnectionFactory
 {
+    /**
+     * @var array mapping between database driver and connection class name.
+     */
+    public static $driverConnectorMap = [
+        // PostgreSQL
+        'pgsql'       => 'DreamFactory\Core\Database\PostgresConnection',
+        // MySQL
+        'mysql'       => 'DreamFactory\Core\Database\MysqlConnection',
+        // SQLite
+        'sqlite'      => 'DreamFactory\Core\Database\SQLiteConnection',
+        // Oracle driver
+        'oci'         => 'DreamFactory\Core\Database\OracleConnection',
+        // IBM DB2 driver
+        'ibm'         => 'DreamFactory\Core\Database\IbmConnection',
+        // MS SQL Server on Windows hosts, alias for dblib on Linux, Mac OS X, and maybe others
+        'sqlsrv'      => 'DreamFactory\Core\Database\SqlServerConnection',
+        // SAP SQL Anywhere alias for dblib on Linux, Mac OS X, and maybe others
+        'sqlanywhere' => 'DreamFactory\Core\Database\SqlanywhereConnection',
+    ];
+
     /**
      * Returns a list of available PDO drivers.
      *
@@ -40,9 +61,10 @@ class ConnectionFactory extends \Illuminate\Database\Connectors\ConnectionFactor
     {
         $values = [];
         $supported = static::getAvailableDrivers();
+
         /**
-         * @type string     $driver
-         * @type Connection $class
+         * @type string              $driver
+         * @type ConnectionInterface $class
          */
         foreach (static::$driverConnectorMap as $driver => $class) {
             $disable = !in_array($driver, $supported);
@@ -70,38 +92,39 @@ class ConnectionFactory extends \Illuminate\Database\Connectors\ConnectionFactor
         if ('dblib' === $driver) {
             $driver = 'sqlsrv';
         }
+        /** @type ConnectionInterface $class */
+        if (!empty($class = static::$driverConnectorMap[$driver])) {
+            $class::checkRequirements();
+        } else {
+            throw new \Exception("Driver '$driver' is not supported by this software.");
+        }
 
         return true;
     }
 
-    public static function adaptConnection(\Illuminate\Database\Connection $connection)
+    /**
+     * {@inheritdoc}
+     */
+    public function make(array $config, $name = null)
     {
-        // clients now use indirect association to drivers, dblib can be sqlsrv or sqlanywhere
-        $driver = $connection->getDriverName();
-//        if (isset(static::$driverConnectorMap[$driver])) {
-//            $class = static::$driverConnectorMap[$driver];
-//
-//            /** @type Connection $adaptation */
-//            $adaptation = new $class(['driver' => $connection->getDriverName()]);
-//            $adaptation->setConnection($connection);
-//
-//            return $adaptation;
-//        } else {
-//            throw new \Exception("ConnectionFactory does not support creating connections for '$driver' driver.");
-//        }
+        if (!isset($config['driver'])) {
+            throw new InvalidArgumentException('A driver must be specified.');
+        }
+
+        /** @type ConnectionInterface $class */
+        if (!empty($class = static::$driverConnectorMap[$config['driver']])) {
+            $class::adaptConfig($config);
+        }
+
+        return parent::make($config, $name);
     }
 
     /**
-     * Create a connector instance based on the configuration.
-     *
-     * @param  array  $config
-     * @return \Illuminate\Database\Connectors\ConnectorInterface
-     *
-     * @throws \InvalidArgumentException
+     * {@inheritdoc}
      */
     public function createConnector(array $config)
     {
-        if (! isset($config['driver'])) {
+        if (!isset($config['driver'])) {
             throw new InvalidArgumentException('A driver must be specified.');
         }
 
@@ -136,16 +159,7 @@ class ConnectionFactory extends \Illuminate\Database\Connectors\ConnectionFactor
     }
 
     /**
-     * Create a new connection instance.
-     *
-     * @param  string   $driver
-     * @param  \PDO|\Closure     $connection
-     * @param  string   $database
-     * @param  string   $prefix
-     * @param  array    $config
-     * @return \Illuminate\Database\Connection
-     *
-     * @throws \InvalidArgumentException
+     * {@inheritdoc}
      */
     protected function createConnection($driver, $connection, $database, $prefix = '', array $config = [])
     {

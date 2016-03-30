@@ -925,9 +925,9 @@ SQL;
     public function getTimestampForSet($update = false)
     {
         if (!$update) {
-            return new Expression('(CURRENT_TIMESTAMP)');
+            return $this->connection->raw('(CURRENT_TIMESTAMP)');
         } else {
-            return new Expression('(GENERATED ALWAYS FOR EACH ROW ON UPDATE AS ROW CHANGE TIMESTAMP)');
+            return $this->connection->raw('(GENERATED ALWAYS FOR EACH ROW ON UPDATE AS ROW CHANGE TIMESTAMP)');
         }
     }
 

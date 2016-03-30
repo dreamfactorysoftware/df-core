@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Models;
 use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Components\SchemaToOpenApiDefinition;
 use DreamFactory\Core\Contracts\CacheInterface;
+use DreamFactory\Core\Contracts\ConnectionInterface;
 use DreamFactory\Core\Database\Connection;
 use DreamFactory\Core\Database\Connectors\ConnectionFactory;
 use DreamFactory\Core\Enums\ApiOptions;
@@ -38,14 +39,7 @@ class BaseModel extends Model implements CacheInterface
     const TABLE_TO_MODEL_MAP_CACHE_TTL = 60;
 
     /**
-     * Database Connection object.
-     *
-     * @var Connection
-     */
-    protected $adaptedConnection = null;
-
-    /**
-     * SqlDbCore TableSchema
+     * TableSchema
      *
      * @var TableSchema
      */
@@ -759,14 +753,12 @@ class BaseModel extends Model implements CacheInterface
      */
     public function getTableSchema()
     {
-        if (empty($this->adaptedConnection)) {
-            $connection = $this->getConnection();
-            $this->adaptedConnection = ConnectionFactory::adaptConnection($connection);
-            $this->cachePrefix = 'model_' . $this->getTable() . ':';
-            $this->adaptedConnection->setCache($this);
-        }
+        /** @type ConnectionInterface $connection */
+        $connection = $this->getConnection();
+        $this->cachePrefix = 'model_' . $this->getTable() . ':';
+        $connection->setCache($this);
 
-        return $this->adaptedConnection->getSchema()->getTable($this->table);
+        return $connection->getSchema()->getTable($this->table);
     }
 
     /**

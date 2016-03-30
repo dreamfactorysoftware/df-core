@@ -997,7 +997,7 @@ MYSQL;
      */
     public function getTimestampForSet($update = false)
     {
-        return new Expression('(SYSDATETIMEOFFSET())');
+        return $this->connection->raw('(SYSDATETIMEOFFSET())');
     }
 
     public function parseValueForSet($value, $field_info)

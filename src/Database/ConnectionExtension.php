@@ -4,105 +4,11 @@ namespace DreamFactory\Core\Database;
 use DreamFactory\Core\Contracts\CacheInterface;
 
 /**
- * Connection represents a connection to a database.
+ * ConnectionExtension represents a connection to a database with DreamFactory extensions.
  *
- * Connection works together with {@link Command}, {@link DataReader}
- * and {@link Transaction} to provide data access to various DBMS
- * in a common set of APIs. They are a thin wrapper of the {@link http://www.php.net/manual/en/ref.pdo.php PDO}
- * PHP extension.
- *
- * To establish a connection, set {@link setActive active} to true after
- * specifying {@link connectionString}, {@link username} and {@link password}.
- *
- * The following example shows how to create a Connection instance and establish
- * the actual connection:
- * <pre>
- * $connection=new Connection($dsn,$username,$password);
- * $connection->active=true;
- * </pre>
- *
- * After the DB connection is established, one can execute an SQL statement like the following:
- * <pre>
- * $command=$connection->createCommand($sqlStatement);
- * $command->execute();   // a non-query SQL statement execution
- * // or execute an SQL query and fetch the result set
- * $reader=$command->query();
- *
- * // each $row is an array representing a row of data
- * foreach($reader as $row) ...
- * </pre>
- *
- * One can do prepared SQL execution and bind parameters to the prepared SQL:
- * <pre>
- * $command=$connection->createCommand($sqlStatement);
- * $command->bindParam($name1,$value1);
- * $command->bindParam($name2,$value2);
- * $command->execute();
- * </pre>
- *
- * To use transaction, do like the following:
- * <pre>
- * $transaction=$connection->beginTransaction();
- * try
- * {
- *    $connection->createCommand($sql1)->execute();
- *    $connection->createCommand($sql2)->execute();
- *    //.... other SQL executions
- *    $transaction->commit();
- * }
- * catch(Exception $e)
- * {
- *    $transaction->rollback();
- * }
- * </pre>
- *
- * Connection also provides a set of methods to support setting and querying
- * of certain DBMS attributes, such as {@link getNullConversion nullConversion}.
- *
- * Since Connection implements the interface IApplicationComponent, it can
- * be used as an application component and be configured in application configuration,
- * like the following,
- * <pre>
- * array(
- *     'components'=>array(
- *         'db'=>array(
- *             'class'=>'Connection',
- *             'connectionString'=>'sqlite:path/to/dbfile',
- *         ),
- *     ),
- * )
- * </pre>
- *
- * @property boolean        $active             Whether the DB connection is established.
- * @property \PDO           $pdoInstance        The PDO instance, null if the connection is not established yet.
- * @property Transaction    $currentTransaction The currently active transaction. Null if no active transaction.
- * @property Schema         $schema             The database schema for the current connection.
- * @property CommandBuilder $commandBuilder     The command builder.
- * @property string         $lastInsertID       The row ID of the last row inserted, or the last value retrieved
- *           from the sequence object.
- * @property mixed          $columnCase         The case of the column names.
- * @property mixed          $nullConversion     How the null and empty strings are converted.
- * @property boolean        $autoCommit         Whether creating or updating a DB record will be automatically
- *           committed.
- * @property boolean        $persistent         Whether the connection is persistent or not.
- * @property string         $driverName         Name of the DB driver.
- * @property string         $clientVersion      The version information of the DB driver.
- * @property string         $connectionStatus   The status of the connection.
- * @property boolean        $prefetch           Whether the connection performs data prefetching.
- * @property string         $serverInfo         The information of DBMS server.
- * @property string         $serverVersion      The version information of DBMS server.
- * @property integer        $timeout            Timeout settings for the connection.
- * @property array          $attributes         Attributes (name=>value) that are previously explicitly set for the
- *           DB connection.
- * @property array          $stats              The first element indicates the number of SQL statements executed,
- * and the second element the total time spent in SQL execution.
  */
 trait ConnectionExtension
 {
-    /**
-     * @var array list of SQL statements that should be executed right after the DB connection is established.
-     */
-    protected $initSQLs;
     /**
      * @var CacheInterface
      */
@@ -120,21 +26,9 @@ trait ConnectionExtension
      */
     protected $attributes = [];
     /**
-     * @var boolean.
-     */
-    protected $active = false;
-    /**
-     * @var Transaction
-     */
-    protected $transaction;
-    /**
      * @var Schema
      */
-    protected $schema;
-    /**
-     * @var array
-     */
-    protected $config;
+    protected $schemaExtension;
 
     public static function getDriverLabel()
     {
@@ -144,6 +38,13 @@ trait ConnectionExtension
     public static function getSampleDsn()
     {
         return '';
+    }
+
+    /**
+     * @throws \Exception
+     */
+    public static function checkRequirements()
+    {
     }
 
     /**
@@ -219,13 +120,6 @@ trait ConnectionExtension
     }
 
     /**
-     * @throws \Exception
-     */
-    public function checkRequirements()
-    {
-    }
-
-    /**
      * @return CacheInterface|null
      */
     public function getCache()
@@ -288,37 +182,6 @@ trait ConnectionExtension
     }
 
     /**
-     * Initializes the open db connection.
-     * This method is invoked right after the db connection is established.
-     * The default implementation is to set the charset for MySQL and PostgreSQL database connections.
-     *
-     * @param \PDO $pdo the PDO instance
-     */
-    protected function initConnection($pdo)
-    {
-        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
-        if ($this->emulatePrepare !== null && constant('PDO::ATTR_EMULATE_PREPARES')) {
-            $pdo->setAttribute(\PDO::ATTR_EMULATE_PREPARES, $this->emulatePrepare);
-        }
-
-        if (!empty($attributes = array_get($this->config, 'attributes'))) {
-            $this->setAttributes($attributes);
-        }
-
-        $driver = strtolower($pdo->getAttribute(\PDO::ATTR_DRIVER_NAME));
-        if ($this->charset !== null) {
-            if (in_array($driver, ['pgsql', 'mysql', 'mysqli'])) {
-                $pdo->exec('SET NAMES ' . $pdo->quote($this->charset));
-            }
-        }
-        if (is_array($this->initSQLs)) {
-            foreach ($this->initSQLs as $sql) {
-                $pdo->exec($sql);
-            }
-        }
-    }
-
-    /**
      * Creates a command for execution.
      *
      * @param mixed $query the DB query to be executed. This can be either a string representing a SQL statement,
@@ -332,35 +195,6 @@ trait ConnectionExtension
     public function createCommand($query = null)
     {
         return new Command($this, $query);
-    }
-
-    /**
-     * Returns the currently active transaction.
-     *
-     * @return Transaction the currently active transaction. Null if no active transaction.
-     */
-    public function getCurrentTransaction()
-    {
-        if ($this->transaction !== null) {
-            if ($this->transaction->getActive()) {
-                return $this->transaction;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * Starts a transaction.
-     *
-     * @return Transaction the transaction initiated
-     */
-    public function beginTransaction()
-    {
-        $this->setActive(true);
-        $this->getPdo()->beginTransaction();
-
-        return $this->transaction = new Transaction($this);
     }
 
     /**
@@ -391,8 +225,6 @@ trait ConnectionExtension
      */
     public function getLastInsertID($sequenceName = '')
     {
-        $this->setActive(true);
-
         return $this->getPdo()->lastInsertId($sequenceName);
     }
 
@@ -410,7 +242,6 @@ trait ConnectionExtension
             return $str;
         }
 
-        $this->setActive(true);
         if (($value = $this->getPdo()->quote($str)) !== false) {
             return $value;
         } else  // the driver doesn't support quote (e.g. oci)
@@ -626,8 +457,6 @@ trait ConnectionExtension
      */
     public function getAttribute($name)
     {
-        $this->setActive(true);
-
         return $this->getPdo()->getAttribute($name);
     }
 
@@ -676,10 +505,10 @@ trait ConnectionExtension
         }
     }
 
-    public function getFromCache($key)
+    public function getFromCache($key, $default = null)
     {
         if ($this->cache) {
-            return $this->cache->getFromCache($key);
+            return $this->cache->getFromCache($key, $default);
         }
 
         return null;
@@ -692,6 +521,20 @@ trait ConnectionExtension
         }
     }
 
+    public function removeFromCache($key)
+    {
+        if ($this->cache) {
+            $this->cache->removeFromCache($key);
+        }
+    }
+
+    public function flush()
+    {
+        if ($this->cache) {
+            $this->cache->flush();
+        }
+    }
+
     public function getSchemaExtrasForTables($table_names, $include_fields = true, $select = '*')
     {
         if ($this->extraStore) {
@@ -701,7 +544,7 @@ trait ConnectionExtension
         return null;
     }
 
-    public function getSchemaExtrasForFields($table_name, $field_names, $select = '*')
+    public function getSchemaExtrasForFields($table_name, $field_names = '*', $select = '*')
     {
         if ($this->extraStore) {
             return $this->extraStore->getSchemaExtrasForFields($table_name, $field_names, $select);
@@ -710,7 +553,7 @@ trait ConnectionExtension
         return null;
     }
 
-    public function getSchemaExtrasForFieldsReferenced($table_name, $field_names, $select = '*')
+    public function getSchemaExtrasForFieldsReferenced($table_name, $field_names = '*', $select = '*')
     {
         if ($this->extraStore) {
             return $this->extraStore->getSchemaExtrasForFieldsReferenced($table_name, $field_names, $select);
@@ -719,7 +562,7 @@ trait ConnectionExtension
         return null;
     }
 
-    public function getSchemaExtrasForRelated($table_name, $related_names, $select = '*')
+    public function getSchemaExtrasForRelated($table_name, $related_names = '*', $select = '*')
     {
         if ($this->extraStore) {
             return $this->extraStore->getSchemaExtrasForRelated($table_name, $related_names, $select);

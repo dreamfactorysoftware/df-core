@@ -373,7 +373,7 @@ EOD;
                     $c->autoIncrement = true;
                     $seq = stristr($trig[0]->trigger_body, '.nextval', true);
                     $seq = substr($seq, strrpos($seq, ' ') + 1);
-                    $table->sequenceName = $seq;
+                    $table->sequenceName = $c->name; //$seq;
                     if (ColumnSchema::TYPE_INTEGER === $c->type) {
                         $c->type = ColumnSchema::TYPE_ID;
                     }

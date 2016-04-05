@@ -2,11 +2,11 @@
 namespace DreamFactory\Core\Utility;
 
 use Config;
-use DreamFactory\Core\Database\ColumnSchema;
+use DreamFactory\Core\Database\Schema\ColumnSchema;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Scalar;
 use Log;
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Exceptions\BadRequestException;
 
 /**
  * DbUtilities

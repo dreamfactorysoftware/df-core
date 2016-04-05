@@ -16,7 +16,6 @@ use Illuminate\Database\Connectors\SqlServerConnector;
 use Illuminate\Database\Connectors\SQLiteConnector;
 use PDO;
 use InvalidArgumentException;
-use Yajra\Oci8\Connectors\OracleConnector;
 
 class ConnectionFactory extends \Illuminate\Database\Connectors\ConnectionFactory
 {

@@ -3,24 +3,24 @@
 namespace DreamFactory\Core\Resources;
 
 use Config;
+use DreamFactory\Core\Database\Schema\TableSchema;
+use DreamFactory\Core\Database\Schema\ColumnSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DbComparisonOperators;
 use DreamFactory\Core\Enums\DbLogicalOperators;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
-use DreamFactory\Core\Database\TableSchema;
-use DreamFactory\Core\Database\ColumnSchema;
-use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Core\Utility\Session;
+use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
@@ -2142,7 +2142,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             case DbComparisonOperators::STARTS_WITH:
                 return static::startsWith($left, $right);
             case DbComparisonOperators::ENDS_WITH:
-                return static::endswith($left, $right);
+                return static::endsWith($left, $right);
             case DbComparisonOperators::CONTAINS:
                 return (false !== strpos($left, $right));
             case DbComparisonOperators::IN:
@@ -2971,12 +2971,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'in'          => 'path',
                         'required'    => true,
                     ],
-                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                    ApiOptions::documentOption(ApiOptions::CONTINUES),
-                    ApiOptions::documentOption(ApiOptions::ROLLBACK),
-                    ApiOptions::documentOption(ApiOptions::FIELDS),
-                    ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
                 'get'        => [
                     'tags'              => [$serviceName],
@@ -3000,14 +2994,20 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.table_selected',
                     ],
                     'parameters'        => [
-                        ApiOptions::documentOption(ApiOptions::IDS),
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                         ApiOptions::documentOption(ApiOptions::LIMIT),
+                        ApiOptions::documentOption(ApiOptions::OFFSET),
                         ApiOptions::documentOption(ApiOptions::ORDER),
                         ApiOptions::documentOption(ApiOptions::GROUP),
-                        ApiOptions::documentOption(ApiOptions::OFFSET),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
+                        ApiOptions::documentOption(ApiOptions::IDS),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                        ApiOptions::documentOption(ApiOptions::CONTINUES),
+                        ApiOptions::documentOption(ApiOptions::ROLLBACK),
                         ApiOptions::documentOption(ApiOptions::FILE),
                     ],
                     'responses'         => [
@@ -3042,6 +3042,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
                                 'required'    => true,
                             ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
+                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                            ApiOptions::documentOption(ApiOptions::CONTINUES),
+                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
                             [
                                 'name'        => 'X-HTTP-METHOD',
                                 'description' => 'Override request using POST to tunnel other http request, such as DELETE or GET passing a payload.',
@@ -3089,7 +3095,13 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'in'          => 'body',
                                 'required'    => true,
                             ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                             ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                            ApiOptions::documentOption(ApiOptions::CONTINUES),
+                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
                             ApiOptions::documentOption(ApiOptions::FILTER),
                         ],
                     'responses'         => [
@@ -3127,7 +3139,13 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'in'          => 'body',
                                 'required'    => true,
                             ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                             ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                            ApiOptions::documentOption(ApiOptions::CONTINUES),
+                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
                             ApiOptions::documentOption(ApiOptions::FILTER),
                         ],
                     'responses'         => [
@@ -3167,7 +3185,13 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
                                 'in'          => 'body',
                             ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                             ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                            ApiOptions::documentOption(ApiOptions::CONTINUES),
+                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
                             ApiOptions::documentOption(ApiOptions::FILTER),
                             ApiOptions::documentOption(ApiOptions::FORCE),
                         ],
@@ -3186,23 +3210,19 @@ abstract class BaseDbTableResource extends BaseDbResource
             $path . '/{table_name}/{id}' => [
                 'parameters' => [
                     [
-                        'name'        => 'table_name',
-                        'description' => 'Name of the table to perform operations on.',
-                        'type'        => 'string',
-                        'in'          => 'path',
-                        'required'    => true,
-                    ],
-                    [
                         'name'        => 'id',
                         'description' => 'Identifier of the record to retrieve.',
                         'type'        => 'string',
                         'in'          => 'path',
                         'required'    => true,
                     ],
-                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                    ApiOptions::documentOption(ApiOptions::FIELDS),
-                    ApiOptions::documentOption(ApiOptions::RELATED),
+                    [
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
                 ],
                 'get'        => [
                     'tags'              => [$serviceName],
@@ -3215,7 +3235,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.{id}.select',
                         $eventPath . '.record_selected',
                     ],
-                    'parameters'        => [],
+                    'parameters'        => [
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                    ],
                     'responses'         => [
                         '200'     => [
                             'description' => 'Record',
@@ -3248,6 +3273,10 @@ abstract class BaseDbTableResource extends BaseDbResource
                             'in'          => 'body',
                             'required'    => true,
                         ],
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
                     ],
                     'responses'         => [
                         '200'     => [
@@ -3281,6 +3310,10 @@ abstract class BaseDbTableResource extends BaseDbResource
                             'in'          => 'body',
                             'required'    => true,
                         ],
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
                     ],
                     'responses'         => [
                         '200'     => [
@@ -3302,7 +3335,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.{id}.delete',
                         $eventPath . '.record_deleted',
                     ],
-                    'parameters'        => [],
+                    'parameters'        => [
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                    ],
                     'responses'         => [
                         '200'     => [
                             'description' => 'Record',

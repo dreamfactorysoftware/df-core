@@ -40,8 +40,6 @@ interface SchemaInterface
      */
     public function getFunction($name, $refresh = false);
 
-    public function callFunction($name, $params);
-
     /**
      * Return an array of table names.
      *
@@ -60,8 +58,6 @@ interface SchemaInterface
      */
     public function getProcedure($name, $refresh = false);
     
-    public function callProcedure($name, $params);
-
     /**
      * @return string
      */

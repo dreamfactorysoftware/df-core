@@ -434,10 +434,6 @@ class BaseSystemResource extends BaseRestResource
 
         $apis = [
             $path           => [
-                'parameters' => [
-                    ApiOptions::documentOption(ApiOptions::FIELDS),
-                    ApiOptions::documentOption(ApiOptions::RELATED),
-                ],
                 'get'        => [
                     'tags'              => [$serviceName],
                     'summary'           => 'get' .
@@ -451,6 +447,8 @@ class BaseSystemResource extends BaseRestResource
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                         ApiOptions::documentOption(ApiOptions::LIMIT),
@@ -499,6 +497,8 @@ class BaseSystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Request'],
                             'required'    => true,
                         ],
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
                         [
                             'name'        => 'X-HTTP-METHOD',
                             'description' => 'Override request using POST to tunnel other http request, such as DELETE.',
@@ -547,6 +547,8 @@ class BaseSystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Request'],
                             'required'    => true,
                         ],
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                     ],
@@ -588,6 +590,8 @@ class BaseSystemResource extends BaseRestResource
                             'required'    => false,
                             'default'     => false,
                         ],
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                     ],
@@ -621,15 +625,16 @@ class BaseSystemResource extends BaseRestResource
                         'in'          => 'path',
                         'required'    => true,
                     ],
-                    ApiOptions::documentOption(ApiOptions::FIELDS),
-                    ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
                 'get'        => [
                     'tags'              => [$serviceName],
                     'summary'           => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
                     'operationId'       => 'get' . $capitalized . $class,
                     'x-publishedEvents' => [$eventPath . '.read'],
-                    'parameters'        => [],
+                    'parameters'        => [
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                    ],
                     'responses'         => [
                         '200'     => [
                             'description' => 'Success',
@@ -659,6 +664,8 @@ class BaseSystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/' . $class . 'Request'],
                             'required'    => true,
                         ],
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
                     'responses'         => [
                         '200'     => [
@@ -684,6 +691,8 @@ class BaseSystemResource extends BaseRestResource
                     'operationId'       => 'delete' . $capitalized . $class,
                     'x-publishedEvents' => [$eventPath . '.delete'],
                     'parameters'        => [
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
                     'responses'         => [
                         '200'     => [

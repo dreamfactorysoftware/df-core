@@ -3,7 +3,7 @@
 namespace DreamFactory\Core\Database;
 
 use DreamFactory\Core\Contracts\ConnectionInterface;
-use DreamFactory\Core\Database\Sqlite\Schema as SqliteSchema;
+use DreamFactory\Core\Database\Schema\Sqlite\Schema as SqliteSchema;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 
 class SQLiteConnection extends \Illuminate\Database\SQLiteConnection implements ConnectionInterface
@@ -73,5 +73,21 @@ class SQLiteConnection extends \Illuminate\Database\SQLiteConnection implements 
         }
 
         return $this->schemaExtension;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function supportsFunctions()
+    {
+        return false;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function supportsProcedures()
+    {
+        return false;
     }
 }

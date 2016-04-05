@@ -4,9 +4,8 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Contracts\CachedInterface;
-use DreamFactory\Core\Database\TableSchema;
+use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;

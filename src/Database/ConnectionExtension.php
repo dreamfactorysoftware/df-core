@@ -2,6 +2,9 @@
 namespace DreamFactory\Core\Database;
 
 use DreamFactory\Core\Contracts\CacheInterface;
+use DreamFactory\Core\Contracts\DbExtrasInterface;
+use DreamFactory\Core\Contracts\SchemaInterface;
+use DreamFactory\Core\Database\Schema\ColumnSchema;
 
 /**
  * ConnectionExtension represents a connection to a database with DreamFactory extensions.
@@ -26,7 +29,7 @@ trait ConnectionExtension
      */
     protected $attributes = [];
     /**
-     * @var Schema
+     * @var SchemaInterface
      */
     protected $schemaExtension;
 
@@ -178,42 +181,46 @@ trait ConnectionExtension
 
     public function getUserName()
     {
-        return array_get($this->config, 'username');
+        return $this->getConfig('username');
     }
 
-    /**
-     * Creates a command for execution.
-     *
-     * @param mixed $query the DB query to be executed. This can be either a string representing a SQL statement,
-     *                     or an array representing different fragments of a SQL statement. Please refer to {@link
-     *                     Command::__construct} for more details about how to pass an array as the query. If this
-     *                     parameter is not given, you will have to call query builder methods of {@link Command} to
-     *                     build the DB query.
-     *
-     * @return Command the DB command
-     */
-    public function createCommand($query = null)
+    public function selectColumn($query, $bindings = [], $useReadPdo = true, $column = null)
     {
-        return new Command($this, $query);
+        $rows = $this->select($query, $bindings, $useReadPdo);
+        foreach ($rows as $key => $row) {
+            if (!empty($column)) {
+                $rows[$key] = data_get($row, $column);
+            } else {
+                $row = (array)$row;
+                $rows[$key] = reset($row);
+            }
+        }
+
+        return $rows;
+    }
+
+    public function selectValue($query, $bindings = [], $column = null)
+    {
+        if (null !== $row = $this->selectOne($query, $bindings)) {
+            if (!empty($column)) {
+                return data_get($row, $column);
+            } else {
+                $row = (array)$row;
+
+                return reset($row);
+            }
+        }
+
+        return null;
     }
 
     /**
      * Returns the database schema for the current connection
      *
      * @throws \Exception if Connection does not support reading schema for specified database driver
-     * @return Schema the database schema for the current connection
+     * @return SchemaInterface the database schema for the current connection
      */
     abstract public function getSchema();
-
-    /**
-     * Returns the SQL command builder for the current DB connection.
-     *
-     * @return CommandBuilder the command builder
-     */
-    public function getCommandBuilder()
-    {
-        return $this->getSchema()->getCommandBuilder();
-    }
 
     /**
      * Returns the ID of the last inserted row or sequence value.
@@ -783,14 +790,12 @@ trait ConnectionExtension
             throw new \Exception("No valid fields exist in the received table schema.");
         }
 
-        $command = $this->createCommand();
-        $command->createTable($table, $results['columns'], $options);
+        $this->statement($this->getSchema()->createTable($table, $results['columns'], $options));
 
         if (!empty($results['commands'])) {
             foreach ($results['commands'] as $extraCommand) {
                 try {
-                    $command->reset();
-                    $command->setText($extraCommand)->execute();
+                    $this->statement($extraCommand);
                 } catch (\Exception $ex) {
                     // oh well, we tried.
                 }
@@ -829,26 +834,22 @@ trait ConnectionExtension
         // update column types
 
         $results = [];
-        $command = $this->createCommand();
         if (!empty($schema['field'])) {
             $results =
                 $this->getSchema()->buildTableFields($table_name, $schema['field'], $oldSchema, true, $allow_delete);
             if (isset($results['columns']) && is_array($results['columns'])) {
                 foreach ($results['columns'] as $name => $definition) {
-                    $command->reset();
-                    $command->addColumn($table_name, $name, $definition);
+                    $this->statement($this->getSchema()->addColumn($table_name, $name, $definition));
                 }
             }
             if (isset($results['alter_columns']) && is_array($results['alter_columns'])) {
                 foreach ($results['alter_columns'] as $name => $definition) {
-                    $command->reset();
-                    $command->alterColumn($table_name, $name, $definition);
+                    $this->statement($this->getSchema()->alterColumn($table_name, $name, $definition));
                 }
             }
             if (isset($results['drop_columns']) && is_array($results['drop_columns'])) {
                 foreach ($results['drop_columns'] as $name) {
-                    $command->reset();
-                    $command->dropColumn($table_name, $name);
+                    $this->statement($this->getSchema()->dropColumn($table_name, $name));
                 }
             }
         }
@@ -867,7 +868,7 @@ trait ConnectionExtension
      */
     public function dropTable($table)
     {
-        $result = $this->createCommand()->dropTable($table);
+        $result = $this->statement($this->getSchema()->dropTable($table));
         $this->removeSchemaExtrasForTables($table);
 
         //  Any changes here should refresh cached schema
@@ -881,7 +882,7 @@ trait ConnectionExtension
         $result = 0;
         $tableInfo = $this->getSchema()->getTable($table);
         if (($columnInfo = $tableInfo->getColumn($column)) && (ColumnSchema::TYPE_VIRTUAL !== $columnInfo->type)) {
-            $result = $this->createCommand()->dropColumn($table, $column);
+            $result = $this->statement($this->getSchema()->dropColumn($table, $column));
         }
         $this->removeSchemaExtrasForFields($table, $column);
 
@@ -913,27 +914,23 @@ trait ConnectionExtension
 
         $oldSchema = $this->getSchema()->getTable($table_name);
 
-        $command = $this->createCommand();
         $names = [];
         $results = $this->getSchema()->buildTableFields($table_name, $fields, $oldSchema, $allow_update, $allow_delete);
         if (isset($results['columns']) && is_array($results['columns'])) {
             foreach ($results['columns'] as $name => $definition) {
-                $command->reset();
-                $command->addColumn($table_name, $name, $definition);
+                $this->statement($this->getSchema()->addColumn($table_name, $name, $definition));
                 $names[] = $name;
             }
         }
         if (isset($results['alter_columns']) && is_array($results['alter_columns'])) {
             foreach ($results['alter_columns'] as $name => $definition) {
-                $command->reset();
-                $command->alterColumn($table_name, $name, $definition);
+                $this->statement($this->getSchema()->alterColumn($table_name, $name, $definition));
                 $names[] = $name;
             }
         }
         if (isset($results['drop_columns']) && is_array($results['drop_columns'])) {
             foreach ($results['drop_columns'] as $name) {
-                $command->reset();
-                $command->dropColumn($table_name, $name);
+                $this->statement($this->getSchema()->dropColumn($table_name, $name));
                 $names[] = $name;
             }
         }
@@ -967,15 +964,13 @@ trait ConnectionExtension
     protected function createFieldReferences($references)
     {
         if (!empty($references)) {
-            $command = $this->createCommand();
             foreach ($references as $reference) {
                 $name = $reference['name'];
                 $table = $reference['table'];
                 $drop = (isset($reference['drop'])) ? boolval($reference['drop']) : false;
                 if ($drop) {
                     try {
-                        $command->reset();
-                        $command->dropForeignKey($name, $table);
+                        $this->statement($this->getSchema()->dropForeignKey($name, $table));
                     } catch (\Exception $ex) {
                         \Log::debug($ex->getMessage());
                     }
@@ -983,9 +978,7 @@ trait ConnectionExtension
                 // add new reference
                 $refTable = (isset($reference['ref_table'])) ? $reference['ref_table'] : null;
                 if (!empty($refTable)) {
-                    $command->reset();
-                    /** @noinspection PhpUnusedLocalVariableInspection */
-                    $rows = $command->addForeignKey(
+                    $this->statement($this->getSchema()->addForeignKey(
                         $name,
                         $table,
                         $reference['column'],
@@ -993,7 +986,7 @@ trait ConnectionExtension
                         $reference['ref_fields'],
                         $reference['delete'],
                         $reference['update']
-                    );
+                    ));
                 }
             }
         }
@@ -1007,25 +1000,198 @@ trait ConnectionExtension
     protected function createFieldIndexes($indexes)
     {
         if (!empty($indexes)) {
-            $command = $this->createCommand();
             foreach ($indexes as $index) {
                 $name = $index['name'];
                 $table = $index['table'];
                 $drop = (isset($index['drop'])) ? boolval($index['drop']) : false;
                 if ($drop) {
                     try {
-                        $command->reset();
-                        $command->dropIndex($name, $table);
+                        $this->statement($this->getSchema()->dropIndex($name, $table));
                     } catch (\Exception $ex) {
                         \Log::debug($ex->getMessage());
                     }
                 }
                 $unique = (isset($index['unique'])) ? boolval($index['unique']) : false;
 
-                $command->reset();
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $rows = $command->createIndex($name, $table, $index['column'], $unique);
+                $this->statement($this->getSchema()->createIndex($name, $table, $index['column'], $unique));
             }
+        }
+    }
+
+    /**
+     * @return boolean
+     */
+    public function supportsFunctions()
+    {
+        return true;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callFunction($name, &$params)
+    {
+        if (!$this->supportsFunctions()) {
+            throw new \Exception('Stored Functions are not supported by this database connection.');
+        }
+    }
+
+    /**
+     * @return boolean
+     */
+    public function supportsProcedures()
+    {
+        return true;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callProcedure($name, &$params)
+    {
+        if (!$this->supportsProcedures()) {
+            throw new \Exception('Stored Procedures are not supported by this database connection.');
+        }
+
+        $name = $this->quoteTableName($name);
+        $paramStr = '';
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+
+            if (!empty($paramStr)) {
+                $paramStr .= ', ';
+            }
+
+            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                case 'OUT':
+                case 'INOUT':
+                case 'IN':
+                default:
+                    $paramStr .= ":$pName";
+                    break;
+            }
+        }
+
+        $sql = "CALL $name($paramStr)";
+        /** @type \PDOStatement $statement */
+        $statement = $this->getPdo()->prepare($sql);
+        // do binding
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+
+            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                case 'OUT':
+                case 'INOUT':
+                case 'IN':
+                default:
+                    $rType = (isset($param['type'])) ? $param['type'] : 'string';
+                    $rLength = (isset($param['length'])) ? $param['length'] : 256;
+                    $pdoType = $this->getPdoType($rType);
+                    $this->bindParam($statement, ":$pName", $params[$key]['value'], $pdoType | \PDO::PARAM_INPUT_OUTPUT,
+                        $rLength);
+                    break;
+            }
+        }
+
+        // support multiple result sets
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+        } catch (\Exception $e) {
+            $errorInfo = $e instanceof \PDOException ? $e : null;
+            $message = $e->getMessage();
+            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
+        }
+        $result = $reader->readAll();
+        if ($reader->nextResult()) {
+            // more data coming, make room
+            $result = [$result];
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        }
+
+        // out parameters come back in fetch results, put them in the params for client
+        if (isset($result, $result[0])) {
+            foreach ($params as $key => $param) {
+                if (false !== stripos(strval(isset($param['param_type']) ? $param['param_type'] : ''), 'OUT')) {
+                    $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+                    if (isset($result[0][$pName])) {
+                        $params[$key]['value'] = $result[0][$pName];
+                    }
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param \PDOStatement $statement
+     * @param               $name
+     * @param               $value
+     * @param null          $dataType
+     * @param null          $length
+     * @param null          $driverOptions
+     */
+    public function bindParam($statement, $name, &$value, $dataType = null, $length = null, $driverOptions = null)
+    {
+        if ($dataType === null) {
+            $statement->bindParam($name, $value, $this->getPdoType(gettype($value)));
+        } elseif ($length === null) {
+            $statement->bindParam($name, $value, $dataType);
+        } elseif ($driverOptions === null) {
+            $statement->bindParam($name, $value, $dataType, $length);
+        } else {
+            $statement->bindParam($name, $value, $dataType, $length, $driverOptions);
+        }
+    }
+
+    /**
+     * Binds a value to a parameter.
+     *
+     * @param \PDOStatement $statement
+     * @param mixed         $name     Parameter identifier. For a prepared statement
+     *                                using named placeholders, this will be a parameter name of
+     *                                the form :name. For a prepared statement using question mark
+     *                                placeholders, this will be the 1-indexed position of the parameter.
+     * @param mixed         $value    The value to bind to the parameter
+     * @param integer       $dataType SQL data type of the parameter. If null, the type is determined by the PHP type
+     *                                of the value.
+     *
+     * @see http://www.php.net/manual/en/function.PDOStatement-bindValue.php
+     */
+    public function bindValue($statement, $name, $value, $dataType = null)
+    {
+        if ($dataType === null) {
+            $statement->bindValue($name, $value, $this->getPdoType(gettype($value)));
+        } else {
+            $statement->bindValue($name, $value, $dataType);
+        }
+    }
+
+    /**
+     * Binds a list of values to the corresponding parameters.
+     * This is similar to {@link bindValue} except that it binds multiple values.
+     * Note that the SQL data type of each value is determined by its PHP type.
+     *
+     * @param \PDOStatement $statement
+     * @param array         $values the values to be bound. This must be given in terms of an associative
+     *                              array with array keys being the parameter names, and array values the corresponding
+     *                              parameter values. For example, <code>array(':name'=>'John', ':age'=>25)</code>.
+     */
+    public function bindValues($statement, $values)
+    {
+        foreach ($values as $name => $value) {
+            $statement->bindValue($name, $value, $this->getPdoType(gettype($value)));
         }
     }
 }

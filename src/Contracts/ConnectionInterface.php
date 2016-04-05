@@ -1,8 +1,6 @@
 <?php
 namespace DreamFactory\Core\Contracts;
 
-use DreamFactory\Core\Database\DbExtrasInterface;
-
 interface ConnectionInterface extends \Illuminate\Database\ConnectionInterface, CacheInterface, DbExtrasInterface
 {
     public static function checkRequirements();
@@ -42,4 +40,35 @@ interface ConnectionInterface extends \Illuminate\Database\ConnectionInterface, 
 
     public function getUserName();
 
+    public function selectColumn($query, $column = null, $bindings = [], $useReadPdo = true);
+
+    public function selectValue($query, $column = null, $bindings = []);
+
+    /**
+     * @return boolean
+     */
+    public function supportsFunctions();
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callFunction($name, &$params);
+
+    /**
+     * @return boolean
+     */
+    public function supportsProcedures();
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callProcedure($name, &$params);
 }

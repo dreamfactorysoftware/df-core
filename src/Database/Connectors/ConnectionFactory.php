@@ -148,8 +148,8 @@ class ConnectionFactory extends \Illuminate\Database\Connectors\ConnectionFactor
             case 'sqlanywhere':
                 return new SqlAnywhereConnector;
 
-            case 'oci':
-                return new OracleConnector;
+            case 'oci8':
+                return new OracleConnector();
 
             case 'ibm':
                 return new IbmConnector;
@@ -174,7 +174,7 @@ class ConnectionFactory extends \Illuminate\Database\Connectors\ConnectionFactor
             case 'mysql':
                 return new MySqlConnection($connection, $database, $prefix, $config);
 
-            case 'oci':
+            case 'oci8':
                 return new OracleConnection($connection, $database, $prefix, $config);
 
             case 'pgsql':

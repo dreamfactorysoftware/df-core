@@ -520,7 +520,23 @@ MYSQL;
      */
     protected function findProcedureNames($schema = '')
     {
-        return $this->findRoutines('procedure', $schema);
+        $defaultSchema = $this->getDefaultSchema();
+        $select =
+            (empty($schema) || ($defaultSchema == $schema))
+                ? 'ROUTINE_NAME' : "CONCAT('" . $schema . "','.',ROUTINE_NAME) as ROUTINE_NAME";
+        $schema = !empty($schema) ? " AND ROUTINE_SCHEMA = '" . $schema . "'" : null;
+
+        $sql = <<<MYSQL
+SELECT
+    {$select}
+FROM
+    information_schema.ROUTINES
+WHERE
+    ROUTINE_TYPE = 'PROCEDURE'
+    {$schema}
+MYSQL;
+
+        return $this->connection->selectColumn($sql);
     }
 
     /**
@@ -534,7 +550,23 @@ MYSQL;
      */
     protected function findFunctionNames($schema = '')
     {
-        return $this->findRoutines('function', $schema);
+        $defaultSchema = $this->getDefaultSchema();
+        $select =
+            (empty($schema) || ($defaultSchema == $schema))
+                ? 'ROUTINE_NAME' : "CONCAT('" . $schema . "','.',ROUTINE_NAME) as ROUTINE_NAME";
+        $schema = !empty($schema) ? " AND ROUTINE_SCHEMA = '" . $schema . "'" : null;
+
+        $sql = <<<MYSQL
+SELECT
+    {$select}
+FROM
+    information_schema.ROUTINES
+WHERE
+    ROUTINE_TYPE = 'FUNCTION'
+    {$schema}
+MYSQL;
+
+        return $this->connection->selectColumn($sql);
     }
 
     /**
@@ -632,44 +664,6 @@ MYSQL;
         }
 
         return 'ALTER TABLE ' . $this->quoteTableName($table) . ' ADD PRIMARY KEY (' . implode(', ', $columns) . ' )';
-    }
-
-    /**
-     * Returns all routines in the database.
-     *
-     * @param string $type   "procedure" or "function"
-     * @param string $schema the schema of the routine. Defaults to empty string, meaning the current or
-     *                       default schema. If not empty, the returned stored function names will be prefixed with the
-     *                       schema name.
-     *
-     * @throws \InvalidArgumentException
-     * @return array all stored function names in the database.
-     */
-    protected function findRoutines($type, $schema = '')
-    {
-        $defaultSchema = $this->getDefaultSchema();
-        $type = trim(strtoupper($type));
-
-        if ($type != 'PROCEDURE' && $type != 'FUNCTION') {
-            throw new \InvalidArgumentException('The type "' . $type . '" is invalid.');
-        }
-
-        $select =
-            (empty($schema) || ($defaultSchema == $schema))
-                ? 'ROUTINE_NAME' : "CONCAT('" . $schema . "','.',ROUTINE_NAME) as ROUTINE_NAME";
-        $schema = !empty($schema) ? " AND ROUTINE_SCHEMA = '" . $schema . "'" : null;
-
-        $sql = <<<MYSQL
-SELECT
-    {$select}
-FROM
-    information_schema.ROUTINES
-WHERE
-    ROUTINE_TYPE = :routine_type
-    {$schema}
-MYSQL;
-
-        return $this->connection->selectColumn($sql, null, [':routine_type' => $type]);
     }
 
     /**

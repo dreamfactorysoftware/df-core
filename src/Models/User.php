@@ -2,20 +2,20 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\RegisterContact;
-use DreamFactory\Core\Database\RelationSchema;
+use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Utility\JWTUtilities;
-use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Utility\DataFormatter;
+use DreamFactory\Core\Utility\JWTUtilities;
+use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\ArrayUtils;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Model;
-use DreamFactory\Core\Utility\DataFormatter;
 use Validator;
 
 /**

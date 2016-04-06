@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Resources;
 
+use DreamFactory\Core\Components\DataValidator;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\VerbsMask;
@@ -12,7 +13,6 @@ use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -20,6 +20,8 @@ use DreamFactory\Library\Utility\Inflector;
 
 abstract class BaseDbSchemaResource extends BaseDbResource
 {
+    use DataValidator;
+    
     //*************************************************************************
     //	Constants
     //*************************************************************************
@@ -483,7 +485,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         $tables,
         $refresh = false
     ){
-        $tables = DbUtilities::validateAsArray(
+        $tables = static::validateAsArray(
             $tables,
             ',',
             true,
@@ -536,7 +538,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     public function createTables($tables, $check_exist = false, $return_schema = false)
     {
-        $tables = DbUtilities::validateAsArray(
+        $tables = static::validateAsArray(
             $tables,
             ',',
             true,
@@ -590,7 +592,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     public function updateTables($tables, $allow_delete_fields = false, $return_schema = false)
     {
-        $tables = DbUtilities::validateAsArray(
+        $tables = static::validateAsArray(
             $tables,
             null,
             true,
@@ -657,7 +659,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     public function deleteTables($tables, $check_empty = false)
     {
-        $tables = DbUtilities::validateAsArray(
+        $tables = static::validateAsArray(
             $tables,
             ',',
             true,

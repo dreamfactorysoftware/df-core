@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Resources;
 
 use Config;
+use DreamFactory\Core\Components\DataValidator;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Database\Schema\ColumnSchema;
 use DreamFactory\Core\Enums\ApiOptions;
@@ -20,13 +21,14 @@ use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 
 abstract class BaseDbTableResource extends BaseDbResource
 {
+    use DataValidator;
+    
     //*************************************************************************
     //	Constants
     //*************************************************************************
@@ -680,7 +682,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function createRecords($table, $records, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
+        $records = static::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
         $isSingle = (1 == count($records));
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
@@ -779,7 +781,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function createRecord($table, $record, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
+        $records = static::validateAsArray($record, null, true, 'The request contains no valid record fields.');
 
         $results = $this->createRecords($table, $records, $extras);
 
@@ -796,7 +798,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function updateRecords($table, $records, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
+        $records = static::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -894,7 +896,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function updateRecord($table, $record, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
+        $records = static::validateAsArray($record, null, true, 'The request contains no valid record fields.');
 
         $results = $this->updateRecords($table, $records, $extras);
 
@@ -913,7 +915,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function updateRecordsByFilter($table, $record, $filter = null, $params = [], $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
+        $record = static::validateAsArray($record, null, false, 'There are no fields in the record.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -953,8 +955,8 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function updateRecordsByIds($table, $record, $ids, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
-        $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
+        $record = static::validateAsArray($record, null, false, 'There are no fields in the record.');
+        $ids = static::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -1056,7 +1058,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function updateRecordById($table, $record, $id, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
+        $record = static::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
         $results = $this->updateRecordsByIds($table, $record, $id, $extras);
 
@@ -1073,7 +1075,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function patchRecords($table, $records, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
+        $records = static::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -1171,7 +1173,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function patchRecord($table, $record, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
+        $records = static::validateAsArray($record, null, true, 'The request contains no valid record fields.');
 
         $results = $this->patchRecords($table, $records, $extras);
 
@@ -1190,7 +1192,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function patchRecordsByFilter($table, $record, $filter = null, $params = [], $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
+        $record = static::validateAsArray($record, null, false, 'There are no fields in the record.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -1228,8 +1230,8 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function patchRecordsByIds($table, $record, $ids, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
-        $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
+        $record = static::validateAsArray($record, null, false, 'There are no fields in the record.');
+        $ids = static::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -1331,7 +1333,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function patchRecordById($table, $record, $id, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
+        $record = static::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
         $results = $this->patchRecordsByIds($table, $record, $id, $extras);
 
@@ -1348,7 +1350,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function deleteRecords($table, $records, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
+        $records = static::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
         $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
@@ -1376,7 +1378,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function deleteRecord($table, $record, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
+        $record = static::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
         $results = $this->deleteRecords($table, [$record], $extras);
 
@@ -1429,7 +1431,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function deleteRecordsByIds($table, $ids, $extras = [])
     {
-        $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
+        $ids = static::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -1574,7 +1576,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function retrieveRecords($table, $records, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
+        $records = static::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
         $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
@@ -1603,7 +1605,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function retrieveRecord($table, $record, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
+        $record = static::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
         $results = $this->retrieveRecords($table, [$record], $extras);
 
@@ -1620,7 +1622,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function retrieveRecordsByIds($table, $ids, $extras = [])
     {
-        $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
+        $ids = static::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -2390,7 +2392,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                             $delimiter = ArrayUtils::get($config, 'delimiter', ',');
                             $min = ArrayUtils::get($config, 'min', 1);
                             $max = ArrayUtils::get($config, 'max');
-                            $value = DbUtilities::validateAsArray($value, $delimiter, true);
+                            $value = static::validateAsArray($value, $delimiter, true);
                             $count = count($value);
                             if ($count < $min) {
                                 if (empty($msg)) {
@@ -2655,7 +2657,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             return true;
         }
 
-        if (false === $fields = DbUtilities::validateAsArray($fields, ',')) {
+        if (false === $fields = static::validateAsArray($fields, ',')) {
             return false;
         }
 

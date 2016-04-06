@@ -593,4 +593,51 @@ class ColumnSchema
 
         return $out;
     }
+
+    /**
+     * @param $type
+     *
+     * @return null|string
+     */
+    public static function determinePhpConversionType($type)
+    {
+        switch ($type) {
+            case static::TYPE_BOOLEAN:
+                return 'bool';
+
+            case static::TYPE_INTEGER:
+            case static::TYPE_ID:
+            case static::TYPE_REF:
+            case static::TYPE_USER_ID:
+            case static::TYPE_USER_ID_ON_CREATE:
+            case static::TYPE_USER_ID_ON_UPDATE:
+                return 'int';
+
+            case static::TYPE_DECIMAL:
+            case static::TYPE_DOUBLE:
+            case static::TYPE_FLOAT:
+                return 'float';
+
+            case static::TYPE_STRING:
+            case static::TYPE_TEXT:
+                return 'string';
+
+            // special checks
+            case static::TYPE_DATE:
+                return 'date';
+
+            case static::TYPE_TIME:
+                return 'time';
+
+            case static::TYPE_DATETIME:
+                return 'datetime';
+
+            case static::TYPE_TIMESTAMP:
+            case static::TYPE_TIMESTAMP_ON_CREATE:
+            case static::TYPE_TIMESTAMP_ON_UPDATE:
+                return 'timestamp';
+        }
+
+        return null;
+    }
 }

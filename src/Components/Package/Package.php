@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Components\Package;
 
+use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\DataFormatter;
@@ -263,15 +264,15 @@ class Package
      *
      * @return bool
      */
-    public function isFileService($serviceName, $resources)
+    public function isFileService($serviceName, $resources = null)
     {
         $service = Service::with('service_type_by_type')->whereName($serviceName)->first();
         if (!empty($service)) {
             $relations = $service->getRelation('service_type_by_type');
             $group = $relations->group;
 
-            return ($group === 'File') ? true : false;
-        } else {
+            return ($group === ServiceTypeGroups::FILE) ? true : false;
+        } elseif (!empty($resources)) {
             if (is_string($resources)) {
                 $resources = explode(',', $resources);
             }
@@ -291,6 +292,19 @@ class Package
                     }
                 }
             }
+        }
+
+        return false;
+    }
+
+    public function isDbService($serviceName)
+    {
+        $service = Service::with('service_type_by_type')->whereName($serviceName)->first();
+        if (!empty($service)) {
+            $relations = $service->getRelation('service_type_by_type');
+            $group = $relations->group;
+
+            return ($group === ServiceTypeGroups::DATABASE) ? true : false;
         }
 
         return false;
@@ -427,7 +441,7 @@ class Package
     {
         $m = $this->manifest;
 
-        if(!empty($m)) {
+        if (!empty($m)) {
             if (isset($m['service']) && is_array($m['service'])) {
                 foreach ($m['service'] as $item => $value) {
                     if ($this->isFileService($item, $value)) {
@@ -511,6 +525,21 @@ class Package
     }
 
     /**
+     * Adds content to ZipArchive.
+     *
+     * @param $localFilename
+     * @param $content
+     *
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
+    public function zipContent($localFilename, $content)
+    {
+        if (!$this->zip->addFromString($localFilename, $content)) {
+            throw new InternalServerErrorException("Failed to add $localFilename to Zip Archive");
+        }
+    }
+
+    /**
      * Retrieves resource data from ZipArchive.
      *
      * @param $resourceFile
@@ -555,6 +584,28 @@ class Package
             $this->destructible[] = $zipFile;
 
             return $zip;
+        }
+
+        return null;
+    }
+
+    /**
+     * Retrieves a file from ZipArchive.
+     *
+     * @param $file
+     *
+     * @return null|string
+     */
+    public function getFileFromZip($file)
+    {
+        if (false !== $content = $this->zip->getFromName($file)) {
+            $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $fileName = $tmpDir . md5($file) . time() . '.' . pathinfo($file, PATHINFO_EXTENSION);
+            file_put_contents($fileName, $content);
+
+            $this->destructible[] = $fileName;
+
+            return $fileName;
         }
 
         return null;

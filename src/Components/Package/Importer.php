@@ -74,6 +74,7 @@ class Importer
             $this->storeFiles();
         } catch (\Exception $e) {
             \DB::rollBack();
+            \Log::error('Failed to import package. Rolling back. ' . $e->getMessage());
             throw $e;
         }
 
@@ -411,16 +412,28 @@ class Importer
                 /** @type BaseFileService $storage */
                 $storage = ServiceHandler::getService($service);
                 foreach ($resources as $resource) {
-                    $resourcePath = $service . '/' . trim($resource, '/') . '/' . md5($resource) . '.zip';
-                    $zip = $this->package->getZipFromZip($resourcePath);
-                    if (!empty($zip)) {
-                        $storage->driver()->extractZipFile(
-                            $storage->getContainerId(),
-                            rtrim($resource, '/') . '/',
-                            $zip,
-                            false,
-                            rtrim($resource, '/') . '/'
-                        );
+                    try {
+                        $resourcePath = $service . '/' . ltrim($resource, '/');
+                        $file = $this->package->getFileFromZip($resourcePath);
+                        if (!empty($file)) {
+                            $storage->driver()
+                                ->moveFile($storage->getContainerId(), ltrim($resource, '/'), $file, true);
+                        } else {
+                            $resourcePath = $service . '/' . trim($resource, '/') . '/' . md5($resource) . '.zip';
+                            $zip = $this->package->getZipFromZip($resourcePath);
+                            if (!empty($zip)) {
+                                $storage->driver()->extractZipFile(
+                                    $storage->getContainerId(),
+                                    rtrim($resource, '/') . '/',
+                                    $zip,
+                                    false,
+                                    rtrim($resource, '/') . '/'
+                                );
+                            }
+                        }
+                    } catch (\Exception $e) {
+                        $this->log('warning',
+                            'Skipping storage resource ' . $service . '/' . $resource . '. ' . $e->getMessage());
                     }
                 }
             } catch (\Exception $e) {

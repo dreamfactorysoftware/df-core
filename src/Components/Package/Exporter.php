@@ -138,7 +138,7 @@ class Exporter
 
     /**
      * Returns a manifest file for system-wide resources.
-     * 
+     *
      * @return array
      */
     public function getManifestOnly()
@@ -187,7 +187,7 @@ class Exporter
 
     /**
      * Returns all resources for service/resource.
-     * 
+     *
      * @param       $service
      * @param       $resource
      * @param array $params
@@ -245,11 +245,23 @@ class Exporter
                 $resources = explode(',', $resources);
             }
             foreach ($resources as $resource) {
-                $zippedResource = $this->getStorageZip($service, $resource);
-                if ($zippedResource !== false) {
-                    $newFileName = $service . '/' . rtrim($resource, '/') . '/' . md5($resource) . '.zip';
-                    $this->package->zipFile($zippedResource, $newFileName);
-                    $this->destructible[] = $zippedResource;
+                /** @type BaseFileService $storage */
+                $storage = ServiceHandler::getService($service);
+                if (!$storage) {
+                    throw new InternalServerErrorException("Can not find storage service $service.");
+                }
+
+                $container = $storage->getContainerId();
+                if ($storage->driver()->folderExists($container, $resource)) {
+                    $zippedResource = $this->getStorageFolderZip($storage, $resource);
+                    if ($zippedResource !== false) {
+                        $newFileName = $service . '/' . rtrim($resource, '/') . '/' . md5($resource) . '.zip';
+                        $this->package->zipFile($zippedResource, $newFileName);
+                        $this->destructible[] = $zippedResource;
+                    }
+                } elseif ($storage->driver()->fileExists($container, $resource)) {
+                    $content = $storage->driver()->getFileContent($container, $resource, null, false);
+                    $this->package->zipContent($service . '/' . $resource, $content);
                 }
             }
         }
@@ -259,20 +271,14 @@ class Exporter
      * Returns the path of the zip file containing
      * app files or other storage files.
      *
-     * @param $service
-     * @param $resource
+     * @param BaseFileService $storage
+     * @param                 $resource
      *
      * @return bool|string
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
-    protected function getStorageZip($service, $resource)
+    protected function getStorageFolderZip($storage, $resource)
     {
-        /** @type BaseFileService $storage */
-        $storage = ServiceHandler::getService($service);
-        if (!$storage) {
-            throw new InternalServerErrorException("Can not find storage service $service.");
-        }
-
         $resource = rtrim($resource, '/') . DIRECTORY_SEPARATOR;
         $zip = new \ZipArchive();
         $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;

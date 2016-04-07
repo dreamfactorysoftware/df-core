@@ -142,9 +142,11 @@ class Exporter
     /**
      * Returns a manifest file for system-wide resources.
      *
+     * @param bool $systemOnly
+     *
      * @return array
      */
-    public function getManifestOnly()
+    public function getManifestOnly($systemOnly = false)
     {
         $this->data['system']['role'] = $this->getAllResources('system', 'role', ['fields' => 'id,name']);
         $this->data['system']['service'] = $this->getAllResources('system', 'service', ['fields' => 'id,name']);
@@ -185,27 +187,42 @@ class Exporter
             }
         }
 
-        foreach ($manifest['service']['system']['service'] as $service) {
-            try {
-                $group = static::getServiceGroup($service);
-                switch ($group) {
-                    case ServiceTypeGroups::FILE:
-                        $resources = $this->getAllResources($service, '', ['as_list' => true, 'full_tree' => true]);
-                        $manifest[$service] = static::cleanStorageResources($resources);
-                        break;
-                    case ServiceTypeGroups::DATABASE:
-                        $manifest[$service]['_schema'] =
-                            $this->getAllResources($service, '_schema', ['as_list' => true]);
-                        break;
+        if (false === $systemOnly) {
+            foreach ($manifest['service']['system']['service'] as $service) {
+                try {
+                    $group = static::getServiceGroup($service);
+                    switch ($group) {
+                        case ServiceTypeGroups::FILE:
+                            $manifest[$service] = $this->getAllResources(
+                                $service,
+                                '',
+                                ['as_list' => true, 'full_tree' => true]
+                            );
+                            break;
+                        case ServiceTypeGroups::DATABASE:
+                            $manifest[$service]['_schema'] = $this->getAllResources(
+                                $service,
+                                '_schema',
+                                ['as_list' => true]
+                            );
+                            break;
+                    }
+                } catch (ForbiddenException $e) {
+                    // Inactive service. Let go.
                 }
-            } catch (ForbiddenException $e) {
-                // Inactive service. Let go.
             }
         }
 
         return $manifest;
     }
 
+    /**
+     * Retrieves service group name.
+     *
+     * @param $serviceName
+     *
+     * @return null
+     */
     protected static function getServiceGroup($serviceName)
     {
         $service = Service::with('service_type_by_type')->whereName($serviceName)->first();
@@ -216,23 +233,6 @@ class Exporter
         }
 
         return null;
-    }
-
-    protected static function cleanStorageResources($resources)
-    {
-        $cleaned = [];
-        if (!empty($resources)) {
-            foreach ($resources as $resource) {
-                if (!in_array($resource, ['', '*']) &&
-                    '*' !== substr($resource, strlen($resource) - 1) &&
-                    !in_array($resource, $cleaned)
-                ) {
-                    $cleaned[] = $resource;
-                }
-            }
-        }
-
-        return $cleaned;
     }
 
     /**
@@ -514,7 +514,11 @@ class Exporter
                 if (is_numeric($id)) {
                     $resource .= '/' . $id;
                 } elseif (is_string($id)) {
-                    array_set($params, 'filter', 'name="' . $id . '"');
+                    if (in_array($api, ['system/user', 'system/admin'])) {
+                        array_set($params, 'filter', 'email="' . $id . '"');
+                    } else {
+                        array_set($params, 'filter', 'name="' . $id . '"');
+                    }
                 }
         }
 

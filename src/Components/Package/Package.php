@@ -376,6 +376,15 @@ class Package
         return $this->getManifestFromZipFile();
     }
 
+    /**
+     * Retrieves manifest from a local zip file.
+     * 
+     * @param $file
+     *
+     * @return array|string
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
     protected function getManifestFromLocalFile($file)
     {
         $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));

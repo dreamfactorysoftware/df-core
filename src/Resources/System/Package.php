@@ -11,8 +11,10 @@ class Package extends BaseSystemResource
     /** @inheritdoc */
     protected function handleGET()
     {
+        $systemOnly = $this->request->getParameterAsBool('system_only');
         $exporter = new Exporter(new \DreamFactory\Core\Components\Package\Package());
-        $manifest = $exporter->getManifestOnly();
+        $manifest = $exporter->getManifestOnly($systemOnly);
+
         if ($this->request->getParameterAsBool('as_file')) {
             $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
             $fileName = $tmpDir . 'manifest_' . date('Y-m-d H:i:s', time()) . '.json';

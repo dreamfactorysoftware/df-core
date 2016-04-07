@@ -7,7 +7,10 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\RoleServiceAccess;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Services\BaseFileService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ServiceHandler;
@@ -69,6 +72,8 @@ class Importer
             $this->insertService();
             $this->insertRoleServiceAccess();
             $this->insertApp();
+            $this->insertUser();
+            $this->insertUserAppRole();
             $this->insertOtherResource();
             $this->insertEventScripts();
             $this->storeFiles();
@@ -116,6 +121,129 @@ class Importer
                 return true;
             } catch (\Exception $e) {
                 throw new InternalServerErrorException('Failed to insert roles. ' . $e->getMessage());
+            }
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Imports system/user
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
+    protected function insertUser()
+    {
+        $data = $this->package->getResourceFromZip('system/user.json');
+        $users = $this->cleanDuplicates($data, 'system', 'user');
+
+        if (!empty($users)) {
+            try {
+                foreach ($users as $i => $user) {
+                    $this->fixCommonFields($user);
+                    unset($user['user_to_app_to_role_by_user_id']);
+                    $users[$i] = $user;
+                }
+
+                $payload = ResourcesWrapper::wrapResources($users);
+                ServiceHandler::handleRequest(Verbs::POST, 'system', 'user', [], $payload);
+
+                return true;
+            } catch (\Exception $e) {
+                throw new InternalServerErrorException('Failed to insert users. ' . $e->getMessage());
+            }
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Imports user_to_app_to_role_by_user_id relation.
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
+    protected function insertUserAppRole()
+    {
+        $usersInZip = $this->package->getResourceFromZip('system/user.json');
+
+        if (!empty($usersInZip)) {
+            try {
+                foreach ($usersInZip as $uiz) {
+                    $uar = $uiz['user_to_app_to_role_by_user_id'];
+                    $user = User::whereEmail($uiz['email'])->first();
+                    $newUserId = $user->id;
+                    if (!empty($user) && !empty($uar)) {
+                        $cleanedUar = [];
+                        foreach ($uar as $r) {
+                            $originId = $r['id'];
+                            $this->fixCommonFields($r);
+                            $newRoleId = $this->getNewRoleId($r['role_id']);
+                            $newAppId = $this->getNewAppId($r['app_id']);
+
+                            if (empty($newRoleId) && !empty($r['role_id'])) {
+                                $this->log(
+                                    'warning',
+                                    'Skipping relation user_to_app_to_role_by_user_id with id ' .
+                                    $originId .
+                                    ' for user ' .
+                                    $uiz['email'] .
+                                    '. Role not found for id ' .
+                                    $r['role_id']
+                                );
+                                continue;
+                            }
+
+                            if (empty($newAppId) && !empty($r['app_id'])) {
+                                $this->log(
+                                    'warning',
+                                    'Skipping relation user_to_app_to_role_by_user_id with id ' .
+                                    $originId .
+                                    ' for user ' .
+                                    $uiz['email'] .
+                                    '. App not found for id ' .
+                                    $r['app_id']
+                                );
+                                continue;
+                            }
+
+                            $r['role_id'] = $newRoleId;
+                            $r['app_id'] = $newAppId;
+                            $r['user_id'] = $newUserId;
+
+                            if ($this->isDuplicateUserAppRole($r)) {
+                                $this->log(
+                                    'notice',
+                                    'Skipping duplicate user_to_app_to_role relation with id ' . $originId . '.'
+                                );
+                                continue;
+                            }
+
+                            $cleanedUar[] = $r;
+                        }
+
+                        $userUpdate = ['user_to_app_to_role_by_user_id' => $cleanedUar];
+                        ServiceHandler::handleRequest(Verbs::PATCH, 'system', 'user/' . $newUserId, [], $userUpdate);
+                    } elseif (!empty($uar) && empty($user)) {
+                        $this->log(
+                            'warning',
+                            'Skipping all user_to_app_to_role_by_user_id relations for user ' .
+                            $uiz['email'] .
+                            ' No imported/existing user found.'
+                        );
+                        \Log::debug('Skipped user_to_app_to_role_by_user_id.', $uiz);
+                    } else {
+                        $this->log('notice', 'No user_to_app_to_role_by_user_id relation for user ' . $uiz['email']);
+                    }
+                }
+
+                return true;
+            } catch (\Exception $e) {
+                throw new InternalServerErrorException(
+                    'Failed to insert user_to_app_to_role_by_user_id relation for users. ' .
+                    $e->getMessage()
+                );
             }
         } else {
             return false;
@@ -190,36 +318,49 @@ class Importer
                     $role = Role::whereName($riz['name'])->first();
                     $newRoleId = $role->id;
                     if (!empty($role) && !empty($rsa)) {
-                        foreach ($rsa as $i => $r) {
+                        $cleanedRsa = [];
+                        foreach ($rsa as $r) {
+                            $originId = $r['id'];
                             $this->fixCommonFields($r);
                             $newServiceId = $this->getNewServiceId($r['service_id']);
 
                             if (empty($newServiceId) && !empty($r['service_id'])) {
                                 $this->log(
                                     'warning',
-                                    'Skipping service_id for Role Service Access of Role. ' .
+                                    'Skipping relation role_service_access_by_role_id with id ' .
+                                    $originId .
+                                    ' for Role. ' .
                                     $riz['name'] .
                                     '. Service not found for ' .
                                     $r['service_id']
                                 );
+                                continue;
                             }
 
                             $r['service_id'] = $newServiceId;
-                            $rsa[$i] = $r;
+                            $r['role_id'] = $newRoleId;
+
+                            if ($this->isDuplicateRoleServiceAccess($r)) {
+                                $this->log(
+                                    'notice',
+                                    'Skipping duplicate role_service_access relation with id ' . $originId . '.'
+                                );
+                                continue;
+                            }
+
+                            $cleanedRsa[] = $r;
                         }
 
-                        $roleUpdate = ['role_service_access_by_role_id' => $rsa];
+                        $roleUpdate = ['role_service_access_by_role_id' => $cleanedRsa];
                         ServiceHandler::handleRequest(Verbs::PATCH, 'system', 'role/' . $newRoleId, [], $roleUpdate);
+                    } elseif (!empty($rsa) && empty($role)) {
+                        $this->log(
+                            'warning',
+                            'Skipping all Role Service Access for ' . $riz['name'] . ' No imported role found.'
+                        );
+                        \Log::debug('Skipped Role Service Access.', $riz);
                     } else {
-                        if (!empty($rsa) && empty($role)) {
-                            $this->log(
-                                'warning',
-                                'Skipping Role Service Access for ' . $riz['name'] . ' No imported role found.'
-                            );
-                            \Log::debug('Skipped Role Service Access.', $riz);
-                        } else {
-                            $this->log('notice', 'No Role Service Access for role ' . $riz['name']);
-                        }
+                        $this->log('notice', 'No Role Service Access for role ' . $riz['name']);
                     }
                 }
 
@@ -231,6 +372,66 @@ class Importer
         } else {
             return false;
         }
+    }
+
+    /**
+     * Checks for duplicate role_service_access relation.
+     *
+     * @param $rsa
+     *
+     * @return bool
+     */
+    protected function isDuplicateRoleServiceAccess($rsa)
+    {
+        $roleId = array_get($rsa, 'role_id');
+        $serviceId = array_get($rsa, 'service_id');
+        $component = array_get($rsa, 'component');
+        $verbMask = array_get($rsa, 'verb_mask');
+        $requestorMask = array_get($rsa, 'requestor_mask');
+
+        if (is_null($serviceId)) {
+            $servicePhrase = "service_id is NULL";
+        } else {
+            $servicePhrase = "service_id = '$serviceId'";
+        }
+
+        if (is_null($component)) {
+            $componentPhrase = "component is NULL";
+        } else {
+            $componentPhrase = "component = '$component'";
+        }
+
+        $rsaRecord = RoleServiceAccess::whereRaw(
+            "role_id = '$roleId' AND 
+            $servicePhrase AND 
+            $componentPhrase AND 
+            verb_mask = '$verbMask' AND 
+            requestor_mask = '$requestorMask'"
+        )->first(['id']);
+
+        return (empty($rsaRecord)) ? false : true;
+    }
+
+    /**
+     * Checks for duplicate user_to_app_to_role relation.
+     *
+     * @param $uar
+     *
+     * @return bool
+     */
+    protected function isDuplicateUserAppRole($uar)
+    {
+        $userId = $uar['user_id'];
+        $appId = $uar['app_id'];
+        $roleId = $uar['role_id'];
+
+        $uarRecord = UserAppRole::whereRaw(
+            "user_id = '$userId' AND 
+            role_id = '$roleId' AND 
+            app_id = '$appId'"
+        )->first(['id']);
+
+        return (empty($uarRecord)) ? false : true;
     }
 
     /**
@@ -307,6 +508,7 @@ class Importer
                         case 'system/role':
                         case 'system/service':
                         case 'system/event':
+                        case 'system/user':
                             // Skip; already imported at this point.
                             break;
                         case $service . '/_table':
@@ -475,6 +677,38 @@ class Importer
     }
 
     /**
+     * Finds and returns new App id by old App id.
+     *
+     * @param $oldAppId
+     *
+     * @return int|null
+     */
+    protected function getNewAppId($oldAppId)
+    {
+        if (empty($oldAppId)) {
+            return null;
+        }
+
+        $apps = $this->package->getResourceFromZip('system/app.json');
+        $appName = null;
+        foreach ($apps as $app) {
+            if ($oldAppId === $app['id']) {
+                $appName = $app['name'];
+                break;
+            }
+        }
+
+        if (!empty($appName)) {
+            $newApp = App::whereName($appName)->first(['id']);
+            if (!empty($newApp)) {
+                return $newApp->id;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Finds and returns the new service id by old id.
      *
      * @param int $oldServiceId
@@ -528,8 +762,12 @@ class Importer
     protected function fixCommonFields(array & $record)
     {
         unset($record['id']);
-        unset($record['last_modified_by_id']);
-        $record['created_by_id'] = Session::getCurrentUserId();
+        if (isset($record['last_modified_by_id'])) {
+            unset($record['last_modified_by_id']);
+        }
+        if (isset($record['created_by_id'])) {
+            $record['created_by_id'] = Session::getCurrentUserId();
+        }
     }
 
     /**
@@ -543,7 +781,8 @@ class Importer
         foreach ($record as $key => $value) {
             if (strpos($key, 'role_by_') !== false ||
                 strpos($key, 'service_by_') !== false ||
-                strpos($key, 'role_service_access_by_') !== false
+                strpos($key, 'role_service_access_by_') !== false ||
+                strpos($key, 'user_to_app_to_role_by_') !== false
             ) {
                 if (empty($value) || is_array($value)) {
                     unset($record[$key]);
@@ -693,6 +932,14 @@ class Importer
         }
     }
 
+    /**
+     * Decrypts service config when package is secure with a password.
+     *
+     * @param array                            $config
+     * @param \Illuminate\Encryption\Encrypter $crypt
+     *
+     * @return array
+     */
     protected static function decryptServiceConfig(array $config, Encrypter $crypt)
     {
         if (!empty($config)) {

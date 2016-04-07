@@ -54,6 +54,16 @@ class SQLiteConnection extends \Illuminate\Database\SQLiteConnection implements 
             }
         }
 
+        // must be there
+        if (!array_key_exists('database', $config)) {
+            $config['database'] = null;
+        }
+
+        // must be there
+        if (!array_key_exists('prefix', $config)) {
+            $config['prefix'] = null;
+        }
+
         // laravel database config requires options to be [], not null
         if (array_key_exists('options', $config) && is_null($config['options'])) {
             $config['options'] = [];

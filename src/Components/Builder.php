@@ -4,7 +4,7 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\BaseModel;
-use DreamFactory\Core\Database\Schema\RelationSchema;
+use DreamFactory\Core\Database\RelationSchema;
 use Illuminate\Database\Eloquent\Builder as EloquentBuilder;
 use Illuminate\Database\Eloquent\Relations\Relation;
 

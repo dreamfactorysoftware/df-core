@@ -93,6 +93,16 @@ trait ConnectionExtension
             }
         }
 
+        // must be there
+        if (!array_key_exists('database', $config)) {
+            $config['database'] = null;
+        }
+
+        // must be there
+        if (!array_key_exists('prefix', $config)) {
+            $config['prefix'] = null;
+        }
+
         if (!isset($config['collation'])) {
             $config['collation'] = 'utf8_unicode_ci';
         }

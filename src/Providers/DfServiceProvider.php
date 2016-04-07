@@ -1,8 +1,11 @@
 <?php
 namespace DreamFactory\Core\Providers;
 
+use DreamFactory\Core\Database\Connectors\IbmConnector;
 use DreamFactory\Core\Database\Connectors\OracleConnector;
 use DreamFactory\Core\Database\Connectors\SqlAnywhereConnector;
+use DreamFactory\Core\Database\Connectors\SqlServerConnector;
+use DreamFactory\Core\Database\IbmConnection;
 use DreamFactory\Core\Database\MongoDbConnection;
 use DreamFactory\Core\Database\MySqlConnection;
 use DreamFactory\Core\Database\OracleConnection;
@@ -14,7 +17,6 @@ use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
 use Illuminate\Database\Connectors\MySqlConnector;
 use Illuminate\Database\Connectors\PostgresConnector;
 use Illuminate\Database\Connectors\SQLiteConnector;
-use Illuminate\Database\Connectors\SqlServerConnector;
 use Illuminate\Support\ServiceProvider;
 use Jenssegers\Mongodb\Queue\MongoConnector;
 
@@ -61,6 +63,12 @@ class DfServiceProvider extends ServiceProvider
                 $connector  = new OracleConnector();
                 $connection = $connector->connect($config);
                 return new OracleConnection($connection, $config["database"], $config["prefix"], $config);
+            });
+            $db->extend('ibm', function ($config) {
+                IbmConnection::adaptConfig($config);
+                $connector  = new IbmConnector();
+                $connection = $connector->connect($config);
+                return new IbmConnection($connection, $config["database"], $config["prefix"], $config);
             });
             $db->extend('mongodb', function ($config) {
                 return new MongoDbConnection($config);

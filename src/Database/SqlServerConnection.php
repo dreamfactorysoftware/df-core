@@ -45,29 +45,46 @@ class SqlServerConnection extends \Illuminate\Database\SqlServerConnection imple
         // http://php.net/manual/en/ref.pdo-dblib.connection.php
         return 'dblib:host=localhost:1433;dbname=database;charset=UTF-8';
     }
-    
-    public function __construct($pdo, $database = '', $tablePrefix = '', array $config = [])
+
+    public static function adaptConfig(array &$config)
     {
-        if (substr(PHP_OS, 0, 3) == 'WIN') {
-        } else {
-            if (null !== $dumpLocation = config('df.db.freetds.dump')) {
-                if (!putenv("TDSDUMP=$dumpLocation")) {
-                    \Log::alert('Could not write environment variable for TDSDUMP location.');
+        $dsn = isset($config['dsn']) ? $config['dsn'] : null;
+        if (!empty($dsn)) {
+            $dsn = str_replace(' ', '', $dsn);
+            if (!isset($config['host']) && (false !== ($pos = stripos($dsn, 'host=')))) {
+                $temp = substr($dsn, $pos + 5);
+                $host = (false !== $pos = stripos($temp, ';')) ? substr($temp, 0, $pos) : $temp;
+                if (!isset($config['port']) && (false !== ($pos = stripos($host, ':')))) {
+                    $temp = substr($host, $pos + 1);
+                    $host = substr($host, 0, $pos);
+                    $config['port'] = (false !== $pos = stripos($temp, ';')) ? substr($temp, 0, $pos) : $temp;
                 }
+                $config['host'] = $host;
             }
-            if (null !== $dumpConfLocation = config('df.db.freetds.dumpconfig')) {
-                if (!putenv("TDSDUMPCONFIG=$dumpConfLocation")) {
-                    \Log::alert('Could not write environment variable for TDSDUMPCONFIG location.');
-                }
+            if (!isset($config['port']) && (false !== ($pos = stripos($dsn, 'port=')))) {
+                $temp = substr($dsn, $pos + 5);
+                $config['port'] = (false !== $pos = stripos($temp, ';')) ? substr($temp, 0, $pos) : $temp;
             }
-            if (null !== $confLocation = config('df.db.freetds.sqlsrv')) {
-                if (!putenv("FREETDSCONF=$confLocation")) {
-                    \Log::alert('Could not write environment variable for FREETDSCONF location.');
-                }
+            if (!isset($config['database']) && (false !== ($pos = stripos($dsn, 'dbname=')))) {
+                $temp = substr($dsn, $pos + 7);
+                $config['database'] = (false !== $pos = stripos($temp, ';')) ? substr($temp, 0, $pos) : $temp;
             }
         }
 
-        parent::__construct($pdo, $database, $tablePrefix, $config);
+        // must be there
+        if (!array_key_exists('database', $config)) {
+            $config['database'] = null;
+        }
+
+        // must be there
+        if (!array_key_exists('prefix', $config)) {
+            $config['prefix'] = null;
+        }
+
+        // laravel database config requires options to be [], not null
+        if (array_key_exists('options', $config) && is_null($config['options'])) {
+            $config['options'] = [];
+        }
     }
 
     public function getSchema()

@@ -4,7 +4,7 @@ namespace DreamFactory\Core\Database\Schema\Mysql;
 /**
  * ColumnSchema class describes the column meta data of a MySQL table.
  */
-class ColumnSchema extends \DreamFactory\Core\Database\Schema\ColumnSchema
+class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
 {
     /**
      * Extracts the default value for the column.

@@ -4,7 +4,6 @@ namespace DreamFactory\Core\Database;
 use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\DbExtrasInterface;
 use DreamFactory\Core\Contracts\SchemaInterface;
-use DreamFactory\Core\Database\Schema\ColumnSchema;
 
 /**
  * ConnectionExtension represents a connection to a database with DreamFactory extensions.

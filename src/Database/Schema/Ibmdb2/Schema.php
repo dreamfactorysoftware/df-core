@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database\Schema\Ibmdb2;
 
-use DreamFactory\Core\Database\Schema\TableSchema;
+use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from a IBM DB2 database.

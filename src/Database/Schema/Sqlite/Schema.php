@@ -1,8 +1,8 @@
 <?php
 namespace DreamFactory\Core\Database\Schema\Sqlite;
 
-use DreamFactory\Core\Database\Schema\RelationSchema;
-use DreamFactory\Core\Database\Schema\TableSchema;
+use DreamFactory\Core\Database\RelationSchema;
+use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from a SQLite (2/3) database.

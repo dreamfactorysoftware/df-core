@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database\Schema\Sqlanywhere;
 
-use DreamFactory\Core\Database\Schema\TableSchema;
+use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from a MS SQL Server database.

@@ -366,7 +366,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
     /**
      * @inheritdoc
      */
-    protected function loadTable(\DreamFactory\Core\Database\Schema\TableSchema $table)
+    protected function loadTable(\DreamFactory\Core\Database\TableSchema $table)
     {
         if (!$this->findColumns($table)) {
             return null;

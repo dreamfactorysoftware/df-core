@@ -4,7 +4,7 @@ namespace DreamFactory\Core\Database\Schema\Sqlanywhere;
 /**
  * ColumnSchema class describes the column meta data of a Sap table.
  */
-class ColumnSchema extends \DreamFactory\Core\Database\Schema\ColumnSchema
+class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
 {
     /**
      * Extracts the PHP type from DB type.

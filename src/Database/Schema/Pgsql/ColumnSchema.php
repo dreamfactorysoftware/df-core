@@ -4,7 +4,7 @@ namespace DreamFactory\Core\Database\Schema\Pgsql;
 /**
  * ColumnSchema class describes the column meta data of a PostgreSQL table.
  */
-class ColumnSchema extends \DreamFactory\Core\Database\Schema\ColumnSchema
+class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
 {
     /**
      * Extracts the PHP type from DB type.

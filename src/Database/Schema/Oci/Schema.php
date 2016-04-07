@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database\Schema\Oci;
 
-use DreamFactory\Core\Database\Schema\TableSchema;
+use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from an Oracle database.

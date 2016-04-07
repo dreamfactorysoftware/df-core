@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database\Schema\Mysql;
 
-use DreamFactory\Core\Database\Schema\TableSchema;
+use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from a MySQL database (version 4.1.x and 5.x).

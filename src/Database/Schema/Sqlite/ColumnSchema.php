@@ -4,7 +4,7 @@ namespace DreamFactory\Core\Database\Schema\Sqlite;
 /**
  * ColumnSchema class describes the column meta data of a SQLite table.
  */
-class ColumnSchema extends \DreamFactory\Core\Database\Schema\ColumnSchema
+class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
 {
     /**
      * Extracts the default value for the column.

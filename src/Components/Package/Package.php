@@ -297,19 +297,6 @@ class Package
         return false;
     }
 
-    public function isDbService($serviceName)
-    {
-        $service = Service::with('service_type_by_type')->whereName($serviceName)->first();
-        if (!empty($service)) {
-            $relations = $service->getRelation('service_type_by_type');
-            $group = $relations->group;
-
-            return ($group === ServiceTypeGroups::DATABASE) ? true : false;
-        }
-
-        return false;
-    }
-
     /**
      * Checks package validity.
      *

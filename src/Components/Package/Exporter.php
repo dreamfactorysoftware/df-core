@@ -2,10 +2,12 @@
 
 namespace DreamFactory\Core\Components\Package;
 
+use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -60,7 +62,8 @@ class Exporter
      * @type array
      */
     protected $defaultRelation = [
-        'system/role' => ['role_service_access_by_role_id']
+        'system/role' => ['role_service_access_by_role_id', 'role_adldap_by_role_id'],
+        'system/user' => ['user_to_app_to_role_by_user_id']
     ];
 
     /**
@@ -182,7 +185,54 @@ class Exporter
             }
         }
 
+        foreach ($manifest['service']['system']['service'] as $service) {
+            try {
+                $group = static::getServiceGroup($service);
+                switch ($group) {
+                    case ServiceTypeGroups::FILE:
+                        $resources = $this->getAllResources($service, '', ['as_list' => true, 'full_tree' => true]);
+                        $manifest[$service] = static::cleanStorageResources($resources);
+                        break;
+                    case ServiceTypeGroups::DATABASE:
+                        $manifest[$service]['_schema'] =
+                            $this->getAllResources($service, '_schema', ['as_list' => true]);
+                        break;
+                }
+            } catch (ForbiddenException $e) {
+                // Inactive service. Let go.
+            }
+        }
+
         return $manifest;
+    }
+
+    protected static function getServiceGroup($serviceName)
+    {
+        $service = Service::with('service_type_by_type')->whereName($serviceName)->first();
+        if (!empty($service)) {
+            $relations = $service->getRelation('service_type_by_type');
+
+            return $relations->group;
+        }
+
+        return null;
+    }
+
+    protected static function cleanStorageResources($resources)
+    {
+        $cleaned = [];
+        if (!empty($resources)) {
+            foreach ($resources as $resource) {
+                if (!in_array($resource, ['', '*']) &&
+                    '*' !== substr($resource, strlen($resource) - 1) &&
+                    !in_array($resource, $cleaned)
+                ) {
+                    $cleaned[] = $resource;
+                }
+            }
+        }
+
+        return $cleaned;
     }
 
     /**

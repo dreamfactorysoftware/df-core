@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Services\BaseFileService;
@@ -214,6 +215,29 @@ class Exporter
         }
 
         return $manifest;
+    }
+
+    /**
+     * Sets user password encrypted when package is secured with a password.
+     *
+     * @param array $users
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    protected function setUserPassword(array & $users)
+    {
+        if ($this->package->isSecured() && !empty($users)) {
+            $password = $this->package->getPassword();
+            // Using md5 of password to use a 32 char long key for Encrypter.
+            $crypt = new Encrypter(md5($password), config('app.cipher'));
+            foreach ($users as $i => $user) {
+                $model = User::find($user['id']);
+                if (!empty($model)) {
+                    $password = $model->password;
+                    $users[$i]['password'] = $crypt->encrypt($password);
+                }
+            }
+        }
     }
 
     /**
@@ -589,6 +613,8 @@ class Exporter
 
         if ('system/service' === $service . '/' . $resource) {
             $this->encryptServices($result);
+        } elseif (in_array($service . '/' . $resource, ['system/user', 'system/admin'])) {
+            $this->setUserPassword($result);
         }
 
         return $result;

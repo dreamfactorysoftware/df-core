@@ -148,6 +148,7 @@ class Importer
 
                 $payload = ResourcesWrapper::wrapResources($users);
                 ServiceHandler::handleRequest(Verbs::POST, 'system', 'user', [], $payload);
+                $this->updateUserPassword($users);
 
                 return true;
             } catch (\Exception $e) {
@@ -155,6 +156,29 @@ class Importer
             }
         } else {
             return false;
+        }
+    }
+
+    /**
+     * Updates user password when package is secured with a password.
+     *
+     * @param $users
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    protected function updateUserPassword($users)
+    {
+        if ($this->package->isSecured() && !empty($users)) {
+            $password = $this->package->getPassword();
+            // Using md5 of password to use a 32 char long key for Encrypter.
+            $crypt = new Encrypter(md5($password), config('app.cipher'));
+            foreach ($users as $i => $user) {
+                if (isset($user['password'])) {
+                    /** @type User $model */
+                    $model = User::where('email', '=', $user['email'])->first();
+                    $model->updatePasswordHashUsingCrypto($user['password'], $crypt);
+                }
+            }
         }
     }
 
@@ -583,6 +607,9 @@ class Importer
 
                 $payload = ResourcesWrapper::wrapResources($records);
                 ServiceHandler::handleRequest(Verbs::POST, $service, $resource, ['continue' => true], $payload);
+                if ($service . '/' . $resource === 'system/admin') {
+                    $this->updateUserPassword($records);
+                }
 
                 return true;
             } catch (\Exception $e) {

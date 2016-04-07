@@ -30,8 +30,7 @@
   "require":     {
     "php":                        ">=5.5",
     "doctrine/dbal":              "2.5.*",
-    "cooperl22/laravel-db2":      "2.*",
-    "jenssegers/mongodb":         "3.*",
+    "cooperl/laravel-db2":        "2.*",
     "yajra/laravel-pdo-via-oci8": "1.*",
     "dreamfactory/php-utils":     "1.1.*",
     "guzzlehttp/guzzle":          "~5.0",

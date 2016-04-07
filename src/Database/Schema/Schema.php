@@ -2,6 +2,11 @@
 namespace DreamFactory\Core\Database\Schema;
 
 use DreamFactory\Core\Contracts\ConnectionInterface;
+use DreamFactory\Core\Database\ColumnSchema;
+use DreamFactory\Core\Database\FunctionSchema;
+use DreamFactory\Core\Database\ProcedureSchema;
+use DreamFactory\Core\Database\RelationSchema;
+use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Library\Utility\Scalar;
 

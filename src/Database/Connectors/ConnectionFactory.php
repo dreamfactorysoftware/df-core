@@ -148,7 +148,7 @@ class ConnectionFactory extends \Illuminate\Database\Connectors\ConnectionFactor
                 return new SqlAnywhereConnector;
 
             case 'oci8':
-                return new OracleConnector();
+                return new OracleConnector;
 
             case 'ibm':
                 return new IbmConnector;

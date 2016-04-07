@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Database;
 
+use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\Eloquent\Model;
 use DreamFactory\Core\Database\Connectors\ConnectionFactory;
 

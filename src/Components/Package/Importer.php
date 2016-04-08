@@ -839,6 +839,9 @@ class Importer
                 case 'system/user':
                     $key = 'email';
                     break;
+                case 'system/cors':
+                    $key = 'path';
+                    break;
                 default:
                     $key = 'name';
             }

@@ -354,6 +354,25 @@ class Environment extends BaseSystemResource
         return $services;
     }
 
+    /**
+     * Returns instance's URI
+     * 
+     * @return string
+     */
+    public static function getURI()
+    {
+        $s = $_SERVER;
+        $ssl = (!empty($s['HTTPS']) && $s['HTTPS'] == 'on');
+        $sp = strtolower($s['SERVER_PROTOCOL']);
+        $protocol = substr($sp, 0, strpos($sp, '/')) . (($ssl) ? 's' : '');
+        $port = $s['SERVER_PORT'];
+        $port = ((!$ssl && $port == '80') || ($ssl && $port == '443')) ? '' : ':' . $port;
+        $host = (isset($s['HTTP_HOST']) ? $s['HTTP_HOST'] : $s['SERVER_NAME']);
+        $host = (strpos($host, ':') !== false) ? $host : $host . $port;
+
+        return $protocol . '://' . $host;
+    }
+
     //Following codes are directly copied over from 1.x and is not functional.
 
 //    protected function handleGET()

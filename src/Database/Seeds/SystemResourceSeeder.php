@@ -14,6 +14,7 @@ use DreamFactory\Core\Resources\System\EmailTemplate;
 use DreamFactory\Core\Resources\System\Environment;
 use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Core\Resources\System\Lookup;
+use DreamFactory\Core\Resources\System\Package;
 use DreamFactory\Core\Resources\System\Role;
 use DreamFactory\Core\Resources\System\ScriptType;
 use DreamFactory\Core\Resources\System\Service;
@@ -125,6 +126,12 @@ class SystemResourceSeeder extends BaseModelSeeder
             'label'       => 'Custom Settings',
             'description' => 'Allows for creating system-wide custom settings',
             'class_name'  => Custom::class,
+        ],
+        [
+            'name'        => 'package',
+            'label'       => 'Package',
+            'description' => 'Allows Package import/export',
+            'class_name'  => Package::class
         ]
     ];
 }

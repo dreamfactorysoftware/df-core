@@ -16,6 +16,7 @@ use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Model;
 use DreamFactory\Core\Utility\DataFormatter;
+use Illuminate\Encryption\Encrypter;
 use Validator;
 
 /**
@@ -376,6 +377,21 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
 
         $this->attributes['password'] = $password;
+    }
+
+    /**
+     * Updates password hash directly using a Crypto.
+     * This is used by package import in order to preserve
+     * user password during import.
+     *
+     * @param                                  $payload
+     * @param \Illuminate\Encryption\Encrypter $crypt
+     */
+    public function updatePasswordHashUsingCrypto($payload, Encrypter $crypt)
+    {
+        $hash = $crypt->decrypt($payload);
+        $this->attributes['password'] = $hash;
+        $this->save();
     }
 
     public static function boot()

@@ -1,7 +1,9 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\ConnectionInterface;
+use DreamFactory\Core\Contracts\DbExtrasInterface;
 use DreamFactory\Core\Database\ColumnSchema;
 use DreamFactory\Core\Database\FunctionSchema;
 use DreamFactory\Core\Database\ProcedureSchema;
@@ -23,6 +25,18 @@ abstract class Schema
 {
     const DEFAULT_STRING_MAX_SIZE = 255;
 
+    /**
+     * @var CacheInterface
+     */
+    protected $cache = null;
+    /**
+     * @var DbExtrasInterface
+     */
+    protected $extraStore = null;
+    /**
+     * @var boolean
+     */
+    protected $defaultSchemaOnly = false;
     /**
      * @type string
      */
@@ -88,6 +102,183 @@ abstract class Schema
     }
 
     /**
+     * @return CacheInterface|null
+     */
+    public function getCache()
+    {
+        return $this->cache;
+    }
+
+    /**
+     * @param CacheInterface|null $cache
+     */
+    public function setCache($cache)
+    {
+        $this->cache = $cache;
+    }
+
+    /**
+     */
+    public function flushCache()
+    {
+        if ($this->cache) {
+            $this->cache->flush();
+        }
+    }
+
+    /**
+     * @return DbExtrasInterface|null
+     */
+    public function getExtraStore()
+    {
+        return $this->extraStore;
+    }
+
+    /**
+     * @param DbExtrasInterface|null $extraStore
+     */
+    public function setExtraStore($extraStore)
+    {
+        $this->extraStore = $extraStore;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isDefaultSchemaOnly()
+    {
+        return $this->defaultSchemaOnly;
+    }
+
+    /**
+     * @param boolean $defaultSchemaOnly
+     */
+    public function setDefaultSchemaOnly($defaultSchemaOnly)
+    {
+        $this->defaultSchemaOnly = $defaultSchemaOnly;
+    }
+
+    public function getFromCache($key, $default = null)
+    {
+        if ($this->cache) {
+            return $this->cache->getFromCache($key, $default);
+        }
+
+        return null;
+    }
+
+    public function addToCache($key, $value, $forever = false)
+    {
+        if ($this->cache) {
+            $this->cache->addToCache($key, $value, $forever);
+        }
+    }
+
+    public function removeFromCache($key)
+    {
+        if ($this->cache) {
+            $this->cache->removeFromCache($key);
+        }
+    }
+
+    public function flush()
+    {
+        if ($this->cache) {
+            $this->cache->flush();
+        }
+    }
+
+    public function getSchemaExtrasForTables($table_names, $include_fields = true, $select = '*')
+    {
+        if ($this->extraStore) {
+            return $this->extraStore->getSchemaExtrasForTables($table_names, $include_fields, $select);
+        }
+
+        return null;
+    }
+
+    public function getSchemaExtrasForFields($table_name, $field_names = '*', $select = '*')
+    {
+        if ($this->extraStore) {
+            return $this->extraStore->getSchemaExtrasForFields($table_name, $field_names, $select);
+        }
+
+        return null;
+    }
+
+    public function getSchemaExtrasForFieldsReferenced($table_name, $field_names = '*', $select = '*')
+    {
+        if ($this->extraStore) {
+            return $this->extraStore->getSchemaExtrasForFieldsReferenced($table_name, $field_names, $select);
+        }
+
+        return null;
+    }
+
+    public function getSchemaExtrasForRelated($table_name, $related_names = '*', $select = '*')
+    {
+        if ($this->extraStore) {
+            return $this->extraStore->getSchemaExtrasForRelated($table_name, $related_names, $select);
+        }
+
+        return null;
+    }
+
+    public function setSchemaTableExtras($extras)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->setSchemaTableExtras($extras);
+        }
+
+        return null;
+    }
+
+    public function setSchemaFieldExtras($extras)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->setSchemaFieldExtras($extras);
+        }
+
+        return null;
+    }
+
+    public function setSchemaRelatedExtras($extras)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->setSchemaRelatedExtras($extras);
+        }
+
+        return null;
+    }
+
+    public function removeSchemaExtrasForTables($table_names)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->removeSchemaExtrasForTables($table_names);
+        }
+
+        return null;
+    }
+
+    public function removeSchemaExtrasForFields($table_name, $field_names)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->removeSchemaExtrasForFields($table_name, $field_names);
+        }
+
+        return null;
+    }
+
+    public function removeSchemaExtrasForRelated($table_name, $related_names)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->removeSchemaExtrasForRelated($table_name, $related_names);
+        }
+
+        return null;
+    }
+
+    /**
      * Returns the default schema name for the connection.
      *
      * @param boolean $refresh if we need to refresh schema cache.
@@ -99,13 +290,13 @@ abstract class Schema
         if (!$refresh) {
             if (!empty($this->defaultSchema)) {
                 return $this->defaultSchema;
-            } elseif (null !== $this->defaultSchema = $this->connection->getFromCache('default_schema')) {
+            } elseif (null !== $this->defaultSchema = $this->getFromCache('default_schema')) {
                 return $this->defaultSchema;
             }
         }
 
         $this->defaultSchema = $this->findDefaultSchema();
-        $this->connection->addToCache('default_schema', $this->defaultSchema, true);
+        $this->addToCache('default_schema', $this->defaultSchema, true);
 
         return $this->defaultSchema;
     }
@@ -132,13 +323,13 @@ abstract class Schema
      */
     public function getSchemaNames($refresh = false)
     {
-        if ($this->connection->isDefaultSchemaOnly()) {
+        if ($this->isDefaultSchemaOnly()) {
             return [$this->getDefaultSchema()];
         }
         if (!$refresh) {
             if (!empty($this->schemaNames)) {
                 return $this->schemaNames;
-            } elseif (null !== $this->schemaNames = $this->connection->getFromCache('schema_names')) {
+            } elseif (null !== $this->schemaNames = $this->getFromCache('schema_names')) {
                 return $this->schemaNames;
             }
         }
@@ -146,7 +337,7 @@ abstract class Schema
         $this->schemaNames = $this->findSchemaNames();
         natcasesort($this->schemaNames);
 
-        $this->connection->addToCache('schema_names', $this->schemaNames, true);
+        $this->addToCache('schema_names', $this->schemaNames, true);
 
         return $this->schemaNames;
     }
@@ -291,7 +482,7 @@ abstract class Schema
         if (!$refresh) {
             if (isset($this->tables[$name])) {
                 return $this->tables[$name];
-            } elseif (null !== $table = $this->connection->getFromCache('table:' . $name)) {
+            } elseif (null !== $table = $this->getFromCache('table:' . $name)) {
                 $this->tables[$name] = $table;
 
                 return $this->tables[$name];
@@ -317,7 +508,7 @@ abstract class Schema
         }
 
         // merge db extras
-        if (!empty($extras = $this->connection->getSchemaExtrasForFields($name, '*'))) {
+        if (!empty($extras = $this->getSchemaExtrasForFields($name, '*'))) {
             foreach ($extras as $extra) {
                 if (!empty($columnName = (isset($extra['field'])) ? $extra['field'] : null)) {
                     if (null !== $column = $table->getColumn($columnName)) {
@@ -364,7 +555,7 @@ abstract class Schema
                 }
             }
         }
-        if (!empty($extras = $this->connection->getSchemaExtrasForFieldsReferenced($name, '*'))) {
+        if (!empty($extras = $this->getSchemaExtrasForFieldsReferenced($name, '*'))) {
             foreach ($extras as $extra) {
                 if (!empty($columnName = (isset($extra['ref_fields'])) ? $extra['ref_fields'] : null)) {
                     if (null !== $column = $table->getColumn($columnName)) {
@@ -386,7 +577,7 @@ abstract class Schema
                 }
             }
         }
-        if (!empty($extras = $this->connection->getSchemaExtrasForRelated($name, '*'))) {
+        if (!empty($extras = $this->getSchemaExtrasForRelated($name, '*'))) {
             foreach ($extras as $extra) {
                 if (!empty($relatedName = (isset($extra['relationship'])) ? $extra['relationship'] : null)) {
                     if (null !== $relationship = $table->getRelation($relatedName)) {
@@ -400,7 +591,7 @@ abstract class Schema
         }
 
         $this->tables[$name] = $table;
-        $this->connection->addToCache('table:' . $name, $table, true);
+        $this->addToCache('table:' . $name, $table, true);
 
         return $table;
     }
@@ -468,7 +659,7 @@ abstract class Schema
     {
         if ($refresh ||
             (empty($this->tableNames) &&
-                (null === $this->tableNames = $this->connection->getFromCache('table_names')))
+                (null === $this->tableNames = $this->getFromCache('table_names')))
         ) {
             $tables = [];
             foreach ($this->getSchemaNames($refresh) as $temp) {
@@ -477,7 +668,7 @@ abstract class Schema
             }
             ksort($tables, SORT_NATURAL); // sort alphabetically
             // merge db extras
-            if (!empty($extrasEntries = $this->connection->getSchemaExtrasForTables(array_keys($tables), false))) {
+            if (!empty($extrasEntries = $this->getSchemaExtrasForTables(array_keys($tables), false))) {
                 foreach ($extrasEntries as $extras) {
                     if (!empty($extraName = strtolower(strval($extras['table'])))) {
                         if (array_key_exists($extraName, $tables)) {
@@ -487,7 +678,7 @@ abstract class Schema
                 }
             }
             $this->tableNames = $tables;
-            $this->connection->addToCache('table_names', $this->tableNames, true);
+            $this->addToCache('table_names', $this->tableNames, true);
         }
     }
 
@@ -613,7 +804,7 @@ abstract class Schema
     {
         if ($refresh ||
             (empty($this->procedureNames) &&
-                (null === $this->procedureNames = $this->connection->getFromCache('proc_names')))
+                (null === $this->procedureNames = $this->getFromCache('proc_names')))
         ) {
             $names = [];
             foreach ($this->getSchemaNames($refresh) as $temp) {
@@ -622,7 +813,7 @@ abstract class Schema
                 $names[$temp] = $procs;
             }
             $this->procedureNames = $names;
-            $this->connection->addToCache('proc_names', $this->procedureNames, true);
+            $this->addToCache('proc_names', $this->procedureNames, true);
         }
     }
 
@@ -733,7 +924,7 @@ abstract class Schema
     {
         if ($refresh ||
             (empty($this->functionNames) &&
-                (null === $this->functionNames = $this->connection->getFromCache('func_names')))
+                (null === $this->functionNames = $this->getFromCache('func_names')))
         ) {
             $names = [];
             foreach ($this->getSchemaNames($refresh) as $temp) {
@@ -742,7 +933,7 @@ abstract class Schema
                 $names[$temp] = $funcs;
             }
             $this->functionNames = $names;
-            $this->connection->addToCache('func_names', $this->functionNames, true);
+            $this->addToCache('func_names', $this->functionNames, true);
         }
     }
 
@@ -791,7 +982,7 @@ abstract class Schema
         $this->functionNames = [];
         $this->schemaNames = [];
 
-        $this->connection->flushCache();
+        $this->flushCache();
     }
 
     /**
@@ -1066,12 +1257,11 @@ abstract class Schema
                 $settingsNew = array_diff_assoc($settingsNew, $settingsOld);
 
                 // may be an array due to expressions
-                if (array_key_exists('default', $field)){
+                if (array_key_exists('default', $field)) {
                     $default = $field['default'];
                     if ($default !== $oldField->defaultValue) {
                         $settingsNew['default'] = $default;
                     }
-
                 }
 
                 // if empty, nothing to do here, check extras
@@ -1324,39 +1514,6 @@ abstract class Schema
     }
 
     /**
-     * Builds a SQL statement for creating a new DB table.
-     *
-     * The columns in the new  table should be specified as name-definition pairs (e.g. 'name'=>'string'),
-     * where name stands for a column name which will be properly quoted by the method, and definition
-     * stands for the column type which can contain an abstract DB type.
-     * The {@link getColumnType} method will be invoked to convert any abstract type into a physical one.
-     *
-     * If a column is specified with definition only (e.g. 'PRIMARY KEY (name, type)'), it will be directly
-     * inserted into the generated SQL.
-     *
-     * @param string $table   the name of the table to be created. The name will be properly quoted by the method.
-     * @param array  $columns the columns (name=>definition) in the new table.
-     * @param string $options additional SQL fragment that will be appended to the generated SQL.
-     *
-     * @return string the SQL statement for creating a new DB table.
-     * @since 1.1.6
-     */
-    public function createTable($table, $columns, $options = null)
-    {
-        $cols = [];
-        foreach ($columns as $name => $type) {
-            if (is_string($name)) {
-                $cols[] = "\t" . $this->quoteColumnName($name) . ' ' . $this->getColumnType($type);
-            } else {
-                $cols[] = "\t" . $type;
-            }
-        }
-        $sql = "CREATE TABLE " . $this->quoteTableName($table) . " (\n" . implode(",\n", $cols) . "\n)";
-
-        return $options === null ? $sql : $sql . ' ' . $options;
-    }
-
-    /**
      * Builds a SQL statement for renaming a DB table.
      *
      * @param string $table   the table to be renamed. The name will be properly quoted by the method.
@@ -1368,19 +1525,6 @@ abstract class Schema
     public function renameTable($table, $newName)
     {
         return 'RENAME TABLE ' . $this->quoteTableName($table) . ' TO ' . $this->quoteTableName($newName);
-    }
-
-    /**
-     * Builds a SQL statement for dropping a DB table.
-     *
-     * @param string $table the table to be dropped. The name will be properly quoted by the method.
-     *
-     * @return string the SQL statement for dropping a DB table.
-     * @since 1.1.6
-     */
-    public function dropTable($table)
-    {
-        return "DROP TABLE " . $this->quoteTableName($table);
     }
 
     /**
@@ -1419,20 +1563,6 @@ abstract class Schema
             $this->quoteColumnName($column) .
             ' ' .
             $this->getColumnType($type);
-    }
-
-    /**
-     * Builds a SQL statement for dropping a DB column.
-     *
-     * @param string $table  the table whose column is to be dropped. The name will be properly quoted by the method.
-     * @param string $column the name of the column to be dropped. The name will be properly quoted by the method.
-     *
-     * @return string the SQL statement for dropping a DB column.
-     * @since 1.1.6
-     */
-    public function dropColumn($table, $column)
-    {
-        return "ALTER TABLE " . $this->quoteTableName($table) . " DROP COLUMN " . $this->quoteColumnName($column);
     }
 
     /**
@@ -1627,7 +1757,6 @@ abstract class Schema
      *                              Array value can be passed since 1.1.14.
      *
      * @return string the SQL statement for adding a primary key constraint to an existing table.
-     * @since 1.1.13
      */
     public function addPrimaryKey($name, $table, $columns)
     {
@@ -1655,7 +1784,6 @@ abstract class Schema
      * @param string $table the table that the primary key constraint will be removed from.
      *
      * @return string the SQL statement for removing a primary key constraint from an existing table.
-     * @since 1.1.13
      */
     public function dropPrimaryKey($name, $table)
     {
@@ -1794,5 +1922,405 @@ abstract class Schema
     public function dropView($table)
     {
         return "DROP VIEW " . $this->quoteTableName($table);
+    }
+
+    public function updateSchema($tables, $allow_merge = false, $allow_delete = false, $rollback = false)
+    {
+        if (!is_array($tables) || empty($tables)) {
+            throw new \Exception('There are no table sets in the request.');
+        }
+
+        if (!isset($tables[0])) {
+            // single record possibly passed in without wrapper array
+            $tables = [$tables];
+        }
+
+        $created = [];
+        $references = [];
+        $indexes = [];
+        $out = [];
+        $tableExtras = [];
+        $fieldExtras = [];
+        $fieldDrops = [];
+        $relatedExtras = [];
+        $count = 0;
+        $singleTable = (1 == count($tables));
+
+        foreach ($tables as $table) {
+            try {
+                if (empty($tableName = (isset($table['name'])) ? $table['name'] : null)) {
+                    throw new \Exception('Table name missing from schema.');
+                }
+
+                //	Does it already exist
+                if ($this->doesTableExist($tableName)) {
+                    if (!$allow_merge) {
+                        throw new \Exception("A table with name '$tableName' already exist in the database.");
+                    }
+
+                    \Log::debug('Schema update: ' . $tableName);
+
+                    $results = $this->updateTable($tableName, $table, $allow_delete);
+                } else {
+                    \Log::debug('Creating table: ' . $tableName);
+
+                    $results = $this->createTable($tableName, $table);
+
+                    if (!$singleTable && $rollback) {
+                        $created[] = $tableName;
+                    }
+                }
+
+                // add table extras
+                $extras = array_only($table, ['label', 'plural', 'alias', 'description', 'name_field']);
+                if (!empty($extras)) {
+                    $extras['table'] = $tableName;
+                    $tableExtras[] = $extras;
+                }
+
+                // add relationship extras
+                if (!empty($relationships = (isset($table['related'])) ? $table['related'] : null)) {
+                    if (is_array($relationships)) {
+                        foreach ($relationships as $info) {
+                            if (isset($info, $info['name'])) {
+                                $relationship = $info['name'];
+                                $toSave =
+                                    array_only($info,
+                                        [
+                                            'label',
+                                            'description',
+                                            'alias',
+                                            'always_fetch',
+                                            'flatten',
+                                            'flatten_drop_prefix'
+                                        ]);
+                                if (!empty($toSave)) {
+                                    $toSave['relationship'] = $relationship;
+                                    $toSave['table'] = $tableName;
+                                    $relatedExtras[] = $toSave;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                $fieldExtras = array_merge($fieldExtras, (isset($results['extras'])) ? $results['extras'] : []);
+                $fieldDrops = array_merge($fieldDrops, (isset($results['drop_extras'])) ? $results['drop_extras'] : []);
+                $references = array_merge($references, (isset($results['references'])) ? $results['references'] : []);
+                $indexes = array_merge($indexes, (isset($results['indexes'])) ? $results['indexes'] : []);
+                $out[$count] = ['name' => $tableName];
+            } catch (\Exception $ex) {
+                if ($rollback || $singleTable) {
+                    //  Delete any created tables
+                    throw $ex;
+                }
+
+                $out[$count] = [
+                    'error' => [
+                        'message' => $ex->getMessage(),
+                        'code'    => $ex->getCode()
+                    ]
+                ];
+            }
+
+            $count++;
+        }
+
+        if (!empty($references)) {
+            $this->createFieldReferences($references);
+        }
+        if (!empty($indexes)) {
+            $this->createFieldIndexes($indexes);
+        }
+        if (!empty($tableExtras)) {
+            $this->setSchemaTableExtras($tableExtras);
+        }
+        if (!empty($fieldExtras)) {
+            $this->setSchemaFieldExtras($fieldExtras);
+        }
+        if (!empty($fieldDrops)) {
+            foreach ($fieldDrops as $table => $dropFields) {
+                $this->removeSchemaExtrasForFields($table, $dropFields);
+            }
+        }
+        if (!empty($relatedExtras)) {
+            $this->setSchemaRelatedExtras($relatedExtras);
+        }
+
+        return $out;
+    }
+
+    /**
+     * Builds and executes a SQL statement for creating a new DB table.
+     *
+     * The columns in the new table should be specified as name-definition pairs (e.g. 'name'=>'string'),
+     * where name stands for a column name which will be properly quoted by the method, and definition
+     * stands for the column type which can contain an abstract DB type.
+     * The {@link getColumnType} method will be invoked to convert any abstract type into a physical one.
+     *
+     * If a column is specified with definition only (e.g. 'PRIMARY KEY (name, type)'), it will be directly
+     * inserted into the generated SQL.
+     *
+     * @param string $table   the name of the table to be created. The name will be properly quoted by the method.
+     * @param array  $schema  the table schema for the new table.
+     * @param string $options additional SQL fragment that will be appended to the generated SQL.
+     *
+     * @return int 0 is always returned. See <a
+     *             href='http://php.net/manual/en/pdostatement.rowcount.php'>http://php.net/manual/en/pdostatement.rowcount.php</a>
+     *             for more for more information.
+     * @throws \Exception
+     */
+    public function createTable($table, $schema, $options = null)
+    {
+        if (empty($schema['field'])) {
+            throw new \Exception("No valid fields exist in the received table schema.");
+        }
+
+        $results = $this->buildTableFields($table, $schema['field']);
+        if (empty($results['columns'])) {
+            throw new \Exception("No valid fields exist in the received table schema.");
+        }
+
+        $cols = [];
+        foreach ($results['columns'] as $name => $type) {
+            if (is_string($name)) {
+                $cols[] = "\t" . $this->quoteColumnName($name) . ' ' . $this->getColumnType($type);
+            } else {
+                $cols[] = "\t" . $type;
+            }
+        }
+        $sql = "CREATE TABLE " . $this->quoteTableName($table) . " (\n" . implode(",\n", $cols) . "\n)";
+
+        if ($options) {
+            $sql .= ' ' . $options;
+        }
+
+        $this->connection->statement($sql);
+
+        if (!empty($results['commands'])) {
+            foreach ($results['commands'] as $extraCommand) {
+                try {
+                    $this->connection->statement($extraCommand);
+                } catch (\Exception $ex) {
+                    // oh well, we tried.
+                }
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * @param string $table_name
+     * @param array  $schema
+     * @param bool   $allow_delete
+     *
+     * @throws \Exception
+     * @return array
+     */
+    protected function updateTable($table_name, $schema, $allow_delete = false)
+    {
+        if (empty($table_name)) {
+            throw new \Exception("Table schema received does not have a valid name.");
+        }
+
+        // does it already exist
+        if (!$this->doesTableExist($table_name)) {
+            throw new \Exception("Update schema called on a table with name '$table_name' that does not exist in the database.");
+        }
+
+        //  Is there a name update
+        if (!empty($schema['new_name'])) {
+            // todo change table name, has issue with references
+        }
+
+        $oldSchema = $this->getTable($table_name);
+
+        // update column types
+
+        $results = [];
+        if (!empty($schema['field'])) {
+            $results =
+                $this->buildTableFields($table_name, $schema['field'], $oldSchema, true, $allow_delete);
+            if (isset($results['columns']) && is_array($results['columns'])) {
+                foreach ($results['columns'] as $name => $definition) {
+                    $this->connection->statement($this->addColumn($table_name, $name, $definition));
+                }
+            }
+            if (isset($results['alter_columns']) && is_array($results['alter_columns'])) {
+                foreach ($results['alter_columns'] as $name => $definition) {
+                    $this->connection->statement($this->alterColumn($table_name, $name, $definition));
+                }
+            }
+            if (isset($results['drop_columns']) && is_array($results['drop_columns'])) {
+                foreach ($results['drop_columns'] as $name) {
+                    $this->connection->statement($this->dropColumn($table_name, $name));
+                }
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Builds and executes a SQL statement for dropping a DB table.
+     *
+     * @param string $table the table to be dropped. The name will be properly quoted by the method.
+     *
+     * @return integer 0 is always returned. See {@link http://php.net/manual/en/pdostatement.rowcount.php} for more
+     *                 information.
+     */
+    public function dropTable($table)
+    {
+        $sql = "DROP TABLE " . $this->quoteTableName($table);
+        $result = $this->connection->statement($sql);
+        $this->removeSchemaExtrasForTables($table);
+
+        //  Any changes here should refresh cached schema
+        $this->refresh();
+
+        return $result;
+    }
+
+    public function dropColumn($table, $column)
+    {
+        $result = 0;
+        $tableInfo = $this->getTable($table);
+        if (($columnInfo = $tableInfo->getColumn($column)) && (ColumnSchema::TYPE_VIRTUAL !== $columnInfo->type)) {
+            $sql = "ALTER TABLE " . $this->quoteTableName($table) . " DROP COLUMN " . $this->quoteColumnName($column);
+            $result = $this->connection->statement($sql);
+        }
+        $this->removeSchemaExtrasForFields($table, $column);
+
+        //  Any changes here should refresh cached schema
+        $this->refresh();
+
+        return $result;
+    }
+
+    /**
+     * @param string $table_name
+     * @param array  $fields
+     * @param bool   $allow_update
+     * @param bool   $allow_delete
+     *
+     * @return array
+     * @throws \Exception
+     */
+    public function updateFields($table_name, $fields, $allow_update = false, $allow_delete = false)
+    {
+        if (empty($table_name)) {
+            throw new \Exception("Table schema received does not have a valid name.");
+        }
+
+        // does it already exist
+        if (!$this->doesTableExist($table_name)) {
+            throw new \Exception("Update schema called on a table with name '$table_name' that does not exist in the database.");
+        }
+
+        $oldSchema = $this->getTable($table_name);
+
+        $names = [];
+        $results = $this->buildTableFields($table_name, $fields, $oldSchema, $allow_update, $allow_delete);
+        if (isset($results['columns']) && is_array($results['columns'])) {
+            foreach ($results['columns'] as $name => $definition) {
+                $this->connection->statement($this->addColumn($table_name, $name, $definition));
+                $names[] = $name;
+            }
+        }
+        if (isset($results['alter_columns']) && is_array($results['alter_columns'])) {
+            foreach ($results['alter_columns'] as $name => $definition) {
+                $this->connection->statement($this->alterColumn($table_name, $name, $definition));
+                $names[] = $name;
+            }
+        }
+        if (isset($results['drop_columns']) && is_array($results['drop_columns'])) {
+            foreach ($results['drop_columns'] as $name) {
+                $this->connection->statement($this->dropColumn($table_name, $name));
+                $names[] = $name;
+            }
+        }
+
+        $references = (isset($results['references'])) ? $results['references'] : [];
+        $this->createFieldReferences($references);
+
+        $indexes = (isset($results['indexes'])) ? $results['indexes'] : [];
+        $this->createFieldIndexes($indexes);
+
+        $extras = (isset($results['extras'])) ? $results['extras'] : [];
+        if (!empty($extras)) {
+            $this->setSchemaFieldExtras($extras);
+        }
+
+        $extras = (isset($results['drop_extras'])) ? $results['drop_extras'] : [];
+        if (!empty($extras)) {
+            foreach ($extras as $table => $dropFields) {
+                $this->removeSchemaExtrasForFields($table, $dropFields);
+            }
+        }
+
+        return ['names' => $names];
+    }
+
+    /**
+     * @param array $references
+     *
+     * @return array
+     */
+    protected function createFieldReferences($references)
+    {
+        if (!empty($references)) {
+            foreach ($references as $reference) {
+                $name = $reference['name'];
+                $table = $reference['table'];
+                $drop = (isset($reference['drop'])) ? boolval($reference['drop']) : false;
+                if ($drop) {
+                    try {
+                        $this->connection->statement($this->dropForeignKey($name, $table));
+                    } catch (\Exception $ex) {
+                        \Log::debug($ex->getMessage());
+                    }
+                }
+                // add new reference
+                $refTable = (isset($reference['ref_table'])) ? $reference['ref_table'] : null;
+                if (!empty($refTable)) {
+                    $this->connection->statement($this->addForeignKey(
+                        $name,
+                        $table,
+                        $reference['column'],
+                        $refTable,
+                        $reference['ref_fields'],
+                        $reference['delete'],
+                        $reference['update']
+                    ));
+                }
+            }
+        }
+    }
+
+    /**
+     * @param array $indexes
+     *
+     * @return array
+     */
+    protected function createFieldIndexes($indexes)
+    {
+        if (!empty($indexes)) {
+            foreach ($indexes as $index) {
+                $name = $index['name'];
+                $table = $index['table'];
+                $drop = (isset($index['drop'])) ? boolval($index['drop']) : false;
+                if ($drop) {
+                    try {
+                        $this->connection->statement($this->dropIndex($name, $table));
+                    } catch (\Exception $ex) {
+                        \Log::debug($ex->getMessage());
+                    }
+                }
+                $unique = (isset($index['unique'])) ? boolval($index['unique']) : false;
+
+                $this->connection->statement($this->createIndex($name, $table, $index['column'], $unique));
+            }
+        }
     }
 }

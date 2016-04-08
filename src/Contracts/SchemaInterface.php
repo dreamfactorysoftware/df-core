@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Contracts;
 
-interface SchemaInterface
+interface SchemaInterface extends CacheInterface, DbExtrasInterface
 {
     /**
      * Return an array of table names.
@@ -57,7 +57,7 @@ interface SchemaInterface
      * @return mixed
      */
     public function getProcedure($name, $refresh = false);
-    
+
     /**
      * @return string
      */
@@ -65,27 +65,111 @@ interface SchemaInterface
 
     /**
      * @param mixed $value
-     * @param $field_info
+     * @param       $field_info
      *
      * @return mixed
      */
     public function parseValueForSet($value, $field_info);
 
     /**
-     * @param mixed $value
+     * @param mixed  $value
      * @param string $type
      *
      * @return mixed
      */
     public function formatValue($value, $type);
-    
+
     /**
-     * @param array $schema
+     * @param $defaultSchemaOnly
      *
      * @return mixed
      */
-    public function updateSchema($schema);
+    public function setDefaultSchemaOnly($defaultSchemaOnly);
 
+    /**
+     * @return mixed
+     */
+    public function isDefaultSchemaOnly();
+
+    /**
+     * @param      $tables
+     * @param bool $allow_merge
+     * @param bool $allow_delete
+     * @param bool $rollback
+     *
+     * @return mixed
+     */
+    public function updateSchema($tables, $allow_merge = false, $allow_delete = false, $rollback = false);
+
+    /**
+     * @param      $table_name
+     * @param      $fields
+     * @param bool $allow_update
+     * @param bool $allow_delete
+     *
+     * @return mixed
+     */
+    public function updateFields($table_name, $fields, $allow_update = false, $allow_delete = false);
+
+    /**
+     * @param      $name
+     * @param bool $returnName
+     *
+     * @return mixed
+     */
+    public function doesTableExist($name, $returnName = false);
+
+    /**
+     * @param $table
+     *
+     * @return mixed
+     */
+    public function quoteTableName($table);
+
+    /**
+     * @param $column
+     *
+     * @return mixed
+     */
+    public function quoteColumnName($column);
+
+    /**
+     * @param $table
+     *
+     * @return mixed
+     */
+    public function dropTable($table);
+
+    /**
+     * @param $table
+     * @param $column
+     *
+     * @return mixed
+     */
+    public function dropColumn($table, $column);
+
+    /**
+     * Set the Caching interface.
+     *
+     * @param  CacheInterface $cache
+     */
+    public function setCache($cache);
+
+    /**
+     * @return mixed
+     */
+    public function flushCache();
+
+    /**
+     * Set the DB Extras interface.
+     *
+     * @param  DbExtrasInterface $storage
+     */
+    public function setExtraStore($storage);
+
+    /**
+     * @return mixed
+     */
     public function refresh();
 
 }

@@ -754,7 +754,7 @@ class BaseModel extends Model implements CacheInterface
         /** @type ConnectionInterface $connection */
         $connection = $this->getConnection();
         $this->cachePrefix = 'model_' . $this->getTable() . ':';
-        $connection->setCache($this);
+        $connection->getSchema()->setCache($this);
 
         return $connection->getSchema()->getTable($this->table);
     }

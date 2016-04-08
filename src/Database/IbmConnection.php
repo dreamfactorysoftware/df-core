@@ -2,9 +2,11 @@
 
 namespace DreamFactory\Core\Database;
 
+use DreamFactory\Core\Contracts\ConnectionInterface;
 use DreamFactory\Core\Database\Schema\Ibmdb2\Schema as IbmSchema;
+use Illuminate\Database\Connection;
 
-class IbmConnection
+class IbmConnection extends Connection implements ConnectionInterface
 {
     use ConnectionExtension;
 

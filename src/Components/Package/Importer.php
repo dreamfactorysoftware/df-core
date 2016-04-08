@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Components\Package;
 
+use DreamFactory\Core\Exceptions\DfException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
@@ -80,6 +81,7 @@ class Importer
         } catch (\Exception $e) {
             \DB::rollBack();
             \Log::error('Failed to import package. Rolling back. ' . $e->getMessage());
+
             throw $e;
         }
 
@@ -120,7 +122,7 @@ class Importer
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert roles. ' . $e->getMessage());
+                throw new InternalServerErrorException('Failed to insert roles. ' . $this->getErrorDetails($e));
             }
         } else {
             return false;
@@ -152,7 +154,7 @@ class Importer
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert users. ' . $e->getMessage());
+                throw new InternalServerErrorException('Failed to insert users. ' . $this->getErrorDetails($e));
             }
         } else {
             return false;
@@ -266,7 +268,7 @@ class Importer
             } catch (\Exception $e) {
                 throw new InternalServerErrorException(
                     'Failed to insert user_to_app_to_role_by_user_id relation for users. ' .
-                    $e->getMessage()
+                    $this->getErrorDetails($e)
                 );
             }
         } else {
@@ -318,7 +320,7 @@ class Importer
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert services. ' . $e->getMessage());
+                throw new InternalServerErrorException("Failed to insert services. " . $this->getErrorDetails($e));
             }
         } else {
             return false;
@@ -390,12 +392,36 @@ class Importer
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert role service access records for roles. ' .
-                    $e->getMessage());
+                throw new InternalServerErrorException(
+                    'Failed to insert role service access records for roles. ' .
+                    $this->getErrorDetails($e)
+                );
             }
         } else {
             return false;
         }
+    }
+
+    /**
+     * Returns details from exception.
+     *
+     * @param \Exception $e
+     *
+     * @return string
+     */
+    protected function getErrorDetails(\Exception $e)
+    {
+        $msg = $e->getMessage();
+        if ($e instanceof DfException) {
+            $context = $e->getContext();
+            if (is_array($context)) {
+                $context = print_r($context, true);
+            }
+            $msg .= "\nContext: " . $context;
+        }
+        $msg .= "\nTrace:\n" . $e->getTraceAsString();
+
+        return $msg;
     }
 
     /**
@@ -507,7 +533,7 @@ class Importer
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert apps. ' . $e->getMessage());
+                throw new InternalServerErrorException('Failed to insert apps. ' . $this->getErrorDetails($e));
             }
         } else {
             return false;
@@ -576,7 +602,7 @@ class Importer
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert event script. ' . $e->getMessage());
+                throw new InternalServerErrorException('Failed to insert event script. ' . $this->getErrorDetails($e));
             }
         } else {
             return false;
@@ -618,7 +644,8 @@ class Importer
                     '/' .
                     $resource .
                     '. ' .
-                    $e->getMessage());
+                    $this->getErrorDetails($e)
+                );
             }
         } else {
             return false;
@@ -661,8 +688,10 @@ class Importer
                             }
                         }
                     } catch (\Exception $e) {
-                        $this->log('warning',
-                            'Skipping storage resource ' . $service . '/' . $resource . '. ' . $e->getMessage());
+                        $this->log(
+                            'warning',
+                            'Skipping storage resource ' . $service . '/' . $resource . '. ' . $e->getMessage()
+                        );
                     }
                 }
             } catch (\Exception $e) {

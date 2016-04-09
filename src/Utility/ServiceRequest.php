@@ -105,6 +105,11 @@ class ServiceRequest implements ServiceRequestInterface
             return $this->json($key, $default);
         }
 
+        if (Str::contains(Request::header('CONTENT_TYPE'), 'x-www-form-urlencoded')) {
+            // Formatted xml data is stored in $this->contentAsArray
+            return $this->input($key, $default);
+        }
+
         if (Str::contains(Request::header('CONTENT_TYPE'), 'xml')) {
             // Formatted xml data is stored in $this->contentAsArray
             return $this->xml($key, $default);

@@ -1,12 +1,13 @@
 <?php
-namespace DreamFactory\Core\Database\Schema\Pgsql;
+namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Database\Schema\Pgsql\ColumnSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from a PostgreSQL database.
  */
-class Schema extends \DreamFactory\Core\Database\Schema\Schema
+class PostgresSchema extends Schema
 {
     const DEFAULT_SCHEMA = 'public';
 
@@ -483,7 +484,7 @@ EOD;
         $sql = <<<SQL
 SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema','pg_catalog')
 SQL;
-        $rows = $this->connection->selectColumn($sql);
+        $rows = $this->selectColumn($sql);
 
         if (false === array_search(static::DEFAULT_SCHEMA, $rows)) {
             $rows[] = static::DEFAULT_SCHEMA;
@@ -601,7 +602,7 @@ FROM
     {$schema}
 MYSQL;
 
-        return $this->connection->selectColumn($sql);
+        return $this->selectColumn($sql);
     }
 
     /**
@@ -766,5 +767,85 @@ MYSQL;
         }
 
         return parent::formatValue($value, $type);
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @return mixed
+     * @throws \Exception
+     */
+    public function callProcedure($name, &$params)
+    {
+        $name = $this->quoteTableName($name);
+        $paramStr = '';
+        $bindings = [];
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+            $pValue = (isset($param['value'])) ? $param['value'] : null;
+
+            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                case 'OUT':
+                    // not sent as parameters, but pulled from fetch results
+                    break;
+
+                case 'INOUT':
+                case 'IN':
+                default:
+                    $bindings[":$pName"] = $pValue;
+                    if (!empty($paramStr)) {
+                        $paramStr .= ', ';
+                    }
+                    $paramStr .= ":$pName";
+                    break;
+            }
+        }
+
+        $sql = "SELECT * FROM $name($paramStr);";
+        // driver does not support multiple result sets currently
+        $result = $this->connection->select($sql, $bindings);
+
+        // out parameters come back in fetch results, put them in the params for client
+        if (isset($result, $result[0])) {
+            $temp = (array)$result[0];
+            foreach ($params as $key => $param) {
+                if (false !== stripos(strval(isset($param['param_type']) ? $param['param_type'] : ''), 'OUT')) {
+                    $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+                    if (isset($temp[$pName])) {
+                        $params[$key]['value'] = $temp[$pName];
+                    }
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callFunction($name, &$params)
+    {
+        $name = $this->quoteTableName($name);
+        $bindings = [];
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? ':' . $param['name'] : ":p$key";
+            $pValue = isset($param['value']) ? $param['value'] : null;
+
+            $bindings[$pName] = $pValue;
+        }
+
+        $paramStr = implode(',', array_keys($bindings));
+        $sql = "SELECT * FROM $name($paramStr)";
+
+        // driver does not support multiple result sets currently
+        $result = $this->connection->select($sql, $bindings);
+
+        return $result;
     }
 }

@@ -1,12 +1,14 @@
 <?php
-namespace DreamFactory\Core\Database\Schema\Oci;
+namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Database\DataReader;
+use DreamFactory\Core\Database\Schema\Oci\ColumnSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from an Oracle database.
  */
-class Schema extends \DreamFactory\Core\Database\Schema\Schema
+class OracleSchema extends Schema
 {
     /**
      * @var array the abstract column types mapped to physical column types.
@@ -268,7 +270,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
      */
     public function getDefaultSchema($refresh = false)
     {
-        return strtoupper($this->connection->getUserName());
+        return strtoupper($this->getUserName());
     }
 
     /**
@@ -445,7 +447,7 @@ SELECT username FROM all_users WHERE username not in ('SYSTEM','SYS','SYSAUX')
 SQL;
         }
 
-        return $this->connection->selectColumn($sql);
+        return $this->selectColumn($sql);
     }
 
     /**
@@ -601,7 +603,7 @@ EOD;
         if ($value !== null) {
             $value = (int)$value;
         } else {
-            $value = (int)$this->connection->selectValue("SELECT MAX(\"{$table->primaryKey}\") FROM {$table->rawName}");
+            $value = (int)$this->selectValue("SELECT MAX(\"{$table->primaryKey}\") FROM {$table->rawName}");
             $value++;
         }
         $this->connection->statement(
@@ -632,7 +634,7 @@ EOD;
         $query = "SELECT CONSTRAINT_NAME FROM USER_CONSTRAINTS WHERE TABLE_NAME=:t AND OWNER=:o";
         foreach ($this->getTableNames($schema) as $tableInfo) {
             $table = $tableInfo['name'];
-            $constraints = $this->connection->selectColumn($query, [':t' => $table, ':o' => $schema]);
+            $constraints = $this->selectColumn($query, [':t' => $table, ':o' => $schema]);
             foreach ($constraints as $constraint) {
                 $this->connection->statement("ALTER TABLE \"{$schema}\".\"{$table}\" {$mode} CONSTRAINT \"{$constraint}\"");
             }
@@ -710,7 +712,7 @@ WHERE
     {$schema}
 MYSQL;
 
-        return $this->connection->selectColumn($sql, [':routine_type' => $type]);
+        return $this->selectColumn($sql, [':routine_type' => $type]);
     }
 
     public function getPrimaryKeyCommands($table, $column)
@@ -748,5 +750,113 @@ SQL;
     public function getTimestampForSet($update = false)
     {
         return $this->connection->raw('(CURRENT_TIMESTAMP)');
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @return mixed
+     * @throws \Exception
+     */
+    public function callProcedure($name, &$params)
+    {
+        $name = $this->quoteTableName($name);
+        $paramStr = '';
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+
+            if (!empty($paramStr)) {
+                $paramStr .= ', ';
+            }
+
+//            switch ( strtoupper( strval( isset($param['param_type']) ? $param['param_type'] : 'IN' ) ) )
+//            {
+//                case 'INOUT':
+//                case 'OUT':
+//                default:
+            $paramStr .= ":$pName";
+//                    break;
+//            }
+        }
+
+        $sql = "BEGIN $name($paramStr); END;";
+        /** @type \PDOStatement $statement */
+        $statement = $this->connection->getPdo()->prepare($sql);
+        // do binding
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+
+//            switch ( strtoupper( strval( isset($param['param_type']) ? $param['param_type'] : 'IN' ) ) )
+//            {
+//                case 'IN':
+//                case 'INOUT':
+//                case 'OUT':
+//                default:
+            $rType = (isset($param['type'])) ? $param['type'] : 'string';
+            $rLength = (isset($param['length'])) ? $param['length'] : 256;
+            $pdoType = $this->getPdoType($rType);
+            $this->bindParam($statement, ":$pName", $params[$key]['value'], $pdoType | \PDO::PARAM_INPUT_OUTPUT, $rLength);
+//                    break;
+//            }
+        }
+
+        // Oracle stored procedures don't return result sets directly, must use OUT parameter.
+        try {
+            $statement->execute();
+        } catch (\Exception $e) {
+            $errorInfo = $e instanceof \PDOException ? $e : null;
+            $message = $e->getMessage();
+            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callFunction($name, &$params)
+    {
+        $name = $this->quoteTableName($name);
+        $bindings = [];
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? ':' . $param['name'] : ":p$key";
+            $pValue = isset($param['value']) ? $param['value'] : null;
+
+            $bindings[$pName] = $pValue;
+        }
+
+        $paramStr = implode(',', array_keys($bindings));
+        $sql = "SELECT $name($paramStr) FROM DUAL";
+        /** @type \PDOStatement $statement */
+        $statement = $this->connection->getPdo()->prepare($sql);
+
+        // do binding
+        $this->bindValues($statement, $bindings);
+
+        // support multiple result sets
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+        } catch (\Exception $e) {
+            $errorInfo = $e instanceof \PDOException ? $e : null;
+            $message = $e->getMessage();
+            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
+        }
+        $result = $reader->readAll();
+        if ($reader->nextResult()) {
+            // more data coming, make room
+            $result = [$result];
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        }
+
+        return $result;
     }
 }

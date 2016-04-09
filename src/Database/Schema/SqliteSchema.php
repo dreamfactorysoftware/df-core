@@ -1,13 +1,14 @@
 <?php
-namespace DreamFactory\Core\Database\Schema\Sqlite;
+namespace DreamFactory\Core\Database\Schema;
 
 use DreamFactory\Core\Database\RelationSchema;
+use DreamFactory\Core\Database\Schema\Sqlite\ColumnSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from a SQLite (2/3) database.
  */
-class Schema extends \DreamFactory\Core\Database\Schema\Schema
+class SqliteSchema extends Schema
 {
     protected function translateSimpleColumnTypes(array &$info)
     {
@@ -203,7 +204,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
                     $definition .= ' DEFAULT ' . $expression;
                 }
             } else {
-                $default = $this->connection->quoteValue($default);
+                $default = $this->quoteValue($default);
                 $definition .= ' DEFAULT ' . $default;
             }
         }
@@ -270,7 +271,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
         if ($value !== null) {
             $value = (int)($value) - 1;
         } else {
-            $value = $this->connection->selectValue("SELECT MAX(`{$table->primaryKey}`) FROM {$table->rawName}");
+            $value = $this->selectValue("SELECT MAX(`{$table->primaryKey}`) FROM {$table->rawName}");
             $value = intval($value);
         }
         try {

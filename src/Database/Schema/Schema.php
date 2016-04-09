@@ -2,15 +2,16 @@
 namespace DreamFactory\Core\Database\Schema;
 
 use DreamFactory\Core\Contracts\CacheInterface;
-use DreamFactory\Core\Contracts\ConnectionInterface;
 use DreamFactory\Core\Contracts\DbExtrasInterface;
 use DreamFactory\Core\Database\ColumnSchema;
+use DreamFactory\Core\Database\DataReader;
 use DreamFactory\Core\Database\FunctionSchema;
 use DreamFactory\Core\Database\ProcedureSchema;
 use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Library\Utility\Scalar;
+use Illuminate\Database\ConnectionInterface;
 
 /**
  * Schema is the base class for retrieving metadata information.
@@ -278,6 +279,64 @@ abstract class Schema
         return null;
     }
 
+    public function getUserName()
+    {
+        return $this->connection->getConfig('username');
+    }
+
+    public function selectColumn($query, $bindings = [], $column = null)
+    {
+        $rows = $this->connection->select($query, $bindings);
+        foreach ($rows as $key => $row) {
+            if (!empty($column)) {
+                $rows[$key] = data_get($row, $column);
+            } else {
+                $row = (array)$row;
+                $rows[$key] = reset($row);
+            }
+        }
+
+        return $rows;
+    }
+
+    public function selectValue($query, $bindings = [], $column = null)
+    {
+        if (null !== $row = $this->connection->selectOne($query, $bindings)) {
+            if (!empty($column)) {
+                return data_get($row, $column);
+            } else {
+                $row = (array)$row;
+
+                return reset($row);
+            }
+        }
+
+        return null;
+    }
+
+
+    /**
+     * Quotes a string value for use in a query.
+     *
+     * @param string $str string to be quoted
+     *
+     * @return string the properly quoted string
+     * @see http://www.php.net/manual/en/function.PDO-quote.php
+     */
+    public function quoteValue($str)
+    {
+        if (is_int($str) || is_float($str)) {
+            return $str;
+        }
+
+        if (($value = $this->connection->getPdo()->quote($str)) !== false) {
+            return $value;
+        } else  // the driver doesn't support quote (e.g. oci)
+        {
+            return "'" . addcslashes(str_replace("'", "''", $str), "\000\n\r\\\032") . "'";
+        }
+    }
+    
     /**
      * Returns the default schema name for the connection.
      *
@@ -1422,7 +1481,7 @@ abstract class Schema
                     $definition .= ' DEFAULT ' . $expression;
                 }
             } else {
-                $default = $this->connection->quoteValue($default);
+                $default = $this->quoteValue($default);
                 $definition .= ' DEFAULT ' . $default;
             }
         }
@@ -2322,5 +2381,204 @@ abstract class Schema
                 $this->connection->statement($this->createIndex($name, $table, $index['column'], $unique));
             }
         }
+    }
+
+    /**
+     * @return boolean
+     */
+    public function supportsFunctions()
+    {
+        return true;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callFunction(
+        /** @noinspection PhpUnusedParameterInspection */
+        $name, &$params)
+    {
+        if (!$this->supportsFunctions()) {
+            throw new \Exception('Stored Functions are not supported by this database connection.');
+        }
+    }
+
+    /**
+     * @return boolean
+     */
+    public function supportsProcedures()
+    {
+        return true;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callProcedure($name, &$params)
+    {
+        if (!$this->supportsProcedures()) {
+            throw new \Exception('Stored Procedures are not supported by this database connection.');
+        }
+
+        $name = $this->quoteTableName($name);
+        $paramStr = '';
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+
+            if (!empty($paramStr)) {
+                $paramStr .= ', ';
+            }
+
+            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                case 'OUT':
+                case 'INOUT':
+                case 'IN':
+                default:
+                    $paramStr .= ":$pName";
+                    break;
+            }
+        }
+
+        $sql = "CALL $name($paramStr)";
+        /** @type \PDOStatement $statement */
+        $statement = $this->connection->getPdo()->prepare($sql);
+        // do binding
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+
+            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                case 'OUT':
+                case 'INOUT':
+                case 'IN':
+                default:
+                    $rType = (isset($param['type'])) ? $param['type'] : 'string';
+                    $rLength = (isset($param['length'])) ? $param['length'] : 256;
+                    $pdoType = $this->getPdoType($rType);
+                    $this->bindParam($statement, ":$pName", $params[$key]['value'], $pdoType | \PDO::PARAM_INPUT_OUTPUT,
+                        $rLength);
+                    break;
+            }
+        }
+
+        // support multiple result sets
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+        } catch (\Exception $e) {
+            $errorInfo = $e instanceof \PDOException ? $e : null;
+            $message = $e->getMessage();
+            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
+        }
+        $result = $reader->readAll();
+        if ($reader->nextResult()) {
+            // more data coming, make room
+            $result = [$result];
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        }
+
+        // out parameters come back in fetch results, put them in the params for client
+        if (isset($result, $result[0])) {
+            foreach ($params as $key => $param) {
+                if (false !== stripos(strval(isset($param['param_type']) ? $param['param_type'] : ''), 'OUT')) {
+                    $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+                    if (isset($result[0][$pName])) {
+                        $params[$key]['value'] = $result[0][$pName];
+                    }
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param \PDOStatement $statement
+     * @param               $name
+     * @param               $value
+     * @param null          $dataType
+     * @param null          $length
+     * @param null          $driverOptions
+     */
+    public function bindParam($statement, $name, &$value, $dataType = null, $length = null, $driverOptions = null)
+    {
+        if ($dataType === null) {
+            $statement->bindParam($name, $value, $this->getPdoType(gettype($value)));
+        } elseif ($length === null) {
+            $statement->bindParam($name, $value, $dataType);
+        } elseif ($driverOptions === null) {
+            $statement->bindParam($name, $value, $dataType, $length);
+        } else {
+            $statement->bindParam($name, $value, $dataType, $length, $driverOptions);
+        }
+    }
+
+    /**
+     * Binds a value to a parameter.
+     *
+     * @param \PDOStatement $statement
+     * @param mixed         $name     Parameter identifier. For a prepared statement
+     *                                using named placeholders, this will be a parameter name of
+     *                                the form :name. For a prepared statement using question mark
+     *                                placeholders, this will be the 1-indexed position of the parameter.
+     * @param mixed         $value    The value to bind to the parameter
+     * @param integer       $dataType SQL data type of the parameter. If null, the type is determined by the PHP type
+     *                                of the value.
+     *
+     * @see http://www.php.net/manual/en/function.PDOStatement-bindValue.php
+     */
+    public function bindValue($statement, $name, $value, $dataType = null)
+    {
+        if ($dataType === null) {
+            $statement->bindValue($name, $value, $this->getPdoType(gettype($value)));
+        } else {
+            $statement->bindValue($name, $value, $dataType);
+        }
+    }
+
+    /**
+     * Binds a list of values to the corresponding parameters.
+     * This is similar to {@link bindValue} except that it binds multiple values.
+     * Note that the SQL data type of each value is determined by its PHP type.
+     *
+     * @param \PDOStatement $statement
+     * @param array         $values the values to be bound. This must be given in terms of an associative
+     *                              array with array keys being the parameter names, and array values the corresponding
+     *                              parameter values. For example, <code>array(':name'=>'John', ':age'=>25)</code>.
+     */
+    public function bindValues($statement, $values)
+    {
+        foreach ($values as $name => $value) {
+            $statement->bindValue($name, $value, $this->getPdoType(gettype($value)));
+        }
+    }
+
+    /**
+     * Determines the PDO type for the specified PHP type.
+     *
+     * @param string $type The PHP type (obtained by gettype() call).
+     *
+     * @return integer the corresponding PDO type
+     */
+    public function getPdoType($type)
+    {
+        static $map = [
+            'boolean'  => \PDO::PARAM_BOOL,
+            'integer'  => \PDO::PARAM_INT,
+            'string'   => \PDO::PARAM_STR,
+            'resource' => \PDO::PARAM_LOB,
+            'NULL'     => \PDO::PARAM_NULL,
+        ];
+
+        return isset($map[$type]) ? $map[$type] : \PDO::PARAM_STR;
     }
 }

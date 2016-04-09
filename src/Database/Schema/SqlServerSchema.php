@@ -1,12 +1,15 @@
 <?php
-namespace DreamFactory\Core\Database\Schema\Mssql;
+namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Database\DataReader;
+use DreamFactory\Core\Database\Schema\Mssql\ColumnSchema;
+use DreamFactory\Core\Database\Schema\Mssql\TableSchema;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 
 /**
  * Schema is the class for retrieving metadata information from a MS SQL Server database.
  */
-class Schema extends \DreamFactory\Core\Database\Schema\Schema
+class SqlServerSchema extends Schema
 {
     const DEFAULT_SCHEMA = 'dbo';
 
@@ -245,7 +248,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
                     $definition .= ' DEFAULT ' . $expression;
                 }
             } else {
-                $default = $this->connection->quoteValue($default);
+                $default = $this->quoteValue($default);
                 $definition .= ' DEFAULT ' . $default;
             }
         }
@@ -334,8 +337,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
         if ($value !== null) {
             $value = (int)($value) - 1;
         } else {
-            $value =
-                (int)$this->connection->selectValue("SELECT MAX([{$table->primaryKey}]) FROM {$table->rawName}");
+            $value = (int)$this->selectValue("SELECT MAX([{$table->primaryKey}]) FROM {$table->rawName}");
         }
         $name = strtr($table->rawName, ['[' => '', ']' => '']);
         $this->connection->statement("DBCC CHECKIDENT ('$name',RESEED,$value)");
@@ -404,7 +406,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
 				AND k.table_schema = :schema
 EOD;
         $primary =
-            $this->connection->selectColumn($sql, [':table' => $table->tableName, ':schema' => $table->schemaName]);
+            $this->selectColumn($sql, [':table' => $table->tableName, ':schema' => $table->schemaName]);
         switch (count($primary)) {
             case 0: // No primary key on table
                 $primary = null;
@@ -587,7 +589,7 @@ SELECT schema_name FROM INFORMATION_SCHEMA.SCHEMATA WHERE schema_name NOT IN
 'db_denydatareader', 'db_denydatawriter')
 SQL;
 
-        return $this->connection->selectColumn($sql);
+        return $this->selectColumn($sql);
     }
 
     /**
@@ -759,7 +761,7 @@ WHERE
     {$where}
 MYSQL;
 
-        $results = $this->connection->selectColumn($sql, [':routine_type' => $type]);
+        $results = $this->selectColumn($sql, [':routine_type' => $type]);
         if (!empty($results) && ($defaultSchema != $schema)) {
             foreach ($results as $key => $name) {
                 $results[$key] = $schema . '.' . $name;
@@ -793,5 +795,240 @@ MYSQL;
         }
 
         return $value;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @return mixed
+     * @throws \Exception
+     */
+    public function callProcedure($name, &$params)
+    {
+        $name = $this->quoteTableName($name);
+
+        $driver = $this->getDriverName();
+        if (0 === strcasecmp('sqlsrv', $driver)) {
+            return $this->callProcedureSqlsrv($name, $params);
+        } else {
+            return $this->callProcedureDblib($name, $params);
+        }
+    }
+
+    protected function callProcedureSqlsrv($name, &$params)
+    {
+        $paramStr = '';
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+
+            if (!empty($paramStr)) {
+                $paramStr .= ', ';
+            }
+
+            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                case 'INOUT':
+                case 'OUT':
+                    $paramStr .= "@$pName=:$pName";
+                    break;
+
+                default:
+                    $paramStr .= ":$pName";
+                    break;
+            }
+        }
+
+        $sql = "EXEC $name $paramStr;";
+        /** @type \PDOStatement $statement */
+        $statement = $this->getPdo()->prepare($sql);
+
+        // do binding
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+            if (!isset($param['value'])) {
+                $param['value'] = null;
+            }
+
+            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                case '':
+                case 'IN':
+                    $this->bindValue($statement, ":$pName", $param['value']);
+                    break;
+                case 'INOUT':
+                case 'OUT':
+                    $rType = (isset($param['type'])) ? $param['type'] : 'string';
+                    $rLength = (isset($param['length'])) ? $param['length'] : 256;
+                    $pdoType = $this->getPdoType($rType);
+                    $this->bindParam($statement, ":$pName", $params[$key]['value'], $pdoType | \PDO::PARAM_INPUT_OUTPUT,
+                        $rLength);
+                    break;
+            }
+        }
+
+        // support multiple result sets
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+        } catch (\Exception $e) {
+            $errorInfo = $e instanceof \PDOException ? $e : null;
+            $message = $e->getMessage();
+            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
+        }
+        $result = $reader->readAll();
+        if ($reader->nextResult()) {
+            // more data coming, make room
+            $result = [$result];
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        }
+
+        return $result;
+    }
+
+    protected function callProcedureDblib($name, &$params)
+    {
+        // Note that using the dblib driver doesn't allow binding of output parameters,
+        // and also requires declaration prior to and selecting after to retrieve them.
+        $paramStr = '';
+        $pre = '';
+        $post = '';
+        $skip = 0;
+        $bindings = [];
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+            $pValue = (isset($param['value'])) ? $param['value'] : null;
+
+            if (!empty($paramStr)) {
+                $paramStr .= ', ';
+            }
+
+            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                case 'INOUT':
+                    // with dblib driver you can't bind output parameters
+                    $rType = $param['type'];
+                    $pre .= "DECLARE @$pName $rType; SET @$pName = $pValue;";
+                    $skip++;
+                    $post .= "SELECT @$pName AS [$pName];";
+                    $paramStr .= "@$pName OUTPUT";
+                    break;
+
+                case 'OUT':
+                    // with dblib driver you can't bind output parameters
+                    $rType = $param['type'];
+                    $pre .= "DECLARE @$pName $rType;";
+                    $post .= "SELECT @$pName AS [$pName];";
+                    $paramStr .= "@$pName OUTPUT";
+                    break;
+
+                default:
+                    $bindings[":$pName"] = $pValue;
+                    $paramStr .= ":$pName";
+                    break;
+            }
+        }
+
+        $sql = "$pre EXEC $name $paramStr; $post";
+        /** @type \PDOStatement $statement */
+        $statement = $this->connection->getPdo()->prepare($sql);
+
+        // do binding
+        $this->bindValues($statement, $bindings);
+
+        // support multiple result sets
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+        } catch (\Exception $e) {
+            $errorInfo = $e instanceof \PDOException ? $e : null;
+            $message = $e->getMessage();
+            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
+        }
+        $result = $reader->readAll();
+        for ($i = 0; $i < $skip; $i++) {
+            if ($reader->nextResult()) {
+                $result = $reader->readAll();
+            }
+        }
+        if ($reader->nextResult()) {
+            // more data coming, make room
+            $result = [$result];
+            do {
+                $temp = $reader->readAll();
+                $keep = true;
+                if (1 == count($temp)) {
+                    $check = current($temp);
+                    foreach ($params as &$param) {
+                        $pName = (isset($param['name'])) ? $param['name'] : '';
+                        if (isset($check[$pName])) {
+                            $param['value'] = $check[$pName];
+                            $keep = false;
+                        }
+                    }
+                }
+                if ($keep) {
+                    $result[] = $temp;
+                }
+            } while ($reader->nextResult());
+
+            // if there is only one data set, just return it
+            if (1 == count($result)) {
+                $result = $result[0];
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callFunction($name, &$params)
+    {
+        if (false === strpos($name, '.')) {
+            // requires full name with schema here.
+            $name = $this->getDefaultSchema() . '.' . $name;
+        }
+        $name = $this->quoteTableName($name);
+
+        $bindings = [];
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? ':' . $param['name'] : ":p$key";
+            $pValue = isset($param['value']) ? $param['value'] : null;
+
+            $bindings[$pName] = $pValue;
+        }
+
+        $paramStr = implode(',', array_keys($bindings));
+        $sql = "SELECT $name($paramStr);";
+        /** @type \PDOStatement $statement */
+        $statement = $this->connection->getPdo()->prepare($sql);
+
+        // do binding
+        $this->bindValues($statement, $bindings);
+
+        // support multiple result sets
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+        } catch (\Exception $e) {
+            $errorInfo = $e instanceof \PDOException ? $e : null;
+            $message = $e->getMessage();
+            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
+        }
+        $result = $reader->readAll();
+        if ($reader->nextResult()) {
+            // more data coming, make room
+            $result = [$result];
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        }
+
+        return $result;
     }
 }

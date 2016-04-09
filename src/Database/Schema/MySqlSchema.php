@@ -1,12 +1,14 @@
 <?php
-namespace DreamFactory\Core\Database\Schema\Mysql;
+namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Database\DataReader;
+use DreamFactory\Core\Database\Schema\Mysql\ColumnSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from a MySQL database (version 4.1.x and 5.x).
  */
-class Schema extends \DreamFactory\Core\Database\Schema\Schema
+class MySqlSchema extends Schema
 {
     protected function translateSimpleColumnTypes(array &$info)
     {
@@ -207,7 +209,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
                     $definition .= ' DEFAULT ' . $expression;
                 }
             } else {
-                $default = $this->connection->quoteValue($default);
+                $default = $this->quoteValue($default);
                 $definition .= ' DEFAULT ' . $default;
             }
         }
@@ -295,7 +297,7 @@ class Schema extends \DreamFactory\Core\Database\Schema\Schema
             $value = (int)$value;
         } else {
             $sql = 'SELECT MAX(`' . $table->primaryKey . '`) + 1 FROM ' . $table->rawName;
-            $value = (int)$this->connection->selectValue($sql);
+            $value = (int)$this->selectValue($sql);
         }
 
         $sql = <<<MYSQL
@@ -459,7 +461,7 @@ MYSQL;
 SHOW DATABASES WHERE `Database` NOT IN ('information_schema','mysql','performance_schema','phpmyadmin')
 MYSQL;
 
-        return $this->connection->selectColumn($sql);
+        return $this->selectColumn($sql);
     }
 
     /**
@@ -536,7 +538,7 @@ WHERE
     {$schema}
 MYSQL;
 
-        return $this->connection->selectColumn($sql);
+        return $this->selectColumn($sql);
     }
 
     /**
@@ -566,7 +568,7 @@ WHERE
     {$schema}
 MYSQL;
 
-        return $this->connection->selectColumn($sql);
+        return $this->selectColumn($sql);
     }
 
     /**
@@ -675,7 +677,7 @@ MYSQL;
 SELECT DATABASE() FROM DUAL
 MYSQL;
 
-        return $this->connection->selectValue($sql);
+        return $this->selectValue($sql);
     }
 
     public function parseValueForSet($value, $field_info)
@@ -687,5 +689,158 @@ MYSQL;
         }
 
         return $value;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callProcedure($name, &$params)
+    {
+        $name = $this->quoteTableName($name);
+        $paramStr = '';
+        $pre = '';
+        $post = '';
+        $bindings = [];
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+            $pValue = isset($param['value']) ? $param['value'] : null;
+
+            if (!empty($paramStr)) {
+                $paramStr .= ', ';
+            }
+
+            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                case 'INOUT':
+                    // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
+                    // since binding isn't working, set the values via statements, get the values via select
+                    $pre .= "SET @$pName = $pValue; ";
+                    $post .= (empty($post)) ? "SELECT @$pName" : ", @$pName";
+                    $paramStr .= "@$pName";
+                    break;
+
+                case 'OUT':
+                    // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
+                    // since binding isn't working, get the values via select
+                    $post .= (empty($post)) ? "SELECT @$pName" : ", @$pName";
+                    $paramStr .= "@$pName";
+                    break;
+
+                default:
+                    $bindings[":$pName"] = $pValue;
+                    $paramStr .= ":$pName";
+                    break;
+            }
+        }
+
+        !empty($pre) && $this->connection->statement($pre);
+
+        $sql = "CALL $name($paramStr)";
+        /** @type \PDOStatement $statement */
+        $statement = $this->connection->getPdo()->prepare($sql);
+
+        // do binding
+        $this->bindValues($statement, $bindings);
+
+        // support multiple result sets
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+        } catch (\Exception $e) {
+            $errorInfo = $e instanceof \PDOException ? $e : null;
+            $message = $e->getMessage();
+            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
+        }
+        $result = [];
+        try {
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        } catch (\Exception $ex) {
+            // mysql via pdo has issue of nextRowSet returning true one too many times
+            if (false !== strpos($ex->getMessage(), 'General Error')) {
+                throw $ex;
+            }
+
+            // if there is only one data set, just return it
+            if (1 == count($result)) {
+                $result = $result[0];
+            }
+        }
+
+        if (!empty($post)) {
+            $out = $this->connection->selectOne($post . ';');
+            foreach ($params as $key => &$param) {
+                $pName = '@' . $param['name'];
+                switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                    case 'INOUT':
+                    case 'OUT':
+                        if (isset($out, $out[$pName])) {
+                            $param['value'] = $out[$pName];
+                        }
+                        break;
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callFunction($name, &$params)
+    {
+        $name = $this->quoteTableName($name);
+        $bindings = [];
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? ':' . $param['name'] : ":p$key";
+            $pValue = isset($param['value']) ? $param['value'] : null;
+
+            $bindings[$pName] = $pValue;
+        }
+
+        $paramStr = implode(',', array_keys($bindings));
+        $sql = "SELECT $name($paramStr);";
+        /** @type \PDOStatement $statement */
+        $statement = $this->connection->getPdo()->prepare($sql);
+
+        // do binding
+        $this->bindValues($statement, $bindings);
+
+        // support multiple result sets
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+        } catch (\Exception $e) {
+            $errorInfo = $e instanceof \PDOException ? $e : null;
+            $message = $e->getMessage();
+            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
+        }
+        $result = [];
+        try {
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        } catch (\Exception $ex) {
+            // mysql via pdo has issue of nextRowSet returning true one too many times
+            if (false !== strpos($ex->getMessage(), 'General Error')) {
+                throw $ex;
+            }
+
+            // if there is only one data set, just return it
+            if (1 == count($result)) {
+                $result = $result[0];
+            }
+        }
+
+        return $result;
     }
 }

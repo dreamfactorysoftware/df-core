@@ -15,36 +15,21 @@ class SqlAnywhereConnector extends Connector implements ConnectorInterface
      * @var array
      */
     protected $options = [
-        PDO::ATTR_CASE => PDO::CASE_NATURAL,
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_ORACLE_NULLS => PDO::NULL_NATURAL,
+        PDO::ATTR_CASE              => PDO::CASE_NATURAL,
+        PDO::ATTR_ERRMODE           => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_ORACLE_NULLS      => PDO::NULL_NATURAL,
         PDO::ATTR_STRINGIFY_FETCHES => false,
     ];
 
     /**
      * Establish a database connection.
      *
-     * @param  array  $config
+     * @param  array $config
+     *
      * @return \PDO
      */
     public function connect(array $config)
     {
-        if (null !== $dumpLocation = config('df.db.freetds.dump')) {
-            if (!putenv("TDSDUMP=$dumpLocation")) {
-                \Log::alert('Could not write environment variable for TDSDUMP location.');
-            }
-        }
-        if (null !== $dumpConfLocation = config('df.db.freetds.dumpconfig')) {
-            if (!putenv("TDSDUMPCONFIG=$dumpConfLocation")) {
-                \Log::alert('Could not write environment variable for TDSDUMPCONFIG location.');
-            }
-        }
-        if (null !== $confLocation = config('df.db.freetds.sqlanywhere')) {
-            if (!putenv("FREETDSCONF=$confLocation")) {
-                \Log::alert('Could not write environment variable for FREETDSCONF location.');
-            }
-        }
-
         $options = $this->getOptions($config);
 
         return $this->createConnection($this->getDsn($config), $config, $options);
@@ -53,7 +38,8 @@ class SqlAnywhereConnector extends Connector implements ConnectorInterface
     /**
      * Create a DSN string from a configuration.
      *
-     * @param  array   $config
+     * @param  array $config
+     *
      * @return string
      */
     protected function getDsn(array $config)
@@ -71,13 +57,14 @@ class SqlAnywhereConnector extends Connector implements ConnectorInterface
     /**
      * Get the DSN string for a DbLib connection.
      *
-     * @param  array  $config
+     * @param  array $config
+     *
      * @return string
      */
     protected function getDblibDsn(array $config)
     {
         $arguments = [
-            'host' => $this->buildHostString($config, ':'),
+            'host'   => $this->buildHostString($config, ':'),
             'dbname' => $config['database'],
         ];
 
@@ -91,7 +78,8 @@ class SqlAnywhereConnector extends Connector implements ConnectorInterface
     /**
      * Get the DSN string for a SqlSrv connection.
      *
-     * @param  array  $config
+     * @param  array $config
+     *
      * @return string
      */
     protected function getSqlSrvDsn(array $config)
@@ -122,30 +110,32 @@ class SqlAnywhereConnector extends Connector implements ConnectorInterface
     /**
      * Build a connection string from the given arguments.
      *
-     * @param  string  $driver
+     * @param  string $driver
      * @param  array  $arguments
+     *
      * @return string
      */
     protected function buildConnectString($driver, array $arguments)
     {
-        $options = array_map(function ($key) use ($arguments) {
+        $options = array_map(function ($key) use ($arguments){
             return sprintf('%s=%s', $key, $arguments[$key]);
         }, array_keys($arguments));
 
-        return $driver.':'.implode(';', $options);
+        return $driver . ':' . implode(';', $options);
     }
 
     /**
      * Build a host string from the given configuration.
      *
      * @param  array  $config
-     * @param  string  $separator
+     * @param  string $separator
+     *
      * @return string
      */
     protected function buildHostString(array $config, $separator)
     {
         if (isset($config['port'])) {
-            return $config['host'].$separator.$config['port'];
+            return $config['host'] . $separator . $config['port'];
         } else {
             return $config['host'];
         }

@@ -172,4 +172,35 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
      */
     public function refresh();
 
+    /**
+     * Does this connection support stored functions
+     *
+     * @return boolean
+     */
+    public function supportsFunctions();
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callFunction($name, &$params);
+
+    /**
+     * Does this connection support stored procedures
+     *
+     * @return boolean
+     */
+    public function supportsProcedures();
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callProcedure($name, &$params);
 }

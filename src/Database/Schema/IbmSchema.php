@@ -1,12 +1,14 @@
 <?php
-namespace DreamFactory\Core\Database\Schema\Ibmdb2;
+namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Database\DataReader;
+use DreamFactory\Core\Database\Schema\Ibmdb2\ColumnSchema;
 use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from a IBM DB2 database.
  */
-class Schema extends \DreamFactory\Core\Database\Schema\Schema
+class IbmSchema extends Schema
 {
     /**
      * @type boolean
@@ -509,7 +511,7 @@ SELECT SCHEMANAME FROM SYSCAT.SCHEMATA WHERE DEFINERTYPE != 'S' ORDER BY SCHEMAN
 SQL;
         }
 
-        $rows = $this->connection->selectColumn($sql);
+        $rows = $this->selectColumn($sql);
 
         $defaultSchema = $this->getDefaultSchema();
         if (!empty($defaultSchema) && (false === array_search($defaultSchema, $rows))) {
@@ -604,10 +606,7 @@ SQL;
             $table->columns[strtolower($table->primaryKey)]->autoIncrement
         ) {
             if ($value === null) {
-                $value =
-                    $this->connection
-                        ->selectValue("SELECT MAX({$table->primaryKey}) FROM {$table->rawName}")
-                    + 1;
+                $value = $this->selectValue("SELECT MAX({$table->primaryKey}) FROM {$table->rawName}") + 1;
             } else {
                 $value = (int)$value;
             }
@@ -702,7 +701,7 @@ SQL;
 VALUES CURRENT_SCHEMA
 SQL;
 
-        return $this->connection->selectValue($sql);
+        return $this->selectValue($sql);
     }
 
     /**
@@ -810,5 +809,135 @@ SQL;
         }
 
         return $value;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @return mixed
+     * @throws \Exception
+     */
+    public function callProcedure($name, &$params)
+    {
+        $name = $this->quoteTableName($name);
+        $paramStr = '';
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+
+            if (!empty($paramStr)) {
+                $paramStr .= ', ';
+            }
+
+            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                case 'OUT':
+                case 'INOUT':
+                case 'IN':
+                default:
+                    $paramStr .= ":$pName";
+                    break;
+            }
+        }
+
+        $sql = "CALL $name($paramStr)";
+        /** @type \PDOStatement $statement */
+        $statement = $this->connection->getPdo()->prepare($sql);
+        // do binding
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+
+            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                case 'OUT':
+                case 'INOUT':
+                case 'IN':
+                default:
+                    $rType = (isset($param['type'])) ? $param['type'] : 'string';
+                    $rLength = (isset($param['length'])) ? $param['length'] : 256;
+                    $pdoType = $this->getPdoType($rType);
+                    $this->bindParam($statement, ":$pName", $params[$key]['value'], $pdoType | \PDO::PARAM_INPUT_OUTPUT,
+                        $rLength);
+                    break;
+            }
+        }
+
+        // support multiple result sets
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+        } catch (\Exception $e) {
+            $errorInfo = $e instanceof \PDOException ? $e : null;
+            $message = $e->getMessage();
+            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
+        }
+        $result = $reader->readAll();
+        if ($reader->nextResult()) {
+            // more data coming, make room
+            $result = [$result];
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        }
+
+        // out parameters come back in fetch results, put them in the params for client
+        if (isset($result, $result[0])) {
+            foreach ($params as $key => $param) {
+                if (false !== stripos(strval(isset($param['param_type']) ? $param['param_type'] : ''), 'OUT')) {
+                    $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
+                    if (isset($result[0][$pName])) {
+                        $params[$key]['value'] = $result[0][$pName];
+                    }
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param string $name
+     * @param array  $params
+     *
+     * @throws \Exception
+     * @return mixed
+     */
+    public function callFunction($name, &$params)
+    {
+        $name = $this->quoteTableName($name);
+        $bindings = [];
+        foreach ($params as $key => $param) {
+            $pName = (isset($param['name']) && !empty($param['name'])) ? ':' . $param['name'] : ":p$key";
+            $pValue = isset($param['value']) ? $param['value'] : null;
+
+            $bindings[$pName] = $pValue;
+        }
+
+        $paramStr = implode(',', array_keys($bindings));
+//        $sql = "SELECT * from TABLE($name($paramStr))";
+        $sql = "SELECT $name($paramStr) FROM SYSIBM.SYSDUMMY1";
+        /** @type \PDOStatement $statement */
+        $statement = $this->connection->getPdo()->prepare($sql);
+
+        // do binding
+        $this->bindValues($statement, $bindings);
+
+        // support multiple result sets
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+        } catch (\Exception $e) {
+            $errorInfo = $e instanceof \PDOException ? $e : null;
+            $message = $e->getMessage();
+            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
+        }
+        $result = $reader->readAll();
+        if ($reader->nextResult()) {
+            // more data coming, make room
+            $result = [$result];
+            do {
+                $result[] = $reader->readAll();
+            } while ($reader->nextResult());
+        }
+
+        return $result;
     }
 }

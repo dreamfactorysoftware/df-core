@@ -5,7 +5,7 @@ namespace DreamFactory\Core\Models;
 use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Components\SchemaToOpenApiDefinition;
 use DreamFactory\Core\Contracts\CacheInterface;
-use DreamFactory\Core\Contracts\ConnectionInterface;
+use DreamFactory\Core\Database\ConnectionExtension;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
@@ -30,7 +30,7 @@ use DB;
  */
 class BaseModel extends Model implements CacheInterface
 {
-    use Cacheable, SchemaToOpenApiDefinition;
+    use Cacheable, ConnectionExtension, SchemaToOpenApiDefinition;
 
     const TABLE_TO_MODEL_MAP_CACHE_KEY = 'system.table_model_map';
 
@@ -751,12 +751,10 @@ class BaseModel extends Model implements CacheInterface
      */
     public function getTableSchema()
     {
-        /** @type ConnectionInterface $connection */
-        $connection = $this->getConnection();
         $this->cachePrefix = 'model_' . $this->getTable() . ':';
-        $connection->getSchema()->setCache($this);
+        $this->getSchema($this->getConnection())->setCache($this);
 
-        return $connection->getSchema()->getTable($this->table);
+        return $this->schemaExtension->getTable($this->table);
     }
 
     /**

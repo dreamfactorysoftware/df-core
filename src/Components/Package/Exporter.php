@@ -209,7 +209,13 @@ class Exporter
                             break;
                     }
                 } catch (ForbiddenException $e) {
-                    // Inactive service. Let go.
+                    // Inactive service. Log and Let go.
+                    \Log::warning('Failed to include inactive service:' . $service . ' in manifest');
+                } catch (\Exception $e) {
+                    \Log::alert('Failed to include service:' .
+                        $service .
+                        ' in manifest due to error:' .
+                        $e->getMessage());
                 }
             }
         }

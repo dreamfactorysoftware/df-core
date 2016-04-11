@@ -191,27 +191,29 @@ class Exporter
         if (false === $systemOnly) {
             foreach ($manifest['service']['system']['service'] as $service) {
                 try {
-                    $group = static::getServiceGroup($service);
-                    switch ($group) {
-                        case ServiceTypeGroups::FILE:
-                            $manifest[$service] = $this->getAllResources(
-                                $service,
-                                '',
-                                ['as_list' => true, 'full_tree' => true]
-                            );
-                            break;
-                        case ServiceTypeGroups::DATABASE:
-                            $manifest[$service]['_schema'] = $this->getAllResources(
-                                $service,
-                                '_schema',
-                                ['as_list' => true]
-                            );
-                            break;
+                    if ($this->isServiceActive($service)) {
+                        $group = static::getServiceGroup($service);
+                        switch ($group) {
+                            case ServiceTypeGroups::FILE:
+                                $manifest[$service] = $this->getAllResources(
+                                    $service,
+                                    '',
+                                    ['as_list' => true, 'full_tree' => true]
+                                );
+                                break;
+                            case ServiceTypeGroups::DATABASE:
+                                $manifest[$service]['_schema'] = $this->getAllResources(
+                                    $service,
+                                    '_schema',
+                                    ['as_list' => true]
+                                );
+                                break;
+                        }
+                    } else {
+                        \Log::warning('Excluding inactive service:' . $service . ' from manifest.');
                     }
-                } catch (ForbiddenException $e) {
-                    // Inactive service. Log and Let go.
-                    \Log::warning('Failed to include inactive service:' . $service . ' in manifest');
                 } catch (\Exception $e) {
+                    // Error occurred. Log and let go.
                     \Log::alert('Failed to include service:' .
                         $service .
                         ' in manifest due to error:' .
@@ -221,6 +223,24 @@ class Exporter
         }
 
         return $manifest;
+    }
+
+    /**
+     * Checks to see if service exists and active.
+     *
+     * @param $serviceName
+     *
+     * @return bool
+     */
+    protected function isServiceActive($serviceName)
+    {
+        $service = Service::getCachedByName($serviceName);
+
+        if (!empty($service)) {
+            return boolval(array_get($service, 'is_active', false));
+        }
+
+        return false;
     }
 
     /**

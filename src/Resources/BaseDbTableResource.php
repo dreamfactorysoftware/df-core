@@ -3,30 +3,32 @@
 namespace DreamFactory\Core\Resources;
 
 use Config;
+use DreamFactory\Core\Components\DataValidator;
+use DreamFactory\Core\Database\TableSchema;
+use DreamFactory\Core\Database\ColumnSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DbComparisonOperators;
 use DreamFactory\Core\Enums\DbLogicalOperators;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
-use DreamFactory\Core\Database\TableSchema;
-use DreamFactory\Core\Database\ColumnSchema;
-use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Utility\DbUtilities;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 
 abstract class BaseDbTableResource extends BaseDbResource
 {
+    use DataValidator;
+    
     //*************************************************************************
     //	Constants
     //*************************************************************************
@@ -680,7 +682,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function createRecords($table, $records, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
+        $records = static::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
         $isSingle = (1 == count($records));
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
@@ -779,7 +781,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function createRecord($table, $record, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
+        $records = static::validateAsArray($record, null, true, 'The request contains no valid record fields.');
 
         $results = $this->createRecords($table, $records, $extras);
 
@@ -796,7 +798,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function updateRecords($table, $records, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
+        $records = static::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -894,7 +896,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function updateRecord($table, $record, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
+        $records = static::validateAsArray($record, null, true, 'The request contains no valid record fields.');
 
         $results = $this->updateRecords($table, $records, $extras);
 
@@ -913,7 +915,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function updateRecordsByFilter($table, $record, $filter = null, $params = [], $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
+        $record = static::validateAsArray($record, null, false, 'There are no fields in the record.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -953,8 +955,8 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function updateRecordsByIds($table, $record, $ids, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
-        $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
+        $record = static::validateAsArray($record, null, false, 'There are no fields in the record.');
+        $ids = static::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -1056,7 +1058,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function updateRecordById($table, $record, $id, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
+        $record = static::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
         $results = $this->updateRecordsByIds($table, $record, $id, $extras);
 
@@ -1073,7 +1075,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function patchRecords($table, $records, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
+        $records = static::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -1171,7 +1173,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function patchRecord($table, $record, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($record, null, true, 'The request contains no valid record fields.');
+        $records = static::validateAsArray($record, null, true, 'The request contains no valid record fields.');
 
         $results = $this->patchRecords($table, $records, $extras);
 
@@ -1190,7 +1192,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function patchRecordsByFilter($table, $record, $filter = null, $params = [], $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
+        $record = static::validateAsArray($record, null, false, 'There are no fields in the record.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -1228,8 +1230,8 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function patchRecordsByIds($table, $record, $ids, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'There are no fields in the record.');
-        $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
+        $record = static::validateAsArray($record, null, false, 'There are no fields in the record.');
+        $ids = static::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -1331,7 +1333,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function patchRecordById($table, $record, $id, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
+        $record = static::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
         $results = $this->patchRecordsByIds($table, $record, $id, $extras);
 
@@ -1348,7 +1350,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function deleteRecords($table, $records, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
+        $records = static::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
         $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
@@ -1376,7 +1378,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function deleteRecord($table, $record, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
+        $record = static::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
         $results = $this->deleteRecords($table, [$record], $extras);
 
@@ -1429,7 +1431,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function deleteRecordsByIds($table, $ids, $extras = [])
     {
-        $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
+        $ids = static::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -1574,7 +1576,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function retrieveRecords($table, $records, $extras = [])
     {
-        $records = DbUtilities::validateAsArray($records, null, true, 'The request contains no valid record sets.');
+        $records = static::validateAsArray($records, null, true, 'The request contains no valid record sets.');
 
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
         $idTypes = ArrayUtils::get($extras, ApiOptions::ID_TYPE);
@@ -1603,7 +1605,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function retrieveRecord($table, $record, $extras = [])
     {
-        $record = DbUtilities::validateAsArray($record, null, false, 'The request contains no valid record fields.');
+        $record = static::validateAsArray($record, null, false, 'The request contains no valid record fields.');
 
         $results = $this->retrieveRecords($table, [$record], $extras);
 
@@ -1620,7 +1622,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     public function retrieveRecordsByIds($table, $ids, $extras = [])
     {
-        $ids = DbUtilities::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
+        $ids = static::validateAsArray($ids, ',', true, 'The request contains no valid identifiers.');
 
         $fields = ArrayUtils::get($extras, ApiOptions::FIELDS);
         $idFields = ArrayUtils::get($extras, ApiOptions::ID_FIELD);
@@ -2142,7 +2144,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             case DbComparisonOperators::STARTS_WITH:
                 return static::startsWith($left, $right);
             case DbComparisonOperators::ENDS_WITH:
-                return static::endswith($left, $right);
+                return static::endsWith($left, $right);
             case DbComparisonOperators::CONTAINS:
                 return (false !== strpos($left, $right));
             case DbComparisonOperators::IN:
@@ -2390,7 +2392,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                             $delimiter = ArrayUtils::get($config, 'delimiter', ',');
                             $min = ArrayUtils::get($config, 'min', 1);
                             $max = ArrayUtils::get($config, 'max');
-                            $value = DbUtilities::validateAsArray($value, $delimiter, true);
+                            $value = static::validateAsArray($value, $delimiter, true);
                             $count = count($value);
                             if ($count < $min) {
                                 if (empty($msg)) {
@@ -2655,7 +2657,7 @@ abstract class BaseDbTableResource extends BaseDbResource
             return true;
         }
 
-        if (false === $fields = DbUtilities::validateAsArray($fields, ',')) {
+        if (false === $fields = static::validateAsArray($fields, ',')) {
             return false;
         }
 
@@ -2971,12 +2973,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'in'          => 'path',
                         'required'    => true,
                     ],
-                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                    ApiOptions::documentOption(ApiOptions::CONTINUES),
-                    ApiOptions::documentOption(ApiOptions::ROLLBACK),
-                    ApiOptions::documentOption(ApiOptions::FIELDS),
-                    ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
                 'get'        => [
                     'tags'              => [$serviceName],
@@ -3000,14 +2996,20 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.table_selected',
                     ],
                     'parameters'        => [
-                        ApiOptions::documentOption(ApiOptions::IDS),
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                         ApiOptions::documentOption(ApiOptions::LIMIT),
+                        ApiOptions::documentOption(ApiOptions::OFFSET),
                         ApiOptions::documentOption(ApiOptions::ORDER),
                         ApiOptions::documentOption(ApiOptions::GROUP),
-                        ApiOptions::documentOption(ApiOptions::OFFSET),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
+                        ApiOptions::documentOption(ApiOptions::IDS),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                        ApiOptions::documentOption(ApiOptions::CONTINUES),
+                        ApiOptions::documentOption(ApiOptions::ROLLBACK),
                         ApiOptions::documentOption(ApiOptions::FILE),
                     ],
                     'responses'         => [
@@ -3042,6 +3044,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
                                 'required'    => true,
                             ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
+                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                            ApiOptions::documentOption(ApiOptions::CONTINUES),
+                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
                             [
                                 'name'        => 'X-HTTP-METHOD',
                                 'description' => 'Override request using POST to tunnel other http request, such as DELETE or GET passing a payload.',
@@ -3089,7 +3097,13 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'in'          => 'body',
                                 'required'    => true,
                             ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                             ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                            ApiOptions::documentOption(ApiOptions::CONTINUES),
+                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
                             ApiOptions::documentOption(ApiOptions::FILTER),
                         ],
                     'responses'         => [
@@ -3127,7 +3141,13 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'in'          => 'body',
                                 'required'    => true,
                             ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                             ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                            ApiOptions::documentOption(ApiOptions::CONTINUES),
+                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
                             ApiOptions::documentOption(ApiOptions::FILTER),
                         ],
                     'responses'         => [
@@ -3167,7 +3187,13 @@ abstract class BaseDbTableResource extends BaseDbResource
                                 'schema'      => ['$ref' => '#/definitions/RecordsRequest'],
                                 'in'          => 'body',
                             ],
+                            ApiOptions::documentOption(ApiOptions::FIELDS),
+                            ApiOptions::documentOption(ApiOptions::RELATED),
                             ApiOptions::documentOption(ApiOptions::IDS),
+                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                            ApiOptions::documentOption(ApiOptions::CONTINUES),
+                            ApiOptions::documentOption(ApiOptions::ROLLBACK),
                             ApiOptions::documentOption(ApiOptions::FILTER),
                             ApiOptions::documentOption(ApiOptions::FORCE),
                         ],
@@ -3186,23 +3212,19 @@ abstract class BaseDbTableResource extends BaseDbResource
             $path . '/{table_name}/{id}' => [
                 'parameters' => [
                     [
-                        'name'        => 'table_name',
-                        'description' => 'Name of the table to perform operations on.',
-                        'type'        => 'string',
-                        'in'          => 'path',
-                        'required'    => true,
-                    ],
-                    [
                         'name'        => 'id',
                         'description' => 'Identifier of the record to retrieve.',
                         'type'        => 'string',
                         'in'          => 'path',
                         'required'    => true,
                     ],
-                    ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                    ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                    ApiOptions::documentOption(ApiOptions::FIELDS),
-                    ApiOptions::documentOption(ApiOptions::RELATED),
+                    [
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
                 ],
                 'get'        => [
                     'tags'              => [$serviceName],
@@ -3215,7 +3237,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.{id}.select',
                         $eventPath . '.record_selected',
                     ],
-                    'parameters'        => [],
+                    'parameters'        => [
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                    ],
                     'responses'         => [
                         '200'     => [
                             'description' => 'Record',
@@ -3248,6 +3275,10 @@ abstract class BaseDbTableResource extends BaseDbResource
                             'in'          => 'body',
                             'required'    => true,
                         ],
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
                     ],
                     'responses'         => [
                         '200'     => [
@@ -3281,6 +3312,10 @@ abstract class BaseDbTableResource extends BaseDbResource
                             'in'          => 'body',
                             'required'    => true,
                         ],
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
                     ],
                     'responses'         => [
                         '200'     => [
@@ -3302,7 +3337,12 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.{id}.delete',
                         $eventPath . '.record_deleted',
                     ],
-                    'parameters'        => [],
+                    'parameters'        => [
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                    ],
                     'responses'         => [
                         '200'     => [
                             'description' => 'Record',

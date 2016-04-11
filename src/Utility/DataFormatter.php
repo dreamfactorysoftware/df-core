@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\MessageBag;
 
@@ -850,5 +851,77 @@ class DataFormatter
         // Using regex here for more control. Could have used ctype_print but that
         // does not consider tab, carriage return, and linefeed as printable.
         return preg_match('/^[A-Za-z0-9_~\-!@#\$%\^&\*\(\)\/\\\,=\"\'\.\s\[\]\(\)\{\}\+\-\?\<\>]+$/', $string);
+    }
+
+    public static function formatValue($value, $type)
+    {
+        $type = strtolower(strval($type));
+        switch ($type) {
+            case 'int':
+            case 'integer':
+                return intval($value);
+
+            case 'decimal':
+            case 'double':
+            case 'float':
+                return floatval($value);
+
+            case 'boolean':
+            case 'bool':
+                return Scalar::boolval($value);
+
+            case 'string':
+                return strval($value);
+
+            case 'time':
+            case 'date':
+            case 'datetime':
+            case 'timestamp':
+                $cfgFormat = static::getDateTimeFormat($type);
+
+                return static::formatDateTime($cfgFormat, $value);
+        }
+
+        return $value;
+    }
+
+    public static function getDateTimeFormat($type)
+    {
+        switch (strtolower(strval($type))) {
+            case 'time':
+                return \Config::get('df.db_time_format');
+
+            case 'date':
+                return \Config::get('df.db_date_format');
+
+            case 'datetime':
+                return \Config::get('df.db_datetime_format');
+
+            case 'timestamp':
+                return \Config::get('df.db_timestamp_format');
+        }
+
+        return null;
+    }
+
+    public static function formatDateTime($out_format, $in_value = null, $in_format = null)
+    {
+        //  If value is null, current date and time are returned
+        if (!empty($out_format)) {
+            $in_value = (is_string($in_value) || is_null($in_value)) ? $in_value : strval($in_value);
+            if (!empty($in_format)) {
+                if (false === $date = \DateTime::createFromFormat($in_format, $in_value)) {
+                    \Log::error("Failed to format datetime from '$in_value'' to '$in_format'");
+
+                    return $in_value;
+                }
+            } else {
+                $date = new \DateTime($in_value);
+            }
+
+            return $date->format($out_format);
+        }
+
+        return $in_value;
     }
 }

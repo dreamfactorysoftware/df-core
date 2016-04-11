@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Database;
 
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Library\Utility\Inflector;
 
 /**

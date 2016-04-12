@@ -1302,6 +1302,13 @@ abstract class Schema
                 if (json_encode($dbFunction) !== json_encode($oldFunction)) {
                     $extraNew['db_function'] = $dbFunction;
                 }
+
+                if (isset($extraNew['is_virtual_foreign_key']) && !$extraNew['is_virtual_foreign_key']){
+                    $extraNew['ref_table'] = null;
+                    $extraNew['ref_fields'] = null;
+                    $extraNew['ref_on_update'] = null;
+                    $extraNew['ref_on_delete'] = null;
+                }
             }
 
             // if same as old, don't bother

@@ -195,14 +195,14 @@ class Exporter
                         $group = static::getServiceGroup($service);
                         switch ($group) {
                             case ServiceTypeGroups::FILE:
-                                $manifest[$service] = $this->getAllResources(
+                                $manifest['service'][$service] = $this->getAllResources(
                                     $service,
                                     '',
                                     ['as_list' => true, 'full_tree' => true]
                                 );
                                 break;
                             case ServiceTypeGroups::DATABASE:
-                                $manifest[$service]['_schema'] = $this->getAllResources(
+                                $manifest['service'][$service]['_schema'] = $this->getAllResources(
                                     $service,
                                     '_schema',
                                     ['as_list' => true]

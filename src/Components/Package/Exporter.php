@@ -543,7 +543,7 @@ class Exporter
      */
     protected function getResourcePath($service, $resource, $id, array &$params)
     {
-        $api = strtolower($service . '/' . $resource);
+        $api = $service . '/' . $resource;
         switch ($api) {
             case $service . '/_table':
             case $service . '/_proc':
@@ -584,7 +584,7 @@ class Exporter
      */
     protected function setDefaultRelations($service, $resource, &$params)
     {
-        $api = strtolower($service . '/' . $resource);
+        $api = $service . '/' . $resource;
         $relations = array_get($this->defaultRelation, $api);
         if (!empty($relations)) {
             if (!isset($params['related'])) {

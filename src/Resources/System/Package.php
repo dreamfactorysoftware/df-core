@@ -6,6 +6,7 @@ use DreamFactory\Core\Components\Package\Importer;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Utility\FileUtilities;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Utility\Packager;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Core\Utility\ResourcesWrapper;
@@ -48,13 +49,20 @@ class Package extends BaseSystemResource
 
         if (!empty($file)) {
             //Import
-            $password = $this->request->input('password');
-            $package = new \DreamFactory\Core\Components\Package\Package($file);
-            $package->setPassword($password);
-            $importer = new Importer($package, true);
-            $importer->import();
-            $log = $importer->getLog();
-            $result = ['success' => true, 'log' => $log];
+            $extension = strtolower(pathinfo((is_array($file)) ? array_get($file, 'name') : $file, PATHINFO_EXTENSION));
+
+            if ($extension === Packager::FILE_EXTENSION) {
+                $package = new Packager($file);
+                $result = $package->importAppFromPackage();
+            } else {
+                $password = $this->request->input('password');
+                $package = new \DreamFactory\Core\Components\Package\Package($file);
+                $package->setPassword($password);
+                $importer = new Importer($package, true);
+                $importer->import();
+                $log = $importer->getLog();
+                $result = ['success' => true, 'log' => $log];
+            }
 
             return ResponseFactory::create($result, null, ServiceResponseInterface::HTTP_CREATED);
         } else {
@@ -73,7 +81,6 @@ class Package extends BaseSystemResource
     public static function getApiDocInfo(Service $service, array $resource = [])
     {
         $serviceName = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $pluralClass = Inflector::pluralize($class);

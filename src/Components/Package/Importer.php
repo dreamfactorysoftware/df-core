@@ -791,6 +791,17 @@ class Importer
             if (!empty($newService)) {
                 return $newService->id;
             }
+        } else {
+            $existingService = Service::find($oldServiceId);
+            if (!empty($existingService)) {
+                $serviceName = $existingService->name;
+
+                if (in_array($serviceName, ['system', 'api_docs', 'files', 'db', 'email', 'user'])) {
+                    // If service is one of the pre-defined system services
+                    // then new id is most likely the same as the old id.
+                    return $oldServiceId;
+                }
+            }
         }
 
         return null;

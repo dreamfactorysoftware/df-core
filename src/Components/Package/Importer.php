@@ -355,7 +355,7 @@ class Importer
                                     'warning',
                                     'Skipping relation role_service_access_by_role_id with id ' .
                                     $originId .
-                                    ' for Role. ' .
+                                    ' for Role ' .
                                     $riz['name'] .
                                     '. Service not found for ' .
                                     $r['service_id']

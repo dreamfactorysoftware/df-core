@@ -50,6 +50,7 @@ class Package extends BaseSystemResource
         if (!empty($file)) {
             //Import
             $extension = strtolower(pathinfo((is_array($file)) ? array_get($file, 'name') : $file, PATHINFO_EXTENSION));
+            $statusCode = ServiceResponseInterface::HTTP_OK;
 
             if ($extension === Packager::FILE_EXTENSION) {
                 $package = new Packager($file);
@@ -59,12 +60,15 @@ class Package extends BaseSystemResource
                 $package = new \DreamFactory\Core\Components\Package\Package($file);
                 $package->setPassword($password);
                 $importer = new Importer($package, true);
-                $importer->import();
+                $imported = $importer->import();
                 $log = $importer->getLog();
-                $result = ['success' => true, 'log' => $log];
+                $result = ['success' => $imported, 'log' => $log];
+                if (true === $imported) {
+                    $statusCode = ServiceResponseInterface::HTTP_CREATED;
+                }
             }
 
-            return ResponseFactory::create($result, null, ServiceResponseInterface::HTTP_CREATED);
+            return ResponseFactory::create($result, null, $statusCode);
         } else {
             //Export
             $manifest = $this->request->getPayloadData();

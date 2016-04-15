@@ -63,21 +63,22 @@ class Importer
      * Imports the packages.
      *
      * @throws \Exception
+     * @return bool
      */
     public function import()
     {
         \DB::beginTransaction();
 
         try {
-            $this->insertRole();
-            $this->insertService();
-            $this->insertRoleServiceAccess();
-            $this->insertApp();
-            $this->insertUser();
-            $this->insertUserAppRole();
-            $this->insertOtherResource();
-            $this->insertEventScripts();
-            $this->storeFiles();
+            $imported = ($this->insertRole()) ?: false;
+            $imported = ($this->insertService()) ?: $imported;
+            $imported = ($this->insertRoleServiceAccess()) ?: $imported;
+            $imported = ($this->insertApp()) ?: $imported;
+            $imported = ($this->insertUser()) ?: $imported;
+            $imported = ($this->insertUserAppRole()) ?: $imported;
+            $imported = ($this->insertOtherResource()) ?: $imported;
+            $imported = ($this->insertEventScripts()) ?: $imported;
+            $imported = ($this->storeFiles()) ?: $imported;
         } catch (\Exception $e) {
             \DB::rollBack();
             \Log::error('Failed to import package. Rolling back. ' . $e->getMessage());
@@ -86,6 +87,8 @@ class Importer
         }
 
         \DB::commit();
+
+        return $imported;
     }
 
     /**
@@ -249,8 +252,15 @@ class Importer
                             $cleanedUar[] = $r;
                         }
 
-                        $userUpdate = ['user_to_app_to_role_by_user_id' => $cleanedUar];
-                        ServiceHandler::handleRequest(Verbs::PATCH, 'system', 'user/' . $newUserId, [], $userUpdate);
+                        if (!empty($cleanedUar)) {
+                            $userUpdate = ['user_to_app_to_role_by_user_id' => $cleanedUar];
+                            ServiceHandler::handleRequest(Verbs::PATCH, 'system', 'user/' . $newUserId, [],
+                                $userUpdate);
+
+                            return true;
+                        }
+
+                        return false;
                     } elseif (!empty($uar) && empty($user)) {
                         $this->log(
                             'warning',
@@ -259,12 +269,14 @@ class Importer
                             ' No imported/existing user found.'
                         );
                         \Log::debug('Skipped user_to_app_to_role_by_user_id.', $uiz);
+
+                        return false;
                     } else {
                         $this->log('notice', 'No user_to_app_to_role_by_user_id relation for user ' . $uiz['email']);
+
+                        return false;
                     }
                 }
-
-                return true;
             } catch (\Exception $e) {
                 throw new InternalServerErrorException(
                     'Failed to insert user_to_app_to_role_by_user_id relation for users. ' .
@@ -377,20 +389,32 @@ class Importer
                             $cleanedRsa[] = $r;
                         }
 
-                        $roleUpdate = ['role_service_access_by_role_id' => $cleanedRsa];
-                        ServiceHandler::handleRequest(Verbs::PATCH, 'system', 'role/' . $newRoleId, [], $roleUpdate);
+                        if (!empty($cleanedRsa)) {
+                            $roleUpdate = ['role_service_access_by_role_id' => $cleanedRsa];
+                            ServiceHandler::handleRequest(
+                                Verbs::PATCH,
+                                'system', 'role/' . $newRoleId, [],
+                                $roleUpdate
+                            );
+
+                            return true;
+                        }
+
+                        return false;
                     } elseif (!empty($rsa) && empty($role)) {
                         $this->log(
                             'warning',
                             'Skipping all Role Service Access for ' . $riz['name'] . ' No imported role found.'
                         );
                         \Log::debug('Skipped Role Service Access.', $riz);
+
+                        return false;
                     } else {
                         $this->log('notice', 'No Role Service Access for role ' . $riz['name']);
+
+                        return false;
                     }
                 }
-
-                return true;
             } catch (\Exception $e) {
                 throw new InternalServerErrorException(
                     'Failed to insert role service access records for roles. ' .
@@ -560,17 +584,21 @@ class Importer
                         case 'system/event':
                         case 'system/user':
                             // Skip; already imported at this point.
+                            $imported = false;
                             break;
                         case $service . '/_table':
                         case $service . '/_proc':
                         case $service . '/_func':
                             // Not supported at this time.
+                            $imported = false;
                             $this->log('warning', 'Skipping resource ' . $resourceName . '. Not supported.');
                             break;
                         default:
-                            $this->insertGenericResources($service, $resourceName);
+                            $imported = $this->insertGenericResources($service, $resourceName);
                             break;
                     }
+
+                    return $imported;
                 } catch (UnauthorizedException $e) {
                     $this->log(
                         'error',
@@ -658,6 +686,7 @@ class Importer
     protected function storeFiles()
     {
         $items = $this->package->getStorageServices();
+        $stored = false;
 
         foreach ($items as $service => $resources) {
             if (is_string($resources)) {
@@ -687,6 +716,7 @@ class Importer
                                 );
                             }
                         }
+                        $stored = true;
                     } catch (\Exception $e) {
                         $this->log(
                             'warning',
@@ -698,6 +728,8 @@ class Importer
                 $this->log('error', 'Failed to store files for service ' . $service . '. ' . $e->getMessage());
             }
         }
+
+        return $stored;
     }
 
     /**

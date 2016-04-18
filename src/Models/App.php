@@ -147,6 +147,7 @@ class App extends BaseSystemModel
             function(App $app){
                 JWTUtilities::invalidateTokenByAppId($app->id);
                 \Cache::forget('app:'.$app->id);
+                \Cache::forget('apikey2appid:'.$app->api_key);
             }
         );
     }

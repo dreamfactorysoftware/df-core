@@ -557,7 +557,22 @@ EOD;
      */
     protected function findProcedureNames($schema = '')
     {
-        return $this->findRoutines('procedure', $schema);
+        $defaultSchema = $this->getDefaultSchema();
+
+        $select =
+            (empty($schema) || ($defaultSchema == $schema))
+                ? 'ROUTINE_NAME' : "CONCAT('" . $schema . "','.',ROUTINE_NAME) as ROUTINE_NAME";
+        $schema = !empty($schema) ? " WHERE ROUTINE_SCHEMA = '" . $schema . "'" : null;
+
+        $sql = <<<MYSQL
+SELECT
+    {$select}
+FROM
+    information_schema.ROUTINES
+    {$schema}
+MYSQL;
+
+        return $this->selectColumn($sql);
     }
 
     /**
@@ -570,22 +585,6 @@ EOD;
      * @return array all stored function names in the database.
      */
     protected function findFunctionNames($schema = '')
-    {
-        return $this->findRoutines('function', $schema);
-    }
-
-    /**
-     * Returns all routines in the database.
-     *
-     * @param string $type   "procedure" or "function"
-     * @param string $schema the schema of the routine. Defaults to empty string, meaning the current or
-     *                       default schema. If not empty, the returned stored function names will be prefixed with the
-     *                       schema name.
-     *
-     * @throws \InvalidArgumentException
-     * @return array all stored function names in the database.
-     */
-    protected function findRoutines($type, $schema = '')
     {
         $defaultSchema = $this->getDefaultSchema();
 

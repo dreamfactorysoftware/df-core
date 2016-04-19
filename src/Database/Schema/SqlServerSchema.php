@@ -808,11 +808,10 @@ MYSQL;
     {
         $name = $this->quoteTableName($name);
 
-        $driver = $this->getDriverName();
-        if (0 === strcasecmp('sqlsrv', $driver)) {
-            return $this->callProcedureSqlsrv($name, $params);
-        } else {
+        if (in_array('dblib', \PDO::getAvailableDrivers())) {
             return $this->callProcedureDblib($name, $params);
+        } else {
+            return $this->callProcedureSqlsrv($name, $params);
         }
     }
 
@@ -840,7 +839,7 @@ MYSQL;
 
         $sql = "EXEC $name $paramStr;";
         /** @type \PDOStatement $statement */
-        $statement = $this->getPdo()->prepare($sql);
+        $statement = $this->connection->getPdo()->prepare($sql);
 
         // do binding
         foreach ($params as $key => $param) {

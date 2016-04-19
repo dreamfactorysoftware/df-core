@@ -764,24 +764,26 @@ MYSQL;
             if (false !== strpos($ex->getMessage(), 'General Error')) {
                 throw $ex;
             }
+        }
 
-            // if there is only one data set, just return it
-            if (1 == count($result)) {
-                $result = $result[0];
-            }
+        // if there is only one data set, just return it
+        if (1 == count($result)) {
+            $result = $result[0];
         }
 
         if (!empty($post)) {
-            $out = $this->connection->selectOne($post . ';');
-            foreach ($params as $key => &$param) {
-                $pName = '@' . $param['name'];
-                switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
-                    case 'INOUT':
-                    case 'OUT':
-                        if (isset($out, $out[$pName])) {
-                            $param['value'] = $out[$pName];
-                        }
-                        break;
+            if (null !== $out = $this->connection->selectOne($post . ';')) {
+                $out = (array)$out;
+                foreach ($params as $key => &$param) {
+                    $pName = '@' . $param['name'];
+                    switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                        case 'INOUT':
+                        case 'OUT':
+                            if (isset($out, $out[$pName])) {
+                                $param['value'] = $out[$pName];
+                            }
+                            break;
+                    }
                 }
             }
         }
@@ -834,11 +836,11 @@ MYSQL;
             if (false !== strpos($ex->getMessage(), 'General Error')) {
                 throw $ex;
             }
+        }
 
-            // if there is only one data set, just return it
-            if (1 == count($result)) {
-                $result = $result[0];
-            }
+        // if there is only one data set, just return it
+        if (1 == count($result)) {
+            $result = $result[0];
         }
 
         return $result;

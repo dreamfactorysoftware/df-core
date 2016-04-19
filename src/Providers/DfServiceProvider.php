@@ -4,10 +4,12 @@ namespace DreamFactory\Core\Providers;
 use DreamFactory\Core\Database\Connectors\IbmConnector;
 use DreamFactory\Core\Database\Connectors\OracleConnector;
 use DreamFactory\Core\Database\Connectors\SqlAnywhereConnector;
+use DreamFactory\Core\Database\Connectors\SQLiteConnector;
 use DreamFactory\Core\Database\IbmConnection;
 use DreamFactory\Core\Database\OracleConnection;
 use DreamFactory\Core\Database\SqlAnywhereConnection;
 use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
+use Illuminate\Database\SQLiteConnection;
 use Illuminate\Support\ServiceProvider;
 
 class DfServiceProvider extends ServiceProvider
@@ -18,6 +20,11 @@ class DfServiceProvider extends ServiceProvider
 
         // Add our database drivers.
         $this->app->resolving('db', function ($db) {
+            $db->extend('sqlite', function ($config) {
+                $connector  = new SQLiteConnector();
+                $connection = $connector->connect($config);
+                return new SQLiteConnection($connection, $config["database"], $config["prefix"], $config);
+            });
             $db->extend('sqlanywhere', function ($config) {
                 $connector  = new SqlAnywhereConnector();
                 $connection = $connector->connect($config);

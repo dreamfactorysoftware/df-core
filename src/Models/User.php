@@ -380,16 +380,14 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     }
 
     /**
-     * Updates password hash directly using a Crypto.
+     * Updates password hash directly.
      * This is used by package import in order to preserve
      * user password during import.
      *
-     * @param                                  $payload
-     * @param \Illuminate\Encryption\Encrypter $crypt
+     * @param $hash
      */
-    public function updatePasswordHashUsingCrypto($payload, Encrypter $crypt)
+    public function updatePasswordHash($hash)
     {
-        $hash = $crypt->decrypt($payload);
         $this->attributes['password'] = $hash;
         $this->save();
     }

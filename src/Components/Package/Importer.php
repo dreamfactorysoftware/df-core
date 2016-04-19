@@ -127,9 +127,9 @@ class Importer
             } catch (\Exception $e) {
                 throw new InternalServerErrorException('Failed to insert roles. ' . $this->getErrorDetails($e));
             }
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -159,9 +159,9 @@ class Importer
             } catch (\Exception $e) {
                 throw new InternalServerErrorException('Failed to insert users. ' . $this->getErrorDetails($e));
             }
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -173,15 +173,24 @@ class Importer
      */
     protected function updateUserPassword($users)
     {
-        if ($this->package->isSecured() && !empty($users)) {
-            $password = $this->package->getPassword();
-            // Using md5 of password to use a 32 char long key for Encrypter.
-            $crypt = new Encrypter(md5($password), config('app.cipher'));
+        if (!empty($users)) {
+            $crypt = null;
+            if ($this->package->isSecured()) {
+                $password = $this->package->getPassword();
+                // Using md5 of password to use a 32 char long key for Encrypter.
+                $crypt = new Encrypter(md5($password), config('app.cipher'));
+            }
+
             foreach ($users as $i => $user) {
                 if (isset($user['password'])) {
                     /** @type User $model */
                     $model = User::where('email', '=', $user['email'])->first();
-                    $model->updatePasswordHashUsingCrypto($user['password'], $crypt);
+                    if (!is_null($crypt)) {
+                        $hash = $crypt->decrypt($user['password']);
+                    } else {
+                        $hash = $user['password'];
+                    }
+                    $model->updatePasswordHash($hash);
                 }
             }
         }
@@ -196,6 +205,7 @@ class Importer
     protected function insertUserAppRole()
     {
         $usersInZip = $this->package->getResourceFromZip('system/user.json');
+        $imported = false;
 
         if (!empty($usersInZip)) {
             try {
@@ -257,10 +267,8 @@ class Importer
                             ServiceHandler::handleRequest(Verbs::PATCH, 'system', 'user/' . $newUserId, [],
                                 $userUpdate);
 
-                            return true;
+                            $imported = true;
                         }
-
-                        return false;
                     } elseif (!empty($uar) && empty($user)) {
                         $this->log(
                             'warning',
@@ -269,12 +277,8 @@ class Importer
                             ' No imported/existing user found.'
                         );
                         \Log::debug('Skipped user_to_app_to_role_by_user_id.', $uiz);
-
-                        return false;
                     } else {
                         $this->log('notice', 'No user_to_app_to_role_by_user_id relation for user ' . $uiz['email']);
-
-                        return false;
                     }
                 }
             } catch (\Exception $e) {
@@ -283,9 +287,9 @@ class Importer
                     $this->getErrorDetails($e)
                 );
             }
-        } else {
-            return false;
         }
+
+        return $imported;
     }
 
     /**
@@ -334,9 +338,9 @@ class Importer
             } catch (\Exception $e) {
                 throw new InternalServerErrorException("Failed to insert services. " . $this->getErrorDetails($e));
             }
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -348,6 +352,7 @@ class Importer
     protected function insertRoleServiceAccess()
     {
         $rolesInZip = $this->package->getResourceFromZip('system/role.json');
+        $imported = false;
 
         if (!empty($rolesInZip)) {
             try {
@@ -396,23 +401,16 @@ class Importer
                                 'system', 'role/' . $newRoleId, [],
                                 $roleUpdate
                             );
-
-                            return true;
+                            $imported = true;
                         }
-
-                        return false;
                     } elseif (!empty($rsa) && empty($role)) {
                         $this->log(
                             'warning',
                             'Skipping all Role Service Access for ' . $riz['name'] . ' No imported role found.'
                         );
                         \Log::debug('Skipped Role Service Access.', $riz);
-
-                        return false;
                     } else {
                         $this->log('notice', 'No Role Service Access for role ' . $riz['name']);
-
-                        return false;
                     }
                 }
             } catch (\Exception $e) {
@@ -421,9 +419,9 @@ class Importer
                     $this->getErrorDetails($e)
                 );
             }
-        } else {
-            return false;
         }
+
+        return $imported;
     }
 
     /**
@@ -559,9 +557,9 @@ class Importer
             } catch (\Exception $e) {
                 throw new InternalServerErrorException('Failed to insert apps. ' . $this->getErrorDetails($e));
             }
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -572,6 +570,7 @@ class Importer
     protected function insertOtherResource()
     {
         $items = $this->package->getNonStorageServices();
+        $imported = false;
 
         foreach ($items as $service => $resources) {
             foreach ($resources as $resourceName => $details) {
@@ -584,21 +583,17 @@ class Importer
                         case 'system/event':
                         case 'system/user':
                             // Skip; already imported at this point.
-                            $imported = false;
                             break;
                         case $service . '/_table':
                         case $service . '/_proc':
                         case $service . '/_func':
                             // Not supported at this time.
-                            $imported = false;
                             $this->log('warning', 'Skipping resource ' . $resourceName . '. Not supported.');
                             break;
                         default:
                             $imported = $this->insertGenericResources($service, $resourceName);
                             break;
                     }
-
-                    return $imported;
                 } catch (UnauthorizedException $e) {
                     $this->log(
                         'error',
@@ -607,6 +602,8 @@ class Importer
                 }
             }
         }
+
+        return $imported;
     }
 
     /**
@@ -632,9 +629,9 @@ class Importer
             } catch (\Exception $e) {
                 throw new InternalServerErrorException('Failed to insert event script. ' . $this->getErrorDetails($e));
             }
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -675,9 +672,9 @@ class Importer
                     $this->getErrorDetails($e)
                 );
             }
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**

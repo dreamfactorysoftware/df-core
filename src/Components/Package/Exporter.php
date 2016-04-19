@@ -2,7 +2,6 @@
 
 namespace DreamFactory\Core\Components\Package;
 
-use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -252,15 +251,25 @@ class Exporter
      */
     protected function setUserPassword(array & $users)
     {
-        if ($this->package->isSecured() && !empty($users)) {
-            $password = $this->package->getPassword();
-            // Using md5 of password to use a 32 char long key for Encrypter.
-            $crypt = new Encrypter(md5($password), config('app.cipher'));
+        if (!empty($users)) {
+            if (Arr::isAssoc($users)) {
+                $users = [$users];
+            }
+            $crypt = null;
+            if ($this->package->isSecured()) {
+                $password = $this->package->getPassword();
+                // Using md5 of password to use a 32 char long key for Encrypter.
+                $crypt = new Encrypter(md5($password), config('app.cipher'));
+            }
+
             foreach ($users as $i => $user) {
                 $model = User::find($user['id']);
                 if (!empty($model)) {
-                    $password = $model->password;
-                    $users[$i]['password'] = $crypt->encrypt($password);
+                    if (!is_null($crypt)) {
+                        $users[$i]['password'] = $crypt->encrypt($model->password);
+                    } else {
+                        $users[$i]['password'] = $model->password;
+                    }
                 }
             }
         }
@@ -637,9 +646,9 @@ class Exporter
             $result = $result[config('df.resources_wrapper')];
         }
 
-        if ('system/service' === $service . '/' . $resource) {
+        if ('system/service' === $api) {
             $this->encryptServices($result);
-        } elseif (in_array($service . '/' . $resource, ['system/user', 'system/admin'])) {
+        } elseif (in_array($api, ['system/user', 'system/admin'])) {
             $this->setUserPassword($result);
         }
 

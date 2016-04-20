@@ -310,7 +310,7 @@ class Environment extends BaseSystemResource
         $services = [];
 
         foreach ($oauth as $o) {
-            $config = $o->getConfigAttribute();
+            $config = ($o->getConfigAttribute()) ?: [];
             $services[] = [
                 'path'       => 'user/session?service=' . strtolower($o->name),
                 'name'       => $o->name,
@@ -356,7 +356,7 @@ class Environment extends BaseSystemResource
 
     /**
      * Returns instance's URI
-     * 
+     *
      * @return string
      */
     public static function getURI()

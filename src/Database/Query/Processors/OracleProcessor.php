@@ -56,14 +56,14 @@ class OracleProcessor extends Processor
         $builder     = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 5)[4]['object'];
         $builderArgs = debug_backtrace(DEBUG_BACKTRACE_PROVIDE_OBJECT, 5)[3]['args'];
 
-        if (! isset($builderArgs[1][0][$sequence])) {
-            if (method_exists($builder, 'getModel')) {
-                $model = $builder->getModel();
-                if ($model->sequence && $model->incrementing) {
-                    $values[] = (int) $model->getConnection()->getSequence()->nextValue($model->sequence);
-                }
-            }
-        }
+//        if (! isset($builderArgs[1][0][$sequence])) {
+//            if (method_exists($builder, 'getModel')) {
+//                $model = $builder->getModel();
+//                if ($model->sequence && $model->incrementing) {
+//                    $values[] = (int) $model->getConnection()->getSequence()->nextValue($model->sequence);
+//                }
+//            }
+//        }
 
         return $values;
     }

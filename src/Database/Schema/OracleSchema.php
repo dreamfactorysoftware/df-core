@@ -715,23 +715,63 @@ MYSQL;
         return $this->selectColumn($sql, [':routine_type' => $type]);
     }
 
+    /**
+     * Builds and executes a SQL statement for dropping a DB table.
+     *
+     * @param string $table the table to be dropped. The name will be properly quoted by the method.
+     *
+     * @return integer 0 is always returned. See {@link http://php.net/manual/en/pdostatement.rowcount.php} for more
+     *                 information.
+     */
+    public function dropTable($table)
+    {
+        $result = parent::dropTable($table);
+
+        $sequence = '"' . strtoupper($table) . '_SEQ"';
+        $sql = <<<SQL
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE {$sequence}';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+SQL;
+        $this->connection->statement($sql);
+
+        $trigger = '"' . strtoupper($table) . '_TRG"';
+        $sql = <<<SQL
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TRIGGER {$trigger}';
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -4080 THEN
+      RAISE;
+    END IF;
+END;
+SQL;
+        $this->connection->statement($sql);
+
+        return $result;
+    }
+
     public function getPrimaryKeyCommands($table, $column)
     {
         // pre 12c versions need sequences and trigger to accomplish autoincrement
-        $sequence = strtoupper($table) . '_' . strtoupper($column);
+        $sequence = '"'.strtoupper($table) . '_SEQ"';
         $trigTable = $this->quoteTableName($table);
         $trigField = $this->quoteColumnName($column);
 
         $extras = [];
         $extras[] = "CREATE SEQUENCE $sequence";
+        $trigger = '"' . strtoupper($table) . '_TRG"';
         $extras[] = <<<SQL
-CREATE OR REPLACE TRIGGER {$sequence}
+CREATE OR REPLACE TRIGGER {$trigger}
 BEFORE INSERT ON {$trigTable}
 FOR EACH ROW
 BEGIN
-  IF :new.{$trigField} IS NOT NULL THEN
-    RAISE_APPLICATION_ERROR(-20000, 'ID cannot be specified');
-  ELSE
+  IF :new.{$trigField} IS NULL THEN
     SELECT {$sequence}.NEXTVAL
     INTO   :new.{$trigField}
     FROM   dual;
@@ -796,7 +836,8 @@ SQL;
             $rType = (isset($param['type'])) ? $param['type'] : 'string';
             $rLength = (isset($param['length'])) ? $param['length'] : 256;
             $pdoType = $this->getPdoType($rType);
-            $this->bindParam($statement, ":$pName", $params[$key]['value'], $pdoType | \PDO::PARAM_INPUT_OUTPUT, $rLength);
+            $this->bindParam($statement, ":$pName", $params[$key]['value'], $pdoType | \PDO::PARAM_INPUT_OUTPUT,
+                $rLength);
 //                    break;
 //            }
         }

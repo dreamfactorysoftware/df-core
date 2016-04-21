@@ -788,6 +788,17 @@ class Importer
             if (!empty($newApp)) {
                 return $newApp->id;
             }
+        } else {
+            $existingApp = App::find($oldAppId);
+            if (!empty($existingApp)) {
+                $appName = $existingApp->name;
+
+                if (in_array($appName, ['admin', 'api_docs', 'file_manager'])) {
+                    // If app is one of the pre-defined system apps
+                    // then new id is most likely the same as the old id.
+                    return $oldAppId;
+                }
+            }
         }
 
         return null;

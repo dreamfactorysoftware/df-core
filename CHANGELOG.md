@@ -9,6 +9,28 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.2.8] - 2016-04-22
+### Added
+- System Package resource for package import and export of system resources and services
+- Data Mesh feature now supports SQL to MongoDB relationships
+- Basic request handling of www-form-urlencoded 
+- Add doctrine/dbal dependency for schema management
+- Adding AD username to user name and allow passing it via remote web service parameters
+
+### Changed
+- Rework database connections and schema to utilize Laravel database connectors and connections, more work to come.
+- Override SQLite connector for allowing PDO to create the db file if possible 
+- Api doc needs more storage space, increase db field size 
+- Making app api_key fillable
+
+### Fixed
+- Issues with incomplete oauth services 
+- Clearing apikey2appid cache value when deleting app 
+- Return 200 when no records created during import 
+- Clear ref fields on removal of virtual foreign key 
+- When using dblib driver with sql server, set ANSI settings always, individually for now as ANSI_DEFAULTS causes some issues. 
+- Node and Python scripting on Windows and bug fixes.
+
 ## [0.2.7] - 2016-03-11
 ### Fixed
 - Squelch auto-incrementing identifier fields from update.

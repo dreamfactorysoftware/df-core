@@ -38,6 +38,7 @@ class App extends BaseSystemModel
 
     protected $fillable = [
         'name',
+        'api_key',
         'description',
         'is_active',
         'type',
@@ -63,6 +64,10 @@ class App extends BaseSystemModel
         'storage_service_id'      => 'integer',
     ];
 
+    protected $rules = [
+        'api_key' => 'min:64|alpha_num'
+    ];
+
     public static function generateApiKey($name)
     {
         $string = gethostname() . $name . time();
@@ -82,8 +87,10 @@ class App extends BaseSystemModel
         try {
             /** @var App $model */
             $model = static::create($record);
-            $apiKey = static::generateApiKey($model->name);
-            $model->api_key = $apiKey;
+            if(empty(array_get($record, 'api_key'))) {
+                $apiKey = static::generateApiKey($model->name);
+                $model->api_key = $apiKey;
+            }
             $model->save();
         } catch (\PDOException $e) {
             throw $e;
@@ -140,6 +147,7 @@ class App extends BaseSystemModel
             function(App $app){
                 JWTUtilities::invalidateTokenByAppId($app->id);
                 \Cache::forget('app:'.$app->id);
+                \Cache::forget('apikey2appid:'.$app->api_key);
             }
         );
     }

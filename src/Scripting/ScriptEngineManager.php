@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Scripting;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Events\Exceptions\ScriptException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
@@ -44,7 +43,7 @@ class ScriptEngineManager
      */
     public static function create(array $engine_config, $script_config = null)
     {
-        $engineClass = ArrayUtils::get($engine_config, 'class_name');
+        $engineClass = array_get($engine_config, 'class_name');
 
         if (empty($engineClass) || !class_exists($engineClass)) {
             throw new ServiceUnavailableException("Failed to find script engine class '$engineClass'.");

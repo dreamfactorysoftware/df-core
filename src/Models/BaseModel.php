@@ -5,14 +5,13 @@ namespace DreamFactory\Core\Models;
 use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Components\SchemaToOpenApiDefinition;
 use DreamFactory\Core\Contracts\CacheInterface;
-use DreamFactory\Core\Database\Connection;
+use DreamFactory\Core\Database\ConnectionExtension;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Components\ConnectionAdapter;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableSchema;
@@ -31,21 +30,14 @@ use DB;
  */
 class BaseModel extends Model implements CacheInterface
 {
-    use Cacheable, SchemaToOpenApiDefinition;
+    use Cacheable, ConnectionExtension, SchemaToOpenApiDefinition;
 
     const TABLE_TO_MODEL_MAP_CACHE_KEY = 'system.table_model_map';
 
     const TABLE_TO_MODEL_MAP_CACHE_TTL = 60;
 
     /**
-     * Database Connection object.
-     *
-     * @var Connection
-     */
-    protected $adaptedConnection = null;
-
-    /**
-     * SqlDbCore TableSchema
+     * TableSchema
      *
      * @var TableSchema
      */
@@ -759,14 +751,10 @@ class BaseModel extends Model implements CacheInterface
      */
     public function getTableSchema()
     {
-        if (empty($this->adaptedConnection)) {
-            $connection = $this->getConnection();
-            $this->adaptedConnection = ConnectionAdapter::getLegacyConnection($connection);
-            $this->cachePrefix = 'model_' . $this->getTable() . ':';
-            $this->adaptedConnection->setCache($this);
-        }
+        $this->cachePrefix = 'model_' . $this->getTable() . ':';
+        $this->getSchema($this->getConnection())->setCache($this);
 
-        return $this->adaptedConnection->getSchema()->getTable($this->table);
+        return $this->schemaExtension->getTable($this->table);
     }
 
     /**

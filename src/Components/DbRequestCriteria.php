@@ -6,7 +6,7 @@ use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\Utility\DbUtilities;
+use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\Session as SessionUtility;
 use DreamFactory\Library\Utility\ArrayUtils;
 
@@ -386,7 +386,7 @@ trait DbRequestCriteria
             // if not already a replacement parameter, evaluate it
 //            $value = $this->dbConn->getSchema()->parseValueForSet($value, $info);
 
-            switch ($cnvType = DbUtilities::determinePhpConversionType($info->type)) {
+            switch ($cnvType = $info->determinePhpConversionType($info->type)) {
                 case 'int':
                     if (!is_int($value)) {
                         if (!(ctype_digit($value))) {
@@ -400,22 +400,22 @@ trait DbRequestCriteria
                 case 'time':
                     $cfgFormat = \Config::get('df.db_time_format');
                     $outFormat = 'H:i:s.u';
-                    $value = DbUtilities::formatDateTime($outFormat, $value, $cfgFormat);
+                    $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
                     break;
                 case 'date':
                     $cfgFormat = \Config::get('df.db_date_format');
                     $outFormat = 'Y-m-d';
-                    $value = DbUtilities::formatDateTime($outFormat, $value, $cfgFormat);
+                    $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
                     break;
                 case 'datetime':
                     $cfgFormat = \Config::get('df.db_datetime_format');
                     $outFormat = 'Y-m-d H:i:s';
-                    $value = DbUtilities::formatDateTime($outFormat, $value, $cfgFormat);
+                    $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
                     break;
                 case 'timestamp':
                     $cfgFormat = \Config::get('df.db_timestamp_format');
                     $outFormat = 'Y-m-d H:i:s';
-                    $value = DbUtilities::formatDateTime($outFormat, $value, $cfgFormat);
+                    $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
                     break;
 
                 default:

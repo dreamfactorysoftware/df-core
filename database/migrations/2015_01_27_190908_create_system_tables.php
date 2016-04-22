@@ -142,7 +142,7 @@ class CreateSystemTables extends Migration
                 $t->integer('service_id')->unsigned();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->integer('format')->unsigned()->default(0);
-                $t->text('content')->nullable();
+                $t->mediumText('content')->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
             }

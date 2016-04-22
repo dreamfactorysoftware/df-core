@@ -1343,6 +1343,14 @@ class FileUtilities
         if (file_exists($path)) {
             $subject = file_get_contents($path);
 
+            foreach ($settings as $key => $value){
+                // Uncomment if any of keys are commented out by default.
+                $subject = str_replace(['#' . $key, '##$key'], $key, $subject);
+            }
+
+            // Update uncommented keys.
+            file_put_contents($path, $subject);
+
             foreach ($settings as $key => $value) {
                 /**
                  * Using a new instance of dotenv to get the

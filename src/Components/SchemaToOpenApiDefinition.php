@@ -2,10 +2,7 @@
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Database\ColumnSchema;
-use DreamFactory\Core\Database\RelationSchema;
 use DreamFactory\Core\Database\TableSchema;
-use DreamFactory\Library\Utility\ArrayUtils;
-use Log;
 
 /**
  * SchemaToOpenApiDefinition

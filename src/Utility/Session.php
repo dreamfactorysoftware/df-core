@@ -624,6 +624,7 @@ class Session
         if (!empty($user)) {
             \Session::put('user.id', ArrayUtils::get($user, 'id'));
             \Session::put('user.name', ArrayUtils::get($user, 'name'));
+            \Session::put('user.username', ArrayUtils::get($user, 'username'));
             \Session::put('user.display_name', ArrayUtils::get($user, 'name'));
             \Session::put('user.first_name', ArrayUtils::get($user, 'first_name'));
             \Session::put('user.last_name', ArrayUtils::get($user, 'last_name'));

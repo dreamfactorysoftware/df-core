@@ -2,12 +2,10 @@
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Models\Service;
-use Log;
 use DreamFactory\Core\Models\DbFieldExtras;
 use DreamFactory\Core\Models\DbRelatedExtras;
 use DreamFactory\Core\Models\DbTableExtras;
-use DreamFactory\Core\Utility\DbUtilities;
-use DreamFactory\Library\Utility\ArrayUtils;
+use Log;
 
 /**
  * DbSchemaExtras
@@ -15,6 +13,8 @@ use DreamFactory\Library\Utility\ArrayUtils;
  */
 trait DbSchemaExtras
 {
+    use DataValidator;
+    
     /**
      * @param string | array $table_names
      * @param bool           $include_all
@@ -29,7 +29,7 @@ trait DbSchemaExtras
             return [];
         }
 
-        if (false === $values = DbUtilities::validateAsArray($table_names, ',', true)) {
+        if (false === $values = static::validateAsArray($table_names, ',', true)) {
             throw new \InvalidArgumentException('Invalid table list provided.');
         }
 
@@ -68,7 +68,7 @@ trait DbSchemaExtras
                 ->toArray();
         } else {
 
-            if (false === $values = DbUtilities::validateAsArray($field_names, ',', true)) {
+            if (false === $values = static::validateAsArray($field_names, ',', true)) {
                 throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
             }
 
@@ -108,7 +108,7 @@ trait DbSchemaExtras
                 ->get()
                 ->toArray();
         } else {
-            if (false === $values = DbUtilities::validateAsArray($field_names, ',', true)) {
+            if (false === $values = static::validateAsArray($field_names, ',', true)) {
                 throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
             }
 
@@ -149,7 +149,7 @@ trait DbSchemaExtras
                 ->toArray();
         }
 
-        if (false === $values = DbUtilities::validateAsArray($related_names, ',', true)) {
+        if (false === $values = static::validateAsArray($related_names, ',', true)) {
             throw new \InvalidArgumentException('Invalid related list. ' . $related_names);
         }
 
@@ -172,7 +172,7 @@ trait DbSchemaExtras
         }
 
         foreach ($extras as $extra) {
-            if (!empty($table = ArrayUtils::get($extra, 'table'))) {
+            if (!empty($table = array_get($extra, 'table'))) {
                 DbTableExtras::updateOrCreate(['service_id' => $this->getServiceId(), 'table' => $table],
                     array_only($extra, ['alias', 'label', 'plural', 'description', 'name_field']));
             }
@@ -191,18 +191,17 @@ trait DbSchemaExtras
         }
 
         foreach ($extras as $extra) {
-            if (!empty($table = ArrayUtils::get($extra, 'table')) &&
-                !empty($field = ArrayUtils::get($extra, 'field'))
+            if (!empty($table = array_get($extra, 'table')) &&
+                !empty($field = array_get($extra, 'field'))
             ) {
+                if (!empty($extra['ref_service']) && empty($extra['ref_service_id'])) {
+                    // translate name to id for storage
+                    $extra['ref_service_id'] =
+                        Service::getCachedByName($extra['ref_service'], 'id', $this->getServiceId());
+                }
                 if (!empty($extra['ref_table']) && empty($extra['ref_service_id'])) {
-                    if (!empty($extra['ref_service'])) {
-                        // translate name to id for storage
-                        $extra['ref_service_id'] =
-                            Service::getCachedByName($extra['ref_service'], 'id', $this->getServiceId());
-                    } else {
-                        // don't allow empty ref_service_id into the database, needs to be searchable from other services
-                        $extra['ref_service_id'] = $this->getServiceId();
-                    }
+                    // don't allow empty ref_service_id into the database, needs to be searchable from other services
+                    $extra['ref_service_id'] = $this->getServiceId();
                 }
                 DbFieldExtras::updateOrCreate([
                     'service_id' => $this->getServiceId(),
@@ -240,8 +239,8 @@ trait DbSchemaExtras
         }
 
         foreach ($extras as $extra) {
-            if (!empty($table = ArrayUtils::get($extra, 'table')) &&
-                !empty($relationship = ArrayUtils::get($extra, 'relationship'))
+            if (!empty($table = array_get($extra, 'table')) &&
+                !empty($relationship = array_get($extra, 'relationship'))
             ) {
                 DbRelatedExtras::updateOrCreate([
                     'service_id'   => $this->getServiceId(),
@@ -266,7 +265,7 @@ trait DbSchemaExtras
      */
     public function removeSchemaExtrasForTables($table_names)
     {
-        if (false === $values = DbUtilities::validateAsArray($table_names, ',', true)) {
+        if (false === $values = static::validateAsArray($table_names, ',', true)) {
             throw new \InvalidArgumentException('Invalid table list. ' . $table_names);
         }
 
@@ -285,7 +284,7 @@ trait DbSchemaExtras
      */
     public function removeSchemaExtrasForFields($table_name, $field_names)
     {
-        if (false === $values = DbUtilities::validateAsArray($field_names, ',', true)) {
+        if (false === $values = static::validateAsArray($field_names, ',', true)) {
             throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
         }
 
@@ -305,7 +304,7 @@ trait DbSchemaExtras
      */
     public function removeSchemaExtrasForRelated($table_name, $related_names)
     {
-        if (false === $values = DbUtilities::validateAsArray($related_names, ',', true)) {
+        if (false === $values = static::validateAsArray($related_names, ',', true)) {
             throw new \InvalidArgumentException('Invalid related list. ' . $related_names);
         }
 

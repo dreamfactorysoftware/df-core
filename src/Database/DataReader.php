@@ -25,6 +25,7 @@ namespace DreamFactory\Core\Database;
  */
 class DataReader
 {
+    /** @type \PDOStatement $statement */
     private $statement;
     private $closed = false;
     private $row;
@@ -33,11 +34,11 @@ class DataReader
     /**
      * Constructor.
      *
-     * @param Command $command the command generating the query result
+     * @param \PDOStatement $statement
      */
-    public function __construct(Command $command)
+    public function __construct(\PDOStatement $statement)
     {
-        $this->statement = $command->getPdoStatement();
+        $this->statement = $statement;
         $this->statement->setFetchMode(\PDO::FETCH_ASSOC);
     }
 

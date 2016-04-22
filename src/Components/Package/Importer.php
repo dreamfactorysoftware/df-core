@@ -67,6 +67,7 @@ class Importer
      */
     public function import()
     {
+        $this->validateSecuredPackage();
         \DB::beginTransaction();
 
         try {
@@ -99,6 +100,26 @@ class Importer
     public function getLog()
     {
         return $this->log;
+    }
+
+    /**
+     * Validates a secured package
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\UnauthorizedException
+     */
+    protected function validateSecuredPackage()
+    {
+        if ($this->package->isSecured()) {
+            $password = $this->package->getPassword();
+            $validator = $this->package->getManifest('validator');
+            try {
+                $crypt = new Encrypter(md5($password), config('app.cipher'));
+                $crypt->decrypt($validator);
+            } catch (DecryptException $e) {
+                throw new UnauthorizedException('Invalid password.');
+            }
+        }
     }
 
     /**
@@ -137,6 +158,7 @@ class Importer
      *
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\UnauthorizedException
      */
     protected function insertUser()
     {
@@ -156,6 +178,8 @@ class Importer
                 $this->updateUserPassword($users);
 
                 return true;
+            } catch (DecryptException $e) {
+                throw new UnauthorizedException('Invalid password.');
             } catch (\Exception $e) {
                 throw new InternalServerErrorException('Failed to insert users. ' . $this->getErrorDetails($e));
             }

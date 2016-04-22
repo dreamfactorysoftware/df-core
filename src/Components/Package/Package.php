@@ -11,6 +11,7 @@ use DreamFactory\Core\Utility\FileUtilities;
 use DreamFactory\Core\Services\BaseFileService;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Resources\System\Environment;
+use Illuminate\Encryption\Encrypter;
 
 /**
  * Class Package.
@@ -115,19 +116,45 @@ class Package
     }
 
     /**
+     * Get package manifest.
+     *
+     * @param null $key
+     * @param null $default
+     *
+     * @return array|string
+     */
+    public function getManifest($key = null, $default = null)
+    {
+        if (empty($key)) {
+            return $this->manifest;
+        }
+
+        return array_get($this->manifest, $key, $default);
+    }
+
+    /**
      * Returns standard manifest header.
      *
      * @return array
      */
     public function getManifestHeader()
     {
-        return [
+        $header = [
             'version'      => static::VERSION,
             'df_version'   => config('df.version'),
             'secured'      => $this->isSecured(),
             'description'  => '',
             'created_date' => date('Y-m-d H:i:s', time())
         ];
+
+        if ($this->isSecured()) {
+            $password = $this->getPassword();
+            // Using md5 of password to use a 32 char long key for Encrypter.
+            $crypt = new Encrypter(md5($password), config('app.cipher'));
+            $header['validator'] = $crypt->encrypt(time());
+        }
+
+        return $header;
     }
 
     /**
@@ -378,7 +405,7 @@ class Package
 
     /**
      * Retrieves manifest from a local zip file.
-     * 
+     *
      * @param $file
      *
      * @return array|string

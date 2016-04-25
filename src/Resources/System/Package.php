@@ -57,8 +57,7 @@ class Package extends BaseSystemResource
                 $result = $package->importAppFromPackage();
             } else {
                 $password = $this->request->input('password');
-                $package = new \DreamFactory\Core\Components\Package\Package($file);
-                $package->setPassword($password);
+                $package = new \DreamFactory\Core\Components\Package\Package($file, true, $password);
                 $importer = new Importer($package, true);
                 $imported = $importer->import();
                 $log = $importer->getLog();

@@ -108,7 +108,7 @@ class Environment extends BaseSystemResource
      */
     public static function isZipInstalled()
     {
-        exec('zip', $output, $ret);
+        exec('zip -h', $output, $ret);
 
         return ($ret === 0) ? true : false;
     }

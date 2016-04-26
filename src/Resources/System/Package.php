@@ -5,7 +5,7 @@ use DreamFactory\Core\Components\Package\Exporter;
 use DreamFactory\Core\Components\Package\Importer;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Utility\FileUtilities;
-use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Utility\Packager;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\Inflector;
@@ -81,7 +81,7 @@ class Package extends BaseSystemResource
         }
     }
 
-    public static function getApiDocInfo(Service $service, array $resource = [])
+    public static function getApiDocInfo(ServiceModel $service, array $resource = [])
     {
         $serviceName = strtolower($service->name);
         $class = trim(strrchr(static::class, '\\'), '\\');

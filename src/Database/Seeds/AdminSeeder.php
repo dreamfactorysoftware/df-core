@@ -18,17 +18,17 @@ class AdminSeeder extends Seeder
 
         // Add default admin user
         if (!User::exists()) {
-            User::create(
-                [
-                    'name'         => 'DF Admin',
-                    'email'        => 'dfadmin@' . gethostname() . '.com',
-                    'password'     => 'Dream123!',
-                    'is_sys_admin' => true,
-                    'is_active'    => true
-                ]
-            );
-
-            $this->command->info('Admin user seeded!');
+//            User::create(
+//                [
+//                    'name'         => 'DF Admin',
+//                    'email'        => 'dfadmin@' . gethostname() . '.com',
+//                    'password'     => 'Dream123!',
+//                    'is_sys_admin' => true,
+//                    'is_active'    => true
+//                ]
+//            );
+//
+//            $this->command->info('Admin user seeded!');
         }
     }
 }

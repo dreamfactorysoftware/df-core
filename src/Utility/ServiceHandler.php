@@ -2,13 +2,13 @@
 
 namespace DreamFactory\Core\Utility;
 
+use DreamFactory\Core\Components\ServiceManager;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseRestService;
-use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
  * Class ServiceHandler
@@ -26,19 +26,21 @@ class ServiceHandler
      */
     public static function getService($name)
     {
-        $name = strtolower(trim($name));
-        $serviceInfo = Service::getCachedByName($name);
-        $serviceClass = ArrayUtils::get($serviceInfo, 'class_name');
+        /** @type ServiceManager $mgr */
+        $mgr = \App::getInstance()->{'df.service'};
+        $service = $mgr->connection($name);
 
-        return new $serviceClass($serviceInfo);
+        return $service;
     }
 
     public static function getServiceById($id)
     {
-        $serviceInfo = Service::getCachedById($id);
-        $serviceClass = ArrayUtils::get($serviceInfo, 'class_name');
+        $name = Service::getCachedNameById($id);
+        /** @type ServiceManager $mgr */
+        $mgr = \App::getInstance()->{'df.service'};
+        $service = $mgr->connection($name);
 
-        return new $serviceClass($serviceInfo);
+        return $service;
     }
 
     /**

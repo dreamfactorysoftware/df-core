@@ -12,7 +12,6 @@ use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Services\BaseFileService;
-use Illuminate\Encryption\Encrypter;
 use Illuminate\Support\Arr;
 
 /**
@@ -240,39 +239,6 @@ class Exporter
         }
 
         return false;
-    }
-
-    /**
-     * Sets user password encrypted when package is secured with a password.
-     *
-     * @param array $users
-     *
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
-     */
-    protected function setUserPassword(array & $users)
-    {
-        if (!empty($users)) {
-            if (Arr::isAssoc($users)) {
-                $users = [$users];
-            }
-            $crypt = null;
-            if ($this->package->isSecured()) {
-                $password = $this->package->getPassword();
-                // Using md5 of password to use a 32 char long key for Encrypter.
-                $crypt = new Encrypter(md5($password), config('app.cipher'));
-            }
-
-            foreach ($users as $i => $user) {
-                $model = User::find($user['id']);
-                if (!empty($model)) {
-                    if (!is_null($crypt)) {
-                        $users[$i]['password'] = $crypt->encrypt($model->password);
-                    } else {
-                        $users[$i]['password'] = $model->password;
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -646,9 +612,7 @@ class Exporter
             $result = $result[config('df.resources_wrapper')];
         }
 
-        if ('system/service' === $api) {
-            $this->encryptServices($result);
-        } elseif (in_array($api, ['system/user', 'system/admin'])) {
+        if (in_array($api, ['system/user', 'system/admin'])) {
             $this->setUserPassword($result);
         }
 
@@ -656,55 +620,25 @@ class Exporter
     }
 
     /**
-     * Encrypt services if package is secured with a password.
+     * Sets user password encrypted when package is secured with a password.
      *
-     * @param $services
+     * @param array $users
      *
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
-    protected function encryptServices(& $services)
+    protected function setUserPassword(array & $users)
     {
-        $secured = $this->package->isSecured();
+        if (!empty($users)) {
+            if (Arr::isAssoc($users)) {
+                $users = [$users];
+            }
 
-        if ($secured) {
-            $password = $this->package->getPassword();
-            // Using md5 of password to use a 32 char long key for Encrypter.
-            $crypt = new Encrypter(md5($password), config('app.cipher'));
-            if (Arr::isAssoc($services)) {
-                if (isset($services['config'])) {
-                    $services['config'] = static::encryptServiceConfig($services['config'], $crypt);
-                }
-            } else {
-                foreach ($services as $i => $service) {
-                    if (isset($service['config'])) {
-                        $service['config'] = static::encryptServiceConfig($service['config'], $crypt);
-                        $services[$i] = $service;
-                    }
+            foreach ($users as $i => $user) {
+                $model = User::find($user['id']);
+                if (!empty($model)) {
+                    $users[$i]['password'] = $model->password;
                 }
             }
         }
-    }
-
-    /**
-     * Encrypts service config is package is secured with a password.
-     *
-     * @param array                            $config
-     * @param \Illuminate\Encryption\Encrypter $crypt
-     *
-     * @return array
-     */
-    protected static function encryptServiceConfig(array $config, Encrypter $crypt)
-    {
-        if (!empty($config)) {
-            foreach ($config as $key => $value) {
-                if (is_array($value)) {
-                    $config[$key] = static::encryptServiceConfig($value, $crypt);
-                } elseif (is_string($value)) {
-                    $config[$key] = $crypt->encrypt($value);
-                }
-            }
-        }
-
-        return $config;
     }
 }

@@ -47,7 +47,7 @@ class Package
     /** @type \ZipArchive null */
     protected $zip = null;
 
-    /** @type array */
+    /** @type string */
     protected $zipFile = null;
 
     /** @type string|null */
@@ -68,9 +68,11 @@ class Package
      *
      * @param $packageInfo
      * @param $deletePackageFile
+     * @param $password
      */
-    public function __construct($packageInfo = [], $deletePackageFile = true)
+    public function __construct($packageInfo = [], $deletePackageFile = true, $password = null)
     {
+        $this->setPassword($password);
         if (is_array($packageInfo) && $this->isUploadedFile($packageInfo)) {
             // Uploaded file. Import case.
             $this->manifest = $this->getManifestFromUploadedFile($packageInfo);
@@ -112,6 +114,23 @@ class Package
     public function setPassword($password)
     {
         $this->password = $password;
+    }
+
+    /**
+     * Get package manifest.
+     *
+     * @param null $key
+     * @param null $default
+     *
+     * @return array|string
+     */
+    public function getManifest($key = null, $default = null)
+    {
+        if (empty($key)) {
+            return $this->manifest;
+        }
+
+        return array_get($this->manifest, $key, $default);
     }
 
     /**
@@ -378,7 +397,7 @@ class Package
 
     /**
      * Retrieves manifest from a local zip file.
-     * 
+     *
      * @param $file
      *
      * @return array|string
@@ -411,6 +430,7 @@ class Package
      *
      * @return array|string
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
     protected function getManifestFromZipFile()
     {
@@ -419,9 +439,14 @@ class Package
             throw new InternalServerErrorException('Failed to open imported zip file.');
         }
 
+        $password = $this->getPassword();
+        if (!empty($password)) {
+            $this->zip->setPassword($password);
+        }
+
         $manifest = $this->zip->getFromName('package.json');
         if (false === $manifest) {
-            throw new InternalServerErrorException('No package.json file found in the imported zip file.');
+            throw new BadRequestException('Cannot read package manifest. A valid password is required if this is a secured package.');
         }
         $manifest = DataFormatter::jsonToArray($manifest);
 
@@ -621,17 +646,32 @@ class Package
         try {
             $this->zip->close();
 
+            if ($this->isSecured()) {
+                $password = $this->getPassword();
+                $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+                $extractDir = $tmpDir . substr(basename($this->zipFile), 0, strlen(basename($this->zipFile)) - 4);
+                $tmpZip = new \ZipArchive();
+                $tmpZip->open($this->zipFile);
+                $tmpZip->extractTo($extractDir);
+                @unlink($this->zipFile);
+                @exec("cd $extractDir; zip -rP $password $this->zipFile .", $output);
+                \Log::info('Encrypting zip file with a password.', $output);
+                @FileUtilities::deleteTree($extractDir, true);
+            }
+
             /** @type BaseFileService $storage */
             $storage = ServiceHandler::getService($storageService);
             $container = $storage->getContainerId();
             if (!$storage->driver()->folderExists($container, $storageFolder)) {
                 $storage->driver()->createFolder($container, $storageFolder);
             }
+
             $storage->driver()->moveFile(
                 $container,
                 $storageFolder . '/' . basename($this->zipFile),
                 $this->zipFile
             );
+
             $url = Environment::getURI() .
                 '/' .
                 $storageService .

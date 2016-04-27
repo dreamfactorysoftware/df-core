@@ -77,6 +77,7 @@ class Environment extends BaseSystemResource
             $result['platform']['log_mode'] = \Config::get('app.log');
             $result['platform']['log_level'] = \Config::get('df.log_level');
             $result['platform']['cache_driver'] = \Config::get('cache.default');
+            $result['platform']['secured_package_export'] = static::isZipInstalled();
 
             if ($result['platform']['cache_driver'] === 'file') {
                 $result['platform']['cache_path'] = \Config::get('cache.stores.file.path') . DIRECTORY_SEPARATOR;
@@ -98,6 +99,18 @@ class Environment extends BaseSystemResource
         }
 
         return $result;
+    }
+
+    /**
+     * Checks to see if zip command is installed or not.
+     *
+     * @return bool
+     */
+    public static function isZipInstalled()
+    {
+        exec('zip -h', $output, $ret);
+
+        return ($ret === 0) ? true : false;
     }
 
     public static function getInstalledPackagesInfo()

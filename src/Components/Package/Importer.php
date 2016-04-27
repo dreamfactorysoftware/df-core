@@ -18,8 +18,6 @@ use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Illuminate\Contracts\Encryption\DecryptException;
-use Illuminate\Encryption\Encrypter;
-use Illuminate\Support\Arr;
 
 /**
  * Class Importer.
@@ -137,6 +135,7 @@ class Importer
      *
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\UnauthorizedException
      */
     protected function insertUser()
     {
@@ -156,6 +155,8 @@ class Importer
                 $this->updateUserPassword($users);
 
                 return true;
+            } catch (DecryptException $e) {
+                throw new UnauthorizedException('Invalid password.');
             } catch (\Exception $e) {
                 throw new InternalServerErrorException('Failed to insert users. ' . $this->getErrorDetails($e));
             }
@@ -174,23 +175,12 @@ class Importer
     protected function updateUserPassword($users)
     {
         if (!empty($users)) {
-            $crypt = null;
-            if ($this->package->isSecured()) {
-                $password = $this->package->getPassword();
-                // Using md5 of password to use a 32 char long key for Encrypter.
-                $crypt = new Encrypter(md5($password), config('app.cipher'));
-            }
 
             foreach ($users as $i => $user) {
                 if (isset($user['password'])) {
                     /** @type User $model */
                     $model = User::where('email', '=', $user['email'])->first();
-                    if (!is_null($crypt)) {
-                        $hash = $crypt->decrypt($user['password']);
-                    } else {
-                        $hash = $user['password'];
-                    }
-                    $model->updatePasswordHash($hash);
+                    $model->updatePasswordHash($user['password']);
                 }
             }
         }
@@ -304,7 +294,6 @@ class Importer
         $services = $this->cleanDuplicates($data, 'system', 'service');
 
         if (!empty($services)) {
-            $this->decryptServices($services);
             try {
                 foreach ($services as $i => $service) {
                     unset($service['id']);
@@ -1005,63 +994,5 @@ class Importer
         }
 
         return false;
-    }
-
-    /**
-     * Decrypts services if package is secured with a password.
-     *
-     * @param $services
-     *
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
-     * @throws \DreamFactory\Core\Exceptions\UnauthorizedException
-     */
-    protected function decryptServices(& $services)
-    {
-        $secured = $this->package->isSecured();
-
-        if ($secured) {
-            $password = $this->package->getPassword();
-            try {
-                // Using md5 of password to use a 32 char long key for Encrypter.
-                $crypt = new Encrypter(md5($password), config('app.cipher'));
-                if (Arr::isAssoc($services)) {
-                    if (isset($services['config'])) {
-                        $services['config'] = static::decryptServiceConfig($services['config'], $crypt);
-                    }
-                } else {
-                    foreach ($services as $i => $service) {
-                        if (isset($service['config'])) {
-                            $service['config'] = static::decryptServiceConfig($service['config'], $crypt);
-                            $services[$i] = $service;
-                        }
-                    }
-                }
-            } catch (DecryptException $e) {
-                throw new UnauthorizedException('Invalid password.');
-            }
-        }
-    }
-
-    /**
-     * Decrypts service config when package is secure with a password.
-     *
-     * @param array                            $config
-     * @param \Illuminate\Encryption\Encrypter $crypt
-     *
-     * @return array
-     */
-    protected static function decryptServiceConfig(array $config, Encrypter $crypt)
-    {
-        if (!empty($config)) {
-            foreach ($config as $key => $value) {
-                if (is_array($value)) {
-                    $config[$key] = static::decryptServiceConfig($value, $crypt);
-                } elseif (is_string($value)) {
-                    $config[$key] = $crypt->decrypt($value);
-                }
-            }
-        }
-
-        return $config;
     }
 }

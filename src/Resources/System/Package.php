@@ -5,7 +5,7 @@ use DreamFactory\Core\Components\Package\Exporter;
 use DreamFactory\Core\Components\Package\Importer;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Utility\FileUtilities;
-use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Utility\Packager;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\Inflector;
@@ -57,8 +57,7 @@ class Package extends BaseSystemResource
                 $result = $package->importAppFromPackage();
             } else {
                 $password = $this->request->input('password');
-                $package = new \DreamFactory\Core\Components\Package\Package($file);
-                $package->setPassword($password);
+                $package = new \DreamFactory\Core\Components\Package\Package($file, true, $password);
                 $importer = new Importer($package, true);
                 $imported = $importer->import();
                 $log = $importer->getLog();
@@ -82,7 +81,7 @@ class Package extends BaseSystemResource
         }
     }
 
-    public static function getApiDocInfo(Service $service, array $resource = [])
+    public static function getApiDocInfo(ServiceModel $service, array $resource = [])
     {
         $serviceName = strtolower($service->name);
         $class = trim(strrchr(static::class, '\\'), '\\');

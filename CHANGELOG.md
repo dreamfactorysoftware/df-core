@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.2.9] - 2016-04-25
+### Changed
+- New scheme for secured package export, including capability detection in system/environment API.
+
 ## [0.2.8] - 2016-04-22
 ### Added
 - System Package resource for package import and export of system resources and services
@@ -200,7 +204,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.6...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.9...HEAD
+[0.2.9]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.8...0.2.9
+[0.2.8]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.7...0.2.8
 [0.2.7]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.6...0.2.7
 [0.2.6]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.5...0.2.6
 [0.2.5]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.4...0.2.5

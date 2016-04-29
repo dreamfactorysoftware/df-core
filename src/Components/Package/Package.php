@@ -196,7 +196,7 @@ class Package
     public function getExportFilename()
     {
         $host = php_uname('n');
-        $default = $host . '_' . date('Y-m-d_H:i:s', time());
+        $default = $host . '_' . date('Y-m-d_H.i.s', time());
         $filename = array_get(
             $this->manifest,
             'storage.filename',
@@ -342,7 +342,7 @@ class Package
     protected function isUploadedFile($package)
     {
         if (isset($package['name'], $package['tmp_name'], $package['type'], $package['size'])) {
-            if ('application/zip' === $package['type']) {
+            if (in_array($package['type'], ['application/zip', 'application/x-zip-compressed'])) {
                 return true;
             }
         }
@@ -653,8 +653,14 @@ class Package
                 $tmpZip = new \ZipArchive();
                 $tmpZip->open($this->zipFile);
                 $tmpZip->extractTo($extractDir);
+                $tmpZip->close();
                 @unlink($this->zipFile);
-                @exec("cd $extractDir; zip -rP $password $this->zipFile .", $output);
+                $server = strtolower(php_uname('s'));
+                $commandSeparator = ';';
+                if (strpos($server, 'windows') !== false) {
+                    $commandSeparator = '&';
+                }
+                @exec("cd $extractDir $commandSeparator zip -r -P $password $this->zipFile .", $output);
                 \Log::info('Encrypting zip file with a password.', $output);
                 @FileUtilities::deleteTree($extractDir, true);
             }

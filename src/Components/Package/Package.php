@@ -655,7 +655,12 @@ class Package
                 $tmpZip->extractTo($extractDir);
                 $tmpZip->close();
                 @unlink($this->zipFile);
-                @exec("cd $extractDir; zip -r -P $password $this->zipFile .", $output);
+                $server = strtolower(php_uname('s'));
+                $commandSeparator = ';';
+                if (strpos($server, 'windows') !== false) {
+                    $commandSeparator = '&';
+                }
+                @exec("cd $extractDir $commandSeparator zip -r -P $password $this->zipFile .", $output);
                 \Log::info('Encrypting zip file with a password.', $output);
                 @FileUtilities::deleteTree($extractDir, true);
             }

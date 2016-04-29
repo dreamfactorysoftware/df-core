@@ -196,7 +196,7 @@ class Package
     public function getExportFilename()
     {
         $host = php_uname('n');
-        $default = $host . '_' . date('YmdHis', time());
+        $default = $host . '_' . date('Y-m-d_H.i.s', time());
         $filename = array_get(
             $this->manifest,
             'storage.filename',

@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.2.10] - 2016-04-29
+### Fixed
+- Fix command exection for Windows OS for scriptings and packaging
+
 ## [0.2.9] - 2016-04-25
 ### Changed
 - New scheme for secured package export, including capability detection in system/environment API.
@@ -204,7 +208,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.9...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.10...HEAD
+[0.2.10]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.9...0.2.10
 [0.2.9]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.8...0.2.9
 [0.2.8]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.7...0.2.8
 [0.2.7]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.6...0.2.7

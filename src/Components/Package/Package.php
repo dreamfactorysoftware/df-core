@@ -342,7 +342,7 @@ class Package
     protected function isUploadedFile($package)
     {
         if (isset($package['name'], $package['tmp_name'], $package['type'], $package['size'])) {
-            if ('application/zip' === $package['type']) {
+            if (in_array($package['type'], ['application/zip', 'application/x-zip-compressed'])) {
                 return true;
             }
         }

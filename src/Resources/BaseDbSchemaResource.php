@@ -9,7 +9,6 @@ use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Core\Utility\ResourcesWrapper;
@@ -698,10 +697,10 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     abstract public function deleteField($table, $field);
 
-    public static function getApiDocInfo(Service $service, array $resource = [])
+    public static function getApiDocInfo($service, array $resource = [])
     {
-        $serviceName = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $serviceName = strtolower($service);
+        $capitalized = Inflector::camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $pluralClass = Inflector::pluralize($class);
         $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));

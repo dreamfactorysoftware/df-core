@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Services\Email;
 
 use App;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Inflector;
 use Illuminate\Mail\Message;
@@ -237,10 +236,10 @@ abstract class BaseService extends BaseRestService
         return $template->toArray();
     }
 
-    public static function getApiDocInfo(Service $service)
+    public function getApiDocInfo()
     {
-        $name = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $name = strtolower($this->name);
+        $capitalized = Inflector::camelize($this->name);
         $paths = [
             '/' . $name => [
                 'post' => [

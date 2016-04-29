@@ -5,9 +5,9 @@ use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\System\Event;
-use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Library\Utility\Inflector;
+use ServiceManager;
 
 /**
  * Service
@@ -175,9 +175,9 @@ class Service extends BaseSystemModel
      */
     protected function getConfigHandler()
     {
-        if (null !== $typeInfo = $this->serviceType()->first()) {
+        if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
             // lookup related service type config model
-            return $typeInfo->config_handler;
+            return $typeInfo->getConfigHandler();
         }
 
         return null;
@@ -259,9 +259,7 @@ class Service extends BaseSystemModel
 
             $content = json_decode($content, true);
         } else {
-            /** @var BaseRestService $serviceClass */
-            $serviceClass = $service->serviceType()->first()->class_name;
-            $content = $serviceClass::getApiDocInfo($service);
+            $content = ServiceManager::getService($service->name)->getApiDocInfo();
         }
 
         return $content;
@@ -288,7 +286,6 @@ class Service extends BaseSystemModel
             }
 
             $settings = $service->toArray();
-            $settings['class_name'] = $service->serviceType()->first(['class_name'])->class_name;
 
             return $settings;
         });

@@ -53,12 +53,13 @@ abstract class ExecutedEngine extends BaseEngineAdapter implements ScriptingEngi
             $this->execute($runnerShell, $output, $return);
         } catch (\Exception $ex) {
             $message = $ex->getMessage();
-            Log::error($message = "Exception executing command based script: $message");
+            Log::error("Exception executing command based script: $message");
 
             return null;
         }
 
         if ($return > 0) {
+            Log::debug("Executed script: $runnerShell");
             throw new InternalServerErrorException('Executed command returned with error code: ' . $return);
         }
 

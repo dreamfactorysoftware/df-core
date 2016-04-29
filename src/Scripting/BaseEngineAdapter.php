@@ -7,11 +7,11 @@ use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Utility\ResponseFactory;
-use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use \Log;
+use Log;
+use ServiceManager;
 
 /**
  * Allows platform access to a scripting engine
@@ -335,7 +335,7 @@ abstract class BaseEngineAdapter
                 $request->setContent($payload, $format);
 
                 //  Now set the request object and go...
-                $service = ServiceHandler::getService($serviceName);
+                $service = ServiceManager::getService($serviceName);
                 $result = $service->handleRequest($request, $resource);
             }
         } catch (\Exception $ex) {

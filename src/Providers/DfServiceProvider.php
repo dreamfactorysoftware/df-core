@@ -39,17 +39,12 @@ class DfServiceProvider extends ServiceProvider
             \App::register('DreamFactory\Core\User\ServiceProvider');
         }
         
-        // If mongo required, add provider here.
+        // If sqldb required, add provider here.
         if (class_exists('DreamFactory\Core\SqlDb\ServiceProvider')) {
             \App::register('DreamFactory\Core\SqlDb\ServiceProvider');
         }
         
-        // If mongo required, add provider here.
-        if (class_exists('DreamFactory\Core\MongoDb\ServiceProvider')) {
-            \App::register('DreamFactory\Core\MongoDb\ServiceProvider');
-        }
-        
-        // If mongo required, add provider here.
+        // If mongodb required, add provider here.
         if (class_exists('DreamFactory\Core\MongoDb\ServiceProvider')) {
             \App::register('DreamFactory\Core\MongoDb\ServiceProvider');
         }

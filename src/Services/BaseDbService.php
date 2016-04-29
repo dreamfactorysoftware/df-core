@@ -9,7 +9,6 @@ use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Resources\BaseDbResource;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -132,9 +131,9 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
         }
     }
 
-    public static function getApiDocInfo(Service $service)
+    public function getApiDocInfo()
     {
-        $base = parent::getApiDocInfo($service);
+        $base = parent::getApiDocInfo();
 
         $apis = [];
         $models = [];
@@ -147,8 +146,8 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
             }
 
             $resourceName = ArrayUtils::get($resourceInfo, static::RESOURCE_IDENTIFIER);
-            if (Session::checkForAnyServicePermissions($service->name, $resourceName)) {
-                $results = $resourceClass::getApiDocInfo($service, $resourceInfo);
+            if (Session::checkForAnyServicePermissions($this->name, $resourceName)) {
+                $results = $resourceClass::getApiDocInfo($this, $resourceInfo);
                 if (isset($results, $results['paths'])) {
                     $apis = array_merge($apis, $results['paths']);
                 }

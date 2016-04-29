@@ -16,7 +16,6 @@ use DreamFactory\Core\Models\RoleServiceAccess;
 use DreamFactory\Core\Models\ScriptType;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\ServiceDoc;
-use DreamFactory\Core\Models\ServiceType;
 use DreamFactory\Core\Models\SystemCustom;
 use DreamFactory\Core\Models\SystemResource;
 use DreamFactory\Core\Models\User;
@@ -45,10 +44,6 @@ class DbTableExtrasSeeder extends BaseModelSeeder
         [
             'table' => 'service',
             'model' => Service::class,
-        ],
-        [
-            'table' => 'service_type',
-            'model' => ServiceType::class,
         ],
         [
             'table' => 'service_doc',

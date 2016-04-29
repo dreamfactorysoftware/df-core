@@ -9,8 +9,8 @@ use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Utility\FileUtilities;
 use DreamFactory\Core\Services\BaseFileService;
-use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Resources\System\Environment;
+use ServiceManager;
 
 /**
  * Class Package.
@@ -660,7 +660,7 @@ class Package
             }
 
             /** @type BaseFileService $storage */
-            $storage = ServiceHandler::getService($storageService);
+            $storage = ServiceManager::getService($storageService);
             $container = $storage->getContainerId();
             if (!$storage->driver()->folderExists($container, $storageFolder)) {
                 $storage->driver()->createFolder($container, $storageFolder);

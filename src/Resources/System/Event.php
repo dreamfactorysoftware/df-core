@@ -15,6 +15,7 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
+use ServiceManager;
 
 /**
  * Class Event
@@ -93,29 +94,28 @@ class Event extends BaseRestResource
     }
 
     /**
-     * @param ServiceModel $service
+     * @param ServiceModel $model
      *
      * @return array
      * @throws \Exception
      */
-    protected static function parseSwaggerEvents(ServiceModel $service)
+    protected static function parseSwaggerEvents(ServiceModel $model)
     {
-        if (empty($content = ServiceModel::getStoredContentForService($service))) {
+        if (empty($content = ServiceModel::getStoredContentForService($model))) {
             throw new \Exception('  * No event content found for service.');
         }
 
         /** @var BaseRestService $serviceClass */
         $accessList = [];
-        if ($service->is_active) {
-            $serviceClass = $service->serviceType()->first()->class_name;
-            $settings = $service->toArray();
-            /** @var BaseRestService $obj */
-            $obj = new $serviceClass($settings);
-            if ($obj instanceof BaseFileService) {
+        if ($model->is_active) {
+            
+            /** @var BaseRestService $service */
+            $service = ServiceManager::getService($model->name);
+            if ($service instanceof BaseFileService) {
                 // don't want the full folder list here
-                $accessList = (empty($obj->getPermissions()) ? [] : ['', '*']);
+                $accessList = (empty($service->getPermissions()) ? [] : ['', '*']);
             } else {
-                $accessList = $obj->getAccessList();
+                $accessList = $service->getAccessList();
             }
         }
 
@@ -131,7 +131,7 @@ class Event extends BaseRestResource
 
             $eventPath = str_replace(
                 ['{service.name}', '/'],
-                [$service->name, '.'],
+                [$model->name, '.'],
                 trim($path, '/')
             );
             $resourcePath = ltrim(strstr(trim($path, '/'), '/'), '/');
@@ -167,7 +167,7 @@ class Event extends BaseRestResource
                                 '{request.method}'
                             ],
                             [
-                                $service->name,
+                                $model->name,
                                 $method,
                             ],
                             $templateEventName

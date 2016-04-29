@@ -1,7 +1,6 @@
 <?php
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\App;
-use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Utility\JWTUtilities;
@@ -49,7 +48,7 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
             ]
         ];
 
-        $this->service = ServiceHandler::getService('system');
+        $this->service = ServiceManager::getService('system');
         $rs = $this->makeRequest(Verbs::POST, 'role', [], [$role]);
         $data = $rs->getContent();
         $roleId = Arr::get($data, static::$wrapper . '.0.id');
@@ -85,12 +84,12 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
             ]
         ];
 
-        $this->service = ServiceHandler::getService('system');
+        $this->service = ServiceManager::getService('system');
         $rs = $this->makeRequest(Verbs::POST, 'user', [], [$user]);
         $data = $rs->getContent();
         $userId = Arr::get($data, static::$wrapper . '.0.id');
 
-        $this->service = ServiceHandler::getService('system');
+        $this->service = ServiceManager::getService('system');
         $rs = $this->makeRequest(Verbs::POST, 'role', [], [$role]);
         $data = $rs->getContent();
         $roleId = Arr::get($data, static::$wrapper . '.0.id');

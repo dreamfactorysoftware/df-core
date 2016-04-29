@@ -2,7 +2,13 @@
 
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Core\Contracts\ServiceInterface;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Contracts\ServiceTypeInterface;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Utility\ServiceRequest;
+use DreamFactory\Library\Utility\Enums\Verbs;
 use InvalidArgumentException;
 
 class ServiceManager
@@ -36,6 +42,13 @@ class ServiceManager
     protected $extensions = [];
 
     /**
+     * The custom service type information.
+     *
+     * @var ServiceTypeInterface[]
+     */
+    protected $types = [];
+
+    /**
      * Create a new service manager instance.
      *
      * @param  \Illuminate\Foundation\Application $app
@@ -48,73 +61,60 @@ class ServiceManager
     }
 
     /**
-     * Get a database connection instance.
+     * Get a service instance.
      *
-     * @param  string  $name
-     * @return \Illuminate\Database\Connection
+     * @param  string $name
+     *
+     * @return ServiceInterface
      */
-    public function connection($name)
+    public function getService($name)
     {
         // If we haven't created this service, we'll create it based on the config provided.
-        if (! isset($this->services[$name])) {
-            $connection = $this->makeService($name);
+        if (!isset($this->services[$name])) {
+            $service = $this->makeService($name);
 
 //            if ($this->app->bound('events')) {
 //                $connection->setEventDispatcher($this->app['events']);
 //            }
 
-            $this->services[$name] = $connection;
+            $this->services[$name] = $service;
         }
 
         return $this->services[$name];
     }
 
+    public function getServiceById($id)
+    {
+        $name = Service::getCachedNameById($id);
+
+        return $this->getService($name);
+    }
+
     /**
      * Disconnect from the given service and remove from local cache.
      *
-     * @param  string  $name
+     * @param  string $name
+     *
      * @return void
      */
     public function purge($name)
     {
-        $this->disconnect($name);
-
         unset($this->services[$name]);
     }
 
     /**
-     * Disconnect from the given service.
+     * Make the service instance.
      *
-     * @param  string  $name
-     * @return void
-     */
-    public function disconnect($name)
-    {
-        if (isset($this->services[$name])) {
-            $this->services[$name]->disconnect();
-        }
-    }
-
-    /**
-     * Make the database connection instance.
+     * @param  string $name
      *
-     * @param  string  $name
-     * @return \Illuminate\Database\Connection
+     * @return ServiceInterface
      */
     protected function makeService($name)
     {
         $config = $this->getConfig($name);
-
-        // First we will check by the service name to see if an extension has been
-        // registered specifically for that service. If it has we will call the
-        // Closure and pass it the config allowing it to resolve the service.
-        if (isset($this->extensions[$name])) {
-            return call_user_func($this->extensions[$name], $config, $name);
-        }
-
         $type = $config['type'];
 
-        // Next we will check to see if an extension has been registered for a service type
+        // Next we will check to see if a type extension has been registered for a service type
         // and will call the Closure if so, which allows us to have a more generic
         // resolver for the service types themselves which applies to all services.
         if (isset($this->extensions[$type])) {
@@ -127,7 +127,8 @@ class ServiceManager
     /**
      * Get the configuration for a connection.
      *
-     * @param  string  $name
+     * @param  string $name
+     *
      * @return array
      *
      * @throws \InvalidArgumentException
@@ -144,15 +145,44 @@ class ServiceManager
     }
 
     /**
-     * Register an extension service resolver.
+     * Register a service extension resolver.
      *
-     * @param  string    $name
-     * @param  callable  $resolver
+     * @param  string                    $name
+     * @param  callable                  $resolver
+     * @param  ServiceTypeInterface|null $type_config
+     *
      * @return void
      */
-    public function extend($name, callable $resolver)
+    public function extend($name, callable $resolver, $type_config = null)
     {
+        $this->types[$name] = $type_config;
         $this->extensions[$name] = $resolver;
+    }
+
+    /**
+     * Return the service type info.
+     *
+     * @param string $name
+     *
+     * @return ServiceTypeInterface
+     */
+    public function getServiceType($name)
+    {
+        if (isset($this->types[$name])) {
+            return $this->types[$name];
+        }
+
+        return null;
+    }
+
+    /**
+     * Return all of the known service types.
+     *
+     * @return ServiceTypeInterface[]
+     */
+    public function getServicesTypes()
+    {
+        return $this->types;
     }
 
     /**
@@ -163,5 +193,51 @@ class ServiceManager
     public function getServices()
     {
         return $this->services;
+    }
+
+    /**
+     * @param string      $service
+     * @param string      $verb
+     * @param string|null $resource
+     * @param array       $query
+     * @param array       $header
+     * @param null        $payload
+     * @param string|null $format
+     *
+     * @return \DreamFactory\Core\Contracts\ServiceResponseInterface|mixed
+     * @throws BadRequestException
+     * @throws \Exception
+     */
+    public function handleRequest(
+        $service,
+        $verb = Verbs::GET,
+        $resource = null,
+        $query = [],
+        $header = [],
+        $payload = null,
+        $format = null
+    ){
+        $_FILES = []; // reset so that internal calls can handle other files.
+        $request = new ServiceRequest();
+        $request->setMethod($verb);
+        $request->setParameters($query);
+        $request->setHeaders($header);
+        if (!empty($payload)) {
+            if (is_array($payload)) {
+                $request->setContent($payload);
+            } elseif (empty($format)) {
+                throw new BadRequestException('Payload with undeclared format.');
+            } else {
+                $request->setContent($payload, $format);
+            }
+        }
+
+        $response = $this->getService($service)->handleRequest($request, $resource);
+
+        if ($response instanceof ServiceResponseInterface) {
+            return $response->getContent();
+        } else {
+            return $response;
+        }
     }
 }

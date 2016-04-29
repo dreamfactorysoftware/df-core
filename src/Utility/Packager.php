@@ -14,6 +14,7 @@ use DreamFactory\Core\Services\BaseFileService;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
+use ServiceManager;
 
 class Packager
 {
@@ -47,7 +48,7 @@ class Packager
     protected $zip = null;
 
     /**
-     * @type zip file full path
+     * @type string zip file full path
      */
     protected $zipFilePath = null;
 
@@ -315,7 +316,7 @@ class Packager
         $this->sanitizeAppRecord($record);
 
         try {
-            $result = ServiceHandler::handleRequest(Verbs::POST, 'system', 'app', ['fields' => '*'], [$record]);
+            $result = ServiceManager::handleRequest('system', Verbs::POST, 'app', ['fields' => '*'], [], [$record]);
         } catch (\Exception $ex) {
             throw new InternalServerErrorException("Could not create the application.\n{$ex->getMessage()}");
         }
@@ -367,10 +368,11 @@ class Packager
                     $resource = ($this->resourceWrapped) ? [$this->resourceWrapper => $tables] : [$tables];
                     if (!empty($tables)) {
                         try {
-                            ServiceHandler::handleRequest(
-                                Verbs::POST,
+                            ServiceManager::handleRequest(
                                 $serviceName,
+                                Verbs::POST,
                                 '_schema',
+                                [],
                                 [],
                                 $resource
                             );
@@ -416,10 +418,11 @@ class Packager
                         $records = ArrayUtils::get($table, 'record');
                         $resource = ($this->resourceWrapped) ? [$this->resourceWrapper => $records] : [$records];
                         try {
-                            ServiceHandler::handleRequest(
-                                Verbs::POST,
+                            ServiceManager::handleRequest(
                                 $serviceName,
+                                Verbs::POST,
                                 '_table/' . $tableName,
+                                [],
                                 [],
                                 $resource
                             );
@@ -458,7 +461,7 @@ class Packager
             $storageFolder = ArrayUtils::get($appInfo, 'storage_container', $appName);
 
             /** @var $service BaseFileService */
-            $service = ServiceHandler::getServiceById($storageServiceId);
+            $service = ServiceManager::getServiceById($storageServiceId);
             if (empty($service)) {
                 throw new InternalServerErrorException(
                     "App record created, but failed to import files due to unknown storage service with id '$storageServiceId'."
@@ -588,7 +591,7 @@ class Packager
         }
 
         /** @type BaseFileService $storage */
-        $storage = ServiceHandler::getServiceById($storageServiceId);
+        $storage = ServiceManager::getServiceById($storageServiceId);
         if (!$storage) {
             throw new InternalServerErrorException("Can not find storage service by identifier '$storageServiceId''.");
         }
@@ -678,9 +681,9 @@ class Packager
 
                 if (!empty($service) && !empty($component)) {
                     if ($service->type === 'sql_db') {
-                        $schema = ServiceHandler::handleRequest(
-                            Verbs::GET,
+                        $schema = ServiceManager::handleRequest(
                             $serviceName,
+                            Verbs::GET,
                             '_schema',
                             ['ids' => $component]
                         );

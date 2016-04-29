@@ -653,8 +653,9 @@ class Package
                 $tmpZip = new \ZipArchive();
                 $tmpZip->open($this->zipFile);
                 $tmpZip->extractTo($extractDir);
+                $tmpZip->close();
                 @unlink($this->zipFile);
-                @exec("cd $extractDir; zip -rP $password $this->zipFile .", $output);
+                @exec("cd $extractDir; zip -r -P $password $this->zipFile .", $output);
                 \Log::info('Encrypting zip file with a password.', $output);
                 @FileUtilities::deleteTree($extractDir, true);
             }

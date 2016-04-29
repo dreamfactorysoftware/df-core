@@ -90,7 +90,16 @@ trait PhpExecutable
 
     protected function buildCommand($payload = '', $storage_location = '')
     {
-        $runnerShell = $this->commandPath;
+        if ((strncasecmp(PHP_OS, 'WIN', 3) == 0) &&
+            (false !== strpos($this->commandPath, ' ')) &&
+            (false === strpos($this->commandPath, '"'))
+        ) {
+            // need to quote for windows when spaces are in path
+            $runnerShell = '"' . $this->commandPath . '"';
+        } else {
+            $runnerShell = $this->commandPath;
+        }
+
         if (is_array($this->arguments)) {
             foreach ($this->arguments as $argument) {
                 $runnerShell .= ' ' . $argument;
@@ -106,7 +115,7 @@ trait PhpExecutable
                 if (empty($storage_location)) {
                     $storage_location = storage_path() . DIRECTORY_SEPARATOR . $this->commandName;
                     if (is_string($this->fileExtension) && !empty($this->fileExtension)) {
-                        $storage_location .= '.'.$this->fileExtension;
+                        $storage_location .= '.' . $this->fileExtension;
                     }
                 }
                 file_put_contents($storage_location, $payload);

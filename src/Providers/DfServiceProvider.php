@@ -10,11 +10,6 @@ class DfServiceProvider extends ServiceProvider
     {
         \App::register(DfCorsServiceProvider::class);
 
-        // If oauth required, add provider here.
-        if (class_exists('Laravel\Socialite\SocialiteServiceProvider')) {
-            \App::register('Laravel\Socialite\SocialiteServiceProvider');
-        }
-
         \Event::subscribe(new ServiceEventHandler());
 
         // Add our database drivers.

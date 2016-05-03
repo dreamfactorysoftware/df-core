@@ -197,7 +197,7 @@ class ServiceManager
      *
      * @return ServiceTypeInterface[]
      */
-    public function getServicesTypes()
+    public function getServiceTypes()
     {
         return $this->types;
     }

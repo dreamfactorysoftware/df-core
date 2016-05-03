@@ -17,7 +17,6 @@ use DreamFactory\Core\Models\ScriptType;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\ServiceDoc;
 use DreamFactory\Core\Models\SystemCustom;
-use DreamFactory\Core\Models\SystemResource;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Models\UserLookup;
@@ -76,10 +75,6 @@ class DbTableExtrasSeeder extends BaseModelSeeder
         [
             'table' => 'app_to_app_group',
             'model' => AppToAppGroup::class
-        ],
-        [
-            'table' => 'system_resource',
-            'model' => SystemResource::class,
         ],
         [
             'table' => 'script_type',

@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Providers;
 
 use DreamFactory\Core\Components\ServiceManager;
 use DreamFactory\Core\Components\ServiceType;
+use DreamFactory\Core\Components\SystemResourceManager;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
 use DreamFactory\Core\Models\FilePublicPath;
@@ -28,15 +29,16 @@ class DfServiceProvider extends ServiceProvider
     {
         \App::register(DfCorsServiceProvider::class);
 
-        // If oauth required, add provider here.
-        if (class_exists('Laravel\Socialite\SocialiteServiceProvider')) {
-            \App::register('Laravel\Socialite\SocialiteServiceProvider');
-        }
-
         // The service manager is used to resolve various services and service types.
         // It also implements the service resolver interface which may be used by other components adding services.
         $this->app->singleton('df.service', function ($app){
             return new ServiceManager($app);
+        });
+
+        // The system resource manager is used to resolve various system resource types.
+        // It also implements the resource resolver interface which may be used by other components adding resources.
+        $this->app->singleton('df.system.resource', function ($app){
+            return new SystemResourceManager($app);
         });
 
         // Add our service types.

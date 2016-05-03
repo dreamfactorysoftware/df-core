@@ -35,7 +35,7 @@ class ServiceType extends BaseRestResource
         }
 
         $resources = [];
-        $types = ServiceManager::getServicesTypes();
+        $types = ServiceManager::getServiceTypes();
         /** @type ServiceTypeInterface $type */
         foreach ($types as $type) {
             $resources[] = $type->toArray();

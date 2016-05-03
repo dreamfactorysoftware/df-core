@@ -2,13 +2,12 @@
 
 namespace DreamFactory\Core\Services;
 
-use DreamFactory\Core\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Contracts\SystemResourceTypeInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Resources\System\BaseSystemResource;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Models\SystemResource;
-use DreamFactory\Library\Utility\Inflector;
+use SystemResourceManager;
 
 class System extends BaseRestService
 {
@@ -17,7 +16,14 @@ class System extends BaseRestService
      */
     public function getResources($only_handlers = false)
     {
-        return SystemResource::all()->toArray();
+        $resources = [];
+        $types = SystemResourceManager::getResourceTypes();
+        /** @type SystemResourceTypeInterface $type */
+        foreach ($types as $type) {
+            $resources[] = $type->toArray();
+        }
+
+        return $resources;
     }
 
     /**
@@ -44,17 +50,18 @@ class System extends BaseRestService
 
         $apis = [];
         $models = [];
-        $resources = SystemResource::all()->toArray();
+        $resources = SystemResourceManager::getResourceTypes();
         foreach ($resources as $resourceInfo) {
-            $resourceClass = ArrayUtils::get($resourceInfo, 'class_name');
+            $resourceClass = $resourceInfo->getClassName();
 
             if (!class_exists($resourceClass)) {
                 throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
                     $resourceClass);
             }
 
-            $resourceName = ArrayUtils::get($resourceInfo, static::RESOURCE_IDENTIFIER);
+            $resourceName = $resourceInfo->getName();
             if (Session::checkForAnyServicePermissions($this->name, $resourceName)) {
+                /** @type BaseSystemResource $resourceClass */
                 $results = $resourceClass::getApiDocInfo($this, $resourceInfo);
                 if (isset($results, $results['paths'])) {
                     $apis = array_merge($apis, $results['paths']);

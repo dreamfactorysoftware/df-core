@@ -134,14 +134,6 @@ class Service extends BaseSystemModel
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function serviceType()
-    {
-        return $this->belongsTo(ServiceType::class, 'type', 'name');
-    }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
     public function serviceDocs()
     {
         return $this->hasMany(ServiceDoc::class, 'service_id', 'id');

@@ -3,7 +3,7 @@ namespace DreamFactory\Core\Contracts;
 
 /**
  * Interface ServiceTypeInterface
- * 
+ *
  * Something that defines a service type
  *
  * @package DreamFactory\Core\Contracts
@@ -11,43 +11,61 @@ namespace DreamFactory\Core\Contracts;
 interface ServiceTypeInterface
 {
     /**
-     * Service type - matching registered service types
-     * 
+     * Service type name - matching registered service types
+     *
      * @return string
      */
-    public function getType();
+    public function getName();
 
     /**
      * Displayable service type label
-     * 
+     *
      * @return string
      */
     public function getLabel();
 
     /**
      * Service type description
+     *
      * @return string
      */
     public function getDescription();
 
     /**
      * Displayable service type group label
-     * 
+     *
      * @return string
      */
     public function getGroup();
 
     /**
      * Is this service type only to be created once?
-     * 
+     *
      * @return boolean
      */
     public function isSingleton();
 
     /**
      * The configuration handler interface for this service type
-     * 
+     *
      * @return ServiceConfigHandlerInterface | null
      */
     public function getConfigHandler();
+
+    /**
+     * The factory interface for this service type
+     *
+     * @param string $name
+     * @param array  $config
+     *
+     * @return \DreamFactory\Core\Contracts\ServiceInterface|null
+     */
+    public function make($name, array $config = []);
+
+    /**
+     * Return the service type information as an array.
+     *
+     * @return array
+     */
+    public function toArray();
 }

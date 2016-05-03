@@ -285,12 +285,13 @@ class Package
      */
     public function isFileService($serviceName, $resources = null)
     {
-        $service = Service::with('service_type_by_type')->whereName($serviceName)->first();
+        $service = Service::whereName($serviceName)->first();
         if (!empty($service)) {
-            $relations = $service->getRelation('service_type_by_type');
-            $group = $relations->group;
+            if (null === $type = ServiceManager::getServiceType($service->type)) {
+                return false;
+            }
 
-            return ($group === ServiceTypeGroups::FILE) ? true : false;
+            return ($type->getGroup() === ServiceTypeGroups::FILE) ? true : false;
         } elseif (!empty($resources)) {
             if (is_string($resources)) {
                 $resources = explode(',', $resources);

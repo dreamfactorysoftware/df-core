@@ -254,15 +254,14 @@ class Packager
 
         if ($record['type'] === AppTypes::STORAGE_SERVICE) {
             if (!empty(ArrayUtils::get($record, 'storage_service_id'))) {
-                $serviceRecord = Service::with('service_type_by_type')->whereId($record['storage_service_id'])->first();
-
+                $serviceRecord = Service::whereId($record['storage_service_id'])->first();
                 if (empty($serviceRecord)) {
                     throw new BadRequestException('Invalid Storage Service provided.');
                 }
-
-                $serviceType = $serviceRecord->getRelation('service_type_by_type');
-
-                if (ServiceTypeGroups::FILE !== $serviceType->group) {
+                if (null === $type = ServiceManager::getServiceType($serviceRecord->type)) {
+                    throw new BadRequestException('Invalid Storage Service provided.');
+                }
+                if (ServiceTypeGroups::FILE !== $type->getGroup()) {
                     throw new BadRequestException('Invalid Storage Service provided.');
                 }
             } else {
@@ -285,7 +284,7 @@ class Packager
             $record['url'] = ltrim($record['url'], '/');
         }
 
-        if(isset($record['path'])){
+        if (isset($record['path'])) {
             $record['path'] = ltrim($record['path'], '/');
         }
 

@@ -21,13 +21,6 @@ class ServiceManager
     protected $app;
 
     /**
-     * The service factory instance.
-     *
-     * @var ServiceFactory
-     */
-    protected $factory;
-
-    /**
      * The active service instances.
      *
      * @var array
@@ -52,12 +45,10 @@ class ServiceManager
      * Create a new service manager instance.
      *
      * @param  \Illuminate\Foundation\Application $app
-     * @param  ServiceFactory                     $factory
      */
-    public function __construct($app, ServiceFactory $factory)
+    public function __construct($app)
     {
         $this->app = $app;
-        $this->factory = $factory;
     }
 
     /**
@@ -112,20 +103,29 @@ class ServiceManager
     protected function makeService($name)
     {
         $config = $this->getConfig($name);
+
+        // First we will check by the service name to see if an extension has been
+        // registered specifically for that service. If it has we will call the
+        // Closure and pass it the config allowing it to resolve the service.
+        if (isset($this->extensions[$name])) {
+            return call_user_func($this->extensions[$name], $config, $name);
+        }
+
+        $config = $this->getDbConfig($name);
         $type = $config['type'];
 
         // Next we will check to see if a type extension has been registered for a service type
-        // and will call the Closure if so, which allows us to have a more generic
+        // and will call the factory Closure if so, which allows us to have a more generic
         // resolver for the service types themselves which applies to all services.
-        if (isset($this->extensions[$type])) {
-            return call_user_func($this->extensions[$type], $config, $name);
+        if (isset($this->types[$type])) {
+            return $this->types[$type]->make($name, $config);
         }
-
-        return $this->factory->make($config, $name);
+        
+        throw new InvalidArgumentException("Unsupported service type '$type'.");
     }
 
     /**
-     * Get the configuration for a connection.
+     * Get the configuration for a service.
      *
      * @param  string $name
      *
@@ -139,24 +139,41 @@ class ServiceManager
             throw new InvalidArgumentException("Service 'name' can not be empty.");
         }
 
+        $services = $this->app['config']['df.service'];
+
+        return array_get($services, $name);
+    }
+
+    /**
+     * Get the configuration for a service.
+     *
+     * @param  string $name
+     *
+     * @return array
+     *
+     * @throws \InvalidArgumentException
+     */
+    protected function getDbConfig($name)
+    {
+        if (empty($name)) {
+            throw new InvalidArgumentException("Service 'name' can not be empty.");
+        }
+
         $config = Service::getCachedByName($name);
 
         return $config;
     }
 
     /**
-     * Register a service extension resolver.
+     * Register a service type extension resolver.
      *
-     * @param  string                    $name
-     * @param  callable                  $resolver
-     * @param  ServiceTypeInterface|null $type_config
+     * @param  ServiceTypeInterface|null $type
      *
      * @return void
      */
-    public function extend($name, callable $resolver, $type_config = null)
+    public function addType(ServiceTypeInterface $type)
     {
-        $this->types[$name] = $type_config;
-        $this->extensions[$name] = $resolver;
+        $this->types[$type->getName()] = $type;
     }
 
     /**

@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Library\Utility\Scalar;
+
 /**
  * Abstract class for command executed engines, i.e. those outside of PHP control
  */

@@ -81,22 +81,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // Service Types
-        Schema::create(
-            'service_type',
-            function (Blueprint $t){
-                $t->string('name', 40)->primary();
-                $t->string('class_name');
-                $t->string('config_handler')->nullable();
-                $t->string('label', 80);
-                $t->string('description')->nullable();
-                $t->string('group')->nullable();
-                $t->boolean('singleton')->default(0);
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
-            }
-        );
-
         // System Resources
         Schema::create(
             'system_resource',
@@ -122,7 +106,6 @@ class CreateSystemTables extends Migration
                 $t->string('description')->nullable();
                 $t->boolean('is_active')->default(0);
                 $t->string('type', 40);
-                $t->foreign('type')->references('name')->on('service_type')->onDelete('cascade');
                 $t->boolean('mutable')->default(1);
                 $t->boolean('deletable')->default(1);
                 $t->timestamp('created_date');
@@ -623,8 +606,6 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('db_field_extras');
         // System Resources
         Schema::dropIfExists('system_resource');
-        // Service Types
-        Schema::dropIfExists('service_type');
         //Cors config table
         Schema::dropIfExists('cors_config');
         //Email service config table

@@ -5,10 +5,10 @@ namespace DreamFactory\Core\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see DreamFactory\Core\Services\ServiceManager
- * @see DreamFactory\Core\Contracts\ServiceInterface
+ * @see DreamFactory\Core\Scripting\ScriptEngineManager
+ * @see DreamFactory\Core\Contracts\ScriptEngineInterface
  */
-class ServiceManager extends Facade
+class ScriptEngineManager extends Facade
 {
     /**
      * Get the registered name of the component.
@@ -17,6 +17,6 @@ class ServiceManager extends Facade
      */
     protected static function getFacadeAccessor()
     {
-        return 'df.service';
+        return 'df.script';
     }
 }

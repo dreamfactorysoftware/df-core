@@ -1,12 +1,23 @@
 <?php
 
-namespace DreamFactory\Core\Components;
+namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
+use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Models\FilePublicPath;
+use DreamFactory\Core\Models\LocalEmailConfig;
+use DreamFactory\Core\Models\MailGunConfig;
+use DreamFactory\Core\Models\MandrillConfig;
+use DreamFactory\Core\Models\ScriptConfig;
+use DreamFactory\Core\Models\SmtpConfig;
+use DreamFactory\Core\Services\Email\Local;
+use DreamFactory\Core\Services\Email\MailGun;
+use DreamFactory\Core\Services\Email\Mandrill;
+use DreamFactory\Core\Services\Email\Smtp;
 use DreamFactory\Core\Utility\ServiceRequest;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use InvalidArgumentException;
@@ -49,6 +60,102 @@ class ServiceManager
     public function __construct($app)
     {
         $this->app = $app;
+        // Add our service types.
+        $types = [
+            [
+                'name'        => 'system',
+                'label'       => 'System Management Service',
+                'description' => 'Service supporting management of the system.',
+                'group'       => ServiceTypeGroups::SYSTEM,
+                'singleton'   => true,
+                'factory'     => function ($config){
+                    return new System($config);
+                },
+            ],
+            [
+                'name'        => 'swagger',
+                'label'       => 'Swagger API Docs',
+                'description' => 'API documenting and testing service using Swagger specifications.',
+                'group'       => ServiceTypeGroups::API_DOC,
+                'singleton'   => true,
+                'factory'     => function ($config){
+                    return new Swagger($config);
+                },
+            ],
+            [
+                'name'        => 'event',
+                'label'       => 'Event Service',
+                'description' => 'Service that allows clients to subscribe to system broadcast events.',
+                'group'       => ServiceTypeGroups::EVENT,
+                'singleton'   => true,
+                'factory'     => function ($config){
+                    return new Event($config);
+                },
+            ],
+            [
+                'name'           => 'script',
+                'label'          => 'Custom Scripting Service',
+                'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
+                'group'          => ServiceTypeGroups::CUSTOM,
+                'config_handler' => ScriptConfig::class,
+                'factory'        => function ($config){
+                    return new Script($config);
+                },
+            ],
+            [
+                'name'           => 'local_file',
+                'label'          => 'Local File Service',
+                'description'    => 'File service supporting the local file system.',
+                'group'          => ServiceTypeGroups::FILE,
+                'config_handler' => FilePublicPath::class,
+                'factory'        => function ($config){
+                    return new LocalFileService($config);
+                },
+            ],
+            [
+                'name'           => 'local_email',
+                'label'          => 'Local Email Service',
+                'description'    => 'Local email service using system configuration.',
+                'group'          => ServiceTypeGroups::EMAIL,
+                'config_handler' => LocalEmailConfig::class,
+                'factory'        => function ($config){
+                    return new Local($config);
+                },
+            ],
+            [
+                'name'           => 'smtp_email',
+                'label'          => 'SMTP Email Service',
+                'description'    => 'SMTP-based email service',
+                'group'          => ServiceTypeGroups::EMAIL,
+                'config_handler' => SmtpConfig::class,
+                'factory'        => function ($config){
+                    return new Smtp($config);
+                },
+            ],
+            [
+                'name'           => 'mailgun_email',
+                'label'          => 'Mailgun Email Service',
+                'description'    => 'Mailgun email service',
+                'group'          => ServiceTypeGroups::EMAIL,
+                'config_handler' => MailGunConfig::class,
+                'factory'        => function ($config){
+                    return new MailGun($config);
+                },
+            ],
+            [
+                'name'           => 'mandrill_email',
+                'label'          => 'Mandrill Email Service',
+                'description'    => 'Mandrill email service',
+                'group'          => ServiceTypeGroups::EMAIL,
+                'config_handler' => MandrillConfig::class,
+                'factory'        => function ($config){
+                    return new Mandrill($config);
+                },
+            ],
+        ];
+        foreach ($types as $type) {
+            $this->addType(new ServiceType($type));
+        }
     }
 
     /**
@@ -120,7 +227,7 @@ class ServiceManager
         if (isset($this->types[$type])) {
             return $this->types[$type]->make($name, $config);
         }
-        
+
         throw new InvalidArgumentException("Unsupported service type '$type'.");
     }
 

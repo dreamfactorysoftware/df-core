@@ -15,7 +15,6 @@ class DatabaseSeeder extends Seeder
     {
         Model::unguard();
 
-        $this->call(ScriptTypeSeeder::class);
         $this->call(ServiceSeeder::class);
         $this->call(AdminSeeder::class);
         $this->call(DbTableExtrasSeeder::class);

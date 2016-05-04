@@ -1,25 +1,8 @@
 <?php
 
-namespace DreamFactory\Core\Components;
+namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Contracts\SystemResourceTypeInterface;
-use DreamFactory\Core\Resources\System\Admin;
-use DreamFactory\Core\Resources\System\App;
-use DreamFactory\Core\Resources\System\AppGroup;
-use DreamFactory\Core\Resources\System\Cache;
-use DreamFactory\Core\Resources\System\Config;
-use DreamFactory\Core\Resources\System\Constant;
-use DreamFactory\Core\Resources\System\Cors;
-use DreamFactory\Core\Resources\System\Custom;
-use DreamFactory\Core\Resources\System\EmailTemplate;
-use DreamFactory\Core\Resources\System\Environment;
-use DreamFactory\Core\Resources\System\Event;
-use DreamFactory\Core\Resources\System\Lookup;
-use DreamFactory\Core\Resources\System\Package;
-use DreamFactory\Core\Resources\System\Role;
-use DreamFactory\Core\Resources\System\ScriptType as ScriptTypeResource;
-use DreamFactory\Core\Resources\System\Service;
-use DreamFactory\Core\Resources\System\ServiceType as ServiceTypeResource;
 
 class SystemResourceManager
 {
@@ -120,14 +103,14 @@ class SystemResourceManager
                 'name'        => 'service_type',
                 'label'       => 'Service Types',
                 'description' => 'Read-only system service types.',
-                'class_name'  => ServiceTypeResource::class,
+                'class_name'  => ServiceType::class,
                 'read_only'   => true,
             ],
             [
                 'name'        => 'script_type',
                 'label'       => 'Script Types',
                 'description' => 'Read-only system scripting types.',
-                'class_name'  => ScriptTypeResource::class,
+                'class_name'  => ScriptType::class,
                 'read_only'   => true,
             ],
             [

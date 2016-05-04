@@ -19,7 +19,7 @@ class Python extends ExecutedEngine
         if (!isset($settings['command_path'])) {
             $settings['command_path'] = config('df.scripting.python_path');
         }
-        if (!isset($settings['file_extension'])){
+        if (!isset($settings['file_extension'])) {
             $settings['file_extension'] = 'py';
         }
         if (!isset($settings['supports_inline_execution'])) {
@@ -72,5 +72,11 @@ python;
         $enrobedScript = trim($enrobedScript);
 
         return $enrobedScript;
+    }
+
+    /** @inheritdoc */
+    protected function checkOutputStringForData($output)
+    {
+        return ((strlen($output) > 10) && (false !== strpos($output, 'request')));
     }
 }

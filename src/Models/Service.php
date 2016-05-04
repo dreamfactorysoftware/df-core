@@ -184,7 +184,7 @@ class Service extends BaseSystemModel
         // set the config giving the service id and new config
         $serviceCfg = $this->getConfigHandler();
         if (!empty($serviceCfg)) {
-            return $serviceCfg::getConfig($this->getKey());
+            $this->config = $serviceCfg::getConfig($this->getKey());
         }
 
         return $this->config;

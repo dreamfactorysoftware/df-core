@@ -5,7 +5,7 @@ namespace DreamFactory\Core\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see DreamFactory\Core\Components\SystemResourceManager
+ * @see DreamFactory\Core\Resources\System\SystemResourceManager
  * @see DreamFactory\Core\Contracts\SystemResourceInterface
  */
 class SystemResourceManager extends Facade

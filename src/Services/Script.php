@@ -135,7 +135,12 @@ class Script extends BaseRestService
         // check for directly returned results, otherwise check for "response"
         $response = (isset($result['script_result']) ? $result['script_result'] : null);
         if (isset($response, $response['error'])) {
-            throw new InternalServerErrorException($response['error']);
+            if (is_array($response['error'])) {
+                $msg = array_get($response, 'error.message');
+            } else {
+                $msg = $response['error'];
+            }
+            throw new InternalServerErrorException($msg);
         }
 
         if (empty($response)) {

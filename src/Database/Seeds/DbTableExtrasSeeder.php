@@ -13,7 +13,6 @@ use DreamFactory\Core\Models\Lookup;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\RoleLookup;
 use DreamFactory\Core\Models\RoleServiceAccess;
-use DreamFactory\Core\Models\ScriptType;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\ServiceDoc;
 use DreamFactory\Core\Models\SystemCustom;
@@ -75,10 +74,6 @@ class DbTableExtrasSeeder extends BaseModelSeeder
         [
             'table' => 'app_to_app_group',
             'model' => AppToAppGroup::class
-        ],
-        [
-            'table' => 'script_type',
-            'model' => ScriptType::class,
         ],
         [
             'table' => 'event_script',

@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
+use ScriptEngineManager;
 
 /**
  * EventScript
@@ -77,25 +78,28 @@ class EventScript extends BaseModel
     }
 
     /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function scriptType()
-    {
-        return $this->belongsTo(ScriptType::class, 'type', 'name');
-    }
-
-    /**
      * Determine the handler for the script type
      *
      * @return string|null
      */
     protected function getScriptHandler()
     {
-        if (null !== $typeInfo = $this->scriptType()->first()) {
-            // lookup related script type model
-            return $typeInfo->class_name;
+        if (null !== $typeInfo = ScriptEngineManager::getScriptEngineType($this->type)) {
+            return $typeInfo->getClassName();
         }
 
         return null;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getEngineAttribute()
+    {
+        if (null !== $typeInfo = ScriptEngineManager::getScriptEngineType($this->type)) {
+            $this->engine = $typeInfo->toArray();
+        }
+
+        return $this->engine;
     }
 }

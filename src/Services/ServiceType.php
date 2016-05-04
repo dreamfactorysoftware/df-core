@@ -1,5 +1,5 @@
 <?php
-namespace DreamFactory\Core\Components;
+namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
 use DreamFactory\Core\Contracts\ServiceInterface;

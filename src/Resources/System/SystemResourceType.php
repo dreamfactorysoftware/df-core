@@ -1,5 +1,5 @@
 <?php
-namespace DreamFactory\Core\Components;
+namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Contracts\SystemResourceInterface;
 use DreamFactory\Core\Contracts\SystemResourceTypeInterface;

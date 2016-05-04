@@ -146,11 +146,13 @@ class FileUtilities
     {
         if (is_file($file)) {
             $ext = FileUtilities::getFileExtension($file);
-            $disposition = ($download) ? 'attachment' : 'inline';
+            $disposition = ($download) ? 'attachment; filename="' . basename($file) . '";' : 'inline';
             header('Last-Modified: ' . gmdate('D, d M Y H:i:s \G\M\T', filemtime($file)));
             header('Content-Type: ' . FileUtilities::determineContentType($ext, '', $file));
             header('Content-Length:' . filesize($file));
-            header('Content-Disposition: ' . $disposition . '; filename="' . basename($file) . '";');
+            if ($download || 'html' !== $ext) {
+                header('Content-Disposition: ' . $disposition);
+            }
             header('Cache-Control: private'); // use this to open files directly
             header('Expires: 0');
             header('Pragma: public');
@@ -1343,7 +1345,7 @@ class FileUtilities
         if (file_exists($path)) {
             $subject = file_get_contents($path);
 
-            foreach ($settings as $key => $value){
+            foreach ($settings as $key => $value) {
                 // Uncomment if any of keys are commented out by default.
                 $subject = str_replace(['#' . $key, '##$key'], $key, $subject);
             }

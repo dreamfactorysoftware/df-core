@@ -4,11 +4,13 @@ namespace DreamFactory\Core\Components;
 use DreamFactory\Core\Database\ColumnSchema;
 use DreamFactory\Core\Database\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Enums\DbComparisonOperators;
+use DreamFactory\Core\Enums\DbLogicalOperators;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\Session as SessionUtility;
-use DreamFactory\Library\Utility\ArrayUtils;
+use Config;
 
 /**
  * Class DbRequestCriteria
@@ -120,86 +122,62 @@ trait DbRequestCriteria
     protected function convertFilterToNative($filter, $params = [], $ss_filters = [], $avail_fields = [])
     {
         // interpret any parameter values as lookups
-        $params = ArrayUtils::clean(static::interpretRecordValues($params));
+        $params = (is_array($params) ? static::interpretRecordValues($params) : []);
+        $serverFilter = $this->buildQueryStringFromData($ss_filters);
 
-        if (!is_array($filter)) {
-            SessionUtility::replaceLookups($filter);
-            $filterString = '';
-            $clientFilter = $this->parseFilterString($filter, $params, $avail_fields);
-            if (!empty($clientFilter)) {
-                $filterString = $clientFilter;
-            }
-            $serverFilter = $this->buildQueryStringFromData($ss_filters, $params);
+        $outParams = [];
+        if (empty($filter)) {
+            $filter = $serverFilter;
+        } elseif (is_string($filter)) {
             if (!empty($serverFilter)) {
-                if (empty($filterString)) {
-                    $filterString = $serverFilter;
-                } else {
-                    $filterString = '(' . $filterString . ') AND (' . $serverFilter . ')';
-                }
+                $filter = '(' . $filter . ') ' . DbLogicalOperators::AND_STR . ' (' . $serverFilter . ')';
             }
-
-            return ['where' => $filterString, 'params' => $params];
-        } else {
+        } elseif (is_array($filter)) {
             // todo parse client filter?
-            $filterArray = $filter;
-            $serverFilter = $this->buildQueryStringFromData($ss_filters, $params);
+            $filter = '';
             if (!empty($serverFilter)) {
-                if (empty($filter)) {
-                    $filterArray = $serverFilter;
-                } else {
-                    $filterArray = ['AND', $filterArray, $serverFilter];
-                }
+                $filter = '(' . $filter . ') ' . DbLogicalOperators::AND_STR . ' (' . $serverFilter . ')';
             }
-
-            return ['where' => $filterArray, 'params' => $params];
         }
+
+        SessionUtility::replaceLookups($filter);
+        $filterString = $this->parseFilterString($filter, $outParams, $avail_fields, $params);
+
+        return ['where' => $filterString, 'params' => $outParams];
     }
 
     /**
      * @param       $filter_info
-     * @param array $params
      *
      * @return null|string
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
-    protected function buildQueryStringFromData($filter_info, array &$params)
+    protected function buildQueryStringFromData($filter_info)
     {
-        $filter_info = ArrayUtils::clean($filter_info);
-        $filters = ArrayUtils::get($filter_info, 'filters');
+        $filters = array_get($filter_info, 'filters');
         if (empty($filters)) {
             return null;
         }
 
         $sql = '';
-        $combiner = ArrayUtils::get($filter_info, 'filter_op', 'and');
+        $combiner = array_get($filter_info, 'filter_op', DbLogicalOperators::AND_STR);
         foreach ($filters as $key => $filter) {
             if (!empty($sql)) {
                 $sql .= " $combiner ";
             }
 
-            $name = ArrayUtils::get($filter, 'name');
-            $op = ArrayUtils::get($filter, 'operator');
-            $value = ArrayUtils::get($filter, 'value');
-            $value = static::interpretFilterValue($value);
-
+            $name = array_get($filter, 'name');
+            $op = strtoupper(array_get($filter, 'operator'));
             if (empty($name) || empty($op)) {
                 // log and bail
                 throw new InternalServerErrorException('Invalid server-side filter configuration detected.');
             }
 
-            switch ($op) {
-                case 'is null':
-                case 'is not null':
-                    $sql .= "$name $op";
-//                    $sql .= $this->dbConn->quoteColumnName($name) . " $op";
-                    break;
-                default:
-                    $paramName = ':ssf_' . $name . '_' . $key;
-                    $params[$paramName] = $value;
-                    $value = $paramName;
-                    $sql .= "$name $op $value";
-//                    $sql .= $this->dbConn->quoteColumnName($name) . " $op $value";
-                    break;
+            if (DbComparisonOperators::requiresNoValue($op)) {
+                $sql .= "($name $op)";
+            } else {
+                $value = array_get($filter, 'value');
+                $sql .= "($name $op $value)";
             }
         }
 
@@ -207,55 +185,57 @@ trait DbRequestCriteria
     }
 
     /**
-     * @param  string         $filter
-     * @param  array          $params
-     * @param  ColumnSchema[] $fields_info
+     * @param string         $filter
+     * @param array          $out_params
+     * @param ColumnSchema[] $fields_info
+     * @param array          $in_params
      *
      * @return string
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \Exception
      */
-    protected function parseFilterString($filter, array &$params, $fields_info)
+    protected function parseFilterString($filter, array &$out_params, $fields_info, array $in_params = [])
     {
         if (empty($filter)) {
             return null;
         }
 
-        $search = [' or ', ' and ', ' nor '];
-        $replace = [' OR ', ' AND ', ' NOR '];
-        $filter = trim(str_ireplace($search, $replace, $filter));
-
+        $filter = trim($filter);
+        // todo use smarter regex
         // handle logical operators first
-        $ops = array_map('trim', explode(' OR ', $filter));
-        if (count($ops) > 1) {
-            $parts = [];
-            foreach ($ops as $op) {
-                $parts[] = static::parseFilterString($op, $params, $fields_info);
-            }
+        $logicalOperators = DbLogicalOperators::getDefinedConstants();
+        foreach ($logicalOperators as $logicalOp) {
+            if (DbLogicalOperators::NOT_STR === $logicalOp) {
+                // NOT(a = 1)  or NOT (a = 1)format
+                if ((0 === stripos($filter, $logicalOp . ' (')) || (0 === stripos($filter, $logicalOp . '('))) {
+                    $parts = trim(substr($filter, 3));
+                    $parts = $this->parseFilterString($parts, $out_params, $fields_info, $in_params);
 
-            return implode(' OR ', $parts);
+                    return static::localizeOperator($logicalOp) . $parts;
+                }
+            } else {
+                // (a = 1) AND (b = 2) format or (a = 1)AND(b = 2) format
+                $filter = str_ireplace(')' . $logicalOp . '(', ') ' . $logicalOp . ' (', $filter);
+                $paddedOp = ') ' . $logicalOp . ' (';
+                if (false !== $pos = stripos($filter, $paddedOp)) {
+                    $left = trim(substr($filter, 0, $pos)) . ')'; // add back right )
+                    $right = '(' . trim(substr($filter, $pos + strlen($paddedOp))); // adding back left (
+                    $left = $this->parseFilterString($left, $out_params, $fields_info, $in_params);
+                    $right = $this->parseFilterString($right, $out_params, $fields_info, $in_params);
+
+                    return $left . ' ' . static::localizeOperator($logicalOp) . ' ' . $right;
+                }
+            }
         }
 
-        $ops = array_map('trim', explode(' NOR ', $filter));
-        if (count($ops) > 1) {
-            $parts = [];
-            foreach ($ops as $op) {
-                $parts[] = static::parseFilterString($op, $params, $fields_info);
-            }
-
-            return implode(' NOR ', $parts);
+        $wrap = false;
+        if ((0 === strpos($filter, '(')) && ((strlen($filter) - 1) === strrpos($filter, ')'))) {
+            // remove unnecessary wrapping ()
+            $filter = substr($filter, 1, -1);
+            $wrap = true;
         }
 
-        $ops = array_map('trim', explode(' AND ', $filter));
-        if (count($ops) > 1) {
-            $parts = [];
-            foreach ($ops as $op) {
-                $parts[] = static::parseFilterString($op, $params, $fields_info);
-            }
-
-            return implode(' AND ', $parts);
-        }
-
+        // Some scenarios leave extra parens dangling
         $pure = trim($filter, '()');
         $pieces = explode($pure, $filter);
         $leftParen = (!empty($pieces[0]) ? $pieces[0] : null);
@@ -263,101 +243,77 @@ trait DbRequestCriteria
         $filter = $pure;
 
         // the rest should be comparison operators
-        $search = [' eq ', ' ne ', ' gte ', ' lte ', ' gt ', ' lt ', ' in ', ' all ', ' like ', ' <> '];
-        $replace = ['=', '!=', '>=', '<=', '>', '<', ' IN ', ' ALL ', ' LIKE ', '!='];
-        $filter = trim(str_ireplace($search, $replace, $filter));
-
         // Note: order matters here!
-        $sqlOperators = ['!=', '>=', '<=', '=', '>', '<', ' IN ', ' ALL ', ' LIKE '];
+        $sqlOperators = DbComparisonOperators::getParsingOrder();
         foreach ($sqlOperators as $sqlOp) {
-            $ops = explode($sqlOp, $filter);
-            switch (count($ops)) {
-                case 2:
-                    $field = trim($ops[0]);
-                    $negate = false;
-                    if (false !== strpos($field, ' ')) {
-                        $parts = explode(' ', $field);
-                        if ((count($parts) > 2) || (0 !== strcasecmp($parts[1], 'not'))) {
-                            // invalid field side of operator
-                            throw new BadRequestException('Invalid or unparsable field in filter request.');
-                        }
-                        $field = $parts[0];
+            $paddedOp = static::padOperator($sqlOp);
+            if (false !== $pos = stripos($filter, $paddedOp)) {
+                $field = trim(substr($filter, 0, $pos));
+                $negate = false;
+                if (false !== strpos($field, ' ')) {
+                    $parts = explode(' ', $field);
+                    $partsCount = count($parts);
+                    if (($partsCount > 1) &&
+                        (0 === strcasecmp($parts[$partsCount - 1], trim(DbLogicalOperators::NOT_STR)))
+                    ) {
+                        // negation on left side of operator
+                        array_pop($parts);
+                        $field = implode(' ', $parts);
                         $negate = true;
                     }
-                    /** @type ColumnSchema $info */
-                    if (null === $info = ArrayUtils::get($fields_info, strtolower($field))) {
-                        // This could be SQL injection attempt or bad field
-                        throw new BadRequestException('Invalid or unparsable field in filter request.');
+                }
+                /** @type ColumnSchema $info */
+                if (null === $info = array_get($fields_info, strtolower($field))) {
+                    // This could be SQL injection attempt or bad field
+                    throw new BadRequestException("Invalid or unparsable field in filter request: '$field'");
+                }
+
+                // make sure we haven't chopped off right side too much
+                $value = trim(substr($filter, $pos + strlen($paddedOp)));
+                if ((0 !== strpos($value, "'")) &&
+                    (0 !== $lpc = substr_count($value, '(')) &&
+                    ($lpc !== $rpc = substr_count($value, ')'))
+                ) {
+                    // add back to value from right
+                    $parenPad = str_repeat(')', $lpc - $rpc);
+                    $value .= $parenPad;
+                    $rightParen = preg_replace('/\)/', '', $rightParen, $lpc - $rpc);
+                }
+                if (DbComparisonOperators::requiresValueList($sqlOp)) {
+                    if ((0 === strpos($value, '(')) && ((strlen($value) - 1) === strrpos($value, ')'))) {
+                        // remove wrapping ()
+                        $value = substr($value, 1, -1);
+                        $parsed = [];
+                        foreach (explode(',', $value) as $each) {
+                            $parsed[] = $this->parseFilterValue(trim($each), $info, $out_params, $in_params);
+                        }
+                        $value = '(' . implode(',', $parsed) . ')';
+                    } else {
+                        throw new BadRequestException('Filter value lists must be wrapped in parentheses.');
                     }
+                } elseif (DbComparisonOperators::requiresNoValue($sqlOp)) {
+                    $value = null;
+                } else {
+                    static::modifyValueByOperator($sqlOp, $value);
+                    $value = $this->parseFilterValue($value, $info, $out_params, $in_params);
+                }
 
-                    $value = trim($ops[1]);
-                    switch ($sqlOp) {
-                        case ' IN ':
-                        case ' ALL ':
-                            $value = trim($value, '()[]');
-                            $parsed = [];
-                            foreach (explode(',', $value) as $each) {
-                                $parsed[] = $this->parseFilterValue($each, $info, $params);
-                            }
-                            $value = '(' . implode(',', $parsed) . ')';
-                            break;
-                        default:
-                            $value = $this->parseFilterValue($value, $info, $params);
-                            break;
-                    }
+                $sqlOp = static::localizeOperator($sqlOp);
+                if ($negate) {
+                    $sqlOp = DbLogicalOperators::NOT_STR . ' ' . $sqlOp;
+                }
 
-                    if ($negate) {
-                        $sqlOp = 'NOT ' . $sqlOp;
-                    }
+                $out = $info->parseFieldForFilter(true) . " $sqlOp";
+                $out .= (isset($value) ? " $value" : null);
+                if ($leftParen) {
+                    $out = $leftParen . $out;
+                }
+                if ($rightParen) {
+                    $out .= $rightParen;
+                }
 
-                    $out = "{$info->rawName} $sqlOp $value";
-                    if ($leftParen) {
-                        $out = $leftParen . $out;
-                    }
-                    if ($rightParen) {
-                        $out .= $rightParen;
-                    }
-
-                    return $out;
+                return ($wrap ? '(' . $out . ')' : $out);
             }
-        }
-
-        if (0 === strcasecmp(' IS NULL', substr($filter, -8))) {
-            $field = trim(substr($filter, 0, -8));
-            /** @type ColumnSchema $info */
-            if (null === $info = ArrayUtils::get($fields_info, strtolower($field))) {
-                // This could be SQL injection attempt or bad field
-                throw new BadRequestException('Invalid or unparsable field in filter request.');
-            }
-
-            $out = $info->rawName . ' IS NULL';
-            if ($leftParen) {
-                $out = $leftParen . $out;
-            }
-            if ($rightParen) {
-                $out .= $rightParen;
-            }
-
-            return $out;
-        }
-
-        if (0 === strcasecmp(' IS NOT NULL', substr($filter, -12))) {
-            $field = trim(substr($filter, 0, -12));
-            /** @type ColumnSchema $info */
-            if (null === $info = ArrayUtils::get($fields_info, strtolower($field))) {
-                // This could be SQL injection attempt or bad field
-                throw new BadRequestException('Invalid or unparsable field in filter request.');
-            }
-
-            $out = $info->rawName . ' IS NOT NULL';
-            if ($leftParen) {
-                $out = $leftParen . $out;
-            }
-            if ($rightParen) {
-                $out .= $rightParen;
-            }
-
-            return $out;
         }
 
         // This could be SQL injection attempt or unsupported filter arrangement
@@ -367,67 +323,139 @@ trait DbRequestCriteria
     /**
      * @param mixed        $value
      * @param ColumnSchema $info
-     * @param array        $params
+     * @param array        $out_params
+     * @param array        $in_params
      *
      * @return int|null|string
      * @throws BadRequestException
      */
-    protected function parseFilterValue($value, ColumnSchema $info, array &$params)
+    protected function parseFilterValue($value, ColumnSchema $info, array &$out_params, array $in_params = [])
     {
-        if (0 !== strpos($value, ':')) {
-            // remove quoting on strings if used, i.e. 1.x required them
-            if (is_string($value) &&
-                ((0 === strcmp("'" . trim($value, "'") . "'", $value)) ||
-                    (0 === strcmp('"' . trim($value, '"') . '"', $value)))
-            ) {
-                $value = trim($value, '"\'');
+        // if a named replacement parameter, un-name it because Laravel can't handle named parameters
+        if (is_array($in_params) && (0 === strpos($value, ':'))) {
+            if (array_key_exists($value, $in_params)) {
+                $value = $in_params[$value];
             }
-
-            // if not already a replacement parameter, evaluate it
-//            $value = $this->dbConn->getSchema()->parseValueForSet($value, $info);
-
-            switch ($cnvType = $info->determinePhpConversionType($info->type)) {
-                case 'int':
-                    if (!is_int($value)) {
-                        if (!(ctype_digit($value))) {
-                            throw new BadRequestException("Field '{$info->getName(true)}' must be a valid integer.");
-                        } else {
-                            $value = intval($value);
-                        }
-                    }
-                    break;
-
-                case 'time':
-                    $cfgFormat = \Config::get('df.db_time_format');
-                    $outFormat = 'H:i:s.u';
-                    $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
-                    break;
-                case 'date':
-                    $cfgFormat = \Config::get('df.db_date_format');
-                    $outFormat = 'Y-m-d';
-                    $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
-                    break;
-                case 'datetime':
-                    $cfgFormat = \Config::get('df.db_datetime_format');
-                    $outFormat = 'Y-m-d H:i:s';
-                    $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
-                    break;
-                case 'timestamp':
-                    $cfgFormat = \Config::get('df.db_timestamp_format');
-                    $outFormat = 'Y-m-d H:i:s';
-                    $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
-                    break;
-
-                default:
-                    break;
-            }
-
-            $paramName = ':cf_' . count($params); // positionally unique
-            $params[$paramName] = $value;
-            $value = $paramName;
         }
 
+        // remove quoting on strings if used, i.e. 1.x required them
+        if (is_string($value)) {
+
+            if ((0 === strcmp("'" . trim($value, "'") . "'", $value)) ||
+                (0 === strcmp('"' . trim($value, '"') . '"', $value))
+            ) {
+                $value = substr($value, 1, -1);
+            } elseif ((0 === strpos($value, '(')) && ((strlen($value) - 1) === strrpos($value, ')'))) {
+                // function call
+                return $value;
+            }
+        }
+        // if not already a replacement parameter, evaluate it
+//            $value = $this->dbConn->getSchema()->parseValueForSet($value, $info);
+
+        switch ($cnvType = $info->determinePhpConversionType($info->type)) {
+            case 'int':
+                if (!is_int($value)) {
+                    if (!(ctype_digit($value))) {
+                        throw new BadRequestException("Field '{$info->getName(true)}' must be a valid integer.");
+                    } else {
+                        $value = intval($value);
+                    }
+                }
+                break;
+
+            case 'time':
+                $cfgFormat = Config::get('df.db_time_format');
+                $outFormat = 'H:i:s.u';
+                $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
+                break;
+            case 'date':
+                $cfgFormat = Config::get('df.db_date_format');
+                $outFormat = 'Y-m-d';
+                $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
+                break;
+            case 'datetime':
+                $cfgFormat = Config::get('df.db_datetime_format');
+                $outFormat = 'Y-m-d H:i:s';
+                $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
+                break;
+            case 'timestamp':
+                $cfgFormat = Config::get('df.db_timestamp_format');
+                $outFormat = 'Y-m-d H:i:s';
+                $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
+                break;
+
+            default:
+                break;
+        }
+
+        $out_params[] = $value;
+        $value = '?';
+
         return $value;
+    }
+
+
+    public static function padOperator($operator)
+    {
+        if (ctype_alpha($operator)) {
+            if (DbComparisonOperators::requiresNoValue($operator)) {
+                return ' ' . $operator;
+            }
+
+            return ' ' . $operator . ' ';
+        }
+
+        return $operator;
+    }
+
+    public static function localizeOperator($operator)
+    {
+        switch ($operator) {
+            // Logical
+            case DbLogicalOperators::AND_SYM:
+                return DbLogicalOperators::AND_STR;
+            case DbLogicalOperators::OR_SYM:
+                return DbLogicalOperators::OR_STR;
+            // Comparison
+            case DbComparisonOperators::EQ_STR:
+                return DbComparisonOperators::EQ;
+            case DbComparisonOperators::NE_STR:
+                return DbComparisonOperators::NE;
+            case DbComparisonOperators::NE_2:
+                return DbComparisonOperators::NE;
+            case DbComparisonOperators::GT_STR:
+                return DbComparisonOperators::GT;
+            case DbComparisonOperators::GTE_STR:
+                return DbComparisonOperators::GTE;
+            case DbComparisonOperators::LT_STR:
+                return DbComparisonOperators::LT;
+            case DbComparisonOperators::LTE_STR:
+                return DbComparisonOperators::LTE;
+            // Value-Modifying Operators
+            case DbComparisonOperators::CONTAINS:
+            case DbComparisonOperators::STARTS_WITH:
+            case DbComparisonOperators::ENDS_WITH:
+                return DbComparisonOperators::LIKE;
+            default:
+                return $operator;
+        }
+    }
+
+    public static function modifyValueByOperator($operator, &$value)
+    {
+        switch ($operator) {
+            // Value-Modifying Operators
+            case DbComparisonOperators::CONTAINS:
+                $value = '%'.$value.'%';
+                break;
+            case DbComparisonOperators::STARTS_WITH:
+                $value = $value.'%';
+                break;
+            case DbComparisonOperators::ENDS_WITH:
+                $value = '%'.$value;
+                break;
+        }
     }
 
     /**

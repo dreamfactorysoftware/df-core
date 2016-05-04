@@ -34,10 +34,6 @@ class ScriptEngineType implements ScriptEngineTypeInterface
      */
     protected $supportsInlineExecution = false;
     /**
-     * @var string Designated class for this script type, typically ties to database storage
-     */
-    protected $className = null;
-    /**
      * @var callable Designated callback for creating a service of this type
      */
     protected $factory = null;
@@ -94,16 +90,6 @@ class ScriptEngineType implements ScriptEngineTypeInterface
     }
 
     /**
-     * script type class name
-     *
-     * @return string
-     */
-    public function getClassName()
-    {
-        return $this->className;
-    }
-
-    /**
      * Is this script type only to be created once?
      *
      * @return boolean
@@ -124,16 +110,15 @@ class ScriptEngineType implements ScriptEngineTypeInterface
     }
 
     /**
-     * The configuration handler interface for this script type
+     * The factory callable for this script type
      *
-     * @param string $name
-     * @param array  $config
+     * @param array $config
      *
      * @return ScriptingEngineInterface|null
      */
-    public function make($name, array $config = [])
+    public function make(array $config = [])
     {
-        return call_user_func($this->factory, $config, $name);
+        return call_user_func($this->factory, $config);
     }
 
     /**
@@ -144,12 +129,11 @@ class ScriptEngineType implements ScriptEngineTypeInterface
     public function toArray()
     {
         return [
-            'name'        => $this->name,
-            'label'       => $this->label,
-            'description' => $this->description,
-            'class_name'  => $this->className,
-            'sandboxed'   => $this->sandboxed,
-            'supports_inline_execution'   => $this->supportsInlineExecution,
+            'name'                      => $this->name,
+            'label'                     => $this->label,
+            'description'               => $this->description,
+            'sandboxed'                 => $this->sandboxed,
+            'supports_inline_execution' => $this->supportsInlineExecution,
         ];
     }
 }

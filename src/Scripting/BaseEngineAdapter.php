@@ -4,19 +4,22 @@ namespace DreamFactory\Core\Scripting;
 use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Events\Exceptions\ScriptException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use Cache;
+use Config;
 use Log;
 use ServiceManager;
 
 /**
  * Allows platform access to a scripting engine
  */
-abstract class BaseEngineAdapter
+abstract class BaseEngineAdapter implements ScriptingEngineInterface
 {
     //*************************************************************************
     //	Constants
@@ -39,10 +42,6 @@ abstract class BaseEngineAdapter
      * @var array The list of registered/known libraries
      */
     protected static $libraries = [];
-    /**
-     * @var ScriptingEngineInterface The engine
-     */
-    protected $engine;
 
     //*************************************************************************
     //	Methods
@@ -55,8 +54,6 @@ abstract class BaseEngineAdapter
      */
     public function __construct(array $settings = [])
     {
-        //  Save off the engine
-        $this->engine = array_get($settings, 'engine', $this->engine);
     }
 
     /**
@@ -78,8 +75,85 @@ abstract class BaseEngineAdapter
      */
     public static function shutdown()
     {
-        \Cache::add('scripting.library_paths', static::$libraryPaths, static::DEFAULT_CACHE_TTL);
-        \Cache::add('scripting.libraries', static::$libraries, static::DEFAULT_CACHE_TTL);
+        Cache::add('scripting.library_paths', static::$libraryPaths, static::DEFAULT_CACHE_TTL);
+        Cache::add('scripting.libraries', static::$libraries, static::DEFAULT_CACHE_TTL);
+    }
+
+    /**
+     * Process a single script
+     *
+     * @param string $path            The path/to/the/script to read and execute
+     * @param string $identifier      A string identifying this script
+     * @param array  $data            An array of information about the event triggering this script
+     * @param array  $engineArguments An array of arguments to pass when executing the string
+     *
+     * @return mixed
+     */
+    public function executeScript($path, $identifier, array &$data = [], array $engineArguments = [])
+    {
+    }
+
+    /**
+     * Process a single script
+     *
+     * @param string $path            The path/to/the/script to read and execute
+     * @param string $identifier      A string identifying this script
+     * @param array  $data            An array of information about the event triggering this script
+     * @param array  $engineArguments An array of arguments to pass when executing the string
+     *
+     * @return mixed
+     */
+    public function executeString($path, $identifier, array &$data = [], array $engineArguments = [])
+    {
+    }
+
+    /**
+     * @param string $script      The script to run or a script file name
+     * @param string $identifier  The name of this script
+     * @param array  $config      The config for this particular script
+     * @param array  $data        The additional data as it will be exposed to script
+     * @param string $output      Any output of the script
+     *
+     * @return array
+     * @throws ScriptException
+     * @throws ServiceUnavailableException
+     */
+    public function runScript(
+        $script,
+        $identifier,
+        array $config = [],
+        array &$data = [],
+        &$output = null
+    ){
+        $result = $message = false;
+
+        try {
+            //  Don't show output
+            ob_start();
+
+            if (is_file($script)) {
+                $result = $this->executeScript($script, $identifier, $data, $config);
+            } else {
+                $result = $this->executeString($script, $identifier, $data, $config);
+            }
+        } catch (ScriptException $ex) {
+            $message = $ex->getMessage();
+
+            \Log::error($message = "Exception executing script: $message");
+        }
+
+        //  Clean up
+        $output = ob_get_clean();
+
+        if (boolval(\Config::get('df.log_script_memory_usage', false))) {
+            \Log::debug('Engine memory usage: ' . static::resizeBytes(memory_get_usage(true)));
+        }
+
+        if (false !== $message) {
+            throw new ScriptException($message, $output);
+        }
+
+        return $result;
     }
 
     /**
@@ -125,8 +199,8 @@ abstract class BaseEngineAdapter
      */
     protected static function initializeLibraryPaths($libraryPaths = null)
     {
-        static::$libraryPaths = \Cache::get('scripting.library_paths', []);
-        static::$libraries = \Cache::get('scripting.libraries', []);
+        static::$libraryPaths = Cache::get('scripting.library_paths', []);
+        static::$libraries = Cache::get('scripting.libraries', []);
 
         //  Add ones from constructor
         $libraryPaths = (is_array($libraryPaths) ? $libraryPaths : []);
@@ -391,9 +465,26 @@ abstract class BaseEngineAdapter
     {
         return [
             'api'     => static::getExposedApi(),
-            'config'  => \Config::all(),
+            'config'  => Config::all(),
             'session' => Session::all(),
-            'store'   => new ScriptSession(\Config::get("script.$identifier.store"), app('cache'))
+            'store'   => new ScriptSession(Config::get("script.$identifier.store"), app('cache'))
         ];
+    }
+
+    /**
+     * Converts single bytes into proper form (kb, gb, mb, etc.) with precision 2 (i.e. 102400 > 100.00kb)
+     * Found on php.net's memory_usage page
+     *
+     * @param int $bytes
+     *
+     * @return string
+     */
+    public static function resizeBytes($bytes)
+    {
+        static $units = ['b', 'kb', 'mb', 'gb', 'tb', 'pb'];
+
+        /** @noinspection PhpIllegalArrayKeyTypeInspection */
+
+        return @round($bytes / pow(1024, ($i = floor(log($bytes, 1024)))), 2) . $units[$i];
     }
 }

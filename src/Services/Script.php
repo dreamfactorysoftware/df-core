@@ -8,9 +8,9 @@ use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\Scripting\ScriptEngineManager;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Log;
+use ScriptEngineManager;
 
 /**
  * Script
@@ -18,10 +18,6 @@ use Log;
  */
 class Script extends BaseRestService
 {
-    //*************************************************************************
-    //	Constants
-    //*************************************************************************
-
     //*************************************************************************
     //	Members
     //*************************************************************************
@@ -31,9 +27,9 @@ class Script extends BaseRestService
      */
     protected $content;
     /**
-     * @var array $engineConfig Configuration for the scripting engine used by the script
+     * @var string $engineType Type of the script
      */
-    protected $engineConfig;
+    protected $engineType;
     /**
      * @var array $scriptConfig Configuration for the engine for this particular script
      */
@@ -58,15 +54,17 @@ class Script extends BaseRestService
         $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config'));
         Session::replaceLookups($config, true);
 
-        if (null === ($this->content = ArrayUtils::get($config, 'content', null, true))) {
+        if (empty($this->content = array_get($config, 'content'))) {
 //            throw new \InvalidArgumentException('Script content can not be empty.');
         }
 
-        if (null === ($this->engineConfig = ArrayUtils::get($config, 'engine', null, true))) {
+        if (empty($this->engineType = array_get($config, 'type'))) {
             throw new \InvalidArgumentException('Script engine configuration can not be empty.');
         }
 
-        $this->scriptConfig = ArrayUtils::clean(ArrayUtils::get($config, 'config', [], true));
+        if (!is_array($this->scriptConfig = array_get($config, 'config', []))) {
+            $this->scriptConfig = [];
+        };
     }
 
     /**
@@ -98,10 +96,11 @@ class Script extends BaseRestService
 
         $logOutput = $this->request->getParameterAsBool('log_output', true);
         $output = null;
-        $result = ScriptEngineManager::runScript(
+        $engine = ScriptEngineManager::makeEngine($this->engineType, $this->scriptConfig);
+
+        $result = $engine->runScript(
             $this->content,
             'service.' . $this->name,
-            $this->engineConfig,
             $this->scriptConfig,
             $data,
             $output

@@ -27,6 +27,7 @@ class ScriptType extends BaseRestResource
     protected function handleGET()
     {
         if (!empty($this->resource)) {
+            /** @type ScriptEngineTypeInterface $type */
             if (null === $type = ScriptEngineManager::getScriptEngineType($this->resource)) {
                 throw new NotFoundException("Script engine type '{$this->resource}' not found.");
             }

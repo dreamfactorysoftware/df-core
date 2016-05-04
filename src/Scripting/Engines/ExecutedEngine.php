@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Scripting\Engines;
 
 use DreamFactory\Core\Components\PhpExecutable;
-use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Scripting\BaseEngineAdapter;
@@ -11,7 +10,7 @@ use \Log;
 /**
  * Abstract class for command executed engines, i.e. those outside of PHP control
  */
-abstract class ExecutedEngine extends BaseEngineAdapter implements ScriptingEngineInterface
+abstract class ExecutedEngine extends BaseEngineAdapter
 {
     use PhpExecutable;
 

@@ -32,13 +32,6 @@ interface ScriptEngineTypeInterface
     public function getDescription();
 
     /**
-     * Script engine type class handler
-     *
-     * @return string
-     */
-    public function getClassName();
-
-    /**
      * Does this script engine type not have access to the rest of the OS?
      *
      * @return boolean
@@ -51,6 +44,15 @@ interface ScriptEngineTypeInterface
      * @return boolean
      */
     public function supportsInlineExecution();
+
+    /**
+     * The factory interface for this script engine type
+     *
+     * @param array  $config
+     *
+     * @return \DreamFactory\Core\Contracts\ScriptingEngineInterface|null
+     */
+    public function make(array $config = []);
 
     /**
      * Return the script engine type information as an array.

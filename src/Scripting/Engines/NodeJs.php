@@ -65,6 +65,58 @@ _wrapperResult = (function() {
     var _event = {$jsonEvent};
     //noinspection JSUnresolvedVariable
     var _platform = {$jsonPlatform};
+    
+    var http = require('http');
+
+    var _options = {
+        host: _event.request.headers.host[0],
+        headers: {
+            'x-dreamfactory-api-key': _platform.session.api_key,
+            'x-dreamfactory-session-token': _platform.session.session_token 
+        }
+    };
+    
+    _platform.api = {
+        call: function (verb, path, payload, callback) {
+            _options.method = verb;
+            _options.path = path;
+    
+            if(typeof payload === 'object'){
+                payload = JSON.stringify(payload);
+            }
+    
+            var _callback = function (response) {
+                var body = '';
+    
+                response.on('data', function (chunk) {
+                    body += chunk;
+                });
+    
+                response.on('end', function () {
+                    callback(body, response);
+                });
+            };
+    
+            var request = http.request(_options, _callback);
+            request.write(payload);
+            request.end();
+        },
+        get: function (path, callback) {
+            this.call('GET', path, '', callback);
+        },
+        post: function (path, payload, callback) {
+            this.call('POST', path, payload, callback);
+        },
+        put: function (path, payload, callback) {
+            this.call('PUT', path, payload, callback);
+        },
+        patch: function (path, payload, callback) {
+            this.call('PATCH', path, payload, callback);
+        },
+        delete: function (path, payload, callback) {
+            this.call('DELETE', path, payload, callback);
+        }
+    };
 
 	try	{
         //noinspection JSUnresolvedVariable

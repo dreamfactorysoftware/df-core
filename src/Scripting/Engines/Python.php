@@ -53,11 +53,11 @@ class Python extends ExecutedEngine
 import httplib, json;
 from bunch import bunchify, unbunchify;
 
-event = $jsonEvent;
-platform = $jsonPlatform;
+eventJson = $jsonEvent;
+platformJson = $jsonPlatform;
 
-_event = bunchify(event);
-_platform = bunchify(platform);
+_event = bunchify(eventJson);
+_platform = bunchify(platformJson);
 
 __host = _event.request.headers.host[0];
 __headers = {
@@ -94,7 +94,7 @@ class Api:
 _platform.api = Api(__host, __headers);
 
 try:
-    def my_closure(_event, _platform):
+    def my_closure(event, platform):
 python;
         foreach ($scriptLines as $sl) {
             $enrobedScript .= "\n        " . $sl;

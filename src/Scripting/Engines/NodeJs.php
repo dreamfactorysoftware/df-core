@@ -69,6 +69,7 @@ _wrapperResult = (function() {
     var http = require('http');
 
     var _options = {
+        _protocol:'http://',
         host: _event.request.headers.host[0],
         headers: {
             'x-dreamfactory-api-key': _platform.session.api_key,
@@ -78,43 +79,81 @@ _wrapperResult = (function() {
     
     _platform.api = {
         call: function (verb, path, payload, callback) {
-            _options.method = verb;
-            _options.path = path;
+            if(callback === undefined) {
+                var httpSync = require('sync-request');
+                if (payload != undefined && payload != '') {
+                    if (typeof payload === 'string') {
+                        payload = JSON.parse(payload);
+                    }
+                    _options.json = payload;
+                }
     
-            if(typeof payload === 'object'){
-                payload = JSON.stringify(payload);
+                if(path.substring(0, 1) !== '/'){
+                    path = '/'+path;
+                }
+    
+                path = _options.host + path;
+    
+                if(path.substring(0, 4) !== 'http'){
+                    path = _options._protocol + path;
+                }
+    
+                var res = httpSync(verb, path, _options);
+                
+                res.getResponse = function(charset){
+                    if(charset==undefined || charset == ''){
+                        charset = 'utf-8';
+                    }
+                    var result = this.getBody(charset);
+                    
+                    try{
+                        return JSON.parse(result);
+                    } catch(e){
+                        return result;
+                    }
+                }
+    
+                return res;
+            } else {
+                _options.method = verb;
+                _options.path = path;
+                if(typeof payload === 'object'){
+                    payload = JSON.stringify(payload);
+                }
+    
+                var _callback = function (response) {
+                    var body = '';
+    
+                    response.on('data', function (chunk) {
+                        body += chunk;
+                    });
+    
+                    response.on('end', function () {
+                        callback(body, response);
+                    });
+                };
+    
+                var request = http.request(_options, _callback);
+                request.write(payload);
+                request.end();
+                
+                return request;
             }
-    
-            var _callback = function (response) {
-                var body = '';
-    
-                response.on('data', function (chunk) {
-                    body += chunk;
-                });
-    
-                response.on('end', function () {
-                    callback(body, response);
-                });
-            };
-    
-            var request = http.request(_options, _callback);
-            request.write(payload);
-            request.end();
         },
         get: function (path, callback) {
-            this.call('GET', path, '', callback);
+            return this.call('GET', path, '', callback);
         },
         post: function (path, payload, callback) {
-            this.call('POST', path, payload, callback);
+            return this.call('POST', path, payload, callback);
         },
         put: function (path, payload, callback) {
-            this.call('PUT', path, payload, callback);
+            return this.call('PUT', path, payload, callback);
         },
         patch: function (path, payload, callback) {
-            this.call('PATCH', path, payload, callback);
+            return this.call('PATCH', path, payload, callback);
         },
         delete: function (path, payload, callback) {
-            this.call('DELETE', path, payload, callback);
+            return this.call('DELETE', path, payload, callback);
         }
     };
 

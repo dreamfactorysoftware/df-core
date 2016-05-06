@@ -53,16 +53,16 @@ class Python extends ExecutedEngine
 import httplib, json;
 from bunch import bunchify, unbunchify;
 
-eventDict = $jsonEvent;
-platformDict = $jsonPlatform;
+event = $jsonEvent;
+platform = $jsonPlatform;
 
-event = bunchify(eventDict);
-platform = bunchify(platformDict);
+_event = bunchify(event);
+_platform = bunchify(platform);
 
-__host = event.request.headers.host[0];
+__host = _event.request.headers.host[0];
 __headers = {
-    'x-dreamfactory-api-key':platform.session.api_key,
-    'x-dreamfactory-session-token':platform.session.session_token
+    'x-dreamfactory-api-key':_platform.session.api_key,
+    'x-dreamfactory-session-token':_platform.session.session_token
     };
 
 class Api:
@@ -91,12 +91,10 @@ class Api:
 		response = self.conn.getresponse();
 		return response.read();
 		
-api = Api(__host, __headers);
-
-platform.api = api;
+_platform.api = Api(__host, __headers);
 
 try:
-    def my_closure(event, platform):
+    def my_closure(_event, _platform):
 python;
         foreach ($scriptLines as $sl) {
             $enrobedScript .= "\n        " . $sl;
@@ -104,12 +102,12 @@ python;
 
         $enrobedScript .= <<<python
 
-    event.script_result =  my_closure(event, platform);
+    _event.script_result =  my_closure(_event, _platform);
 except Exception as e:
-    event.script_result = {'error':str(e)};
-    event.exception = str(e)
+    _event.script_result = {'error':str(e)};
+    _event.exception = str(e)
 
-print unbunchify(event);
+print unbunchify(_event);
 python;
         $enrobedScript = trim($enrobedScript);
 

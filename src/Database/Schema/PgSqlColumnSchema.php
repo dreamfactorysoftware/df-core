@@ -1,10 +1,10 @@
 <?php
-namespace DreamFactory\Core\Database\Schema\Pgsql;
+namespace DreamFactory\Core\Database\Schema;
 
 /**
  * ColumnSchema class describes the column meta data of a PostgreSQL table.
  */
-class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
+class PgSqlColumnSchema extends ColumnSchema
 {
     /**
      * Extracts the PHP type from DB type.

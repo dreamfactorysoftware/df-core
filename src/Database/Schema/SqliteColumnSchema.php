@@ -1,10 +1,10 @@
 <?php
-namespace DreamFactory\Core\Database\Schema\Sqlite;
+namespace DreamFactory\Core\Database\Schema;
 
 /**
  * ColumnSchema class describes the column meta data of a SQLite table.
  */
-class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
+class SqliteColumnSchema extends ColumnSchema
 {
     /**
      * Extracts the default value for the column.

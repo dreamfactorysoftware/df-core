@@ -1,10 +1,10 @@
 <?php
-namespace DreamFactory\Core\Database\Schema\Mysql;
+namespace DreamFactory\Core\Database\Schema;
 
 /**
  * ColumnSchema class describes the column meta data of a MySQL table.
  */
-class ColumnSchema extends \DreamFactory\Core\Database\ColumnSchema
+class MySqlColumnSchema extends ColumnSchema
 {
     /**
      * Extracts the default value for the column.

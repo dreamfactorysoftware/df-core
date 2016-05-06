@@ -18,6 +18,10 @@ use DreamFactory\Core\Services\Email\Local;
 use DreamFactory\Core\Services\Email\MailGun;
 use DreamFactory\Core\Services\Email\Mandrill;
 use DreamFactory\Core\Services\Email\Smtp;
+use DreamFactory\Core\Services\Script\Nodejs;
+use DreamFactory\Core\Services\Script\Php;
+use DreamFactory\Core\Services\Script\Python;
+use DreamFactory\Core\Services\Script\V8js;
 use DreamFactory\Core\Utility\ServiceRequest;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use InvalidArgumentException;
@@ -93,13 +97,43 @@ class ServiceManager
                 },
             ],
             [
-                'name'           => 'script',
-                'label'          => 'Custom Scripting Service',
+                'name'           => 'nodejs',
+                'label'          => 'Node.js Script',
                 'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
-                'group'          => ServiceTypeGroups::CUSTOM,
+                'group'          => ServiceTypeGroups::SCRIPT,
                 'config_handler' => ScriptConfig::class,
                 'factory'        => function ($config){
-                    return new Script($config);
+                    return new Nodejs($config);
+                },
+            ],
+            [
+                'name'           => 'php',
+                'label'          => 'PHP Script',
+                'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
+                'group'          => ServiceTypeGroups::SCRIPT,
+                'config_handler' => ScriptConfig::class,
+                'factory'        => function ($config){
+                    return new Php($config);
+                },
+            ],
+            [
+                'name'           => 'python',
+                'label'          => 'Python Script',
+                'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
+                'group'          => ServiceTypeGroups::SCRIPT,
+                'config_handler' => ScriptConfig::class,
+                'factory'        => function ($config){
+                    return new Python($config);
+                },
+            ],
+            [
+                'name'           => 'v8js',
+                'label'          => 'V8 JS Script',
+                'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
+                'group'          => ServiceTypeGroups::SCRIPT,
+                'config_handler' => ScriptConfig::class,
+                'factory'        => function ($config){
+                    return new V8js($config);
                 },
             ],
             [

@@ -1,5 +1,5 @@
 <?php
-namespace DreamFactory\Core\Database;
+namespace DreamFactory\Core\Database\Schema;
 
 use DreamFactory\Library\Utility\Inflector;
 

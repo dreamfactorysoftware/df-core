@@ -1,5 +1,5 @@
 <?php
-namespace DreamFactory\Core\Database;
+namespace DreamFactory\Core\Database\Schema;
 
 /**
  * ProcedureSchema is the base class for representing the metadata of a database procedure.

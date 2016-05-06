@@ -1,8 +1,8 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use DreamFactory\Core\Database\ColumnSchema;
-use DreamFactory\Core\Database\TableSchema;
+use DreamFactory\Core\Database\Schema\ColumnSchema;
+use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DbComparisonOperators;
 use DreamFactory\Core\Enums\DbLogicalOperators;

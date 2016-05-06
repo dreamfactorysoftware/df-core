@@ -62,7 +62,7 @@ class System extends BaseRestService
             $resourceName = $resourceInfo->getName();
             if (Session::checkForAnyServicePermissions($this->name, $resourceName)) {
                 /** @type BaseSystemResource $resourceClass */
-                $results = $resourceClass::getApiDocInfo($this, $resourceInfo);
+                $results = $resourceClass::getApiDocInfo($this->name, $resourceInfo->toArray());
                 if (isset($results, $results['paths'])) {
                     $apis = array_merge($apis, $results['paths']);
                 }

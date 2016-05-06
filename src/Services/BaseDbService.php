@@ -4,7 +4,7 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Contracts\CachedInterface;
-use DreamFactory\Core\Database\TableSchema;
+use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -147,7 +147,7 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
 
             $resourceName = ArrayUtils::get($resourceInfo, static::RESOURCE_IDENTIFIER);
             if (Session::checkForAnyServicePermissions($this->name, $resourceName)) {
-                $results = $resourceClass::getApiDocInfo($this, $resourceInfo);
+                $results = $resourceClass::getApiDocInfo($this->name, $resourceInfo);
                 if (isset($results, $results['paths'])) {
                     $apis = array_merge($apis, $results['paths']);
                 }

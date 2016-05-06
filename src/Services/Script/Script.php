@@ -1,9 +1,10 @@
 <?php
-namespace DreamFactory\Core\Services;
+namespace DreamFactory\Core\Services\Script;
 
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -54,10 +55,10 @@ class Script extends BaseRestService
         $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config'));
         Session::replaceLookups($config, true);
 
-        if (empty($this->content = array_get($config, 'content'))) {
-//            throw new \InvalidArgumentException('Script content can not be empty.');
+        if (!is_string($this->content = array_get($config, 'content'))) {
+            $this->content = '';
         }
-
+        
         if (empty($this->engineType = array_get($config, 'type'))) {
             throw new \InvalidArgumentException('Script engine configuration can not be empty.');
         }

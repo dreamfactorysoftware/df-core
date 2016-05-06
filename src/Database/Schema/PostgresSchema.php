@@ -1,9 +1,6 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
-use DreamFactory\Core\Database\Schema\Pgsql\ColumnSchema;
-use DreamFactory\Core\Database\TableSchema;
-
 /**
  * Schema is the class for retrieving metadata information from a PostgreSQL database.
  */
@@ -373,7 +370,7 @@ EOD;
      */
     protected function createColumn($column)
     {
-        $c = new ColumnSchema(['name' => $column['attname']]);
+        $c = new PgSqlColumnSchema(['name' => $column['attname']]);
         $c->rawName = $this->quoteColumnName($c->name);
         $c->allowNull = !$column['attnotnull'];
         $c->comment = $column['comment'] === null ? '' : $column['comment'];

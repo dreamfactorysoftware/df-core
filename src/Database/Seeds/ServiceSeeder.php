@@ -35,5 +35,18 @@ class ServiceSeeder extends BaseModelSeeder
             'mutable'     => true,
             'deletable'   => true
         ],
+        [
+            'name'        => 'db',
+            'label'       => 'Local SQL Database',
+            'description' => 'Service for accessing local SQLite database.',
+            'is_active'   => true,
+            'type'        => 'sqlite',
+            'mutable'     => true,
+            'deletable'   => true,
+            'config' => [
+                'driver' => 'sqlite',
+                'dsn' => 'sqlite:db.sqlite'
+            ]
+        ]
     ];
 }

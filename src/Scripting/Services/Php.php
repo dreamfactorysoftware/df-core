@@ -1,11 +1,11 @@
 <?php
-namespace DreamFactory\Core\Services\Script;
+namespace DreamFactory\Core\Scripting\Services;
 
 /**
- * Python Script
- * Python scripting as a Service
+ * PHP Script
+ * PHP scripting as a Service
  */
-class Python extends Script
+class Php extends Script
 {
     /**
      * Create a new Script Service
@@ -17,7 +17,7 @@ class Python extends Script
      */
     public function __construct($settings = [])
     {
-        $settings['config']['type'] = 'python';
+        $settings['config']['type'] = 'php';
         parent::__construct($settings);
     }
 }

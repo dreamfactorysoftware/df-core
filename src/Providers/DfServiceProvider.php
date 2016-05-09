@@ -1,10 +1,11 @@
 <?php
 namespace DreamFactory\Core\Providers;
 
+use DreamFactory\Core\Database\DatabaseServiceProvider;
 use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
-use DreamFactory\Core\Resources\System\SystemResourceManager;
 use DreamFactory\Core\Models\SystemTableModelMapper;
-use DreamFactory\Core\Scripting\ScriptEngineManager;
+use DreamFactory\Core\Resources\System\SystemResourceManager;
+use DreamFactory\Core\Scripting\ScriptingServiceProvider;
 use DreamFactory\Core\Services\ServiceManager;
 use Illuminate\Support\ServiceProvider;
 
@@ -20,12 +21,6 @@ class DfServiceProvider extends ServiceProvider
             return new ServiceManager($app);
         });
 
-        // The script engine manager is used to resolve various script engines.
-        // It also implements the resolver interface which may be used by other components adding script engines.
-        $this->app->singleton('df.script', function ($app){
-            return new ScriptEngineManager($app);
-        });
-
         // The system resource manager is used to resolve various system resource types.
         // It also implements the resolver interface which may be used by other components adding system resource types.
         $this->app->singleton('df.system.resource', function ($app){
@@ -37,11 +32,14 @@ class DfServiceProvider extends ServiceProvider
         $this->app->singleton('df.system.table_model_map', function ($app){
             return new SystemTableModelMapper($app);
         });
-        
-        \Event::subscribe(new ServiceEventHandler());
 
         // Add our database drivers.
-        \App::register(DfSqlDbServiceProvider::class);
+        \App::register(DatabaseServiceProvider::class);
+
+        // Add our scripting drivers.
+        \App::register(ScriptingServiceProvider::class);
+
+        \Event::subscribe(new ServiceEventHandler());
 
         // Add conditional providers here.
         if (class_exists('DreamFactory\Core\ADLdap\ServiceProvider')) {

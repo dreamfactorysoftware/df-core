@@ -35,6 +35,14 @@ class ServiceType implements ServiceTypeInterface
      */
     protected $singleton = false;
     /**
+     * @var string If this service type requires dependencies that are not installed, list them here for client.
+     */
+    protected $dependenciesRequired = null;
+    /**
+     * @var boolean True if this service type requires a paid subscription, that has not been designated
+     */
+    protected $subscriptionRequired = false;
+    /**
      * @var string Designated configuration handler for this service type, typically ties to database storage
      */
     protected $configHandler = null;
@@ -128,7 +136,7 @@ class ServiceType implements ServiceTypeInterface
      * The configuration handler interface for this service type
      *
      * @param string $name
-     * @param array $config
+     * @param array  $config
      *
      * @return ServiceInterface|null
      */
@@ -152,12 +160,14 @@ class ServiceType implements ServiceTypeInterface
         }
 
         return [
-            'name'          => $this->name,
-            'label'         => $this->label,
-            'description'   => $this->description,
-            'group'         => $this->group,
-            'singleton'     => $this->singleton,
-            'config_schema' => $configSchema
+            'name'                  => $this->name,
+            'label'                 => $this->label,
+            'description'           => $this->description,
+            'group'                 => $this->group,
+            'singleton'             => $this->singleton,
+            'dependencies_required' => $this->dependenciesRequired,
+            'subscription_required' => $this->subscriptionRequired,
+            'config_schema'         => $configSchema
         ];
     }
 }

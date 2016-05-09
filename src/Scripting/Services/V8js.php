@@ -1,11 +1,11 @@
 <?php
-namespace DreamFactory\Core\Services\Script;
+namespace DreamFactory\Core\Scripting\Services;
 
 /**
- * PHP Script
- * PHP scripting as a Service
+ * V8js Script
+ * V8js scripting as a Service
  */
-class Php extends Script
+class V8js extends Script
 {
     /**
      * Create a new Script Service
@@ -17,7 +17,7 @@ class Php extends Script
      */
     public function __construct($settings = [])
     {
-        $settings['config']['type'] = 'php';
+        $settings['config']['type'] = 'v8js';
         parent::__construct($settings);
     }
 }

@@ -12,16 +12,11 @@ use DreamFactory\Core\Models\FilePublicPath;
 use DreamFactory\Core\Models\LocalEmailConfig;
 use DreamFactory\Core\Models\MailGunConfig;
 use DreamFactory\Core\Models\MandrillConfig;
-use DreamFactory\Core\Models\ScriptConfig;
 use DreamFactory\Core\Models\SmtpConfig;
 use DreamFactory\Core\Services\Email\Local;
 use DreamFactory\Core\Services\Email\MailGun;
 use DreamFactory\Core\Services\Email\Mandrill;
 use DreamFactory\Core\Services\Email\Smtp;
-use DreamFactory\Core\Services\Script\Nodejs;
-use DreamFactory\Core\Services\Script\Php;
-use DreamFactory\Core\Services\Script\Python;
-use DreamFactory\Core\Services\Script\V8js;
 use DreamFactory\Core\Utility\ServiceRequest;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use InvalidArgumentException;
@@ -97,46 +92,6 @@ class ServiceManager
                 },
             ],
             [
-                'name'           => 'nodejs',
-                'label'          => 'Node.js Script',
-                'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
-                'group'          => ServiceTypeGroups::SCRIPT,
-                'config_handler' => ScriptConfig::class,
-                'factory'        => function ($config){
-                    return new Nodejs($config);
-                },
-            ],
-            [
-                'name'           => 'php',
-                'label'          => 'PHP Script',
-                'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
-                'group'          => ServiceTypeGroups::SCRIPT,
-                'config_handler' => ScriptConfig::class,
-                'factory'        => function ($config){
-                    return new Php($config);
-                },
-            ],
-            [
-                'name'           => 'python',
-                'label'          => 'Python Script',
-                'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
-                'group'          => ServiceTypeGroups::SCRIPT,
-                'config_handler' => ScriptConfig::class,
-                'factory'        => function ($config){
-                    return new Python($config);
-                },
-            ],
-            [
-                'name'           => 'v8js',
-                'label'          => 'V8 JS Script',
-                'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
-                'group'          => ServiceTypeGroups::SCRIPT,
-                'config_handler' => ScriptConfig::class,
-                'factory'        => function ($config){
-                    return new V8js($config);
-                },
-            ],
-            [
                 'name'           => 'local_file',
                 'label'          => 'Local File Service',
                 'description'    => 'File service supporting the local file system.',
@@ -185,6 +140,64 @@ class ServiceManager
                 'factory'        => function ($config){
                     return new Mandrill($config);
                 },
+            ],
+
+            // subscription required, here for advertising
+            [
+                'name'                  => 'adldap',
+                'label'                 => 'Active Directory LDAP',
+                'description'           => 'A service for supporting Active Directory integration',
+                'group'                 => ServiceTypeGroups::LDAP,
+                'subscription_required' => true,
+            ],
+            [
+                'name'                  => 'ldap',
+                'label'                 => 'Standard LDAP',
+                'description'           => 'A service for supporting Open LDAP integration',
+                'group'                 => ServiceTypeGroups::LDAP,
+                'subscription_required' => true,
+            ],
+            [
+                'name'                  => 'soap',
+                'label'                 => 'SOAP Service',
+                'description'           => 'A service to handle SOAP Services',
+                'group'                 => ServiceTypeGroups::REMOTE,
+                'subscription_required' => true,
+            ],
+            [
+                'name'                  => 'sqlanywhere',
+                'label'                 => 'SAP SQL Anywhere',
+                'description'           => 'Database service supporting SAP SQL Anywhere connections.',
+                'group'                 => ServiceTypeGroups::DATABASE,
+                'subscription_required' => true,
+            ],
+            [
+                'name'                  => 'salesforce_db',
+                'label'                 => 'SalesforceDB',
+                'description'           => 'Database service for Salesforce connections.',
+                'group'                 => ServiceTypeGroups::DATABASE,
+                'subscription_required' => true,
+            ],
+            [
+                'name'                  => 'sqlsrv',
+                'label'                 => 'SQL Server',
+                'description'           => 'Database service supporting SQL Server connections.',
+                'group'                 => ServiceTypeGroups::DATABASE,
+                'subscription_required' => true,
+            ],
+            [
+                'name'                  => 'oracle',
+                'label'                 => 'Oracle',
+                'description'           => 'Database service supporting SQL connections.',
+                'group'                 => ServiceTypeGroups::DATABASE,
+                'subscription_required' => true,
+            ],
+            [
+                'name'                  => 'ibmdb2',
+                'label'                 => 'IBM DB2',
+                'description'           => 'Database service supporting IBM DB2 SQL connections.',
+                'group'                 => ServiceTypeGroups::DATABASE,
+                'subscription_required' => true,
             ],
         ];
         foreach ($types as $type) {

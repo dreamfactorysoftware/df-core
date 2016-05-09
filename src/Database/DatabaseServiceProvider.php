@@ -1,8 +1,7 @@
 <?php
-namespace DreamFactory\Core\Providers;
+namespace DreamFactory\Core\Database;
 
 use DreamFactory\Core\Database\Connectors\SQLiteConnector;
-use DreamFactory\Core\Database\DbSchemaExtensions;
 use DreamFactory\Core\Database\Schema\MySqlSchema;
 use DreamFactory\Core\Database\Schema\PostgresSchema;
 use DreamFactory\Core\Database\Schema\SqliteSchema;
@@ -10,7 +9,7 @@ use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\SQLiteConnection;
 use Illuminate\Support\ServiceProvider;
 
-class DfSqlDbServiceProvider extends ServiceProvider
+class DatabaseServiceProvider extends ServiceProvider
 {
     public function register()
     {

@@ -1,5 +1,5 @@
 <?php
-namespace DreamFactory\Core\Services\Script;
+namespace DreamFactory\Core\Scripting\Services;
 
 /**
  * Nodejs Script

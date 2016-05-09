@@ -1,5 +1,5 @@
 <?php
-namespace DreamFactory\Core\Database\Seeds;
+namespace DreamFactory\Core\Models\Seeds;
 
 use DreamFactory\Core\Models\Service;
 

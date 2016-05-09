@@ -30,8 +30,6 @@
   "require":     {
     "php":                        ">=5.5",
     "doctrine/dbal":              "2.5.*",
-    "cooperl/laravel-db2":        "2.*",
-    "yajra/laravel-pdo-via-oci8": "1.*",
     "dreamfactory/php-utils":     "1.1.*",
     "guzzlehttp/guzzle":          "~5.0",
     "barryvdh/laravel-cors":      "0.7.x"

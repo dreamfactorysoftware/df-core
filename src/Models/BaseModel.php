@@ -13,8 +13,8 @@ use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Database\RelationSchema;
-use DreamFactory\Core\Database\TableSchema;
+use DreamFactory\Core\Database\Schema\RelationSchema;
+use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Components\Builder as DfBuilder;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\Session as SessionUtility;
@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Crypt;
 use DB;
+use SystemTableModelMapper;
 
 /**
  * Class BaseModel
@@ -31,10 +32,6 @@ use DB;
 class BaseModel extends Model implements CacheInterface
 {
     use Cacheable, ConnectionExtension, SchemaToOpenApiDefinition;
-
-    const TABLE_TO_MODEL_MAP_CACHE_KEY = 'system.table_model_map';
-
-    const TABLE_TO_MODEL_MAP_CACHE_TTL = 60;
 
     /**
      * TableSchema
@@ -56,18 +53,6 @@ class BaseModel extends Model implements CacheInterface
      * @var array
      */
     protected $encrypted = [];
-
-    /**
-     * An array map of table names and their models
-     * that are related to this model.
-     *
-     * array(
-     *  'table_name' => 'ModelClass'
-     * )
-     *
-     * @var array
-     */
-    protected static $tableToModelMap = [];
 
     /**
      * Rules for validating model data
@@ -955,7 +940,7 @@ class BaseModel extends Model implements CacheInterface
      */
     protected function getHasMany($table, $relationName)
     {
-        $model = $this->tableNameToModel($table);
+        $model = SystemTableModelMapper::getModel($table);
         $refField = $this->getReferencingField($table, $relationName);
 
         return $this->hasMany($model, $refField);
@@ -969,15 +954,18 @@ class BaseModel extends Model implements CacheInterface
     public function getHasManyByRelationName($name)
     {
         $table = $this->getReferencingTable($name);
-        $mappedTables = array_keys(static::getTableToModelMap());
 
-        return (!empty($table) && in_array($table, $mappedTables)) ? $this->getHasMany($table, $name) : null;
+        if (!empty($table) && !is_null(SystemTableModelMapper::getModel($table))) {
+            return $this->getHasMany($table, $name);
+        } else {
+            return null;
+        }
     }
 
     public function getBelongsToManyByRelationName($name)
     {
         $table = $this->getReferencingTable($name);
-        $model = $this->tableNameToModel($table);
+        $model = SystemTableModelMapper::getModel($table);
 
         list($pivotTable, $fk, $rk) = $this->getReferencingJoin($name);
 
@@ -987,7 +975,7 @@ class BaseModel extends Model implements CacheInterface
     public function getBelongsToByRelationName($name)
     {
         $table = $this->getReferencingTable($name);
-        $model = $this->tableNameToModel($table);
+        $model = SystemTableModelMapper::getModel($table);
 
         $references = $this->getReferences();
         $lf = null;
@@ -1082,7 +1070,7 @@ class BaseModel extends Model implements CacheInterface
         }
 
         $table = $this->getReferencingTable($name);
-        $model = static::tableNameToModel($table);
+        $model = SystemTableModelMapper::getModel($table);
 
         return $model;
     }
@@ -1099,7 +1087,7 @@ class BaseModel extends Model implements CacheInterface
     {
         $table = $this->getReferencingTable($name);
 
-        return array_key_exists($table, static::getTableToModelMap());
+        return !is_null(SystemTableModelMapper::getModel($table));
     }
 
     /**
@@ -1134,35 +1122,6 @@ class BaseModel extends Model implements CacheInterface
     public function newEloquentBuilder($query)
     {
         return new DfBuilder($query);
-    }
-
-    public static function getTableToModelMap()
-    {
-        if (empty(static::$tableToModelMap)) {
-            static::$tableToModelMap = \Cache::get(static::TABLE_TO_MODEL_MAP_CACHE_KEY, []);
-            if (empty(static::$tableToModelMap)) {
-                if (empty($system = Service::whereType('system')->first(['id']))) {
-                    return [];
-                    // can't throw an exception here because it gets called by the seeder on startup
-                    // before all of the services, including system, are initialized in the database
-//                    throw new NotFoundException("Could not find a service with type 'system'.");
-                }
-
-                static::$tableToModelMap =
-                    DB::table('db_table_extras')->where('service_id', $system->id)->lists('model', 'table');
-                \Cache::add(static::TABLE_TO_MODEL_MAP_CACHE_KEY, static::$tableToModelMap,
-                    static::TABLE_TO_MODEL_MAP_CACHE_TTL);
-            }
-        }
-
-        return static::$tableToModelMap;
-    }
-
-    public static function tableNameToModel($table)
-    {
-        $map = static::getTableToModelMap();
-
-        return isset($map[$table]) ? $map[$table] : null;
     }
 
     public static function getModelBaseName($fqcn)

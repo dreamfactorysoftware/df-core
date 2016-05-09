@@ -219,10 +219,10 @@ HTML;
         ];
     }
 
-    public static function getApiDocInfo(Service $service)
+    public function getApiDocInfo()
     {
-        $name = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $name = strtolower($this->name);
+        $capitalized = Inflector::camelize($this->name);
 
         return [
             'paths'       => [

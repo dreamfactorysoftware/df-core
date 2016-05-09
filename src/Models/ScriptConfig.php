@@ -2,7 +2,9 @@
 
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Contracts\ScriptEngineTypeInterface;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
+use ScriptEngineManager;
 
 /**
  * ScriptConfig
@@ -51,15 +53,7 @@ class ScriptConfig extends BaseServiceConfigModel
 
         return true;
     }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function scriptType()
-    {
-        return $this->belongsTo(ScriptType::class, 'type', 'name');
-    }
-
+    
     /**
      * Determine the handler for the script type
      *
@@ -67,9 +61,8 @@ class ScriptConfig extends BaseServiceConfigModel
      */
     protected function getScriptHandler()
     {
-        if (null !== $typeInfo = $this->scriptType()->first()) {
-            // lookup related script type model
-            return $typeInfo->class_name;
+        if (null !== $typeInfo = ScriptEngineManager::getScriptEngineType($this->type)) {
+            return $typeInfo->getClassName();
         }
 
         return null;
@@ -80,9 +73,8 @@ class ScriptConfig extends BaseServiceConfigModel
      */
     public function getEngineAttribute()
     {
-        $engine = $this->scriptType()->first();
-        if (!empty($engine)) {
-            $this->engine = $engine->toArray();
+        if (null !== $typeInfo = ScriptEngineManager::getScriptEngineType($this->type)) {
+            $this->engine = $typeInfo->toArray();
         }
 
         return $this->engine;
@@ -100,7 +92,12 @@ class ScriptConfig extends BaseServiceConfigModel
                 $schema['label'] = 'Scripting Engine Type';
                 $schema['description'] =
                     'The Scripting Engine able to run this script.';
-                $values = ScriptType::all(['name', 'label', 'sandboxed'])->toArray();
+                $values = [];
+                $types = ScriptEngineManager::getScriptEngineTypes();
+                /** @type ScriptEngineTypeInterface $type */
+                foreach ($types as $type) {
+                    $values[] = $type->toArray();
+                }
                 $schema['type'] = 'picklist';
                 $schema['values'] = $values;
                 $schema['default'] = 'v8js';

@@ -9,10 +9,10 @@ use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
-use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Services\BaseFileService;
 use Illuminate\Support\Arr;
+use ServiceManager;
 
 /**
  * Class Exporter.
@@ -250,11 +250,10 @@ class Exporter
      */
     protected static function getServiceGroup($serviceName)
     {
-        $service = Service::with('service_type_by_type')->whereName($serviceName)->first();
+        $service = Service::getCachedByName($serviceName);
         if (!empty($service)) {
-            $relations = $service->getRelation('service_type_by_type');
 
-            return $relations->group;
+            return ServiceManager::getServiceType(array_get($service, 'name'));
         }
 
         return null;
@@ -321,7 +320,7 @@ class Exporter
             }
             foreach ($resources as $resource) {
                 /** @type BaseFileService $storage */
-                $storage = ServiceHandler::getService($service);
+                $storage = ServiceManager::getService($service);
                 if (!$storage) {
                     throw new InternalServerErrorException("Can not find storage service $service.");
                 }
@@ -589,7 +588,7 @@ class Exporter
     protected function getResource($service, $resource, $params = [], $payload = null)
     {
         try {
-            $result = ServiceHandler::handleRequest(Verbs::GET, $service, $resource, $params, $payload);
+            $result = ServiceManager::handleRequest($service, Verbs::GET, $resource, $params, [], $payload);
 
             // Handle responses from system/custom and user/custom APIs
             $rSeg = explode('/', $resource);

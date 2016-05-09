@@ -2,8 +2,6 @@
 namespace DreamFactory\Core\Database\Schema;
 
 use DreamFactory\Core\Database\DataReader;
-use DreamFactory\Core\Database\Schema\Mysql\ColumnSchema;
-use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from a MySQL database (version 4.1.x and 5.x).
@@ -380,7 +378,7 @@ MYSQL;
      */
     protected function createColumn($column)
     {
-        $c = new ColumnSchema(['name' => $column['Field']]);
+        $c = new MySqlColumnSchema(['name' => $column['Field']]);
         $c->rawName = $this->quoteColumnName($c->name);
         $c->allowNull = $column['Null'] === 'YES';
         $c->isPrimaryKey = strpos($column['Key'], 'PRI') !== false;

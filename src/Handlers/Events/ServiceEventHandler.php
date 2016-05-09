@@ -9,12 +9,11 @@ use DreamFactory\Core\Events\ServicePostProcess;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Models\EventScript;
-use DreamFactory\Core\Scripting\ScriptEngineManager;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
 use Illuminate\Contracts\Events\Dispatcher;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use \Log;
+use Log;
+use ScriptEngineManager;
 
 class ServiceEventHandler
 {
@@ -122,8 +121,8 @@ class ServiceEventHandler
 
         if (null !== $result = $this->handleEventScript($name, $data)) {
             // request only
-            $event->request->mergeFromArray(ArrayUtils::get($result, 'request', []));
-            if (ArrayUtils::get($result, 'stop_propagation', false)) {
+            $event->request->mergeFromArray(array_get($result, 'request', []));
+            if (array_get($result, 'stop_propagation', false)) {
                 Log::info('  * Propagation stopped by script.');
 
                 return false;
@@ -152,11 +151,11 @@ class ServiceEventHandler
         if (null !== $result = $this->handleEventScript($name, $data)) {
             // response only
             if ($event->response instanceof ServiceResponseInterface) {
-                $event->response->mergeFromArray(ArrayUtils::get($result, 'response', []));
+                $event->response->mergeFromArray(array_get($result, 'response', []));
             } else {
-                $event->response = ArrayUtils::get($result, 'response', []);
+                $event->response = array_get($result, 'response', []);
             }
-            if (ArrayUtils::get($result, 'stop_propagation', false)) {
+            if (array_get($result, 'stop_propagation', false)) {
                 Log::info('  * Propagation stopped by script.');
 
                 return false;
@@ -179,19 +178,22 @@ class ServiceEventHandler
      */
     protected function handleEventScript($name, &$event)
     {
-        $model = EventScript::with('script_type_by_type')->whereName($name)->whereIsActive(true)->first();
+        $model = EventScript::whereName($name)->whereIsActive(true)->first();
         if (empty($model)) {
             return null;
         }
+
         $output = null;
         $content = $model->content;
         Session::replaceLookups($content, true);
+        $config = (is_array($model->config) ? $model->config : []);
 
-        $result = ScriptEngineManager::runScript(
+        $engine = ScriptEngineManager::makeEngine($model->type, $config);
+
+        $result = $engine->runScript(
             $content,
             $name,
-            $model->script_type_by_type->toArray(),
-            ArrayUtils::clean($model->config),
+            (is_array($model->config) ? $model->config : []),
             $event,
             $output
         );
@@ -213,9 +215,9 @@ class ServiceEventHandler
             if ($ex instanceof \Exception) {
                 throw $ex;
             } elseif (is_array($ex)) {
-                $code = ArrayUtils::get($ex, 'code', null);
-                $message = ArrayUtils::get($ex, 'message', 'Unknown scripting error.');
-                $status = ArrayUtils::get($ex, 'status_code', ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+                $code = array_get($ex, 'code', null);
+                $message = array_get($ex, 'message', 'Unknown scripting error.');
+                $status = array_get($ex, 'status_code', ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
                 throw new RestException($status, $message, $code);
             }
             throw new InternalServerErrorException(strval($ex));

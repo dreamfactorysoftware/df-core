@@ -20,6 +20,17 @@ interface ScriptingEngineInterface
     public static function startup($options = null);
 
     /**
+     * @param string $script     The script to run or a script file name
+     * @param string $identifier The name of this script
+     * @param array  $config     The config for this particular script
+     * @param array  $data       The additional data as it will be exposed to script
+     * @param string $output     Any output of the script
+     *
+     * @return array
+     */
+    public function runScript($script, $identifier, array $config = [], array &$data = [], &$output = null);
+
+    /**
      * Process a single script
      *
      * @param string $script          The content of a script to execute

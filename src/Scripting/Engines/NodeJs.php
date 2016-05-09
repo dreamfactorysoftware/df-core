@@ -53,9 +53,10 @@ class NodeJs extends ExecutedEngine
     {
         $jsonEvent = json_encode($data, JSON_UNESCAPED_SLASHES);
         $jsonPlatform = json_encode($platform, JSON_UNESCAPED_SLASHES);
+        $protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443)? "'https://'" : "'http://'";
 
         //  Load user libraries
-//        $requiredLibraries = \Cache::get('scripting.libraries.nodejs.required', null);
+        //$requiredLibraries = \Cache::get('scripting.libraries.nodejs.required', null);
 
         $enrobedScript = <<<JS
 
@@ -65,6 +66,99 @@ _wrapperResult = (function() {
     var _event = {$jsonEvent};
     //noinspection JSUnresolvedVariable
     var _platform = {$jsonPlatform};
+    //noinspection JSUnresolvedVariable
+    var _protocol = {$protocol};
+    
+    var http = require('http');
+
+    var _options = {
+        _protocol:_protocol,
+        host: _event.request.headers.host[0],
+        headers: {
+            'x-dreamfactory-api-key': _platform.session.api_key,
+            'x-dreamfactory-session-token': _platform.session.session_token 
+        }
+    };
+    
+    _platform.api = {
+        call: function (verb, path, payload, callback) {
+            if(callback === undefined) {
+                var httpSync = require('sync-request');
+                if (payload != undefined && payload != '') {
+                    if (typeof payload === 'string') {
+                        payload = JSON.parse(payload);
+                    }
+                    _options.json = payload;
+                }
+    
+                if(path.substring(0, 1) !== '/'){
+                    path = '/'+path;
+                }
+    
+                path = _options.host + path;
+    
+                if(path.substring(0, 4) !== 'http'){
+                    path = _options._protocol + path;
+                }
+    
+                var res = httpSync(verb, path, _options);
+                
+                res.getResponse = function(charset){
+                    if(charset==undefined || charset == ''){
+                        charset = 'utf-8';
+                    }
+                    var result = this.getBody(charset);
+                    
+                    try{
+                        return JSON.parse(result);
+                    } catch(e){
+                        return result;
+                    }
+                }
+    
+                return res;
+            } else {
+                _options.method = verb;
+                _options.path = path;
+                if(typeof payload === 'object'){
+                    payload = JSON.stringify(payload);
+                }
+    
+                var _callback = function (response) {
+                    var body = '';
+    
+                    response.on('data', function (chunk) {
+                        body += chunk;
+                    });
+    
+                    response.on('end', function () {
+                        callback(body, response);
+                    });
+                };
+    
+                var request = http.request(_options, _callback);
+                request.write(payload);
+                request.end();
+                
+                return request;
+            }
+        },
+        get: function (path, callback) {
+            return this.call('GET', path, '', callback);
+        },
+        post: function (path, payload, callback) {
+            return this.call('POST', path, payload, callback);
+        },
+        put: function (path, payload, callback) {
+            return this.call('PUT', path, payload, callback);
+        },
+        patch: function (path, payload, callback) {
+            return this.call('PATCH', path, payload, callback);
+        },
+        delete: function (path, payload, callback) {
+            return this.call('DELETE', path, payload, callback);
+        }
+    };
 
 	try	{
         //noinspection JSUnresolvedVariable

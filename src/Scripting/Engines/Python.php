@@ -50,8 +50,48 @@ class Python extends ExecutedEngine
         $scriptLines = explode("\n", $script);
 
         $enrobedScript = <<<python
-event = $jsonEvent;
-platform = $jsonPlatform;
+import httplib, json;
+from bunch import bunchify, unbunchify;
+
+eventJson = $jsonEvent;
+platformJson = $jsonPlatform;
+
+_event = bunchify(eventJson);
+_platform = bunchify(platformJson);
+
+__host = _event.request.headers.host[0];
+__headers = {
+    'x-dreamfactory-api-key':_platform.session.api_key,
+    'x-dreamfactory-session-token':_platform.session.session_token
+    };
+
+class Api:
+	def __init__(self, host, header):
+		self.host = host;
+		self.header = header;
+		self.conn = httplib.HTTPConnection(host);
+
+	def get(self, path):
+		return self.call('GET', path);
+
+	def post(self, path, payload=''):
+		return self.call('POST', path, payload);
+
+	def put(self, path, payload=''):
+		return self.call('PUT', path, payload);
+
+	def patch(self, path, payload=''):
+		return self.call('PATCH', path, payload);
+
+	def delete(self, path, payload=''):
+		return self.call('DELETE', path, payload);
+
+	def call(self, verb, path, payload=''):
+		self.conn.request(verb, path, payload, self.header);
+		response = self.conn.getresponse();
+		return response.read();
+		
+_platform.api = Api(__host, __headers);
 
 try:
     def my_closure(event, platform):
@@ -62,12 +102,12 @@ python;
 
         $enrobedScript .= <<<python
 
-    event['script_result'] =  my_closure(event, platform);
+    _event.script_result =  my_closure(_event, _platform);
 except Exception as e:
-    event['script_result'] = {'error':str(e)};
-    event['exception'] = str(e)
+    _event.script_result = {'error':str(e)};
+    _event.exception = str(e)
 
-print event;
+print unbunchify(_event);
 python;
         $enrobedScript = trim($enrobedScript);
 

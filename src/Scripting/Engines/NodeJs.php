@@ -53,9 +53,10 @@ class NodeJs extends ExecutedEngine
     {
         $jsonEvent = json_encode($data, JSON_UNESCAPED_SLASHES);
         $jsonPlatform = json_encode($platform, JSON_UNESCAPED_SLASHES);
+        $protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443)? "'https://'" : "'http://'";
 
         //  Load user libraries
-//        $requiredLibraries = \Cache::get('scripting.libraries.nodejs.required', null);
+        //$requiredLibraries = \Cache::get('scripting.libraries.nodejs.required', null);
 
         $enrobedScript = <<<JS
 
@@ -65,11 +66,13 @@ _wrapperResult = (function() {
     var _event = {$jsonEvent};
     //noinspection JSUnresolvedVariable
     var _platform = {$jsonPlatform};
+    //noinspection JSUnresolvedVariable
+    var _protocol = {$protocol};
     
     var http = require('http');
 
     var _options = {
-        _protocol:'http://',
+        _protocol:_protocol,
         host: _event.request.headers.host[0],
         headers: {
             'x-dreamfactory-api-key': _platform.session.api_key,

@@ -80,6 +80,11 @@ _wrapperResult = (function() {
         }
     };
     
+    _event.returnCallback = function(content){
+        _event.script_result = content;
+        console.log(JSON.stringify(_event));
+    };
+    
     _platform.api = {
         call: function (verb, path, payload, callback) {
             if(callback === undefined) {

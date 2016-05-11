@@ -1,16 +1,16 @@
 <?php
 
-namespace DreamFactory\Core\Models;
+namespace DreamFactory\Core\Scripting\Models;
 
 use DreamFactory\Core\Contracts\ScriptEngineTypeInterface;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
+use DreamFactory\Core\Models\BaseServiceConfigModel;
 use ScriptEngineManager;
 
 /**
  * ScriptConfig
  *
  * @property integer $service_id
- * @property string  $type
  * @property string  $content
  * @property string  $config
  * @method static \Illuminate\Database\Query\Builder|ScriptConfig whereServiceId($value)
@@ -20,7 +20,7 @@ class ScriptConfig extends BaseServiceConfigModel
 {
     protected $table = 'script_config';
 
-    protected $fillable = ['service_id', 'type', 'content', 'config'];
+    protected $fillable = ['service_id', 'content', 'config'];
 
     protected $appends = ['engine'];
 
@@ -31,6 +31,11 @@ class ScriptConfig extends BaseServiceConfigModel
      */
     protected $engine = [];
 
+    public static function getType()
+    {
+        return '';
+    }
+    
     /**
      * {@inheritdoc}
      */
@@ -43,7 +48,7 @@ class ScriptConfig extends BaseServiceConfigModel
                     throw new ServiceUnavailableException("All scripting is disabled for this instance.");
                     break;
                 default:
-                    $type = (isset($config['type'])) ? $config['type'] : null;
+                    $type = static::getType();
                     if (!empty($type) && (false !== stripos($disable, $type))){
                         throw new ServiceUnavailableException("Scripting with $type is disabled for this instance.");
                     }
@@ -55,25 +60,12 @@ class ScriptConfig extends BaseServiceConfigModel
     }
     
     /**
-     * Determine the handler for the script type
-     *
-     * @return string|null
-     */
-    protected function getScriptHandler()
-    {
-        if (null !== $typeInfo = ScriptEngineManager::getScriptEngineType($this->type)) {
-            return $typeInfo->getClassName();
-        }
-
-        return null;
-    }
-
-    /**
      * @return mixed
      */
     public function getEngineAttribute()
     {
-        if (null !== $typeInfo = ScriptEngineManager::getScriptEngineType($this->type)) {
+        /** @type ScriptEngineTypeInterface $typeInfo */
+        if (null !== $typeInfo = ScriptEngineManager::getScriptEngineType($this->getType())) {
             $this->engine = $typeInfo->toArray();
         }
 
@@ -88,20 +80,6 @@ class ScriptConfig extends BaseServiceConfigModel
         parent::prepareConfigSchemaField($schema);
 
         switch ($schema['name']) {
-            case 'type':
-                $schema['label'] = 'Scripting Engine Type';
-                $schema['description'] =
-                    'The Scripting Engine able to run this script.';
-                $values = [];
-                $types = ScriptEngineManager::getScriptEngineTypes();
-                /** @type ScriptEngineTypeInterface $type */
-                foreach ($types as $type) {
-                    $values[] = $type->toArray();
-                }
-                $schema['type'] = 'picklist';
-                $schema['values'] = $values;
-                $schema['default'] = 'v8js';
-                break;
             case 'content':
                 $schema['label'] = 'Content';
                 $schema['type'] = 'text';

@@ -2,7 +2,10 @@
 namespace DreamFactory\Core\Scripting;
 
 use DreamFactory\Core\Enums\ServiceTypeGroups;
-use DreamFactory\Core\Models\ScriptConfig;
+use DreamFactory\Core\Scripting\Models\NodejsConfig;
+use DreamFactory\Core\Scripting\Models\PhpConfig;
+use DreamFactory\Core\Scripting\Models\PythonConfig;
+use DreamFactory\Core\Scripting\Models\V8jsConfig;
 use DreamFactory\Core\Scripting\Services\Nodejs;
 use DreamFactory\Core\Scripting\Services\Php;
 use DreamFactory\Core\Scripting\Services\Python;
@@ -27,10 +30,10 @@ class ScriptingServiceProvider extends ServiceProvider
                 new ServiceType(
                     [
                         'name'           => 'nodejs',
-                        'label'          => 'Node.js Script',
+                        'label'          => 'Node.js',
                         'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
                         'group'          => ServiceTypeGroups::SCRIPT,
-                        'config_handler' => ScriptConfig::class,
+                        'config_handler' => NodejsConfig::class,
                         'factory'        => function ($config){
                             return new Nodejs($config);
                         },
@@ -39,10 +42,10 @@ class ScriptingServiceProvider extends ServiceProvider
                 new ServiceType(
                     [
                         'name'           => 'php',
-                        'label'          => 'PHP Script',
+                        'label'          => 'PHP',
                         'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
                         'group'          => ServiceTypeGroups::SCRIPT,
-                        'config_handler' => ScriptConfig::class,
+                        'config_handler' => PhpConfig::class,
                         'factory'        => function ($config){
                             return new Php($config);
                         },
@@ -51,10 +54,10 @@ class ScriptingServiceProvider extends ServiceProvider
                 new ServiceType(
                     [
                         'name'           => 'python',
-                        'label'          => 'Python Script',
+                        'label'          => 'Python',
                         'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
                         'group'          => ServiceTypeGroups::SCRIPT,
-                        'config_handler' => ScriptConfig::class,
+                        'config_handler' => PythonConfig::class,
                         'factory'        => function ($config){
                             return new Python($config);
                         },
@@ -63,10 +66,10 @@ class ScriptingServiceProvider extends ServiceProvider
                 new ServiceType(
                     [
                         'name'           => 'v8js',
-                        'label'          => 'V8 JS Script',
+                        'label'          => 'V8js',
                         'description'    => 'Service that allows client-callable scripts utilizing the system scripting.',
                         'group'          => ServiceTypeGroups::SCRIPT,
-                        'config_handler' => ScriptConfig::class,
+                        'config_handler' => V8jsConfig::class,
                         'factory'        => function ($config){
                             return new V8js($config);
                         },

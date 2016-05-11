@@ -63,7 +63,7 @@ class ServiceManager
         $types = [
             [
                 'name'        => 'system',
-                'label'       => 'System Management Service',
+                'label'       => 'System Management',
                 'description' => 'Service supporting management of the system.',
                 'group'       => ServiceTypeGroups::SYSTEM,
                 'singleton'   => true,
@@ -83,7 +83,7 @@ class ServiceManager
             ],
             [
                 'name'        => 'event',
-                'label'       => 'Event Service',
+                'label'       => 'Event Management',
                 'description' => 'Service that allows clients to subscribe to system broadcast events.',
                 'group'       => ServiceTypeGroups::EVENT,
                 'singleton'   => true,
@@ -93,7 +93,7 @@ class ServiceManager
             ],
             [
                 'name'           => 'local_file',
-                'label'          => 'Local File Service',
+                'label'          => 'Local File Storage',
                 'description'    => 'File service supporting the local file system.',
                 'group'          => ServiceTypeGroups::FILE,
                 'config_handler' => FilePublicPath::class,
@@ -140,64 +140,6 @@ class ServiceManager
                 'factory'        => function ($config){
                     return new Mandrill($config);
                 },
-            ],
-
-            // subscription required, here for advertising
-            [
-                'name'                  => 'adldap',
-                'label'                 => 'Active Directory LDAP',
-                'description'           => 'A service for supporting Active Directory integration',
-                'group'                 => ServiceTypeGroups::LDAP,
-                'subscription_required' => true,
-            ],
-            [
-                'name'                  => 'ldap',
-                'label'                 => 'Standard LDAP',
-                'description'           => 'A service for supporting Open LDAP integration',
-                'group'                 => ServiceTypeGroups::LDAP,
-                'subscription_required' => true,
-            ],
-            [
-                'name'                  => 'soap',
-                'label'                 => 'SOAP Service',
-                'description'           => 'A service to handle SOAP Services',
-                'group'                 => ServiceTypeGroups::REMOTE,
-                'subscription_required' => true,
-            ],
-            [
-                'name'                  => 'sqlanywhere',
-                'label'                 => 'SAP SQL Anywhere',
-                'description'           => 'Database service supporting SAP SQL Anywhere connections.',
-                'group'                 => ServiceTypeGroups::DATABASE,
-                'subscription_required' => true,
-            ],
-            [
-                'name'                  => 'salesforce_db',
-                'label'                 => 'SalesforceDB',
-                'description'           => 'Database service for Salesforce connections.',
-                'group'                 => ServiceTypeGroups::DATABASE,
-                'subscription_required' => true,
-            ],
-            [
-                'name'                  => 'sqlsrv',
-                'label'                 => 'SQL Server',
-                'description'           => 'Database service supporting SQL Server connections.',
-                'group'                 => ServiceTypeGroups::DATABASE,
-                'subscription_required' => true,
-            ],
-            [
-                'name'                  => 'oracle',
-                'label'                 => 'Oracle',
-                'description'           => 'Database service supporting SQL connections.',
-                'group'                 => ServiceTypeGroups::DATABASE,
-                'subscription_required' => true,
-            ],
-            [
-                'name'                  => 'ibmdb2',
-                'label'                 => 'IBM DB2',
-                'description'           => 'Database service supporting IBM DB2 SQL connections.',
-                'group'                 => ServiceTypeGroups::DATABASE,
-                'subscription_required' => true,
             ],
         ];
         foreach ($types as $type) {

@@ -81,21 +81,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // System Resources
-        Schema::create(
-            'system_resource',
-            function (Blueprint $t){
-                $t->string('name', 40)->primary();
-                $t->string('class_name');
-                $t->string('label', 80);
-                $t->string('description')->nullable();
-                $t->boolean('singleton')->default(0);
-                $t->boolean('read_only')->default(0);
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
-            }
-        );
-
         // Services
         Schema::create(
             'service',
@@ -137,7 +122,6 @@ class CreateSystemTables extends Migration
             function (Blueprint $t){
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('type', 40);
                 $t->text('content')->nullable();
                 $t->text('config')->nullable();
             }
@@ -588,8 +572,6 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('db_table_extras');
         // Database Extras
         Schema::dropIfExists('db_field_extras');
-        // System Resources
-        Schema::dropIfExists('system_resource');
         //Cors config table
         Schema::dropIfExists('cors_config');
         //Email service config table

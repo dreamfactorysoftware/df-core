@@ -1,15 +1,15 @@
 <?php
 namespace DreamFactory\Core\Providers;
 
-use Barryvdh\Cors\ServiceProvider;
 use Asm89\Stack\CorsService;
+use Barryvdh\Cors\ServiceProvider;
+use DreamFactory\Core\Models\CorsConfig;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
-use DreamFactory\Core\Models\CorsConfig;
 
-class DfCorsServiceProvider extends ServiceProvider
+class CorsServiceProvider extends ServiceProvider
 {
     /**
      * Add the Cors middleware to the router.

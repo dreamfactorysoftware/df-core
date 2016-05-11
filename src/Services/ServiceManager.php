@@ -157,7 +157,9 @@ class ServiceManager
     public function getService($name)
     {
         // If we haven't created this service, we'll create it based on the config provided.
-        if (!isset($this->services[$name])) {
+        // NOTE: Using singleton service currently breaks the package import/export. Therefore,
+        // commenting out the following lines and always using new instance of a service.
+//        if (!isset($this->services[$name])) {
             $service = $this->makeService($name);
 
 //            if ($this->app->bound('events')) {
@@ -165,7 +167,7 @@ class ServiceManager
 //            }
 
             $this->services[$name] = $service;
-        }
+//        }
 
         return $this->services[$name];
     }

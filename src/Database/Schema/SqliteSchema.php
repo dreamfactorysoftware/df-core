@@ -368,11 +368,12 @@ class SqliteSchema extends Schema
             }
         }
         if (is_string($table->primaryKey)) {
-            $cnk = strtolower($table->primaryKey);
-            if ((SqliteColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type)) {
+            $column = $table->getColumn($table->primaryKey);
+            if ((SqliteColumnSchema::TYPE_INTEGER === $column->type)) {
                 $table->sequenceName = '';
-                $table->columns[$cnk]->autoIncrement = true;
-                $table->columns[$cnk]->type = SqliteColumnSchema::TYPE_ID;
+                $column->autoIncrement = true;
+                $column->type = SqliteColumnSchema::TYPE_ID;
+                $table->addColumn($column);
             }
         }
 
@@ -418,13 +419,15 @@ class SqliteSchema extends Schema
             if ($each->name === $table->name) {
                 foreach ($fks as $key) {
                     $key = (array)$key;
-                    $column = $table->columns[strtolower($key['from'])];
+                    $column = $table->getColumn($key['from']);
                     $column->isForeignKey = true;
                     $column->refTable = $key['table'];
                     $column->refFields = $key['to'];
                     if (SqliteColumnSchema::TYPE_INTEGER === $column->type) {
                         $column->type = SqliteColumnSchema::TYPE_REF;
                     }
+                    // update the column in the table
+                    $table->addColumn($column);
                     $table->foreignKeys[$key['from']] = [$key['table'], $key['to']];
                     // Add it to our foreign references as well
                     $relation =

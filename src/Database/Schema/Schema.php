@@ -426,15 +426,16 @@ abstract class Schema
             $rcn = $constraint['referenced_column_name'];
             if ((0 == strcasecmp($tn, $table->tableName)) && (0 == strcasecmp($ts, $schema))) {
                 $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
-                $cnk = strtolower($cn);
-                $table->foreignKeys[$cnk] = [$name, $rcn];
-                if (isset($table->columns[$cnk])) {
-                    $table->columns[$cnk]->isForeignKey = true;
-                    $table->columns[$cnk]->refTable = $name;
-                    $table->columns[$cnk]->refFields = $rcn;
-                    if (ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) {
-                        $table->columns[$cnk]->type = ColumnSchema::TYPE_REF;
+                $column = $table->getColumn($cn);
+                $table->foreignKeys[strtolower($cn)] = [$name, $rcn];
+                if (isset($column)) {
+                    $column->isForeignKey = true;
+                    $column->refTable = $name;
+                    $column->refFields = $rcn;
+                    if (ColumnSchema::TYPE_INTEGER === $column->type) {
+                        $column->type = ColumnSchema::TYPE_REF;
                     }
+                    $table->addColumn($column);
                 }
 
                 // Add it to our foreign references as well
@@ -1209,11 +1210,11 @@ abstract class Schema
             $newFields[strtolower($field['name'])] = array_change_key_case($field, CASE_LOWER);
         }
 
-        if ($allow_delete && isset($oldSchema, $oldSchema->columns)) {
+        if ($allow_delete && isset($oldSchema)) {
             // check for columns to drop
             /** @type  ColumnSchema $oldField */
-            foreach ($oldSchema->columns as $ndx => $oldField) {
-                if (!isset($newFields[$ndx])) {
+            foreach ($oldSchema->getColumns() as $oldField) {
+                if (!isset($newFields[strtolower($oldField->name)])) {
                     if (ColumnSchema::TYPE_VIRTUAL === $oldField->type) {
                         $dropExtras[$table_name][] = $oldField->name;
                     } else {

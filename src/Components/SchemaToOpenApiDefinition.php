@@ -19,7 +19,7 @@ trait SchemaToOpenApiDefinition
     {
         $type = $column->type;
         $format = '';
-        switch ($column->type) {
+        switch ($type) {
             case ColumnSchema::TYPE_ID:
             case ColumnSchema::TYPE_REF:
             case ColumnSchema::TYPE_USER_ID:
@@ -73,13 +73,12 @@ trait SchemaToOpenApiDefinition
     {
         $properties = [];
         $required = [];
-        /** @var ColumnSchema $column */
-        foreach ($schema->columns as $column) {
+        foreach ($schema->getColumns() as $column) {
             if ($column->getRequired()) {
-                $required[] = $column->name;
+                $required[] = $column->getName();
             }
 
-            $properties[$column->name] = static::fromColumnSchema($column);
+            $properties[$column->getName()] = static::fromColumnSchema($column);
         }
 
         return [

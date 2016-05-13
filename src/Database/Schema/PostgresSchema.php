@@ -457,13 +457,11 @@ EOD;
         foreach ($rows as $row) {
             $row = (array)$row;
             $name = $row['field_name'];
-            $cnk = strtolower($name);
-            if (isset($table->columns[$cnk])) {
-                $table->columns[$cnk]->isPrimaryKey = true;
-                if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type) &&
-                    $table->columns[$cnk]->autoIncrement
-                ) {
-                    $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
+            $column = $table->getColumn($name);
+            if (isset($column)) {
+                $column->isPrimaryKey = true;
+                if ((ColumnSchema::TYPE_INTEGER === $column->type) && $column->autoIncrement) {
+                    $column->type = ColumnSchema::TYPE_ID;
                 }
                 if ($table->primaryKey === null) {
                     $table->primaryKey = $name;
@@ -472,6 +470,8 @@ EOD;
                 } else {
                     $table->primaryKey[] = $name;
                 }
+                // update the column in the table
+                $table->addColumn($column);
             }
         }
     }

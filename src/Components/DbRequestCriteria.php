@@ -52,7 +52,7 @@ trait DbRequestCriteria
         }
 
         if (null !== ($value = $this->request->getParameter(ApiOptions::FILTER))) {
-            $native = $this->convertFilterToNative($value, $criteria['params'], [], $schema->columns);
+            $native = $this->convertFilterToNative($value, $criteria['params'], [], $schema->getColumns(true));
             $criteria['condition'] = $native['where'];
             if (is_array($native['params'])) {
                 if (is_array($criteria['params'])) {

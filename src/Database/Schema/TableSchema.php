@@ -73,6 +73,15 @@ class TableSchema
      */
     public $sequenceName;
     /**
+     * @var array column metadata of this table. Each array element is a ColumnSchema object, indexed by lowercase
+     *      column name.
+     */
+    public $columns = [];
+    /**
+     * @var array column aliases to column names.
+     */
+    public $columnAliases = [];
+    /**
      * @var array foreign keys of this table. The array is indexed by column name. Each value is an array of foreign
      *      table name and foreign column name.
      */
@@ -83,10 +92,9 @@ class TableSchema
      */
     public $relations = [];
     /**
-     * @var array column metadata of this table. Each array element is a ColumnSchema object, indexed by lowercase
-     *      column name.
+     * @var array relationship aliases to relationship names.
      */
-    public $columns = [];
+    public $relationAliases = [];
     /**
      * @var boolean Are any of the relationships required during fetch on this table?
      */
@@ -106,13 +114,13 @@ class TableSchema
         foreach ($settings as $key => $value) {
             if ('field' === $key) {
                 // reconstitute columns
-                foreach($value as $field) {
+                foreach ($value as $field) {
                     $temp = new ColumnSchema($field);
                     $this->addColumn($temp);
                 }
             } elseif ('related' === $key) {
                 // reconstitute relations
-                foreach( $value as $related) {
+                foreach ($value as $related) {
                     $temp = new RelationSchema($related);
                     $this->addRelation($temp);
                 }
@@ -135,14 +143,14 @@ class TableSchema
         return ($use_alias && !empty($this->alias)) ? $this->alias : $this->name;
     }
 
-    public function getLabel()
+    public function getLabel($use_alias = false)
     {
-        return (empty($this->label)) ? Inflector::camelize($this->getName(true), '_', true) : $this->label;
+        return (empty($this->label)) ? Inflector::camelize($this->getName($use_alias), '_', true) : $this->label;
     }
 
-    public function getPlural()
+    public function getPlural($use_alias = false)
     {
-        return (empty($this->plural)) ? Inflector::pluralize($this->getLabel()) : $this->plural;
+        return (empty($this->plural)) ? Inflector::pluralize($this->getLabel($use_alias)) : $this->plural;
     }
 
     /**
@@ -159,25 +167,45 @@ class TableSchema
 
     /**
      * Gets the named column metadata.
-     * This is a convenient method for retrieving a named column even if it does not exist.
      *
      * @param string $name column name
+     * @param bool   $use_alias
      *
      * @return ColumnSchema metadata of the named column. Null if the named column does not exist.
      */
-    public function getColumn($name)
+    public function getColumn($name, $use_alias = false)
     {
         $key = strtolower($name);
 
-        return (isset($this->columns[$key])) ? $this->columns[$key] : null;
+        if (isset($this->columns[$key])) {
+            return $this->columns[$key];
+        }
+
+        if ($use_alias) {
+            foreach ($this->columns as $column) {
+                if ($key == $column->alias) {
+                    return $column;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
+     * @param bool $use_alias
+     *
      * @return array list of column names
      */
-    public function getColumnNames()
+    public function getColumnNames($use_alias = false)
     {
-        return array_keys($this->columns);
+        $columns = [];
+        /** @var ColumnSchema $column */
+        foreach ($this->columns as $column) {
+            $columns[] = $column->getName($use_alias);
+        }
+
+        return $columns;
     }
 
     /**
@@ -213,22 +241,42 @@ class TableSchema
      * Gets the named relation metadata.
      *
      * @param string $name relation name
+     * @param bool   $use_alias
      *
      * @return RelationSchema metadata of the named relation. Null if the named relation does not exist.
      */
-    public function getRelation($name)
+    public function getRelation($name, $use_alias = false)
     {
         $key = strtolower($name);
 
-        return (isset($this->relations[$key])) ? $this->relations[$key] : null;
+        if (isset($this->relations[$key])) {
+            return $this->relations[$key];
+        }
+
+        if ($use_alias) {
+            foreach ($this->relations as $relation) {
+                if ($key == $relation->alias) {
+                    return $relation;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
+     * @param bool $use_alias
+     *
      * @return array list of column names
      */
-    public function getRelationNames()
+    public function getRelationNames($use_alias = false)
     {
-        return array_keys($this->columns);
+        $relations = [];
+        foreach ($this->relations as $relation) {
+            $relations[] = $relation->getName($use_alias);
+        }
+
+        return $relations;
     }
 
     /**

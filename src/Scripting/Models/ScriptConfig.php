@@ -22,8 +22,9 @@ class ScriptConfig extends BaseServiceConfigModel
 
     protected $fillable = ['service_id', 'content', 'config'];
 
-    protected $appends = ['engine'];
-
+    // deprecated, service has type designation now
+    protected $hidden = ['type'];
+    
     protected $casts = ['service_id' => 'integer', 'config' => 'array'];
 
     /**
@@ -59,19 +60,6 @@ class ScriptConfig extends BaseServiceConfigModel
         return true;
     }
     
-    /**
-     * @return mixed
-     */
-    public function getEngineAttribute()
-    {
-        /** @type ScriptEngineTypeInterface $typeInfo */
-        if (null !== $typeInfo = ScriptEngineManager::getScriptEngineType($this->getType())) {
-            $this->engine = $typeInfo->toArray();
-        }
-
-        return $this->engine;
-    }
-
     /**
      * @param array $schema
      */

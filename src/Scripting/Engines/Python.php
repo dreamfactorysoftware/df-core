@@ -47,6 +47,9 @@ class Python extends ExecutedEngine
         $jsonEvent = str_replace(['null', 'true', 'false'], ['None', 'True', 'False'], $jsonEvent);
         $jsonPlatform = json_encode($platform, JSON_UNESCAPED_SLASHES);
         $jsonPlatform = str_replace(['null', 'true', 'false'], ['None', 'True', 'False'], $jsonPlatform);
+        if (empty($script)) {
+            $script = 'pass;';
+        }
         $scriptLines = explode("\n", $script);
 
         $enrobedScript = <<<python

@@ -124,16 +124,20 @@ _wrapperResult = (function() {
         console.log(JSON.stringify(_event));
     };
     
-    _event.setResponse = function(content, statusCode){
+    _event.setResponse = function(content, statusCode, contentType){
         if(!_event.response){
             _event.response = {};
         }
         if(!statusCode){
             statusCode = 200;
         }
+        if(!contentType){
+            contentType = 'application/json';
+        }
         
         _event.response.content = content;
         _event.response.status_code = statusCode;
+        _event.response.content_type = contentType;
         _event.response.content_changed = true;
 
         console.log(JSON.stringify(_event));

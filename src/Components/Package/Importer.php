@@ -298,6 +298,7 @@ class Importer
                 foreach ($services as $i => $service) {
                     unset($service['id']);
                     unset($service['last_modified_by_id']);
+                    $this->convertToNewServiceType($service);
                     $service['created_by_id'] = Session::getCurrentUserId();
                     if (!empty(array_get($service, 'config.default_role'))) {
                         $oldRoleId = array_get($service, 'config.default_role');
@@ -330,6 +331,28 @@ class Importer
         }
 
         return false;
+    }
+
+    /**
+     * There are significant changes in service types
+     * definition between version 2.1.2 and 2.x.x This
+     * method makes the necessary conversion in order to
+     * allow for exporting packages from version 2.1.2 or
+     * lower to 2.x.x or higher.
+     *
+     * @param $service
+     */
+    protected function convertToNewServiceType(& $service)
+    {
+        if (version_compare(config('df.version'), '2.1.2') > 0) {
+            $type = array_get($service, 'type');
+
+            if ('script' === $type) {
+                $service['type'] = array_get($service, 'config.type');
+            } elseif ('sql_db' === $type) {
+                $service['type'] = array_get($service, 'config.driver');
+            }
+        }
     }
 
     /**

@@ -61,8 +61,9 @@ class Exporter
      * @type array
      */
     protected $defaultRelation = [
-        'system/role' => ['role_service_access_by_role_id', 'role_adldap_by_role_id'],
-        'system/user' => ['user_to_app_to_role_by_user_id']
+        'system/role'    => ['role_service_access_by_role_id', 'role_adldap_by_role_id'],
+        'system/user'    => ['user_to_app_to_role_by_user_id'],
+        'system/service' => ['service_doc_by_service_id']
     ];
 
     /**

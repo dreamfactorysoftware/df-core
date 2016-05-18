@@ -53,7 +53,7 @@ class NodeJs extends ExecutedEngine
     {
         $jsonEvent = json_encode($data, JSON_UNESCAPED_SLASHES);
         $jsonPlatform = json_encode($platform, JSON_UNESCAPED_SLASHES);
-        $protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443)? "'https://'" : "'http://'";
+        $protocol = ((!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443)? "'https'" : "'http'";
 
         //  Load user libraries
         //$requiredLibraries = \Cache::get('scripting.libraries.nodejs.required', null);
@@ -61,18 +61,57 @@ class NodeJs extends ExecutedEngine
         $enrobedScript = <<<JS
 
 _wrapperResult = (function() {
-
     //noinspection JSUnresolvedVariable
     var _event = {$jsonEvent};
     //noinspection JSUnresolvedVariable
     var _platform = {$jsonPlatform};
     //noinspection JSUnresolvedVariable
     var _protocol = {$protocol};
+    //noinspection JSUnresolvedVariable
+    var _host = _event.request.headers.host[0];
     
-    var http = require('http');
+    function getProtocol(path) {
+        path = path.trim(path);
+        if(path.substring(0, 7) === 'http://'){
+            return 'http'
+        } else if(path.substring(0, 8) === 'https://'){
+            return 'https';
+        } else {
+            return _protocol;
+        }
+    }
+    
+    function getHost(path){
+        path = path.trim(path);
+        if(path.substring(0, 7) === 'http://'){
+            return path.substring(7).substring(0, path.substring(7).indexOf('/'));
+        } else if(path.substring(0, 8) === 'https://'){
+            return path.substring(8).substring(0, path.substring(8).indexOf('/'));
+        } else {
+            return _host;
+        }
+    }
+    
+    function isInternalApi(path){
+        path = path.trim(path);
+        return (path.substring(0, 7) === 'http://' || path.substring(0, 8) === 'https://')? false : true;
+    }
+    
+    function cleanPath(path) {
+        path = path.trim(path);
+        if(isInternalApi(path)){
+            if(path.substring(0, 1) !== '/'){
+                path = '/'+path;
+            }
+            
+            if(path.substring(0, 8) !== '/api/v2/'){
+                path = '/api/v2'+path;
+            }
+        }
+        return path;
+    }
 
     var _options = {
-        _protocol:_protocol,
         host: _event.request.headers.host[0],
         headers: {
             'x-dreamfactory-api-key': _platform.session.api_key,
@@ -80,88 +119,77 @@ _wrapperResult = (function() {
         }
     };
     
-    _event.returnCallback = function(content){
+    _event.setReturn = function(content){
         _event.script_result = content;
         console.log(JSON.stringify(_event));
     };
     
+    _event.setResponse = function(content, statusCode, contentType){
+        if(!_event.response){
+            _event.response = {};
+        }
+        if(!statusCode){
+            statusCode = 200;
+        }
+        if(!contentType){
+            contentType = 'application/json';
+        }
+        
+        _event.response.content = content;
+        _event.response.status_code = statusCode;
+        _event.response.content_type = contentType;
+        _event.response.content_changed = true;
+
+        console.log(JSON.stringify(_event));
+    }
+    
     _platform.api = {
-        call: function (verb, path, payload, callback) {
-            if(callback === undefined) {
-                var httpSync = require('sync-request');
-                if (payload != undefined && payload != '') {
-                    if (typeof payload === 'string') {
-                        payload = JSON.parse(payload);
-                    }
-                    _options.json = payload;
-                }
-    
-                if(path.substring(0, 1) !== '/'){
-                    path = '/'+path;
-                }
-    
-                path = _options.host + path;
-    
-                if(path.substring(0, 4) !== 'http'){
-                    path = _options._protocol + path;
-                }
-    
-                var res = httpSync(verb, path, _options);
-                
-                res.getResponse = function(charset){
-                    if(charset==undefined || charset == ''){
-                        charset = 'utf-8';
-                    }
-                    var result = this.getBody(charset);
-                    
-                    try{
-                        return JSON.parse(result);
-                    } catch(e){
-                        return result;
-                    }
-                }
-    
-                return res;
-            } else {
-                _options.method = verb;
-                _options.path = path;
-                if(typeof payload === 'object'){
-                    payload = JSON.stringify(payload);
-                }
-    
-                var _callback = function (response) {
-                    var body = '';
-    
-                    response.on('data', function (chunk) {
-                        body += chunk;
-                    });
-    
-                    response.on('end', function () {
-                        callback(body, response);
-                    });
-                };
-    
-                var request = http.request(_options, _callback);
-                request.write(payload);
-                request.end();
-                
-                return request;
+        call: function (verb, path, payload, headers, callback) {
+            _options.host = getHost(path);
+            _options.method = verb;
+            _options.path = cleanPath(path);
+            
+            if(headers && !isInternalApi(path)){
+                _options.headers = headers;
             }
+            
+            if(typeof payload === 'object'){
+                payload = JSON.stringify(payload);
+            }
+
+            var _callback = function (response) {
+                var body = '';
+
+                response.on('data', function (chunk) {
+                    body += chunk;
+                });
+
+                response.on('end', function () {
+                    callback(body, response);
+                });
+            };
+
+            var http = require(getProtocol(path));
+            var request = http.request(_options, _callback);
+            request.write(payload);
+            request.end();
+            
+            return request;
         },
-        get: function (path, callback) {
-            return this.call('GET', path, '', callback);
+        get: function (path, headers, callback) {
+            return this.call('GET', path, '', headers, callback);
         },
-        post: function (path, payload, callback) {
-            return this.call('POST', path, payload, callback);
+        post: function (path, payload, headers, callback) {
+            return this.call('POST', path, payload, headers, callback);
         },
-        put: function (path, payload, callback) {
-            return this.call('PUT', path, payload, callback);
+        put: function (path, payload, headers, callback) {
+            return this.call('PUT', path, payload, headers, callback);
         },
-        patch: function (path, payload, callback) {
-            return this.call('PATCH', path, payload, callback);
+        patch: function (path, payload, headers, callback) {
+            return this.call('PATCH', path, payload, headers, callback);
         },
-        delete: function (path, payload, callback) {
-            return this.call('DELETE', path, payload, callback);
+        delete: function (path, payload, headers, callback) {
+            return this.call('DELETE', path, payload, headers, callback);
         }
     };
 

@@ -148,7 +148,7 @@ class Script extends BaseRestService
         }
 
         // check if this is a "response" array
-        if (is_array($response) && (isset($response['content']) || isset($response['status_code']))) {
+        if (is_array($response) && isset($response['content'])) {
             $content = ArrayUtils::get($response, 'content');
             $contentType = ArrayUtils::get($response, 'content_type');
             $status = ArrayUtils::get($response, 'status_code', ServiceResponseInterface::HTTP_OK);

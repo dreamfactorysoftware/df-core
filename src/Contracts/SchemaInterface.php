@@ -80,6 +80,16 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
     public function formatValue($value, $type);
 
     /**
+     * @return string|null
+     */
+    public function getUserSchema();
+
+    /**
+     * @param string|null $schema
+     */
+    public function setUserSchema($schema);
+
+    /**
      * @param $defaultSchemaOnly
      *
      * @return mixed

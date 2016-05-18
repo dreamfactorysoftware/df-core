@@ -73,7 +73,7 @@ class ServiceManager
             ],
             [
                 'name'        => 'swagger',
-                'label'       => 'Swagger API Docs',
+                'label'       => 'API Docs',
                 'description' => 'API documenting and testing service using Swagger specifications.',
                 'group'       => ServiceTypeGroups::API_DOC,
                 'singleton'   => true,
@@ -113,7 +113,7 @@ class ServiceManager
             ],
             [
                 'name'           => 'smtp_email',
-                'label'          => 'SMTP Email Service',
+                'label'          => 'SMTP',
                 'description'    => 'SMTP-based email service',
                 'group'          => ServiceTypeGroups::EMAIL,
                 'config_handler' => SmtpConfig::class,
@@ -123,7 +123,7 @@ class ServiceManager
             ],
             [
                 'name'           => 'mailgun_email',
-                'label'          => 'Mailgun Email Service',
+                'label'          => 'Mailgun',
                 'description'    => 'Mailgun email service',
                 'group'          => ServiceTypeGroups::EMAIL,
                 'config_handler' => MailGunConfig::class,
@@ -133,7 +133,7 @@ class ServiceManager
             ],
             [
                 'name'           => 'mandrill_email',
-                'label'          => 'Mandrill Email Service',
+                'label'          => 'Mandrill',
                 'description'    => 'Mandrill email service',
                 'group'          => ServiceTypeGroups::EMAIL,
                 'config_handler' => MandrillConfig::class,
@@ -157,9 +157,7 @@ class ServiceManager
     public function getService($name)
     {
         // If we haven't created this service, we'll create it based on the config provided.
-        // NOTE: Using singleton service currently breaks the package import/export. Therefore,
-        // commenting out the following lines and always using new instance of a service.
-//        if (!isset($this->services[$name])) {
+        if (!isset($this->services[$name])) {
             $service = $this->makeService($name);
 
 //            if ($this->app->bound('events')) {
@@ -167,7 +165,7 @@ class ServiceManager
 //            }
 
             $this->services[$name] = $service;
-//        }
+        }
 
         return $this->services[$name];
     }

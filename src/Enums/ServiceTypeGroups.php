@@ -26,7 +26,7 @@ class ServiceTypeGroups extends FactoryEnum
 
     const OAUTH = 'OAuth';
 
-    const REMOTE = 'Remote Services';
+    const REMOTE = 'Remote Service';
 
     const SCRIPT = 'Script';
 

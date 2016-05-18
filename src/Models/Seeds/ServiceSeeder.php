@@ -43,9 +43,7 @@ class ServiceSeeder extends BaseModelSeeder
             'type'        => 'sqlite',
             'mutable'     => true,
             'deletable'   => true,
-            'config' => [
-                'database' => 'db.sqlite'
-            ]
+            'config'      => ['connection' => ['database' => 'db.sqlite']]
         ]
     ];
 }

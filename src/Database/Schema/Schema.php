@@ -6,16 +6,12 @@ use DreamFactory\Core\Contracts\DbExtrasInterface;
 use DreamFactory\Core\Database\DataReader;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Library\Utility\Scalar;
+use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionInterface;
 
 /**
  * Schema is the base class for retrieving metadata information.
  *
- * @property ConnectionInterface $connection     Database connection. The connection is active.
- * @property array               $tables         The metadata for all tables in the database.
- * Each array element is an instance of {@link TableSchema} (or its child class).
- * The array keys are table names.
- * @property array               $tableNames     All table names in the database.
  */
 abstract class Schema
 {
@@ -37,6 +33,10 @@ abstract class Schema
      * @type string
      */
     protected $defaultSchema;
+    /**
+     * @type string
+     */
+    protected $userSchema;
     /**
      * @var array
      */
@@ -66,7 +66,7 @@ abstract class Schema
      */
     protected $functions = [];
     /**
-     * @var ConnectionInterface
+     * @var Connection
      */
     protected $connection;
 
@@ -136,6 +136,22 @@ abstract class Schema
     public function setExtraStore($extraStore)
     {
         $this->extraStore = $extraStore;
+    }
+
+    /**
+     * @return string|null
+     */
+    public function getUserSchema()
+    {
+        return $this->userSchema;
+    }
+
+    /**
+     * @param string|null $schema
+     */
+    public function setUserSchema($schema)
+    {
+        $this->userSchema = $schema;
     }
 
     /**
@@ -379,6 +395,9 @@ abstract class Schema
     {
         if ($this->isDefaultSchemaOnly()) {
             return [$this->getDefaultSchema()];
+        }
+        if (!empty($this->userSchema)) {
+            return [$this->userSchema];
         }
         if (!$refresh) {
             if (!empty($this->schemaNames)) {

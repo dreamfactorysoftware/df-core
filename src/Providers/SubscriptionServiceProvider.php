@@ -15,7 +15,7 @@ class SubscriptionServiceProvider extends ServiceProvider
             $df->addType(new ServiceType(
                 [
                     'name'                  => 'adldap',
-                    'label'                 => 'Active Directory LDAP',
+                    'label'                 => 'Active Directory',
                     'description'           => 'A service for supporting Active Directory integration',
                     'group'                 => ServiceTypeGroups::LDAP,
                     'subscription_required' => true,

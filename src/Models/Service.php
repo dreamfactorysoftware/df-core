@@ -238,18 +238,49 @@ class Service extends BaseSystemModel
 
             // replace service placeholders with value for this service instance
             $content =
-                str_replace([
-                    '{service.name}',
-                    '{service.names}',
-                    '{service.Name}',
-                    '{service.Names}',
-                    '{service.label}',
-                    '{service.description}'
-                ],
+                str_replace(
+                    [
+                        '{service.name}',
+                        '{service.names}',
+                        '{service.Name}',
+                        '{service.Names}',
+                        '{service.label}',
+                        '{service.description}'
+                    ],
                     [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
                     $content);
 
             $content = json_decode($content, true);
+            $paths = array_get($content, 'paths', []);
+            // tricky here, loop through all indexes to check if all start with service name,
+            // otherwise need to prepend service name to all.
+            if (!empty(array_filter(array_keys($paths), function ($k) use ($name){
+                return (0 !== strcmp($name, strstr(ltrim($k, '/'), '/', true)));
+            }))
+            ) {
+                $newPaths = [];
+                foreach ($paths as $path => $pathDef) {
+                    $newPath = '/' . $name . $path;
+                    $newPaths[$newPath] = $pathDef;
+                }
+                $paths = $newPaths;
+            }
+            // make sure each path is tagged
+            foreach ($paths as $path => &$pathDef) {
+                foreach ($pathDef as $verb => &$verbDef) {
+                    // If we leave the incoming tags, they get bubbled up to our service-level
+                    // and possibly confuse the whole interface. Replace with our service name tag.
+//                    if (!is_array($tag = array_get($verbDef, 'tags', []))) {
+//                        $tag = [];
+//                    }
+//                    if (false === array_search($name, $tag)) {
+//                        $tag[] = $name;
+//                        $verbDef['tags'] = $tag;
+//                    }
+                    $verbDef['tags'] = [$name];
+                }
+            }
+            $content['paths'] = $paths; // write any changes back
         } else {
             $content = ServiceManager::getService($service->name)->getApiDocInfo();
         }

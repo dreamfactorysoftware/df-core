@@ -149,7 +149,7 @@ _wrapperResult = (function() {
             _options.method = verb;
             _options.path = cleanPath(path);
             
-            if(headers && !isInternalApi(path)){
+            if(!isInternalApi(path)){
                 _options.headers = headers;
             }
             

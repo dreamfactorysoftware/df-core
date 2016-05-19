@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Components\DsnToConnectionConfig;
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -35,6 +36,8 @@ use ServiceManager;
  */
 class Service extends BaseSystemModel
 {
+    use DsnToConnectionConfig;
+
     protected $table = 'service';
 
     protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config'];
@@ -129,6 +132,27 @@ class Service extends BaseSystemModel
                 Swagger::flush();
             }
         );
+    }
+
+    public static function create(array $attributes = [])
+    {
+        // if type is old sql_db or script, need to upgrade
+        switch (array_get($attributes, 'type')){
+            case 'script':
+                $attributes['type'] = array_get($attributes, 'config.type');
+                unset($attributes['config']['type']);
+                break;
+            case 'sql_db':
+                $type = '';
+                $config = static::adaptConfig(array_get($attributes, 'config'), $type);
+                $config['options'] = array_get($attributes, 'config.options', []);
+                $config['attributes'] = array_get($attributes, 'config.attributes', []);
+                $attributes['config'] = $config;
+                $attributes['type'] = $type;
+                break;
+        }
+
+        return parent::create($attributes);
     }
 
     /**

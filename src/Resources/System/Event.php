@@ -63,13 +63,7 @@ class Event extends BaseRestResource
         $broadcastEventMap = [];
 
         //  Pull any custom swagger docs
-        $result = ServiceModel::with(
-            [
-                'serviceDocs' => function ($query){
-                    $query->where('format', ApiDocFormatTypes::SWAGGER_JSON);
-                }
-            ]
-        )->get();
+        $result = ServiceModel::with('serviceDocs')->get();
 
         //	Spin through services and pull the events
         foreach ($result as $service) {

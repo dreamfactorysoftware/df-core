@@ -66,7 +66,7 @@ class Event extends BaseRestResource
         $result = ServiceModel::with(
             [
                 'serviceDocs' => function ($query){
-                    $query->where('format', ApiDocFormatTypes::SWAGGER);
+                    $query->where('format', ApiDocFormatTypes::SWAGGER_JSON);
                 }
             ]
         )->get();

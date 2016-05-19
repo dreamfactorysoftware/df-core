@@ -3,12 +3,15 @@ namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\DsnToConnectionConfig;
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
+use DreamFactory\Core\Enums\ApiDocFormatTypes;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Library\Utility\Inflector;
 use ServiceManager;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Service
@@ -137,7 +140,7 @@ class Service extends BaseSystemModel
     public static function create(array $attributes = [])
     {
         // if type is old sql_db or script, need to upgrade
-        switch (array_get($attributes, 'type')){
+        switch (array_get($attributes, 'type')) {
             case 'script':
                 $attributes['type'] = array_get($attributes, 'config.type');
                 unset($attributes['config']['type']);
@@ -149,6 +152,28 @@ class Service extends BaseSystemModel
                 $config['attributes'] = array_get($attributes, 'config.attributes', []);
                 $attributes['config'] = $config;
                 $attributes['type'] = $type;
+                break;
+            case 'rws':
+                // fancy trick to grab the base url from swagger
+                if (empty(array_get($attributes, 'config.base_url')) &&
+                    !empty($content = array_get($attributes, 'service_doc_by_service_id.0.content'))
+                ) {
+                    if (is_string($content)) {
+                        $content =
+                            static::storedContentToArray($content,
+                                array_get($attributes, 'service_doc_by_service_id.0.format'));
+                    }
+                    if (is_array($content) && !empty($host = array_get($content, 'host'))) {
+                        if (!empty($protocol = array_get($content, 'schemes'))) {
+                            $protocol = (is_array($protocol) ? current($protocol) : $protocol);
+                        } else {
+                            $protocol = 'http';
+                        }
+                        $basePath = array_get($content, 'basePath', '');
+                        $baseUrl = $protocol . '://' . $host . $basePath;
+                        $attributes['config']['base_url'] = $baseUrl;
+                    }
+                }
                 break;
         }
 
@@ -251,6 +276,7 @@ class Service extends BaseSystemModel
     public static function getStoredContentForService(Service $service)
     {
         // check the database records for custom doc in swagger, raml, etc.
+        /** @type ServiceDoc $info */
         $info = $service->serviceDocs()->first();
         $content = (isset($info)) ? $info->content : null;
         if (is_string($content)) {
@@ -274,7 +300,7 @@ class Service extends BaseSystemModel
                     [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
                     $content);
 
-            $content = json_decode($content, true);
+            $content = static::storedContentToArray($content, $info->format);
             $paths = array_get($content, 'paths', []);
             // tricky here, loop through all indexes to check if all start with service name,
             // otherwise need to prepend service name to all.
@@ -310,6 +336,20 @@ class Service extends BaseSystemModel
         }
 
         return $content;
+    }
+
+    public static function storedContentToArray($content, $format)
+    {
+        switch ($format) {
+            case ApiDocFormatTypes::SWAGGER_JSON:
+                return json_decode($content, true);
+                break;
+            case ApiDocFormatTypes::SWAGGER_YAML:
+                return Yaml::parse($content);
+                break;
+            default:
+                throw new InternalServerErrorException("Invalid API Doc Format '$format'.");
+        }
     }
 
     /**

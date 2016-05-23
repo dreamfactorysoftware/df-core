@@ -59,7 +59,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
     public function getServiceTypeInfo()
     {
         if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
-            return $typeInfo->getGroup();
+            return $typeInfo;
         }
 
         return null;

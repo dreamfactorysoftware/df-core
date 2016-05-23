@@ -14,7 +14,7 @@ interface ServiceInterface extends RequestHandlerInterface
     /**
      * @return ServiceTypeInterface
      */
-    public static function getServiceTypeInfo();
+    public function getServiceTypeInfo();
 
     /**
      * @param null|string $resource

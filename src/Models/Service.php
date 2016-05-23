@@ -210,21 +210,6 @@ class Service extends BaseSystemModel
     }
 
     /**
-     * Determine the handler for the extra config settings
-     *
-     * @return ServiceConfigHandlerInterface|null
-     */
-    protected function getConfigHandler()
-    {
-        if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
-            // lookup related service type config model
-            return $typeInfo->getConfigHandler();
-        }
-
-        return null;
-    }
-
-    /**
      * @return mixed
      */
     public function getConfigAttribute()
@@ -426,5 +411,20 @@ class Service extends BaseSystemModel
 
             return $service->name;
         });
+    }
+    
+    /**
+     * Determine the handler for the extra config settings
+     *
+     * @return ServiceConfigHandlerInterface|null
+     */
+    protected function getConfigHandler()
+    {
+        if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
+            // lookup related service type config model
+            return $typeInfo->getConfigHandler();
+        }
+
+        return null;
     }
 }

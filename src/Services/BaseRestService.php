@@ -16,7 +16,7 @@ use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Inflector;
 use Symfony\Component\HttpFoundation\RedirectResponse;
-use ServiceManager;
+use ServiceManager as ServiceMgr;
 
 /**
  * Class BaseRestService
@@ -58,7 +58,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
 
     public function getServiceTypeInfo()
     {
-        if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
+        if (null !== $typeInfo = ServiceMgr::getServiceType($this->type)) {
             return $typeInfo;
         }
 

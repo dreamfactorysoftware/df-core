@@ -23,6 +23,11 @@ use DreamFactory\Library\Utility\Inflector;
 class TableSchema
 {
     /**
+     * @var string Name of the catalog (database) that this table belongs to (SQL Server specific).
+     * Defaults to null, meaning no catalog (or the current database).
+     */
+    public $catalogName;
+    /**
      * @var string Name of the schema that this table belongs to.
      */
     public $schemaName;
@@ -65,34 +70,34 @@ class TableSchema
      */
     public $nameField;
     /**
-     * @var string|array primary key name of this table. If composite key, an array of key names is returned.
+     * @var string|array Primary key name of this table. If composite key, an array of key names is returned.
      */
     public $primaryKey;
     /**
-     * @var string sequence name for the primary key. Null if no sequence.
+     * @var string Sequence name for the primary key. Null if no sequence.
      */
     public $sequenceName;
     /**
-     * @var array column metadata of this table. Each array element is a ColumnSchema object, indexed by lowercase
+     * @var array Column metadata of this table. Each array element is a ColumnSchema object, indexed by lowercase
      *      column name.
      */
     public $columns = [];
     /**
-     * @var array column aliases to column names.
+     * @var array Column aliases to column names.
      */
     public $columnAliases = [];
     /**
-     * @var array foreign keys of this table. The array is indexed by column name. Each value is an array of foreign
+     * @var array Foreign keys of this table. The array is indexed by column name. Each value is an array of foreign
      *      table name and foreign column name.
      */
     public $foreignKeys = [];
     /**
-     * @var array relationship metadata of this table. Each array element is a RelationSchema object, indexed by
+     * @var array Relationship metadata of this table. Each array element is a RelationSchema object, indexed by
      *      lowercase relation name.
      */
     public $relations = [];
     /**
-     * @var array relationship aliases to relationship names.
+     * @var array Relationship aliases to relationship names.
      */
     public $relationAliases = [];
     /**

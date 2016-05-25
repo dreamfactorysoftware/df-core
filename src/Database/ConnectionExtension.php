@@ -25,7 +25,7 @@ trait ConnectionExtension
      *                                                      database driver
      * @throws \Exception if Connection does not support reading schema for specified database driver
      */
-    public function getSchema(ConnectionInterface $conn)
+    public function getSchemaExtension(ConnectionInterface $conn)
     {
         if ($this->schemaExtension === null) {
             $driver = $conn->getDriverName();

@@ -203,9 +203,8 @@ class BaseModel extends Model implements CacheInterface
         $m = new static;
         /** @type TableSchema $tableSchema */
         $tableSchema = $m->getTableSchema();
-        $columns = $tableSchema->getColumnNames();
 
-        return in_array($field, $columns);
+        return (null !== $tableSchema->getColumn($field));
     }
 
     /**
@@ -736,10 +735,15 @@ class BaseModel extends Model implements CacheInterface
      */
     public function getTableSchema()
     {
-        $this->cachePrefix = 'model_' . $this->getTable() . ':';
-        $this->getSchema($this->getConnection())->setCache($this);
+        return $this->getSchema()->getTable($this->table);
+    }
 
-        return $this->schemaExtension->getTable($this->table);
+    public function getSchema()
+    {
+        $this->cachePrefix = 'model_' . $this->getTable() . ':';
+        $this->getSchemaExtension($this->getConnection())->setCache($this);
+
+        return $this->schemaExtension;
     }
 
     /**

@@ -228,19 +228,6 @@ class PostgresSchema extends Schema
     }
 
     /**
-     * Quotes a table name for use in a query.
-     * A simple table name does not schema prefix.
-     *
-     * @param string $name table name
-     *
-     * @return string the properly quoted table name
-     */
-    public function quoteSimpleTableName($name)
-    {
-        return '"' . $name . '"';
-    }
-
-    /**
      * Resets the sequence value of a table's primary key.
      * The sequence will be reset such that the primary key of the next new row inserted
      * will have the specified value or max value of a primary key plus one (i.e. sequence trimming).
@@ -274,7 +261,6 @@ class PostgresSchema extends Schema
      * @param boolean $check  whether to turn on or off the integrity check.
      * @param string  $schema the schema of the tables. Defaults to empty string, meaning the current or default schema.
      *
-     * @since 1.1
      */
     public function checkIntegrity($check = true, $schema = '')
     {
@@ -370,16 +356,16 @@ EOD;
      */
     protected function createColumn($column)
     {
-        $c = new PgSqlColumnSchema(['name' => $column['attname']]);
+        $c = new ColumnSchema(['name' => $column['attname']]);
         $c->rawName = $this->quoteColumnName($c->name);
         $c->allowNull = !$column['attnotnull'];
         $c->comment = $column['comment'] === null ? '' : $column['comment'];
         $c->dbType = $column['type'];
-        $c->extractLimit($column['type']);
-        $c->extractFixedLength($column['type']);
-        $c->extractMultiByteSupport($column['type']);
-        $c->extractType($column['type']);
-        $c->extractDefault($column['atthasdef'] ? $column['adsrc'] : null);
+        $this->extractLimit($c, $column['type']);
+        $c->fixedLength = $this->extractFixedLength($column['type']);
+        $c->supportsMultibyte = $this->extractMultiByteSupport($column['type']);
+        $this->extractType($c, $column['type']);
+        $this->extractDefault($c, $column['atthasdef'] ? $column['adsrc'] : null);
 
         return $c;
     }
@@ -763,6 +749,84 @@ MYSQL;
         }
 
         return parent::formatValue($value, $type);
+    }
+
+    /**
+     * Extracts the PHP type from DB type.
+     *
+     * @param string $dbType DB type
+     */
+    public function extractType(ColumnSchema &$column, $dbType)
+    {
+        parent::extractType($column, $dbType);
+        if (strpos($dbType, '[') !== false || strpos($dbType, 'char') !== false || strpos($dbType, 'text') !== false) {
+            $column->type = ColumnSchema::TYPE_STRING;
+        } elseif (preg_match('/(real|float|double)/', $dbType)) {
+            $column->type = ColumnSchema::TYPE_DOUBLE;
+        } elseif (preg_match('/(integer|oid|serial|smallint)/', $dbType)) {
+            $column->type = ColumnSchema::TYPE_INTEGER;
+        }
+    }
+
+    /**
+     * Extracts the PHP type from DF type.
+     *
+     * @param string $type DF type
+     *
+     * @return string
+     */
+    public static function extractPhpType($type)
+    {
+        switch ($type) {
+            case ColumnSchema::TYPE_MONEY:
+                return 'string';
+        }
+
+        return parent::extractPhpType($type);
+    }
+
+    /**
+     * Extracts size, precision and scale information from column's DB type.
+     *
+     * @param string $dbType the column's DB type
+     */
+    public function extractLimit(ColumnSchema &$field, $dbType)
+    {
+        if (strpos($dbType, '(')) {
+            if (preg_match('/^time.*\((.*)\)/', $dbType, $matches)) {
+                $field->precision = (int)$matches[1];
+            } elseif (preg_match('/\((.*)\)/', $dbType, $matches)) {
+                $values = explode(',', $matches[1]);
+                $field->size = $field->precision = (int)$values[0];
+                if (isset($values[1])) {
+                    $field->scale = (int)$values[1];
+                }
+            }
+        }
+    }
+
+    /**
+     * Extracts the default value for the column.
+     * The value is typecasted to correct PHP type.
+     *
+     * @param mixed $defaultValue the default value obtained from metadata
+     */
+    public function extractDefault(ColumnSchema &$field, $defaultValue)
+    {
+        if ($defaultValue === 'true') {
+            $field->defaultValue = true;
+        } elseif ($defaultValue === 'false') {
+            $field->defaultValue = false;
+        } elseif (strpos($defaultValue, 'nextval') === 0) {
+            $field->defaultValue = null;
+        } elseif (preg_match('/^\'(.*)\'::/', $defaultValue, $matches)) {
+            $field->defaultValue = $this->typecast($field, str_replace("''", "'", $matches[1]));
+        } elseif (preg_match('/^(-?\d+(\.\d*)?)(::.*)?$/', $defaultValue, $matches)) {
+            $field->defaultValue = $this->typecast($field, $matches[1]);
+        } else {
+            // could be a internal function call like setting uuids
+            $field->defaultValue = $defaultValue;
+        }
     }
 
     /**

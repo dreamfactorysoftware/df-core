@@ -34,9 +34,6 @@ trait DbRequestCriteria
      */
     protected function getSelectionCriteria()
     {
-        /** @type TableSchema $schema */
-        $schema = $this->getModel()->getTableSchema();
-
         $criteria = [
             'params' => []
         ];
@@ -52,7 +49,9 @@ trait DbRequestCriteria
         }
 
         if (null !== ($value = $this->request->getParameter(ApiOptions::FILTER))) {
-            $native = $this->convertFilterToNative($value, $criteria['params'], [], $schema->getColumns(true));
+            /** @type TableSchema $schema */
+            $schema = $this->getModel()->getTableSchema();
+            $native = $this->convertFilterToNative($value, $criteria['params'], [], $schema->getColumns());
             $criteria['condition'] = $native['where'];
             if (is_array($native['params'])) {
                 if (is_array($criteria['params'])) {
@@ -303,7 +302,7 @@ trait DbRequestCriteria
                     $sqlOp = DbLogicalOperators::NOT_STR . ' ' . $sqlOp;
                 }
 
-                $out = $info->parseFieldForFilter(true) . " $sqlOp";
+                $out = $info->rawName . " $sqlOp";
                 $out .= (isset($value) ? " $value" : null);
                 if ($leftParen) {
                     $out = $leftParen . $out;
@@ -395,7 +394,6 @@ trait DbRequestCriteria
         return $value;
     }
 
-
     public static function padOperator($operator)
     {
         if (ctype_alpha($operator)) {
@@ -447,13 +445,13 @@ trait DbRequestCriteria
         switch ($operator) {
             // Value-Modifying Operators
             case DbComparisonOperators::CONTAINS:
-                $value = '%'.$value.'%';
+                $value = '%' . $value . '%';
                 break;
             case DbComparisonOperators::STARTS_WITH:
-                $value = $value.'%';
+                $value = $value . '%';
                 break;
             case DbComparisonOperators::ENDS_WITH:
-                $value = '%'.$value;
+                $value = '%' . $value;
                 break;
         }
     }

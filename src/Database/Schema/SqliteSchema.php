@@ -1,10 +1,6 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
-use DreamFactory\Core\Database\Schema\RelationSchema;
-use DreamFactory\Core\Database\Schema\SqliteColumnSchema;
-use DreamFactory\Core\Database\Schema\TableSchema;
-
 /**
  * Schema is the class for retrieving metadata information from a SQLite (2/3) database.
  */
@@ -17,7 +13,7 @@ class SqliteSchema extends Schema
         switch ($type) {
             // some types need massaging, some need other required properties
             case 'pk':
-            case SqliteColumnSchema::TYPE_ID:
+            case ColumnSchema::TYPE_ID:
                 $info['type'] = 'integer';
                 $info['allow_null'] = false;
                 $info['auto_increment'] = true;
@@ -25,14 +21,14 @@ class SqliteSchema extends Schema
                 break;
 
             case 'fk':
-            case SqliteColumnSchema::TYPE_REF:
+            case ColumnSchema::TYPE_REF:
                 $info['type'] = 'integer';
                 $info['is_foreign_key'] = true;
                 // check foreign tables
                 break;
 
-            case SqliteColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
-            case SqliteColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
+            case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
+            case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
                 $info['type'] = 'timestamp';
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
@@ -41,13 +37,13 @@ class SqliteSchema extends Schema
                 }
                 break;
 
-            case SqliteColumnSchema::TYPE_USER_ID:
-            case SqliteColumnSchema::TYPE_USER_ID_ON_CREATE:
-            case SqliteColumnSchema::TYPE_USER_ID_ON_UPDATE:
+            case ColumnSchema::TYPE_USER_ID:
+            case ColumnSchema::TYPE_USER_ID_ON_CREATE:
+            case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
                 $info['type'] = 'integer';
                 break;
 
-            case SqliteColumnSchema::TYPE_BOOLEAN:
+            case ColumnSchema::TYPE_BOOLEAN:
                 $info['type'] = 'tinyint';
                 $info['type_extras'] = '(1)';
                 $default = (isset($info['default'])) ? $info['default'] : null;
@@ -57,7 +53,7 @@ class SqliteSchema extends Schema
                 }
                 break;
 
-            case SqliteColumnSchema::TYPE_MONEY:
+            case ColumnSchema::TYPE_MONEY:
                 $info['type'] = 'decimal';
                 $info['type_extras'] = '(19,4)';
                 $default = (isset($info['default'])) ? $info['default'] : null;
@@ -66,7 +62,7 @@ class SqliteSchema extends Schema
                 }
                 break;
 
-            case SqliteColumnSchema::TYPE_STRING:
+            case ColumnSchema::TYPE_STRING:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $national =
@@ -81,7 +77,7 @@ class SqliteSchema extends Schema
                 }
                 break;
 
-            case SqliteColumnSchema::TYPE_BINARY:
+            case ColumnSchema::TYPE_BINARY:
                 $info['type'] = 'blob';
                 break;
         }
@@ -223,7 +219,7 @@ class SqliteSchema extends Schema
         }
 
         $isForeignKey = (isset($info['is_foreign_key'])) ? boolval($info['is_foreign_key']) : false;
-        if ((SqliteColumnSchema::TYPE_REF == $type) || $isForeignKey) {
+        if ((ColumnSchema::TYPE_REF == $type) || $isForeignKey) {
             // special case for references because the table referenced may not be created yet
             $refTable = (isset($info['ref_table'])) ? $info['ref_table'] : null;
             if (empty($refTable)) {
@@ -369,10 +365,10 @@ class SqliteSchema extends Schema
         }
         if (is_string($table->primaryKey)) {
             $column = $table->getColumn($table->primaryKey);
-            if ((SqliteColumnSchema::TYPE_INTEGER === $column->type)) {
+            if ((ColumnSchema::TYPE_INTEGER === $column->type)) {
                 $table->sequenceName = '';
                 $column->autoIncrement = true;
-                $column->type = SqliteColumnSchema::TYPE_ID;
+                $column->type = ColumnSchema::TYPE_ID;
                 $table->addColumn($column);
             }
         }
@@ -385,22 +381,22 @@ class SqliteSchema extends Schema
      *
      * @param array $column column metadata
      *
-     * @return SqliteColumnSchema normalized column metadata
+     * @return ColumnSchema normalized column metadata
      */
     protected function createColumn($column)
     {
-        $c = new SqliteColumnSchema(['name' => $column['name']]);
+        $c = new ColumnSchema(['name' => $column['name']]);
         $c->rawName = $this->quoteColumnName($c->name);
         $c->allowNull = (1 != $column['notnull']);
         $c->isPrimaryKey = ($column['pk'] != 0);
         $c->comment = null; // SQLite does not support column comments at all
 
         $c->dbType = strtolower($column['type']);
-        $c->extractLimit(strtolower($column['type']));
-        $c->extractFixedLength($column['type']);
-        $c->extractMultiByteSupport($column['type']);
-        $c->extractType(strtolower($column['type']));
-        $c->extractDefault($column['dflt_value']);
+        $this->extractLimit($c, strtolower($column['type']));
+        $c->fixedLength = $this->extractFixedLength($column['type']);
+        $c->supportsMultibyte = $this->extractMultiByteSupport($column['type']);
+        $this->extractType($c, strtolower($column['type']));
+        $this->extractDefault($c, $column['dflt_value']);
 
         return $c;
     }
@@ -423,8 +419,8 @@ class SqliteSchema extends Schema
                     $column->isForeignKey = true;
                     $column->refTable = $key['table'];
                     $column->refFields = $key['to'];
-                    if (SqliteColumnSchema::TYPE_INTEGER === $column->type) {
-                        $column->type = SqliteColumnSchema::TYPE_REF;
+                    if (ColumnSchema::TYPE_INTEGER === $column->type) {
+                        $column->type = ColumnSchema::TYPE_REF;
                     }
                     // update the column in the table
                     $table->addColumn($column);
@@ -660,5 +656,27 @@ class SqliteSchema extends Schema
     public function allowsSeparateForeignConstraint()
     {
         return false;
+    }
+
+    /**
+     * Extracts the default value for the column.
+     * The value is typecasted to correct PHP type.
+     *
+     * @param mixed $defaultValue the default value obtained from metadata
+     */
+    public function extractDefault(ColumnSchema &$field, $defaultValue)
+    {
+        if ($field->dbType === 'timestamp' && $defaultValue === 'CURRENT_TIMESTAMP') {
+            $field->defaultValue = null;
+        } else {
+            $field->defaultValue = $this->typecast($field, strcasecmp($defaultValue, 'null') ? $defaultValue : null);
+        }
+
+        if ($field->phpType === 'string' &&
+            $field->defaultValue !== null
+        ) // PHP 5.2.6 adds single quotes while 5.2.0 doesn't
+        {
+            $field->defaultValue = trim($field->defaultValue, "'\"");
+        }
     }
 }

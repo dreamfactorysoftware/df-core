@@ -4,10 +4,12 @@ namespace DreamFactory\Core\Database\Schema;
 use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\DbExtrasInterface;
 use DreamFactory\Core\Database\DataReader;
+use DreamFactory\Core\Database\Expression;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionInterface;
+use DB;
 
 /**
  * Schema is the base class for retrieving metadata information.
@@ -16,6 +18,13 @@ use Illuminate\Database\ConnectionInterface;
 abstract class Schema
 {
     const DEFAULT_STRING_MAX_SIZE = 255;
+
+    /**
+     * @const string Quoting characters
+     */
+    const LEFT_QUOTE_CHARACTER = '"';
+
+    const RIGHT_QUOTE_CHARACTER = '"';
 
     /**
      * @var CacheInterface
@@ -30,11 +39,11 @@ abstract class Schema
      */
     protected $defaultSchemaOnly = false;
     /**
-     * @type string
+     * @var string
      */
     protected $defaultSchema;
     /**
-     * @type string
+     * @var string
      */
     protected $userSchema;
     /**
@@ -325,7 +334,6 @@ abstract class Schema
         return null;
     }
 
-
     /**
      * Quotes a string value for use in a query.
      *
@@ -347,7 +355,7 @@ abstract class Schema
             return "'" . addcslashes(str_replace("'", "''", $str), "\000\n\r\\\032") . "'";
         }
     }
-    
+
     /**
      * Returns the default schema name for the connection.
      *
@@ -1088,11 +1096,10 @@ abstract class Schema
      * @param string $name table name
      *
      * @return string the properly quoted table name
-     * @since 1.1.6
      */
     public function quoteSimpleTableName($name)
     {
-        return "'" . $name . "'";
+        return static::LEFT_QUOTE_CHARACTER . $name . static::RIGHT_QUOTE_CHARACTER;
     }
 
     /**
@@ -1123,11 +1130,10 @@ abstract class Schema
      * @param string $name column name
      *
      * @return string the properly quoted column name
-     * @since 1.1.6
      */
     public function quoteSimpleColumnName($name)
     {
-        return '"' . $name . '"';
+        return static::LEFT_QUOTE_CHARACTER . $name . static::RIGHT_QUOTE_CHARACTER;
     }
 
     /**
@@ -1318,7 +1324,7 @@ abstract class Schema
                     $extraNew['db_function'] = $dbFunction;
                 }
 
-                if (isset($extraNew['is_virtual_foreign_key']) && !$extraNew['is_virtual_foreign_key']){
+                if (isset($extraNew['is_virtual_foreign_key']) && !$extraNew['is_virtual_foreign_key']) {
                     $extraNew['ref_table'] = null;
                     $extraNew['ref_fields'] = null;
                     $extraNew['ref_on_update'] = null;
@@ -2422,8 +2428,9 @@ abstract class Schema
      */
     public function callFunction(
         /** @noinspection PhpUnusedParameterInspection */
-        $name, &$params)
-    {
+        $name,
+        &$params
+    ){
         if (!$this->supportsFunctions()) {
             throw new \Exception('Stored Functions are not supported by this database connection.');
         }
@@ -2603,4 +2610,305 @@ abstract class Schema
 
         return isset($map[$type]) ? $map[$type] : \PDO::PARAM_STR;
     }
+
+    /**
+     * Extracts the PHP type from DF type.
+     *
+     * @param string $type DF type
+     *
+     * @return string
+     */
+    public static function extractPhpType($type)
+    {
+        switch ($type) {
+            case ColumnSchema::TYPE_BOOLEAN:
+                return 'boolean';
+
+            case ColumnSchema::TYPE_INTEGER:
+            case ColumnSchema::TYPE_ID:
+            case ColumnSchema::TYPE_REF:
+                return 'integer';
+
+            case ColumnSchema::TYPE_DECIMAL:
+            case ColumnSchema::TYPE_DOUBLE:
+            case ColumnSchema::TYPE_FLOAT:
+            case ColumnSchema::TYPE_MONEY:
+                return 'double';
+
+            default:
+                return 'string';
+        }
+    }
+
+    /**
+     * Extracts the PHP PDO type from DF type.
+     *
+     * @param string $type DF type
+     *
+     * @return int|null
+     */
+    public static function extractPdoType($type)
+    {
+        switch ($type) {
+            case ColumnSchema::TYPE_BOOLEAN:
+                return \PDO::PARAM_BOOL;
+
+            case ColumnSchema::TYPE_INTEGER:
+            case ColumnSchema::TYPE_ID:
+            case ColumnSchema::TYPE_REF:
+                return \PDO::PARAM_INT;
+
+            case ColumnSchema::TYPE_STRING:
+                return \PDO::PARAM_STR;
+        }
+
+        return null;
+    }
+
+    public function getPdoBinding(ColumnSchema $column)
+    {
+        switch ($column->dbType) {
+            case null:
+                $type = $column->getDbFunctionType();
+                $pdoType = $this->extractPdoType($type);
+                $phpType = $type;
+                break;
+            default:
+                $pdoType = ($column->allowNull) ? null : $column->pdoType;
+                $phpType = $column->phpType;
+                break;
+        }
+
+        return ['name' => $column->getName(true), 'pdo_type' => $pdoType, 'php_type' => $phpType];
+    }
+
+    /**
+     * Extracts the DreamFactory simple type from DB type.
+     *
+     * @param ColumnSchema $column
+     * @param string       $dbType DB type
+     */
+    public function extractType(ColumnSchema &$column, $dbType)
+    {
+        $simpleType = strstr($dbType, '(', true);
+        $simpleType = strtolower($simpleType ?: $dbType);
+
+        switch ($simpleType) {
+            case 'bit':
+            case (false !== strpos($simpleType, 'bool')):
+                $column->type = ColumnSchema::TYPE_BOOLEAN;
+                break;
+
+            case 'number': // Oracle for boolean, integers and decimals
+                if ($column->size == 1) {
+                    $column->type = ColumnSchema::TYPE_BOOLEAN;
+                } elseif (empty($column->scale)) {
+                    $column->type = ColumnSchema::TYPE_INTEGER;
+                } else {
+                    $column->type = ColumnSchema::TYPE_DECIMAL;
+                }
+                break;
+
+            case 'decimal':
+            case 'numeric':
+            case 'percent':
+                $column->type = ColumnSchema::TYPE_DECIMAL;
+                break;
+
+            case (false !== strpos($simpleType, 'double')):
+                $column->type = ColumnSchema::TYPE_DOUBLE;
+                break;
+
+            case 'real':
+            case (false !== strpos($simpleType, 'float')):
+                if ($column->size == 53) {
+                    $column->type = ColumnSchema::TYPE_DOUBLE;
+                } else {
+                    $column->type = ColumnSchema::TYPE_FLOAT;
+                }
+                break;
+
+            case (false !== strpos($simpleType, 'money')):
+                $column->type = ColumnSchema::TYPE_MONEY;
+                break;
+
+            case 'tinyint':
+            case 'smallint':
+            case 'mediumint':
+            case 'int':
+            case 'integer':
+                // watch out for point here!
+                if ($column->size == 1) {
+                    $column->type = ColumnSchema::TYPE_BOOLEAN;
+                } else {
+                    $column->type = ColumnSchema::TYPE_INTEGER;
+                }
+                break;
+
+            case 'bigint':
+                // bigint too big to represent as number in php
+                $column->type = ColumnSchema::TYPE_BIGINT;
+                break;
+
+            case (false !== strpos($simpleType, 'timestamp')):
+            case 'datetimeoffset': //  MSSQL
+                $column->type = ColumnSchema::TYPE_TIMESTAMP;
+                break;
+
+            case (false !== strpos($simpleType, 'datetime')):
+                $column->type = ColumnSchema::TYPE_DATETIME;
+                break;
+
+            case 'date':
+                $column->type = ColumnSchema::TYPE_DATE;
+                break;
+
+            case (false !== strpos($simpleType, 'time')):
+                $column->type = ColumnSchema::TYPE_TIME;
+                break;
+
+            case (false !== strpos($simpleType, 'binary')):
+            case (false !== strpos($simpleType, 'blob')):
+                $column->type = ColumnSchema::TYPE_BINARY;
+                break;
+
+            //	String types
+            case (false !== strpos($simpleType, 'clob')):
+            case (false !== strpos($simpleType, 'text')):
+                $column->type = ColumnSchema::TYPE_TEXT;
+                break;
+
+            case 'varchar':
+                if ($column->size == -1) {
+                    $column->type = ColumnSchema::TYPE_TEXT; // varchar(max) in MSSQL
+                } else {
+                    $column->type = ColumnSchema::TYPE_STRING;
+                }
+                break;
+
+            case 'string':
+            case (false !== strpos($simpleType, 'char')):
+            default:
+                $column->type = ColumnSchema::TYPE_STRING;
+                break;
+        }
+
+        $column->phpType = static::extractPhpType($column->type);
+        $column->pdoType = static::extractPdoType($column->type);
+    }
+
+    /**
+     * @param $dbType
+     *
+     * @return bool
+     */
+    public function extractMultiByteSupport($dbType)
+    {
+        switch ($dbType) {
+            case (false !== strpos($dbType, 'national')):
+            case (false !== strpos($dbType, 'nchar')):
+            case (false !== strpos($dbType, 'nvarchar')):
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * @param $dbType
+     *
+     * @return bool
+     */
+    public function extractFixedLength($dbType)
+    {
+        switch ($dbType) {
+            case ((false !== strpos($dbType, 'char')) && (false === strpos($dbType, 'var'))):
+            case 'binary':
+                return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Extracts size, precision and scale information from column's DB type.
+     *
+     * @param string $dbType the column's DB type
+     */
+    public function extractLimit(ColumnSchema &$field, $dbType)
+    {
+        if (strpos($dbType, '(') && preg_match('/\((.*)\)/', $dbType, $matches)) {
+            $values = explode(',', $matches[1]);
+            $field->size = (int)$values[0];
+            if (isset($values[1])) {
+                $field->precision = (int)$values[0];
+                $field->scale = (int)$values[1];
+            }
+        }
+    }
+
+    /**
+     * Extracts the default value for the column.
+     * The value is typecasted to correct PHP type.
+     *
+     * @param mixed $defaultValue the default value obtained from metadata
+     */
+    public function extractDefault(ColumnSchema &$field, $defaultValue)
+    {
+        $field->defaultValue = $this->typecast($field, $defaultValue);
+    }
+
+    /**
+     * Converts the input value to the type that this column is of.
+     *
+     * @param mixed $value input value
+     *
+     * @return mixed converted value
+     */
+    public function typecast(ColumnSchema $field, $value)
+    {
+        if (gettype($value) === $field->phpType || $value === null || $value instanceof Expression) {
+            return $value;
+        }
+        if ($value === '' && $field->allowNull) {
+            return ($field->phpType === 'string') ? '' : null;
+        }
+        switch ($field->phpType) {
+            case 'string':
+                return (string)$value;
+            case 'integer':
+                return (integer)$value;
+            case 'boolean':
+                return (boolean)$value;
+            case 'double':
+            default:
+                return $value;
+        }
+    }
+
+    public function parseFieldForSelect(ColumnSchema $field, $as_quoted_string = false)
+    {
+        switch ($field->dbType) {
+            case null:
+                return DB::raw($field->getDbFunction() . ' AS ' . $this->quoteColumnName($field->getName(true)));
+            default :
+                $out = ($as_quoted_string) ? $field->rawName : $field->name;
+                if (!empty($field->alias)) {
+                    $out .= ' AS ' . $field->alias;
+                }
+
+                return $out;
+        }
+    }
+
+    public function parseFieldForFilter(ColumnSchema $field, $as_quoted_string = false)
+    {
+        switch ($field->dbType) {
+            case null:
+                return DB::raw($field->getDbFunction());
+        }
+
+        return ($as_quoted_string) ? $field->rawName : $field->name;
+    }
+
 }

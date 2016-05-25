@@ -109,6 +109,7 @@ class Service extends BaseSystemModel
                 // Any changes to services needs to produce a new event list
                 Event::clearCache();
                 Swagger::flush();
+                ServiceManager::purge($service->name);
             }
         );
 
@@ -133,6 +134,7 @@ class Service extends BaseSystemModel
                 // Any changes to services needs to produce a new event list
                 Event::clearCache();
                 Swagger::flush();
+                ServiceManager::purge($service->name);
             }
         );
     }

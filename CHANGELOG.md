@@ -9,9 +9,31 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.3.0] - 2016-05-27
+### Added
+- MAJOR: Redesigned services, script engines, and system resources management to be more flexible and dynamic. See ServiceManager, SystemResourceManager and ScriptEngineManager modelled after Laravel's DatabaseManager, etc.
+- Now using ServiceProviders for all service type on-boarding.
+- API Doc now supports OpenAPI (fka Swagger) YAML format, as well as JSON.
+- Service Definition system now adds service name to all defined paths and tags automatically
+- Support for service definition (Swagger doc) on service import/export in packaging.
+- Added platform.api support for Node.js and Python scripting
+
+### Changed
+- Now using guzzle 6
+- SQL DB driver types now available as their own service types, "sql_db" type retired, see upgrade notes.
+- Script languages now available as their own service types, "script" type retired, see upgrade notes.
+- Converts old services types to new format during import in packaging.
+- Moving some seeder files location to model area.
+- System database redesign to remove database mappings
+
+### Fixed
+- Python scripting improvements, like allow empty script, correcting script output
+- Node.js scripting improvement, like allow returning output from async callback functions
+- Chrome doesn't like content-disposition:inline when importing html file from another html file
+
 ## [0.2.10] - 2016-04-29
 ### Fixed
-- Fix command exection for Windows OS for scriptings and packaging
+- Fix command execution for Windows OS for scripting and packaging
 
 ## [0.2.9] - 2016-04-25
 ### Changed
@@ -208,7 +230,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.10...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.10...0.3.0
 [0.2.10]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.9...0.2.10
 [0.2.9]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.8...0.2.9
 [0.2.8]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.7...0.2.8

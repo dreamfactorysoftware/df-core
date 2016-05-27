@@ -648,7 +648,7 @@ class SqliteSchema extends Schema
         throw new \Exception('Removing a primary key after table has been created is not supported by SQLite.');
     }
 
-    public function getTimestampForSet($update = false)
+    public function getTimestampForSet()
     {
         return $this->connection->raw("datetime('now')");
     }

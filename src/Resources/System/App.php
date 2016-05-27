@@ -7,9 +7,9 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\App as AppModel;
 use DreamFactory\Core\Utility\Packager;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Services\BaseFileService;
+use ServiceManager;
 
 class App extends BaseSystemResource
 {
@@ -176,7 +176,7 @@ class App extends BaseSystemResource
 
         if (empty($app) && !empty($storageServiceId) && !empty($storageFolder)) {
             /** @type BaseFileService $storageService */
-            $storageService = ServiceHandler::getServiceById($storageServiceId);
+            $storageService = ServiceManager::getServiceById($storageServiceId);
 
             if ($storageService->driver()->folderExists(null, $storageFolder)) {
                 $storageService->driver()->deleteFolder(null, $storageFolder, true);

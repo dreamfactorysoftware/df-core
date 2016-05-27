@@ -6,8 +6,8 @@ use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Models\ServiceCacheConfig;
 use DreamFactory\Core\Resources\BaseRestResource;
-use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\ArrayUtils;
+use ServiceManager;
 
 /**
  * Class Cache
@@ -58,7 +58,7 @@ class Cache extends BaseRestResource
         if (empty($this->resource)) {
             \Cache::flush();
         } else {
-            $service = ServiceHandler::getService($this->resource);
+            $service = ServiceManager::getService($this->resource);
             if ($service instanceof CachedInterface) {
                 $service->flush();
             } else {
@@ -69,9 +69,9 @@ class Cache extends BaseRestResource
         return ['success' => true];
     }
 
-    public static function getApiDocInfo(\DreamFactory\Core\Models\Service $service, array $resource = [])
+    public static function getApiDocInfo($service, array $resource = [])
     {
-        $serviceName = strtolower($service->name);
+        $serviceName = strtolower($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;

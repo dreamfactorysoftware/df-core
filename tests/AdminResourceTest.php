@@ -3,7 +3,6 @@
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Illuminate\Support\Arr;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\Session;
 
@@ -33,7 +32,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $this->makeRequest(Verbs::POST, 'user', [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'], [$user]);
 
         //Using a new instance here. Prev instance is set for user resource.
-        $this->service = \DreamFactory\Core\Utility\ServiceHandler::getService('system');
+        $this->service = ServiceManager::getService('system');
 
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE);
         $content = $rs->getContent();
@@ -60,7 +59,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         Session::authenticate(['email' => $user['email'], 'password' => $user['password']]);
 
         //Using a new instance here. Prev instance is set for user resource.
-        $this->service = ServiceHandler::getService('system');
+        $this->service = ServiceManager::getService('system');
 
         $this->setExpectedException('\DreamFactory\Core\Exceptions\UnauthorizedException');
         $this->makeRequest(Verbs::GET, static::RESOURCE . '/session');

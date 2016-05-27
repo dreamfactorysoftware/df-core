@@ -3,7 +3,6 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\EmailTemplate;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -11,6 +10,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 use DreamFactory\Core\Services\Email\BaseService as EmailService;
 use Validator;
+use ServiceManager;
 
 class Registrar implements RegistrarContract
 {
@@ -95,7 +95,7 @@ class Registrar implements RegistrarContract
             }
 
             /** @var EmailService $emailService */
-            $emailService = ServiceHandler::getServiceById($emailServiceId);
+            $emailService = ServiceManager::getServiceById($emailServiceId);
             $emailTemplate = EmailTemplate::find($emailTemplateId);
 
             if (empty($emailTemplate)) {

@@ -4,8 +4,8 @@ namespace DreamFactory\Core\Resources;
 
 use Config;
 use DreamFactory\Core\Components\DataValidator;
-use DreamFactory\Core\Database\TableSchema;
-use DreamFactory\Core\Database\ColumnSchema;
+use DreamFactory\Core\Database\Schema\TableSchema;
+use DreamFactory\Core\Database\Schema\ColumnSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DbComparisonOperators;
 use DreamFactory\Core\Enums\DbLogicalOperators;
@@ -18,7 +18,6 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -2951,10 +2950,10 @@ abstract class BaseDbTableResource extends BaseDbResource
         ];
     }
 
-    public static function getApiDocInfo(Service $service, array $resource = [])
+    public static function getApiDocInfo($service, array $resource = [])
     {
-        $serviceName = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $serviceName = strtolower($service);
+        $capitalized = Inflector::camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;

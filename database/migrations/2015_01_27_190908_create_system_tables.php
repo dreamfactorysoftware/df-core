@@ -81,37 +81,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // Service Types
-        Schema::create(
-            'service_type',
-            function (Blueprint $t){
-                $t->string('name', 40)->primary();
-                $t->string('class_name');
-                $t->string('config_handler')->nullable();
-                $t->string('label', 80);
-                $t->string('description')->nullable();
-                $t->string('group')->nullable();
-                $t->boolean('singleton')->default(0);
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
-            }
-        );
-
-        // System Resources
-        Schema::create(
-            'system_resource',
-            function (Blueprint $t){
-                $t->string('name', 40)->primary();
-                $t->string('class_name');
-                $t->string('label', 80);
-                $t->string('description')->nullable();
-                $t->boolean('singleton')->default(0);
-                $t->boolean('read_only')->default(0);
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
-            }
-        );
-
         // Services
         Schema::create(
             'service',
@@ -122,7 +91,6 @@ class CreateSystemTables extends Migration
                 $t->string('description')->nullable();
                 $t->boolean('is_active')->default(0);
                 $t->string('type', 40);
-                $t->foreign('type')->references('name')->on('service_type')->onDelete('cascade');
                 $t->boolean('mutable')->default(1);
                 $t->boolean('deletable')->default(1);
                 $t->timestamp('created_date');
@@ -148,28 +116,12 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // Script Types
-        Schema::create(
-            'script_type',
-            function (Blueprint $t){
-                $t->string('name', 40)->primary();
-                $t->string('class_name');
-                $t->string('label', 80);
-                $t->string('description')->nullable();
-                $t->boolean('sandboxed')->default(0);
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
-            }
-        );
-
         // Script Service Config
         Schema::create(
             'script_config',
             function (Blueprint $t){
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('type', 40);
-                $t->foreign('type')->references('name')->on('script_type')->onDelete('cascade');
                 $t->text('content')->nullable();
                 $t->text('config')->nullable();
             }
@@ -198,7 +150,6 @@ class CreateSystemTables extends Migration
             function (Blueprint $t) use ($userOnDelete){
                 $t->string('name', 80)->primary();
                 $t->string('type', 40);
-                $t->foreign('type')->references('name')->on('script_type')->onDelete('cascade');
                 $t->boolean('is_active')->default(0);
                 $t->boolean('affects_process')->default(0);
                 $t->text('content')->nullable();
@@ -621,10 +572,6 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('db_table_extras');
         // Database Extras
         Schema::dropIfExists('db_field_extras');
-        // System Resources
-        Schema::dropIfExists('system_resource');
-        // Service Types
-        Schema::dropIfExists('service_type');
         //Cors config table
         Schema::dropIfExists('cors_config');
         //Email service config table

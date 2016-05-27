@@ -9,8 +9,8 @@ use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Utility\FileUtilities;
 use DreamFactory\Core\Services\BaseFileService;
-use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Resources\System\Environment;
+use ServiceManager;
 
 /**
  * Class Package.
@@ -285,12 +285,13 @@ class Package
      */
     public function isFileService($serviceName, $resources = null)
     {
-        $service = Service::with('service_type_by_type')->whereName($serviceName)->first();
+        $service = Service::whereName($serviceName)->first();
         if (!empty($service)) {
-            $relations = $service->getRelation('service_type_by_type');
-            $group = $relations->group;
+            if (null === $type = ServiceManager::getServiceType($service->type)) {
+                return false;
+            }
 
-            return ($group === ServiceTypeGroups::FILE) ? true : false;
+            return ($type->getGroup() === ServiceTypeGroups::FILE) ? true : false;
         } elseif (!empty($resources)) {
             if (is_string($resources)) {
                 $resources = explode(',', $resources);
@@ -666,7 +667,7 @@ class Package
             }
 
             /** @type BaseFileService $storage */
-            $storage = ServiceHandler::getService($storageService);
+            $storage = ServiceManager::getService($storageService);
             $container = $storage->getContainerId();
             if (!$storage->driver()->folderExists($container, $storageFolder)) {
                 $storage->driver()->createFolder($container, $storageFolder);

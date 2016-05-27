@@ -5,7 +5,6 @@ namespace DreamFactory\Core\Services;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\ForbiddenException;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Components\RestHandler;
 use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
@@ -17,6 +16,7 @@ use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Inflector;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use ServiceManager as ServiceMgr;
 
 /**
  * Class BaseRestService
@@ -54,6 +54,15 @@ class BaseRestService extends RestHandler implements ServiceInterface
     public function getServiceId()
     {
         return $this->id;
+    }
+
+    public function getServiceTypeInfo()
+    {
+        if (null !== $typeInfo = ServiceMgr::getServiceType($this->type)) {
+            return $typeInfo;
+        }
+
+        return null;
     }
 
     public function handleRequest(ServiceRequestInterface $request, $resource = null)
@@ -146,10 +155,10 @@ class BaseRestService extends RestHandler implements ServiceInterface
         return parent::handleGET();
     }
 
-    public static function getApiDocInfo(Service $service)
+    public function getApiDocInfo()
     {
-        $name = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $name = strtolower($this->name);
+        $capitalized = Inflector::camelize($this->name);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $pluralClass = Inflector::pluralize($class);
         $wrapper = ResourcesWrapper::getWrapper();

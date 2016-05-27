@@ -13,24 +13,28 @@ class ApiDocFormatTypes extends FactoryEnum
     //	Constants
     //*************************************************************************
 
-    const __default = self::SWAGGER;
+    const __default = self::SWAGGER_JSON;
 
     /**
      * @var int Swagger json format, default
      */
-    const SWAGGER = 0;
+    const SWAGGER_JSON = 0;
+    /**
+     * @var int Swagger yaml format
+     */
+    const SWAGGER_YAML = 1;
     /**
      * @var int RAML, RESTful API modeling language
      */
-    const RAML = 1;
+    const RAML = 2;
     /**
      * @var int API Blueprint format
      */
-    const API_BLUEPRINT = 2;
+    const API_BLUEPRINT = 3;
     /**
      * @var int IO Docs format
      */
-    const IO_DOCS = 3;
+    const IO_DOCS = 4;
 
     //*************************************************************************
     //* Members
@@ -47,7 +51,7 @@ class ApiDocFormatTypes extends FactoryEnum
      * @throws \InvalidArgumentException
      * @return string
      */
-    public static function toNumeric($formatType = 'swagger')
+    public static function toNumeric($formatType = 'SWAGGER_JSON')
     {
         if (!is_string($formatType)) {
             throw new \InvalidArgumentException('The format type "' . $formatType . '" is not a string.');
@@ -63,7 +67,7 @@ class ApiDocFormatTypes extends FactoryEnum
      * @throws \InvalidArgumentException
      * @return string
      */
-    public static function toString($numericLevel = self::SWAGGER)
+    public static function toString($numericLevel = self::SWAGGER_JSON)
     {
         if (!is_numeric($numericLevel)) {
             throw new \InvalidArgumentException('The format type "' . $numericLevel . '" is not numeric.');

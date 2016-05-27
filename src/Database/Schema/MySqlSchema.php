@@ -2,14 +2,19 @@
 namespace DreamFactory\Core\Database\Schema;
 
 use DreamFactory\Core\Database\DataReader;
-use DreamFactory\Core\Database\Schema\Mysql\ColumnSchema;
-use DreamFactory\Core\Database\TableSchema;
 
 /**
  * Schema is the class for retrieving metadata information from a MySQL database (version 4.1.x and 5.x).
  */
 class MySqlSchema extends Schema
 {
+    /**
+     * @const string Quoting characters
+     */
+    const LEFT_QUOTE_CHARACTER = '`';
+
+    const RIGHT_QUOTE_CHARACTER = '`';
+
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class
@@ -236,32 +241,6 @@ class MySqlSchema extends Schema
     }
 
     /**
-     * Quotes a table name for use in a query.
-     * A simple table name does not schema prefix.
-     *
-     * @param string $name table name
-     *
-     * @return string the properly quoted table name
-     */
-    public function quoteSimpleTableName($name)
-    {
-        return '`' . $name . '`';
-    }
-
-    /**
-     * Quotes a column name for use in a query.
-     * A simple column name does not contain prefix.
-     *
-     * @param string $name column name
-     *
-     * @return string the properly quoted column name
-     */
-    public function quoteSimpleColumnName($name)
-    {
-        return '`' . $name . '`';
-    }
-
-    /**
      * Compares two table names.
      * The table names can be either quoted or unquoted. This method
      * will consider both cases.
@@ -397,10 +376,10 @@ MYSQL;
         if (isset($column['Comment'])) {
             $c->comment = $column['Comment'];
         }
-        $c->extractLimit($column['Type']);
-        $c->extractFixedLength($column['Type']);
+        $this->extractLimit($c, $column['Type']);
+        $c->fixedLength = $this->extractFixedLength($column['Type']);
 //        $c->extractMultiByteSupport( $column['Type'] );
-        $c->extractType($column['Type']);
+        $this->extractType($c, $column['Type']);
 
         if ($c->dbType === 'timestamp' && (0 === strcasecmp(strval($column['Default']), 'CURRENT_TIMESTAMP'))) {
             if (0 === strcasecmp(strval($column['Extra']), 'on update CURRENT_TIMESTAMP')) {
@@ -411,7 +390,7 @@ MYSQL;
                 $c->type = ColumnSchema::TYPE_TIMESTAMP_ON_CREATE;
             }
         } else {
-            $c->extractDefault($column['Default']);
+            $this->extractDefault($c, $column['Default']);
         }
 
         return $c;
@@ -585,7 +564,7 @@ MYSQL;
     public function renameColumn($table, $name, $newName)
     {
         $db = $this->connection;
-        if (null === $row = $db->selectOne('SHOW CREATE TABLE ' . $db->quoteTableName($table))) {
+        if (null === $row = $db->selectOne('SHOW CREATE TABLE ' . $this->quoteTableName($table))) {
             throw new \Exception("Unable to find '$name' in table '$table'.");
         }
 
@@ -596,9 +575,9 @@ MYSQL;
             $sql = $row[1];
         }
 
-        $table = $db->quoteTableName($table);
-        $name = $db->quoteColumnName($name);
-        $newName = $db->quoteColumnName($newName);
+        $table = $this->quoteTableName($table);
+        $name = $this->quoteColumnName($name);
+        $newName = $this->quoteColumnName($newName);
 
         if (preg_match_all('/^\s*[`"](.*?)[`"]\s+(.*?),?$/m', $sql, $matches)) {
             foreach ($matches[1] as $i => $c) {
@@ -692,6 +671,43 @@ MYSQL;
     }
 
     /**
+     * Extracts the default value for the column.
+     * The value is typecasted to correct PHP type.
+     *
+     * @param mixed $defaultValue the default value obtained from metadata
+     */
+    public function extractDefault(ColumnSchema &$field, $defaultValue)
+    {
+        if (strncmp($field->dbType, 'bit', 3) === 0) {
+            $field->defaultValue = bindec(trim($defaultValue, 'b\''));
+        } else {
+            parent::extractDefault($field, $defaultValue);
+        }
+    }
+
+    /**
+     * Extracts size, precision and scale information from column's DB type.
+     *
+     * @param string $dbType the column's DB type
+     */
+    public function extractLimit(ColumnSchema &$field, $dbType)
+    {
+        if (strncmp($dbType, 'enum', 4) === 0 && preg_match('/\(([\'"])(.*)\\1\)/', $dbType, $matches)) {
+            // explode by (single or double) quote and comma (ENUM values may contain commas)
+            $values = explode($matches[1] . ',' . $matches[1], $matches[2]);
+            $size = 0;
+            foreach ($values as $value) {
+                if (($n = strlen($value)) > $size) {
+                    $size = $n;
+                }
+            }
+            $field->size = $field->precision = $size;
+        } else {
+            parent::extractLimit($field, $dbType);
+        }
+    }
+
+    /**
      * @param string $name
      * @param array  $params
      *
@@ -739,6 +755,7 @@ MYSQL;
         !empty($pre) && $this->connection->statement($pre);
 
         $sql = "CALL $name($paramStr)";
+
         /** @type \PDOStatement $statement */
         $statement = $this->connection->getPdo()->prepare($sql);
 

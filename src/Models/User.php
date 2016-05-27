@@ -2,7 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\RegisterContact;
-use DreamFactory\Core\Database\RelationSchema;
+use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -16,7 +16,6 @@ use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Encryption\Encrypter;
 use Validator;
 
 /**

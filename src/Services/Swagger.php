@@ -124,10 +124,12 @@ class Swagger extends BaseRestService
 
                     $servicePaths = (isset($result['paths']) ? $result['paths'] : []);
                     $serviceDefs = (isset($result['definitions']) ? $result['definitions'] : []);
+                    $serviceParams = (isset($result['parameters']) ? $result['parameters'] : []);
 
                     //  Add to the pile
                     $paths = array_merge($paths, $servicePaths);
                     $definitions = array_merge($definitions, $serviceDefs);
+                    $parameters = array_merge($parameters, $serviceParams);
                 } catch (\Exception $ex) {
                     \Log::error("  * System error creating swagger file for service '$name'.\n{$ex->getMessage()}");
                 }
@@ -219,10 +221,10 @@ HTML;
         ];
     }
 
-    public static function getApiDocInfo(Service $service)
+    public function getApiDocInfo()
     {
-        $name = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $name = strtolower($this->name);
+        $capitalized = Inflector::camelize($this->name);
 
         return [
             'paths'       => [

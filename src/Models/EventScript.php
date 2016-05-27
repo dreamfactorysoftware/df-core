@@ -75,27 +75,4 @@ class EventScript extends BaseModel
 
         return parent::validate($data, $throwException);
     }
-
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function scriptType()
-    {
-        return $this->belongsTo(ScriptType::class, 'type', 'name');
-    }
-
-    /**
-     * Determine the handler for the script type
-     *
-     * @return string|null
-     */
-    protected function getScriptHandler()
-    {
-        if (null !== $typeInfo = $this->scriptType()->first()) {
-            // lookup related script type model
-            return $typeInfo->class_name;
-        }
-
-        return null;
-    }
 }

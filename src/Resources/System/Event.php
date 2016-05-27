@@ -13,8 +13,8 @@ use DreamFactory\Core\Services\BaseFileService;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
+use ServiceManager;
 
 /**
  * Class Event
@@ -63,13 +63,7 @@ class Event extends BaseRestResource
         $broadcastEventMap = [];
 
         //  Pull any custom swagger docs
-        $result = ServiceModel::with(
-            [
-                'serviceDocs' => function ($query){
-                    $query->where('format', ApiDocFormatTypes::SWAGGER);
-                }
-            ]
-        )->get();
+        $result = ServiceModel::with('serviceDocs')->get();
 
         //	Spin through services and pull the events
         foreach ($result as $service) {
@@ -78,8 +72,8 @@ class Event extends BaseRestResource
                 $serviceEvents = static::parseSwaggerEvents($service);
 
                 //	Parse the events while we get the chance...
-                $processEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'process', []);
-                $broadcastEventMap[$apiName] = ArrayUtils::get($serviceEvents, 'broadcast', []);
+                $processEventMap[$apiName] = array_get($serviceEvents, 'process', []);
+                $broadcastEventMap[$apiName] = array_get($serviceEvents, 'broadcast', []);
 
                 unset($content, $service, $serviceEvents);
             } catch (\Exception $ex) {
@@ -93,29 +87,28 @@ class Event extends BaseRestResource
     }
 
     /**
-     * @param ServiceModel $service
+     * @param ServiceModel $model
      *
      * @return array
      * @throws \Exception
      */
-    protected static function parseSwaggerEvents(ServiceModel $service)
+    protected static function parseSwaggerEvents(ServiceModel $model)
     {
-        if (empty($content = ServiceModel::getStoredContentForService($service))) {
+        if (empty($content = ServiceModel::getStoredContentForService($model))) {
             throw new \Exception('  * No event content found for service.');
         }
 
         /** @var BaseRestService $serviceClass */
         $accessList = [];
-        if ($service->is_active) {
-            $serviceClass = $service->serviceType()->first()->class_name;
-            $settings = $service->toArray();
-            /** @var BaseRestService $obj */
-            $obj = new $serviceClass($settings);
-            if ($obj instanceof BaseFileService) {
+        if ($model->is_active) {
+
+            /** @var BaseRestService $service */
+            $service = ServiceManager::getService($model->name);
+            if ($service instanceof BaseFileService) {
                 // don't want the full folder list here
-                $accessList = (empty($obj->getPermissions()) ? [] : ['', '*']);
+                $accessList = (empty($service->getPermissions()) ? [] : ['', '*']);
             } else {
-                $accessList = $obj->getAccessList();
+                $accessList = $service->getAccessList();
             }
         }
 
@@ -123,17 +116,13 @@ class Event extends BaseRestResource
         $broadcastEvents = [];
         $eventCount = 0;
 
-        foreach (ArrayUtils::get($content, 'paths', []) as $path => $api) {
+        foreach (array_get($content, 'paths', []) as $path => $api) {
             $apiProcessEvents = [];
             $apiBroadcastEvents = [];
             $apiParameters = [];
             $pathParameters = [];
 
-            $eventPath = str_replace(
-                ['{service.name}', '/'],
-                [$service->name, '.'],
-                trim($path, '/')
-            );
+            $eventPath = str_replace('/', '.', trim($path, '/'));
             $resourcePath = ltrim(strstr(trim($path, '/'), '/'), '/');
             $replacePos = strpos($resourcePath, '{');
 
@@ -144,7 +133,7 @@ class Event extends BaseRestResource
                 }
 
                 $method = strtolower($ixOps);
-                if (null !== ($eventNames = ArrayUtils::get($operation, 'x-publishedEvents'))) {
+                if (null !== ($eventNames = array_get($operation, 'x-publishedEvents'))) {
                     if (is_string($eventNames) && false !== strpos($eventNames, ',')) {
                         $eventNames = explode(',', $eventNames);
 
@@ -161,17 +150,7 @@ class Event extends BaseRestResource
                     }
 
                     foreach ($eventNames as $ixEventNames => $templateEventName) {
-                        $eventName = str_replace(
-                            [
-                                '{service.name}',
-                                '{request.method}'
-                            ],
-                            [
-                                $service->name,
-                                $method,
-                            ],
-                            $templateEventName
-                        );
+                        $eventName = str_replace('{request.method}', $method, $templateEventName);
 
                         if (!isset($apiBroadcastEvents[$method]) ||
                             false === array_search($eventName, $apiBroadcastEvents[$method])
@@ -187,15 +166,15 @@ class Event extends BaseRestResource
                 if (!isset($apiProcessEvents[$method])) {
                     $apiProcessEvents[$method][] = "$eventPath.$method.pre_process";
                     $apiProcessEvents[$method][] = "$eventPath.$method.post_process";
-                    $parameters = ArrayUtils::get($operation, 'parameters', []);
+                    $parameters = array_get($operation, 'parameters', []);
                     if (!empty($pathParameters)) {
                         $parameters = array_merge($pathParameters, $parameters);
                     }
                     foreach ($parameters as $parameter) {
-                        $type = ArrayUtils::get($parameter, 'in', '');
+                        $type = array_get($parameter, 'in', '');
                         if ('path' === $type) {
-                            $name = ArrayUtils::get($parameter, 'name', '');
-                            $options = ArrayUtils::get($parameter, 'enum', ArrayUtils::get($parameter, 'options'));
+                            $name = array_get($parameter, 'name', '');
+                            $options = array_get($parameter, 'enum', array_get($parameter, 'options'));
                             if (empty($options) && !empty($accessList) && (false !== $replacePos)) {
                                 $checkFirstOption = strstr(substr($resourcePath, $replacePos + 1), '}', true);
                                 if ($name !== $checkFirstOption) {
@@ -321,7 +300,7 @@ class Event extends BaseRestResource
             $allEvents = [];
             switch ($type) {
                 case 'process':
-                    $results = ArrayUtils::get($results, 'process', []);
+                    $results = array_get($results, 'process', []);
                     foreach ($results as $serviceKey => $apis) {
                         if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
                             unset($results[$serviceKey]);
@@ -335,7 +314,7 @@ class Event extends BaseRestResource
                     }
                     break;
                 case 'broadcast':
-                    $results = ArrayUtils::get($results, 'broadcast', []);
+                    $results = array_get($results, 'broadcast', []);
                     foreach ($results as $serviceKey => $apis) {
                         if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
                             unset($results[$serviceKey]);
@@ -436,12 +415,12 @@ class Event extends BaseRestResource
         return EventScript::deleteById($this->resource, $this->request->getParameters());
     }
 
-    public static function getApiDocInfo(\DreamFactory\Core\Models\Service $service, array $resource = [])
+    public static function getApiDocInfo($service, array $resource = [])
     {
-        $serviceName = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $serviceName = strtolower($service);
+        $capitalized = Inflector::camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
         $eventPath = $serviceName . '.' . $resourceName;
 

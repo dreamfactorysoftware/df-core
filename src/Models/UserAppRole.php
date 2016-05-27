@@ -44,7 +44,7 @@ class UserAppRole extends BaseModel
             if ($userId && $appId) {
                 $model = $this->whereAppId($appId)->whereUserId($userId)->first();
 
-                if (!empty($model) && $model->id !== ArrayUtils::get($data, 'id')) {
+                if (!empty($model) && $model->id != ArrayUtils::get($data, 'id')) {
                     throw new BadRequestException('Multiple user-to-app-to-role assignment. You can only have a single user-to-app-to-role assignment.');
                 }
             }

@@ -147,10 +147,10 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         return Session::getServicePermissions($this->getServiceName(), $path, $requestType);
     }
 
-    public static function getApiDocInfo(Service $service, array $resource = [])
+    public static function getApiDocInfo($service, array $resource = [])
     {
-        $serviceName = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $serviceName = strtolower($service);
+        $capitalized = Inflector::camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
         $pluralClass = Inflector::pluralize($class);

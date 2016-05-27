@@ -1,10 +1,6 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
-use DreamFactory\Core\Database\RelationSchema;
-use DreamFactory\Core\Database\Schema\Sqlite\ColumnSchema;
-use DreamFactory\Core\Database\TableSchema;
-
 /**
  * Schema is the class for retrieving metadata information from a SQLite (2/3) database.
  */
@@ -368,11 +364,12 @@ class SqliteSchema extends Schema
             }
         }
         if (is_string($table->primaryKey)) {
-            $cnk = strtolower($table->primaryKey);
-            if ((ColumnSchema::TYPE_INTEGER === $table->columns[$cnk]->type)) {
+            $column = $table->getColumn($table->primaryKey);
+            if ((ColumnSchema::TYPE_INTEGER === $column->type)) {
                 $table->sequenceName = '';
-                $table->columns[$cnk]->autoIncrement = true;
-                $table->columns[$cnk]->type = ColumnSchema::TYPE_ID;
+                $column->autoIncrement = true;
+                $column->type = ColumnSchema::TYPE_ID;
+                $table->addColumn($column);
             }
         }
 
@@ -395,11 +392,11 @@ class SqliteSchema extends Schema
         $c->comment = null; // SQLite does not support column comments at all
 
         $c->dbType = strtolower($column['type']);
-        $c->extractLimit(strtolower($column['type']));
-        $c->extractFixedLength($column['type']);
-        $c->extractMultiByteSupport($column['type']);
-        $c->extractType(strtolower($column['type']));
-        $c->extractDefault($column['dflt_value']);
+        $this->extractLimit($c, strtolower($column['type']));
+        $c->fixedLength = $this->extractFixedLength($column['type']);
+        $c->supportsMultibyte = $this->extractMultiByteSupport($column['type']);
+        $this->extractType($c, strtolower($column['type']));
+        $this->extractDefault($c, $column['dflt_value']);
 
         return $c;
     }
@@ -418,13 +415,15 @@ class SqliteSchema extends Schema
             if ($each->name === $table->name) {
                 foreach ($fks as $key) {
                     $key = (array)$key;
-                    $column = $table->columns[strtolower($key['from'])];
+                    $column = $table->getColumn($key['from']);
                     $column->isForeignKey = true;
                     $column->refTable = $key['table'];
                     $column->refFields = $key['to'];
                     if (ColumnSchema::TYPE_INTEGER === $column->type) {
                         $column->type = ColumnSchema::TYPE_REF;
                     }
+                    // update the column in the table
+                    $table->addColumn($column);
                     $table->foreignKeys[$key['from']] = [$key['table'], $key['to']];
                     // Add it to our foreign references as well
                     $relation =
@@ -649,7 +648,7 @@ class SqliteSchema extends Schema
         throw new \Exception('Removing a primary key after table has been created is not supported by SQLite.');
     }
 
-    public function getTimestampForSet($update = false)
+    public function getTimestampForSet()
     {
         return $this->connection->raw("datetime('now')");
     }
@@ -657,5 +656,27 @@ class SqliteSchema extends Schema
     public function allowsSeparateForeignConstraint()
     {
         return false;
+    }
+
+    /**
+     * Extracts the default value for the column.
+     * The value is typecasted to correct PHP type.
+     *
+     * @param mixed $defaultValue the default value obtained from metadata
+     */
+    public function extractDefault(ColumnSchema &$field, $defaultValue)
+    {
+        if ($field->dbType === 'timestamp' && $defaultValue === 'CURRENT_TIMESTAMP') {
+            $field->defaultValue = null;
+        } else {
+            $field->defaultValue = $this->typecast($field, strcasecmp($defaultValue, 'null') ? $defaultValue : null);
+        }
+
+        if ($field->phpType === 'string' &&
+            $field->defaultValue !== null
+        ) // PHP 5.2.6 adds single quotes while 5.2.0 doesn't
+        {
+            $field->defaultValue = trim($field->defaultValue, "'\"");
+        }
     }
 }

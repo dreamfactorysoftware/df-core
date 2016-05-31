@@ -228,6 +228,8 @@ class Service extends BaseSystemModel
 
     /**
      * @param array $val
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
     public function setConfigAttribute(array $val)
     {
@@ -242,6 +244,12 @@ class Service extends BaseSystemModel
                 }
             } else {
                 $serviceCfg::validateConfig($this->config);
+            }
+        } else {
+            if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
+                if ($typeInfo->isSubscriptionRequired()) {
+                    throw new BadRequestException("Provisioning Failed. Subscription required for this service type.");
+                }
             }
         }
     }
@@ -414,11 +422,12 @@ class Service extends BaseSystemModel
             return $service->name;
         });
     }
-    
+
     /**
      * Determine the handler for the extra config settings
      *
-     * @return ServiceConfigHandlerInterface|null
+     * @return \DreamFactory\Core\Contracts\ServiceConfigHandlerInterface|null
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
     protected function getConfigHandler()
     {

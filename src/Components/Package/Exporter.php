@@ -254,7 +254,7 @@ class Exporter
         $service = Service::getCachedByName($serviceName);
         if (!empty($service)) {
 
-            return ServiceManager::getServiceType(array_get($service, 'name'));
+            return ServiceManager::getServiceType(array_get($service, 'type'))->getGroup();
         }
 
         return null;

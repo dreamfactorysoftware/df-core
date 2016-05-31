@@ -133,6 +133,26 @@ class ServiceType implements ServiceTypeInterface
     }
 
     /**
+     * Is a DreamFactory subscription required to use this service type
+     *
+     * @return boolean
+     */
+    public function isSubscriptionRequired()
+    {
+        return $this->subscriptionRequired;
+    }
+
+    /**
+     * Are there any dependencies (i.e. drivers, other service types, etc.) that are not met to use this service type.
+     *
+     * @return null | string
+     */
+    public function getDependenciesRequired()
+    {
+        return $this->dependenciesRequired;
+    }
+
+    /**
      * The configuration handler interface for this service type
      *
      * @param string $name

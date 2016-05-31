@@ -9,6 +9,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.3.1] - 2016-05-31
+### Fixed
+- Service type group inquiry form packaging was broken.
+- Service type checks in service creation and modification.
+
 ## [0.3.0] - 2016-05-27
 ### Added
 - MAJOR: Redesigned services, script engines, and system resources management to be more flexible and dynamic. See ServiceManager, SystemResourceManager and ScriptEngineManager modelled after Laravel's DatabaseManager, etc.

@@ -538,6 +538,8 @@ class Environment extends BaseSystemResource
                     'summary'           => 'get' . $capitalized . 'Environment() - Retrieve system environment.',
                     'operationId'       => 'get' . $capitalized . 'Environment',
                     'x-publishedEvents' => $eventPath . '.list',
+                    'consumes'          => ['application/json', 'application/xml'],
+                    'produces'          => ['application/json', 'application/xml'],
                     'responses'         => [
                         '200' => [
                             'description' => 'Environment',

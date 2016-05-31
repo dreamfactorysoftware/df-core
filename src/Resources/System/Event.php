@@ -495,6 +495,8 @@ class Event extends BaseRestResource
                         'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
                         'By default, all fields and no relations are returned for each record.',
                     'x-publishedEvents' => $eventPath . '.{event_name}.read',
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::FILE),
                     ],
@@ -513,6 +515,8 @@ class Event extends BaseRestResource
                     'tags'              => [$serviceName],
                     'summary'           => 'create' . $capitalized . 'EventScript() - Create a script for an event.',
                     'operationId'       => 'create' . $capitalized . 'EventScript',
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'description'       =>
                         'Post data should be a single record containing required fields for a script. ' .
                         'By default, only the event name of the record affected is returned on success, ' .
@@ -546,6 +550,8 @@ class Event extends BaseRestResource
                         'By default, only the event name of the record deleted is returned on success. ' .
                         'Use \'fields\' and \'related\' to return more properties of the deleted record.',
                     'x-publishedEvents' => $eventPath . '.{event_name}.delete',
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [],
                     'responses'         => [
                         '200'     => [

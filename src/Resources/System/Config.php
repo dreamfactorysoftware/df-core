@@ -44,6 +44,8 @@ class Config extends BaseSystemResource
                     'operationId'       => 'get' . $capitalized . 'Config',
                     'x-publishedEvents' => $eventPath . '.read',
                     'description'       => 'The retrieved properties control how the system behaves.',
+                    'consumes'          => ['application/json', 'application/xml'],
+                    'produces'          => ['application/json', 'application/xml'],
                     'responses'         => [
                         '200'     => [
                             'description' => 'Config',
@@ -63,6 +65,8 @@ class Config extends BaseSystemResource
                     'operationId'       => 'set' . $capitalized . 'Config',
                     'x-publishedEvents' => $eventPath . '.update',
                     'description'       => 'Post data should be an array of properties.',
+                    'consumes'          => ['application/json', 'application/xml'],
+                    'produces'          => ['application/json', 'application/xml'],
                     'parameters'        => [
                         [
                             'name'        => 'body',

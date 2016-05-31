@@ -54,6 +54,8 @@ class Constant extends ReadOnlySystemResource
                             ]
                         ],
                         'description'       => 'Returns an object containing every enumerated type and its constant values',
+                        'consumes'          => ['application/json', 'application/xml'],
+                        'produces'          => ['application/json', 'application/xml'],
                     ],
                 ],
                 $path . '/{type}' => [
@@ -64,6 +66,8 @@ class Constant extends ReadOnlySystemResource
                             'Constant() - Retrieve one constant type enumeration.',
                         'operationId'       => 'get' . $capitalized . 'Constant',
                         'x-publishedEvents' => $eventPath . '.read',
+                        'consumes'          => ['application/json', 'application/xml'],
+                        'produces'          => ['application/json', 'application/xml'],
                         'parameters'        => [
                             [
                                 'name'        => 'type',

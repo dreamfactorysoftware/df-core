@@ -95,6 +95,8 @@ class Cache extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
+                    'consumes'          => ['application/json', 'application/xml'],
+                    'produces'          => ['application/json', 'application/xml'],
                     'description'       => 'This clears all cached information in the system. Doing so may impact the performance of the system.',
                 ],
             ],
@@ -104,6 +106,8 @@ class Cache extends BaseRestResource
                     'summary'           => 'deleteServiceCache() - Delete cache for one service.',
                     'operationId'       => 'deleteServiceCache',
                     'x-publishedEvents' => [$eventPath . '{service}.delete'],
+                    'consumes'          => ['application/json', 'application/xml'],
+                    'produces'          => ['application/json', 'application/xml'],
                     'parameters'        => [
                         [
                             'name'        => 'service',

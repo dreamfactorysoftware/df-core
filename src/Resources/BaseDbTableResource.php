@@ -2994,6 +2994,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.select',
                         $eventPath . '.table_selected',
                     ],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
@@ -3034,6 +3036,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.insert',
                         $eventPath . '.table_inserted',
                     ],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
                         [
                             [
@@ -3087,6 +3091,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'By default, only the id property of the record is returned on success. ' .
                         'Use <b>fields</b> parameter to return more info.',
                     'x-publishedEvents' => [$eventPath . '.{table_name}.update', $eventPath . '.table_updated',],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
                         [
                             [
@@ -3131,6 +3137,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.update',
                         $eventPath . '.table_updated',
                     ],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
                         [
                             [
@@ -3178,6 +3186,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.delete',
                         $eventPath . '.table_deleted',
                     ],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
                         [
                             [
@@ -3236,6 +3246,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.{id}.select',
                         $eventPath . '.record_selected',
                     ],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
@@ -3266,6 +3278,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.{id}.update',
                         $eventPath . '.record_updated',
                     ],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         [
                             'name'        => 'body',
@@ -3303,6 +3317,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.{id}.update',
                         $eventPath . '.record_updated',
                     ],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         [
                             'name'        => 'body',
@@ -3336,6 +3352,8 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $eventPath . '.{table_name}.{id}.delete',
                         $eventPath . '.record_deleted',
                     ],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),

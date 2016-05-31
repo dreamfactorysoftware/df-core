@@ -97,8 +97,6 @@ class Package extends BaseSystemResource
                     'summary'           => 'getManifestOnly() - Retrieves package manifest for all resources.',
                     'operationId'       => 'getManifestOnly',
                     'x-publishedEvents' => [$eventPath . '.list'],
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         [
                             'name'        => 'system_only',
@@ -130,8 +128,6 @@ class Package extends BaseSystemResource
                     'summary'           => 'importExport' . $class . '() - Exports or Imports package file.',
                     'operationId'       => 'importExport' . $class,
                     'x-publishedEvents' => [$eventPath . '.list'],
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         [
                             'name'        => 'body',

@@ -429,7 +429,6 @@ class BaseSystemResource extends BaseRestResource
         }
         $path = '/' . $serviceName . '/' . $resourceName;
         $eventPath = $serviceName . '.' . $resourceName;
-//        $base = parent::getApiDocInfo($service, $resource);
         $wrapper = ResourcesWrapper::getWrapper();
 
         $apis = [
@@ -581,6 +580,8 @@ class BaseSystemResource extends BaseRestResource
                         '.',
                     'operationId'       => 'delete' . $capitalized . $pluralClass,
                     'x-publishedEvents' => [$eventPath . '.delete'],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         [
                             'name'        => 'force',
@@ -631,6 +632,8 @@ class BaseSystemResource extends BaseRestResource
                     'summary'           => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
                     'operationId'       => 'get' . $capitalized . $class,
                     'x-publishedEvents' => [$eventPath . '.read'],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
@@ -656,6 +659,8 @@ class BaseSystemResource extends BaseRestResource
                     'summary'           => 'update' . $capitalized . $class . '() - Update one ' . $class . '.',
                     'operationId'       => 'update' . $capitalized . $class,
                     'x-publishedEvents' => [$eventPath . '.update'],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         [
                             'name'        => 'body',
@@ -690,6 +695,8 @@ class BaseSystemResource extends BaseRestResource
                     'summary'           => 'delete' . $capitalized . $class . '() - Delete one ' . $class . '.',
                     'operationId'       => 'delete' . $capitalized . $class,
                     'x-publishedEvents' => [$eventPath . '.delete'],
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),

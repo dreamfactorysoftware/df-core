@@ -46,6 +46,20 @@ interface ServiceTypeInterface
     public function isSingleton();
 
     /**
+     * Is a DreamFactory subscription required to use this service type
+     *
+     * @return boolean
+     */
+    public function isSubscriptionRequired();
+
+    /**
+     * Are there any dependencies (i.e. drivers, other service types, etc.) that are not met to use this service type.
+     *
+     * @return null | string
+     */
+    public function getDependenciesRequired();
+
+    /**
      * The configuration handler interface for this service type
      *
      * @return ServiceConfigHandlerInterface | null

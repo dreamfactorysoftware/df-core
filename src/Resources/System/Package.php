@@ -4,12 +4,11 @@ namespace DreamFactory\Core\Resources\System;
 use DreamFactory\Core\Components\Package\Exporter;
 use DreamFactory\Core\Components\Package\Importer;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
-use DreamFactory\Core\Utility\FileUtilities;
 use DreamFactory\Core\Utility\Packager;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\Inflector;
-use Symfony\Component\HttpFoundation\StreamedResponse;
+use DreamFactory\Core\Enums\ApiOptions;
 
 class Package extends BaseSystemResource
 {
@@ -20,19 +19,7 @@ class Package extends BaseSystemResource
         $exporter = new Exporter(new \DreamFactory\Core\Components\Package\Package());
         $manifest = $exporter->getManifestOnly($systemOnly);
 
-        if ($this->request->getParameterAsBool('as_file')) {
-            $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-            $fileName = $tmpDir . 'manifest_' . date('Y-m-d H:i:s', time()) . '.json';
-            file_put_contents($fileName, json_encode($manifest, JSON_UNESCAPED_SLASHES));
-
-            $rs = new StreamedResponse(function () use ($fileName){
-                FileUtilities::sendFile($fileName, true);
-            }, 200, ['Content-Type' => 'application/json', 'Content-Disposition' => 'attachment']);
-            $rs->send();
-            exit();
-        } else {
-            return ResponseFactory::create($manifest, null, ServiceResponseInterface::HTTP_OK);
-        }
+        return ResponseFactory::create($manifest, null, ServiceResponseInterface::HTTP_OK);
     }
 
     /** @inheritdoc */
@@ -104,12 +91,7 @@ class Package extends BaseSystemResource
                             'in'          => 'query',
                             'description' => 'Set true to only include system resources in manifest'
                         ],
-                        [
-                            'name'        => 'as_file',
-                            'type'        => 'boolean',
-                            'in'          => 'query',
-                            'description' => 'Set true to download the manifest file.'
-                        ]
+                        ApiOptions::documentOption(ApiOptions::FILE)
                     ],
                     'responses'         => [
                         '200'     => [

@@ -292,7 +292,7 @@ class ApiOptions extends FactoryEnum
             'name'        => self::FILE,
             'type'        => 'string',
             'in'          => 'query',
-            'description' => 'Download the results of the request as a file.'
+            'description' => 'Download the results of the request as a file. <b>This is here for documentation purpose only. File will not download using API Docs.</b> '
         ],
         self::SCHEMA               => [
             'name'        => self::SCHEMA,

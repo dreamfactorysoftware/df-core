@@ -9,7 +9,6 @@ use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\FileUtilities;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
@@ -783,11 +782,11 @@ abstract class BaseFileService extends BaseRestService
         return $this->folderPath;
     }
 
-    public static function getApiDocInfo(Service $service)
+    public function getApiDocInfo()
     {
-        $base = parent::getApiDocInfo($service);
-        $name = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $base = parent::getApiDocInfo();
+        $name = strtolower($this->name);
+        $capitalized = Inflector::camelize($this->name);
 
         $base['paths'] = [
             '/' . $name                     => [

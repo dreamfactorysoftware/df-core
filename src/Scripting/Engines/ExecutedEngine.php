@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Scripting\Engines;
 
 use DreamFactory\Core\Components\PhpExecutable;
-use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Scripting\BaseEngineAdapter;
@@ -11,7 +10,7 @@ use \Log;
 /**
  * Abstract class for command executed engines, i.e. those outside of PHP control
  */
-abstract class ExecutedEngine extends BaseEngineAdapter implements ScriptingEngineInterface
+abstract class ExecutedEngine extends BaseEngineAdapter
 {
     use PhpExecutable;
 
@@ -53,12 +52,13 @@ abstract class ExecutedEngine extends BaseEngineAdapter implements ScriptingEngi
             $this->execute($runnerShell, $output, $return);
         } catch (\Exception $ex) {
             $message = $ex->getMessage();
-            Log::error($message = "Exception executing command based script: $message");
+            Log::error("Exception executing command based script: $message");
 
             return null;
         }
 
         if ($return > 0) {
+            Log::debug("Executed script: $runnerShell");
             throw new InternalServerErrorException('Executed command returned with error code: ' . $return);
         }
 

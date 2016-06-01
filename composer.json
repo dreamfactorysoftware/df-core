@@ -21,19 +21,13 @@
     {
       "name":  "Lee Hicks",
       "email": "leehicks@dreamfactory.com"
-    },
-    {
-      "name":  "Jerry Ablan",
-      "email": "jerryablan@dreamfactory.com"
     }
   ],
   "require":     {
     "php":                        ">=5.5",
     "doctrine/dbal":              "2.5.*",
-    "cooperl/laravel-db2":        "2.*",
-    "yajra/laravel-pdo-via-oci8": "1.*",
     "dreamfactory/php-utils":     "1.1.*",
-    "guzzlehttp/guzzle":          "~5.0",
+    "guzzlehttp/guzzle":          "~6.0",
     "barryvdh/laravel-cors":      "0.7.x"
   },
   "require-dev": {
@@ -46,7 +40,7 @@
   },
   "extra":       {
     "branch-alias": {
-      "dev-develop": "0.2.x-dev"
+      "dev-develop": "0.3.x-dev"
     }
   }
 }

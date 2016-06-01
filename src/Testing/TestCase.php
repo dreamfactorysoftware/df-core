@@ -6,10 +6,10 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Services\BaseRestService;
-use DreamFactory\Core\Utility\ServiceHandler;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Foundation\Testing\TestCase as LaravelTestCase;
 use Artisan;
+use ServiceManager;
 
 class TestCase extends LaravelTestCase
 {
@@ -156,7 +156,7 @@ class TestCase extends LaravelTestCase
      */
     public static function getService($name)
     {
-        return ServiceHandler::getService($name);
+        return ServiceManager::getService($name);
     }
 
     /**
@@ -166,7 +166,7 @@ class TestCase extends LaravelTestCase
      */
     public static function getServiceById($id)
     {
-        return ServiceHandler::getServiceById($id);
+        return ServiceManager::getServiceById($id);
     }
 
     /**

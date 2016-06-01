@@ -2,16 +2,17 @@
 
 namespace DreamFactory\Core\Resources;
 
+use DreamFactory\Core\ADLdap\Services\ADLdap;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\App;
-use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\OAuth\Services\BaseOAuthService;
 use DreamFactory\Core\Utility\JWTUtilities;
-use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Utility\Session;
+use ServiceManager;
 
 class UserSessionResource extends BaseRestResource
 {
@@ -28,11 +29,9 @@ class UserSessionResource extends BaseRestResource
     {
         $serviceName = $this->request->getParameter('service');
         if (!empty($serviceName)) {
-            $service = ServiceHandler::getService($serviceName);
-            /** @type Service $serviceModel */
-            $serviceModel = Service::find($service->getServiceId());
-            $serviceType = $serviceModel->serviceType()->first();
-            $serviceGroup = $serviceType->group;
+            /** @type BaseOAuthService $service */
+            $service = ServiceManager::getService($serviceName);
+            $serviceGroup = $service->getServiceTypeInfo()->getGroup();
 
             if ($serviceGroup !== ServiceTypeGroups::OAUTH) {
                 throw new BadRequestException('Invalid login service provided. Please use an OAuth service.');
@@ -67,11 +66,8 @@ class UserSessionResource extends BaseRestResource
             return $this->handleLogin($credentials, boolval($this->getPayloadData('remember_me')));
         }
 
-        $service = ServiceHandler::getService($serviceName);
-        /** @type Service $serviceModel */
-        $serviceModel = Service::find($service->getServiceId());
-        $serviceType = $serviceModel->serviceType()->first();
-        $serviceGroup = $serviceType->group;
+        $service = ServiceManager::getService($serviceName);
+        $serviceGroup = $service->getServiceTypeInfo()->getGroup();
 
         switch ($serviceGroup) {
             case ServiceTypeGroups::LDAP:
@@ -80,10 +76,12 @@ class UserSessionResource extends BaseRestResource
                     'password' => $this->getPayloadData('password')
                 ];
 
+                /** @type ADLdap $service */
                 return $service->handleLogin($credentials, $this->getPayloadData('remember_me'));
             case ServiceTypeGroups::OAUTH:
                 $oauthCallback = $this->request->getParameterAsBool('oauth_callback');
 
+                /** @type BaseOAuthService $service */
                 if (!empty($oauthCallback)) {
                     return $service->handleOAuthCallback();
                 } else {

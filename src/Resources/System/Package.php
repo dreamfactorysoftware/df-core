@@ -5,11 +5,10 @@ use DreamFactory\Core\Components\Package\Exporter;
 use DreamFactory\Core\Components\Package\Importer;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Utility\FileUtilities;
-use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Utility\Packager;
 use DreamFactory\Core\Utility\ResponseFactory;
-use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Library\Utility\Inflector;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class Package extends BaseSystemResource
@@ -81,9 +80,9 @@ class Package extends BaseSystemResource
         }
     }
 
-    public static function getApiDocInfo(ServiceModel $service, array $resource = [])
+    public static function getApiDocInfo($service, array $resource = [])
     {
-        $serviceName = strtolower($service->name);
+        $serviceName = strtolower($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $pluralClass = Inflector::pluralize($class);

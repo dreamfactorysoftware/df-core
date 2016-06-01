@@ -246,7 +246,7 @@ abstract class RestHandler implements RequestHandlerInterface
         $methodToCall = false;
 
         //	Check verb aliases as closures
-        if (true === $this->autoDispatch && null !== ($alias = ArrayUtils::get($this->verbAliases, $this->action))) {
+        if (true === $this->autoDispatch && null !== ($alias = array_get($this->verbAliases, $this->action))) {
             //	A closure?
             if (!in_array($alias, Verbs::getDefinedConstants()) && is_callable($alias)) {
                 $methodToCall = $alias;
@@ -313,7 +313,7 @@ abstract class RestHandler implements RequestHandlerInterface
         $this->action = trim(strtoupper($action));
 
         //	Check verb aliases, set correct action allowing for closures
-        if (null !== ($alias = ArrayUtils::get($this->verbAliases, $this->action))) {
+        if (null !== ($alias = array_get($this->verbAliases, $this->action))) {
             //	A closure?
             if (in_array($alias, Verbs::getDefinedConstants()) || !is_callable($alias)) {
                 //	Set original and work with alias
@@ -374,13 +374,14 @@ abstract class RestHandler implements RequestHandlerInterface
         $this->resourcePath = rtrim($resourcePath, '/');
         $this->resourceArray = (!empty($this->resourcePath)) ? explode('/', $this->resourcePath) : [];
 
-        if (empty($this->resource)) {
-            if (null !== ($resource = ArrayUtils::get($this->resourceArray, 0))) {
+        if (!empty($this->resourceArray)) {
+            if (null !== ($resource = array_get($this->resourceArray, 0))) {
                 $this->resource = $resource;
             }
+            if (null !== ($id = array_get($this->resourceArray, 1))) {
+                $this->resourceId = $id;
+            }
         }
-
-        $this->resourceId = ArrayUtils::get($this->resourceArray, 1);
 
         return $this;
     }
@@ -465,7 +466,7 @@ abstract class RestHandler implements RequestHandlerInterface
             if (!$asList && $includeAccess) {
                 foreach ($resources as &$resource) {
                     if (is_array($resource)) {
-                        $name = ArrayUtils::get($resource, $idField);
+                        $name = array_get($resource, $idField);
                         $resource['access'] =
                             VerbsMask::maskToArray($this->getPermissions($name));
                     }

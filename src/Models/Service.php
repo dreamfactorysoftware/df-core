@@ -1,13 +1,17 @@
 <?php
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Components\DsnToConnectionConfig;
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
+use DreamFactory\Core\Enums\ApiDocFormatTypes;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\System\Event;
-use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Library\Utility\Inflector;
+use ServiceManager;
+use Symfony\Component\Yaml\Yaml;
 
 /**
  * Service
@@ -35,6 +39,8 @@ use DreamFactory\Library\Utility\Inflector;
  */
 class Service extends BaseSystemModel
 {
+    use DsnToConnectionConfig;
+
     protected $table = 'service';
 
     protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config'];
@@ -103,6 +109,7 @@ class Service extends BaseSystemModel
                 // Any changes to services needs to produce a new event list
                 Event::clearCache();
                 Swagger::flush();
+                ServiceManager::purge($service->name);
             }
         );
 
@@ -127,16 +134,52 @@ class Service extends BaseSystemModel
                 // Any changes to services needs to produce a new event list
                 Event::clearCache();
                 Swagger::flush();
+                ServiceManager::purge($service->name);
             }
         );
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function serviceType()
+    public static function create(array $attributes = [])
     {
-        return $this->belongsTo(ServiceType::class, 'type', 'name');
+        // if type is old sql_db or script, need to upgrade
+        switch (array_get($attributes, 'type')) {
+            case 'script':
+                $attributes['type'] = array_get($attributes, 'config.type');
+                unset($attributes['config']['type']);
+                break;
+            case 'sql_db':
+                $type = '';
+                $config = static::adaptConfig(array_get($attributes, 'config'), $type);
+                $config['options'] = array_get($attributes, 'config.options', []);
+                $config['attributes'] = array_get($attributes, 'config.attributes', []);
+                $attributes['config'] = $config;
+                $attributes['type'] = $type;
+                break;
+            case 'rws':
+                // fancy trick to grab the base url from swagger
+                if (empty(array_get($attributes, 'config.base_url')) &&
+                    !empty($content = array_get($attributes, 'service_doc_by_service_id.0.content'))
+                ) {
+                    if (is_string($content)) {
+                        $content =
+                            static::storedContentToArray($content,
+                                array_get($attributes, 'service_doc_by_service_id.0.format'));
+                    }
+                    if (is_array($content) && !empty($host = array_get($content, 'host'))) {
+                        if (!empty($protocol = array_get($content, 'schemes'))) {
+                            $protocol = (is_array($protocol) ? current($protocol) : $protocol);
+                        } else {
+                            $protocol = 'http';
+                        }
+                        $basePath = array_get($content, 'basePath', '');
+                        $baseUrl = $protocol . '://' . $host . $basePath;
+                        $attributes['config']['base_url'] = $baseUrl;
+                    }
+                }
+                break;
+        }
+
+        return parent::create($attributes);
     }
 
     /**
@@ -169,21 +212,6 @@ class Service extends BaseSystemModel
     }
 
     /**
-     * Determine the handler for the extra config settings
-     *
-     * @return ServiceConfigHandlerInterface|null
-     */
-    protected function getConfigHandler()
-    {
-        if (null !== $typeInfo = $this->serviceType()->first()) {
-            // lookup related service type config model
-            return $typeInfo->config_handler;
-        }
-
-        return null;
-    }
-
-    /**
      * @return mixed
      */
     public function getConfigAttribute()
@@ -192,7 +220,7 @@ class Service extends BaseSystemModel
         // set the config giving the service id and new config
         $serviceCfg = $this->getConfigHandler();
         if (!empty($serviceCfg)) {
-            return $serviceCfg::getConfig($this->getKey());
+            $this->config = $serviceCfg::getConfig($this->getKey());
         }
 
         return $this->config;
@@ -200,6 +228,8 @@ class Service extends BaseSystemModel
 
     /**
      * @param array $val
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
     public function setConfigAttribute(array $val)
     {
@@ -214,6 +244,12 @@ class Service extends BaseSystemModel
                 }
             } else {
                 $serviceCfg::validateConfig($this->config);
+            }
+        } else {
+            if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
+                if ($typeInfo->isSubscriptionRequired()) {
+                    throw new BadRequestException("Provisioning Failed. Subscription required for this service type.");
+                }
             }
         }
     }
@@ -235,6 +271,7 @@ class Service extends BaseSystemModel
     public static function getStoredContentForService(Service $service)
     {
         // check the database records for custom doc in swagger, raml, etc.
+        /** @type ServiceDoc $info */
         $info = $service->serviceDocs()->first();
         $content = (isset($info)) ? $info->content : null;
         if (is_string($content)) {
@@ -246,25 +283,68 @@ class Service extends BaseSystemModel
 
             // replace service placeholders with value for this service instance
             $content =
-                str_replace([
-                    '{service.name}',
-                    '{service.names}',
-                    '{service.Name}',
-                    '{service.Names}',
-                    '{service.label}',
-                    '{service.description}'
-                ],
+                str_replace(
+                    [
+                        '{service.name}',
+                        '{service.names}',
+                        '{service.Name}',
+                        '{service.Names}',
+                        '{service.label}',
+                        '{service.description}'
+                    ],
                     [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
                     $content);
 
-            $content = json_decode($content, true);
+            $content = static::storedContentToArray($content, $info->format);
+            $paths = array_get($content, 'paths', []);
+            // tricky here, loop through all indexes to check if all start with service name,
+            // otherwise need to prepend service name to all.
+            if (!empty(array_filter(array_keys($paths), function ($k) use ($name){
+                return (0 !== strcmp($name, strstr(ltrim($k, '/'), '/', true)));
+            }))
+            ) {
+                $newPaths = [];
+                foreach ($paths as $path => $pathDef) {
+                    $newPath = '/' . $name . $path;
+                    $newPaths[$newPath] = $pathDef;
+                }
+                $paths = $newPaths;
+            }
+            // make sure each path is tagged
+            foreach ($paths as $path => &$pathDef) {
+                foreach ($pathDef as $verb => &$verbDef) {
+                    // If we leave the incoming tags, they get bubbled up to our service-level
+                    // and possibly confuse the whole interface. Replace with our service name tag.
+//                    if (!is_array($tag = array_get($verbDef, 'tags', []))) {
+//                        $tag = [];
+//                    }
+//                    if (false === array_search($name, $tag)) {
+//                        $tag[] = $name;
+//                        $verbDef['tags'] = $tag;
+//                    }
+                    $verbDef['tags'] = [$name];
+                }
+            }
+            $content['paths'] = $paths; // write any changes back
         } else {
-            /** @var BaseRestService $serviceClass */
-            $serviceClass = $service->serviceType()->first()->class_name;
-            $content = $serviceClass::getApiDocInfo($service);
+            $content = ServiceManager::getService($service->name)->getApiDocInfo();
         }
 
         return $content;
+    }
+
+    public static function storedContentToArray($content, $format)
+    {
+        switch ($format) {
+            case ApiDocFormatTypes::SWAGGER_JSON:
+                return json_decode($content, true);
+                break;
+            case ApiDocFormatTypes::SWAGGER_YAML:
+                return Yaml::parse($content);
+                break;
+            default:
+                throw new InternalServerErrorException("Invalid API Doc Format '$format'.");
+        }
     }
 
     /**
@@ -288,7 +368,6 @@ class Service extends BaseSystemModel
             }
 
             $settings = $service->toArray();
-            $settings['class_name'] = $service->serviceType()->first(['class_name'])->class_name;
 
             return $settings;
         });
@@ -342,5 +421,21 @@ class Service extends BaseSystemModel
 
             return $service->name;
         });
+    }
+
+    /**
+     * Determine the handler for the extra config settings
+     *
+     * @return \DreamFactory\Core\Contracts\ServiceConfigHandlerInterface|null
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    protected function getConfigHandler()
+    {
+        if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
+            // lookup related service type config model
+            return $typeInfo->getConfigHandler();
+        }
+
+        return null;
     }
 }

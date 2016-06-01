@@ -1,4 +1,4 @@
-## DreamFactory Core v0.2.10
+## DreamFactory Core v0.3.1
 
 [![Total Downloads](https://poser.pugx.org/dreamfactory/df-core/d/total.svg)](https://packagist.org/packages/dreamfactory/df-core)
 [![Latest Stable Version](https://poser.pugx.org/dreamfactory/df-core/v/stable.svg)](https://packagist.org/packages/dreamfactory/df-core)
@@ -9,7 +9,7 @@
 
 ## Overview
 
-DreamFactory(™) Core is a package built on top of the Laravel framework, and as such retains the requirements of the [Laravel v5.1 framework](https://github.com/laravel/framework). 
+DreamFactory(™) Core is a package built on top of the Laravel framework, and as such retains the requirements of the [Laravel v5.2 framework](https://github.com/laravel/framework). 
 
 ## Documentation
 
@@ -25,7 +25,7 @@ For more information, see the [full platform repository](https://github.com/drea
 Edit your project’s composer.json to require the following package.
 
 	“require”:{
-		"dreamfactory/df-core": "~0.2.0"
+		"dreamfactory/df-core": "~0.3.0"
 	}
 
 You may also need to add the following…

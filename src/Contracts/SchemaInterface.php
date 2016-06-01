@@ -80,6 +80,16 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
     public function formatValue($value, $type);
 
     /**
+     * @return string|null
+     */
+    public function getUserSchema();
+
+    /**
+     * @param string|null $schema
+     */
+    public function setUserSchema($schema);
+
+    /**
      * @param $defaultSchemaOnly
      *
      * @return mixed
@@ -203,4 +213,28 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
      * @return mixed
      */
     public function callProcedure($name, &$params);
+
+    /**
+     * @param mixed $field
+     *
+     * @return mixed
+     */
+    public function getPdoBinding($field);
+
+    /**
+     * @param mixed $field
+     * @param boolean  $as_quoted_string
+     *
+     * @return string
+     */
+    public function parseFieldForSelect($field, $as_quoted_string = false);
+
+    /**
+     * @param mixed $field
+     * @param boolean  $as_quoted_string
+     *
+     * @return string
+     */
+    public function parseFieldForFilter($field, $as_quoted_string = false);
+
 }

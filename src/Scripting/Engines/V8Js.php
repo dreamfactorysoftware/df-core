@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Scripting\Engines;
 
-use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Scripting\BaseEngineAdapter;
@@ -11,7 +10,7 @@ use \Log;
 /**
  * Plugin for the php-v8js extension which exposes the V8 Javascript engine
  */
-class V8Js extends BaseEngineAdapter implements ScriptingEngineInterface
+class V8Js extends BaseEngineAdapter
 {
     //*************************************************************************
     //	Constants

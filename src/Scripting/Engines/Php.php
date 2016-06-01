@@ -1,14 +1,13 @@
 <?php
 namespace DreamFactory\Core\Scripting\Engines;
 
-use DreamFactory\Core\Contracts\ScriptingEngineInterface;
 use DreamFactory\Core\Scripting\BaseEngineAdapter;
 use \Log;
 
 /**
  * Wrapper around the php extension
  */
-class Php extends BaseEngineAdapter implements ScriptingEngineInterface
+class Php extends BaseEngineAdapter
 {
     /**
      * Handle setup for global/all instances of engine

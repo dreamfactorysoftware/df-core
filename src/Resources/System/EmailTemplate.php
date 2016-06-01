@@ -9,7 +9,7 @@ class EmailTemplate extends BaseSystemResource
      */
     protected static $model = \DreamFactory\Core\Models\EmailTemplate::class;
 
-    public static function getApiDocInfo(\DreamFactory\Core\Models\Service $service, array $resource = [])
+    public static function getApiDocInfo($service, array $resource = [])
     {
         $base = parent::getApiDocInfo($service, $resource);
 

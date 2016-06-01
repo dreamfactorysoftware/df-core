@@ -12,8 +12,6 @@ class ServiceTypeGroups extends FactoryEnum
 
     const API_DOC = 'API Doc';
 
-    const CUSTOM = 'Custom';
-
     const DATABASE = 'Database';
 
     const EMAIL = 'Email';
@@ -27,6 +25,10 @@ class ServiceTypeGroups extends FactoryEnum
     const NOTIFICATION = 'Notification';
 
     const OAUTH = 'OAuth';
+
+    const REMOTE = 'Remote Service';
+
+    const SCRIPT = 'Script';
 
     const SYSTEM = 'System';
 

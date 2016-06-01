@@ -3,15 +3,14 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Components\DbRequestCriteria;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Models\EventSubscriber;
 use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Collection;
@@ -271,11 +270,11 @@ class Event extends BaseRestService
         return new static::$model;
     }
 
-    public static function getApiDocInfo(Service $service)
+    public function getApiDocInfo()
     {
         $wrapper = ResourcesWrapper::getWrapper();
-        $name = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $name = strtolower($this->name);
+        $capitalized = Inflector::camelize($this->name);
 
         $apis = [
             '/' . $name           => [

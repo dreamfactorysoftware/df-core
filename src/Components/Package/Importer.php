@@ -14,10 +14,10 @@ use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Services\BaseFileService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\ServiceHandler;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Illuminate\Contracts\Encryption\DecryptException;
+use ServiceManager;
 
 /**
  * Class Importer.
@@ -119,7 +119,7 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($roles);
-                ServiceHandler::handleRequest(Verbs::POST, 'system', 'role', [], $payload);
+                ServiceManager::handleRequest('system', Verbs::POST, 'role', [], [], $payload);
 
                 return true;
             } catch (\Exception $e) {
@@ -151,7 +151,7 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($users);
-                ServiceHandler::handleRequest(Verbs::POST, 'system', 'user', [], $payload);
+                ServiceManager::handleRequest('system', Verbs::POST, 'user', [], [], $payload);
                 $this->updateUserPassword($users);
 
                 return true;
@@ -254,7 +254,7 @@ class Importer
 
                         if (!empty($cleanedUar)) {
                             $userUpdate = ['user_to_app_to_role_by_user_id' => $cleanedUar];
-                            ServiceHandler::handleRequest(Verbs::PATCH, 'system', 'user/' . $newUserId, [],
+                            ServiceManager::handleRequest('system', Verbs::PATCH, 'user/' . $newUserId, [], [],
                                 $userUpdate);
 
                             $imported = true;
@@ -321,7 +321,7 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($services);
-                ServiceHandler::handleRequest(Verbs::POST, 'system', 'service', [], $payload);
+                ServiceManager::handleRequest('system', Verbs::POST, 'service', [], [], $payload);
 
                 return true;
             } catch (\Exception $e) {
@@ -385,11 +385,8 @@ class Importer
 
                         if (!empty($cleanedRsa)) {
                             $roleUpdate = ['role_service_access_by_role_id' => $cleanedRsa];
-                            ServiceHandler::handleRequest(
-                                Verbs::PATCH,
-                                'system', 'role/' . $newRoleId, [],
-                                $roleUpdate
-                            );
+                            ServiceManager::handleRequest('system', Verbs::PATCH, 'role/' . $newRoleId, [], [],
+                                $roleUpdate);
                             $imported = true;
                         }
                     } elseif (!empty($rsa) && empty($role)) {
@@ -540,7 +537,7 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($apps);
-                ServiceHandler::handleRequest(Verbs::POST, 'system', 'app', [], $payload);
+                ServiceManager::handleRequest('system', Verbs::POST, 'app', [], [], $payload);
 
                 return true;
             } catch (\Exception $e) {
@@ -611,7 +608,7 @@ class Importer
                 foreach ($scripts as $script) {
                     $name = array_get($script, 'name');
                     $this->fixCommonFields($script);
-                    ServiceHandler::handleRequest(Verbs::POST, 'system', 'event/' . $name, [], $script);
+                    ServiceManager::handleRequest('system', Verbs::POST, 'event/' . $name, [], [], $script);
                 }
 
                 return true;
@@ -646,7 +643,7 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($records);
-                ServiceHandler::handleRequest(Verbs::POST, $service, $resource, ['continue' => true], $payload);
+                ServiceManager::handleRequest($service, Verbs::POST, $resource, ['continue' => true], [], $payload);
                 if ($service . '/' . $resource === 'system/admin') {
                     $this->updateUserPassword($records);
                 }
@@ -681,7 +678,7 @@ class Importer
 
             try {
                 /** @type BaseFileService $storage */
-                $storage = ServiceHandler::getService($service);
+                $storage = ServiceManager::getService($service);
                 foreach ($resources as $resource) {
                     try {
                         $resourcePath = $service . '/' . ltrim($resource, '/');
@@ -966,7 +963,7 @@ class Importer
                 case 'user/custom':
                 case $service . '/_schema':
                     try {
-                        $result = ServiceHandler::handleRequest(Verbs::GET, $service, $resource . '/' . $value);
+                        $result = ServiceManager::handleRequest($service, Verbs::GET, $resource . '/' . $value);
                         if (is_string($result)) {
                             $result = ['value' => $result];
                         }
@@ -978,9 +975,8 @@ class Importer
                     }
                 default:
                     try {
-                        $result =
-                            ServiceHandler::handleRequest(Verbs::GET, $service, $resource,
-                                ['filter' => "$key = $value"]);
+                        $result = ServiceManager::handleRequest($service, Verbs::GET, $resource,
+                            ['filter' => "$key = $value"]);
                         if (is_string($result)) {
                             $result = ['value' => $result];
                         }

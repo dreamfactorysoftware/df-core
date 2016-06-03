@@ -91,8 +91,7 @@ class Php extends BaseEngineAdapter
      */
     public function executeScript($path, $identifier, array &$data = [], array $engineArguments = [])
     {
-        // TODO: Implement executeScript() method.
-
+        return $this->executeString(file_get_contents($path), $identifier, $data, $engineArguments);
     }
 
     /**

@@ -15,6 +15,7 @@ use DreamFactory\Core\Contracts\ResourceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Class RestHandler
@@ -266,11 +267,12 @@ abstract class RestHandler implements RequestHandlerInterface
         if ($methodToCall) {
             $result = call_user_func($methodToCall);
 
-            if ($result instanceof ServiceResponseInterface) {
+            if ($result instanceof ServiceResponseInterface ||
+                $result instanceof RedirectResponse ||
+                $result instanceof StreamedResponse
+            ) {
                 return $result;
-            } elseif ($result instanceof RedirectResponse) {
-                return $result;
-            }
+            } 
 
             return ResponseFactory::create($result);
         }

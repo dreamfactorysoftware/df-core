@@ -15,6 +15,7 @@ use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Class BaseFileService
@@ -238,11 +239,14 @@ abstract class BaseFileService extends BaseRestService
                 $result = $this->driver->getFileProperties($this->container, $this->filePath, $content);
             } else {
                 $download = $this->request->getParameterAsBool('download', false);
-                // stream the file, exits processing
-                $this->streamFile($this->container, $this->filePath, $download);
+                // stream the file using StreamedResponse, exits processing
+                $response = new StreamedResponse();
+                $service = $this;
+                $response->setCallback(function () use ($service, $download){
+                    $service->streamFile($service->container, $service->filePath, $download);
+                });
 
-                // output handled by file handler, short the response here
-                return ResponseFactory::create(null, null, null);
+                return $response;
             }
         }
 

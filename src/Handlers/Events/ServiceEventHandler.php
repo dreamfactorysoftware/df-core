@@ -14,6 +14,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Log;
 use ScriptEngineManager;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class ServiceEventHandler
 {
@@ -145,7 +146,8 @@ class ServiceEventHandler
         $data = [
             'request'  => $event->request->toArray(),
             'resource' => $event->resource,
-            'response' => ($event->response instanceof RedirectResponse) ? [] : $event->response->toArray()
+            'response' => ($event->response instanceof RedirectResponse || $event->response instanceof StreamedResponse)
+                ? [] : $event->response->toArray()
         ];
 
         if (null !== $result = $this->handleEventScript($name, $data)) {

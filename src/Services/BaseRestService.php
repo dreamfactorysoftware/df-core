@@ -17,6 +17,7 @@ use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Inflector;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use ServiceManager as ServiceMgr;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Class BaseRestService
@@ -98,9 +99,10 @@ class BaseRestService extends RestHandler implements ServiceInterface
      */
     protected function respond()
     {
-        if ($this->response instanceof ServiceResponseInterface) {
-            return $this->response;
-        } elseif ($this->response instanceof RedirectResponse) {
+        if ($this->response instanceof ServiceResponseInterface ||
+            $this->response instanceof RedirectResponse ||
+            $this->response instanceof StreamedResponse
+        ) {
             return $this->response;
         }
 

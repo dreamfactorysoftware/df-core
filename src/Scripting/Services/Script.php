@@ -58,7 +58,7 @@ class Script extends BaseRestService
         if (!is_string($this->content = array_get($config, 'content'))) {
             $this->content = '';
         }
-        
+
         if (empty($this->engineType = array_get($config, 'type'))) {
             throw new \InvalidArgumentException('Script engine configuration can not be empty.');
         }
@@ -66,6 +66,24 @@ class Script extends BaseRestService
         if (!is_array($this->scriptConfig = array_get($config, 'config', []))) {
             $this->scriptConfig = [];
         };
+    }
+
+    /**
+     * Returns all request data.
+     *
+     * @return array
+     */
+    protected function getRequestData()
+    {
+        return [
+            'request'  => $this->request->toArray(),
+            'response' => [
+                'content'      => null,
+                'content_type' => null,
+                'status_code'  => ServiceResponseInterface::HTTP_OK
+            ],
+            'resource' => $this->resourcePath
+        ];
     }
 
     /**
@@ -84,16 +102,7 @@ class Script extends BaseRestService
             throw new BadRequestException('The action "' . $this->action . '" is not supported.');
         }
 
-        $data =
-            [
-                'request'  => $this->request->toArray(),
-                'response' => [
-                    'content'      => null,
-                    'content_type' => null,
-                    'status_code'  => ServiceResponseInterface::HTTP_OK
-                ],
-                'resource' => $this->resourcePath
-            ];
+        $data = $this->getRequestData();
 
         $logOutput = $this->request->getParameterAsBool('log_output', true);
         $output = null;

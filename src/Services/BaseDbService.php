@@ -11,7 +11,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Resources\BaseDbResource;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Scalar;
 
 abstract class BaseDbService extends BaseRestService implements CachedInterface
 {
@@ -46,9 +46,9 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
     {
         parent::__construct($settings);
 
-        $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config'));
-        $this->cacheEnabled = ArrayUtils::getBool($config, 'cache_enabled');
-        $this->cacheTTL = intval(ArrayUtils::get($config, 'cache_ttl', \Config::get('df.default_cache_ttl')));
+        $config = (array)array_get($settings, 'config');
+        $this->cacheEnabled = Scalar::boolval(array_get($config, 'cache_enabled'));
+        $this->cacheTTL = intval(array_get($config, 'cache_ttl', \Config::get('df.default_cache_ttl')));
         $this->cachePrefix = 'service_' . $this->id . ':';
     }
 
@@ -138,14 +138,14 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
         $apis = [];
         $models = [];
         foreach (static::$resources as $resourceInfo) {
-            $resourceClass = ArrayUtils::get($resourceInfo, 'class_name');
+            $resourceClass = array_get($resourceInfo, 'class_name');
 
             if (!class_exists($resourceClass)) {
                 throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
                     $resourceClass);
             }
 
-            $resourceName = ArrayUtils::get($resourceInfo, static::RESOURCE_IDENTIFIER);
+            $resourceName = array_get($resourceInfo, static::RESOURCE_IDENTIFIER);
             if (Session::checkForAnyServicePermissions($this->name, $resourceName)) {
                 $results = $resourceClass::getApiDocInfo($this->name, $resourceInfo);
                 if (isset($results, $results['paths'])) {

@@ -15,7 +15,6 @@ use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\UserLookup;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
@@ -76,7 +75,7 @@ class Session
             return false;
         }
 
-        $services = ArrayUtils::clean(static::get('role.services'));
+        $services = (array)static::get('role.services');
         $service = strval($service);
         $component = strval($component);
 
@@ -91,16 +90,16 @@ class Session
         $exactAllowed = VerbsMask::NONE_MASK;
         $exactFound = false;
         foreach ($services as $svcInfo) {
-            $tempRequestors = ArrayUtils::get($svcInfo, 'requestor_mask', ServiceRequestorTypes::API);
+            $tempRequestors = array_get($svcInfo, 'requestor_mask', ServiceRequestorTypes::API);
             if (!($requestor & $tempRequestors)) {
                 //  Requestor type not found in allowed requestors, skip access setting
                 continue;
             }
 
-            $tempService = strval(ArrayUtils::get($svcInfo, 'service'));
-            $tempComponent = strval(ArrayUtils::get($svcInfo, 'component'));
+            $tempService = strval(array_get($svcInfo, 'service'));
+            $tempComponent = strval(array_get($svcInfo, 'component'));
             $tempCompStarPos = strpos($tempComponent, '*');
-            $tempVerbs = ArrayUtils::get($svcInfo, 'verb_mask');
+            $tempVerbs = array_get($svcInfo, 'verb_mask');
 
             if (0 == strcasecmp($service, $tempService)) {
                 if (!empty($component)) {
@@ -170,7 +169,7 @@ class Session
             return false;
         }
 
-        $services = ArrayUtils::clean(static::get('role.services'));
+        $services = (array)static::get('role.services');
         $service = strval($service);
         $component = strval($component);
 
@@ -185,16 +184,16 @@ class Session
         $exactAllowed = VerbsMask::NONE_MASK;
         $exactFound = false;
         foreach ($services as $svcInfo) {
-            $tempRequestors = ArrayUtils::get($svcInfo, 'requestor_mask', ServiceRequestorTypes::API);
+            $tempRequestors = array_get($svcInfo, 'requestor_mask', ServiceRequestorTypes::API);
             if (!($requestor & $tempRequestors)) {
                 //  Requestor type not found in allowed requestors, skip access setting
                 continue;
             }
 
-            $tempService = strval(ArrayUtils::get($svcInfo, 'service'));
-            $tempComponent = strval(ArrayUtils::get($svcInfo, 'component'));
+            $tempService = strval(array_get($svcInfo, 'service'));
+            $tempComponent = strval(array_get($svcInfo, 'component'));
             $tempCompStarPos = strpos($tempComponent, '*');
-            $tempVerbs = ArrayUtils::get($svcInfo, 'verb_mask');
+            $tempVerbs = array_get($svcInfo, 'verb_mask');
 
             if (0 == strcasecmp($service, $tempService)) {
                 if (!empty($component)) {
@@ -273,7 +272,7 @@ class Session
             return [];
         }
 
-        $services = ArrayUtils::clean(static::get('role.services'));
+        $services = (array)static::get('role.services');
 
         $serviceAllowed = null;
         $serviceFound = false;
@@ -281,23 +280,23 @@ class Session
         $action = VerbsMask::toNumeric(static::cleanAction($action));
 
         foreach ($services as $svcInfo) {
-            $tempService = ArrayUtils::get($svcInfo, 'service');
-            if (null === $tempVerbs = ArrayUtils::get($svcInfo, 'verb_mask')) {
+            $tempService = array_get($svcInfo, 'service');
+            if (null === $tempVerbs = array_get($svcInfo, 'verb_mask')) {
                 //  Check for old verbs array
-                if (null !== $temp = ArrayUtils::get($svcInfo, 'verbs')) {
+                if (null !== $temp = array_get($svcInfo, 'verbs')) {
                     $tempVerbs = VerbsMask::arrayToMask($temp);
                 }
             }
 
             if (0 == strcasecmp($service, $tempService)) {
                 $serviceFound = true;
-                $tempComponent = ArrayUtils::get($svcInfo, 'component');
+                $tempComponent = array_get($svcInfo, 'component');
                 if (!empty($component)) {
                     if (0 == strcasecmp($component, $tempComponent)) {
                         $componentFound = true;
                         if ($tempVerbs & $action) {
-                            $filters = ArrayUtils::get($svcInfo, 'filters');
-                            $operator = ArrayUtils::get($svcInfo, 'filter_op', 'AND');
+                            $filters = array_get($svcInfo, 'filters');
+                            $operator = array_get($svcInfo, 'filter_op', 'AND');
                             if (empty($filters)) {
                                 return null;
                             }
@@ -306,8 +305,8 @@ class Session
                         }
                     } elseif (empty($tempComponent) || ('*' == $tempComponent)) {
                         if ($tempVerbs & $action) {
-                            $filters = ArrayUtils::get($svcInfo, 'filters');
-                            $operator = ArrayUtils::get($svcInfo, 'filter_op', 'AND');
+                            $filters = array_get($svcInfo, 'filters');
+                            $operator = array_get($svcInfo, 'filter_op', 'AND');
                             if (empty($filters)) {
                                 return null;
                             }
@@ -318,8 +317,8 @@ class Session
                 } else {
                     if (empty($tempComponent) || ('*' == $tempComponent)) {
                         if ($tempVerbs & $action) {
-                            $filters = ArrayUtils::get($svcInfo, 'filters');
-                            $operator = ArrayUtils::get($svcInfo, 'filter_op', 'AND');
+                            $filters = array_get($svcInfo, 'filters');
+                            $operator = array_get($svcInfo, 'filter_op', 'AND');
                             if (empty($filters)) {
                                 return null;
                             }
@@ -549,7 +548,7 @@ class Session
         if (!empty($appId) && !empty($userId)) {
             $roleId = static::getRoleIdByAppIdAndUserId($appId, $userId);
             $roleInfo = ($roleId) ? Role::getCachedInfo($roleId) : null;
-            if (!empty($roleInfo) && !ArrayUtils::get($roleInfo, 'is_active', false)) {
+            if (!empty($roleInfo) && !array_get($roleInfo, 'is_active', false)) {
                 throw new ForbiddenException('Role is not active.');
             }
         }
@@ -591,12 +590,12 @@ class Session
         $userInfo = null;
         if ($user instanceof User) {
             $userInfo = $user->toArray();
-            ArrayUtils::set($userInfo, 'is_sys_admin', $user->is_sys_admin);
+            $userInfo['is_sys_admin'] = $user->is_sys_admin;
         }
 
         if (!empty($userInfo)) {
-            $id = ArrayUtils::get($userInfo, 'id');
-            $email = ArrayUtils::get($userInfo, 'email');
+            $id = array_get($userInfo, 'id');
+            $email = array_get($userInfo, 'email');
             $token = JWTUtilities::makeJWTByUser($id, $email, $forever);
             static::setSessionToken($token);
 
@@ -622,15 +621,15 @@ class Session
     public static function setUserInfo($user)
     {
         if (!empty($user)) {
-            \Session::put('user.id', ArrayUtils::get($user, 'id'));
-            \Session::put('user.name', ArrayUtils::get($user, 'name'));
-            \Session::put('user.username', ArrayUtils::get($user, 'username'));
-            \Session::put('user.display_name', ArrayUtils::get($user, 'name'));
-            \Session::put('user.first_name', ArrayUtils::get($user, 'first_name'));
-            \Session::put('user.last_name', ArrayUtils::get($user, 'last_name'));
-            \Session::put('user.email', ArrayUtils::get($user, 'email'));
-            \Session::put('user.is_sys_admin', ArrayUtils::get($user, 'is_sys_admin'));
-            \Session::put('user.last_login_date', ArrayUtils::get($user, 'last_login_date'));
+            \Session::put('user.id', array_get($user, 'id'));
+            \Session::put('user.name', array_get($user, 'name'));
+            \Session::put('user.username', array_get($user, 'username'));
+            \Session::put('user.display_name', array_get($user, 'name'));
+            \Session::put('user.first_name', array_get($user, 'first_name'));
+            \Session::put('user.last_name', array_get($user, 'last_name'));
+            \Session::put('user.email', array_get($user, 'email'));
+            \Session::put('user.is_sys_admin', array_get($user, 'is_sys_admin'));
+            \Session::put('user.last_login_date', array_get($user, 'last_login_date'));
 
             return true;
         }
@@ -649,7 +648,7 @@ class Session
         }
 
         if (empty($roleId) && !empty($appInfo)) {
-            $roleId = ArrayUtils::get($appInfo, 'role_id');
+            $roleId = array_get($appInfo, 'role_id');
         }
 
         Session::setUserInfo($userInfo);
@@ -670,9 +669,9 @@ class Session
 
         $combinedLookup = static::combineLookups($systemLookup, $appLookup, $roleLookup, $userLookup);
 
-        Session::put('lookup', ArrayUtils::get($combinedLookup, 'lookup'));
+        Session::put('lookup', array_get($combinedLookup, 'lookup'));
         //Actual values of the secret keys. For internal use only.
-        Session::put('lookup_secret', ArrayUtils::get($combinedLookup, 'lookup_secret'));
+        Session::put('lookup_secret', array_get($combinedLookup, 'lookup_secret'));
     }
 
     /**
@@ -702,8 +701,8 @@ class Session
 
         $role = static::get('role');
         if (!session('user.is_sys_admin') && !empty($role)) {
-            $sessionData['role'] = ArrayUtils::get($role, 'name');
-            $sessionData['role_id'] = ArrayUtils::get($role, 'id');
+            $sessionData['role'] = array_get($role, 'name');
+            $sessionData['role_id'] = array_get($role, 'id');
         }
 
         return $sessionData;

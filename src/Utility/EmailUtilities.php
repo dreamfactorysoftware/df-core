@@ -2,8 +2,6 @@
 
 namespace DreamFactory\Core\Utility;
 
-use App;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\BadRequestException;
 
 class EmailUtilities
@@ -16,7 +14,7 @@ class EmailUtilities
                 $out = array();
                 foreach ($emails as $info) {
                     if (is_array($info)) {
-                        $email = ArrayUtils::get($info, 'email');
+                        $email = array_get($info, 'email');
                         $email = filter_var($email, FILTER_SANITIZE_EMAIL);
                         if (false === filter_var($email, FILTER_VALIDATE_EMAIL)) {
                             throw new BadRequestException("Invalid email - '$email'.");
@@ -24,7 +22,7 @@ class EmailUtilities
                         if (empty($email)) {
                             throw new BadRequestException('Email can not be empty.');
                         }
-                        $name = ArrayUtils::get($info, 'name');
+                        $name = array_get($info, 'name');
                         if (empty($name)) {
                             $out[] = $email;
                         } else {
@@ -50,7 +48,7 @@ class EmailUtilities
                 }
             } else // single pair
             {
-                $email = ArrayUtils::get($emails, 'email');
+                $email = array_get($emails, 'email');
                 $email = filter_var($email, FILTER_SANITIZE_EMAIL);
                 if (false === filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     throw new BadRequestException("Invalid email - '$email'.");
@@ -58,7 +56,7 @@ class EmailUtilities
                 if (empty($email)) {
                     throw new BadRequestException('Email can not be empty.');
                 }
-                $name = ArrayUtils::get($emails, 'name');
+                $name = array_get($emails, 'name');
                 if (empty($name)) {
                     $out = $email;
                 } else {

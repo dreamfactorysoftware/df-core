@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Services\Email;
 
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Library\Utility\ArrayUtils;
 use GuzzleHttp\Client;
 use Illuminate\Mail\Transport\MandrillTransport;
 
@@ -11,7 +10,7 @@ class Mandrill extends BaseService
 {
     protected function setTransport($config)
     {
-        $key = ArrayUtils::get($config, 'key');
+        $key = array_get($config, 'key');
         $this->transport = static::getTransport($key);
     }
 

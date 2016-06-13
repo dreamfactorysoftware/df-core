@@ -457,7 +457,7 @@ class DataFormatter
             while (false !== ($row = fgetcsv($handle))) {
                 $new = [];
                 foreach ($headers as $key => $value) {
-                    $new[$value] = ArrayUtils::get($row, $key);
+                    $new[$value] = array_get($row, $key);
                 }
 
                 $result[] = $new;
@@ -619,7 +619,7 @@ class DataFormatter
             return '';
         }
 
-        $array = ArrayUtils::get($array, ResourcesWrapper::getWrapper(), ArrayUtils::get($array, 'error', $array));
+        $array = array_get($array, ResourcesWrapper::getWrapper(), array_get($array, 'error', $array));
         $data = [];
 
         if (!isset($array[0])) {
@@ -628,7 +628,7 @@ class DataFormatter
             $data = $array;
         }
 
-        $keys = array_keys(ArrayUtils::get($data, 0, []));
+        $keys = array_keys(array_get($data, 0, []));
 
         // currently need to write out to file to use parser
         $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;

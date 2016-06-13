@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Services\Email;
 
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Library\Utility\ArrayUtils;
 use GuzzleHttp\Client;
 use Illuminate\Mail\Transport\MailgunTransport;
 
@@ -11,8 +10,8 @@ class MailGun extends BaseService
 {
     protected function setTransport($config)
     {
-        $domain = ArrayUtils::get($config, 'domain');
-        $key = ArrayUtils::get($config, 'key');
+        $domain = array_get($config, 'domain');
+        $key = array_get($config, 'key');
 
         $this->transport = static::getTransport($domain, $key);
     }

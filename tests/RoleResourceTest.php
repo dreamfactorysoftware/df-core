@@ -3,7 +3,6 @@ use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\HttpStatusCodes;
-use DreamFactory\Library\Utility\ArrayUtils;
 use Illuminate\Support\Arr;
 
 class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
@@ -101,13 +100,13 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $this->assertTrue(isset($content[static::$wrapper]));
 
-        $records = ArrayUtils::get($content, static::$wrapper);
+        $records = array_get($content, static::$wrapper);
 
         static::$roleIds = [];
 
         foreach ($records as $r) {
-            $this->assertTrue(ArrayUtils::get($r, 'id') > 0);
-            static::$roleIds[] = ArrayUtils::get($r, 'id');
+            $this->assertTrue(array_get($r, 'id') > 0);
+            static::$roleIds[] = array_get($r, 'id');
         }
 
         $this->assertEquals(HttpStatusCodes::HTTP_CREATED, $response->getStatusCode());
@@ -125,7 +124,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         static::$roleIds[] = Arr::get($content, static::$wrapper . '.0.id');
 
-        $this->assertEquals(ArrayUtils::get($this->role3, 'name'), Arr::get($content, static::$wrapper . '.0.name'));
+        $this->assertEquals(array_get($this->role3, 'name'), Arr::get($content, static::$wrapper . '.0.name'));
         $this->assertEquals(
             Arr::get($this->role3, 'role_lookup_by_role_id.0.name'),
             Arr::get($content, static::$wrapper . '.0.role_lookup_by_role_id.0.name')
@@ -173,7 +172,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $c = $rs->getContent();
         $c = $c[static::$wrapper][0];
 
-        $this->assertTrue(ArrayUtils::get($c, 'id') === static::$roleIds[0]);
+        $this->assertTrue(array_get($c, 'id') === static::$roleIds[0]);
 
         $updatedRole = $c;
 
@@ -259,10 +258,10 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
             [$role1, $role2, $role3]
         );
         $c = $rs->getContent();
-        $records = ArrayUtils::get($c, static::$wrapper);
+        $records = array_get($c, static::$wrapper);
 
         foreach ($records as $key => $record) {
-            $this->assertEquals(static::$roleIds[$key], ArrayUtils::get($record, 'id'));
+            $this->assertEquals(static::$roleIds[$key], array_get($record, 'id'));
         }
 
         $this->assertEquals(Arr::get($role1, 'name'), Arr::get($records, '0.name'));
@@ -296,10 +295,10 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $response = $this->makeRequest(Verbs::DELETE, self::RESOURCE, [ApiOptions::IDS => $ids]);
 
         $content = $response->getContent();
-        $records = ArrayUtils::get($content, static::$wrapper);
+        $records = array_get($content, static::$wrapper);
 
         foreach ($records as $key => $record) {
-            $this->assertEquals(static::$roleIds[$key], ArrayUtils::get($record, 'id'));
+            $this->assertEquals(static::$roleIds[$key], array_get($record, 'id'));
         }
 
         static::$roleIds = [];

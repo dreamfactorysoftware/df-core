@@ -6,7 +6,6 @@ use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Models\ServiceCacheConfig;
 use DreamFactory\Core\Resources\BaseRestResource;
-use DreamFactory\Library\Utility\ArrayUtils;
 use ServiceManager;
 
 /**
@@ -73,7 +72,7 @@ class Cache extends BaseRestResource
     {
         $serviceName = strtolower($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
         $eventPath = $serviceName . '.' . $resourceName;
 

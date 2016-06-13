@@ -7,7 +7,6 @@ use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Log;
@@ -52,7 +51,7 @@ class Script extends BaseRestService
     {
         parent::__construct($settings);
 
-        $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config'));
+        $config = (array)array_get($settings, 'config');
         Session::replaceLookups($config, true);
 
         if (!is_string($this->content = array_get($config, 'content'))) {
@@ -133,9 +132,9 @@ class Script extends BaseRestService
             if ($ex instanceof \Exception) {
                 throw $ex;
             } elseif (is_array($ex)) {
-                $code = ArrayUtils::get($ex, 'code', null);
-                $message = ArrayUtils::get($ex, 'message', 'Unknown scripting error.');
-                $status = ArrayUtils::get($ex, 'status_code', ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+                $code = array_get($ex, 'code', null);
+                $message = array_get($ex, 'message', 'Unknown scripting error.');
+                $status = array_get($ex, 'status_code', ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
                 throw new RestException($status, $message, $code);
             }
             throw new InternalServerErrorException(strval($ex));
@@ -158,11 +157,11 @@ class Script extends BaseRestService
 
         // check if this is a "response" array
         if (is_array($response) && isset($response['content'])) {
-            $content = ArrayUtils::get($response, 'content');
-            $contentType = ArrayUtils::get($response, 'content_type');
-            $status = ArrayUtils::get($response, 'status_code', ServiceResponseInterface::HTTP_OK);
+            $content = array_get($response, 'content');
+            $contentType = array_get($response, 'content_type');
+            $status = array_get($response, 'status_code', ServiceResponseInterface::HTTP_OK);
 
-//            $format = ArrayUtils::get($response, 'format', DataFormats::PHP_ARRAY);
+//            $format = array_get($response, 'format', DataFormats::PHP_ARRAY);
 
             return ResponseFactory::create($content, $contentType, $status);
         }

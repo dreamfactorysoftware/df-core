@@ -77,7 +77,7 @@ class Event extends BaseRestService
             $key = $wrapper;
         }
 
-        return ArrayUtils::get($payload, $key);
+        return array_get($payload, $key);
     }
 
     /**
@@ -123,7 +123,7 @@ class Event extends BaseRestService
             $ids = [];
 
             foreach ($records as $record) {
-                $ids[] = ArrayUtils::get($record, $pk);
+                $ids[] = array_get($record, $pk);
             }
 
             /** @var Collection $dataCol */

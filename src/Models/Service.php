@@ -300,7 +300,7 @@ class Service extends BaseSystemModel
             // tricky here, loop through all indexes to check if all start with service name,
             // otherwise need to prepend service name to all.
             if (!empty(array_filter(array_keys($paths), function ($k) use ($name){
-                return (0 !== strcmp($name, strstr(ltrim($k, '/'), '/', true)));
+                return ((0 !== strcmp($name, strstr(ltrim($k, '/'), '/', true))) || $name === $k);
             }))
             ) {
                 $newPaths = [];

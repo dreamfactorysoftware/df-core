@@ -15,6 +15,7 @@ use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
+use DreamFactory\Library\Utility\Scalar;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
@@ -56,14 +57,15 @@ abstract class BaseFileService extends BaseRestService
      */
     public function __construct($settings = [])
     {
-        $verbAliases = [
+        $settings = (array)$settings;
+        $settings['verbAliases'] = [
             Verbs::PUT   => Verbs::POST,
             Verbs::MERGE => Verbs::PATCH
         ];
-        ArrayUtils::set($settings, "verbAliases", $verbAliases);
         parent::__construct($settings);
-        $config = ArrayUtils::get($settings, 'config');
-        $this->publicPaths = ArrayUtils::get($config, 'public_path', []);
+
+        $config = array_get($settings, 'config');
+        $this->publicPaths = array_get($config, 'public_path', []);
         $this->setDriver($config);
     }
 
@@ -355,7 +357,7 @@ abstract class BaseFileService extends BaseRestService
                 if (1 < count($files)) {
                     throw new BadRequestException("Multiple files uploaded to a single REST resource '$name'.");
                 }
-                $file = ArrayUtils::get($files, 0);
+                $file = array_get($files, 0);
                 if (empty($file)) {
                     throw new BadRequestException("No file uploaded to REST resource '$name'.");
                 }
@@ -634,12 +636,12 @@ abstract class BaseFileService extends BaseRestService
         $out = [];
         if (!empty($data) && ArrayUtils::isArrayNumeric($data)) {
             foreach ($data as $key => $resource) {
-                switch (ArrayUtils::get($resource, 'type')) {
+                switch (array_get($resource, 'type')) {
                     case 'folder':
-                        $name = ArrayUtils::get($resource, 'name', '');
-                        $srcPath = ArrayUtils::get($resource, 'source_path');
+                        $name = array_get($resource, 'name', '');
+                        $srcPath = array_get($resource, 'source_path');
                         if (!empty($srcPath)) {
-                            $srcContainer = ArrayUtils::get($resource, 'source_container', $this->container);
+                            $srcContainer = array_get($resource, 'source_container', $this->container);
                             // copy or move
                             if (empty($name)) {
                                 $name = FileUtilities::getNameFromPath($srcPath);
@@ -649,7 +651,7 @@ abstract class BaseFileService extends BaseRestService
                             try {
                                 $this->driver->copyFolder($this->container, $fullPathName, $srcContainer, $srcPath,
                                     true);
-                                $deleteSource = ArrayUtils::getBool($resource, 'delete_source');
+                                $deleteSource = Scalar::boolval(array_get($resource, 'delete_source'));
                                 if ($deleteSource) {
                                     $this->driver->deleteFolder($this->container, $srcPath, true);
                                 }
@@ -658,8 +660,8 @@ abstract class BaseFileService extends BaseRestService
                             }
                         } else {
                             $fullPathName = $this->folderPath . $name . '/';
-                            $content = ArrayUtils::get($resource, 'content', '');
-                            $isBase64 = ArrayUtils::getBool($resource, 'is_base64');
+                            $content = array_get($resource, 'content', '');
+                            $isBase64 = Scalar::boolval(array_get($resource, 'is_base64'));
                             if ($isBase64) {
                                 $content = base64_decode($content);
                             }
@@ -672,11 +674,11 @@ abstract class BaseFileService extends BaseRestService
                         }
                         break;
                     case 'file':
-                        $name = ArrayUtils::get($resource, 'name', '');
-                        $srcPath = ArrayUtils::get($resource, 'source_path');
+                        $name = array_get($resource, 'name', '');
+                        $srcPath = array_get($resource, 'source_path');
                         if (!empty($srcPath)) {
                             // copy or move
-                            $srcContainer = ArrayUtils::get($resource, 'source_container', $this->container);
+                            $srcContainer = array_get($resource, 'source_container', $this->container);
                             if (empty($name)) {
                                 $name = FileUtilities::getNameFromPath($srcPath);
                             }
@@ -684,7 +686,7 @@ abstract class BaseFileService extends BaseRestService
                             $out[$key] = ['name' => $name, 'path' => $fullPathName, 'type' => 'file'];
                             try {
                                 $this->driver->copyFile($this->container, $fullPathName, $srcContainer, $srcPath, true);
-                                $deleteSource = ArrayUtils::getBool($resource, 'delete_source');
+                                $deleteSource = Scalar::boolval(array_get($resource, 'delete_source'));
                                 if ($deleteSource) {
                                     $this->driver->deleteFile($this->container, $srcPath);
                                 }
@@ -694,8 +696,8 @@ abstract class BaseFileService extends BaseRestService
                         } elseif (isset($resource['content'])) {
                             $fullPathName = $this->folderPath . $name;
                             $out[$key] = ['name' => $name, 'path' => $fullPathName, 'type' => 'file'];
-                            $content = ArrayUtils::get($resource, 'content', '');
-                            $isBase64 = ArrayUtils::getBool($resource, 'is_base64');
+                            $content = array_get($resource, 'content', '');
+                            $isBase64 = Scalar::boolval(array_get($resource, 'is_base64'));
                             if ($isBase64) {
                                 $content = base64_decode($content);
                             }
@@ -727,8 +729,8 @@ abstract class BaseFileService extends BaseRestService
         $out = [];
         if (!empty($data)) {
             foreach ($data as $key => $resource) {
-                $path = ArrayUtils::get($resource, 'path');
-                $name = ArrayUtils::get($resource, 'name');
+                $path = array_get($resource, 'path');
+                $name = array_get($resource, 'name');
 
                 if (!empty($path)) {
                     $fullPath = $path;
@@ -738,7 +740,7 @@ abstract class BaseFileService extends BaseRestService
                     throw new BadRequestException('No path or name provided for resource.');
                 }
 
-                switch (ArrayUtils::get($resource, 'type')) {
+                switch (array_get($resource, 'type')) {
                     case 'file':
                         $out[$key] = ['name' => $name, 'path' => $path, 'type' => 'file'];
                         try {

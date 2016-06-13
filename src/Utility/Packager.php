@@ -11,7 +11,6 @@ use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\BaseModel;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Services\BaseFileService;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use ServiceManager;
@@ -221,7 +220,7 @@ class Packager
             throw new BadRequestException('No application description file in this package file.');
         } else {
             $data = DataFormatter::jsonToArray($data);
-            $data['name'] = ArrayUtils::get($data, 'api_name', ArrayUtils::get($data, 'name'));
+            $data['name'] = array_get($data, 'api_name', array_get($data, 'name'));
         }
 
         return $data;
@@ -256,7 +255,7 @@ class Packager
         }
 
         if ($record['type'] === AppTypes::STORAGE_SERVICE) {
-            if (!empty(ArrayUtils::get($record, 'storage_service_id'))) {
+            if (!empty(array_get($record, 'storage_service_id'))) {
                 $serviceRecord = Service::whereId($record['storage_service_id'])->first();
                 if (empty($serviceRecord)) {
                     throw new BadRequestException('Invalid Storage Service provided.');
@@ -271,7 +270,7 @@ class Packager
                 $record['storage_service_id'] = $this->getDefaultStorageServiceId();
             }
 
-            if (!empty(ArrayUtils::get($record, 'storage_container'))) {
+            if (!empty(array_get($record, 'storage_container'))) {
                 $record['storage_container'] = trim($record['storage_container'], '/');
             } else {
                 $record['storage_container'] = Inflector::camelize($record['name']);
@@ -292,11 +291,11 @@ class Packager
         }
 
         if ($record['type'] === AppTypes::STORAGE_SERVICE || $record['type'] === AppTypes::PATH) {
-            if (empty(ArrayUtils::get($record, 'path'))) {
+            if (empty(array_get($record, 'path'))) {
                 throw new BadRequestException('No Application Path provided in description.json');
             }
         } else if ($record['type'] === AppTypes::URL) {
-            if (empty(ArrayUtils::get($record, 'url'))) {
+            if (empty(array_get($record, 'url'))) {
                 throw new BadRequestException('No Application URL provided in description.json');
             }
         }
@@ -362,11 +361,11 @@ class Packager
         $this->zip->deleteName('schema.json');
         if (false !== $data) {
             $data = DataFormatter::jsonToArray($data);
-            $services = ArrayUtils::get($data, 'service');
+            $services = array_get($data, 'service');
             if (!empty($services)) {
                 foreach ($services as $schemas) {
-                    $serviceName = ArrayUtils::get($schemas, 'name');
-                    $tables = ArrayUtils::get($schemas, 'table');
+                    $serviceName = array_get($schemas, 'name');
+                    $tables = array_get($schemas, 'table');
                     $resource = ($this->resourceWrapped) ? [$this->resourceWrapper => $tables] : [$tables];
                     if (!empty($tables)) {
                         try {
@@ -409,15 +408,15 @@ class Packager
 
         if (false !== $data) {
             $data = DataFormatter::jsonToArray($data);
-            $services = ArrayUtils::get($data, 'service');
+            $services = array_get($data, 'service');
             if (!empty($services)) {
                 foreach ($services as $service) {
-                    $serviceName = ArrayUtils::get($service, 'name');
-                    $tables = ArrayUtils::get($service, 'table');
+                    $serviceName = array_get($service, 'name');
+                    $tables = array_get($service, 'table');
 
                     foreach ($tables as $table) {
-                        $tableName = ArrayUtils::get($table, 'name');
-                        $records = ArrayUtils::get($table, 'record');
+                        $tableName = array_get($table, 'name');
+                        $records = array_get($table, 'record');
                         $resource = ($this->resourceWrapped) ? [$this->resourceWrapper => $records] : [$records];
                         try {
                             ServiceManager::handleRequest(
@@ -457,10 +456,10 @@ class Packager
      */
     private function storeApplicationFiles($appInfo)
     {
-        if (ArrayUtils::get($appInfo, 'type', AppTypes::NONE) === AppTypes::STORAGE_SERVICE) {
-            $appName = Inflector::camelize(ArrayUtils::get($appInfo, 'name'));
-            $storageServiceId = ArrayUtils::get($appInfo, 'storage_service_id', $this->getDefaultStorageServiceId());
-            $storageFolder = ArrayUtils::get($appInfo, 'storage_container', $appName);
+        if (array_get($appInfo, 'type', AppTypes::NONE) === AppTypes::STORAGE_SERVICE) {
+            $appName = Inflector::camelize(array_get($appInfo, 'name'));
+            $storageServiceId = array_get($appInfo, 'storage_service_id', $this->getDefaultStorageServiceId());
+            $storageFolder = array_get($appInfo, 'storage_container', $appName);
 
             /** @var $service BaseFileService */
             $service = ServiceManager::getServiceById($storageServiceId);
@@ -489,7 +488,7 @@ class Packager
      */
     public function importAppFromPackage($storageServiceId = null, $storageContainer = null, $record = null)
     {
-        $record = ArrayUtils::clean($record);
+        $record = (array)$record;
         $data = $this->getAppInfo();
 
         // merge in overriding parameters from request if given

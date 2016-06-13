@@ -73,8 +73,8 @@ class Role extends BaseSystemModel
         $services = $this->getRelation('service_by_role_service_access')->toArray();
 
         foreach ($rsa as $key => $s) {
-            $serviceName = ArrayUtils::findByKeyValue($services, 'id', ArrayUtils::get($s, 'service_id'), 'name');
-            ArrayUtils::set($rsa[$key], 'service', $serviceName);
+            $serviceName = ArrayUtils::findByKeyValue($services, 'id', array_get($s, 'service_id'), 'name');
+            $rsa[$key]['service'] = $serviceName;
         }
 
         return $rsa;
@@ -108,16 +108,16 @@ class Role extends BaseSystemModel
                 }
 
                 $roleInfo = $role->toArray();
-                $services = ArrayUtils::get($roleInfo, 'service_by_role_service_access');
+                $services = array_get($roleInfo, 'service_by_role_service_access');
                 unset($roleInfo['service_by_role_service_access']);
 
                 foreach ($roleInfo['role_service_access_by_role_id'] as $key => $value) {
                     $serviceName = ArrayUtils::findByKeyValue(
                         $services,
                         'id',
-                        ArrayUtils::get($value, 'service_id'), 'name'
+                        array_get($value, 'service_id'), 'name'
                     );
-                    $component = ArrayUtils::get($value, 'component');
+                    $component = array_get($value, 'component');
                     $roleInfo['role_service_access_by_role_id'][$key]['service'] = $serviceName;
                     $roleInfo['role_service_access_by_role_id'][$key]['component'] = trim($component, '/');
                 }

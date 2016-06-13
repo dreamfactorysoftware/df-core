@@ -11,7 +11,6 @@ use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -39,11 +38,11 @@ class BaseSystemResource extends BaseRestResource
      */
     public function __construct($settings = [])
     {
-        $verbAliases = [
+        $settings = (array)$settings;
+        $settings['verbAliases'] = [
             Verbs::PUT   => Verbs::PATCH,
             Verbs::MERGE => Verbs::PATCH
         ];
-        ArrayUtils::set($settings, "verbAliases", $verbAliases);
 
         parent::__construct($settings);
     }
@@ -73,7 +72,7 @@ class BaseSystemResource extends BaseRestResource
         /** @var BaseSystemModel $modelClass */
         $modelClass = static::$model;
         $criteria = $this->getSelectionCriteria();
-        $fields = ArrayUtils::get($criteria, 'select');
+        $fields = array_get($criteria, 'select');
         if (empty($data = $modelClass::selectById($id, $related, $fields))) {
             throw new NotFoundException('Record not found');
         }
@@ -421,7 +420,7 @@ class BaseSystemResource extends BaseRestResource
         $serviceName = strtolower($service);
         $capitalized = Inflector::camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $resourceName = strtolower(array_get($resource, 'name', $class));
         $pluralClass = Inflector::pluralize($class);
         if ($pluralClass === $class) {
             // method names can't be the same

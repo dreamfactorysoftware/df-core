@@ -3,7 +3,6 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Contracts\FileSystemInterface;
 use DreamFactory\Core\Utility\FileUtilities;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\DfException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -86,7 +85,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
             foreach ($containers as $key => $folder) {
                 try {
                     // path is full path, name is relative to root, take either
-                    $name = ArrayUtils::get($folder, 'name', trim(ArrayUtils::get($folder, 'path'), '/'));
+                    $name = array_get($folder, 'name', trim(array_get($folder, 'path'), '/'));
                     if (!empty($name)) {
                         $this->deleteContainer($name, $force);
                     } else {
@@ -144,7 +143,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
             }
             $results = $this->listBlobs($container, $path, $delimiter);
             foreach ($results as $data) {
-                $fullPathName = ArrayUtils::get($data, 'name');
+                $fullPathName = array_get($data, 'name');
                 $data['path'] = $fullPathName;
                 $data['name'] = rtrim(substr($fullPathName, strlen($path)), '/');
                 if ('/' == substr($fullPathName, -1)) {
@@ -268,7 +267,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
         $blobs = $this->listBlobs($src_container, $src_path);
         if (!empty($blobs)) {
             foreach ($blobs as $blob) {
-                $srcName = ArrayUtils::get($blob, 'name');
+                $srcName = array_get($blob, 'name');
                 if ((0 !== strcasecmp($src_path, $srcName))) {
                     // not self properties blob
                     $name = FileUtilities::getNameFromPath($srcName);
@@ -321,7 +320,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
                     throw new BadRequestException("Folder '$path' contains other files or folders.");
                 }
                 foreach ($blobs as $blob) {
-                    $name = ArrayUtils::get($blob, 'name');
+                    $name = array_get($blob, 'name');
                     $this->deleteBlob($container, $name);
                 }
             }
@@ -345,8 +344,8 @@ abstract class RemoteFileSystem implements FileSystemInterface
         foreach ($folders as $key => $folder) {
             try {
                 // path is full path, name is relative to root, take either
-                $path = ArrayUtils::get($folder, 'path');
-                $name = ArrayUtils::get($folder, 'name');
+                $path = array_get($folder, 'path');
+                $name = array_get($folder, 'name');
                 if (!empty($path)) {
                     $path = static::removeContainerFromPath($container, $path);
                 } elseif (!empty($name)) {
@@ -613,8 +612,8 @@ abstract class RemoteFileSystem implements FileSystemInterface
         foreach ($files as $key => $file) {
             try {
                 // path is full path, name is relative to root, take either
-                $path = ArrayUtils::get($file, 'path');
-                $name = ArrayUtils::get($file, 'name');
+                $path = array_get($file, 'path');
+                $name = array_get($file, 'name');
                 if (!empty($path)) {
                     $path = static::removeContainerFromPath($container, $path);
                 } elseif (!empty($name)) {
@@ -674,7 +673,7 @@ abstract class RemoteFileSystem implements FileSystemInterface
 
         $results = $this->listBlobs($container, $path, $delimiter);
         foreach ($results as $blob) {
-            $fullPathName = ArrayUtils::get($blob, 'name');
+            $fullPathName = array_get($blob, 'name');
             $shortName = substr_replace($fullPathName, '', 0, strlen($path));
             if (empty($shortName)) {
                 continue;
@@ -760,8 +759,8 @@ abstract class RemoteFileSystem implements FileSystemInterface
 
         $result = $this->getFolder($this->container, '', true, true, false, $includeProperties);
 
-        $folders = ArrayUtils::get($result, 'folder', []);
-        $files = ArrayUtils::get($result, 'file', []);
+        $folders = array_get($result, 'folder', []);
+        $files = array_get($result, 'file', []);
 
         foreach ($folders as $folder) {
             $folder['path'] = trim($folder['path'], '/');

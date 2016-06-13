@@ -5,7 +5,6 @@ use Carbon\Carbon;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
-use DreamFactory\Library\Utility\ArrayUtils;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
 use Tymon\JWTAuth\Facades\JWTFactory;
@@ -72,15 +71,15 @@ class JWTUtilities
             $userId = $payload->get('user_id');
             $user = User::find($userId);
             $userInfo = $user->toArray();
-            ArrayUtils::set($userInfo, 'is_sys_admin', $user->is_sys_admin);
+            $userInfo['is_sys_admin'] = $user->is_sys_admin;
             Session::setSessionToken($newToken);
             Session::setUserInfo($userInfo);
             static::setTokenMap($payload, $newToken);
         } catch (TokenExpiredException $e) {
             $payloadArray = \JWTAuth::manager()->getJWTProvider()->decode($token);
-            $forever = boolval(ArrayUtils::get($payloadArray, 'forever'));
+            $forever = boolval(array_get($payloadArray, 'forever'));
             if ($forever) {
-                $userId = ArrayUtils::get($payloadArray, 'user_id');
+                $userId = array_get($payloadArray, 'user_id');
                 $user = User::find($userId);
                 Session::setUserInfoWithJWT($user, $forever);
             } else {
@@ -94,7 +93,7 @@ class JWTUtilities
     public static function isForever($token)
     {
         $payloadArray = \JWTAuth::manager()->getJWTProvider()->decode($token);
-        $forever = boolval(ArrayUtils::get($payloadArray, 'forever'));
+        $forever = boolval(array_get($payloadArray, 'forever'));
 
         return $forever;
     }
@@ -106,8 +105,8 @@ class JWTUtilities
     {
         \JWTAuth::setToken($token);
         $payload = \JWTAuth::manager()->getJWTProvider()->decode($token);
-        $userId = ArrayUtils::get($payload, 'user_id');
-        $exp = ArrayUtils::get($payload, 'exp');
+        $userId = array_get($payload, 'user_id');
+        $exp = array_get($payload, 'exp');
         static::removeTokenMap($userId, $exp);
         try {
             \JWTAuth::invalidate();

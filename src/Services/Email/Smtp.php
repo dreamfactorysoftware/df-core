@@ -4,17 +4,16 @@ namespace DreamFactory\Core\Services\Email;
 
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use Swift_SmtpTransport as SmtpTransport;
-use DreamFactory\Library\Utility\ArrayUtils;
 
 class Smtp extends BaseService
 {
     protected function setTransport($config)
     {
-        $host = ArrayUtils::get($config, 'host');
-        $port = ArrayUtils::get($config, 'port');
-        $encryption = ArrayUtils::get($config, 'encryption');
-        $username = ArrayUtils::get($config, 'username');
-        $password = ArrayUtils::get($config, 'password');
+        $host = array_get($config, 'host');
+        $port = array_get($config, 'port');
+        $encryption = array_get($config, 'encryption');
+        $username = array_get($config, 'username');
+        $password = array_get($config, 'password');
 
         $this->transport = static::getTransport($host, $port, $encryption, $username, $password);
     }

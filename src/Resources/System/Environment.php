@@ -10,7 +10,6 @@ use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\User\Services\User;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Library\Utility\Scalar;
@@ -41,8 +40,8 @@ class Environment extends BaseSystemResource
 
         $login = static::getLoginApi();
         $apps = static::getApps();
-        $groupedApps = ArrayUtils::get($apps, 0);
-        $noGroupApps = ArrayUtils::get($apps, 1);
+        $groupedApps = array_get($apps, 0);
+        $noGroupApps = array_get($apps, 1);
 
         $result['authentication'] = $login;
         $result['app_group'] = (count($groupedApps) > 0) ? $groupedApps : [];
@@ -122,13 +121,13 @@ class Environment extends BaseSystemResource
             if (file_exists($lockFile)) {
                 $json = file_get_contents($lockFile);
                 $array = json_decode($json, true);
-                $packages = ArrayUtils::get($array, 'packages', []);
+                $packages = array_get($array, 'packages', []);
 
                 foreach ($packages as $package) {
-                    $name = ArrayUtils::get($package, 'name');
+                    $name = array_get($package, 'name');
                     $result[] = [
                         'name'    => $name,
-                        'version' => ArrayUtils::get($package, 'version')
+                        'version' => array_get($package, 'version')
                     ];
                 }
             } else {
@@ -330,7 +329,7 @@ class Environment extends BaseSystemResource
                 'label'      => $o->label,
                 'verb'       => [Verbs::GET, Verbs::POST],
                 'type'       => $o->type,
-                'icon_class' => ArrayUtils::get($config, 'icon_class'),
+                'icon_class' => array_get($config, 'icon_class'),
             ];
         }
 
@@ -499,14 +498,14 @@ class Environment extends BaseSystemResource
             $key = strtolower(str_replace(' ', '_', $key));
 
             if (is_array($value) && 2 == count($value) && isset($value[0], $value[1])) {
-                $v1 = ArrayUtils::get($value, 0);
+                $v1 = array_get($value, 0);
 
                 if ($v1 == '<i>no value</i>') {
                     $v1 = null;
                 }
 
                 if (Scalar::in(strtolower($v1), 'on', 'off', '0', '1')) {
-                    $v1 = ArrayUtils::getBool($value, 0);
+                    $v1 = Scalar::boolval(array_get($value, 0));
                 }
 
                 $value = $v1;
@@ -527,7 +526,7 @@ class Environment extends BaseSystemResource
         $serviceName = strtolower($service);
         $capitalized = Inflector::camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
         $eventPath = $serviceName . '.' . $resourceName;
 

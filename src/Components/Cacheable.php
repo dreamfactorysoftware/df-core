@@ -1,8 +1,7 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use \Cache;
-use DreamFactory\Library\Utility\ArrayUtils;
+use Cache;
 
 /**
  * Class Cacheable
@@ -36,7 +35,7 @@ trait Cacheable
     protected function addKeys($keys)
     {
         $this->cacheKeys =
-            array_unique(array_merge(ArrayUtils::clean($this->getCacheKeys()), ArrayUtils::clean($keys)));
+            array_unique(array_merge((array)$this->getCacheKeys(), (array)$keys));
 
         // Save the keys to cache
         Cache::forever($this->cachePrefix . 'cache_keys', $this->cacheKeys);
@@ -47,7 +46,7 @@ trait Cacheable
      */
     protected function removeKeys($keys)
     {
-        $this->cacheKeys = array_diff(ArrayUtils::clean($this->getCacheKeys()), ArrayUtils::clean($keys));
+        $this->cacheKeys = array_diff((array)$this->getCacheKeys(), (array)$keys);
 
         // Save the map to cache
         Cache::forever($this->cachePrefix . 'cache_keys', $this->cacheKeys);
@@ -63,7 +62,7 @@ trait Cacheable
             $this->cacheKeys = Cache::get($this->cachePrefix . 'cache_keys', []);
         }
 
-        return ArrayUtils::clean($this->cacheKeys);
+        return (array)$this->cacheKeys;
     }
 
     /**

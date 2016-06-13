@@ -11,6 +11,7 @@ use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
@@ -179,12 +180,12 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 $record['name'] = $name;
             }
 
-            $password = ArrayUtils::get($record, 'password');
+            $password = array_get($record, 'password');
             static::validatePassword($password);
             $model = static::create($record);
 
-            if (ArrayUtils::getBool($params, 'admin') &&
-                ArrayUtils::getBool($record, 'is_sys_admin')
+            if (Scalar::boolval(array_get($params, 'admin')) &&
+                Scalar::boolval(array_get($record, 'is_sys_admin'))
             ) {
                 $model->is_sys_admin = 1;
             }
@@ -225,13 +226,13 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         ArrayUtils::remove($record, $pk);
 
         try {
-            if ($model->is_sys_admin && !ArrayUtils::getBool($params, 'admin')) {
+            if ($model->is_sys_admin && !Scalar::boolval(array_get($params, 'admin'))) {
                 throw new ForbiddenException('Not allowed to change an admin user.');
-            } elseif (ArrayUtils::getBool($params, 'admin') && !$model->is_sys_admin) {
+            } elseif (Scalar::boolval(array_get($params, 'admin')) && !$model->is_sys_admin) {
                 throw new BadRequestException('Cannot update a non-admin user.');
             }
 
-            $password = ArrayUtils::get($record, 'password');
+            $password = array_get($record, 'password');
             if (!empty($password)) {
                 $model->password = $password;
                 static::validatePassword($password);
@@ -290,9 +291,9 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
 
         try {
-            if ($model->is_sys_admin && !ArrayUtils::getBool($params, 'admin')) {
+            if ($model->is_sys_admin && !Scalar::boolval(array_get($params, 'admin'))) {
                 throw new ForbiddenException('Not allowed to delete an admin user.');
-            } elseif (ArrayUtils::getBool($params, 'admin') && !$model->is_sys_admin) {
+            } elseif (Scalar::boolval(array_get($params, 'admin')) && !$model->is_sys_admin) {
                 throw new BadRequestException('Cannot delete a non-admin user.');
             } elseif (Session::getCurrentUserId() === $model->id) {
                 throw new ForbiddenException('Cannot delete your account.');
@@ -436,7 +437,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             }
 
             $userInfo = $user->toArray();
-            ArrayUtils::set($userInfo, 'is_sys_admin', $user->is_sys_admin);
+            $userInfo['is_sys_admin'] = $user->is_sys_admin;
 
             return $userInfo;
         });
@@ -497,7 +498,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             $attributes['is_active'] = 1;
             $user = static::create($attributes);
 
-            $user->password = ArrayUtils::get($data, 'password');
+            $user->password = array_get($data, 'password');
             $user->is_sys_admin = 1;
             $user->save();
 

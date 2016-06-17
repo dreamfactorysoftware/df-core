@@ -4,12 +4,12 @@ namespace DreamFactory\Core\Services;
 use DreamFactory\Core\Components\StaticCacheable;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DataFormats;
-use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Inflector;
+use ServiceManager as ServiceMgrFacade;
 
 /**
  * Swagger
@@ -100,38 +100,37 @@ class Swagger extends BaseRestService
             \Log::info('Building Swagger cache');
 
             //  Gather the services
-            $tags = [];
             $paths = [];
             $definitions = static::getDefaultModels();
             $parameters = ApiOptions::getSwaggerGlobalParameters();
 
             //  Build services from database
             //  Pull any custom swagger docs
-            /** @type Service[] $services */
-            $services = Service::all();
-            foreach ($services as $service) {
-                if (!$service->is_active || !Session::checkForAnyServicePermissions($service->name)) {
+            $tags = Service::whereIsActive(true)->pluck('description', 'name');
+            foreach ($tags as $apiName => $description) {
+                if (!Session::checkForAnyServicePermissions($apiName)) {
                     continue;
                 }
 
-                $name = $service->name;
-                $tags[] = ['name' => $name, 'description' => $service->description];
                 try {
-                    $result = Service::getStoredContentForService($service);
-                    if (empty($result)) {
-                        throw new NotFoundException("No Swagger content found.");
-                    }
+                /** @var BaseRestService $service */
+                if (empty($service = ServiceMgrFacade::getService($apiName))) {
+                    \Log::error('No service found.');
+                }
+                if (empty($content = $service->getApiDocInfo())) {
+                    \Log::error('No API documentation found.');
+                }
 
-                    $servicePaths = (isset($result['paths']) ? $result['paths'] : []);
-                    $serviceDefs = (isset($result['definitions']) ? $result['definitions'] : []);
-                    $serviceParams = (isset($result['parameters']) ? $result['parameters'] : []);
+                $servicePaths = (array)array_get($content, 'paths');
+                $serviceDefs = (array)array_get($content, 'definitions');
+                $serviceParams = (array)array_get($content, 'parameters');
 
-                    //  Add to the pile
-                    $paths = array_merge($paths, $servicePaths);
-                    $definitions = array_merge($definitions, $serviceDefs);
-                    $parameters = array_merge($parameters, $serviceParams);
+                //  Add to the pile
+                $paths = array_merge($paths, $servicePaths);
+                $definitions = array_merge($definitions, $serviceDefs);
+                $parameters = array_merge($parameters, $serviceParams);
                 } catch (\Exception $ex) {
-                    \Log::error("  * System error creating swagger file for service '$name'.\n{$ex->getMessage()}");
+                    \Log::error("  * System error building API documentation for service '$apiName'.\n{$ex->getMessage()}");
                 }
 
                 unset($service);
@@ -162,8 +161,8 @@ HTML;
                 //'host'           => 'df.local',
                 //'schemes'        => ['https'],
                 'basePath'            => '/api/v2',
-                'consumes'            => ['application/json','application/xml'],
-                'produces'            => ['application/json','application/xml'],
+                'consumes'            => ['application/json', 'application/xml'],
+                'produces'            => ['application/json', 'application/xml'],
                 'paths'               => $paths,
                 'definitions'         => $definitions,
                 'tags'                => $tags,

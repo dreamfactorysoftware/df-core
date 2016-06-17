@@ -2,7 +2,6 @@
 
 namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Core\Enums\ApiDocFormatTypes;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -50,7 +49,6 @@ class Event extends BaseRestResource
      * services from file annotations, otherwise swagger info is loaded from
      * database or storage files for each service, if it exists.
      *
-     * @throws \Exception
      */
     protected static function buildEventMaps()
     {
@@ -63,22 +61,40 @@ class Event extends BaseRestResource
         $broadcastEventMap = [];
 
         //  Pull any custom swagger docs
-        $result = ServiceModel::with('serviceDocs')->get();
+        $result = ServiceModel::whereIsActive(true)->pluck('name');
 
         //	Spin through services and pull the events
-        foreach ($result as $service) {
-            $apiName = $service->name;
+        foreach ($result as $apiName) {
             try {
-                $serviceEvents = static::parseSwaggerEvents($service);
+                /** @var BaseRestService $service */
+                if (empty($service = ServiceManager::getService($apiName))) {
+                    throw new \Exception('No service found.');
+                }
+
+                if ($service instanceof BaseFileService) {
+                    // don't want the full folder list here
+                    $accessList = (empty($service->getPermissions()) ? [] : ['', '*']);
+                } else {
+                    $accessList = $service->getAccessList();
+                }
+
+                if (empty($accessList)) {
+                    throw new \Exception('No access found.');
+                }
+
+                if (empty($content = $service->getApiDocInfo())) {
+                    throw new \Exception('No event content found.');
+                }
 
                 //	Parse the events while we get the chance...
+                $serviceEvents = static::parseSwaggerEvents($content, $accessList);
                 $processEventMap[$apiName] = array_get($serviceEvents, 'process', []);
                 $broadcastEventMap[$apiName] = array_get($serviceEvents, 'broadcast', []);
-
-                unset($content, $service, $serviceEvents);
             } catch (\Exception $ex) {
                 \Log::error("  * System error building event map for service '$apiName'.\n{$ex->getMessage()}");
             }
+
+            unset($content, $service, $serviceEvents);
         }
 
         static::$eventMap = ['process' => $processEventMap, 'broadcast' => $broadcastEventMap];
@@ -87,31 +103,13 @@ class Event extends BaseRestResource
     }
 
     /**
-     * @param ServiceModel $model
+     * @param array $content
+     * @param array $access
      *
      * @return array
-     * @throws \Exception
      */
-    protected static function parseSwaggerEvents(ServiceModel $model)
+    protected static function parseSwaggerEvents(array $content, array $access = [])
     {
-        if (empty($content = ServiceModel::getStoredContentForService($model))) {
-            throw new \Exception('  * No event content found for service.');
-        }
-
-        /** @var BaseRestService $serviceClass */
-        $accessList = [];
-        if ($model->is_active) {
-
-            /** @var BaseRestService $service */
-            $service = ServiceManager::getService($model->name);
-            if ($service instanceof BaseFileService) {
-                // don't want the full folder list here
-                $accessList = (empty($service->getPermissions()) ? [] : ['', '*']);
-            } else {
-                $accessList = $service->getAccessList();
-            }
-        }
-
         $processEvents = [];
         $broadcastEvents = [];
         $eventCount = 0;
@@ -175,18 +173,18 @@ class Event extends BaseRestResource
                         if ('path' === $type) {
                             $name = array_get($parameter, 'name', '');
                             $options = array_get($parameter, 'enum', array_get($parameter, 'options'));
-                            if (empty($options) && !empty($accessList) && (false !== $replacePos)) {
+                            if (empty($options) && !empty($access) && (false !== $replacePos)) {
                                 $checkFirstOption = strstr(substr($resourcePath, $replacePos + 1), '}', true);
                                 if ($name !== $checkFirstOption) {
                                     continue;
                                 }
                                 $options = [];
                                 // try to match any access path
-                                foreach ($accessList as $access) {
-                                    $access = rtrim($access, '/*');
-                                    if (!empty($access) && (strlen($access) > $replacePos)) {
-                                        if (0 === substr_compare($access, $resourcePath, 0, $replacePos)) {
-                                            $option = substr($access, $replacePos);
+                                foreach ($access as $accessPath) {
+                                    $accessPath = rtrim($accessPath, '/*');
+                                    if (!empty($accessPath) && (strlen($accessPath) > $replacePos)) {
+                                        if (0 === substr_compare($accessPath, $resourcePath, 0, $replacePos)) {
+                                            $option = substr($accessPath, $replacePos);
                                             if (false !== strpos($option, '/')) {
                                                 $option = strstr($option, '/', true);
                                             }

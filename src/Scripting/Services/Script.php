@@ -34,6 +34,10 @@ class Script extends BaseRestService
      * @var array $scriptConfig Configuration for the engine for this particular script
      */
     protected $scriptConfig;
+    /**
+     * @var array
+     */
+    protected $apiDoc = [];
 
     //*************************************************************************
     //	Methods
@@ -64,7 +68,9 @@ class Script extends BaseRestService
 
         if (!is_array($this->scriptConfig = array_get($config, 'config', []))) {
             $this->scriptConfig = [];
-        };
+        }
+
+        $this->apiDoc = (array)array_get($settings, 'doc');
     }
 
     /**
@@ -172,6 +178,6 @@ class Script extends BaseRestService
 
     public function getApiDocInfo()
     {
-        return ['paths' => [], 'definitions' => []];
+        return (!empty($this->apiDoc) ? $this->apiDoc : ['paths' => [], 'definitions' => []]);
     }
 }

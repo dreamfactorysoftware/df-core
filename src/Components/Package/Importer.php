@@ -571,7 +571,7 @@ class Importer
                             // Skip; already imported at this point.
                             break;
                         case $service . '/_table':
-                            $this->insertDbTableResources($service);
+                            $imported = $this->insertDbTableResources($service);
                             break;
                         case $service . '/_proc':
                         case $service . '/_func':
@@ -605,35 +605,46 @@ class Importer
     protected function insertDbTableResources($service)
     {
         $data = $this->package->getResourceFromZip($service . '/_table' . '.json');
-        foreach ($data as $table) {
-            $tableName = array_get($table, 'name');
-            $resource = '_table/' . $tableName;
-            $records = array_get($table, 'record');
-            $records = $this->cleanDuplicates($records, $service, $resource);
+        if (!empty($data)) {
+            foreach ($data as $table) {
+                $tableName = array_get($table, 'name');
+                $resource = '_table/' . $tableName;
+                $records = array_get($table, 'record');
+                $records = $this->cleanDuplicates($records, $service, $resource);
 
-            if (!empty($records)) {
-                try {
-                    foreach ($records as $i => $record) {
-                        $this->fixCommonFields($record, false);
-                        $this->unsetImportedRelations($record);
-                        $records[$i] = $record;
+                if (!empty($records)) {
+                    try {
+                        foreach ($records as $i => $record) {
+                            $this->fixCommonFields($record, false);
+                            $this->unsetImportedRelations($record);
+                            $records[$i] = $record;
+                        }
+
+                        $payload = ResourcesWrapper::wrapResources($records);
+                        ServiceManager::handleRequest(
+                            $service,
+                            Verbs::POST,
+                            $resource,
+                            ['continue' => true],
+                            [],
+                            $payload
+                        );
+                    } catch (\Exception $e) {
+                        throw new InternalServerErrorException('Failed to insert ' .
+                            $service .
+                            '/' .
+                            $resource .
+                            '. ' .
+                            $this->getErrorDetails($e)
+                        );
                     }
-
-                    $payload = ResourcesWrapper::wrapResources($records);
-                    ServiceManager::handleRequest($service, Verbs::POST, $resource, ['continue' => true], [], $payload);
-
-                    return true;
-                } catch (\Exception $e) {
-                    throw new InternalServerErrorException('Failed to insert ' .
-                        $service .
-                        '/' .
-                        $resource .
-                        '. ' .
-                        $this->getErrorDetails($e)
-                    );
                 }
             }
+
+            return true;
         }
+
+        return false;
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Components\Package;
 
+use DreamFactory\Core\ADLdap\Services\LDAP;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -565,6 +566,7 @@ class Exporter
         $api = $service . '/' . $resource;
         $relations = array_get($this->defaultRelation, $api);
         if (!empty($relations)) {
+            $this->fixDefaultRelations($relations);
             if (!isset($params['related'])) {
                 $params['related'] = implode(',', $relations);
             } else {
@@ -573,6 +575,20 @@ class Exporter
                         $params['related'] .= ',' . $relation;
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Removes any relation where related service is not installed.
+     *
+     * @param array $relations
+     */
+    protected function fixDefaultRelations(array & $relations)
+    {
+        foreach ($relations as $key => $relation) {
+            if ('role_adldap_by_role_id' === $relation && !class_exists(LDAP::class)) {
+                unset($relations[$key]);
             }
         }
     }

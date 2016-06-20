@@ -531,6 +531,14 @@ class Importer
                         );
                     }
 
+                    $apiKey = $app['api_key'];
+                    if (!empty($apiKey) && !App::isApiKeyUnique($apiKey)) {
+                        $this->log(
+                            'notice',
+                            'Duplicate API Key found for app ' . $app['name'] . '. Regenerating API Key.'
+                        );
+                    }
+
                     $app['storage_service_id'] = $newStorageId;
                     $app['role_id'] = $newRoleId;
                     $apps[$i] = $app;

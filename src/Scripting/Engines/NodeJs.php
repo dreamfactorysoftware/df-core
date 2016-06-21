@@ -138,7 +138,6 @@ _wrapperResult = (function() {
         _event.response.content = content;
         _event.response.status_code = statusCode;
         _event.response.content_type = contentType;
-        _event.response.content_changed = true;
 
         console.log(JSON.stringify(_event));
     }

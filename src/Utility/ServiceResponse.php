@@ -4,7 +4,6 @@ namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
-use DreamFactory\Library\Utility\Scalar;
 
 class ServiceResponse implements ServiceResponseInterface
 {
@@ -141,10 +140,8 @@ class ServiceResponse implements ServiceResponseInterface
     public function mergeFromArray(array $data)
     {
         $this->setStatusCode(array_get($data, 'status_code'));
-        if (Scalar::boolval(array_get($data, 'content_changed'))) {
-            $this->setContent(array_get($data, 'content'));
-            $this->setContentType(array_get($data, 'content_type'));
-            $this->setDataFormat(array_get($data, 'format'));
-        }
+        $this->setContent(array_get($data, 'content'));
+        $this->setContentType(array_get($data, 'content_type'));
+        $this->setDataFormat(array_get($data, 'format'));
     }
 }

@@ -281,13 +281,13 @@ class Event extends BaseRestResource
             if ($onlyScripted) {
                 switch ($type) {
                     case 'process':
-                        $scripts = EventScript::where('affects_process', 1)->lists('name')->all();
+                        $scripts = EventScript::whereAffectsProcess(1)->pluck('name')->all();
                         break;
                     case 'broadcast':
-                        $scripts = EventScript::where('affects_process', 0)->lists('name')->all();
+                        $scripts = EventScript::whereAffectsProcess(0)->pluck('name')->all();
                         break;
                     default:
-                        $scripts = EventScript::lists('name')->all();
+                        $scripts = EventScript::pluck('name')->all();
                         break;
                 }
 

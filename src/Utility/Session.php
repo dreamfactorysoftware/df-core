@@ -341,6 +341,14 @@ class Session
         return null;
     }
 
+    /**
+     * @param array $systemLookup
+     * @param array $appLookup
+     * @param array $roleLookup
+     * @param array $userLookup
+     *
+     * @return array
+     */
     public static function combineLookups($systemLookup = [], $appLookup = [], $roleLookup = [], $userLookup = [])
     {
         $lookup = [];
@@ -357,6 +365,12 @@ class Session
         ];
     }
 
+    /**
+     * @param       $model
+     * @param       $lookups
+     * @param array $map
+     * @param array $mapSecret
+     */
     protected static function addLookupsToMap($model, $lookups, array &$map, array &$mapSecret)
     {
         foreach ($lookups as $lookup) {
@@ -485,6 +499,23 @@ class Session
         return false;
     }
 
+    /**
+     * @param string|array $subject
+     * @param bool         $use_private
+     *
+     * @return string|array
+     */
+    public static function translateLookups($subject, $use_private = false)
+    {
+        static::replaceLookups($subject, $use_private);
+
+        return $subject;
+    }
+
+    /**
+     * @param string|array $subject
+     * @param bool         $use_private
+     */
     public static function replaceLookups(&$subject, $use_private = false)
     {
         if (is_string($subject)) {
@@ -541,6 +572,11 @@ class Session
         }
     }
 
+    /**
+     * @param $userId
+     *
+     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
+     */
     protected static function checkRole($userId)
     {
         $appId = static::get('app.id', null);
@@ -637,6 +673,10 @@ class Session
         return false;
     }
 
+    /**
+     * @param null $appId
+     * @param null $userId
+     */
     public static function setSessionData($appId = null, $userId = null)
     {
         $appInfo = ($appId) ? App::getCachedInfo($appId) : null;
@@ -740,6 +780,9 @@ class Session
         return static::get('role.id');
     }
 
+    /**
+     * @return bool
+     */
     public static function isAuthenticated()
     {
         $userId = static::getCurrentUserId();
@@ -747,21 +790,33 @@ class Session
         return boolval($userId);
     }
 
+    /**
+     * @return mixed
+     */
     public static function getSessionToken()
     {
         return \Session::get('session_token');
     }
 
+    /**
+     * @param $token
+     */
     public static function setSessionToken($token)
     {
         \Session::set('session_token', $token);
     }
 
+    /**
+     * @param $apiKey
+     */
     public static function setApiKey($apiKey)
     {
         \Session::set('api_key', $apiKey);
     }
 
+    /**
+     * @return mixed
+     */
     public static function getApiKey()
     {
         return \Session::get('api_key');
@@ -795,6 +850,11 @@ class Session
         return null;
     }
 
+    /**
+     * @param $app_id
+     * @param $user_id
+     * @param $role_id
+     */
     public static function setRoleIdByAppIdAndUserId($app_id, $user_id, $role_id)
     {
         $map = \Cache::get('appIdUserIdToRoleIdMap', []);

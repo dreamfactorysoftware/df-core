@@ -1,20 +1,11 @@
 <?php
 namespace DreamFactory\Core\Events;
 
-use Illuminate\Queue\SerializesModels;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 
-class ResourcePreProcess extends Event
+class ResourcePreProcess extends PreProcessApiEvent
 {
-    use SerializesModels;
-
-    public $service;
-
     public $resourcePath;
-
-    public $request;
-
-    public $resource;
 
     /**
      * Create a new event instance.
@@ -26,9 +17,7 @@ class ResourcePreProcess extends Event
      */
     public function __construct($service, $resource_path, &$request, $resource = null)
     {
-        $this->service = $service;
+        parent::__construct($service . '.' . $resource_path, $request, $resource);
         $this->resourcePath = $resource_path;
-        $this->request = $request;
-        $this->resource = $resource;
     }
 }

@@ -271,9 +271,7 @@ trait InternalServiceRequest
         $this->setParameters(array_get($data, 'parameters'));
         $this->setHeaders(array_get($data, 'headers'));
         $this->setPayloadData(array_get($data, 'payload'));
-        if (Scalar::boolval(array_get($data, 'content_changed'))) {
-            $this->setContent(array_get($data, 'content'), array_get($data, 'content_type'));
-        }
+        $this->setContent(array_get($data, 'content'), array_get($data, 'content_type'));
     }
 
     /**

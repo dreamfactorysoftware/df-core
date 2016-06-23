@@ -207,6 +207,16 @@ class Exporter
                                     '_schema',
                                     ['as_list' => true]
                                 );
+                                /**
+                                 * API for exporting table data is implemented and works. However,
+                                 * This is disabled on manifest for now as this can easily lead to accidental
+                                 * exporting of a large set of data (potentially sensitive in nature).
+                                 *
+                                 * $manifest['service'][$service]['_table'] = $this->getAllResources(
+                                    * $service,
+                                    * '_table',
+                                    * ['as_list' => true]
+                                 );*/
                                 break;
                         }
                     } else {

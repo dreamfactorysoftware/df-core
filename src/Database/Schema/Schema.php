@@ -944,16 +944,18 @@ abstract class Schema
         }
 
         $sql = <<<MYSQL
-SELECT ROUTINE_NAME FROM INFORMATION_SCHEMA.ROUTINES WHERE {$where}
+SELECT ROUTINE_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.ROUTINES WHERE {$where}
 MYSQL;
 
-        $rows = $this->selectColumn($sql, $bindings);
+        $rows = $this->connection->select($sql, $bindings);
 
         $defaultSchema = $this->getDefaultSchema();
         $addSchema = (!empty($schema) && ($defaultSchema !== $schema));
 
         $names = [];
-        foreach ($rows as $name) {
+        foreach ($rows as $row) {
+            $row = array_change_key_case((array)$row, CASE_UPPER);
+            $name = array_get($row, 'ROUTINE_NAME');
             $schemaName = $schema;
             if ($addSchema) {
                 $publicName = $schemaName . '.' . $name;
@@ -962,7 +964,11 @@ MYSQL;
                 $publicName = $name;
                 $rawName = $this->quoteTableName($name);
             }
-            $settings = compact('schemaName', 'name', 'publicName', 'rawName');
+            $returnType = array_get($row, 'DATA_TYPE');
+            if (!empty($returnType) && (0 !== strcasecmp('void', $returnType))) {
+                $returnType = static::extractSimpleType($returnType);
+            }
+            $settings = compact('schemaName', 'name', 'publicName', 'rawName', 'returnType');
             $names[strtolower($name)] =
                 ('PROCEDURE' === $type) ? new ProcedureSchema($settings) : new FunctionSchema($settings);
         }
@@ -1026,11 +1032,11 @@ MYSQL;
     {
         $sql = <<<MYSQL
 SELECT 
-    ORDINAL_POSITION, PARAMETER_MODE, PARAMETER_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH, NUMERIC_PRECISION, NUMERIC_SCALE
+    p.ORDINAL_POSITION, p.PARAMETER_MODE, p.PARAMETER_NAME, p.DATA_TYPE, p.CHARACTER_MAXIMUM_LENGTH, p.NUMERIC_PRECISION, p.NUMERIC_SCALE
 FROM 
-    INFORMATION_SCHEMA.PARAMETERS
+    INFORMATION_SCHEMA.PARAMETERS AS p JOIN INFORMATION_SCHEMA.ROUTINES AS r ON r.SPECIFIC_NAME = p.SPECIFIC_NAME
 WHERE 
-    SPECIFIC_NAME = '{$holder->name}' AND SPECIFIC_SCHEMA = '{$holder->schemaName}'
+    r.ROUTINE_NAME = '{$holder->name}' AND r.ROUTINE_SCHEMA = '{$holder->schemaName}'
 MYSQL;
 
         foreach ($this->connection->select($sql) as $row) {
@@ -2543,16 +2549,17 @@ MYSQL;
         $values = $this->determineRoutineValues($paramSchemas, $in_params);
 
         $paramStr = '';
+        $bindings = [];
         foreach ($paramSchemas as $key => $paramSchema) {
             switch ($paramSchema->paramType) {
                 case 'IN':
+                    $pName = ':' . $paramSchema->name;
+                    $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
+                    $bindings[$pName] = array_get($values, $key);
+                    break;
                 case 'INOUT':
                 case 'OUT':
-                    if (!empty($paramStr)) {
-                        $paramStr .= ', ';
-                    }
-                    $paramStr .= ':' . $paramSchema->name;
-                    break;
+                    // functions should only have input params
                 default:
                     break;
             }
@@ -2563,7 +2570,7 @@ MYSQL;
         $statement = $this->connection->getPdo()->prepare($sql);
 
         // do binding
-        $this->doRoutineBinding($statement, $paramSchemas, $values);
+        $this->bindValues($statement, $values);
 
         // support multiple result sets
         try {
@@ -2575,17 +2582,22 @@ MYSQL;
             throw new \Exception($message, (int)$e->getCode(), $errorInfo);
         }
         $result = [];
-        if (!empty($temp = $reader->readAll())) {
-            $result[] = $temp;
-        }
-        if ($reader->nextResult()) {
+        try {
             do {
                 $temp = $reader->readAll();
                 if (!empty($temp)) {
                     $result[] = $temp;
                 }
             } while ($reader->nextResult());
+        } catch (\Exception $ex) {
+            // mysql via pdo has issue of nextRowSet returning true one too many times
+            if (false !== strpos($ex->getMessage(), 'General Error')) {
+                if (false !== strpos($ex->getMessage(), 'does not support multiple rowsets')) {
+                    throw $ex;
+                }
+            }
         }
+
         // if there is only one data set, just return it
         if (1 == count($result)) {
             $result = $result[0];
@@ -2595,6 +2607,9 @@ MYSQL;
             $result = current($result);
             if (array_key_exists('output', $result)) {
                 return $result['output'];
+            } elseif (array_key_exists($function->name, $result)) {
+                // some vendors return the results as the function's name
+                return $result[$function->name];
             }
         }
 
@@ -2645,9 +2660,9 @@ MYSQL;
             switch ($paramSchema->paramType) {
                 case 'OUT':
                 case 'INOUT':
-                    if (isset($values[$paramSchema->name])) {
+                    if (isset($values[$key])) {
                         $out_params[$paramSchema->name] =
-                            $this->formatValue($values[$paramSchema->name], $paramSchema->type);
+                            $this->formatValue($values[$key], $paramSchema->type);
                     }
                     break;
             }
@@ -2661,8 +2676,10 @@ MYSQL;
         // check associative
         $keys = array_keys($in_params);
         $isAssociative = (array_keys($keys) !== $keys);
+        $in_params = array_change_key_case($in_params, CASE_LOWER);
         $values = [];
         $index = -1;
+        // key is lowercase index
         foreach ($param_schemas as $key => $paramSchema) {
             $index++;
             switch ($paramSchema->paramType) {
@@ -2670,21 +2687,22 @@ MYSQL;
                 case 'INOUT':
                     $value = null;
                     if ($isAssociative) {
-                        $value = array_get($in_params, $paramSchema->name, $paramSchema->defaultValue);
-                        if (!isset($value) && $paramSchema->getRequired()) {
+                        if (array_key_exists($key, $in_params)) {
+                            $value = $in_params[$key];
+                        } elseif (empty($paramSchema->defaultValue)) {
                             throw new BadRequestException("Procedure requires value for parameter '{$paramSchema->name}'.");
                         }
                     } elseif (array_key_exists($index, $in_params)) {
                         if (is_array($in_params[$index])) {
                             if (array_key_exists('value', $in_params[$index])) {
                                 $value = $in_params[$index]['value'];
-                            } elseif ($paramSchema->getRequired()) {
+                            } elseif (empty($paramSchema->defaultValue)) {
                                 throw new BadRequestException("Procedure requires value for parameter '{$paramSchema->name}'.");
                             }
                         } else {
                             $value = $in_params[$index];
                         }
-                    } elseif ($paramSchema->getRequired()) {
+                    } elseif (empty($paramSchema->defaultValue)) {
                         throw new BadRequestException("Procedure requires value for parameter '{$paramSchema->name}'.");
                     }
 
@@ -2762,10 +2780,10 @@ MYSQL;
                 $temp = $reader->readAll();
                 $keep = true;
                 if (1 == count($temp)) {
-                    $check = current($temp);
+                    $check = array_change_key_case(current($temp), CASE_LOWER);
                     foreach ($param_schemas as $key => $paramSchema) {
-                        if (array_key_exists($paramSchema->name, $check)) {
-                            $values[$paramSchema->name] = $check[$paramSchema->name];
+                        if (array_key_exists($key, $check)) {
+                            $values[$paramSchema->name] = $check[$key];
                             $keep = false;
                         }
                     }

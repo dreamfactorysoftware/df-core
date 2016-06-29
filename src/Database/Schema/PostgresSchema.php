@@ -786,7 +786,7 @@ EOD;
                 case 'INOUT':
                     $pName = ':' . $paramSchema->name;
                     $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
-                    $bindings[$pName] = array_get($values, $paramSchema->name);
+                    $bindings[$pName] = array_get($values, $key);
                     break;
                 case 'OUT':
                     // not sent as parameters, but pulled from fetch results
@@ -809,7 +809,7 @@ EOD;
                     case 'OUT':
                     case 'INOUT':
                         if (isset($temp[$paramSchema->name])) {
-                            $values[$paramSchema->name] = $temp[$paramSchema->name];
+                            $values[$key] = $temp[$paramSchema->name];
                         }
                         break;
                 }

@@ -55,7 +55,7 @@ trait StaticCacheable
      */
     protected static function removeKeys($keys)
     {
-        static::$cacheKeys = array_diff((array)static::getCacheKeys(), $keys);
+        static::$cacheKeys = array_diff((array)static::getCacheKeys(), (array)$keys);
 
         // Save the map to cache
         Cache::forever(static::getCachePrefix() . 'cache_keys', static::$cacheKeys);

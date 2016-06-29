@@ -9,32 +9,6 @@ use DreamFactory\Library\Utility\Inflector;
 class ColumnSchema
 {
     /**
-     * The followings are the supported abstract column data types.
-     */
-    const TYPE_ID                  = 'id';
-    const TYPE_REF                 = 'reference';
-    const TYPE_USER_ID             = 'user_id';
-    const TYPE_USER_ID_ON_CREATE   = 'user_id_on_create';
-    const TYPE_USER_ID_ON_UPDATE   = 'user_id_on_update';
-    const TYPE_STRING              = 'string';
-    const TYPE_TEXT                = 'text';
-    const TYPE_INTEGER             = 'integer';
-    const TYPE_BIGINT              = 'bigint';
-    const TYPE_FLOAT               = 'float';
-    const TYPE_DOUBLE              = 'double';
-    const TYPE_DECIMAL             = 'decimal';
-    const TYPE_DATETIME            = 'datetime';
-    const TYPE_TIMESTAMP           = 'timestamp';
-    const TYPE_TIMESTAMP_ON_CREATE = 'timestamp_on_create';
-    const TYPE_TIMESTAMP_ON_UPDATE = 'timestamp_on_update';
-    const TYPE_TIME                = 'time';
-    const TYPE_DATE                = 'date';
-    const TYPE_BINARY              = 'binary';
-    const TYPE_BOOLEAN             = 'boolean';
-    const TYPE_MONEY               = 'money';
-    const TYPE_VIRTUAL             = 'virtual';
-
-    /**
      * @var string name of this column (without quotes).
      */
     public $name;
@@ -292,52 +266,5 @@ class ColumnSchema
         }
 
         return $out;
-    }
-
-    /**
-     * @param $type
-     *
-     * @return null|string
-     */
-    public static function determinePhpConversionType($type)
-    {
-        switch ($type) {
-            case static::TYPE_BOOLEAN:
-                return 'bool';
-
-            case static::TYPE_INTEGER:
-            case static::TYPE_ID:
-            case static::TYPE_REF:
-            case static::TYPE_USER_ID:
-            case static::TYPE_USER_ID_ON_CREATE:
-            case static::TYPE_USER_ID_ON_UPDATE:
-                return 'int';
-
-            case static::TYPE_DECIMAL:
-            case static::TYPE_DOUBLE:
-            case static::TYPE_FLOAT:
-                return 'float';
-
-            case static::TYPE_STRING:
-            case static::TYPE_TEXT:
-                return 'string';
-
-            // special checks
-            case static::TYPE_DATE:
-                return 'date';
-
-            case static::TYPE_TIME:
-                return 'time';
-
-            case static::TYPE_DATETIME:
-                return 'datetime';
-
-            case static::TYPE_TIMESTAMP:
-            case static::TYPE_TIMESTAMP_ON_CREATE:
-            case static::TYPE_TIMESTAMP_ON_UPDATE:
-                return 'timestamp';
-        }
-
-        return null;
     }
 }

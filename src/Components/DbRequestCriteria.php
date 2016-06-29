@@ -6,6 +6,7 @@ use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DbComparisonOperators;
 use DreamFactory\Core\Enums\DbLogicalOperators;
+use DreamFactory\Core\Enums\DbSimpleTypes;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\DataFormatter;
@@ -352,7 +353,7 @@ trait DbRequestCriteria
         // if not already a replacement parameter, evaluate it
 //            $value = $this->dbConn->getSchema()->parseValueForSet($value, $info);
 
-        switch ($cnvType = $info->determinePhpConversionType($info->type)) {
+        switch ($cnvType = $this->determinePhpConversionType($info->type)) {
             case 'int':
                 if (!is_int($value)) {
                     if (!(ctype_digit($value))) {
@@ -515,4 +516,50 @@ trait DbRequestCriteria
         return $record;
     }
 
+    /**
+     * @param $type
+     *
+     * @return null|string
+     */
+    public static function determinePhpConversionType($type)
+    {
+        switch ($type) {
+            case DbSimpleTypes::TYPE_BOOLEAN:
+                return 'bool';
+
+            case DbSimpleTypes::TYPE_INTEGER:
+            case DbSimpleTypes::TYPE_ID:
+            case DbSimpleTypes::TYPE_REF:
+            case DbSimpleTypes::TYPE_USER_ID:
+            case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
+            case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
+                return 'int';
+
+            case DbSimpleTypes::TYPE_DECIMAL:
+            case DbSimpleTypes::TYPE_DOUBLE:
+            case DbSimpleTypes::TYPE_FLOAT:
+                return 'float';
+
+            case DbSimpleTypes::TYPE_STRING:
+            case DbSimpleTypes::TYPE_TEXT:
+                return 'string';
+
+            // special checks
+            case DbSimpleTypes::TYPE_DATE:
+                return 'date';
+
+            case DbSimpleTypes::TYPE_TIME:
+                return 'time';
+
+            case DbSimpleTypes::TYPE_DATETIME:
+                return 'datetime';
+
+            case DbSimpleTypes::TYPE_TIMESTAMP:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
+                return 'timestamp';
+        }
+
+        return null;
+    }
 }

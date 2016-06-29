@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Database\Schema\ColumnSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
+use DreamFactory\Core\Enums\DbSimpleTypes;
 
 /**
  * SchemaToOpenApiDefinition
@@ -20,39 +21,39 @@ trait SchemaToOpenApiDefinition
         $type = $column->type;
         $format = '';
         switch ($type) {
-            case ColumnSchema::TYPE_ID:
-            case ColumnSchema::TYPE_REF:
-            case ColumnSchema::TYPE_USER_ID:
-            case ColumnSchema::TYPE_USER_ID_ON_CREATE:
-            case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
+            case DbSimpleTypes::TYPE_ID:
+            case DbSimpleTypes::TYPE_REF:
+            case DbSimpleTypes::TYPE_USER_ID:
+            case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
+            case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
                 $type = 'integer';
                 $format = 'int32';
                 break;
-            case ColumnSchema::TYPE_FLOAT:
-            case ColumnSchema::TYPE_DOUBLE:
+            case DbSimpleTypes::TYPE_FLOAT:
+            case DbSimpleTypes::TYPE_DOUBLE:
                 $format = $type;
                 $type = 'number';
                 break;
-            case ColumnSchema::TYPE_DECIMAL:
+            case DbSimpleTypes::TYPE_DECIMAL:
                 $type = 'number';
                 break;
-            case ColumnSchema::TYPE_BINARY:
-            case ColumnSchema::TYPE_DATE:
+            case DbSimpleTypes::TYPE_BINARY:
+            case DbSimpleTypes::TYPE_DATE:
                 $format = $type;
                 $type = 'string';
                 break;
-            case ColumnSchema::TYPE_DATETIME:
-            case ColumnSchema::TYPE_TIMESTAMP:
-            case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
-            case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
+            case DbSimpleTypes::TYPE_DATETIME:
+            case DbSimpleTypes::TYPE_TIMESTAMP:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
                 $format = 'date-time';
                 $type = 'string';
                 break;
-            case ColumnSchema::TYPE_TIME:
-            case ColumnSchema::TYPE_TEXT:
-            case ColumnSchema::TYPE_BIGINT:
-            case ColumnSchema::TYPE_MONEY:
-            case ColumnSchema::TYPE_VIRTUAL:
+            case DbSimpleTypes::TYPE_TIME:
+            case DbSimpleTypes::TYPE_TEXT:
+            case DbSimpleTypes::TYPE_BIGINT:
+            case DbSimpleTypes::TYPE_MONEY:
+            case DbSimpleTypes::TYPE_VIRTUAL:
                 $type = 'string';
                 break;
         }

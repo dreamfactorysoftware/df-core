@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Resources;
 
 use DreamFactory\Core\Components\DbSchemaExtras;
 use DreamFactory\Core\Contracts\RequestHandlerInterface;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Services\BaseDbService;
 
 abstract class BaseDbResource extends BaseRestResource
@@ -79,5 +80,23 @@ abstract class BaseDbResource extends BaseRestResource
         }
 
         return $output;
+    }
+
+    public static function getApiDocInfo($service, array $resource = [])
+    {
+        $results = parent::getApiDocInfo($service, $resource);
+        $serviceName = strtolower($service);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $resourceName = strtolower(array_get($resource, 'name', $class));
+        $path = '/' . $serviceName . '/' . $resourceName;
+
+        $results['paths'][$path]['get']['parameters'] = [
+            ApiOptions::documentOption(ApiOptions::AS_LIST),
+            ApiOptions::documentOption(ApiOptions::FIELDS),
+            ApiOptions::documentOption(ApiOptions::IDS),
+            ApiOptions::documentOption(ApiOptions::REFRESH),
+        ];
+
+        return $results;
     }
 }

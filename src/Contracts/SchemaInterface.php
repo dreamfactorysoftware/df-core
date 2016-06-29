@@ -191,12 +191,12 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
 
     /**
      * @param string $name
-     * @param array  $params
+     * @param array  $in_params
      *
      * @throws \Exception
      * @return mixed
      */
-    public function callFunction($name, &$params);
+    public function callFunction($name, array $in_params);
 
     /**
      * Does this connection support stored procedures
@@ -207,12 +207,13 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
 
     /**
      * @param string $name
-     * @param array  $params
+     * @param array  $in_params
+     * @param array  $out_params
      *
      * @throws \Exception
      * @return mixed
      */
-    public function callProcedure($name, &$params);
+    public function callProcedure($name, array $in_params, array &$out_params);
 
     /**
      * @param mixed $field
@@ -237,4 +238,10 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
      */
     public function parseFieldForFilter($field, $as_quoted_string = false);
 
+    /**
+     * @param string $type DbSimpleTypes value
+     *
+     * @return string Valid PHP type
+     */
+    public function determinePhpConversionType($type);
 }

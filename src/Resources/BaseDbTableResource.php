@@ -9,6 +9,7 @@ use DreamFactory\Core\Database\Schema\ColumnSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DbComparisonOperators;
 use DreamFactory\Core\Enums\DbLogicalOperators;
+use DreamFactory\Core\Enums\DbSimpleTypes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Events\ResourcePostProcess;
 use DreamFactory\Core\Events\ResourcePreProcess;
@@ -1968,15 +1969,15 @@ abstract class BaseDbTableResource extends BaseDbResource
             foreach ($fields_info as $fieldInfo) {
                 // add or override for specific fields
                 switch ($fieldInfo->type) {
-                    case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
+                    case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
                         if (!$for_update) {
                             $parsed[$fieldInfo->name] = $this->getCurrentTimestamp();
                         }
                         break;
-                    case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
+                    case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
                         $parsed[$fieldInfo->name] = $this->getCurrentTimestamp();
                         break;
-                    case ColumnSchema::TYPE_USER_ID_ON_CREATE:
+                    case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
                         if (!$for_update) {
                             $userId = Session::getCurrentUserId();
                             if (isset($userId)) {
@@ -1984,7 +1985,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                             }
                         }
                         break;
-                    case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
+                    case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
                         $userId = Session::getCurrentUserId();
                         if (isset($userId)) {
                             $parsed[$fieldInfo->name] = $userId;
@@ -1993,14 +1994,14 @@ abstract class BaseDbTableResource extends BaseDbResource
                     default:
                         $name = strtolower($fieldInfo->getName(true));
                         // need to check for virtual or api_read_only validation here.
-                        if ((ColumnSchema::TYPE_VIRTUAL === $fieldInfo->type) ||
+                        if ((DbSimpleTypes::TYPE_VIRTUAL === $fieldInfo->type) ||
                             isset($fieldInfo->validation, $fieldInfo->validation['api_read_only'])
                         ) {
                             unset($record[$name]);
                             continue;
                         }
                         // need to check for id in record and remove it, as some DBs complain.
-                        if ($for_update && (ColumnSchema::TYPE_ID === $fieldInfo->type)) {
+                        if ($for_update && (DbSimpleTypes::TYPE_ID === $fieldInfo->type)) {
                             unset($record[$name]);
                             continue;
                         }

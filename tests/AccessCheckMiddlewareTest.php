@@ -25,12 +25,6 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
 
         $this->assertTrue(Session::isSysAdmin(), 'assertion 1');
         $this->assertEquals(null, session('admin.role.id'), 'assertion 2');
-        $adminLookup = session('lookup');
-        $adminLookupSecret = session('lookup_secret');
-        $this->assertTrue(isset($adminLookup), 'assertion 3');
-        $this->assertTrue(isset($adminLookupSecret), 'assertion 4');
-        $this->assertEquals(0, count($adminLookup), 'assertion 5');
-        $this->assertEquals(0, count($adminLookupSecret), 'assertion 6');
         $rsa = session('role.services');
         $this->assertTrue(empty($rsa), 'assertion 7');
     }
@@ -41,15 +35,19 @@ class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
         $apiKey = $app->api_key;
 
         $role = [
-            'name'                           => 'test_role',
-            'is_active'                      => true,
-            'role_service_access_by_role_id' => [
-                ['service_id' => 1, 'component' => 'config', 'verb_mask' => 1, 'requestor_mask' => 1]
+            'resource' => [
+                [
+                    'name'                           => 'test_role',
+                    'is_active'                      => true,
+                    'role_service_access_by_role_id' => [
+                        ['service_id' => 1, 'component' => 'config', 'verb_mask' => 1, 'requestor_mask' => 1]
+                    ]
+                ]
             ]
         ];
 
         $this->service = ServiceManager::getService('system');
-        $rs = $this->makeRequest(Verbs::POST, 'role', [], [$role]);
+        $rs = $this->makeRequest(Verbs::POST, 'role', [], $role);
         $data = $rs->getContent();
         $roleId = Arr::get($data, static::$wrapper . '.0.id');
         $app->role_id = $roleId;

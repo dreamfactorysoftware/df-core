@@ -652,14 +652,14 @@ MYSQL;
                 case 'IN':
                     $pName = ':' . $paramSchema->name;
                     $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
-                    $bindings[$pName] = array_get($values, $paramSchema->name);
+                    $bindings[$pName] = array_get($values, $key);
                     break;
                 case 'INOUT':
                     $pName = '@' . $paramSchema->name;
                     $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
                     // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
                     // since binding isn't working, set the values via statements, get the values via select
-                    $pre .= "SET $pName = " . array_get($values, $paramSchema->name) . ';';
+                    $pre .= "SET $pName = " . array_get($values, $key) . ';';
                     $post .= (empty($post)) ? $pName : ", $pName";
                     break;
                 case 'OUT':
@@ -718,7 +718,7 @@ MYSQL;
                     switch ($paramSchema->paramType) {
                         case 'INOUT':
                         case 'OUT':
-                            $values[$paramSchema->name] = array_get($out, '@' . $paramSchema->name);
+                            $values[$key] = array_get($out, '@' . $paramSchema->name);
                             break;
                     }
                 }

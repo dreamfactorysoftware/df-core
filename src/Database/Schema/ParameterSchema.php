@@ -27,10 +27,6 @@ class ParameterSchema
      */
     public $dbType;
     /**
-     * @var mixed default value of this parameter
-     */
-    public $defaultValue;
-    /**
      * @var integer max character length supported by the parameter.
      */
     public $length;
@@ -43,9 +39,9 @@ class ParameterSchema
      */
     public $scale;
     /**
-     * @var boolean whether this parameter can be null.
+     * @var mixed default value of this parameter
      */
-    public $allowNull = false;
+    public $defaultValue;
 
     public function __construct(array $settings)
     {
@@ -68,19 +64,6 @@ class ParameterSchema
         }
     }
 
-    public function getRequired()
-    {
-        if (property_exists($this, 'required')) {
-            return $this->{'required'};
-        }
-
-        if ($this->allowNull || (isset($this->defaultValue))) {
-            return false;
-        }
-
-        return true;
-    }
-
     public function toArray()
     {
         $out = [
@@ -93,8 +76,6 @@ class ParameterSchema
             'precision'  => $this->precision,
             'scale'      => $this->scale,
             'default'    => $this->defaultValue,
-            'required'   => $this->getRequired(),
-            'allow_null' => $this->allowNull,
         ];
 
         return $out;

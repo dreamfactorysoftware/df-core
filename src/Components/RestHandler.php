@@ -267,7 +267,8 @@ abstract class RestHandler implements RequestHandlerInterface
         if ($methodToCall) {
             $result = call_user_func($methodToCall);
 
-            if ($result instanceof ServiceResponseInterface ||
+            if (false === $result ||
+                $result instanceof ServiceResponseInterface ||
                 $result instanceof RedirectResponse ||
                 $result instanceof StreamedResponse
             ) {

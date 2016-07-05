@@ -706,7 +706,7 @@ MYSQL;
         }
     }
 
-    protected function doRoutineBinding($statement, array $paramSchemas, array $values)
+    protected function doRoutineBinding($statement, array $paramSchemas, array &$values)
     {
         // do binding
         foreach ($paramSchemas as $key => $paramSchema) {

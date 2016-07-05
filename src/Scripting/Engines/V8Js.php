@@ -5,7 +5,10 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Scripting\BaseEngineAdapter;
 use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Core\Scripting\ScriptSession;
+use DreamFactory\Core\Utility\Session;
 use \Log;
+use \Config;
 
 /**
  * Plugin for the php-v8js extension which exposes the V8 Javascript engine
@@ -120,6 +123,28 @@ class V8Js extends BaseEngineAdapter
                 (is_string($extensions)) ? array_map('trim', explode(',', trim($extensions, ','))) : $extensions;
             static::registerExtensions($extensions);
         }
+    }
+
+    public static function buildPlatformAccess($identifier)
+    {
+        /**
+         * For some mysterious reason the v8 library produces segmentation fault for PHP 7
+         * when $session ($session is an array) is used directly below. However,
+         * when $session is re-constructed into a $newSession variable using the
+         * code below it magically works!
+         */
+        $session = Session::all();
+        $newSession = [];
+        foreach ($session as $key => $value){
+            $newSession[$key] = $value;
+        }
+
+        return [
+            'api'     => static::getExposedApi(),
+            'config'  => Config::all(),
+            'session' => $newSession,
+            'store'   => new ScriptSession(Config::get("script.$identifier.store"), app('cache'))
+        ];
     }
 
     /**

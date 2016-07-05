@@ -10,6 +10,7 @@ abstract class FileServiceTestCase extends TestCase
     const FOLDER_2 = 'df-test-folder-2';
     const FOLDER_3 = 'df-test-folder-3';
     const FOLDER_4 = 'df-test-folder-4';
+    const LOCAL_HOST = '192.168.10.10';
 
     /************************************************
      * Testing POST
@@ -91,7 +92,7 @@ abstract class FileServiceTestCase extends TestCase
 
     public function testPOSTZipFileFromUrl()
     {
-        $rs = $this->makeRequest(Verbs::POST, static::FOLDER_1 . '/f1/', ['url' => 'http://df.local/testfiles.zip']);
+        $rs = $this->makeRequest(Verbs::POST, static::FOLDER_1 . '/f1/', ['url' => 'http://' .  static::LOCAL_HOST .  '/testfiles.zip']);
         $content = json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES);
 
         $this->assertEquals('{"name":"testfiles.zip","path":"' .
@@ -105,7 +106,7 @@ abstract class FileServiceTestCase extends TestCase
         $rs = $this->makeRequest(
             Verbs::POST,
             static::FOLDER_1 . '/f2/',
-            ['url' => 'http://df.local/testfiles.zip', 'extract' => 'true', 'clean' => 'true']
+            ['url' => 'http://' .  static::LOCAL_HOST .  '/testfiles.zip', 'extract' => 'true', 'clean' => 'true']
         );
         $content = json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES);
 
@@ -167,7 +168,6 @@ abstract class FileServiceTestCase extends TestCase
 
         $this->assertContains('"name":', $content);
         $this->assertContains('"path":', $content);
-        $this->assertContains('"last_modified":', $content);
     }
 
     /************************************************

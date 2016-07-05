@@ -2542,47 +2542,20 @@ MYSQL;
         }
 
         $paramSchemas = $function->getParameters();
-        if (!empty($in_params) && empty($paramSchemas)) {
-            throw new BadRequestException("Function '$name' requires no parameters.");
-        }
-
         $values = $this->determineRoutineValues($paramSchemas, $in_params);
 
-        $paramStr = '';
-        $bindings = [];
-        foreach ($paramSchemas as $key => $paramSchema) {
-            switch ($paramSchema->paramType) {
-                case 'IN':
-                    $pName = ':' . $paramSchema->name;
-                    $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
-                    $bindings[$pName] = array_get($values, $key);
-                    break;
-                case 'INOUT':
-                case 'OUT':
-                    // functions should only have input params
-                default:
-                    break;
-            }
-        }
-
-        $sql = $this->callFunctionInternal($function->rawName, $paramStr);
+        $sql = $this->getFunctionStatement($function->rawName, $paramSchemas, $values);
         /** @type \PDOStatement $statement */
         $statement = $this->connection->getPdo()->prepare($sql);
 
         // do binding
-        $this->bindValues($statement, $values);
+        $this->doRoutineBinding($statement, $paramSchemas, $values);
 
         // support multiple result sets
+        $result = [];
         try {
             $statement->execute();
             $reader = new DataReader($statement);
-        } catch (\Exception $e) {
-            $errorInfo = $e instanceof \PDOException ? $e : null;
-            $message = $e->getMessage();
-            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
-        }
-        $result = [];
-        try {
             do {
                 $temp = $reader->readAll();
                 if (!empty($temp)) {
@@ -2592,8 +2565,11 @@ MYSQL;
         } catch (\Exception $ex) {
             // mysql via pdo has issue of nextRowSet returning true one too many times
             if (false !== strpos($ex->getMessage(), 'General Error')) {
+                // postgresql doesn't support retrieving multiple rowsets
                 if (false !== strpos($ex->getMessage(), 'does not support multiple rowsets')) {
-                    throw $ex;
+                    $errorInfo = $ex instanceof \PDOException ? $ex : null;
+                    $message = $ex->getMessage();
+                    throw new \Exception($message, (int)$ex->getCode(), $errorInfo);
                 }
             }
         }
@@ -2601,23 +2577,38 @@ MYSQL;
         // if there is only one data set, just return it
         if (1 == count($result)) {
             $result = $result[0];
-        }
-        // if there is only one data set, search for an output
-        if (1 == count($result)) {
-            $result = current($result);
-            if (array_key_exists('output', $result)) {
-                return $result['output'];
-            } elseif (array_key_exists($function->name, $result)) {
-                // some vendors return the results as the function's name
-                return $result[$function->name];
+            // if there is only one data set, search for an output
+            if (1 == count($result)) {
+                $result = current($result);
+                if (array_key_exists('output', $result)) {
+                    return $result['output'];
+                } elseif (array_key_exists($function->name, $result)) {
+                    // some vendors return the results as the function's name
+                    return $result[$function->name];
+                }
             }
         }
 
         return $result;
     }
 
-    protected function callFunctionInternal($routine, $paramStr)
+    protected function getFunctionStatement($routine, $param_schemas, $values)
     {
+        $paramStr = '';
+        foreach ($param_schemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'IN':
+                    $pName = ':' . $paramSchema->name;
+                    $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
+                    break;
+                case 'INOUT':
+                case 'OUT':
+                    // functions should only have input params
+                default:
+                    break;
+            }
+        }
+
         return "SELECT $routine($paramStr) AS " . $this->quoteColumnName('output');
     }
 
@@ -2648,21 +2639,71 @@ MYSQL;
         }
 
         $paramSchemas = $procedure->getParameters();
-        if (!empty($in_params) && empty($paramSchemas)) {
-            throw new BadRequestException("Procedure '$name' requires no parameters.");
-        }
-
         $values = $this->determineRoutineValues($paramSchemas, $in_params);
 
-        $result = $this->callProcedureInternal($procedure->rawName, $paramSchemas, $values);
+        $sql = $this->getProcedureStatement($procedure->rawName, $paramSchemas, $values);
+
+        /** @type \PDOStatement $statement */
+        $statement = $this->connection->getPdo()->prepare($sql);
+
+        // do binding
+        $this->doRoutineBinding($statement, $paramSchemas, $values);
+
+        // support multiple result sets
+        $result = [];
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+            do {
+                if (!$reader->getColumnCount()) {
+                    continue;
+                }
+                $temp = $reader->readAll();
+                if (!empty($temp)) {
+                    $keep = true;
+                    if (1 == count($temp)) {
+                        $check = array_change_key_case(current($temp), CASE_LOWER);
+                        foreach ($paramSchemas as $key => $paramSchema) {
+                            switch ($paramSchema->paramType) {
+                                case 'OUT':
+                                case 'INOUT':
+                                    if (array_key_exists($key, $check)) {
+                                        $values[$paramSchema->name] = $check[$key];
+                                        // todo problem here if the result contains field name = param name!
+                                        $keep = false;
+                                    }
+                                    break;
+                            }
+                        }
+                    }
+                    if ($keep) {
+                        $result[] = $temp;
+                    }
+                }
+            } while ($reader->nextResult());
+        } catch (\Exception $ex) {
+            // postgresql doesn't support retrieving multiple rowsets
+            if (false === strpos($ex->getMessage(), 'does not support multiple rowsets')) {
+                $errorInfo = $ex instanceof \PDOException ? $ex : null;
+                $message = $ex->getMessage();
+                throw new \Exception($message, (int)$ex->getCode(), $errorInfo);
+            }
+        }
+
+        // if there is only one data set, just return it
+        if (1 == count($result)) {
+            $result = $result[0];
+        }
+
+        // any post op?
+        $this->postProcedureCall($paramSchemas, $values);
 
         foreach ($paramSchemas as $key => $paramSchema) {
             switch ($paramSchema->paramType) {
                 case 'OUT':
                 case 'INOUT':
                     if (isset($values[$key])) {
-                        $out_params[$paramSchema->name] =
-                            $this->formatValue($values[$key], $paramSchema->type);
+                        $out_params[$paramSchema->name] = $this->formatValue($values[$key], $paramSchema->type);
                     }
                     break;
             }
@@ -2725,7 +2766,7 @@ MYSQL;
         foreach ($paramSchemas as $key => $paramSchema) {
             switch ($paramSchema->paramType) {
                 case 'IN':
-                    $this->bindValue($statement, ':' . $paramSchema->name, $values[$key]);
+                    $this->bindValue($statement, ':' . $paramSchema->name, array_get($values, $key));
                     break;
                 case 'INOUT':
                 case 'OUT':
@@ -2737,7 +2778,7 @@ MYSQL;
         }
     }
 
-    protected function callProcedureInternal($routine, array $param_schemas, array &$values)
+    protected function getProcedureStatement($routine, array $param_schemas, array &$values)
     {
         $paramStr = '';
         foreach ($param_schemas as $key => $paramSchema) {
@@ -2755,52 +2796,11 @@ MYSQL;
             }
         }
 
-        $sql = "CALL $routine($paramStr)";
-        /** @type \PDOStatement $statement */
-        $statement = $this->connection->getPdo()->prepare($sql);
+        return "CALL $routine($paramStr)";
+    }
 
-        // do binding
-        $this->doRoutineBinding($statement, $param_schemas, $values);
-
-        // support multiple result sets
-        try {
-            $statement->execute();
-            $reader = new DataReader($statement);
-        } catch (\Exception $e) {
-            $errorInfo = $e instanceof \PDOException ? $e : null;
-            $message = $e->getMessage();
-            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
-        }
-        $result = [];
-        if (!empty($temp = $reader->readAll())) {
-            $result[] = $temp;
-        }
-        if ($reader->nextResult()) {
-            do {
-                $temp = $reader->readAll();
-                $keep = true;
-                if (1 == count($temp)) {
-                    $check = array_change_key_case(current($temp), CASE_LOWER);
-                    foreach ($param_schemas as $key => $paramSchema) {
-                        if (array_key_exists($key, $check)) {
-                            $values[$paramSchema->name] = $check[$key];
-                            $keep = false;
-                        }
-                    }
-                }
-                if ($keep) {
-                    if (!empty($temp)) {
-                        $result[] = $temp;
-                    }
-                }
-            } while ($reader->nextResult());
-        }
-        // if there is only one data set, just return it
-        if (1 == count($result)) {
-            $result = $result[0];
-        }
-
-        return $result;
+    protected function postProcedureCall(array $param_schemas, array &$values)
+    {
     }
 
     /**

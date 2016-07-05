@@ -323,7 +323,7 @@ WHERE a.attnum > 0 AND NOT a.attisdropped
 		AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = :schema))
 ORDER BY a.attnum
 EOD;
-        $columns = $this->connection->select($sql, [':table'=> $table->tableName, ':schema'=> $table->schemaName]);
+        $columns = $this->connection->select($sql, [':table' => $table->tableName, ':schema' => $table->schemaName]);
 
         if (empty($columns)) {
             return false;
@@ -439,7 +439,7 @@ EOD;
 		   	    AND k.table_name = :table
 				AND k.table_schema = :schema
 EOD;
-        $rows = $this->connection->select($sql, [':table'=> $table->tableName, ':schema'=> $table->schemaName]);
+        $rows = $this->connection->select($sql, [':table' => $table->tableName, ':schema' => $table->schemaName]);
 
         $table->primaryKey = null;
         foreach ($rows as $row) {
@@ -732,7 +732,8 @@ EOD;
     /**
      * Extracts size, precision and scale information from column's DB type.
      *
-     * @param string $dbType the column's DB type
+     * @param ColumnSchema $field
+     * @param string       $dbType the column's DB type
      */
     public function extractLimit(ColumnSchema &$field, $dbType)
     {
@@ -776,17 +777,98 @@ EOD;
     /**
      * @inheritdoc
      */
-    protected function callProcedureInternal($routine, array $param_schemas, array &$values)
+    protected function findRoutineNames($type, $schema = '')
+    {
+        $bindings = [];
+        $where = '';
+        if (!empty($schema)) {
+            $where .= 'WHERE ROUTINE_SCHEMA = :schema';
+            $bindings[':schema'] = $schema;
+        }
+
+        $sql = <<<MYSQL
+SELECT ROUTINE_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.ROUTINES {$where}
+MYSQL;
+
+        $rows = $this->connection->select($sql, $bindings);
+
+        $sql = <<<MYSQL
+SELECT r.ROUTINE_NAME
+FROM INFORMATION_SCHEMA.PARAMETERS AS p JOIN INFORMATION_SCHEMA.ROUTINES AS r ON r.SPECIFIC_NAME = p.SPECIFIC_NAME 
+WHERE p.SPECIFIC_SCHEMA = :schema AND (p.PARAMETER_MODE = 'INOUT' OR p.PARAMETER_MODE = 'OUT')
+MYSQL;
+
+        $procedures = $this->selectColumn($sql, $bindings);
+
+        $defaultSchema = $this->getDefaultSchema();
+        $addSchema = (!empty($schema) && ($defaultSchema !== $schema));
+
+        $names = [];
+        foreach ($rows as $row) {
+            $row = array_change_key_case((array)$row, CASE_UPPER);
+            $name = array_get($row, 'ROUTINE_NAME');
+            switch (strtoupper($type)) {
+                case 'PROCEDURE':
+                    if (false === array_search($name, $procedures)) {
+                        // only way to determine proc from func is by params??
+                        continue 2;
+                    }
+                    break;
+                case 'FUNCTION':
+                    if (false !== array_search($name, $procedures)) {
+                        // only way to determine proc from func is by params??
+                        continue 2;
+                    }
+                    break;
+            }
+            $schemaName = $schema;
+            if ($addSchema) {
+                $publicName = $schemaName . '.' . $name;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($name);;
+            } else {
+                $publicName = $name;
+                $rawName = $this->quoteTableName($name);
+            }
+            $returnType = array_get($row, 'DATA_TYPE');
+            if (!empty($returnType) && (0 !== strcasecmp('void', $returnType))) {
+                $returnType = static::extractSimpleType($returnType);
+            }
+            $settings = compact('schemaName', 'name', 'publicName', 'rawName', 'returnType');
+            $names[strtolower($name)] =
+                ('PROCEDURE' === $type) ? new ProcedureSchema($settings) : new FunctionSchema($settings);
+        }
+
+        return $names;
+    }
+
+    protected function doRoutineBinding($statement, array $paramSchemas, array $values)
+    {
+        // do binding
+        foreach ($paramSchemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'IN':
+                case 'INOUT':
+                    $this->bindValue($statement, ':' . $paramSchema->name, array_get($values, $key));
+                    break;
+                case 'OUT':
+                    // not sent as parameters, but pulled from fetch results
+                    break;
+            }
+        }
+    }
+
+    /**
+     * @inheritdoc
+     */
+    protected function getProcedureStatement($routine, array $param_schemas, array &$values)
     {
         $paramStr = '';
-        $bindings = [];
         foreach ($param_schemas as $key => $paramSchema) {
             switch ($paramSchema->paramType) {
                 case 'IN':
                 case 'INOUT':
                     $pName = ':' . $paramSchema->name;
                     $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
-                    $bindings[$pName] = array_get($values, $key);
                     break;
                 case 'OUT':
                     // not sent as parameters, but pulled from fetch results
@@ -796,34 +878,29 @@ EOD;
             }
         }
 
-        $sql = "SELECT * FROM $routine($paramStr);";
-        
-        // driver does not support multiple result sets currently
-        $result = $this->connection->select($sql, $bindings);
-
-        // out parameters come back in fetch results, put them in the params for client
-        if (isset($result, $result[0])) {
-            $temp = (array)$result[0];
-            foreach ($param_schemas as $key => $paramSchema) {
-                switch ($paramSchema->paramType) {
-                    case 'OUT':
-                    case 'INOUT':
-                        if (isset($temp[$paramSchema->name])) {
-                            $values[$key] = $temp[$paramSchema->name];
-                        }
-                        break;
-                }
-            }
-        }
-
-        return $result;
+        return "SELECT * FROM $routine($paramStr);";
     }
 
     /**
      * @inheritdoc
      */
-    protected function callFunctionInternal($routine, $paramStr)
+    protected function getFunctionStatement($routine, $param_schemas, $values)
     {
+        $paramStr = '';
+        foreach ($param_schemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'IN':
+                    $pName = ':' . $paramSchema->name;
+                    $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
+                    break;
+                case 'INOUT':
+                case 'OUT':
+                    // functions should only have input params
+                default:
+                    break;
+            }
+        }
+
         return "SELECT * FROM $routine($paramStr)";
     }
 }

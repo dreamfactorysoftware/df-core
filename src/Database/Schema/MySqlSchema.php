@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
-use DreamFactory\Core\Database\DataReader;
 use DreamFactory\Core\Enums\DbSimpleTypes;
 
 /**
@@ -402,6 +401,7 @@ MYSQL;
      */
     protected function getServerVersion()
     {
+        /** @noinspection PhpUndefinedMethodInspection */
         $version = $this->connection->getAttribute(\PDO::ATTR_SERVER_VERSION);
         $digits = [];
         preg_match('/(\d+)\.(\d+)\.(\d+)/', $version, $digits);
@@ -641,18 +641,15 @@ MYSQL;
     /**
      * @inheritdoc
      */
-    protected function callProcedureInternal($routine, array $param_schemas, array &$values)
+    protected function getProcedureStatement($routine, array $param_schemas, array &$values)
     {
         $paramStr = '';
         $pre = '';
-        $post = '';
-        $bindings = [];
         foreach ($param_schemas as $key => $paramSchema) {
             switch ($paramSchema->paramType) {
                 case 'IN':
                     $pName = ':' . $paramSchema->name;
                     $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
-                    $bindings[$pName] = array_get($values, $key);
                     break;
                 case 'INOUT':
                     $pName = '@' . $paramSchema->name;
@@ -660,14 +657,12 @@ MYSQL;
                     // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
                     // since binding isn't working, set the values via statements, get the values via select
                     $pre .= "SET $pName = " . array_get($values, $key) . ';';
-                    $post .= (empty($post)) ? $pName : ", $pName";
                     break;
                 case 'OUT':
                     $pName = '@' . $paramSchema->name;
                     $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
                     // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
                     // since binding isn't working, get the values via select
-                    $post .= (empty($post)) ? $pName : ", $pName";
                     break;
                 default:
                     break;
@@ -676,40 +671,25 @@ MYSQL;
 
         !empty($pre) && $this->connection->statement($pre);
 
-        $sql = "CALL $routine($paramStr)";
+        return "CALL $routine($paramStr)";
+    }
 
-        /** @type \PDOStatement $statement */
-        $statement = $this->connection->getPdo()->prepare($sql);
-
-        // do binding
-        $this->bindValues($statement, $bindings);
-
-        // support multiple result sets
-        try {
-            $statement->execute();
-            $reader = new DataReader($statement);
-        } catch (\Exception $e) {
-            $errorInfo = $e instanceof \PDOException ? $e : null;
-            $message = $e->getMessage();
-            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
-        }
-        $result = [];
-        try {
-            do {
-                $result[] = $reader->readAll();
-            } while ($reader->nextResult());
-        } catch (\Exception $ex) {
-            // mysql via pdo has issue of nextRowSet returning true one too many times
-            if (false !== strpos($ex->getMessage(), 'General Error')) {
-                throw $ex;
+    protected function postProcedureCall(array $param_schemas, array &$values)
+    {
+        $post = '';
+        foreach ($param_schemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'INOUT':
+                case 'OUT':
+                    // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
+                    // since binding isn't working, get the values via select
+                    $pName = '@' . $paramSchema->name;
+                    $post .= (empty($post)) ? $pName : ", $pName";
+                    break;
+                default:
+                    break;
             }
         }
-
-        // if there is only one data set, just return it
-        if (1 == count($result)) {
-            $result = $result[0];
-        }
-
         if (!empty($post)) {
             // must query to get output parameters back
             if (null !== $out = $this->connection->selectOne("SELECT $post;")) {
@@ -724,7 +704,23 @@ MYSQL;
                 }
             }
         }
-
-        return $result;
     }
+
+    protected function doRoutineBinding($statement, array $paramSchemas, array $values)
+    {
+        // do binding
+        foreach ($paramSchemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'IN':
+                    $this->bindValue($statement, ':' . $paramSchema->name, array_get($values, $key));
+                    break;
+                case 'INOUT':
+                case 'OUT':
+                    // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
+                    // since binding isn't working, set the values via statements, get the values via select
+                    break;
+            }
+        }
+    }
+
 }

@@ -62,6 +62,10 @@ class ParameterSchema
             // set real and virtual
             $this->{$key} = $value;
         }
+
+        if (is_null($this->length) && (!is_null($this->precision) || !is_null($this->scale))) {
+            $this->length = intval($this->precision) + intval($this->scale);
+        }
     }
 
     public function toArray()

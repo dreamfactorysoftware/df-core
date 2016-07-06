@@ -102,7 +102,9 @@ class RoutineSchema
      */
     public function getParameters()
     {
-        return $this->parameters;
+        $paramCollect = collect($this->parameters);
+        $paramCollect = $paramCollect->sortBy('position');
+        return $paramCollect->all();
     }
 
     /**
@@ -126,8 +128,8 @@ class RoutineSchema
     public function toArray()
     {
         $parameters = [];
-        /** @var ParameterSchema $column */
-        foreach ($this->parameters as $parameter) {
+        /** @var ParameterSchema $parameter */
+        foreach ($this->getParameters() as $parameter) {
             $parameters[] = $parameter->toArray();
         }
 

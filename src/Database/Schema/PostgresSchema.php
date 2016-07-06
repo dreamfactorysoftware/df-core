@@ -834,7 +834,7 @@ MYSQL;
                 $returnType = static::extractSimpleType($returnType);
             }
             $settings = compact('schemaName', 'name', 'publicName', 'rawName', 'returnType');
-            $names[strtolower($name)] =
+            $names[strtolower($publicName)] =
                 ('PROCEDURE' === $type) ? new ProcedureSchema($settings) : new FunctionSchema($settings);
         }
 
@@ -860,7 +860,7 @@ MYSQL;
     /**
      * @inheritdoc
      */
-    protected function getProcedureStatement($routine, array $param_schemas, array &$values)
+    protected function getRoutineParamString(array $param_schemas, array &$values)
     {
         $paramStr = '';
         foreach ($param_schemas as $key => $paramSchema) {
@@ -878,6 +878,13 @@ MYSQL;
             }
         }
 
+        return $paramStr;
+    }
+
+    protected function getProcedureStatement($routine, array $param_schemas, array &$values)
+    {
+        $paramStr = $this->getRoutineParamString($param_schemas, $values);
+
         return "SELECT * FROM $routine($paramStr);";
     }
 
@@ -886,21 +893,17 @@ MYSQL;
      */
     protected function getFunctionStatement($routine, $param_schemas, $values)
     {
-        $paramStr = '';
-        foreach ($param_schemas as $key => $paramSchema) {
-            switch ($paramSchema->paramType) {
-                case 'IN':
-                    $pName = ':' . $paramSchema->name;
-                    $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
-                    break;
-                case 'INOUT':
-                case 'OUT':
-                    // functions should only have input params
-                default:
-                    break;
-            }
-        }
+        $paramStr = $this->getRoutineParamString($param_schemas, $values);
 
         return "SELECT * FROM $routine($paramStr)";
+    }
+
+    protected function handleRoutineException(\Exception $ex)
+    {
+        if (false !== stripos($ex->getMessage(), 'does not support multiple rowsets')) {
+            return true;
+        }
+
+        return false;
     }
 }

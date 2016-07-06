@@ -723,4 +723,12 @@ MYSQL;
         }
     }
 
+    protected function handleRoutineException(\Exception $ex)
+    {
+        if (false !== stripos($ex->getMessage(), 'SQLSTATE[HY000]: General error')) {
+            return true;
+        }
+
+        return false;
+    }
 }

@@ -564,13 +564,14 @@ abstract class Schema
      */
     public function getTable($name, $refresh = false)
     {
+        $ndx = strtolower($name);
         if (!$refresh) {
-            if (isset($this->tables[$name])) {
-                return $this->tables[$name];
-            } elseif (null !== $table = $this->getFromCache('table:' . $name)) {
-                $this->tables[$name] = $table;
+            if (isset($this->tables[$ndx])) {
+                return $this->tables[$ndx];
+            } elseif (null !== $table = $this->getFromCache('table:' . $ndx)) {
+                $this->tables[$ndx] = $table;
 
-                return $this->tables[$name];
+                return $this->tables[$ndx];
             }
         }
 
@@ -581,7 +582,6 @@ abstract class Schema
 //        }
 
         // check if know anything about this table already
-        $ndx = strtolower($name);
         if (empty($this->tableNames[$ndx])) {
             $this->getCachedTableNames();
             if (empty($this->tableNames[$ndx])) {
@@ -675,8 +675,8 @@ abstract class Schema
             }
         }
 
-        $this->tables[$name] = $table;
-        $this->addToCache('table:' . $name, $table, true);
+        $this->tables[$ndx] = $table;
+        $this->addToCache('table:' . $ndx, $table, true);
 
         return $table;
     }
@@ -795,18 +795,18 @@ abstract class Schema
      */
     public function getProcedure($name, $refresh = false)
     {
+        $ndx = strtolower($name);
         if (!$refresh) {
-            if (isset($this->procedures[$name])) {
-                return $this->procedures[$name];
-            } elseif (null !== $table = $this->getFromCache('procedure:' . $name)) {
-                $this->procedures[$name] = $table;
+            if (isset($this->procedures[$ndx])) {
+                return $this->procedures[$ndx];
+            } elseif (null !== $procedure = $this->getFromCache('procedure:' . $ndx)) {
+                $this->procedures[$ndx] = $procedure;
 
-                return $this->procedures[$name];
+                return $this->procedures[$ndx];
             }
         }
 
         // check if know anything about this procedure already
-        $ndx = strtolower($name);
         if (empty($this->procedureNames[$ndx])) {
             $this->getCachedProcedureNames();
             if (empty($this->procedureNames[$ndx])) {
@@ -816,8 +816,8 @@ abstract class Schema
 
         $procedure = $this->procedureNames[$ndx];
         $this->loadProcedure($procedure);
-        $this->procedures[$name] = $procedure;
-        $this->addToCache('procedure:' . $name, $procedure, true);
+        $this->procedures[$ndx] = $procedure;
+        $this->addToCache('procedure:' . $ndx, $procedure, true);
 
         return $procedure;
     }
@@ -839,17 +839,19 @@ abstract class Schema
      *
      * @param string $schema the schema of the procedures. Defaults to empty string, meaning the current or default
      *                       schema.
+     * @param bool   $refresh
      *
      * @return array the metadata for all stored procedures in the database.
      * Each array element is an instance of {@link ProcedureSchema} (or its child class).
      * The array keys are procedure names.
      */
-    public function getProcedures($schema = '')
+    public function getProcedures($schema = '', $refresh = false)
     {
         $procedures = [];
-        foreach ($this->getProcedureNames($schema) as $name) {
-            if (($procedure = $this->getProcedure($name)) !== null) {
-                $procedures[$name] = $procedure;
+        /** @type ProcedureSchema $procNameSchema */
+        foreach ($this->getProcedureNames($schema) as $procNameSchema) {
+            if (($procedure = $this->getProcedure($procNameSchema->publicName, $refresh)) !== null) {
+                $procedures[$procNameSchema->publicName] = $procedure;
             }
         }
 
@@ -861,7 +863,6 @@ abstract class Schema
      *
      * @param string $schema the schema of the procedures. Defaults to empty string, meaning the current or default
      *                       schema. If not empty, the returned procedure names will be prefixed with the schema name.
-     *
      * @param bool   $refresh
      *
      * @return array all procedure names in the database.
@@ -969,7 +970,7 @@ MYSQL;
                 $returnType = static::extractSimpleType($returnType);
             }
             $settings = compact('schemaName', 'name', 'publicName', 'rawName', 'returnType');
-            $names[strtolower($name)] =
+            $names[strtolower($publicName)] =
                 ('PROCEDURE' === $type) ? new ProcedureSchema($settings) : new FunctionSchema($settings);
         }
 
@@ -986,18 +987,18 @@ MYSQL;
      */
     public function getFunction($name, $refresh = false)
     {
+        $ndx = strtolower($name);
         if (!$refresh) {
-            if (isset($this->functions[$name])) {
-                return $this->functions[$name];
-            } elseif (null !== $table = $this->getFromCache('function:' . $name)) {
-                $this->functions[$name] = $table;
+            if (isset($this->functions[$ndx])) {
+                return $this->functions[$ndx];
+            } elseif (null !== $function = $this->getFromCache('function:' . $ndx)) {
+                $this->functions[$ndx] = $function;
 
-                return $this->functions[$name];
+                return $this->functions[$ndx];
             }
         }
 
         // check if know anything about this function already
-        $ndx = strtolower($name);
         if (empty($this->functionNames[$ndx])) {
             $this->getCachedFunctionNames();
             if (empty($this->functionNames[$ndx])) {
@@ -1007,8 +1008,8 @@ MYSQL;
 
         $function = $this->functionNames[$ndx];
         $this->loadFunction($function);
-        $this->functions[$name] = $function;
-        $this->addToCache('function:' . $name, $function, true);
+        $this->functions[$ndx] = $function;
+        $this->addToCache('function:' . $ndx, $function, true);
 
         return $function;
     }
@@ -1079,9 +1080,10 @@ MYSQL;
     public function getFunctions($schema = '')
     {
         $functions = [];
-        foreach ($this->getFunctionNames($schema) as $name) {
-            if (($procedure = $this->getFunction($name)) !== null) {
-                $functions[$name] = $procedure;
+        /** @type FunctionSchema $funcNameSchema */
+        foreach ($this->getFunctionNames($schema) as $funcNameSchema) {
+            if (($procedure = $this->getFunction($funcNameSchema->publicName)) !== null) {
+                $functions[$funcNameSchema->publicName] = $procedure;
             }
         }
 
@@ -2563,14 +2565,10 @@ MYSQL;
                 }
             } while ($reader->nextResult());
         } catch (\Exception $ex) {
-            // mysql via pdo has issue of nextRowSet returning true one too many times
-            if (false !== strpos($ex->getMessage(), 'General Error')) {
-                // postgresql doesn't support retrieving multiple rowsets
-                if (false !== strpos($ex->getMessage(), 'does not support multiple rowsets')) {
-                    $errorInfo = $ex instanceof \PDOException ? $ex : null;
-                    $message = $ex->getMessage();
-                    throw new \Exception($message, (int)$ex->getCode(), $errorInfo);
-                }
+            if (!$this->handleRoutineException($ex)) {
+                $errorInfo = $ex instanceof \PDOException ? $ex : null;
+                $message = $ex->getMessage();
+                throw new \Exception($message, (int)$ex->getCode(), $errorInfo);
             }
         }
 
@@ -2581,10 +2579,10 @@ MYSQL;
             if (1 == count($result)) {
                 $result = current($result);
                 if (array_key_exists('output', $result)) {
-                    return $result['output'];
+                    return $this->formatValue($result['output'], $function->returnType);
                 } elseif (array_key_exists($function->name, $result)) {
                     // some vendors return the results as the function's name
-                    return $result[$function->name];
+                    return $this->formatValue($result[$function->name], $function->returnType);
                 }
             }
         }
@@ -2592,24 +2590,37 @@ MYSQL;
         return $result;
     }
 
-    protected function getFunctionStatement($routine, $param_schemas, $values)
+    protected function getRoutineParamString($param_schemas, $values)
     {
         $paramStr = '';
         foreach ($param_schemas as $key => $paramSchema) {
             switch ($paramSchema->paramType) {
                 case 'IN':
+                case 'INOUT':
+                case 'OUT':
                     $pName = ':' . $paramSchema->name;
                     $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
                     break;
-                case 'INOUT':
-                case 'OUT':
-                    // functions should only have input params
                 default:
                     break;
             }
         }
 
+        return $paramStr;
+    }
+
+    protected function getFunctionStatement($routine, $param_schemas, $values)
+    {
+        $paramStr = $this->getRoutineParamString($param_schemas, $values);
+
         return "SELECT $routine($paramStr) AS " . $this->quoteColumnName('output');
+    }
+
+    protected function handleRoutineException(
+        /** @noinspection PhpUnusedParameterInspection */
+        \Exception $ex
+    ){
+        return false;
     }
 
     /**
@@ -2682,8 +2693,7 @@ MYSQL;
                 }
             } while ($reader->nextResult());
         } catch (\Exception $ex) {
-            // postgresql doesn't support retrieving multiple rowsets
-            if (false === strpos($ex->getMessage(), 'does not support multiple rowsets')) {
+            if (!$this->handleRoutineException($ex)) {
                 $errorInfo = $ex instanceof \PDOException ? $ex : null;
                 $message = $ex->getMessage();
                 throw new \Exception($message, (int)$ex->getCode(), $errorInfo);
@@ -2780,21 +2790,7 @@ MYSQL;
 
     protected function getProcedureStatement($routine, array $param_schemas, array &$values)
     {
-        $paramStr = '';
-        foreach ($param_schemas as $key => $paramSchema) {
-            switch ($paramSchema->paramType) {
-                case 'IN':
-                case 'INOUT':
-                case 'OUT':
-                    if (!empty($paramStr)) {
-                        $paramStr .= ', ';
-                    }
-                    $paramStr .= ':' . $paramSchema->name;
-                    break;
-                default:
-                    break;
-            }
-        }
+        $paramStr = $this->getRoutineParamString($param_schemas, $values);
 
         return "CALL $routine($paramStr)";
     }
@@ -2940,7 +2936,7 @@ MYSQL;
 
     public function extractSimpleType($type, $size = null, $scale = null)
     {
-        switch ($type) {
+        switch (strtolower($type)) {
             case 'bit':
             case (false !== strpos($type, 'bool')):
                 return DbSimpleTypes::TYPE_BOOLEAN;
@@ -2979,6 +2975,7 @@ MYSQL;
                 return DbSimpleTypes::TYPE_MONEY;
                 break;
 
+            case 'binary_integer': // oracle integer
             case 'tinyint':
             case 'smallint':
             case 'mediumint':
@@ -3031,6 +3028,10 @@ MYSQL;
                 } else {
                     return DbSimpleTypes::TYPE_STRING;
                 }
+                break;
+
+            case 'ref cursor':
+                return DbSimpleTypes::TYPE_REF_CURSOR;
                 break;
 
             case 'string':

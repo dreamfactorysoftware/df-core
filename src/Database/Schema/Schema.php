@@ -7,6 +7,7 @@ use DreamFactory\Core\Database\DataReader;
 use DreamFactory\Core\Database\Expression;
 use DreamFactory\Core\Enums\DbSimpleTypes;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Library\Utility\Scalar;
@@ -20,6 +21,9 @@ use DB;
  */
 abstract class Schema
 {
+    /**
+     *
+     */
     const DEFAULT_STRING_MAX_SIZE = 255;
 
     /**
@@ -27,6 +31,9 @@ abstract class Schema
      */
     const LEFT_QUOTE_CHARACTER = '"';
 
+    /**
+     *
+     */
     const RIGHT_QUOTE_CHARACTER = '"';
 
     /**
@@ -182,6 +189,12 @@ abstract class Schema
         $this->defaultSchemaOnly = $defaultSchemaOnly;
     }
 
+    /**
+     * @param      $key
+     * @param null $default
+     *
+     * @return null
+     */
     public function getFromCache($key, $default = null)
     {
         if ($this->cache) {
@@ -191,6 +204,11 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param      $key
+     * @param      $value
+     * @param bool $forever
+     */
     public function addToCache($key, $value, $forever = false)
     {
         if ($this->cache) {
@@ -198,6 +216,9 @@ abstract class Schema
         }
     }
 
+    /**
+     * @param $key
+     */
     public function removeFromCache($key)
     {
         if ($this->cache) {
@@ -205,6 +226,9 @@ abstract class Schema
         }
     }
 
+    /**
+     *
+     */
     public function flush()
     {
         if ($this->cache) {
@@ -212,6 +236,13 @@ abstract class Schema
         }
     }
 
+    /**
+     * @param        $table_names
+     * @param bool   $include_fields
+     * @param string $select
+     *
+     * @return null
+     */
     public function getSchemaExtrasForTables($table_names, $include_fields = true, $select = '*')
     {
         if ($this->extraStore) {
@@ -221,6 +252,13 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param        $table_name
+     * @param string $field_names
+     * @param string $select
+     *
+     * @return null
+     */
     public function getSchemaExtrasForFields($table_name, $field_names = '*', $select = '*')
     {
         if ($this->extraStore) {
@@ -230,6 +268,13 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param        $table_name
+     * @param string $field_names
+     * @param string $select
+     *
+     * @return null
+     */
     public function getSchemaExtrasForFieldsReferenced($table_name, $field_names = '*', $select = '*')
     {
         if ($this->extraStore) {
@@ -239,6 +284,13 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param        $table_name
+     * @param string $related_names
+     * @param string $select
+     *
+     * @return null
+     */
     public function getSchemaExtrasForRelated($table_name, $related_names = '*', $select = '*')
     {
         if ($this->extraStore) {
@@ -248,6 +300,11 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $extras
+     *
+     * @return null
+     */
     public function setSchemaTableExtras($extras)
     {
         if ($this->extraStore) {
@@ -257,6 +314,11 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $extras
+     *
+     * @return null
+     */
     public function setSchemaFieldExtras($extras)
     {
         if ($this->extraStore) {
@@ -266,6 +328,11 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $extras
+     *
+     * @return null
+     */
     public function setSchemaRelatedExtras($extras)
     {
         if ($this->extraStore) {
@@ -275,6 +342,11 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $table_names
+     *
+     * @return null
+     */
     public function removeSchemaExtrasForTables($table_names)
     {
         if ($this->extraStore) {
@@ -284,6 +356,12 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $table_name
+     * @param $field_names
+     *
+     * @return null
+     */
     public function removeSchemaExtrasForFields($table_name, $field_names)
     {
         if ($this->extraStore) {
@@ -293,6 +371,12 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $table_name
+     * @param $related_names
+     *
+     * @return null
+     */
     public function removeSchemaExtrasForRelated($table_name, $related_names)
     {
         if ($this->extraStore) {
@@ -302,11 +386,21 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @return mixed
+     */
     public function getUserName()
     {
         return $this->connection->getConfig('username');
     }
 
+    /**
+     * @param       $query
+     * @param array $bindings
+     * @param null  $column
+     *
+     * @return array
+     */
     public function selectColumn($query, $bindings = [], $column = null)
     {
         $rows = $this->connection->select($query, $bindings);
@@ -322,6 +416,13 @@ abstract class Schema
         return $rows;
     }
 
+    /**
+     * @param       $query
+     * @param array $bindings
+     * @param null  $column
+     *
+     * @return mixed|null
+     */
     public function selectValue($query, $bindings = [], $column = null)
     {
         if (null !== $row = $this->connection->selectOne($query, $bindings)) {
@@ -440,6 +541,10 @@ abstract class Schema
         return [''];
     }
 
+    /**
+     * @param \DreamFactory\Core\Database\Schema\TableSchema $table
+     * @param                                                $constraints
+     */
     protected function buildTableRelations(TableSchema $table, $constraints)
     {
         $schema = (!empty($table->schemaName)) ? $table->schemaName : $this->getDefaultSchema();
@@ -779,8 +884,11 @@ abstract class Schema
      * @throws \Exception if current schema does not support fetching all table names
      * @return array all table names in the database.
      */
-    protected function findTableNames($schema = '', $include_views = true)
-    {
+    protected function findTableNames(
+        /** @noinspection PhpUnusedParameterInspection */
+        $schema = '',
+        $include_views = true
+    ){
         throw new NotImplementedException("Database or driver does not support fetching all table names.");
     }
 
@@ -1752,13 +1860,9 @@ MYSQL;
      */
     public function addColumn($table, $column, $type)
     {
-        return
-            'ALTER TABLE ' .
-            $this->quoteTableName($table) .
-            ' ADD ' .
-            $this->quoteColumnName($column) .
-            ' ' .
-            $this->getColumnType($type);
+        return <<<MYSQL
+ALTER TABLE {$this->quoteTableName($table)} ADD {$this->quoteColumnName($column)} {$this->getColumnType($type)};
+MYSQL;
     }
 
     /**
@@ -1810,6 +1914,13 @@ MYSQL;
             $this->getColumnType($definition);
     }
 
+    /**
+     * @param $prefix
+     * @param $table
+     * @param $column
+     *
+     * @return string
+     */
     public function makeConstraintName($prefix, $table, $column)
     {
         $temp = $prefix . '_' . str_replace('.', '_', $table) . '_' . $column;
@@ -1884,11 +1995,20 @@ MYSQL;
         return 'ALTER TABLE ' . $this->quoteTableName($table) . ' DROP CONSTRAINT ' . $this->quoteColumnName($name);
     }
 
+    /**
+     * @param bool $unique
+     * @param bool $on_create_table
+     *
+     * @return bool
+     */
     public function requiresCreateIndex($unique = false, $on_create_table = false)
     {
         return true;
     }
 
+    /**
+     * @return bool
+     */
     public function allowsSeparateForeignConstraint()
     {
         return true;
@@ -1986,6 +2106,12 @@ MYSQL;
         return 'ALTER TABLE ' . $this->quoteTableName($table) . ' DROP CONSTRAINT ' . $this->quoteColumnName($name);
     }
 
+    /**
+     * @param $table
+     * @param $column
+     *
+     * @return array
+     */
     public function getPrimaryKeyCommands($table, $column)
     {
         return [];
@@ -1999,11 +2125,23 @@ MYSQL;
         return $this->connection->raw('(NOW())');
     }
 
+    /**
+     * @param $value
+     * @param $field_info
+     *
+     * @return mixed
+     */
     public function parseValueForSet($value, $field_info)
     {
         return $value;
     }
 
+    /**
+     * @param $value
+     * @param $type
+     *
+     * @return bool|int|null|string
+     */
     public function formatValue($value, $type)
     {
         $type = strtolower(strval($type));
@@ -2036,6 +2174,11 @@ MYSQL;
         return $value;
     }
 
+    /**
+     * @param $type
+     *
+     * @return mixed|null
+     */
     public static function getDateTimeFormat($type)
     {
         switch (strtolower(strval($type))) {
@@ -2055,6 +2198,13 @@ MYSQL;
         return null;
     }
 
+    /**
+     * @param      $out_format
+     * @param null $in_value
+     * @param null $in_format
+     *
+     * @return null|string
+     */
     public static function formatDateTime($out_format, $in_value = null, $in_format = null)
     {
         //  If value is null, current date and time are returned
@@ -2118,6 +2268,15 @@ MYSQL;
         return "DROP VIEW " . $this->quoteTableName($table);
     }
 
+    /**
+     * @param      $tables
+     * @param bool $allow_merge
+     * @param bool $allow_delete
+     * @param bool $rollback
+     *
+     * @return array
+     * @throws \Exception
+     */
     public function updateSchema($tables, $allow_merge = false, $allow_delete = false, $rollback = false)
     {
         if (!is_array($tables) || empty($tables)) {
@@ -2376,6 +2535,12 @@ MYSQL;
         return $result;
     }
 
+    /**
+     * @param $table
+     * @param $column
+     *
+     * @return bool|int
+     */
     public function dropColumn($table, $column)
     {
         $result = 0;
@@ -2546,9 +2711,11 @@ MYSQL;
         $paramSchemas = $function->getParameters();
         $values = $this->determineRoutineValues($paramSchemas, $in_params);
 
-        $sql = $this->getFunctionStatement($function->rawName, $paramSchemas, $values);
+        $sql = $this->getFunctionStatement($function, $paramSchemas, $values);
         /** @type \PDOStatement $statement */
-        $statement = $this->connection->getPdo()->prepare($sql);
+        if (!$statement = $this->connection->getPdo()->prepare($sql)) {
+            throw new InternalServerErrorException('Failed to prepare statement: ' . $sql);
+        }
 
         // do binding
         $this->doRoutineBinding($statement, $paramSchemas, $values);
@@ -2590,7 +2757,13 @@ MYSQL;
         return $result;
     }
 
-    protected function getRoutineParamString($param_schemas, $values)
+    /**
+     * @param array $param_schemas
+     * @param array $values
+     *
+     * @return string
+     */
+    protected function getRoutineParamString(array $param_schemas, array &$values)
     {
         $paramStr = '';
         foreach ($param_schemas as $key => $paramSchema) {
@@ -2609,13 +2782,25 @@ MYSQL;
         return $paramStr;
     }
 
-    protected function getFunctionStatement($routine, $param_schemas, $values)
+    /**
+     * @param \DreamFactory\Core\Database\Schema\RoutineSchema $routine
+     * @param array                                            $param_schemas
+     * @param array                                            $values
+     *
+     * @return string
+     */
+    protected function getFunctionStatement(RoutineSchema $routine, array $param_schemas, array &$values)
     {
         $paramStr = $this->getRoutineParamString($param_schemas, $values);
 
-        return "SELECT $routine($paramStr) AS " . $this->quoteColumnName('output');
+        return "SELECT {$routine->rawName}($paramStr) AS " . $this->quoteColumnName('output');
     }
 
+    /**
+     * @param \Exception $ex
+     *
+     * @return bool
+     */
     protected function handleRoutineException(
         /** @noinspection PhpUnusedParameterInspection */
         \Exception $ex
@@ -2652,10 +2837,12 @@ MYSQL;
         $paramSchemas = $procedure->getParameters();
         $values = $this->determineRoutineValues($paramSchemas, $in_params);
 
-        $sql = $this->getProcedureStatement($procedure->rawName, $paramSchemas, $values);
+        $sql = $this->getProcedureStatement($procedure, $paramSchemas, $values);
 
         /** @type \PDOStatement $statement */
-        $statement = $this->connection->getPdo()->prepare($sql);
+        if (!$statement = $this->connection->getPdo()->prepare($sql)) {
+            throw new InternalServerErrorException('Failed to prepare statement: ' . $sql);
+        }
 
         // do binding
         $this->doRoutineBinding($statement, $paramSchemas, $values);
@@ -2722,6 +2909,13 @@ MYSQL;
         return $result;
     }
 
+    /**
+     * @param array $param_schemas
+     * @param array $in_params
+     *
+     * @return array
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
     protected function determineRoutineValues(array $param_schemas, array $in_params)
     {
         // check associative
@@ -2770,6 +2964,11 @@ MYSQL;
         return $values;
     }
 
+    /**
+     * @param       $statement
+     * @param array $paramSchemas
+     * @param array $values
+     */
     protected function doRoutineBinding($statement, array $paramSchemas, array &$values)
     {
         // do binding
@@ -2788,13 +2987,24 @@ MYSQL;
         }
     }
 
-    protected function getProcedureStatement($routine, array $param_schemas, array &$values)
+    /**
+     * @param \DreamFactory\Core\Database\Schema\RoutineSchema $routine
+     * @param array                                            $param_schemas
+     * @param array                                            $values
+     *
+     * @return string
+     */
+    protected function getProcedureStatement(RoutineSchema $routine, array $param_schemas, array &$values)
     {
         $paramStr = $this->getRoutineParamString($param_schemas, $values);
 
-        return "CALL $routine($paramStr)";
+        return "CALL {$routine->rawName}($paramStr)";
     }
 
+    /**
+     * @param array $param_schemas
+     * @param array $values
+     */
     protected function postProcedureCall(array $param_schemas, array &$values)
     {
     }
@@ -2934,6 +3144,13 @@ MYSQL;
         return null;
     }
 
+    /**
+     * @param      $type
+     * @param null $size
+     * @param null $scale
+     *
+     * @return string
+     */
     public function extractSimpleType($type, $size = null, $scale = null)
     {
         switch (strtolower($type)) {
@@ -3042,6 +3259,11 @@ MYSQL;
         }
     }
 
+    /**
+     * @param \DreamFactory\Core\Database\Schema\ColumnSchema $column
+     *
+     * @return array
+     */
     public function getPdoBinding(ColumnSchema $column)
     {
         switch ($column->dbType) {
@@ -3164,6 +3386,12 @@ MYSQL;
         }
     }
 
+    /**
+     * @param ColumnSchema $field
+     * @param bool         $as_quoted_string
+     *
+     * @return \Illuminate\Database\Query\Expression|string
+     */
     public function parseFieldForSelect(ColumnSchema $field, $as_quoted_string = false)
     {
         switch ($field->dbType) {
@@ -3179,6 +3407,12 @@ MYSQL;
         }
     }
 
+    /**
+     * @param ColumnSchema $field
+     * @param bool         $as_quoted_string
+     *
+     * @return \Illuminate\Database\Query\Expression|string
+     */
     public function parseFieldForFilter(ColumnSchema $field, $as_quoted_string = false)
     {
         switch ($field->dbType) {

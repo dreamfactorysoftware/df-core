@@ -641,7 +641,7 @@ MYSQL;
     /**
      * @inheritdoc
      */
-    protected function getProcedureStatement($routine, array $param_schemas, array &$values)
+    protected function getProcedureStatement(RoutineSchema $routine, array $param_schemas, array &$values)
     {
         $paramStr = '';
         $pre = '';
@@ -671,7 +671,7 @@ MYSQL;
 
         !empty($pre) && $this->connection->statement($pre);
 
-        return "CALL $routine($paramStr)";
+        return "CALL {$routine->rawName}($paramStr)";
     }
 
     protected function postProcedureCall(array $param_schemas, array &$values)

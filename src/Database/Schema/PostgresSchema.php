@@ -466,9 +466,9 @@ EOD;
 
     protected function findSchemaNames()
     {
-        $sql = <<<SQL
+        $sql = <<<MYSQL
 SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema','pg_catalog')
-SQL;
+MYSQL;
         $rows = $this->selectColumn($sql);
 
         if (false === array_search(static::DEFAULT_SCHEMA, $rows)) {
@@ -754,7 +754,8 @@ EOD;
      * Extracts the default value for the column.
      * The value is typecasted to correct PHP type.
      *
-     * @param mixed $defaultValue the default value obtained from metadata
+     * @param ColumnSchema $field
+     * @param mixed        $defaultValue the default value obtained from metadata
      */
     public function extractDefault(ColumnSchema &$field, $defaultValue)
     {
@@ -881,21 +882,21 @@ MYSQL;
         return $paramStr;
     }
 
-    protected function getProcedureStatement($routine, array $param_schemas, array &$values)
+    protected function getProcedureStatement(RoutineSchema $routine, array $param_schemas, array &$values)
     {
         $paramStr = $this->getRoutineParamString($param_schemas, $values);
 
-        return "SELECT * FROM $routine($paramStr);";
+        return "SELECT * FROM {$routine->rawName}($paramStr);";
     }
 
     /**
      * @inheritdoc
      */
-    protected function getFunctionStatement($routine, $param_schemas, $values)
+    protected function getFunctionStatement(RoutineSchema $routine, array $param_schemas, array &$values)
     {
         $paramStr = $this->getRoutineParamString($param_schemas, $values);
 
-        return "SELECT * FROM $routine($paramStr)";
+        return "SELECT * FROM {$routine->rawName}($paramStr)";
     }
 
     protected function handleRoutineException(\Exception $ex)

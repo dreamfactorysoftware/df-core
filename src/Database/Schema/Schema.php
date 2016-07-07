@@ -2741,20 +2741,20 @@ MYSQL;
                         if (array_key_exists($key, $in_params)) {
                             $value = $in_params[$key];
                         } elseif (empty($paramSchema->defaultValue)) {
-                            throw new BadRequestException("Procedure requires value for parameter '{$paramSchema->name}'.");
+                            throw new BadRequestException("Routine requires value for parameter '{$paramSchema->name}'.");
                         }
                     } elseif (array_key_exists($index, $in_params)) {
                         if (is_array($in_params[$index])) {
                             if (array_key_exists('value', $in_params[$index])) {
                                 $value = $in_params[$index]['value'];
                             } elseif (empty($paramSchema->defaultValue)) {
-                                throw new BadRequestException("Procedure requires value for parameter '{$paramSchema->name}'.");
+                                throw new BadRequestException("Routine requires value for parameter '{$paramSchema->name}'.");
                             }
                         } else {
                             $value = $in_params[$index];
                         }
                     } elseif (empty($paramSchema->defaultValue)) {
-                        throw new BadRequestException("Procedure requires value for parameter '{$paramSchema->name}'.");
+                        throw new BadRequestException("Routine requires value for parameter '{$paramSchema->name}'.");
                     }
 
                     $values[$key] = $value;

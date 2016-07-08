@@ -1,10 +1,9 @@
 <?php
 namespace DreamFactory\Core\Utility;
 
-use \Config;
+use Config;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Enums\Verbs;
 
 class ResourcesWrapper
 {
@@ -35,7 +34,7 @@ class ResourcesWrapper
         // avoid single resources or already wrapped resources
         if (ArrayUtils::isArrayNumeric($resources)) {
             // may already be a simple list
-            if (is_array(ArrayUtils::get($resources, 0))) {
+            if (is_array(array_get($resources, 0))) {
                 if (is_string($identifier)) {
                     $identifier = explode(',', $identifier);
                 } elseif (!is_array($identifier)) {
@@ -52,7 +51,7 @@ class ResourcesWrapper
                                 if (!empty($out)) {
                                     $out .= ',';
                                 }
-                                $out .= ArrayUtils::get($resource, $idField, '');
+                                $out .= array_get($resource, $idField, '');
                             }
                             $resource = '(' . $out . ')';
                         }
@@ -102,6 +101,6 @@ class ResourcesWrapper
             return $payload;
         }
 
-        return ArrayUtils::get($payload, static::getWrapper(), (isset($payload[0]) ? $payload : []));
+        return array_get($payload, static::getWrapper(), (isset($payload[0]) ? $payload : []));
     }
 }

@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Enums\DbSimpleTypes;
+
 /**
  * Schema is the class for retrieving metadata information from a PostgreSQL database.
  */
@@ -27,7 +29,7 @@ class PostgresSchema extends Schema
         switch ($type) {
             // some types need massaging, some need other required properties
             case 'pk':
-            case ColumnSchema::TYPE_ID:
+            case DbSimpleTypes::TYPE_ID:
                 $info['type'] = 'serial';
                 $info['allow_null'] = false;
                 $info['auto_increment'] = true;
@@ -35,7 +37,7 @@ class PostgresSchema extends Schema
                 break;
 
             case 'fk':
-            case ColumnSchema::TYPE_REF:
+            case DbSimpleTypes::TYPE_REF:
                 $info['type'] = 'integer';
                 $info['is_foreign_key'] = true;
                 // check foreign tables
@@ -45,8 +47,8 @@ class PostgresSchema extends Schema
                 $info['type'] = 'timestamp';
                 break;
 
-            case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
-            case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
                 $info['type'] = 'timestamp';
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
@@ -56,9 +58,9 @@ class PostgresSchema extends Schema
                 }
                 break;
 
-            case ColumnSchema::TYPE_USER_ID:
-            case ColumnSchema::TYPE_USER_ID_ON_CREATE:
-            case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
+            case DbSimpleTypes::TYPE_USER_ID:
+            case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
+            case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
                 $info['type'] = 'integer';
                 break;
 
@@ -74,7 +76,7 @@ class PostgresSchema extends Schema
                 $info['type'] = 'double precision';
                 break;
 
-            case ColumnSchema::TYPE_STRING:
+            case DbSimpleTypes::TYPE_STRING:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $national =
@@ -89,7 +91,7 @@ class PostgresSchema extends Schema
                 }
                 break;
 
-            case ColumnSchema::TYPE_BINARY:
+            case DbSimpleTypes::TYPE_BINARY:
                 $info['type'] = 'bytea';
                 break;
         }
@@ -321,7 +323,7 @@ WHERE a.attnum > 0 AND NOT a.attisdropped
 		AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = :schema))
 ORDER BY a.attnum
 EOD;
-        $columns = $this->connection->select($sql, [':table'=> $table->tableName, ':schema'=> $table->schemaName]);
+        $columns = $this->connection->select($sql, [':table' => $table->tableName, ':schema' => $table->schemaName]);
 
         if (empty($columns)) {
             return false;
@@ -437,7 +439,7 @@ EOD;
 		   	    AND k.table_name = :table
 				AND k.table_schema = :schema
 EOD;
-        $rows = $this->connection->select($sql, [':table'=> $table->tableName, ':schema'=> $table->schemaName]);
+        $rows = $this->connection->select($sql, [':table' => $table->tableName, ':schema' => $table->schemaName]);
 
         $table->primaryKey = null;
         foreach ($rows as $row) {
@@ -446,8 +448,8 @@ EOD;
             $column = $table->getColumn($name);
             if (isset($column)) {
                 $column->isPrimaryKey = true;
-                if ((ColumnSchema::TYPE_INTEGER === $column->type) && $column->autoIncrement) {
-                    $column->type = ColumnSchema::TYPE_ID;
+                if ((DbSimpleTypes::TYPE_INTEGER === $column->type) && $column->autoIncrement) {
+                    $column->type = DbSimpleTypes::TYPE_ID;
                 }
                 if ($table->primaryKey === null) {
                     $table->primaryKey = $name;
@@ -464,9 +466,9 @@ EOD;
 
     protected function findSchemaNames()
     {
-        $sql = <<<SQL
+        $sql = <<<MYSQL
 SELECT schema_name FROM information_schema.schemata WHERE schema_name NOT IN ('information_schema','pg_catalog')
-SQL;
+MYSQL;
         $rows = $this->selectColumn($sql);
 
         if (false === array_search(static::DEFAULT_SCHEMA, $rows)) {
@@ -527,64 +529,6 @@ EOD;
         }
 
         return $names;
-    }
-
-    /**
-     * Returns all stored procedure names in the database.
-     *
-     * @param string $schema the schema of the stored procedures. Defaults to empty string, meaning the current or
-     *                       default schema. If not empty, the returned stored procedure names will be prefixed with
-     *                       the schema name.
-     *
-     * @return array all stored procedure names in the database.
-     */
-    protected function findProcedureNames($schema = '')
-    {
-        $defaultSchema = $this->getDefaultSchema();
-
-        $select =
-            (empty($schema) || ($defaultSchema == $schema))
-                ? 'ROUTINE_NAME' : "CONCAT('" . $schema . "','.',ROUTINE_NAME) as ROUTINE_NAME";
-        $schema = !empty($schema) ? " WHERE ROUTINE_SCHEMA = '" . $schema . "'" : null;
-
-        $sql = <<<MYSQL
-SELECT
-    {$select}
-FROM
-    information_schema.ROUTINES
-    {$schema}
-MYSQL;
-
-        return $this->selectColumn($sql);
-    }
-
-    /**
-     * Returns all stored function names in the database.
-     *
-     * @param string $schema the schema of the stored function. Defaults to empty string, meaning the current or
-     *                       default schema. If not empty, the returned stored function names will be prefixed with the
-     *                       schema name.
-     *
-     * @return array all stored function names in the database.
-     */
-    protected function findFunctionNames($schema = '')
-    {
-        $defaultSchema = $this->getDefaultSchema();
-
-        $select =
-            (empty($schema) || ($defaultSchema == $schema))
-                ? 'ROUTINE_NAME' : "CONCAT('" . $schema . "','.',ROUTINE_NAME) as ROUTINE_NAME";
-        $schema = !empty($schema) ? " WHERE ROUTINE_SCHEMA = '" . $schema . "'" : null;
-
-        $sql = <<<MYSQL
-SELECT
-    {$select}
-FROM
-    information_schema.ROUTINES
-    {$schema}
-MYSQL;
-
-        return $this->selectColumn($sql);
     }
 
     /**
@@ -729,7 +673,7 @@ MYSQL;
     public function parseValueForSet($value, $field_info)
     {
         switch ($field_info->type) {
-            case ColumnSchema::TYPE_BOOLEAN:
+            case DbSimpleTypes::TYPE_BOOLEAN:
                 $value = (filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 'TRUE' : 'FALSE');
                 break;
         }
@@ -760,11 +704,11 @@ MYSQL;
     {
         parent::extractType($column, $dbType);
         if (strpos($dbType, '[') !== false || strpos($dbType, 'char') !== false || strpos($dbType, 'text') !== false) {
-            $column->type = ColumnSchema::TYPE_STRING;
+            $column->type = DbSimpleTypes::TYPE_STRING;
         } elseif (preg_match('/(real|float|double)/', $dbType)) {
-            $column->type = ColumnSchema::TYPE_DOUBLE;
+            $column->type = DbSimpleTypes::TYPE_DOUBLE;
         } elseif (preg_match('/(integer|oid|serial|smallint)/', $dbType)) {
-            $column->type = ColumnSchema::TYPE_INTEGER;
+            $column->type = DbSimpleTypes::TYPE_INTEGER;
         }
     }
 
@@ -778,7 +722,7 @@ MYSQL;
     public static function extractPhpType($type)
     {
         switch ($type) {
-            case ColumnSchema::TYPE_MONEY:
+            case DbSimpleTypes::TYPE_MONEY:
                 return 'string';
         }
 
@@ -788,7 +732,8 @@ MYSQL;
     /**
      * Extracts size, precision and scale information from column's DB type.
      *
-     * @param string $dbType the column's DB type
+     * @param ColumnSchema $field
+     * @param string       $dbType the column's DB type
      */
     public function extractLimit(ColumnSchema &$field, $dbType)
     {
@@ -809,7 +754,8 @@ MYSQL;
      * Extracts the default value for the column.
      * The value is typecasted to correct PHP type.
      *
-     * @param mixed $defaultValue the default value obtained from metadata
+     * @param ColumnSchema $field
+     * @param mixed        $defaultValue the default value obtained from metadata
      */
     public function extractDefault(ColumnSchema &$field, $defaultValue)
     {
@@ -830,82 +776,135 @@ MYSQL;
     }
 
     /**
-     * @param string $name
-     * @param array  $params
-     *
-     * @return mixed
-     * @throws \Exception
+     * @inheritdoc
      */
-    public function callProcedure($name, &$params)
+    protected function findRoutineNames($type, $schema = '')
     {
-        $name = $this->quoteTableName($name);
-        $paramStr = '';
         $bindings = [];
-        foreach ($params as $key => $param) {
-            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
-            $pValue = (isset($param['value'])) ? $param['value'] : null;
+        $where = '';
+        if (!empty($schema)) {
+            $where .= 'WHERE ROUTINE_SCHEMA = :schema';
+            $bindings[':schema'] = $schema;
+        }
 
-            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+        $sql = <<<MYSQL
+SELECT ROUTINE_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.ROUTINES {$where}
+MYSQL;
+
+        $rows = $this->connection->select($sql, $bindings);
+
+        $sql = <<<MYSQL
+SELECT r.ROUTINE_NAME
+FROM INFORMATION_SCHEMA.PARAMETERS AS p JOIN INFORMATION_SCHEMA.ROUTINES AS r ON r.SPECIFIC_NAME = p.SPECIFIC_NAME 
+WHERE p.SPECIFIC_SCHEMA = :schema AND (p.PARAMETER_MODE = 'INOUT' OR p.PARAMETER_MODE = 'OUT')
+MYSQL;
+
+        $procedures = $this->selectColumn($sql, $bindings);
+
+        $defaultSchema = $this->getDefaultSchema();
+        $addSchema = (!empty($schema) && ($defaultSchema !== $schema));
+
+        $names = [];
+        foreach ($rows as $row) {
+            $row = array_change_key_case((array)$row, CASE_UPPER);
+            $name = array_get($row, 'ROUTINE_NAME');
+            switch (strtoupper($type)) {
+                case 'PROCEDURE':
+                    if (false === array_search($name, $procedures)) {
+                        // only way to determine proc from func is by params??
+                        continue 2;
+                    }
+                    break;
+                case 'FUNCTION':
+                    if (false !== array_search($name, $procedures)) {
+                        // only way to determine proc from func is by params??
+                        continue 2;
+                    }
+                    break;
+            }
+            $schemaName = $schema;
+            if ($addSchema) {
+                $publicName = $schemaName . '.' . $name;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($name);;
+            } else {
+                $publicName = $name;
+                $rawName = $this->quoteTableName($name);
+            }
+            $returnType = array_get($row, 'DATA_TYPE');
+            if (!empty($returnType) && (0 !== strcasecmp('void', $returnType))) {
+                $returnType = static::extractSimpleType($returnType);
+            }
+            $settings = compact('schemaName', 'name', 'publicName', 'rawName', 'returnType');
+            $names[strtolower($publicName)] =
+                ('PROCEDURE' === $type) ? new ProcedureSchema($settings) : new FunctionSchema($settings);
+        }
+
+        return $names;
+    }
+
+    protected function doRoutineBinding($statement, array $paramSchemas, array &$values)
+    {
+        // do binding
+        foreach ($paramSchemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'IN':
+                case 'INOUT':
+                    $this->bindValue($statement, ':' . $paramSchema->name, array_get($values, $key));
+                    break;
                 case 'OUT':
                     // not sent as parameters, but pulled from fetch results
                     break;
+            }
+        }
+    }
 
-                case 'INOUT':
+    /**
+     * @inheritdoc
+     */
+    protected function getRoutineParamString(array $param_schemas, array &$values)
+    {
+        $paramStr = '';
+        foreach ($param_schemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
                 case 'IN':
+                case 'INOUT':
+                    $pName = ':' . $paramSchema->name;
+                    $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
+                    break;
+                case 'OUT':
+                    // not sent as parameters, but pulled from fetch results
+                    break;
                 default:
-                    $bindings[":$pName"] = $pValue;
-                    if (!empty($paramStr)) {
-                        $paramStr .= ', ';
-                    }
-                    $paramStr .= ":$pName";
                     break;
             }
         }
 
-        $sql = "SELECT * FROM $name($paramStr);";
-        // driver does not support multiple result sets currently
-        $result = $this->connection->select($sql, $bindings);
+        return $paramStr;
+    }
 
-        // out parameters come back in fetch results, put them in the params for client
-        if (isset($result, $result[0])) {
-            $temp = (array)$result[0];
-            foreach ($params as $key => $param) {
-                if (false !== stripos(strval(isset($param['param_type']) ? $param['param_type'] : ''), 'OUT')) {
-                    $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
-                    if (isset($temp[$pName])) {
-                        $params[$key]['value'] = $temp[$pName];
-                    }
-                }
-            }
-        }
+    protected function getProcedureStatement(RoutineSchema $routine, array $param_schemas, array &$values)
+    {
+        $paramStr = $this->getRoutineParamString($param_schemas, $values);
 
-        return $result;
+        return "SELECT * FROM {$routine->rawName}($paramStr);";
     }
 
     /**
-     * @param string $name
-     * @param array  $params
-     *
-     * @throws \Exception
-     * @return mixed
+     * @inheritdoc
      */
-    public function callFunction($name, &$params)
+    protected function getFunctionStatement(RoutineSchema $routine, array $param_schemas, array &$values)
     {
-        $name = $this->quoteTableName($name);
-        $bindings = [];
-        foreach ($params as $key => $param) {
-            $pName = (isset($param['name']) && !empty($param['name'])) ? ':' . $param['name'] : ":p$key";
-            $pValue = isset($param['value']) ? $param['value'] : null;
+        $paramStr = $this->getRoutineParamString($param_schemas, $values);
 
-            $bindings[$pName] = $pValue;
+        return "SELECT * FROM {$routine->rawName}($paramStr)";
+    }
+
+    protected function handleRoutineException(\Exception $ex)
+    {
+        if (false !== stripos($ex->getMessage(), 'does not support multiple rowsets')) {
+            return true;
         }
 
-        $paramStr = implode(',', array_keys($bindings));
-        $sql = "SELECT * FROM $name($paramStr)";
-
-        // driver does not support multiple result sets currently
-        $result = $this->connection->select($sql, $bindings);
-
-        return $result;
+        return false;
     }
 }

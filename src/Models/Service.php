@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\DsnToConnectionConfig;
-use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
 use DreamFactory\Core\Enums\ApiDocFormatTypes;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -254,53 +253,44 @@ class Service extends BaseSystemModel
         }
     }
 
-    public static function getStoredContentByServiceName($name)
+    public static function storedContentToArray($content, $format, $service_info = [])
     {
-        if (!is_string($name)) {
-            throw new BadRequestException("Could not find a service for $name");
-        }
-
-        $service = static::whereName($name)->get()->first();
-        if (empty($service)) {
-            throw new NotFoundException("Could not find a service for $name");
-        }
-
-        return static::getStoredContentForService($service);
-    }
-
-    public static function getStoredContentForService(Service $service)
-    {
-        // check the database records for custom doc in swagger, raml, etc.
-        /** @type ServiceDoc $info */
-        $info = $service->serviceDocs()->first();
-        $content = (isset($info)) ? $info->content : null;
-        if (is_string($content)) {
-            $name = $service->name;
+        // replace service placeholders with value for this service instance
+        if (!empty($name = data_get($service_info, 'name'))) {
             $lcName = strtolower($name);
             $ucwName = Inflector::camelize($name);
             $pluralName = Inflector::pluralize($name);
             $pluralUcwName = Inflector::pluralize($ucwName);
 
-            // replace service placeholders with value for this service instance
-            $content =
-                str_replace(
-                    [
-                        '{service.name}',
-                        '{service.names}',
-                        '{service.Name}',
-                        '{service.Names}',
-                        '{service.label}',
-                        '{service.description}'
-                    ],
-                    [$lcName, $pluralName, $ucwName, $pluralUcwName, $service->label, $service->description],
-                    $content);
+            $content = str_replace(
+                ['{service.name}', '{service.names}', '{service.Name}', '{service.Names}'],
+                [$lcName, $pluralName, $ucwName, $pluralUcwName],
+                $content);
+        }
+        if (!empty($label = data_get($service_info, 'label'))) {
+            $content = str_replace('{service.label}', $label, $content);
+        }
+        if (!empty($description = data_get($service_info, 'description'))) {
+            $content = str_replace('{service.description}', $description, $content);
+        }
 
-            $content = static::storedContentToArray($content, $info->format);
+        switch ($format) {
+            case ApiDocFormatTypes::SWAGGER_JSON:
+                $content = json_decode($content, true);
+                break;
+            case ApiDocFormatTypes::SWAGGER_YAML:
+                $content = Yaml::parse($content);
+                break;
+            default:
+                throw new InternalServerErrorException("Invalid API Doc Format '$format'.");
+        }
+
+        if (!empty($name)) {
             $paths = array_get($content, 'paths', []);
             // tricky here, loop through all indexes to check if all start with service name,
             // otherwise need to prepend service name to all.
             if (!empty(array_filter(array_keys($paths), function ($k) use ($name){
-                return (0 !== strcmp($name, strstr(ltrim($k, '/'), '/', true)));
+                return ((0 !== strcmp($name, strstr(ltrim($k, '/'), '/', true))) || $name === $k);
             }))
             ) {
                 $newPaths = [];
@@ -326,25 +316,9 @@ class Service extends BaseSystemModel
                 }
             }
             $content['paths'] = $paths; // write any changes back
-        } else {
-            $content = ServiceManager::getService($service->name)->getApiDocInfo();
         }
 
         return $content;
-    }
-
-    public static function storedContentToArray($content, $format)
-    {
-        switch ($format) {
-            case ApiDocFormatTypes::SWAGGER_JSON:
-                return json_decode($content, true);
-                break;
-            case ApiDocFormatTypes::SWAGGER_YAML:
-                return Yaml::parse($content);
-                break;
-            default:
-                throw new InternalServerErrorException("Invalid API Doc Format '$format'.");
-        }
     }
 
     /**
@@ -367,7 +341,17 @@ class Service extends BaseSystemModel
                 throw new NotFoundException("Could not find a service for $name");
             }
 
+            if (!empty($info = $service->serviceDocs()->first())) {
+                $content = (isset($info)) ? $info->content : null;
+                if (is_string($content)) {
+                    $content = static::storedContentToArray($content, $info->format, $service);
+                }
+            }
+
             $settings = $service->toArray();
+            if (isset($content)) {
+                $settings['doc'] = $content;
+            }
 
             return $settings;
         });

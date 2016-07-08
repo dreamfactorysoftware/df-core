@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Resources;
 
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -25,7 +24,7 @@ class UserPasswordResource extends BaseRestResource
             Verbs::MERGE => Verbs::POST,
             Verbs::PATCH => Verbs::POST
         ];
-        ArrayUtils::set($settings, "verbAliases", $verbAliases);
+        $settings["verbAliases"] = $verbAliases;
 
         parent::__construct($settings);
     }

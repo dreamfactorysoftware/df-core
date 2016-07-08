@@ -2,7 +2,6 @@
 
 namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Core\Enums\ApiDocFormatTypes;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -50,7 +49,6 @@ class Event extends BaseRestResource
      * services from file annotations, otherwise swagger info is loaded from
      * database or storage files for each service, if it exists.
      *
-     * @throws \Exception
      */
     protected static function buildEventMaps()
     {
@@ -63,22 +61,40 @@ class Event extends BaseRestResource
         $broadcastEventMap = [];
 
         //  Pull any custom swagger docs
-        $result = ServiceModel::with('serviceDocs')->get();
+        $result = ServiceModel::whereIsActive(true)->pluck('name');
 
         //	Spin through services and pull the events
-        foreach ($result as $service) {
-            $apiName = $service->name;
+        foreach ($result as $apiName) {
             try {
-                $serviceEvents = static::parseSwaggerEvents($service);
+                /** @var BaseRestService $service */
+                if (empty($service = ServiceManager::getService($apiName))) {
+                    throw new \Exception('No service found.');
+                }
+
+                if ($service instanceof BaseFileService) {
+                    // don't want the full folder list here
+                    $accessList = (empty($service->getPermissions()) ? [] : ['', '*']);
+                } else {
+                    $accessList = $service->getAccessList();
+                }
+
+                if (empty($accessList)) {
+                    throw new \Exception('No access found.');
+                }
+
+                if (empty($content = $service->getApiDocInfo())) {
+                    throw new \Exception('No event content found.');
+                }
 
                 //	Parse the events while we get the chance...
+                $serviceEvents = static::parseSwaggerEvents($content, $accessList);
                 $processEventMap[$apiName] = array_get($serviceEvents, 'process', []);
                 $broadcastEventMap[$apiName] = array_get($serviceEvents, 'broadcast', []);
-
-                unset($content, $service, $serviceEvents);
             } catch (\Exception $ex) {
                 \Log::error("  * System error building event map for service '$apiName'.\n{$ex->getMessage()}");
             }
+
+            unset($content, $service, $serviceEvents);
         }
 
         static::$eventMap = ['process' => $processEventMap, 'broadcast' => $broadcastEventMap];
@@ -87,31 +103,13 @@ class Event extends BaseRestResource
     }
 
     /**
-     * @param ServiceModel $model
+     * @param array $content
+     * @param array $access
      *
      * @return array
-     * @throws \Exception
      */
-    protected static function parseSwaggerEvents(ServiceModel $model)
+    protected static function parseSwaggerEvents(array $content, array $access = [])
     {
-        if (empty($content = ServiceModel::getStoredContentForService($model))) {
-            throw new \Exception('  * No event content found for service.');
-        }
-
-        /** @var BaseRestService $serviceClass */
-        $accessList = [];
-        if ($model->is_active) {
-
-            /** @var BaseRestService $service */
-            $service = ServiceManager::getService($model->name);
-            if ($service instanceof BaseFileService) {
-                // don't want the full folder list here
-                $accessList = (empty($service->getPermissions()) ? [] : ['', '*']);
-            } else {
-                $accessList = $service->getAccessList();
-            }
-        }
-
         $processEvents = [];
         $broadcastEvents = [];
         $eventCount = 0;
@@ -175,18 +173,18 @@ class Event extends BaseRestResource
                         if ('path' === $type) {
                             $name = array_get($parameter, 'name', '');
                             $options = array_get($parameter, 'enum', array_get($parameter, 'options'));
-                            if (empty($options) && !empty($accessList) && (false !== $replacePos)) {
+                            if (empty($options) && !empty($access) && (false !== $replacePos)) {
                                 $checkFirstOption = strstr(substr($resourcePath, $replacePos + 1), '}', true);
                                 if ($name !== $checkFirstOption) {
                                     continue;
                                 }
                                 $options = [];
                                 // try to match any access path
-                                foreach ($accessList as $access) {
-                                    $access = rtrim($access, '/*');
-                                    if (!empty($access) && (strlen($access) > $replacePos)) {
-                                        if (0 === substr_compare($access, $resourcePath, 0, $replacePos)) {
-                                            $option = substr($access, $replacePos);
+                                foreach ($access as $accessPath) {
+                                    $accessPath = rtrim($accessPath, '/*');
+                                    if (!empty($accessPath) && (strlen($accessPath) > $replacePos)) {
+                                        if (0 === substr_compare($accessPath, $resourcePath, 0, $replacePos)) {
+                                            $option = substr($accessPath, $replacePos);
                                             if (false !== strpos($option, '/')) {
                                                 $option = strstr($option, '/', true);
                                             }
@@ -283,13 +281,13 @@ class Event extends BaseRestResource
             if ($onlyScripted) {
                 switch ($type) {
                     case 'process':
-                        $scripts = EventScript::where('affects_process', 1)->lists('name')->all();
+                        $scripts = EventScript::whereAffectsProcess(1)->pluck('name')->all();
                         break;
                     case 'broadcast':
-                        $scripts = EventScript::where('affects_process', 0)->lists('name')->all();
+                        $scripts = EventScript::whereAffectsProcess(0)->pluck('name')->all();
                         break;
                     default:
-                        $scripts = EventScript::lists('name')->all();
+                        $scripts = EventScript::pluck('name')->all();
                         break;
                 }
 
@@ -495,6 +493,8 @@ class Event extends BaseRestResource
                         'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
                         'By default, all fields and no relations are returned for each record.',
                     'x-publishedEvents' => $eventPath . '.{event_name}.read',
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::FILE),
                     ],
@@ -513,6 +513,8 @@ class Event extends BaseRestResource
                     'tags'              => [$serviceName],
                     'summary'           => 'create' . $capitalized . 'EventScript() - Create a script for an event.',
                     'operationId'       => 'create' . $capitalized . 'EventScript',
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'description'       =>
                         'Post data should be a single record containing required fields for a script. ' .
                         'By default, only the event name of the record affected is returned on success, ' .
@@ -546,6 +548,8 @@ class Event extends BaseRestResource
                         'By default, only the event name of the record deleted is returned on success. ' .
                         'Use \'fields\' and \'related\' to return more properties of the deleted record.',
                     'x-publishedEvents' => $eventPath . '.{event_name}.delete',
+                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [],
                     'responses'         => [
                         '200'     => [

@@ -238,13 +238,13 @@ class UserResourceTestCase extends TestCase
     {
         $user = $this->createUser(1);
 
-        Arr::set($user, 'password', '1234');
+        Arr::set($user, 'password', '123456');
 
         $payload = json_encode($user, JSON_UNESCAPED_SLASHES);
         $rs = $this->makeRequest(Verbs::PATCH, static::RESOURCE . '/' . $user['id'], [], $payload);
         $content = $rs->getContent();
 
-        $this->assertTrue(Session::authenticate(['email' => $user['email'], 'password' => '1234']));
+        $this->assertTrue(Session::authenticate(['email' => $user['email'], 'password' => '123456']));
         $this->assertTrue($this->adminCheck([$content]));
     }
 
@@ -259,10 +259,10 @@ class UserResourceTestCase extends TestCase
             $this->makeRequest(Verbs::PATCH, static::RESOURCE . '/' . $user['id'],
                 [ApiOptions::FIELDS => 'id,security_answer'],
                 $payload);
-        $content = $rs->getContent();
+        $content = User::find($user['id']);
 
-        $this->assertTrue($this->adminCheck([$content]));
-        $this->assertTrue(Hash::check('mazda', $content['security_answer']));
+        $this->assertTrue($this->adminCheck([$content->toArray()]));
+        $this->assertTrue(Hash::check('mazda', $content->security_answer));
     }
 
     /************************************************

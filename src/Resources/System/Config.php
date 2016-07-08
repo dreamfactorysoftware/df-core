@@ -4,7 +4,6 @@ namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 
@@ -14,12 +13,12 @@ class Config extends BaseSystemResource
 
     public function __construct($settings = [])
     {
-        $verbAliases = [
+        $settings = (array)$settings;
+        $settings['verbAliases'] = [
             Verbs::PUT   => Verbs::POST,
             Verbs::MERGE => Verbs::POST,
             Verbs::PATCH => Verbs::POST
         ];
-        ArrayUtils::set($settings, "verbAliases", $verbAliases);
 
         parent::__construct($settings);
     }
@@ -29,7 +28,7 @@ class Config extends BaseSystemResource
         $serviceName = strtolower($service);
         $capitalized = Inflector::camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
         $eventPath = $serviceName . '.' . $resourceName;
         $config = [];
@@ -44,6 +43,8 @@ class Config extends BaseSystemResource
                     'operationId'       => 'get' . $capitalized . 'Config',
                     'x-publishedEvents' => $eventPath . '.read',
                     'description'       => 'The retrieved properties control how the system behaves.',
+                    'consumes'          => ['application/json', 'application/xml'],
+                    'produces'          => ['application/json', 'application/xml'],
                     'responses'         => [
                         '200'     => [
                             'description' => 'Config',
@@ -63,6 +64,8 @@ class Config extends BaseSystemResource
                     'operationId'       => 'set' . $capitalized . 'Config',
                     'x-publishedEvents' => $eventPath . '.update',
                     'description'       => 'Post data should be an array of properties.',
+                    'consumes'          => ['application/json', 'application/xml'],
+                    'produces'          => ['application/json', 'application/xml'],
                     'parameters'        => [
                         [
                             'name'        => 'body',

@@ -6,7 +6,6 @@ use Config;
 use DreamFactory\Core\Components\LocalFileSystem;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Aws\Components\S3FileSystem;
 use DreamFactory\Core\Rackspace\Components\OpenStackObjectStorageSystem;
 use DreamFactory\Core\Azure\Components\AzureBlobFileSystem;
@@ -39,7 +38,7 @@ class LocalFileService extends BaseFileService
                 '.');
         }
 
-        $disk = ArrayUtils::get($disks, $diskName);
+        $disk = array_get($disks, $diskName);
         //  Replace any private lookups
         Session::replaceLookups($disk, true);
 
@@ -71,8 +70,8 @@ class LocalFileService extends BaseFileService
 
                 break;
             case 's3':
-                $this->container = ArrayUtils::get($disk, 'bucket', ArrayUtils::get($disk, 'container'));
-                ArrayUtils::set($disk, 'container', $this->container);
+                $this->container = array_get($disk, 'bucket', array_get($disk, 'container'));
+                $disk['container'] = $this->container;
 
                 if (empty($this->container)) {
                     throw new InternalServerErrorException('S3 file service bucket/container not specified. Please check configuration for file service - ' .
@@ -82,7 +81,7 @@ class LocalFileService extends BaseFileService
                 $this->driver = new S3FileSystem($disk);
                 break;
             case 'rackspace':
-                $this->container = ArrayUtils::get($disk, 'container');
+                $this->container = array_get($disk, 'container');
 
                 if (empty($this->container)) {
                     throw new InternalServerErrorException('Azure blob container not specified. Please check configuration for file service - ' .
@@ -92,7 +91,7 @@ class LocalFileService extends BaseFileService
                 $this->driver = new OpenStackObjectStorageSystem($disk);
                 break;
             case 'azure':
-                $this->container = ArrayUtils::get($disk, 'container');
+                $this->container = array_get($disk, 'container');
 
                 if (empty($this->container)) {
                     throw new InternalServerErrorException('Azure blob container not specified. Please check configuration for file service - ' .

@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
 
 class Constant extends ReadOnlySystemResource
@@ -29,7 +28,7 @@ class Constant extends ReadOnlySystemResource
         $serviceName = strtolower($service);
         $capitalized = Inflector::camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
         $eventPath = $serviceName . '.' . $resourceName;
 
@@ -54,6 +53,8 @@ class Constant extends ReadOnlySystemResource
                             ]
                         ],
                         'description'       => 'Returns an object containing every enumerated type and its constant values',
+                        'consumes'          => ['application/json', 'application/xml'],
+                        'produces'          => ['application/json', 'application/xml'],
                     ],
                 ],
                 $path . '/{type}' => [
@@ -64,6 +65,8 @@ class Constant extends ReadOnlySystemResource
                             'Constant() - Retrieve one constant type enumeration.',
                         'operationId'       => 'get' . $capitalized . 'Constant',
                         'x-publishedEvents' => $eventPath . '.read',
+                        'consumes'          => ['application/json', 'application/xml'],
+                        'produces'          => ['application/json', 'application/xml'],
                         'parameters'        => [
                             [
                                 'name'        => 'type',

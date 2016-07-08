@@ -3,19 +3,22 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
+use Illuminate\Database\Query\Builder;
 
 /**
  * EventScript
  *
- * @property string     $name
- * @property string     $type
- * @property string     $content
- * @property string     $config
- * @property boolean    $is_active
- * @property boolean    $affects_process
- * @method static \Illuminate\Database\Query\Builder|EventScript whereName($value)
- * @method static \Illuminate\Database\Query\Builder|EventScript whereIsActive($value)
- * @method static \Illuminate\Database\Query\Builder|EventScript whereType($value)
+ * @property string  $name
+ * @property string  $type
+ * @property string  $content
+ * @property string  $config
+ * @property boolean $is_active
+ * @property boolean $affects_process
+ * @property boolean $allow_event_modification
+ * @method static Builder|EventScript whereAffectsProcess($value)
+ * @method static Builder|EventScript whereIsActive($value)
+ * @method static Builder|EventScript whereName($value)
+ * @method static Builder|EventScript whereType($value)
  */
 class EventScript extends BaseModel
 {
@@ -46,9 +49,21 @@ class EventScript extends BaseModel
 
     protected $primaryKey = 'name';
 
-    protected $fillable = ['name', 'type', 'content', 'config', 'is_active', 'affects_process'];
+    protected $fillable = [
+        'name',
+        'type',
+        'content',
+        'config',
+        'is_active',
+        'affects_process',
+        'allow_event_modification'
+    ];
 
-    protected $casts = ['is_active' => 'boolean', 'affects_process' => 'boolean'];
+    protected $casts = [
+        'is_active'                => 'boolean',
+        'affects_process'          => 'boolean',
+        'allow_event_modification' => 'boolean'
+    ];
 
     public $incrementing = false;
 
@@ -58,15 +73,14 @@ class EventScript extends BaseModel
             $data = $this->attributes;
         }
 
-        if (!empty($disable = config('df.scripting.disable')))
-        {
-            switch (strtolower($disable)){
+        if (!empty($disable = config('df.scripting.disable'))) {
+            switch (strtolower($disable)) {
                 case 'all':
                     throw new ServiceUnavailableException("All scripting is disabled for this instance.");
                     break;
                 default:
                     $type = (isset($data['type'])) ? $data['type'] : null;
-                    if (!empty($type) && (false !== stripos($disable, $type))){
+                    if (!empty($type) && (false !== stripos($disable, $type))) {
                         throw new ServiceUnavailableException("Scripting with $type is disabled for this instance.");
                     }
                     break;

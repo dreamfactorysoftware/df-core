@@ -23,7 +23,7 @@ class UserProfileResource extends BaseRestResource
             Verbs::MERGE => Verbs::POST,
             Verbs::PATCH => Verbs::POST
         ];
-        ArrayUtils::set($settings, "verbAliases", $verbAliases);
+        $settings["verbAliases"] = $verbAliases;
 
         parent::__construct($settings);
     }
@@ -69,14 +69,14 @@ class UserProfileResource extends BaseRestResource
         $payload = $this->getPayloadData();
 
         $data = [
-            'first_name'        => ArrayUtils::get($payload, 'first_name'),
-            'last_name'         => ArrayUtils::get($payload, 'last_name'),
-            'name'              => ArrayUtils::get($payload, 'name'),
-            'email'             => ArrayUtils::get($payload, 'email'),
-            'phone'             => ArrayUtils::get($payload, 'phone'),
-            'security_question' => ArrayUtils::get($payload, 'security_question'),
-            'security_answer'   => ArrayUtils::get($payload, 'security_answer'),
-            'default_app_id'    => ArrayUtils::get($payload, 'default_app_id')
+            'first_name'        => array_get($payload, 'first_name'),
+            'last_name'         => array_get($payload, 'last_name'),
+            'name'              => array_get($payload, 'name'),
+            'email'             => array_get($payload, 'email'),
+            'phone'             => array_get($payload, 'phone'),
+            'security_question' => array_get($payload, 'security_question'),
+            'security_answer'   => array_get($payload, 'security_answer'),
+            'default_app_id'    => array_get($payload, 'default_app_id')
         ];
 
         ArrayUtils::removeNull($data);
@@ -91,7 +91,7 @@ class UserProfileResource extends BaseRestResource
         $email = $user->email;
         $user->update($data);
 
-        if (!empty($oldToken) && $email !== ArrayUtils::get($data, 'email', $email)) {
+        if (!empty($oldToken) && $email !== array_get($data, 'email', $email)) {
             // Email change invalidates token. Need to create a new token.
             $forever = JWTUtilities::isForever($oldToken);
             Session::setUserInfoWithJWT($user, $forever);
@@ -108,7 +108,7 @@ class UserProfileResource extends BaseRestResource
         $serviceName = strtolower($service);
         $capitalized = Inflector::camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
         $eventPath = $serviceName . '.' . $resourceName;
 

@@ -44,7 +44,7 @@ class BaseSystemModel extends BaseModel
         $criteria = static::cleanCriteria($criteria);
         $response = parent::selectByIds($ids, $related, $criteria);
 
-        return static::cleanResult($response, ArrayUtils::get($criteria, 'select'));
+        return static::cleanResult($response, array_get($criteria, 'select'));
     }
 
     /**
@@ -55,7 +55,7 @@ class BaseSystemModel extends BaseModel
         $criteria = static::cleanCriteria($criteria);
         $response = parent::selectByRequest($criteria, $related);
 
-        return static::cleanResult($response, ArrayUtils::get($criteria, 'select'));
+        return static::cleanResult($response, array_get($criteria, 'select'));
     }
 
     /**
@@ -67,8 +67,8 @@ class BaseSystemModel extends BaseModel
      */
     protected static function cleanCriteria(array $criteria)
     {
-        $fields = ArrayUtils::get($criteria, 'select');
-        ArrayUtils::set($criteria, 'select', static::cleanFields($fields));
+        $fields = array_get($criteria, 'select');
+        $criteria['select'] = static::cleanFields($fields);
 
         return $criteria;
     }
@@ -116,7 +116,7 @@ class BaseSystemModel extends BaseModel
         }
 
         //config is only available when both id and type is present. Therefore only show config if id and type is there.
-        if (ArrayUtils::get($fields, 0) !== '*' && (!in_array('type', $fields) || !in_array('id', $fields))) {
+        if (array_get($fields, 0) !== '*' && (!in_array('type', $fields) || !in_array('id', $fields))) {
             $result = [];
 
             if (ArrayUtils::isArrayNumeric($response)) {

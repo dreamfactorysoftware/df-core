@@ -2,22 +2,23 @@
 
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Components\Builder as DfBuilder;
 use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Components\SchemaToOpenApiDefinition;
 use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Database\ConnectionExtension;
+use DreamFactory\Core\Database\Schema\RelationSchema;
+use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Database\Schema\RelationSchema;
-use DreamFactory\Core\Database\Schema\TableSchema;
-use DreamFactory\Core\Components\Builder as DfBuilder;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\Session as SessionUtility;
+use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Crypt;
@@ -226,8 +227,8 @@ class BaseModel extends Model implements CacheInterface
         $response = [];
         $transaction = false;
         $errors = [];
-        $rollback = ArrayUtils::getBool($params, ApiOptions::ROLLBACK);
-        $continue = ArrayUtils::getBool($params, ApiOptions::CONTINUES);
+        $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
+        $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
 
         try {
             //	Start a transaction
@@ -309,7 +310,7 @@ class BaseModel extends Model implements CacheInterface
     {
         $m = new static;
         $pk = $m->getPrimaryKey();
-        ArrayUtils::set($record, $pk, $id);
+        $record[$pk] = $id;
 
         return static::bulkCreate([$record], $params, true);
     }
@@ -384,7 +385,7 @@ class BaseModel extends Model implements CacheInterface
     {
         $m = new static;
         $pk = $m->getPrimaryKey();
-        ArrayUtils::set($record, $pk, $id);
+        $record[$pk] = $id;
 
         return static::bulkUpdate([$record], $params, true);
     }
@@ -409,7 +410,7 @@ class BaseModel extends Model implements CacheInterface
         $m = new static;
         $pk = $m->getPrimaryKey();
         foreach ($ids as $id) {
-            ArrayUtils::set($record, $pk, $id);
+            $record[$pk] = $id;
             $records[] = $record;
         }
 
@@ -435,8 +436,8 @@ class BaseModel extends Model implements CacheInterface
         $transaction = null;
         $errors = [];
         $singleRow = (1 === count($records)) ? true : false;
-        $rollback = ArrayUtils::getBool($params, ApiOptions::ROLLBACK);
-        $continue = ArrayUtils::getBool($params, ApiOptions::CONTINUES);
+        $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
+        $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
 
         try {
             //	Start a transaction
@@ -449,7 +450,7 @@ class BaseModel extends Model implements CacheInterface
                 try {
                     $m = new static;
                     $pk = $m->getPrimaryKey();
-                    $id = ArrayUtils::get($record, $pk);
+                    $id = array_get($record, $pk);
                     $response[$key] = static::updateInternal($id, $record, $params);
                 } catch (\Exception $ex) {
                     if ($singleRow) {
@@ -542,15 +543,10 @@ class BaseModel extends Model implements CacheInterface
      */
     public static function deleteById($id, $params = [])
     {
-        $records = [[]];
-
         $m = new static;
         $pk = $m->getPrimaryKey();
-        foreach ($records as $key => $record) {
-            ArrayUtils::set($records[$key], $pk, $id);
-        }
 
-        return static::bulkDelete($records, $params, true);
+        return static::bulkDelete([[$pk => $id]], $params, true);
     }
 
     /**
@@ -567,14 +563,11 @@ class BaseModel extends Model implements CacheInterface
             $ids = explode(",", $ids);
         }
 
-        $records = [];
-
         $m = new static;
         $pk = $m->getPrimaryKey();
+        $records = [];
         foreach ($ids as $id) {
-            $record = [];
-            ArrayUtils::set($record, $pk, $id);
-            $records[] = $record;
+            $records[] = [$pk => $id];
         }
 
         return static::bulkDelete($records, $params);
@@ -599,8 +592,8 @@ class BaseModel extends Model implements CacheInterface
         $transaction = null;
         $errors = [];
         $singleRow = (1 === count($records)) ? true : false;
-        $rollback = ArrayUtils::getBool($params, ApiOptions::ROLLBACK);
-        $continue = ArrayUtils::getBool($params, ApiOptions::CONTINUES);
+        $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
+        $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
 
         try {
             //	Start a transaction
@@ -613,7 +606,7 @@ class BaseModel extends Model implements CacheInterface
                 try {
                     $m = new static;
                     $pk = $m->getPrimaryKey();
-                    $id = ArrayUtils::get($record, $pk);
+                    $id = array_get($record, $pk);
                     $response[$key] = static::deleteInternal($id, $record, $params);
                 } catch (\Exception $ex) {
                     if ($singleRow) {
@@ -703,8 +696,8 @@ class BaseModel extends Model implements CacheInterface
     {
         $pk = $model->primaryKey;
         $id = $model->{$pk};
-        $fields = ArrayUtils::get($params, ApiOptions::FIELDS, $pk);
-        $related = ArrayUtils::get($params, ApiOptions::RELATED);
+        $fields = array_get($params, ApiOptions::FIELDS, $pk);
+        $related = array_get($params, ApiOptions::RELATED);
 
         if ($pk === $fields && empty($related)) {
             return [$pk => $id];
@@ -787,7 +780,7 @@ class BaseModel extends Model implements CacheInterface
             $pk = static::getPrimaryKeyStatic();
             $idsPhrase = " $pk IN ($ids) ";
 
-            $condition = ArrayUtils::get($criteria, 'condition');
+            $condition = array_get($criteria, 'condition');
 
             if (!empty($condition)) {
                 $condition .= ' AND ' . $idsPhrase;
@@ -795,7 +788,7 @@ class BaseModel extends Model implements CacheInterface
                 $condition = $idsPhrase;
             }
 
-            ArrayUtils::set($criteria, 'condition', $condition);
+            $criteria['condition'] = $condition;
         }
 
         $data = static::selectByRequest($criteria, $related);
@@ -815,29 +808,29 @@ class BaseModel extends Model implements CacheInterface
     public static function selectByRequest(array $criteria = [], array $related = [])
     {
         $pk = static::getPrimaryKeyStatic();
-        $selection = ArrayUtils::get($criteria, 'select');
+        $selection = array_get($criteria, 'select');
         if (empty($selection)) {
             $selection = ['*'];
         }
 
-        $condition = ArrayUtils::get($criteria, 'condition');
+        $condition = array_get($criteria, 'condition');
         /** @type \Illuminate\Database\Eloquent\Builder $builder */
         if (!empty($condition)) {
-            $params = ArrayUtils::get($criteria, 'params');
+            $params = array_get($criteria, 'params');
             $builder = static::whereRaw($condition, $params)->with($related);
         } else {
             $builder = static::with($related);
         }
 
-        if (!empty($limit = ArrayUtils::get($criteria, 'limit'))) {
+        if (!empty($limit = array_get($criteria, 'limit'))) {
             $builder->take($limit);
         }
 
-        if (!empty($offset = ArrayUtils::get($criteria, 'offset'))) {
+        if (!empty($offset = array_get($criteria, 'offset'))) {
             $builder->skip($offset);
         }
 
-        $orderBy = ArrayUtils::get($criteria, 'order', "$pk asc");
+        $orderBy = array_get($criteria, 'order', "$pk asc");
         $orders = explode(',', $orderBy);
         foreach ($orders as $order) {
             $order = trim($order);
@@ -850,7 +843,7 @@ class BaseModel extends Model implements CacheInterface
             $builder = $builder->orderBy($column, $direction);
         }
 
-        $groupBy = ArrayUtils::get($criteria, 'group');
+        $groupBy = array_get($criteria, 'group');
         if (!empty($groupBy)) {
             $groups = explode(',', $groupBy);
             foreach ($groups as $group) {
@@ -874,8 +867,8 @@ class BaseModel extends Model implements CacheInterface
     public static function countByRequest(array $criteria = [])
     {
         /** @type \Illuminate\Database\Eloquent\Builder $builder */
-        if (!empty($condition = ArrayUtils::get($criteria, 'condition'))) {
-            $params = ArrayUtils::get($criteria, 'params', []);
+        if (!empty($condition = array_get($criteria, 'condition'))) {
+            $params = array_get($criteria, 'params', []);
 
             return static::whereRaw($condition, $params)->count();
         }
@@ -903,10 +896,10 @@ class BaseModel extends Model implements CacheInterface
 
             foreach ($data as $d) {
                 /** @var Model $model */
-                $model = $relatedModel::find(ArrayUtils::get($d, $pk));
+                $model = $relatedModel::find(array_get($d, $pk));
                 if (!empty($model)) {
                     $fk = $hasMany->getPlainForeignKey();
-                    $fkId = ArrayUtils::get($d, $fk);
+                    $fkId = array_get($d, $fk);
                     if (null === $fkId) {
                         //Foreign key field is null therefore delete the child record.
                         $model->delete();

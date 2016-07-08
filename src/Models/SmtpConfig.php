@@ -38,4 +38,30 @@ class SmtpConfig extends BaseEmailServiceConfigModel
 
         return true;
     }
+
+    /**
+     * @param array $schema
+     */
+    protected static function prepareConfigSchemaField(array &$schema)
+    {
+        parent::prepareConfigSchemaField($schema);
+
+        switch ($schema['name']) {
+            case 'host':
+                $schema['description'] = 'SMTP Host.';
+                break;
+            case 'port':
+                $schema['description'] = 'SMTP Port (default: 587).';
+                break;
+            case 'encryption':
+                $schema['description'] = 'SMTP Encryption: tls/ssl.';
+                break;
+            case 'username':
+                $schema['description'] = 'SMTP Username.';
+                break;
+            case 'password':
+                $schema['description'] = 'SMTP Password.';
+                break;
+        }
+    }
 }

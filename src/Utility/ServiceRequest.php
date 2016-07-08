@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Core\Enums\DataFormats;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Components\InternalServiceRequest;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -50,7 +49,7 @@ class ServiceRequest implements ServiceRequestInterface
             if (null === $key) {
                 return $this->parameters;
             } else {
-                return ArrayUtils::get($this->parameters, $key, $default);
+                return array_get($this->parameters, $key, $default);
             }
         }
 
@@ -76,7 +75,7 @@ class ServiceRequest implements ServiceRequestInterface
     public function getParameterAsBool($key, $default = false)
     {
         if (!is_null($this->parameters)) {
-            return ArrayUtils::getBool($this->parameters, $key, $default);
+            return Scalar::boolval(array_get($this->parameters, $key, $default));
         }
 
         return Scalar::boolval(Request::query($key, $default));
@@ -95,7 +94,7 @@ class ServiceRequest implements ServiceRequestInterface
             if (null === $key) {
                 return $this->contentAsArray;
             } else {
-                return ArrayUtils::get($this->contentAsArray, $key, $default);
+                return array_get($this->contentAsArray, $key, $default);
             }
         }
 
@@ -164,7 +163,7 @@ class ServiceRequest implements ServiceRequestInterface
             if (null === $key) {
                 return $this->contentAsArray;
             } else {
-                return ArrayUtils::get($this->contentAsArray, $key, $default);
+                return array_get($this->contentAsArray, $key, $default);
             }
         }
 
@@ -191,7 +190,7 @@ class ServiceRequest implements ServiceRequestInterface
             if (empty($payload)) {
                 return $default;
             } else {
-                return ArrayUtils::get($payload, $key, $default);
+                return array_get($payload, $key, $default);
             }
         }
     }
@@ -211,7 +210,7 @@ class ServiceRequest implements ServiceRequestInterface
             if (null === $key) {
                 return $this->contentAsArray;
             } else {
-                return ArrayUtils::get($this->contentAsArray, $key, $default);
+                return array_get($this->contentAsArray, $key, $default);
             }
         }
 
@@ -219,7 +218,7 @@ class ServiceRequest implements ServiceRequestInterface
         $data = DataFormatter::xmlToArray($content);
         $rootTag = config('df.xml_request_root');
 
-        if (!empty($content) && (empty($data) || !empty(ArrayUtils::get($data, $rootTag)))) {
+        if (!empty($content) && (empty($data) || !empty(array_get($data, $rootTag)))) {
             $data = $data[$rootTag];
         }
 
@@ -237,7 +236,7 @@ class ServiceRequest implements ServiceRequestInterface
             if (empty($data)) {
                 return $default;
             } else {
-                return ArrayUtils::get($data, $key, $default);
+                return array_get($data, $key, $default);
             }
         }
     }
@@ -290,7 +289,7 @@ class ServiceRequest implements ServiceRequestInterface
             if (null === $key) {
                 return $this->headers;
             } else {
-                return ArrayUtils::get($this->headers, $key, $default);
+                return array_get($this->headers, $key, $default);
             }
         }
 
@@ -322,7 +321,7 @@ class ServiceRequest implements ServiceRequestInterface
         if (null === $key) {
             return $_FILES;
         } else {
-            return ArrayUtils::get($_FILES, $key, $default);
+            return array_get($_FILES, $key, $default);
         }
     }
 

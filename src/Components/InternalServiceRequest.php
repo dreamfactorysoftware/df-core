@@ -1,9 +1,9 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Library\Utility\Scalar;
 
 /**
  * Trait InternalServiceRequest
@@ -103,7 +103,7 @@ trait InternalServiceRequest
         if (null === $key) {
             return $this->parameters;
         } else {
-            return ArrayUtils::get($this->parameters, $key, $default);
+            return array_get($this->parameters, $key, $default);
         }
     }
 
@@ -119,7 +119,7 @@ trait InternalServiceRequest
             return $default;
         }
 
-        return ArrayUtils::getBool($this->parameters, $key, $default);
+        return Scalar::boolval(array_get($this->parameters, $key, $default));
     }
 
     /**
@@ -169,7 +169,7 @@ trait InternalServiceRequest
         if (null === $key) {
             return $this->contentAsArray;
         } else {
-            return ArrayUtils::get($this->contentAsArray, $key, $default);
+            return array_get($this->contentAsArray, $key, $default);
         }
     }
 
@@ -219,7 +219,7 @@ trait InternalServiceRequest
         if (null === $key) {
             return $this->headers;
         } else {
-            return ArrayUtils::get($this->headers, $key, $default);
+            return array_get($this->headers, $key, $default);
         }
     }
 
@@ -267,13 +267,11 @@ trait InternalServiceRequest
      */
     public function mergeFromArray(array $data)
     {
-        $this->setMethod(ArrayUtils::get($data, 'method'));
-        $this->setParameters(ArrayUtils::get($data, 'parameters'));
-        $this->setHeaders(ArrayUtils::get($data, 'headers'));
-        $this->setPayloadData(ArrayUtils::get($data, 'payload'));
-        if (ArrayUtils::getBool($data, 'content_changed')) {
-            $this->setContent(ArrayUtils::get($data, 'content'), ArrayUtils::get($data, 'content_type'));
-        }
+        $this->setMethod(array_get($data, 'method'));
+        $this->setParameters(array_get($data, 'parameters'));
+        $this->setHeaders(array_get($data, 'headers'));
+        $this->setPayloadData(array_get($data, 'payload'));
+        $this->setContent(array_get($data, 'content'), array_get($data, 'content_type'));
     }
 
     /**

@@ -9,7 +9,6 @@ use Illuminate\Mail\Message;
 use Swift_Transport as SwiftTransport;
 use Swift_Mailer as SwiftMailer;
 use DreamFactory\Core\Services\BaseRestService;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Utility\EmailUtilities;
 use DreamFactory\Core\Models\EmailTemplate;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -41,7 +40,7 @@ abstract class BaseService extends BaseRestService
     {
         parent::__construct($settings);
 
-        $config = (ArrayUtils::get($settings, 'config', [])) ?: [];
+        $config = (array_get($settings, 'config', [])) ?: [];
         $this->setParameters($config);
         $this->setTransport($config);
         $this->setMailer();
@@ -66,10 +65,10 @@ abstract class BaseService extends BaseRestService
 
     protected function setParameters($config)
     {
-        $this->parameters = ArrayUtils::clean(ArrayUtils::get($config, 'parameters', []));
+        $this->parameters = (array)array_get($config, 'parameters', []);
 
         foreach ($this->parameters as $params) {
-            $this->parameters[$params['name']] = ArrayUtils::get($params, 'value');
+            $this->parameters[$params['name']] = array_get($params, 'value');
         }
     }
 
@@ -103,11 +102,11 @@ abstract class BaseService extends BaseRestService
             throw new BadRequestException('No valid data in request.');
         }
 
-        $data = array_merge(ArrayUtils::clean(ArrayUtils::get($templateData, 'defaults', [], true)), $data);
+        $data = array_merge((array)array_get($templateData, 'defaults', []), $data);
         $data = array_merge($this->parameters, $templateData, $data);
 
-        $text = ArrayUtils::get($data, 'body_text');
-        $html = ArrayUtils::get($data, 'body_html');
+        $text = array_get($data, 'body_text');
+        $html = array_get($data, 'body_html');
 
         $count = $this->sendEmail($data, $text, $html);
 
@@ -143,14 +142,14 @@ abstract class BaseService extends BaseRestService
             $view,
             $data,
             function (Message $m) use ($data){
-                $to = ArrayUtils::get($data, 'to');
-                $cc = ArrayUtils::get($data, 'cc');
-                $bcc = ArrayUtils::get($data, 'bcc');
-                $subject = ArrayUtils::get($data, 'subject');
-                $fromName = ArrayUtils::get($data, 'from_name');
-                $fromEmail = ArrayUtils::get($data, 'from_email');
-                $replyName = ArrayUtils::get($data, 'reply_to_name');
-                $replyEmail = ArrayUtils::get($data, 'reply_to_email');
+                $to = array_get($data, 'to');
+                $cc = array_get($data, 'cc');
+                $bcc = array_get($data, 'bcc');
+                $subject = array_get($data, 'subject');
+                $fromName = array_get($data, 'from_name');
+                $fromEmail = array_get($data, 'from_email');
+                $replyName = array_get($data, 'reply_to_name');
+                $replyEmail = array_get($data, 'reply_to_email');
 
                 if (empty($fromEmail)) {
                     $fromEmail = config('mail.from.address');

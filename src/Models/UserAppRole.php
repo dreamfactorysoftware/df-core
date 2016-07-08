@@ -3,7 +3,6 @@ namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
  * UserAppRole
@@ -38,13 +37,13 @@ class UserAppRole extends BaseModel
         }
 
         if (parent::validate($data)) {
-            $userId = ArrayUtils::get($data, 'user_id');
-            $appId = ArrayUtils::get($data, 'app_id');
+            $userId = array_get($data, 'user_id');
+            $appId = array_get($data, 'app_id');
 
             if ($userId && $appId) {
                 $model = $this->whereAppId($appId)->whereUserId($userId)->first();
 
-                if (!empty($model) && $model->id != ArrayUtils::get($data, 'id')) {
+                if (!empty($model) && $model->id != array_get($data, 'id')) {
                     throw new BadRequestException('Multiple user-to-app-to-role assignment. You can only have a single user-to-app-to-role assignment.');
                 }
             }

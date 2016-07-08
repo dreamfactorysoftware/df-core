@@ -14,7 +14,6 @@ use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
 
 abstract class BaseDbSchemaResource extends BaseDbResource
@@ -493,7 +492,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
         $out = [];
         foreach ($tables as $table) {
-            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            $name = (is_array($table)) ? array_get($table, 'name') : $table;
             $this->validateSchemaAccess($name, Verbs::GET);
 
             $out[] = $this->describeTable($table, $refresh);
@@ -546,7 +545,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
         $out = [];
         foreach ($tables as $table) {
-            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            $name = (is_array($table)) ? array_get($table, 'name') : $table;
             $out[] = $this->createTable($name, $table, $check_exist, $return_schema);
         }
 
@@ -601,7 +600,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         // update tables allows for create as well
         $out = [];
         foreach ($tables as $table) {
-            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            $name = (is_array($table)) ? array_get($table, 'name') : $table;
             if ($this->doesTableExist($name)) {
                 $this->validateSchemaAccess($name, Verbs::PATCH);
                 $out[] = $this->updateTable($name, $table, $allow_delete_fields, $return_schema);
@@ -667,7 +666,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
 
         $out = [];
         foreach ($tables as $table) {
-            $name = (is_array($table)) ? ArrayUtils::get($table, 'name') : $table;
+            $name = (is_array($table)) ? array_get($table, 'name') : $table;
             $this->validateSchemaAccess($name, Verbs::DELETE);
             $out[] = $this->deleteTable($table, $check_empty);
         }
@@ -703,7 +702,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         $capitalized = Inflector::camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $pluralClass = Inflector::pluralize($class);
-        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
         $eventPath = $serviceName . '.' . $resourceName;
         $base = parent::getApiDocInfo($service, $resource);

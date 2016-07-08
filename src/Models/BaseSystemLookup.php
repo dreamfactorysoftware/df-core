@@ -2,7 +2,7 @@
 
 namespace DreamFactory\Core\Models;
 
-use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Library\Utility\Scalar;
 
 /**
  * BaseSystemLookup - an abstract base class for system lookups
@@ -41,7 +41,7 @@ class BaseSystemLookup extends BaseSystemModel
     {
         $attributes = $this->attributesToArray();
 
-        if (ArrayUtils::getBool($attributes, 'private')) {
+        if (Scalar::boolval(array_get($attributes, 'private'))) {
             $attributes['value'] = self::PRIVATE_MASK;
         }
 

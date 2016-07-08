@@ -38,7 +38,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $content = $rs->getContent();
 
         $this->assertEquals(1, count($content[static::$wrapper]));
-        $this->assertEquals('DF Admin', Arr::get($content, static::$wrapper . '.0.name'));
+        $this->assertNotEquals($this->user1['name'], Arr::get($content, static::$wrapper . '.0.name'));
     }
 
     /************************************************
@@ -86,8 +86,8 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $user = $this->createUser(1);
         $payload = ['name' => 'foo'];
 
-        $this->setExpectedException('\DreamFactory\Core\Exceptions\BadRequestException');
-        $this->makeRequest(Verbs::PATCH, static::RESOURCE . '/session/' . $user['id'], [], $payload);
+        $rs = $this->makeRequest(Verbs::PATCH, static::RESOURCE . '/session/' . $user['id'], [], $payload);
+        $this->assertFalse($rs->getContent());
     }
 
     public function testLogout()
@@ -117,14 +117,14 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
 
     public function testGET()
     {
-        $this->setExpectedException('\DreamFactory\Core\Exceptions\BadRequestException');
-        $this->makeRequest(Verbs::GET, static::RESOURCE . '/password');
+        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE . '/password');
+        $this->assertFalse($rs->getContent());
     }
 
     public function testDELETE()
     {
-        $this->setExpectedException('\DreamFactory\Core\Exceptions\BadRequestException');
-        $this->makeRequest(Verbs::DELETE, static::RESOURCE . '/password');
+        $rs = $this->makeRequest(Verbs::DELETE, static::RESOURCE . '/password');
+        $this->assertFalse($rs->getContent());
     }
 
     public function testPasswordChange()

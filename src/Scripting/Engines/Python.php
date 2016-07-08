@@ -33,8 +33,8 @@ class Python extends ExecutedEngine
     protected function transformOutputStringToData($output)
     {
         $output = str_replace(
-            ["'{", "}',", "'", "True", "False", "None"],
-            ["{", "},", "\"", "true", "false", "null"],
+            ["'{", "}',", "'", "True", "False", "None", '\n'],
+            ["{", "},", "\"", "true", "false", "null", ''],
             $output
         );
 

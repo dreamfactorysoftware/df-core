@@ -86,8 +86,10 @@ class App extends BaseSystemModel
     {
         try {
             /** @var App $model */
+            $key = array_get($record, 'api_key');
+            $uniqueKey = static::isApiKeyUnique($key);
             $model = static::create($record);
-            if(empty(array_get($record, 'api_key'))) {
+            if (empty($key) || !$uniqueKey) {
                 $apiKey = static::generateApiKey($model->name);
                 $model->api_key = $apiKey;
             }
@@ -97,6 +99,20 @@ class App extends BaseSystemModel
         }
 
         return static::buildResult($model, $params);
+    }
+
+    /**
+     * Checks to see if an API Key is uniques or not
+     *
+     * @param $key string
+     *
+     * @return bool
+     */
+    public static function isApiKeyUnique($key)
+    {
+        $model = static::whereApiKey($key)->first(['id']);
+
+        return (empty($model)) ? true : false;
     }
 
     public function getLaunchUrlAttribute()
@@ -112,8 +128,8 @@ class App extends BaseSystemModel
                         if (!empty($this->storage_container)) {
                             $launchUrl .= trim($this->storage_container, '/');
                         }
-                        if(!empty($this->path)){
-                            $launchUrl .= '/'. ltrim($this->path, '/');
+                        if (!empty($this->path)) {
+                            $launchUrl .= '/' . ltrim($this->path, '/');
                         }
                         $launchUrl = url($launchUrl);
                     }
@@ -135,19 +151,19 @@ class App extends BaseSystemModel
     public static function boot()
     {
         static::saved(
-            function(App $app){
-                if(!$app->is_active){
+            function (App $app){
+                if (!$app->is_active) {
                     JWTUtilities::invalidateTokenByAppId($app->id);
                 }
-                \Cache::forget('app:'.$app->id);
+                \Cache::forget('app:' . $app->id);
             }
         );
 
         static::deleted(
-            function(App $app){
+            function (App $app){
                 JWTUtilities::invalidateTokenByAppId($app->id);
-                \Cache::forget('app:'.$app->id);
-                \Cache::forget('apikey2appid:'.$app->api_key);
+                \Cache::forget('app:' . $app->id);
+                \Cache::forget('apikey2appid:' . $app->api_key);
             }
         );
     }

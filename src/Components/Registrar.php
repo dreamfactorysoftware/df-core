@@ -5,7 +5,6 @@ use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\EmailTemplate;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 use DreamFactory\Core\Services\Email\BaseService as EmailService;
@@ -117,7 +116,7 @@ class Registrar implements RegistrarContract
                     'name'           => $user->name,
                     'email'          => $user->email,
                     'phone'          => $user->phone,
-                    'content_header' => ArrayUtils::get($templateData, 'subject', 'Confirm your DreamFactory account.'),
+                    'content_header' => array_get($templateData, 'subject', 'Confirm your DreamFactory account.'),
                     'instance_name'  => \Config::get('df.instance_name')
                 ]);
             } catch (\Exception $e) {

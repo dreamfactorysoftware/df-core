@@ -5,6 +5,10 @@ use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\DbExtrasInterface;
 use DreamFactory\Core\Database\DataReader;
 use DreamFactory\Core\Database\Expression;
+use DreamFactory\Core\Enums\DbSimpleTypes;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Database\Connection;
@@ -17,6 +21,9 @@ use DB;
  */
 abstract class Schema
 {
+    /**
+     *
+     */
     const DEFAULT_STRING_MAX_SIZE = 255;
 
     /**
@@ -24,6 +31,9 @@ abstract class Schema
      */
     const LEFT_QUOTE_CHARACTER = '"';
 
+    /**
+     *
+     */
     const RIGHT_QUOTE_CHARACTER = '"';
 
     /**
@@ -179,6 +189,12 @@ abstract class Schema
         $this->defaultSchemaOnly = $defaultSchemaOnly;
     }
 
+    /**
+     * @param      $key
+     * @param null $default
+     *
+     * @return null
+     */
     public function getFromCache($key, $default = null)
     {
         if ($this->cache) {
@@ -188,6 +204,11 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param      $key
+     * @param      $value
+     * @param bool $forever
+     */
     public function addToCache($key, $value, $forever = false)
     {
         if ($this->cache) {
@@ -195,6 +216,9 @@ abstract class Schema
         }
     }
 
+    /**
+     * @param $key
+     */
     public function removeFromCache($key)
     {
         if ($this->cache) {
@@ -202,6 +226,9 @@ abstract class Schema
         }
     }
 
+    /**
+     *
+     */
     public function flush()
     {
         if ($this->cache) {
@@ -209,6 +236,13 @@ abstract class Schema
         }
     }
 
+    /**
+     * @param        $table_names
+     * @param bool   $include_fields
+     * @param string $select
+     *
+     * @return null
+     */
     public function getSchemaExtrasForTables($table_names, $include_fields = true, $select = '*')
     {
         if ($this->extraStore) {
@@ -218,6 +252,13 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param        $table_name
+     * @param string $field_names
+     * @param string $select
+     *
+     * @return null
+     */
     public function getSchemaExtrasForFields($table_name, $field_names = '*', $select = '*')
     {
         if ($this->extraStore) {
@@ -227,6 +268,13 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param        $table_name
+     * @param string $field_names
+     * @param string $select
+     *
+     * @return null
+     */
     public function getSchemaExtrasForFieldsReferenced($table_name, $field_names = '*', $select = '*')
     {
         if ($this->extraStore) {
@@ -236,6 +284,13 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param        $table_name
+     * @param string $related_names
+     * @param string $select
+     *
+     * @return null
+     */
     public function getSchemaExtrasForRelated($table_name, $related_names = '*', $select = '*')
     {
         if ($this->extraStore) {
@@ -245,6 +300,11 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $extras
+     *
+     * @return null
+     */
     public function setSchemaTableExtras($extras)
     {
         if ($this->extraStore) {
@@ -254,6 +314,11 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $extras
+     *
+     * @return null
+     */
     public function setSchemaFieldExtras($extras)
     {
         if ($this->extraStore) {
@@ -263,6 +328,11 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $extras
+     *
+     * @return null
+     */
     public function setSchemaRelatedExtras($extras)
     {
         if ($this->extraStore) {
@@ -272,6 +342,11 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $table_names
+     *
+     * @return null
+     */
     public function removeSchemaExtrasForTables($table_names)
     {
         if ($this->extraStore) {
@@ -281,6 +356,12 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $table_name
+     * @param $field_names
+     *
+     * @return null
+     */
     public function removeSchemaExtrasForFields($table_name, $field_names)
     {
         if ($this->extraStore) {
@@ -290,6 +371,12 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param $table_name
+     * @param $related_names
+     *
+     * @return null
+     */
     public function removeSchemaExtrasForRelated($table_name, $related_names)
     {
         if ($this->extraStore) {
@@ -299,11 +386,21 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @return mixed
+     */
     public function getUserName()
     {
         return $this->connection->getConfig('username');
     }
 
+    /**
+     * @param       $query
+     * @param array $bindings
+     * @param null  $column
+     *
+     * @return array
+     */
     public function selectColumn($query, $bindings = [], $column = null)
     {
         $rows = $this->connection->select($query, $bindings);
@@ -319,6 +416,13 @@ abstract class Schema
         return $rows;
     }
 
+    /**
+     * @param       $query
+     * @param array $bindings
+     * @param null  $column
+     *
+     * @return mixed|null
+     */
     public function selectValue($query, $bindings = [], $column = null)
     {
         if (null !== $row = $this->connection->selectOne($query, $bindings)) {
@@ -437,6 +541,10 @@ abstract class Schema
         return [''];
     }
 
+    /**
+     * @param \DreamFactory\Core\Database\Schema\TableSchema $table
+     * @param                                                $constraints
+     */
     protected function buildTableRelations(TableSchema $table, $constraints)
     {
         $schema = (!empty($table->schemaName)) ? $table->schemaName : $this->getDefaultSchema();
@@ -459,8 +567,8 @@ abstract class Schema
                     $column->isForeignKey = true;
                     $column->refTable = $name;
                     $column->refFields = $rcn;
-                    if (ColumnSchema::TYPE_INTEGER === $column->type) {
-                        $column->type = ColumnSchema::TYPE_REF;
+                    if (DbSimpleTypes::TYPE_INTEGER === $column->type) {
+                        $column->type = DbSimpleTypes::TYPE_REF;
                     }
                     $table->addColumn($column);
                 }
@@ -561,13 +669,14 @@ abstract class Schema
      */
     public function getTable($name, $refresh = false)
     {
+        $ndx = strtolower($name);
         if (!$refresh) {
-            if (isset($this->tables[$name])) {
-                return $this->tables[$name];
-            } elseif (null !== $table = $this->getFromCache('table:' . $name)) {
-                $this->tables[$name] = $table;
+            if (isset($this->tables[$ndx])) {
+                return $this->tables[$ndx];
+            } elseif (null !== $table = $this->getFromCache('table:' . $ndx)) {
+                $this->tables[$ndx] = $table;
 
-                return $this->tables[$name];
+                return $this->tables[$ndx];
             }
         }
 
@@ -578,7 +687,6 @@ abstract class Schema
 //        }
 
         // check if know anything about this table already
-        $ndx = strtolower($name);
         if (empty($this->tableNames[$ndx])) {
             $this->getCachedTableNames();
             if (empty($this->tableNames[$ndx])) {
@@ -626,7 +734,7 @@ abstract class Schema
                                 ];
                             $column->fill(array_except($extra, $refExtraFields));
                         }
-                    } elseif (ColumnSchema::TYPE_VIRTUAL ===
+                    } elseif (DbSimpleTypes::TYPE_VIRTUAL ===
                         (isset($extra['extra_type']) ? $extra['extra_type'] : null)
                     ) {
                         $extra['name'] = $extra['field'];
@@ -672,8 +780,8 @@ abstract class Schema
             }
         }
 
-        $this->tables[$name] = $table;
-        $this->addToCache('table:' . $name, $table, true);
+        $this->tables[$ndx] = $table;
+        $this->addToCache('table:' . $ndx, $table, true);
 
         return $table;
     }
@@ -776,8 +884,11 @@ abstract class Schema
      * @throws \Exception if current schema does not support fetching all table names
      * @return array all table names in the database.
      */
-    protected function findTableNames($schema = '', $include_views = true)
-    {
+    protected function findTableNames(
+        /** @noinspection PhpUnusedParameterInspection */
+        $schema = '',
+        $include_views = true
+    ){
         throw new NotImplementedException("Database or driver does not support fetching all table names.");
     }
 
@@ -792,28 +903,43 @@ abstract class Schema
      */
     public function getProcedure($name, $refresh = false)
     {
-        if ($refresh === false && isset($this->procedures[$name])) {
-            return $this->procedures[$name];
-        } else {
-            $realName = $name;
+        $ndx = strtolower($name);
+        if (!$refresh) {
+            if (isset($this->procedures[$ndx])) {
+                return $this->procedures[$ndx];
+            } elseif (null !== $procedure = $this->getFromCache('procedure:' . $ndx)) {
+                $this->procedures[$ndx] = $procedure;
 
-            $this->procedures[$name] = $procedure = $this->loadProcedure($realName);
-
-            return $procedure;
+                return $this->procedures[$ndx];
+            }
         }
+
+        // check if know anything about this procedure already
+        if (empty($this->procedureNames[$ndx])) {
+            $this->getCachedProcedureNames();
+            if (empty($this->procedureNames[$ndx])) {
+                return null;
+            }
+        }
+
+        $procedure = $this->procedureNames[$ndx];
+        $this->loadProcedure($procedure);
+        $this->procedures[$ndx] = $procedure;
+        $this->addToCache('procedure:' . $ndx, $procedure, true);
+
+        return $procedure;
     }
 
     /**
      * Loads the metadata for the specified stored procedure.
      *
-     * @param string $name procedure name
+     * @param ProcedureSchema $procedure procedure
      *
      * @throws \Exception
-     * @return ProcedureSchema driver dependent procedure metadata, null if the procedure does not exist.
      */
-    protected function loadProcedure($name)
+    protected function loadProcedure(ProcedureSchema &$procedure)
     {
-        throw new NotImplementedException("Database or driver does not support loading stored procedure.");
+        $this->loadParameters($procedure);
     }
 
     /**
@@ -821,17 +947,19 @@ abstract class Schema
      *
      * @param string $schema the schema of the procedures. Defaults to empty string, meaning the current or default
      *                       schema.
+     * @param bool   $refresh
      *
      * @return array the metadata for all stored procedures in the database.
      * Each array element is an instance of {@link ProcedureSchema} (or its child class).
      * The array keys are procedure names.
      */
-    public function getProcedures($schema = '')
+    public function getProcedures($schema = '', $refresh = false)
     {
         $procedures = [];
-        foreach ($this->getProcedureNames($schema) as $name) {
-            if (($procedure = $this->getProcedure($name)) !== null) {
-                $procedures[$name] = $procedure;
+        /** @type ProcedureSchema $procNameSchema */
+        foreach ($this->getProcedureNames($schema) as $procNameSchema) {
+            if (($procedure = $this->getProcedure($procNameSchema->publicName, $refresh)) !== null) {
+                $procedures[$procNameSchema->publicName] = $procedure;
             }
         }
 
@@ -843,37 +971,26 @@ abstract class Schema
      *
      * @param string $schema the schema of the procedures. Defaults to empty string, meaning the current or default
      *                       schema. If not empty, the returned procedure names will be prefixed with the schema name.
-     *
      * @param bool   $refresh
      *
      * @return array all procedure names in the database.
      */
     public function getProcedureNames($schema = '', $refresh = false)
     {
-        if ($refresh) {
-            // go ahead and reset all schemas
-            $this->getCachedProcedureNames($refresh);
-        }
+        // go ahead and reset all schemas
+        $this->getCachedProcedureNames($refresh);
         if (empty($schema)) {
-            $names = [];
-            foreach ($this->getSchemaNames() as $schema) {
-                if (!isset($this->procedureNames[$schema])) {
-                    $this->getCachedProcedureNames();
-                }
-
-                $temp = (isset($this->procedureNames[$schema]) ? $this->procedureNames[$schema] : []);
-                $names = array_merge($names, $temp);
-            }
-
-            return array_values($names);
+            // return all
+            return $this->procedureNames;
         } else {
-            if (!isset($this->procedureNames[$schema])) {
-                $this->getCachedProcedureNames();
+            $names = [];
+            foreach ($this->procedureNames as $key => $value) {
+                if ($value->schemaName === $schema) {
+                    $names[$key] = $value;
+                }
             }
 
-            $names = (isset($this->procedureNames[$schema]) ? $this->procedureNames[$schema] : []);
-
-            return array_values($names);
+            return $names;
         }
     }
 
@@ -890,10 +1007,9 @@ abstract class Schema
         ) {
             $names = [];
             foreach ($this->getSchemaNames($refresh) as $temp) {
-                $procs = $this->findProcedureNames($temp);
-                natcasesort($procs);
-                $names[$temp] = $procs;
+                $names = array_merge($names, $this->findProcedureNames($temp));
             }
+            ksort($names, SORT_NATURAL); // sort alphabetically
             $this->procedureNames = $names;
             $this->addToCache('proc_names', $this->procedureNames, true);
         }
@@ -913,7 +1029,60 @@ abstract class Schema
      */
     protected function findProcedureNames($schema = '')
     {
-        throw new NotImplementedException("Database or driver does not support fetching all stored procedure names.");
+        return $this->findRoutineNames('PROCEDURE', $schema);
+    }
+
+    /**
+     * Returns all routines in the database.
+     *
+     * @param string $type   "procedure" or "function"
+     * @param string $schema the schema of the routine. Defaults to empty string, meaning the current or
+     *                       default schema. If not empty, the returned stored function names will be prefixed with the
+     *                       schema name.
+     *
+     * @throws \InvalidArgumentException
+     * @return array all stored function names in the database.
+     */
+    protected function findRoutineNames($type, $schema = '')
+    {
+        $bindings = [':type' => $type];
+        $where = 'ROUTINE_TYPE = :type';
+        if (!empty($schema)) {
+            $where .= ' AND ROUTINE_SCHEMA = :schema';
+            $bindings[':schema'] = $schema;
+        }
+
+        $sql = <<<MYSQL
+SELECT ROUTINE_NAME, DATA_TYPE FROM INFORMATION_SCHEMA.ROUTINES WHERE {$where}
+MYSQL;
+
+        $rows = $this->connection->select($sql, $bindings);
+
+        $defaultSchema = $this->getDefaultSchema();
+        $addSchema = (!empty($schema) && ($defaultSchema !== $schema));
+
+        $names = [];
+        foreach ($rows as $row) {
+            $row = array_change_key_case((array)$row, CASE_UPPER);
+            $name = array_get($row, 'ROUTINE_NAME');
+            $schemaName = $schema;
+            if ($addSchema) {
+                $publicName = $schemaName . '.' . $name;
+                $rawName = $this->quoteTableName($schemaName) . '.' . $this->quoteTableName($name);;
+            } else {
+                $publicName = $name;
+                $rawName = $this->quoteTableName($name);
+            }
+            $returnType = array_get($row, 'DATA_TYPE');
+            if (!empty($returnType) && (0 !== strcasecmp('void', $returnType))) {
+                $returnType = static::extractSimpleType($returnType);
+            }
+            $settings = compact('schemaName', 'name', 'publicName', 'rawName', 'returnType');
+            $names[strtolower($publicName)] =
+                ('PROCEDURE' === $type) ? new ProcedureSchema($settings) : new FunctionSchema($settings);
+        }
+
+        return $names;
     }
 
     /**
@@ -926,13 +1095,83 @@ abstract class Schema
      */
     public function getFunction($name, $refresh = false)
     {
-        if ($refresh === false && isset($this->functions[$name])) {
-            return $this->functions[$name];
-        } else {
-            $realName = $name;
-            $this->functions[$name] = $function = $this->loadFunction($realName);
+        $ndx = strtolower($name);
+        if (!$refresh) {
+            if (isset($this->functions[$ndx])) {
+                return $this->functions[$ndx];
+            } elseif (null !== $function = $this->getFromCache('function:' . $ndx)) {
+                $this->functions[$ndx] = $function;
 
-            return $function;
+                return $this->functions[$ndx];
+            }
+        }
+
+        // check if know anything about this function already
+        if (empty($this->functionNames[$ndx])) {
+            $this->getCachedFunctionNames();
+            if (empty($this->functionNames[$ndx])) {
+                return null;
+            }
+        }
+
+        $function = $this->functionNames[$ndx];
+        $this->loadFunction($function);
+        $this->functions[$ndx] = $function;
+        $this->addToCache('function:' . $ndx, $function, true);
+
+        return $function;
+    }
+
+    /**
+     * Loads the metadata for the specified stored function.
+     *
+     * @param FunctionSchema $function
+     */
+    protected function loadFunction(FunctionSchema &$function)
+    {
+        $this->loadParameters($function);
+    }
+
+    /**
+     * Loads the parameter metadata for the specified stored procedure or function.
+     *
+     * @param ProcedureSchema|FunctionSchema $holder
+     */
+    protected function loadParameters(&$holder)
+    {
+        $sql = <<<MYSQL
+SELECT 
+    p.ORDINAL_POSITION, p.PARAMETER_MODE, p.PARAMETER_NAME, p.DATA_TYPE, p.CHARACTER_MAXIMUM_LENGTH, p.NUMERIC_PRECISION, p.NUMERIC_SCALE
+FROM 
+    INFORMATION_SCHEMA.PARAMETERS AS p JOIN INFORMATION_SCHEMA.ROUTINES AS r ON r.SPECIFIC_NAME = p.SPECIFIC_NAME
+WHERE 
+    r.ROUTINE_NAME = '{$holder->name}' AND r.ROUTINE_SCHEMA = '{$holder->schemaName}'
+MYSQL;
+
+        foreach ($this->connection->select($sql) as $row) {
+            $row = array_change_key_case((array)$row, CASE_UPPER);
+            $name = ltrim(array_get($row, 'PARAMETER_NAME'), '@'); // added on by some drivers, i.e. @name
+            $pos = intval(array_get($row, 'ORDINAL_POSITION'));
+            $simpleType = static::extractSimpleType(array_get($row, 'DATA_TYPE'));
+            if (0 === $pos) {
+                $holder->returnType = $simpleType;
+            } else {
+                $holder->addParameter(new ParameterSchema(
+                    [
+                        'name'       => $name,
+                        'position'   => $pos,
+                        'param_type' => array_get($row, 'PARAMETER_MODE'),
+                        'type'       => $simpleType,
+                        'db_type'    => array_get($row, 'DATA_TYPE'),
+                        'length'     => (isset($row['CHARACTER_MAXIMUM_LENGTH']) ? intval(array_get($row,
+                            'CHARACTER_MAXIMUM_LENGTH')) : null),
+                        'precision'  => (isset($row['NUMERIC_PRECISION']) ? intval(array_get($row, 'NUMERIC_PRECISION'))
+                            : null),
+                        'scale'      => (isset($row['NUMERIC_SCALE']) ? intval(array_get($row, 'NUMERIC_SCALE'))
+                            : null),
+                    ]
+                ));
+            }
         }
     }
 
@@ -949,9 +1188,10 @@ abstract class Schema
     public function getFunctions($schema = '')
     {
         $functions = [];
-        foreach ($this->getFunctionNames($schema) as $name) {
-            if (($procedure = $this->getFunction($name)) !== null) {
-                $functions[$name] = $procedure;
+        /** @type FunctionSchema $funcNameSchema */
+        foreach ($this->getFunctionNames($schema) as $funcNameSchema) {
+            if (($procedure = $this->getFunction($funcNameSchema->publicName)) !== null) {
+                $functions[$funcNameSchema->publicName] = $procedure;
             }
         }
 
@@ -970,30 +1210,20 @@ abstract class Schema
      */
     public function getFunctionNames($schema = '', $refresh = false)
     {
-        if ($refresh) {
-            // go ahead and reset all schemas
-            $this->getCachedFunctionNames($refresh);
-        }
+        // go ahead and reset all schemas
+        $this->getCachedFunctionNames($refresh);
         if (empty($schema)) {
-            $names = [];
-            foreach ($this->getSchemaNames() as $schema) {
-                if (!isset($this->functionNames[$schema])) {
-                    $this->getCachedFunctionNames();
-                }
-
-                $temp = (isset($this->functionNames[$schema]) ? $this->functionNames[$schema] : []);
-                $names = array_merge($names, $temp);
-            }
-
-            return array_values($names);
+            // return all
+            return $this->functionNames;
         } else {
-            if (!isset($this->functionNames[$schema])) {
-                $this->getCachedFunctionNames();
+            $names = [];
+            foreach ($this->functionNames as $key => $value) {
+                if ($value->schemaName === $schema) {
+                    $names[$key] = $value;
+                }
             }
 
-            $names = (isset($this->functionNames[$schema]) ? $this->functionNames[$schema] : []);
-
-            return array_values($names);
+            return $names;
         }
     }
 
@@ -1010,10 +1240,9 @@ abstract class Schema
         ) {
             $names = [];
             foreach ($this->getSchemaNames($refresh) as $temp) {
-                $funcs = $this->findFunctionNames($temp);
-                natcasesort($funcs);
-                $names[$temp] = $funcs;
+                $names = array_merge($names, $this->findFunctionNames($temp));
             }
+            ksort($names, SORT_NATURAL); // sort alphabetically
             $this->functionNames = $names;
             $this->addToCache('func_names', $this->functionNames, true);
         }
@@ -1033,20 +1262,8 @@ abstract class Schema
      */
     protected function findFunctionNames($schema = '')
     {
-        throw new NotImplementedException("Database or driver does not support fetching all stored function names.");
-    }
-
-    /**
-     * Loads the metadata for the specified function.
-     *
-     * @param string $name function name
-     *
-     * @throws \Exception
-     * @return FunctionSchema driver dependent function metadata, null if the function does not exist.
-     */
-    protected function loadFunction($name)
-    {
-        throw new NotImplementedException("Database or driver does not support loading stored functions.");
+        return $this->findRoutineNames('FUNCTION', $schema);
+//        throw new NotImplementedException("Database or driver does not support fetching all stored function names.");
     }
 
     /**
@@ -1240,7 +1457,7 @@ abstract class Schema
             /** @type  ColumnSchema $oldField */
             foreach ($oldSchema->getColumns() as $oldField) {
                 if (!isset($newFields[strtolower($oldField->name)])) {
-                    if (ColumnSchema::TYPE_VIRTUAL === $oldField->type) {
+                    if (DbSimpleTypes::TYPE_VIRTUAL === $oldField->type) {
                         $dropExtras[$table_name][] = $oldField->name;
                     } else {
                         $dropColumns[] = $oldField->name;
@@ -1290,8 +1507,8 @@ abstract class Schema
                 $extraTags = array_merge($extraTags, ['ref_table', 'ref_fields', 'ref_on_update', 'ref_on_delete']);
                 // cleanup possible overkill from API
                 $field['is_foreign_key'] = null;
-                if (!empty($field['type']) && (ColumnSchema::TYPE_REF == $field['type'])) {
-                    $field['type'] = ColumnSchema::TYPE_INTEGER;
+                if (!empty($field['type']) && (DbSimpleTypes::TYPE_REF == $field['type'])) {
+                    $field['type'] = DbSimpleTypes::TYPE_INTEGER;
                 }
             } else {
                 // don't set this in the database extras
@@ -1366,20 +1583,20 @@ abstract class Schema
             $type = (isset($field['type'])) ? strtolower($field['type']) : '';
 
             switch ($type) {
-                case ColumnSchema::TYPE_USER_ID:
-                case ColumnSchema::TYPE_USER_ID_ON_CREATE:
-                case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
-                case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
-                case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
+                case DbSimpleTypes::TYPE_USER_ID:
+                case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
+                case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
+                case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
+                case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
                     $extraNew['extra_type'] = $type;
                     break;
-                case ColumnSchema::TYPE_ID:
+                case DbSimpleTypes::TYPE_ID:
                 case 'pk':
                     $pkExtras = $this->getPrimaryKeyCommands($table_name, $name);
                     $commands = array_merge($commands, $pkExtras);
                     break;
-                case ColumnSchema::TYPE_VIRTUAL:
-                    if ($oldField && (ColumnSchema::TYPE_VIRTUAL !== $oldField->type)) {
+                case DbSimpleTypes::TYPE_VIRTUAL:
+                    if ($oldField && (DbSimpleTypes::TYPE_VIRTUAL !== $oldField->type)) {
                         throw new \Exception("Field '$name' already exists as non-virtual in table '$table_name'.");
                     }
                     $extraNew['extra_type'] = $type;
@@ -1391,7 +1608,7 @@ abstract class Schema
             }
 
             $isForeignKey = (isset($field['is_foreign_key'])) ? boolval($field['is_foreign_key']) : false;
-            if (((ColumnSchema::TYPE_REF == $type) || $isForeignKey)) {
+            if (((DbSimpleTypes::TYPE_REF == $type) || $isForeignKey)) {
                 // special case for references because the table referenced may not be created yet
                 $refTable = (isset($field['ref_table'])) ? $field['ref_table'] : null;
                 if (empty($refTable)) {
@@ -1643,13 +1860,9 @@ abstract class Schema
      */
     public function addColumn($table, $column, $type)
     {
-        return
-            'ALTER TABLE ' .
-            $this->quoteTableName($table) .
-            ' ADD ' .
-            $this->quoteColumnName($column) .
-            ' ' .
-            $this->getColumnType($type);
+        return <<<MYSQL
+ALTER TABLE {$this->quoteTableName($table)} ADD {$this->quoteColumnName($column)} {$this->getColumnType($type)};
+MYSQL;
     }
 
     /**
@@ -1701,6 +1914,13 @@ abstract class Schema
             $this->getColumnType($definition);
     }
 
+    /**
+     * @param $prefix
+     * @param $table
+     * @param $column
+     *
+     * @return string
+     */
     public function makeConstraintName($prefix, $table, $column)
     {
         $temp = $prefix . '_' . str_replace('.', '_', $table) . '_' . $column;
@@ -1775,11 +1995,20 @@ abstract class Schema
         return 'ALTER TABLE ' . $this->quoteTableName($table) . ' DROP CONSTRAINT ' . $this->quoteColumnName($name);
     }
 
+    /**
+     * @param bool $unique
+     * @param bool $on_create_table
+     *
+     * @return bool
+     */
     public function requiresCreateIndex($unique = false, $on_create_table = false)
     {
         return true;
     }
 
+    /**
+     * @return bool
+     */
     public function allowsSeparateForeignConstraint()
     {
         return true;
@@ -1877,6 +2106,12 @@ abstract class Schema
         return 'ALTER TABLE ' . $this->quoteTableName($table) . ' DROP CONSTRAINT ' . $this->quoteColumnName($name);
     }
 
+    /**
+     * @param $table
+     * @param $column
+     *
+     * @return array
+     */
     public function getPrimaryKeyCommands($table, $column)
     {
         return [];
@@ -1890,11 +2125,23 @@ abstract class Schema
         return $this->connection->raw('(NOW())');
     }
 
+    /**
+     * @param $value
+     * @param $field_info
+     *
+     * @return mixed
+     */
     public function parseValueForSet($value, $field_info)
     {
         return $value;
     }
 
+    /**
+     * @param $value
+     * @param $type
+     *
+     * @return bool|int|null|string
+     */
     public function formatValue($value, $type)
     {
         $type = strtolower(strval($type));
@@ -1927,6 +2174,11 @@ abstract class Schema
         return $value;
     }
 
+    /**
+     * @param $type
+     *
+     * @return mixed|null
+     */
     public static function getDateTimeFormat($type)
     {
         switch (strtolower(strval($type))) {
@@ -1946,6 +2198,13 @@ abstract class Schema
         return null;
     }
 
+    /**
+     * @param      $out_format
+     * @param null $in_value
+     * @param null $in_format
+     *
+     * @return null|string
+     */
     public static function formatDateTime($out_format, $in_value = null, $in_format = null)
     {
         //  If value is null, current date and time are returned
@@ -2009,6 +2268,15 @@ abstract class Schema
         return "DROP VIEW " . $this->quoteTableName($table);
     }
 
+    /**
+     * @param      $tables
+     * @param bool $allow_merge
+     * @param bool $allow_delete
+     * @param bool $rollback
+     *
+     * @return array
+     * @throws \Exception
+     */
     public function updateSchema($tables, $allow_merge = false, $allow_delete = false, $rollback = false)
     {
         if (!is_array($tables) || empty($tables)) {
@@ -2267,11 +2535,17 @@ abstract class Schema
         return $result;
     }
 
+    /**
+     * @param $table
+     * @param $column
+     *
+     * @return bool|int
+     */
     public function dropColumn($table, $column)
     {
         $result = 0;
         $tableInfo = $this->getTable($table);
-        if (($columnInfo = $tableInfo->getColumn($column)) && (ColumnSchema::TYPE_VIRTUAL !== $columnInfo->type)) {
+        if (($columnInfo = $tableInfo->getColumn($column)) && (DbSimpleTypes::TYPE_VIRTUAL !== $columnInfo->type)) {
             $sql = "ALTER TABLE " . $this->quoteTableName($table) . " DROP COLUMN " . $this->quoteColumnName($column);
             $result = $this->connection->statement($sql);
         }
@@ -2419,19 +2693,119 @@ abstract class Schema
 
     /**
      * @param string $name
-     * @param array  $params
+     * @param array  $in_params
      *
      * @throws \Exception
      * @return mixed
      */
-    public function callFunction(
-        /** @noinspection PhpUnusedParameterInspection */
-        $name,
-        &$params
-    ){
+    public function callFunction($name, $in_params)
+    {
         if (!$this->supportsFunctions()) {
             throw new \Exception('Stored Functions are not supported by this database connection.');
         }
+
+        if (null === $function = $this->getFunction($name)) {
+            throw new NotFoundException("Function '$name' can not be found.");
+        }
+
+        $paramSchemas = $function->getParameters();
+        $values = $this->determineRoutineValues($paramSchemas, $in_params);
+
+        $sql = $this->getFunctionStatement($function, $paramSchemas, $values);
+        /** @type \PDOStatement $statement */
+        if (!$statement = $this->connection->getPdo()->prepare($sql)) {
+            throw new InternalServerErrorException('Failed to prepare statement: ' . $sql);
+        }
+
+        // do binding
+        $this->doRoutineBinding($statement, $paramSchemas, $values);
+
+        // support multiple result sets
+        $result = [];
+        try {
+            $statement->execute();
+            $reader = new DataReader($statement);
+            do {
+                $temp = $reader->readAll();
+                if (!empty($temp)) {
+                    $result[] = $temp;
+                }
+            } while ($reader->nextResult());
+        } catch (\Exception $ex) {
+            if (!$this->handleRoutineException($ex)) {
+                $errorInfo = $ex instanceof \PDOException ? $ex : null;
+                $message = $ex->getMessage();
+                throw new \Exception($message, (int)$ex->getCode(), $errorInfo);
+            }
+        }
+
+        // if there is only one data set, just return it
+        if (1 == count($result)) {
+            $result = $result[0];
+            // if there is only one data set, search for an output
+            if (1 == count($result)) {
+                $result = current($result);
+                if (array_key_exists('output', $result)) {
+                    return $this->formatValue($result['output'], $function->returnType);
+                } elseif (array_key_exists($function->name, $result)) {
+                    // some vendors return the results as the function's name
+                    return $this->formatValue($result[$function->name], $function->returnType);
+                }
+            }
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param array $param_schemas
+     * @param array $values
+     *
+     * @return string
+     */
+    protected function getRoutineParamString(array $param_schemas, array &$values)
+    {
+        $paramStr = '';
+        foreach ($param_schemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'IN':
+                case 'INOUT':
+                case 'OUT':
+                    $pName = ':' . $paramSchema->name;
+                    $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return $paramStr;
+    }
+
+    /**
+     * @param \DreamFactory\Core\Database\Schema\RoutineSchema $routine
+     * @param array                                            $param_schemas
+     * @param array                                            $values
+     *
+     * @return string
+     */
+    protected function getFunctionStatement(RoutineSchema $routine, array $param_schemas, array &$values)
+    {
+        $paramStr = $this->getRoutineParamString($param_schemas, $values);
+
+        return "SELECT {$routine->rawName}($paramStr) AS " . $this->quoteColumnName('output');
+    }
+
+    /**
+     * @param \Exception $ex
+     *
+     * @return bool
+     */
+    protected function handleRoutineException(
+        /** @noinspection PhpUnusedParameterInspection */
+        \Exception $ex
+    ){
+        return false;
     }
 
     /**
@@ -2444,88 +2818,192 @@ abstract class Schema
 
     /**
      * @param string $name
-     * @param array  $params
+     * @param array  $in_params
+     * @param array  $out_params
      *
      * @throws \Exception
      * @return mixed
      */
-    public function callProcedure($name, &$params)
+    public function callProcedure($name, array $in_params, array &$out_params)
     {
         if (!$this->supportsProcedures()) {
-            throw new \Exception('Stored Procedures are not supported by this database connection.');
+            throw new BadRequestException('Stored Procedures are not supported by this database connection.');
         }
 
-        $name = $this->quoteTableName($name);
-        $paramStr = '';
-        foreach ($params as $key => $param) {
-            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
-
-            if (!empty($paramStr)) {
-                $paramStr .= ', ';
-            }
-
-            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
-                case 'OUT':
-                case 'INOUT':
-                case 'IN':
-                default:
-                    $paramStr .= ":$pName";
-                    break;
-            }
+        if (null === $procedure = $this->getProcedure($name)) {
+            throw new NotFoundException("Procedure '$name' can not be found.");
         }
 
-        $sql = "CALL $name($paramStr)";
+        $paramSchemas = $procedure->getParameters();
+        $values = $this->determineRoutineValues($paramSchemas, $in_params);
+
+        $sql = $this->getProcedureStatement($procedure, $paramSchemas, $values);
+
         /** @type \PDOStatement $statement */
-        $statement = $this->connection->getPdo()->prepare($sql);
-        // do binding
-        foreach ($params as $key => $param) {
-            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
-
-            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
-                case 'OUT':
-                case 'INOUT':
-                case 'IN':
-                default:
-                    $rType = (isset($param['type'])) ? $param['type'] : 'string';
-                    $rLength = (isset($param['length'])) ? $param['length'] : 256;
-                    $pdoType = $this->getPdoType($rType);
-                    $this->bindParam($statement, ":$pName", $params[$key]['value'], $pdoType | \PDO::PARAM_INPUT_OUTPUT,
-                        $rLength);
-                    break;
-            }
+        if (!$statement = $this->connection->getPdo()->prepare($sql)) {
+            throw new InternalServerErrorException('Failed to prepare statement: ' . $sql);
         }
+
+        // do binding
+        $this->doRoutineBinding($statement, $paramSchemas, $values);
 
         // support multiple result sets
+        $result = [];
         try {
             $statement->execute();
             $reader = new DataReader($statement);
-        } catch (\Exception $e) {
-            $errorInfo = $e instanceof \PDOException ? $e : null;
-            $message = $e->getMessage();
-            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
-        }
-        $result = $reader->readAll();
-        if ($reader->nextResult()) {
-            // more data coming, make room
-            $result = [$result];
             do {
-                $result[] = $reader->readAll();
-            } while ($reader->nextResult());
-        }
-
-        // out parameters come back in fetch results, put them in the params for client
-        if (isset($result, $result[0])) {
-            foreach ($params as $key => $param) {
-                if (false !== stripos(strval(isset($param['param_type']) ? $param['param_type'] : ''), 'OUT')) {
-                    $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
-                    if (isset($result[0][$pName])) {
-                        $params[$key]['value'] = $result[0][$pName];
+                $temp = $reader->readAll();
+                if (!empty($temp)) {
+                    $keep = true;
+                    if (1 == count($temp)) {
+                        $check = array_change_key_case(current($temp), CASE_LOWER);
+                        foreach ($paramSchemas as $key => $paramSchema) {
+                            switch ($paramSchema->paramType) {
+                                case 'OUT':
+                                case 'INOUT':
+                                    if (array_key_exists($key, $check)) {
+                                        $values[$paramSchema->name] = $check[$key];
+                                        // todo problem here if the result contains field name = param name!
+                                        $keep = false;
+                                    }
+                                    break;
+                            }
+                        }
+                    }
+                    if ($keep) {
+                        $result[] = $temp;
                     }
                 }
+            } while ($reader->nextResult());
+        } catch (\Exception $ex) {
+            if (!$this->handleRoutineException($ex)) {
+                $errorInfo = $ex instanceof \PDOException ? $ex : null;
+                $message = $ex->getMessage();
+                throw new \Exception($message, (int)$ex->getCode(), $errorInfo);
+            }
+        }
+
+        // if there is only one data set, just return it
+        if (1 == count($result)) {
+            $result = $result[0];
+        }
+
+        // any post op?
+        $this->postProcedureCall($paramSchemas, $values);
+
+        foreach ($paramSchemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'OUT':
+                case 'INOUT':
+                    if (array_key_exists($key, $values)) {
+                        $out_params[$paramSchema->name] = $this->formatValue($values[$key], $paramSchema->type);
+                    }
+                    break;
             }
         }
 
         return $result;
+    }
+
+    /**
+     * @param array $param_schemas
+     * @param array $in_params
+     *
+     * @return array
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    protected function determineRoutineValues(array $param_schemas, array $in_params)
+    {
+        // check associative
+        $keys = array_keys($in_params);
+        $isAssociative = (array_keys($keys) !== $keys);
+        $in_params = array_change_key_case($in_params, CASE_LOWER);
+        $values = [];
+        $index = -1;
+        // key is lowercase index
+        foreach ($param_schemas as $key => $paramSchema) {
+            $index++;
+            switch ($paramSchema->paramType) {
+                case 'IN':
+                case 'INOUT':
+                    $value = null;
+                    if ($isAssociative) {
+                        if (array_key_exists($key, $in_params)) {
+                            $value = $in_params[$key];
+                        } elseif (empty($paramSchema->defaultValue)) {
+                            throw new BadRequestException("Routine requires value for parameter '{$paramSchema->name}'.");
+                        }
+                    } elseif (array_key_exists($index, $in_params)) {
+                        if (is_array($in_params[$index])) {
+                            if (array_key_exists('value', $in_params[$index])) {
+                                $value = $in_params[$index]['value'];
+                            } elseif (empty($paramSchema->defaultValue)) {
+                                throw new BadRequestException("Routine requires value for parameter '{$paramSchema->name}'.");
+                            }
+                        } else {
+                            $value = $in_params[$index];
+                        }
+                    } elseif (empty($paramSchema->defaultValue)) {
+                        throw new BadRequestException("Routine requires value for parameter '{$paramSchema->name}'.");
+                    }
+
+                    $values[$key] = $value;
+                    break;
+                case 'OUT':
+                    $values[$key] = null;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return $values;
+    }
+
+    /**
+     * @param       $statement
+     * @param array $paramSchemas
+     * @param array $values
+     */
+    protected function doRoutineBinding($statement, array $paramSchemas, array &$values)
+    {
+        // do binding
+        foreach ($paramSchemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'IN':
+                    $this->bindValue($statement, ':' . $paramSchema->name, array_get($values, $key));
+                    break;
+                case 'INOUT':
+                case 'OUT':
+                    $pdoType = $this->getPdoType($paramSchema->type);
+                    $this->bindParam($statement, ':' . $paramSchema->name, $values[$key],
+                        $pdoType | \PDO::PARAM_INPUT_OUTPUT, $paramSchema->length);
+                    break;
+            }
+        }
+    }
+
+    /**
+     * @param \DreamFactory\Core\Database\Schema\RoutineSchema $routine
+     * @param array                                            $param_schemas
+     * @param array                                            $values
+     *
+     * @return string
+     */
+    protected function getProcedureStatement(RoutineSchema $routine, array $param_schemas, array &$values)
+    {
+        $paramStr = $this->getRoutineParamString($param_schemas, $values);
+
+        return "CALL {$routine->rawName}($paramStr)";
+    }
+
+    /**
+     * @param array $param_schemas
+     * @param array $values
+     */
+    protected function postProcedureCall(array $param_schemas, array &$values)
+    {
     }
 
     /**
@@ -2619,18 +3097,18 @@ abstract class Schema
     public static function extractPhpType($type)
     {
         switch ($type) {
-            case ColumnSchema::TYPE_BOOLEAN:
+            case DbSimpleTypes::TYPE_BOOLEAN:
                 return 'boolean';
 
-            case ColumnSchema::TYPE_INTEGER:
-            case ColumnSchema::TYPE_ID:
-            case ColumnSchema::TYPE_REF:
+            case DbSimpleTypes::TYPE_INTEGER:
+            case DbSimpleTypes::TYPE_ID:
+            case DbSimpleTypes::TYPE_REF:
                 return 'integer';
 
-            case ColumnSchema::TYPE_DECIMAL:
-            case ColumnSchema::TYPE_DOUBLE:
-            case ColumnSchema::TYPE_FLOAT:
-            case ColumnSchema::TYPE_MONEY:
+            case DbSimpleTypes::TYPE_DECIMAL:
+            case DbSimpleTypes::TYPE_DOUBLE:
+            case DbSimpleTypes::TYPE_FLOAT:
+            case DbSimpleTypes::TYPE_MONEY:
                 return 'double';
 
             default:
@@ -2648,21 +3126,141 @@ abstract class Schema
     public static function extractPdoType($type)
     {
         switch ($type) {
-            case ColumnSchema::TYPE_BOOLEAN:
+            case DbSimpleTypes::TYPE_BOOLEAN:
                 return \PDO::PARAM_BOOL;
 
-            case ColumnSchema::TYPE_INTEGER:
-            case ColumnSchema::TYPE_ID:
-            case ColumnSchema::TYPE_REF:
+            case DbSimpleTypes::TYPE_INTEGER:
+            case DbSimpleTypes::TYPE_ID:
+            case DbSimpleTypes::TYPE_REF:
                 return \PDO::PARAM_INT;
 
-            case ColumnSchema::TYPE_STRING:
+            case DbSimpleTypes::TYPE_STRING:
                 return \PDO::PARAM_STR;
         }
 
         return null;
     }
 
+    /**
+     * @param      $type
+     * @param null $size
+     * @param null $scale
+     *
+     * @return string
+     */
+    public function extractSimpleType($type, $size = null, $scale = null)
+    {
+        switch (strtolower($type)) {
+            case 'bit':
+            case (false !== strpos($type, 'bool')):
+                return DbSimpleTypes::TYPE_BOOLEAN;
+                break;
+
+            case 'number': // Oracle for boolean, integers and decimals
+                if ($size == 1) {
+                    return DbSimpleTypes::TYPE_BOOLEAN;
+                } elseif (empty($scale)) {
+                    return DbSimpleTypes::TYPE_INTEGER;
+                } else {
+                    return DbSimpleTypes::TYPE_DECIMAL;
+                }
+                break;
+
+            case 'decimal':
+            case 'numeric':
+            case 'percent':
+                return DbSimpleTypes::TYPE_DECIMAL;
+                break;
+
+            case (false !== strpos($type, 'double')):
+                return DbSimpleTypes::TYPE_DOUBLE;
+                break;
+
+            case 'real':
+            case (false !== strpos($type, 'float')):
+                if ($size == 53) {
+                    return DbSimpleTypes::TYPE_DOUBLE;
+                } else {
+                    return DbSimpleTypes::TYPE_FLOAT;
+                }
+                break;
+
+            case (false !== strpos($type, 'money')):
+                return DbSimpleTypes::TYPE_MONEY;
+                break;
+
+            case 'binary_integer': // oracle integer
+            case 'tinyint':
+            case 'smallint':
+            case 'mediumint':
+            case 'int':
+            case 'integer':
+                // watch out for point here!
+                if ($size == 1) {
+                    return DbSimpleTypes::TYPE_BOOLEAN;
+                } else {
+                    return DbSimpleTypes::TYPE_INTEGER;
+                }
+                break;
+
+            case 'bigint':
+                // bigint too big to represent as number in php
+                return DbSimpleTypes::TYPE_BIGINT;
+                break;
+
+            case (false !== strpos($type, 'timestamp')):
+            case 'datetimeoffset': //  MSSQL
+                return DbSimpleTypes::TYPE_TIMESTAMP;
+                break;
+
+            case (false !== strpos($type, 'datetime')):
+                return DbSimpleTypes::TYPE_DATETIME;
+                break;
+
+            case 'date':
+                return DbSimpleTypes::TYPE_DATE;
+                break;
+
+            case (false !== strpos($type, 'time')):
+                return DbSimpleTypes::TYPE_TIME;
+                break;
+
+            case (false !== strpos($type, 'binary')):
+            case (false !== strpos($type, 'blob')):
+                return DbSimpleTypes::TYPE_BINARY;
+                break;
+
+            //	String types
+            case (false !== strpos($type, 'clob')):
+            case (false !== strpos($type, 'text')):
+                return DbSimpleTypes::TYPE_TEXT;
+                break;
+
+            case 'varchar':
+                if ($size == -1) {
+                    return DbSimpleTypes::TYPE_TEXT; // varchar(max) in MSSQL
+                } else {
+                    return DbSimpleTypes::TYPE_STRING;
+                }
+                break;
+
+            case 'ref cursor':
+                return DbSimpleTypes::TYPE_REF_CURSOR;
+                break;
+
+            case 'string':
+            case (false !== strpos($type, 'char')):
+            default:
+                return DbSimpleTypes::TYPE_STRING;
+                break;
+        }
+    }
+
+    /**
+     * @param \DreamFactory\Core\Database\Schema\ColumnSchema $column
+     *
+     * @return array
+     */
     public function getPdoBinding(ColumnSchema $column)
     {
         switch ($column->dbType) {
@@ -2689,108 +3287,9 @@ abstract class Schema
     public function extractType(ColumnSchema &$column, $dbType)
     {
         $simpleType = strstr($dbType, '(', true);
-        $simpleType = strtolower($simpleType ?: $dbType);
+        $dbType = strtolower($simpleType ?: $dbType);
 
-        switch ($simpleType) {
-            case 'bit':
-            case (false !== strpos($simpleType, 'bool')):
-                $column->type = ColumnSchema::TYPE_BOOLEAN;
-                break;
-
-            case 'number': // Oracle for boolean, integers and decimals
-                if ($column->size == 1) {
-                    $column->type = ColumnSchema::TYPE_BOOLEAN;
-                } elseif (empty($column->scale)) {
-                    $column->type = ColumnSchema::TYPE_INTEGER;
-                } else {
-                    $column->type = ColumnSchema::TYPE_DECIMAL;
-                }
-                break;
-
-            case 'decimal':
-            case 'numeric':
-            case 'percent':
-                $column->type = ColumnSchema::TYPE_DECIMAL;
-                break;
-
-            case (false !== strpos($simpleType, 'double')):
-                $column->type = ColumnSchema::TYPE_DOUBLE;
-                break;
-
-            case 'real':
-            case (false !== strpos($simpleType, 'float')):
-                if ($column->size == 53) {
-                    $column->type = ColumnSchema::TYPE_DOUBLE;
-                } else {
-                    $column->type = ColumnSchema::TYPE_FLOAT;
-                }
-                break;
-
-            case (false !== strpos($simpleType, 'money')):
-                $column->type = ColumnSchema::TYPE_MONEY;
-                break;
-
-            case 'tinyint':
-            case 'smallint':
-            case 'mediumint':
-            case 'int':
-            case 'integer':
-                // watch out for point here!
-                if ($column->size == 1) {
-                    $column->type = ColumnSchema::TYPE_BOOLEAN;
-                } else {
-                    $column->type = ColumnSchema::TYPE_INTEGER;
-                }
-                break;
-
-            case 'bigint':
-                // bigint too big to represent as number in php
-                $column->type = ColumnSchema::TYPE_BIGINT;
-                break;
-
-            case (false !== strpos($simpleType, 'timestamp')):
-            case 'datetimeoffset': //  MSSQL
-                $column->type = ColumnSchema::TYPE_TIMESTAMP;
-                break;
-
-            case (false !== strpos($simpleType, 'datetime')):
-                $column->type = ColumnSchema::TYPE_DATETIME;
-                break;
-
-            case 'date':
-                $column->type = ColumnSchema::TYPE_DATE;
-                break;
-
-            case (false !== strpos($simpleType, 'time')):
-                $column->type = ColumnSchema::TYPE_TIME;
-                break;
-
-            case (false !== strpos($simpleType, 'binary')):
-            case (false !== strpos($simpleType, 'blob')):
-                $column->type = ColumnSchema::TYPE_BINARY;
-                break;
-
-            //	String types
-            case (false !== strpos($simpleType, 'clob')):
-            case (false !== strpos($simpleType, 'text')):
-                $column->type = ColumnSchema::TYPE_TEXT;
-                break;
-
-            case 'varchar':
-                if ($column->size == -1) {
-                    $column->type = ColumnSchema::TYPE_TEXT; // varchar(max) in MSSQL
-                } else {
-                    $column->type = ColumnSchema::TYPE_STRING;
-                }
-                break;
-
-            case 'string':
-            case (false !== strpos($simpleType, 'char')):
-            default:
-                $column->type = ColumnSchema::TYPE_STRING;
-                break;
-        }
-
+        $column->type = static::extractSimpleType($dbType, $column->size, $column->scale);
         $column->phpType = static::extractPhpType($column->type);
         $column->pdoType = static::extractPdoType($column->type);
     }
@@ -2884,6 +3383,12 @@ abstract class Schema
         }
     }
 
+    /**
+     * @param ColumnSchema $field
+     * @param bool         $as_quoted_string
+     *
+     * @return \Illuminate\Database\Query\Expression|string
+     */
     public function parseFieldForSelect(ColumnSchema $field, $as_quoted_string = false)
     {
         switch ($field->dbType) {
@@ -2899,6 +3404,12 @@ abstract class Schema
         }
     }
 
+    /**
+     * @param ColumnSchema $field
+     * @param bool         $as_quoted_string
+     *
+     * @return \Illuminate\Database\Query\Expression|string
+     */
     public function parseFieldForFilter(ColumnSchema $field, $as_quoted_string = false)
     {
         switch ($field->dbType) {
@@ -2909,4 +3420,50 @@ abstract class Schema
         return ($as_quoted_string) ? $field->rawName : $field->name;
     }
 
+    /**
+     * @param $type
+     *
+     * @return null|string
+     */
+    public static function determinePhpConversionType($type)
+    {
+        switch ($type) {
+            case DbSimpleTypes::TYPE_BOOLEAN:
+                return 'bool';
+
+            case DbSimpleTypes::TYPE_INTEGER:
+            case DbSimpleTypes::TYPE_ID:
+            case DbSimpleTypes::TYPE_REF:
+            case DbSimpleTypes::TYPE_USER_ID:
+            case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
+            case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
+                return 'int';
+
+            case DbSimpleTypes::TYPE_DECIMAL:
+            case DbSimpleTypes::TYPE_DOUBLE:
+            case DbSimpleTypes::TYPE_FLOAT:
+                return 'float';
+
+            case DbSimpleTypes::TYPE_STRING:
+            case DbSimpleTypes::TYPE_TEXT:
+                return 'string';
+
+            // special checks
+            case DbSimpleTypes::TYPE_DATE:
+                return 'date';
+
+            case DbSimpleTypes::TYPE_TIME:
+                return 'time';
+
+            case DbSimpleTypes::TYPE_DATETIME:
+                return 'datetime';
+
+            case DbSimpleTypes::TYPE_TIMESTAMP:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
+                return 'timestamp';
+        }
+
+        return null;
+    }
 }

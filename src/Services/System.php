@@ -6,7 +6,6 @@ use DreamFactory\Core\Contracts\SystemResourceTypeInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Resources\System\BaseSystemResource;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
 use SystemResourceManager;
 
 class System extends BaseRestService
@@ -34,7 +33,7 @@ class System extends BaseRestService
         $list = parent::getAccessList();
         $nameField = static::getResourceIdentifier();
         foreach ($this->getResources() as $resource) {
-            $name = ArrayUtils::get($resource, $nameField);
+            $name = array_get($resource, $nameField);
             if (!empty($this->getPermissions())) {
                 $list[] = $name . '/';
                 $list[] = $name . '/*';

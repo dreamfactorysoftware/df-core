@@ -10,7 +10,6 @@ use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\App;
 use DreamFactory\Core\OAuth\Services\BaseOAuthService;
 use DreamFactory\Core\Utility\JWTUtilities;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Utility\Session;
 use ServiceManager;
 
@@ -134,12 +133,12 @@ class UserSessionResource extends BaseRestResource
      */
     protected function handleLogin(array $credentials = [], $remember = false)
     {
-        $email = ArrayUtils::get($credentials, 'email');
+        $email = array_get($credentials, 'email');
         if (empty($email)) {
             throw new BadRequestException('Login request is missing required email.');
         }
 
-        $password = ArrayUtils::get($credentials, 'password');
+        $password = array_get($credentials, 'password');
         if (empty($password)) {
             throw new BadRequestException('Login request is missing required password.');
         }

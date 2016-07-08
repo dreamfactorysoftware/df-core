@@ -1,8 +1,7 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use \Cache;
-use DreamFactory\Library\Utility\ArrayUtils;
+use Cache;
 
 /**
  * Class StaticCacheable
@@ -45,7 +44,7 @@ trait StaticCacheable
     protected static function addKeys($keys)
     {
         static::$cacheKeys =
-            array_unique(array_merge(ArrayUtils::clean(static::getCacheKeys()), ArrayUtils::clean($keys)));
+            array_unique(array_merge((array)static::getCacheKeys(), (array)$keys));
 
         // Save the keys to cache
         Cache::forever(static::getCachePrefix() . 'cache_keys', static::$cacheKeys);
@@ -56,7 +55,7 @@ trait StaticCacheable
      */
     protected static function removeKeys($keys)
     {
-        static::$cacheKeys = array_diff(ArrayUtils::clean(static::getCacheKeys()), ArrayUtils::clean($keys));
+        static::$cacheKeys = array_diff((array)static::getCacheKeys(), (array)$keys);
 
         // Save the map to cache
         Cache::forever(static::getCachePrefix() . 'cache_keys', static::$cacheKeys);
@@ -72,7 +71,7 @@ trait StaticCacheable
             static::$cacheKeys = Cache::get(static::getCachePrefix() . 'cache_keys', []);
         }
 
-        return ArrayUtils::clean(static::$cacheKeys);
+        return (array)static::$cacheKeys;
     }
 
     /**

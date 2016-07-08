@@ -531,6 +531,14 @@ class Importer
                         );
                     }
 
+                    $apiKey = $app['api_key'];
+                    if (!empty($apiKey) && !App::isApiKeyUnique($apiKey)) {
+                        $this->log(
+                            'notice',
+                            'Duplicate API Key found for app ' . $app['name'] . '. Regenerating API Key.'
+                        );
+                    }
+
                     $app['storage_service_id'] = $newStorageId;
                     $app['role_id'] = $newRoleId;
                     $apps[$i] = $app;
@@ -571,6 +579,8 @@ class Importer
                             // Skip; already imported at this point.
                             break;
                         case $service . '/_table':
+                            $imported = $this->insertDbTableResources($service);
+                            break;
                         case $service . '/_proc':
                         case $service . '/_func':
                             // Not supported at this time.
@@ -590,6 +600,59 @@ class Importer
         }
 
         return $imported;
+    }
+
+    /**
+     * Insert DB table data.
+     *
+     * @param $service
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
+    protected function insertDbTableResources($service)
+    {
+        $data = $this->package->getResourceFromZip($service . '/_table' . '.json');
+        if (!empty($data)) {
+            foreach ($data as $table) {
+                $tableName = array_get($table, 'name');
+                $resource = '_table/' . $tableName;
+                $records = array_get($table, 'record');
+                $records = $this->cleanDuplicates($records, $service, $resource);
+
+                if (!empty($records)) {
+                    try {
+                        foreach ($records as $i => $record) {
+                            $this->fixCommonFields($record, false);
+                            $this->unsetImportedRelations($record);
+                            $records[$i] = $record;
+                        }
+
+                        $payload = ResourcesWrapper::wrapResources($records);
+                        ServiceManager::handleRequest(
+                            $service,
+                            Verbs::POST,
+                            $resource,
+                            ['continue' => true],
+                            [],
+                            $payload
+                        );
+                    } catch (\Exception $e) {
+                        throw new InternalServerErrorException('Failed to insert ' .
+                            $service .
+                            '/' .
+                            $resource .
+                            '. ' .
+                            $this->getErrorDetails($e)
+                        );
+                    }
+                }
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     /**
@@ -851,10 +914,13 @@ class Importer
      * inserting into db table.
      *
      * @param array $record
+     * @param bool  $unsetIdField
      */
-    protected function fixCommonFields(array & $record)
+    protected function fixCommonFields(array & $record, $unsetIdField = true)
     {
-        unset($record['id']);
+        if ($unsetIdField) {
+            unset($record['id']);
+        }
         if (isset($record['last_modified_by_id'])) {
             unset($record['last_modified_by_id']);
         }
@@ -898,6 +964,7 @@ class Importer
     {
         $cleaned = [];
         if (!empty($data)) {
+            $rSeg = explode('/', $resource);
             $api = $service . '/' . $resource;
 
             switch ($api) {
@@ -908,20 +975,34 @@ class Importer
                 case 'system/cors':
                     $key = 'path';
                     break;
+                case $service . '/_table/' . array_get($rSeg, 1);
+                    $key = 'id';
+                    break;
                 default:
                     $key = 'name';
             }
 
             foreach ($data as $rec) {
-                if (!$this->isDuplicate($service, $resource, array_get($rec, $key), $key)) {
-                    $cleaned[] = $rec;
+                if (isset($rec[$key])) {
+                    if (!$this->isDuplicate($service, $resource, array_get($rec, $key), $key)) {
+                        $cleaned[] = $rec;
+                    } else {
+                        $this->log(
+                            'notice',
+                            'Ignored duplicate found for ' .
+                            $service . '/' . $resource .
+                            ' with ' . $key .
+                            ' ' . array_get($rec, $key)
+                        );
+                    }
                 } else {
+                    $cleaned[] = $rec;
                     $this->log(
-                        'notice',
-                        'Ignored duplicate found for ' .
+                        'warning',
+                        'Skipped duplicate check for ' .
                         $service . '/' . $resource .
-                        ' with ' . $key .
-                        ' ' . array_get($rec, $key)
+                        ' by key/field ' . $key .
+                        '. Key/Field is not set'
                     );
                 }
             }

@@ -2,7 +2,6 @@
 
 namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Components\DfResponse;
@@ -112,7 +111,7 @@ class ResponseFactory
         }
 
         // see if we match an accepts type, if so, go with it.
-        $accepts = ArrayUtils::clean($accepts);
+        $accepts = (array)$accepts;
         if (!empty($contentType) && static::acceptedContentType($accepts, $contentType)) {
             \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
 

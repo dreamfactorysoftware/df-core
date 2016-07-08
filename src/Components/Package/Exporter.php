@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Components\Package;
 
+use DreamFactory\Core\ADLdap\Services\LDAP;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -206,6 +207,16 @@ class Exporter
                                     '_schema',
                                     ['as_list' => true]
                                 );
+                                /**
+                                 * API for exporting table data is implemented and works. However,
+                                 * This is disabled on manifest for now as this can easily lead to accidental
+                                 * exporting of a large set of data (potentially sensitive in nature).
+                                 *
+                                 * $manifest['service'][$service]['_table'] = $this->getAllResources(
+                                    * $service,
+                                    * '_table',
+                                    * ['as_list' => true]
+                                 );*/
                                 break;
                         }
                     } else {
@@ -459,6 +470,9 @@ class Exporter
         $export = [];
         $params = [];
         if (Arr::isAssoc($details)) {
+            if ('_table' === substr($resource, 0, 6)) {
+                throw new NotImplementedException('Granular export for ' . $resource . ' resource is not supported.');
+            }
             $ids = array_get($details, 'ids');
             $filter = array_get($details, 'filter');
             $related = array_get($details, 'related');
@@ -520,12 +534,12 @@ class Exporter
     {
         $api = $service . '/' . $resource;
         switch ($api) {
-            case $service . '/_table':
             case $service . '/_proc':
             case $service . '/_func':
                 throw new NotImplementedException('Exporting ' . $resource . ' resource is not supported.');
                 break;
             case $service . '/_schema':
+            case $service . '/_table':
             case 'system/event':
             case 'system/custom':
             case 'user/custom':
@@ -562,6 +576,7 @@ class Exporter
         $api = $service . '/' . $resource;
         $relations = array_get($this->defaultRelation, $api);
         if (!empty($relations)) {
+            $this->fixDefaultRelations($relations);
             if (!isset($params['related'])) {
                 $params['related'] = implode(',', $relations);
             } else {
@@ -570,6 +585,20 @@ class Exporter
                         $params['related'] .= ',' . $relation;
                     }
                 }
+            }
+        }
+    }
+
+    /**
+     * Removes any relation where related service is not installed.
+     *
+     * @param array $relations
+     */
+    protected function fixDefaultRelations(array & $relations)
+    {
+        foreach ($relations as $key => $relation) {
+            if ('role_adldap_by_role_id' === $relation && !class_exists(LDAP::class)) {
+                unset($relations[$key]);
             }
         }
     }
@@ -591,32 +620,34 @@ class Exporter
         try {
             $result = ServiceManager::handleRequest($service, Verbs::GET, $resource, $params, [], $payload);
 
-            // Handle responses from system/custom and user/custom APIs
+            if (is_string($result)) {
+                $result = ['value' => $result];
+            } elseif (Arr::isAssoc($result) &&
+                config('df.always_wrap_resources') === true &&
+                isset($result[config('df.resources_wrapper')])
+            ) {
+                $result = $result[config('df.resources_wrapper')];
+            }
+
+            // Special response handling
             $rSeg = explode('/', $resource);
             $api = $service . '/' . $rSeg[0];
             if (isset($rSeg[1]) && in_array($api, ['system/custom', 'user/custom'])) {
                 $result = ['name' => $rSeg[1], 'value' => $result];
+            } elseif (isset($rSeg[1]) && $api === $service . '/_table') {
+                $result = ['name' => $rSeg[1], 'record' => $result];
             }
+
+            if (in_array($api, ['system/user', 'system/admin'])) {
+                $this->setUserPassword($result);
+            }
+
+            return $result;
         } catch (NotFoundException $e) {
             throw new NotFoundException('Resource not found for ' . $service . '/' . $resource);
         } catch (\Exception $e) {
             throw $e;
         }
-
-        if (is_string($result)) {
-            $result = ['value' => $result];
-        } elseif (Arr::isAssoc($result) &&
-            config('df.always_wrap_resources') === true &&
-            isset($result[config('df.resources_wrapper')])
-        ) {
-            $result = $result[config('df.resources_wrapper')];
-        }
-
-        if (in_array($api, ['system/user', 'system/admin'])) {
-            $this->setUserPassword($result);
-        }
-
-        return $result;
     }
 
     /**

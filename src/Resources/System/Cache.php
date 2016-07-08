@@ -6,7 +6,6 @@ use DreamFactory\Core\Contracts\CachedInterface;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Models\ServiceCacheConfig;
 use DreamFactory\Core\Resources\BaseRestResource;
-use DreamFactory\Library\Utility\ArrayUtils;
 use ServiceManager;
 
 /**
@@ -73,7 +72,7 @@ class Cache extends BaseRestResource
     {
         $serviceName = strtolower($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(ArrayUtils::get($resource, 'name', $class));
+        $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
         $eventPath = $serviceName . '.' . $resourceName;
 
@@ -95,6 +94,8 @@ class Cache extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
+                    'consumes'          => ['application/json', 'application/xml'],
+                    'produces'          => ['application/json', 'application/xml'],
                     'description'       => 'This clears all cached information in the system. Doing so may impact the performance of the system.',
                 ],
             ],
@@ -104,6 +105,8 @@ class Cache extends BaseRestResource
                     'summary'           => 'deleteServiceCache() - Delete cache for one service.',
                     'operationId'       => 'deleteServiceCache',
                     'x-publishedEvents' => [$eventPath . '{service}.delete'],
+                    'consumes'          => ['application/json', 'application/xml'],
+                    'produces'          => ['application/json', 'application/xml'],
                     'parameters'        => [
                         [
                             'name'        => 'service',

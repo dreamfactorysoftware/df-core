@@ -7,7 +7,6 @@ use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Log;
@@ -35,6 +34,10 @@ class Script extends BaseRestService
      * @var array $scriptConfig Configuration for the engine for this particular script
      */
     protected $scriptConfig;
+    /**
+     * @var array
+     */
+    protected $apiDoc = [];
 
     //*************************************************************************
     //	Methods
@@ -52,20 +55,40 @@ class Script extends BaseRestService
     {
         parent::__construct($settings);
 
-        $config = ArrayUtils::clean(ArrayUtils::get($settings, 'config'));
+        $config = (array)array_get($settings, 'config');
         Session::replaceLookups($config, true);
 
         if (!is_string($this->content = array_get($config, 'content'))) {
             $this->content = '';
         }
-        
+
         if (empty($this->engineType = array_get($config, 'type'))) {
             throw new \InvalidArgumentException('Script engine configuration can not be empty.');
         }
 
         if (!is_array($this->scriptConfig = array_get($config, 'config', []))) {
             $this->scriptConfig = [];
-        };
+        }
+
+        $this->apiDoc = (array)array_get($settings, 'doc');
+    }
+
+    /**
+     * Returns all request data.
+     *
+     * @return array
+     */
+    protected function getRequestData()
+    {
+        return [
+            'request'  => $this->request->toArray(),
+            'response' => [
+                'content'      => null,
+                'content_type' => null,
+                'status_code'  => ServiceResponseInterface::HTTP_OK
+            ],
+            'resource' => $this->resourcePath
+        ];
     }
 
     /**
@@ -84,16 +107,7 @@ class Script extends BaseRestService
             throw new BadRequestException('The action "' . $this->action . '" is not supported.');
         }
 
-        $data =
-            [
-                'request'  => $this->request->toArray(),
-                'response' => [
-                    'content'      => null,
-                    'content_type' => null,
-                    'status_code'  => ServiceResponseInterface::HTTP_OK
-                ],
-                'resource' => $this->resourcePath
-            ];
+        $data = $this->getRequestData();
 
         $logOutput = $this->request->getParameterAsBool('log_output', true);
         $output = null;
@@ -124,9 +138,9 @@ class Script extends BaseRestService
             if ($ex instanceof \Exception) {
                 throw $ex;
             } elseif (is_array($ex)) {
-                $code = ArrayUtils::get($ex, 'code', null);
-                $message = ArrayUtils::get($ex, 'message', 'Unknown scripting error.');
-                $status = ArrayUtils::get($ex, 'status_code', ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
+                $code = array_get($ex, 'code', null);
+                $message = array_get($ex, 'message', 'Unknown scripting error.');
+                $status = array_get($ex, 'status_code', ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
                 throw new RestException($status, $message, $code);
             }
             throw new InternalServerErrorException(strval($ex));
@@ -149,11 +163,11 @@ class Script extends BaseRestService
 
         // check if this is a "response" array
         if (is_array($response) && isset($response['content'])) {
-            $content = ArrayUtils::get($response, 'content');
-            $contentType = ArrayUtils::get($response, 'content_type');
-            $status = ArrayUtils::get($response, 'status_code', ServiceResponseInterface::HTTP_OK);
+            $content = array_get($response, 'content');
+            $contentType = array_get($response, 'content_type');
+            $status = array_get($response, 'status_code', ServiceResponseInterface::HTTP_OK);
 
-//            $format = ArrayUtils::get($response, 'format', DataFormats::PHP_ARRAY);
+//            $format = array_get($response, 'format', DataFormats::PHP_ARRAY);
 
             return ResponseFactory::create($content, $contentType, $status);
         }
@@ -164,6 +178,6 @@ class Script extends BaseRestService
 
     public function getApiDocInfo()
     {
-        return ['paths' => [], 'definitions' => []];
+        return (!empty($this->apiDoc) ? $this->apiDoc : ['paths' => [], 'definitions' => []]);
     }
 }

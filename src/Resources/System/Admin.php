@@ -84,7 +84,7 @@ class Admin extends BaseSystemResource
     {
         $records = static::fixRecords($records);
 
-        ArrayUtils::set($params, 'admin', true);
+        $params['admin'] = true;
 
         return parent::bulkCreate($records, $params);
     }
@@ -97,7 +97,7 @@ class Admin extends BaseSystemResource
         /** @var User $modelClass */
         $modelClass = static::$model;
         $criteria = $this->getSelectionCriteria();
-        $fields = ArrayUtils::get($criteria, 'select');
+        $fields = array_get($criteria, 'select');
         $model = $modelClass::whereIsSysAdmin(1)->with($related)->find($id, $fields);
 
         $data = (!empty($model)) ? $model->toArray() : [];
@@ -112,7 +112,7 @@ class Admin extends BaseSystemResource
     {
         $record = static::fixRecords($record);
 
-        ArrayUtils::set($params, 'admin', true);
+        $params['admin'] = true;
 
         return parent::updateById($id, $record, $params);
     }
@@ -124,7 +124,7 @@ class Admin extends BaseSystemResource
     {
         $record = static::fixRecords($record);
 
-        ArrayUtils::set($params, 'admin', true);
+        $params['admin'] = true;
 
         return parent::updateByIds($ids, $record, $params);
     }
@@ -136,7 +136,7 @@ class Admin extends BaseSystemResource
     {
         $records = static::fixRecords($records);
 
-        ArrayUtils::set($params, 'admin', true);
+        $params['admin'] = true;
 
         return parent::bulkUpdate($records, $params);
     }
@@ -146,7 +146,7 @@ class Admin extends BaseSystemResource
      */
     protected function deleteById($id, array $params = [])
     {
-        ArrayUtils::set($params, 'admin', true);
+        $params['admin'] = true;
 
         return parent::deleteById($id, $params);
     }
@@ -156,7 +156,7 @@ class Admin extends BaseSystemResource
      */
     protected function deleteByIds($ids, array $params = [])
     {
-        ArrayUtils::set($params, 'admin', true);
+        $params['admin'] = true;
 
         return parent::deleteByIds($ids, $params);
     }
@@ -166,7 +166,7 @@ class Admin extends BaseSystemResource
      */
     protected function bulkDelete(array $records, array $params = [])
     {
-        ArrayUtils::set($params, 'admin', true);
+        $params['admin'] = true;
 
         return parent::bulkDelete($records, $params);
     }
@@ -178,7 +178,7 @@ class Admin extends BaseSystemResource
     {
         $criteria = parent::getSelectionCriteria();
 
-        $condition = ArrayUtils::get($criteria, 'condition');
+        $condition = array_get($criteria, 'condition');
 
         if (!empty($condition)) {
             $condition = "($condition) AND is_sys_admin = '1' ";
@@ -186,7 +186,7 @@ class Admin extends BaseSystemResource
             $condition = " is_sys_admin = '1'";
         }
 
-        ArrayUtils::set($criteria, 'condition', $condition);
+        $criteria['condition'] = $condition;
 
         return $criteria;
     }
@@ -204,11 +204,11 @@ class Admin extends BaseSystemResource
 
         if (ArrayUtils::isArrayNumeric($records)) {
             foreach ($records as $key => $record) {
-                ArrayUtils::set($record, 'is_sys_admin', 1);
+                $record['is_sys_admin'] = 1;
                 $records[$key] = $record;
             }
         } else {
-            ArrayUtils::set($records, 'is_sys_admin', 1);
+            $records['is_sys_admin'] = 1;
         }
 
         return $records;

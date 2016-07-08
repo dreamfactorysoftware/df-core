@@ -4,7 +4,6 @@ namespace DreamFactory\Core\Utility;
 use Log;
 use Dotenv\Dotenv;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
  * FileUtilities
@@ -1194,7 +1193,7 @@ class FileUtilities
             if (0 === strcasecmp('dfpkg', $ext)) {
                 $mime = 'application/zip';
             } else {
-                $mime = ArrayUtils::get($mimeTypes, $ext);
+                $mime = array_get($mimeTypes, $ext);
             }
         }
         if (empty($mime)) {

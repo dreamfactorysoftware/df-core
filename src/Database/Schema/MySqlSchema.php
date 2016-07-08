@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
-use DreamFactory\Core\Database\DataReader;
+use DreamFactory\Core\Enums\DbSimpleTypes;
 
 /**
  * Schema is the class for retrieving metadata information from a MySQL database (version 4.1.x and 5.x).
@@ -22,7 +22,7 @@ class MySqlSchema extends Schema
         switch ($type) {
             // some types need massaging, some need other required properties
             case 'pk':
-            case ColumnSchema::TYPE_ID:
+            case DbSimpleTypes::TYPE_ID:
                 $info['type'] = 'int';
                 $info['type_extras'] = '(11)';
                 $info['allow_null'] = false;
@@ -31,34 +31,34 @@ class MySqlSchema extends Schema
                 break;
 
             case 'fk':
-            case ColumnSchema::TYPE_REF:
+            case DbSimpleTypes::TYPE_REF:
                 $info['type'] = 'int';
                 $info['type_extras'] = '(11)';
                 $info['is_foreign_key'] = true;
                 // check foreign tables
                 break;
 
-            case ColumnSchema::TYPE_TIMESTAMP_ON_CREATE:
-            case ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
                 $info['type'] = 'timestamp';
                 $default = (isset($info['default'])) ? $info['default'] : null;
                 if (!isset($default)) {
                     $default = 'CURRENT_TIMESTAMP';
-                    if (ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE === $type) {
+                    if (DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE === $type) {
                         $default .= ' ON UPDATE CURRENT_TIMESTAMP';
                     }
                     $info['default'] = ['expression' => $default];
                 }
                 break;
 
-            case ColumnSchema::TYPE_USER_ID:
-            case ColumnSchema::TYPE_USER_ID_ON_CREATE:
-            case ColumnSchema::TYPE_USER_ID_ON_UPDATE:
+            case DbSimpleTypes::TYPE_USER_ID:
+            case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
+            case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
                 $info['type'] = 'int';
                 $info['type_extras'] = '(11)';
                 break;
 
-            case ColumnSchema::TYPE_BOOLEAN:
+            case DbSimpleTypes::TYPE_BOOLEAN:
                 $info['type'] = 'tinyint';
                 $info['type_extras'] = '(1)';
                 $default = (isset($info['default'])) ? $info['default'] : null;
@@ -68,12 +68,12 @@ class MySqlSchema extends Schema
                 }
                 break;
 
-            case ColumnSchema::TYPE_MONEY:
+            case DbSimpleTypes::TYPE_MONEY:
                 $info['type'] = 'decimal';
                 $info['type_extras'] = '(19,4)';
                 break;
 
-            case ColumnSchema::TYPE_STRING:
+            case DbSimpleTypes::TYPE_STRING:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $national =
@@ -88,7 +88,7 @@ class MySqlSchema extends Schema
                 }
                 break;
 
-            case ColumnSchema::TYPE_BINARY:
+            case DbSimpleTypes::TYPE_BINARY:
                 $fixed =
                     (isset($info['fixed_length'])) ? filter_var($info['fixed_length'], FILTER_VALIDATE_BOOLEAN) : false;
                 $info['type'] = ($fixed) ? 'binary' : 'varbinary';
@@ -339,8 +339,8 @@ MYSQL;
                 }
                 if ($c->autoIncrement) {
                     $table->sequenceName = '';
-                    if ((ColumnSchema::TYPE_INTEGER === $c->type)) {
-                        $c->type = ColumnSchema::TYPE_ID;
+                    if ((DbSimpleTypes::TYPE_INTEGER === $c->type)) {
+                        $c->type = DbSimpleTypes::TYPE_ID;
                     }
                 }
             }
@@ -384,10 +384,10 @@ MYSQL;
         if ($c->dbType === 'timestamp' && (0 === strcasecmp(strval($column['Default']), 'CURRENT_TIMESTAMP'))) {
             if (0 === strcasecmp(strval($column['Extra']), 'on update CURRENT_TIMESTAMP')) {
                 $c->defaultValue = ['expression' => 'CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP'];
-                $c->type = ColumnSchema::TYPE_TIMESTAMP_ON_UPDATE;
+                $c->type = DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE;
             } else {
                 $c->defaultValue = ['expression' => 'CURRENT_TIMESTAMP'];
-                $c->type = ColumnSchema::TYPE_TIMESTAMP_ON_CREATE;
+                $c->type = DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE;
             }
         } else {
             $this->extractDefault($c, $column['Default']);
@@ -401,6 +401,7 @@ MYSQL;
      */
     protected function getServerVersion()
     {
+        /** @noinspection PhpUndefinedMethodInspection */
         $version = $this->connection->getAttribute(\PDO::ATTR_SERVER_VERSION);
         $digits = [];
         preg_match('/(\d+)\.(\d+)\.(\d+)/', $version, $digits);
@@ -430,9 +431,7 @@ MYSQL;
     }
 
     /**
-     * Returns all non-system database/schema names on the server
-     *
-     * @return array|void
+     * @inheritdoc
      */
     protected function findSchemaNames()
     {
@@ -444,13 +443,7 @@ MYSQL;
     }
 
     /**
-     * Returns all table names in the database.
-     *
-     * @param string $schema the schema of the tables. Defaults to empty string, meaning the current or default schema.
-     *                       If not empty, the returned table names will be prefixed with the schema name.
-     * @param bool   $include_views
-     *
-     * @return array all table names in the database.
+     * @inheritdoc
      */
     protected function findTableNames($schema = '', $include_views = true)
     {
@@ -491,66 +484,6 @@ MYSQL;
     }
 
     /**
-     * Returns all stored procedure names in the database.
-     *
-     * @param string $schema the schema of the stored procedures. Defaults to empty string, meaning the current or
-     *                       default schema. If not empty, the returned stored procedure names will be prefixed with
-     *                       the schema name.
-     *
-     * @return array all stored procedure names in the database.
-     */
-    protected function findProcedureNames($schema = '')
-    {
-        $defaultSchema = $this->getDefaultSchema();
-        $select =
-            (empty($schema) || ($defaultSchema == $schema))
-                ? 'ROUTINE_NAME' : "CONCAT('" . $schema . "','.',ROUTINE_NAME) as ROUTINE_NAME";
-        $schema = !empty($schema) ? " AND ROUTINE_SCHEMA = '" . $schema . "'" : null;
-
-        $sql = <<<MYSQL
-SELECT
-    {$select}
-FROM
-    information_schema.ROUTINES
-WHERE
-    ROUTINE_TYPE = 'PROCEDURE'
-    {$schema}
-MYSQL;
-
-        return $this->selectColumn($sql);
-    }
-
-    /**
-     * Returns all stored function names in the database.
-     *
-     * @param string $schema the schema of the stored function. Defaults to empty string, meaning the current or
-     *                       default schema. If not empty, the returned stored function names will be prefixed with the
-     *                       schema name.
-     *
-     * @return array all stored function names in the database.
-     */
-    protected function findFunctionNames($schema = '')
-    {
-        $defaultSchema = $this->getDefaultSchema();
-        $select =
-            (empty($schema) || ($defaultSchema == $schema))
-                ? 'ROUTINE_NAME' : "CONCAT('" . $schema . "','.',ROUTINE_NAME) as ROUTINE_NAME";
-        $schema = !empty($schema) ? " AND ROUTINE_SCHEMA = '" . $schema . "'" : null;
-
-        $sql = <<<MYSQL
-SELECT
-    {$select}
-FROM
-    information_schema.ROUTINES
-WHERE
-    ROUTINE_TYPE = 'FUNCTION'
-    {$schema}
-MYSQL;
-
-        return $this->selectColumn($sql);
-    }
-
-    /**
      * Builds a SQL statement for renaming a column.
      *
      * @param string $table   the table whose column is to be renamed. The name will be properly quoted by the method.
@@ -559,7 +492,6 @@ MYSQL;
      *
      * @throws \Exception if specified column is not found in given table
      * @return string the SQL statement for renaming a DB column.
-     * @since 1.1.6
      */
     public function renameColumn($table, $name, $newName)
     {
@@ -602,7 +534,6 @@ MYSQL;
      * @param string $table the table whose foreign is to be dropped. The name will be properly quoted by the method.
      *
      * @return string the SQL statement for dropping a foreign key constraint.
-     * @since 1.1.6
      */
     public function dropForeignKey($name, $table)
     {
@@ -616,7 +547,6 @@ MYSQL;
      * @param string $table the table that the primary key constraint will be removed from.
      *
      * @return string the SQL statement for removing a primary key constraint from an existing table.
-     * @since 1.1.13
      */
     public function dropPrimaryKey($name, $table)
     {
@@ -632,7 +562,6 @@ MYSQL;
      * @param string|array $columns comma separated string or array of columns that the primary key will consist of.
      *
      * @return string the SQL statement for adding a primary key constraint to an existing table.
-     * @since 1.1.14
      */
     public function addPrimaryKey($name, $table, $columns)
     {
@@ -662,7 +591,7 @@ MYSQL;
     public function parseValueForSet($value, $field_info)
     {
         switch ($field_info->type) {
-            case ColumnSchema::TYPE_BOOLEAN:
+            case DbSimpleTypes::TYPE_BOOLEAN:
                 $value = (filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 1 : 0);
                 break;
         }
@@ -674,7 +603,8 @@ MYSQL;
      * Extracts the default value for the column.
      * The value is typecasted to correct PHP type.
      *
-     * @param mixed $defaultValue the default value obtained from metadata
+     * @param ColumnSchema $field
+     * @param mixed        $defaultValue the default value obtained from metadata
      */
     public function extractDefault(ColumnSchema &$field, $defaultValue)
     {
@@ -688,7 +618,8 @@ MYSQL;
     /**
      * Extracts size, precision and scale information from column's DB type.
      *
-     * @param string $dbType the column's DB type
+     * @param ColumnSchema $field
+     * @param string       $dbType the column's DB type
      */
     public function extractLimit(ColumnSchema &$field, $dbType)
     {
@@ -708,158 +639,96 @@ MYSQL;
     }
 
     /**
-     * @param string $name
-     * @param array  $params
-     *
-     * @throws \Exception
-     * @return mixed
+     * @inheritdoc
      */
-    public function callProcedure($name, &$params)
+    protected function getProcedureStatement(RoutineSchema $routine, array $param_schemas, array &$values)
     {
-        $name = $this->quoteTableName($name);
         $paramStr = '';
         $pre = '';
-        $post = '';
-        $bindings = [];
-        foreach ($params as $key => $param) {
-            $pName = (isset($param['name']) && !empty($param['name'])) ? $param['name'] : "p$key";
-            $pValue = isset($param['value']) ? $param['value'] : null;
-
-            if (!empty($paramStr)) {
-                $paramStr .= ', ';
-            }
-
-            switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+        foreach ($param_schemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'IN':
+                    $pName = ':' . $paramSchema->name;
+                    $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
+                    break;
                 case 'INOUT':
+                    $pName = '@' . $paramSchema->name;
+                    $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
                     // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
                     // since binding isn't working, set the values via statements, get the values via select
-                    $pre .= "SET @$pName = $pValue; ";
-                    $post .= (empty($post)) ? "SELECT @$pName" : ", @$pName";
-                    $paramStr .= "@$pName";
+                    $pre .= "SET $pName = " . array_get($values, $key) . ';';
                     break;
-
                 case 'OUT':
+                    $pName = '@' . $paramSchema->name;
+                    $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
                     // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
                     // since binding isn't working, get the values via select
-                    $post .= (empty($post)) ? "SELECT @$pName" : ", @$pName";
-                    $paramStr .= "@$pName";
                     break;
-
                 default:
-                    $bindings[":$pName"] = $pValue;
-                    $paramStr .= ":$pName";
                     break;
             }
         }
 
         !empty($pre) && $this->connection->statement($pre);
 
-        $sql = "CALL $name($paramStr)";
+        return "CALL {$routine->rawName}($paramStr)";
+    }
 
-        /** @type \PDOStatement $statement */
-        $statement = $this->connection->getPdo()->prepare($sql);
-
-        // do binding
-        $this->bindValues($statement, $bindings);
-
-        // support multiple result sets
-        try {
-            $statement->execute();
-            $reader = new DataReader($statement);
-        } catch (\Exception $e) {
-            $errorInfo = $e instanceof \PDOException ? $e : null;
-            $message = $e->getMessage();
-            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
-        }
-        $result = [];
-        try {
-            do {
-                $result[] = $reader->readAll();
-            } while ($reader->nextResult());
-        } catch (\Exception $ex) {
-            // mysql via pdo has issue of nextRowSet returning true one too many times
-            if (false !== strpos($ex->getMessage(), 'General Error')) {
-                throw $ex;
+    protected function postProcedureCall(array $param_schemas, array &$values)
+    {
+        $post = '';
+        foreach ($param_schemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'INOUT':
+                case 'OUT':
+                    // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
+                    // since binding isn't working, get the values via select
+                    $pName = '@' . $paramSchema->name;
+                    $post .= (empty($post)) ? $pName : ", $pName";
+                    break;
+                default:
+                    break;
             }
         }
-
-        // if there is only one data set, just return it
-        if (1 == count($result)) {
-            $result = $result[0];
-        }
-
         if (!empty($post)) {
-            if (null !== $out = $this->connection->selectOne($post . ';')) {
+            // must query to get output parameters back
+            if (null !== $out = $this->connection->selectOne("SELECT $post;")) {
                 $out = (array)$out;
-                foreach ($params as $key => &$param) {
-                    $pName = '@' . $param['name'];
-                    switch (strtoupper(strval(isset($param['param_type']) ? $param['param_type'] : 'IN'))) {
+                foreach ($param_schemas as $key => $paramSchema) {
+                    switch ($paramSchema->paramType) {
                         case 'INOUT':
                         case 'OUT':
-                            if (isset($out, $out[$pName])) {
-                                $param['value'] = $out[$pName];
-                            }
+                            $values[$key] = array_get($out, '@' . $paramSchema->name);
                             break;
                     }
                 }
             }
         }
-
-        return $result;
     }
 
-    /**
-     * @param string $name
-     * @param array  $params
-     *
-     * @throws \Exception
-     * @return mixed
-     */
-    public function callFunction($name, &$params)
+    protected function doRoutineBinding($statement, array $paramSchemas, array &$values)
     {
-        $name = $this->quoteTableName($name);
-        $bindings = [];
-        foreach ($params as $key => $param) {
-            $pName = (isset($param['name']) && !empty($param['name'])) ? ':' . $param['name'] : ":p$key";
-            $pValue = isset($param['value']) ? $param['value'] : null;
-
-            $bindings[$pName] = $pValue;
-        }
-
-        $paramStr = implode(',', array_keys($bindings));
-        $sql = "SELECT $name($paramStr);";
-        /** @type \PDOStatement $statement */
-        $statement = $this->connection->getPdo()->prepare($sql);
-
         // do binding
-        $this->bindValues($statement, $bindings);
-
-        // support multiple result sets
-        try {
-            $statement->execute();
-            $reader = new DataReader($statement);
-        } catch (\Exception $e) {
-            $errorInfo = $e instanceof \PDOException ? $e : null;
-            $message = $e->getMessage();
-            throw new \Exception($message, (int)$e->getCode(), $errorInfo);
-        }
-        $result = [];
-        try {
-            do {
-                $result[] = $reader->readAll();
-            } while ($reader->nextResult());
-        } catch (\Exception $ex) {
-            // mysql via pdo has issue of nextRowSet returning true one too many times
-            if (false !== strpos($ex->getMessage(), 'General Error')) {
-                throw $ex;
+        foreach ($paramSchemas as $key => $paramSchema) {
+            switch ($paramSchema->paramType) {
+                case 'IN':
+                    $this->bindValue($statement, ':' . $paramSchema->name, array_get($values, $key));
+                    break;
+                case 'INOUT':
+                case 'OUT':
+                    // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
+                    // since binding isn't working, set the values via statements, get the values via select
+                    break;
             }
         }
+    }
 
-        // if there is only one data set, just return it
-        if (1 == count($result)) {
-            $result = $result[0];
+    protected function handleRoutineException(\Exception $ex)
+    {
+        if (false !== stripos($ex->getMessage(), 'SQLSTATE[HY000]: General error')) {
+            return true;
         }
 
-        return $result;
+        return false;
     }
 }

@@ -2853,9 +2853,6 @@ MYSQL;
             $statement->execute();
             $reader = new DataReader($statement);
             do {
-                if (!$reader->getColumnCount()) {
-                    continue;
-                }
                 $temp = $reader->readAll();
                 if (!empty($temp)) {
                     $keep = true;
@@ -2899,7 +2896,7 @@ MYSQL;
             switch ($paramSchema->paramType) {
                 case 'OUT':
                 case 'INOUT':
-                    if (isset($values[$key])) {
+                    if (array_key_exists($key, $values)) {
                         $out_params[$paramSchema->name] = $this->formatValue($values[$key], $paramSchema->type);
                     }
                     break;

@@ -9,6 +9,34 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.3.2] - 2016-07-08
+### Added
+- DF-768 Allow event modification setting added to event script config, replacing the content_changed flag in scripting
+- DF-636 Adding ability using 'ids' parameter to return the schema of a stored procedure or function
+- Ability to call stored procedures and functions with URL parameters matching required procedure/function parameters
+- Using the existing file param to download package manifest
+- DF-787 Adding data import support for packages
+
+### Changed
+- DF-763 Removed unsupported fields from API DOCs for NoSql services
+- DF-794 Regenerating API Key during package import if duplicate found
+
+### Fixed
+- DF-710 adding application/xml response type to API Docs
+- DF-711 Making note that file download will not work using API Docs
+- Fixing error 'cannot destroy the zip context'
+- DF-662 Fixing file streaming using file service over CORS
+- Fix Python script POST call with payload from POSTMAN, GET call with json payload
+- DF-676 Reworking swagger generation and caching to prevent hitting the db multiple times
+- DF-787 Table data import fixes
+- Fixing a bug that prevented role export
+- Fixing table data export feature in package
+- DF-749 UI tooltip text fix
+- Many fixes on stored procs and func
+- Should be returning false to trigger an unsupported call error.
+- Updating test cases
+- A minor work-around to make v8js work with PHP 7.0
+
 ## [0.3.1] - 2016-05-31
 ### Fixed
 - Service type group inquiry form packaging was broken.
@@ -235,7 +263,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.2...HEAD
+[0.3.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.1...0.3.2
+[0.3.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.10...0.3.0
 [0.2.10]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.9...0.2.10
 [0.2.9]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.8...0.2.9

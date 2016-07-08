@@ -36,32 +36,4 @@ class DbSimpleTypes extends FactoryEnum
     const TYPE_USER_ID_ON_CREATE   = 'user_id_on_create';
     const TYPE_USER_ID_ON_UPDATE   = 'user_id_on_update';
     const TYPE_VIRTUAL             = 'virtual';
-
-    public static function getServerSideFilterOperators()
-    {
-        return [
-            static::TYPE_ID,
-            static::TYPE_REF,
-            static::TYPE_BINARY,
-            static::TYPE_STRING,
-            static::TYPE_TEXT,
-            static::TYPE_BOOLEAN,
-            static::TYPE_INTEGER,
-            static::TYPE_BIGINT,
-            static::TYPE_DECIMAL,
-            static::TYPE_DOUBLE,
-            static::TYPE_FLOAT,
-            static::TYPE_MONEY,
-            static::TYPE_DATETIME,
-            static::TYPE_DATE,
-            static::TYPE_TIME,
-            static::TYPE_TIMESTAMP,
-            static::TYPE_TIMESTAMP_ON_CREATE,
-            static::TYPE_TIMESTAMP_ON_UPDATE,
-            static::TYPE_USER_ID,
-            static::TYPE_USER_ID_ON_CREATE,
-            static::TYPE_USER_ID_ON_UPDATE,
-            static::TYPE_VIRTUAL,
-        ];
-    }
 }

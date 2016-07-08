@@ -33,6 +33,10 @@ class RoutineSchema
      */
     public $returnType;
     /**
+     * @var string Return type information when the returnType is non-scalar for this routine.
+     */
+    public $returnSchema = [];
+    /**
      * @var array Parameters for this routine. Each array element is a ParameterSchema object, indexed by lowercase
      *      parameter name.
      */
@@ -104,6 +108,7 @@ class RoutineSchema
     {
         $paramCollect = collect($this->parameters);
         $paramCollect = $paramCollect->sortBy('position');
+
         return $paramCollect->all();
     }
 
@@ -134,9 +139,10 @@ class RoutineSchema
         }
 
         $out = [
-            'name'    => $this->publicName,
-            'returns' => $this->returnType,
-            'params'  => $parameters,
+            'name'          => $this->publicName,
+            'return_type'   => $this->returnType,
+            'return_schema' => $this->returnSchema,
+            'params'        => $parameters,
         ];
 
         return $out;

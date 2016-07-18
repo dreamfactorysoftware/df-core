@@ -561,14 +561,10 @@ EOD;
      */
     public function addColumn($table, $column, $type)
     {
-        $type = $this->getColumnType($type);
-        $sql =
-            'ALTER TABLE ' .
-            $this->quoteTableName($table) .
-            ' ADD COLUMN ' .
-            $this->quoteColumnName($column) .
-            ' ' .
-            $type;
+        $sql = <<<MYSQL
+ALTER TABLE  {$this->quoteTableName($table)}
+ADD COLUMN {$this->quoteColumnName($column)} {$this->getColumnType($type)}
+MYSQL;
 
         return $sql;
     }

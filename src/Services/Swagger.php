@@ -10,6 +10,9 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Inflector;
 use ServiceManager as ServiceMgrFacade;
+use Config;
+use Log;
+
 
 /**
  * Swagger
@@ -97,7 +100,7 @@ class Swagger extends BaseRestService
         }
 
         if (null === ($content = static::getFromCache($roleId))) {
-            \Log::info('Building Swagger cache');
+            Log::info('Building Swagger cache');
 
             //  Gather the services
             $paths = [];
@@ -115,10 +118,10 @@ class Swagger extends BaseRestService
                 try {
                 /** @var BaseRestService $service */
                 if (empty($service = ServiceMgrFacade::getService($apiName))) {
-                    \Log::error('No service found.');
+                    Log::error('No service found.');
                 }
                 if (empty($content = $service->getApiDocInfo())) {
-                    \Log::error('No API documentation found.');
+                    Log::error('No API documentation found.');
                 }
 
                 $servicePaths = (array)array_get($content, 'paths');
@@ -130,7 +133,7 @@ class Swagger extends BaseRestService
                 $definitions = array_merge($definitions, $serviceDefs);
                 $parameters = array_merge($parameters, $serviceParams);
                 } catch (\Exception $ex) {
-                    \Log::error("  * System error building API documentation for service '$apiName'.\n{$ex->getMessage()}");
+                    Log::error("  * System error building API documentation for service '$apiName'.\n{$ex->getMessage()}");
                 }
 
                 unset($service);
@@ -146,7 +149,7 @@ HTML;
                 'info'                => [
                     'title'       => 'DreamFactory Live API Documentation',
                     'description' => $description,
-                    'version'     => \Config::get('df.api_version', static::API_VERSION),
+                    'version'     => Config::get('df.api_version', static::API_VERSION),
                     //'termsOfServiceUrl' => 'http://www.dreamfactory.com/terms/',
                     'contact'     => [
                         'name'  => 'DreamFactory Software, Inc.',
@@ -171,7 +174,7 @@ HTML;
 
             static::addToCache($roleId, $content, true);
 
-            \Log::info('Swagger cache build process complete');
+            Log::info('Swagger cache build process complete');
         }
 
         return $content;

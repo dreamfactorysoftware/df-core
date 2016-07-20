@@ -238,7 +238,8 @@ abstract class BaseFileService extends BaseRestService
             if ($this->request->getParameterAsBool('include_properties', false)) {
                 // just properties of the file itself
                 $content = $this->request->getParameterAsBool('content', false);
-                $result = $this->driver->getFileProperties($this->container, $this->filePath, $content);
+                $base64 = $this->request->getParameterAsBool('is_base64', true);
+                $result = $this->driver->getFileProperties($this->container, $this->filePath, $content, $base64);
             } else {
                 $download = $this->request->getParameterAsBool('download', false);
                 // stream the file using StreamedResponse, exits processing

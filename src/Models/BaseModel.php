@@ -320,6 +320,7 @@ class BaseModel extends Model implements CacheInterface
      *
      * @param array $attributes
      *
+     * @param array $options
      * @return bool|int
      * @throws \Exception
      */

@@ -289,8 +289,13 @@ class Service extends BaseSystemModel
             $paths = array_get($content, 'paths', []);
             // tricky here, loop through all indexes to check if all start with service name,
             // otherwise need to prepend service name to all.
-            if (!empty(array_filter(array_keys($paths), function ($k) use ($name){
-                return ((0 !== strcmp($name, strstr(ltrim($k, '/'), '/', true))) || $name === $k);
+            if (!empty(array_filter(array_keys($paths), function ($k) use ($name) {
+                $k = ltrim($k, '/');
+                if (false !== strpos($k, '/')) {
+                    $k = strstr($k, '/', true);
+                }
+
+                return (0 !== strcasecmp($name, $k));
             }))
             ) {
                 $newPaths = [];

@@ -24,11 +24,12 @@
     }
   ],
   "require":     {
-    "php":                        ">=5.5",
-    "doctrine/dbal":              "2.5.*",
-    "dreamfactory/php-utils":     "1.1.*",
-    "guzzlehttp/guzzle":          "~6.0",
-    "barryvdh/laravel-cors":      "0.7.x"
+    "php":                    ">=5.5",
+    "doctrine/dbal":          "2.5.*",
+    "dreamfactory/php-utils": "1.1.*",
+    "guzzlehttp/guzzle":      "~6.0",
+    "barryvdh/laravel-cors":  "0.7.x",
+    "symfony/yaml":           "~2.8|~3.0"
   },
   "require-dev": {
     "phpunit/phpunit": "@stable"

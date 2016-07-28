@@ -2892,6 +2892,7 @@ MYSQL;
         // any post op?
         $this->postProcedureCall($paramSchemas, $values);
 
+        $values = array_change_key_case($values, CASE_LOWER);
         foreach ($paramSchemas as $key => $paramSchema) {
             switch ($paramSchema->paramType) {
                 case 'OUT':

@@ -86,7 +86,7 @@ class Service extends BaseSystemModel
         parent::boot();
 
         static::created(
-            function (Service $service){
+            function (Service $service) {
                 if (!empty($service->config)) {
                     // take the type information and get the config_handler class
                     // set the config giving the service id and new config
@@ -101,7 +101,7 @@ class Service extends BaseSystemModel
         );
 
         static::saved(
-            function (Service $service){
+            function (Service $service) {
                 \Cache::forget('service:' . $service->name);
                 \Cache::forget('service_id:' . $service->id);
 
@@ -113,7 +113,7 @@ class Service extends BaseSystemModel
         );
 
         static::deleting(
-            function (Service $service){
+            function (Service $service) {
                 // take the type information and get the config_handler class
                 // set the config giving the service id and new config
                 $serviceCfg = $service->getConfigHandler();
@@ -126,7 +126,7 @@ class Service extends BaseSystemModel
         );
 
         static::deleted(
-            function (Service $service){
+            function (Service $service) {
                 \Cache::forget('service:' . $service->name);
                 \Cache::forget('service_id:' . $service->id);
 
@@ -289,11 +289,12 @@ class Service extends BaseSystemModel
             $paths = array_get($content, 'paths', []);
             // tricky here, loop through all indexes to check if all start with service name,
             // otherwise need to prepend service name to all.
-            if (!empty(array_filter(array_keys($paths), function ($k) use ($name){
+            if (!empty(array_filter(array_keys($paths), function ($k) use ($name) {
                 $k = ltrim($k, '/');
                 if (false !== strpos($k, '/')) {
                     $k = strstr($k, '/', true);
                 }
+
                 return (0 !== strcasecmp($name, $k));
             }))
             ) {
@@ -338,7 +339,7 @@ class Service extends BaseSystemModel
     public static function getCachedByName($name, $key = null, $default = null)
     {
         $cacheKey = 'service:' . $name;
-        $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name){
+        $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name) {
             $service = static::whereName($name)->first(['id', 'name', 'label', 'description', 'is_active', 'type']);
 
             if (empty($service)) {
@@ -400,7 +401,7 @@ class Service extends BaseSystemModel
     {
         $cacheKey = 'service_id:' . $id;
 
-        return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
+        return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id) {
             $service = static::whereId($id)->first(['name']);
 
             if (empty($service)) {

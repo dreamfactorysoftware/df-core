@@ -3589,7 +3589,8 @@ MYSQL;
     /**
      * Extracts size, precision and scale information from column's DB type.
      *
-     * @param string $dbType the column's DB type
+     * @param ColumnSchema $field
+     * @param string       $dbType the column's DB type
      */
     public function extractLimit(ColumnSchema &$field, $dbType)
     {
@@ -3607,7 +3608,8 @@ MYSQL;
      * Extracts the default value for the column.
      * The value is typecasted to correct PHP type.
      *
-     * @param mixed $defaultValue the default value obtained from metadata
+     * @param ColumnSchema $field
+     * @param mixed        $defaultValue the default value obtained from metadata
      */
     public function extractDefault(ColumnSchema &$field, $defaultValue)
     {
@@ -3617,8 +3619,8 @@ MYSQL;
     /**
      * Converts the input value to the type that this column is of.
      *
-     * @param mixed $value input value
-     *
+     * @param ColumnSchema $field
+     * @param mixed        $value input value
      * @return mixed converted value
      */
     public function typecast(ColumnSchema $field, $value)

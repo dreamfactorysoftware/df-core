@@ -29,7 +29,7 @@ use DreamFactory\Library\Utility\Scalar;
 abstract class BaseDbTableResource extends BaseDbResource
 {
     use DataValidator;
-    
+
     //*************************************************************************
     //	Constants
     //*************************************************************************
@@ -437,7 +437,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @return array
+     * @return bool|array
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
@@ -481,7 +481,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @return array
+     * @return bool|array
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
@@ -547,7 +547,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @return array
+     * @return bool|array
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
@@ -612,7 +612,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @return array
+     * @return bool|array
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
@@ -767,8 +767,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                 throw $ex;
             }
 
-            throw new InternalServerErrorException("Failed to create records in '$table'.\n$msg", null, null,
-                $context);
+            throw new InternalServerErrorException("Failed to create records in '$table'.\n$msg", null, null, $context);
         }
     }
 
@@ -1766,7 +1765,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $continue = false,
         /** @noinspection PhpUnusedParameterInspection */
         $single = false
-    ){
+    ) {
         if (!empty($record)) {
             $this->batchRecords[] = $record;
         }
@@ -1877,13 +1876,15 @@ abstract class BaseDbTableResource extends BaseDbResource
                     $value = $record;
                 }
                 if (!empty($value)) {
-                    switch ($info->type) {
-                        case 'int':
-                            $value = intval($value);
-                            break;
-                        case 'string':
-                            $value = strval($value);
-                            break;
+                    if (!is_array($value)) {
+                        switch ($info->type) {
+                            case 'int':
+                                $value = intval($value);
+                                break;
+                            case 'string':
+                                $value = strval($value);
+                                break;
+                        }
                     }
                     $id = $value;
                 } else {
@@ -1906,13 +1907,15 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $value = $record;
                     }
                     if (!empty($value)) {
-                        switch ($info->type) {
-                            case 'int':
-                                $value = intval($value);
-                                break;
-                            case 'string':
-                                $value = strval($value);
-                                break;
+                        if (!is_array($value)) {
+                            switch ($info->type) {
+                                case 'int':
+                                    $value = intval($value);
+                                    break;
+                                case 'string':
+                                    $value = strval($value);
+                                    break;
+                            }
                         }
                         $id[$name] = $value;
                     } else {
@@ -1944,7 +1947,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $value,
         /** @noinspection PhpUnusedParameterInspection */
         $field_info
-    ){
+    ) {
         return $value;
     }
 
@@ -2436,7 +2439,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         // some classes define their own default
         $default = defined('static::MAX_RECORDS_RETURNED') ? static::MAX_RECORDS_RETURNED : 1000;
 
-        return intval(\Config::get('df.db.max_records_returned', $default));
+        return intval(Config::get('df.db.max_records_returned', $default));
     }
 
     /**
@@ -2752,13 +2755,13 @@ abstract class BaseDbTableResource extends BaseDbResource
         switch ($operator) {
             // Value-Modifying Operators
             case DbComparisonOperators::CONTAINS:
-                $value = '%'.$value.'%';
+                $value = '%' . $value . '%';
                 break;
             case DbComparisonOperators::STARTS_WITH:
-                $value = $value.'%';
+                $value = $value . '%';
                 break;
             case DbComparisonOperators::ENDS_WITH:
-                $value = '%'.$value;
+                $value = '%' . $value;
                 break;
         }
     }

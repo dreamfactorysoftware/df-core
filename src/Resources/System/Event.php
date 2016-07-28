@@ -12,6 +12,7 @@ use DreamFactory\Core\Services\BaseFileService;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Utility\ServiceResponse;
 use DreamFactory\Library\Utility\Inflector;
 use ServiceManager;
 
@@ -268,7 +269,7 @@ class Event extends BaseRestResource
     /**
      * Handles GET action
      *
-     * @return array
+     * @return array|ServiceResponse
      * @throws NotFoundException
      */
     protected function handleGET()
@@ -372,7 +373,7 @@ class Event extends BaseRestResource
     /**
      * Handles POST action
      *
-     * @return \DreamFactory\Core\Utility\ServiceResponse
+     * @return bool|ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */
@@ -400,7 +401,7 @@ class Event extends BaseRestResource
     /**
      * Handles DELETE action
      *
-     * @return \DreamFactory\Core\Utility\ServiceResponse
+     * @return bool|ServiceResponse
      * @throws BadRequestException
      * @throws \Exception
      */

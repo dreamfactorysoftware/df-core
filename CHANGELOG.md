@@ -9,6 +9,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.3.3] - 2016-07-28
+### Fixed
+- Fix service name detection for manipulation of swagger files.
+- Needed to add require for symfony/yaml for Swagger support.
+- case-sensitivity issue with out parameters on procs.
+
 ## [0.3.2] - 2016-07-08
 ### Added
 - DF-768 Allow event modification setting added to event script config, replacing the content_changed flag in scripting
@@ -263,7 +269,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.2...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.3...HEAD
+[0.3.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.2...0.3.3
 [0.3.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.2.10...0.3.0

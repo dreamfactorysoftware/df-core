@@ -141,7 +141,7 @@ class V8Js extends BaseEngineAdapter
 
         return [
             'api'     => static::getExposedApi(),
-            'config'  => Config::all(),
+            'config'  => Config::get('df'),
             'session' => $newSession,
             'store'   => new ScriptSession(Config::get("script.$identifier.store"), app('cache'))
         ];

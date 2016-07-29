@@ -60,14 +60,14 @@ class FilePublicPath extends BaseServiceConfigModel
                 $defaultDiskName = \Config::get('filesystems.default');
                 $disks = \Config::get('filesystems.disks');
 
-                foreach ($disks as $disk) {
+                foreach ($disks as $key => $disk) {
                     $default = false;
-                    if ($defaultDiskName === $disk['driver']) {
+                    if ($defaultDiskName === $key) {
                         $default = true;
                     }
                     $values[] = [
-                        'name' => $disk['driver'],
-                        'label' => $disk['driver'],
+                        'name'    => $key,
+                        'label'   => $key,
                         'default' => $default
                     ];
                 }

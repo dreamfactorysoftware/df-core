@@ -50,6 +50,7 @@ class DfServiceProvider extends ServiceProvider
                 'ADLdap',
                 'Aws',
                 'Azure',
+                'Cassandra',
                 'CouchDb',
                 'IbmDb2',
                 'MongoDb',

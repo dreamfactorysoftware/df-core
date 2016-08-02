@@ -131,7 +131,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
             //  Don't show output
             ob_start();
 
-            if (is_file($script)) {
+            if (strpos($script, "\n") === false && is_file($script)) {
                 $result = $this->executeScript($script, $identifier, $data, $config);
             } else {
                 $result = $this->executeString($script, $identifier, $data, $config);

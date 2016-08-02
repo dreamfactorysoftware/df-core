@@ -4,10 +4,12 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- DF-664 - Added support for Cassandra (beta)
 
 ### Changed
 
 ### Fixed
+- Fixed a scripting bug where the system failed to check a script file path.
 
 ## [0.3.3] - 2016-07-28
 ### Fixed

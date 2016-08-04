@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-664 - Added support for Cassandra (beta)
+- DF-719 - Added cache service (local, redis)
 
 ### Changed
 

@@ -480,6 +480,13 @@ JS;
         return call_user_func_array(['\\V8Js', $name], $arguments);
     }
 
+    /**
+     * Re-builds an array recursively. 
+     *
+     * @param $array
+     *
+     * @return array
+     */
     public static function reBuildArray($array)
     {
         $newArray = [];

@@ -39,4 +39,5 @@ class DbSimpleTypes extends FactoryEnum
 
     //Cassandra specific Types
     const TYPE_UUID                = 'uuid';
+    const TYPE_TIME_UUID           = 'timeuuid';
 }

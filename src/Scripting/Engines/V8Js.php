@@ -481,7 +481,7 @@ JS;
     }
 
     /**
-     * Re-builds an array recursively. 
+     * Re-builds an array recursively.
      *
      * @param $array
      *

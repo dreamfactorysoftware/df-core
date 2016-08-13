@@ -144,7 +144,14 @@ _wrapperResult = (function() {
     
     _platform.api = {
         call: function (verb, path, payload, headers, callback) {
-            _options.host = getHost(path);
+            var host = getHost(path);
+            if(host.indexOf(':') !== -1){
+                host = host.split(':');    
+                _options.host = host[0];
+                _options.port = host[1];
+            } else {
+                _options.host = host;
+            }
             _options.method = verb;
             _options.path = cleanPath(path);
             

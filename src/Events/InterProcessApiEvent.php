@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Events;
 
 use DreamFactory\Core\Components\ScriptHandler;
+use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Models\EventScript;
 use Log;
 
@@ -42,13 +43,12 @@ class InterProcessApiEvent extends ApiEvent
         // check for "return" results
         if (!empty($result)) {
             // could be formatted array or raw content
-            if (is_array($result) &&
-                (isset($result['content']) || isset($result['status_code']))
-            ) {
+            if (is_array($result) && (isset($result['content']) || isset($result['status_code']))) {
                 $result['response'] = $result;
             } else {
                 // otherwise must be raw content, assumes 200
                 $result['response']['content'] = $result;
+                $result['response']['status_code'] = HttpStatusCodeInterface::HTTP_OK;
             }
         }
 
@@ -57,14 +57,15 @@ class InterProcessApiEvent extends ApiEvent
 
     /**
      * @param EventScript $script
-     * @param $result
+     * @param             $result
      *
      * @return bool
      */
     protected function handleEventScriptResult(
         /** @noinspection PhpUnusedParameterInspection */
-        $script, $result)
-    {
+        $script,
+        $result
+    ) {
         if (array_get($result, 'stop_propagation', false)) {
             Log::info('  * Propagation stopped by script.');
 

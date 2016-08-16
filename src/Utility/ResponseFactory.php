@@ -106,7 +106,7 @@ class ResponseFactory
 
         // check if the current content type is acceptable for return
         $contentType = $response->getContentType();
-        if (empty($contentType)) {
+        if (empty($contentType) && is_numeric($format)) {
             $contentType = DataFormats::toMimeType($format, null);
         }
 

@@ -22,6 +22,14 @@ class PreProcessApiEvent extends InterProcessApiEvent
         parent::__construct($name, $resource);
     }
 
+    public function makeData()
+    {
+        return [
+            'request'  => $this->request->toArray(),
+            'resource' => $this->resource,
+        ];
+    }
+
     /**
      * @param EventScript $script
      * @param             $result

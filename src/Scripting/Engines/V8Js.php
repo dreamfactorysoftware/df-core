@@ -12,8 +12,8 @@ use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Scripting\ScriptServiceRequest;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Utility\ResponseFactory;
-use \Log;
-use \Config;
+use Log;
+use Config;
 use ServiceManager;
 
 /**
@@ -46,6 +46,10 @@ class V8Js extends BaseEngineAdapter
      * @var \ReflectionClass
      */
     protected static $mirror;
+    /**
+     * @var \\V8Js
+     */
+    protected $engine;
 
     //*************************************************************************
     //	Methods

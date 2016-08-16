@@ -11,8 +11,6 @@ use DreamFactory\Core\Enums\DbComparisonOperators;
 use DreamFactory\Core\Enums\DbLogicalOperators;
 use DreamFactory\Core\Enums\DbSimpleTypes;
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Events\ResourcePostProcess;
-use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -38,6 +36,10 @@ abstract class BaseDbTableResource extends BaseDbResource
      * Resource tag for dealing with table schema
      */
     const RESOURCE_NAME = '_table';
+    /**
+     * Replacement tag for dealing with table schema events
+     */
+    const EVENT_IDENTIFIER = '{table_name}';
     /**
      * Default maximum records returned on filter request
      */
@@ -268,118 +270,80 @@ abstract class BaseDbTableResource extends BaseDbResource
         $this->checkPermission($action, $table);
     }
 
-    /**
-     * Runs pre process tasks/scripts
-     */
-    protected function preProcess()
+    protected function getEventName()
     {
+        $suffix = '';
         switch (count($this->resourceArray)) {
-            case 0:
-                parent::preProcess();
-                break;
             case 1:
-                // Try the generic table event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}', $this->request,
-                        $this->resourcePath
-                    )
-                );
-                // Try the actual table name event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(), $this->getFullPathName('.') . '.' . $this->resourceArray[0],
-                        $this->request,
-                        $this->resourcePath
-                    )
-                );
+                $suffix = '.' . static::EVENT_IDENTIFIER;
                 break;
             case 2:
-                // Try the generic table event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}.{id}',
-                        $this->request,
-                        $this->resourcePath
-                    )
-                );
-                // Try the actual table name event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(),
-                        $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.{id}',
-                        $this->request,
-                        $this->resourceArray[1]
-                    )
-                );
+                $suffix = '.' . static::EVENT_IDENTIFIER . '.{id}';
                 break;
             default:
-                // Do nothing is all we got?
+                break;
+        }
+
+        return parent::getEventName() . $suffix;
+    }
+
+
+    protected function firePreProcessEvent($name = null, $resource = null)
+    {
+        // fire default first
+        // Try the generic table event
+        parent::firePreProcessEvent($name, $resource);
+
+        // also fire more specific event
+        // Try the actual table name event
+        switch (count($this->resourceArray)) {
+            case 1:
+                parent::firePreProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $resource);
+                break;
+            case 2:
+                parent::firePreProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $this->resourceArray[1]);
                 break;
         }
     }
 
-    /**
-     * Runs post process tasks/scripts
-     */
-    protected function postProcess()
+    protected function firePostProcessEvent($name = null, $resource = null)
     {
+        // fire default first
+        // Try the generic table event
+        parent::firePostProcessEvent($name, $resource);
+
+        // also fire more specific event
+        // Try the actual table name event
         switch (count($this->resourceArray)) {
-            case 0:
-                parent::postProcess();
-                break;
             case 1:
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(), $this->getFullPathName('.') . '.' . $this->resourceArray[0],
-                    $this->request,
-                    $this->response,
-                    $this->resourcePath
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-                // copy the event response back to this response
-                $this->response = $event->response;
-
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}', $this->request,
-                    $this->response,
-                    $this->resourcePath
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-
-                $this->response = $event->response;
+                parent::firePostProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $resource);
                 break;
             case 2:
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(),
-                    $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.{id}',
-                    $this->request,
-                    $this->response,
-                    $this->resourceArray[1]
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-
-                $this->response = $event->response;
-
-                // todo how to handle proper response for more than one result?
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}.{id}', $this->request,
-                    $this->response,
-                    $this->resourcePath
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-
-                $this->response = $event->response;
+                parent::firePostProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $this->resourceArray[1]);
                 break;
-            default:
-                // Do nothing is all we got?
+        }
+    }
+
+    protected function fireFinalEvent($name = null, $resource = null)
+    {
+        // fire default first
+        // Try the generic table event
+        parent::fireFinalEvent($name, $resource);
+
+        // also fire more specific event
+        // Try the actual table name event
+        switch (count($this->resourceArray)) {
+            case 1:
+                parent::fireFinalEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $resource);
+                break;
+            case 2:
+                parent::fireFinalEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $this->resourceArray[1]);
                 break;
         }
     }

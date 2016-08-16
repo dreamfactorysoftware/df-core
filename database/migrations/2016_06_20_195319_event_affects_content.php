@@ -13,7 +13,6 @@ class EventAffectsContent extends Migration
     public function up()
     {
         Schema::table('event_script', function (Blueprint $table) {
-            //
             $table->boolean('allow_event_modification')->default(0);
         });
     }
@@ -26,7 +25,6 @@ class EventAffectsContent extends Migration
     public function down()
     {
         Schema::table('event_script', function (Blueprint $table) {
-            //
             $table->dropColumn('allow_event_modification');
         });
     }

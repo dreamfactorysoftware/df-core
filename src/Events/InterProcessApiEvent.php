@@ -1,17 +1,19 @@
 <?php
 namespace DreamFactory\Core\Events;
 
+use DreamFactory\Core\Components\ScriptHandler;
 use DreamFactory\Core\Models\EventScript;
 use Log;
 
-abstract class InterProcessApiEvent extends ApiEvent
+class InterProcessApiEvent extends ApiEvent
 {
+    use ScriptHandler;
+
     public function handle()
     {
-        $name = $this->makeName();
-        Log::debug('API event handled: ' . $name);
+        Log::debug('API event handled: ' . $this->name);
 
-        if ($script = $this->getEventScript($name)) {
+        if ($script = $this->getEventScript($this->name)) {
             $data = $this->makeData();
 
             if (null !== $result = $this->handleEventScript($script, $data)) {
@@ -21,14 +23,47 @@ abstract class InterProcessApiEvent extends ApiEvent
 
         return true;
     }
-    
+
+    /**
+     * @param EventScript $script
+     * @param array       $event
+     *
+     * @return array|null
+     * @throws
+     * @throws \DreamFactory\Core\Events\Exceptions\ScriptException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\RestException
+     * @throws \DreamFactory\Core\Exceptions\ServiceUnavailableException
+     */
+    public function handleEventScript($script, &$event)
+    {
+        $result = $this->handleScript($script->name, $script->content, $script->type, $script->config, $event);
+
+        // check for "return" results
+        if (!empty($result)) {
+            // could be formatted array or raw content
+            if (is_array($result) &&
+                (isset($result['content']) || isset($result['status_code']))
+            ) {
+                $result['response'] = $result;
+            } else {
+                // otherwise must be raw content, assumes 200
+                $result['response']['content'] = $result;
+            }
+        }
+
+        return $result;
+    }
+
     /**
      * @param EventScript $script
      * @param $result
      *
      * @return bool
      */
-    protected function handleEventScriptResult($script, $result)
+    protected function handleEventScriptResult(
+        /** @noinspection PhpUnusedParameterInspection */
+        $script, $result)
     {
         if (array_get($result, 'stop_propagation', false)) {
             Log::info('  * Propagation stopped by script.');
@@ -36,6 +71,6 @@ abstract class InterProcessApiEvent extends ApiEvent
             return false;
         }
 
-        return parent::handleEventScriptResult($script, $result);
+        return true;
     }
 }

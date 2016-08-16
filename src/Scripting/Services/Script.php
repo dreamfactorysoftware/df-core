@@ -1,16 +1,16 @@
 <?php
 namespace DreamFactory\Core\Scripting\Services;
 
+use DreamFactory\Core\Components\ScriptHandler;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Jobs\ScriptServiceJob;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use Illuminate\Foundation\Bus\DispatchesJobs;
 use Log;
-use ScriptEngineManager;
 
 /**
  * Script
@@ -18,6 +18,8 @@ use ScriptEngineManager;
  */
 class Script extends BaseRestService
 {
+    use ScriptHandler, DispatchesJobs;
+
     //*************************************************************************
     //	Members
     //*************************************************************************
@@ -34,6 +36,10 @@ class Script extends BaseRestService
      * @var array $scriptConfig Configuration for the engine for this particular script
      */
     protected $scriptConfig;
+    /**
+     * @var boolean $queued Configuration for the engine for this particular script
+     */
+    protected $queued = false;
     /**
      * @var array
      */
@@ -104,76 +110,33 @@ class Script extends BaseRestService
     {
         //	Now all actions must be HTTP verbs
         if (!Verbs::contains($this->action)) {
-            throw new BadRequestException('The action "' . $this->action . '" is not supported.');
+            throw new BadRequestException("The action '{$this->action}' is not supported.");
+        }
+
+        if ($this->queued) {
+            $job = new ScriptServiceJob($this->getServiceId(), $this->request, $this->resourcePath);
+            $result = $this->dispatch($job);
+            Log::debug('API service script queued: ' . $this->name . PHP_EOL . $result);
+
+            return ResponseFactory::create(['success' => true]);
         }
 
         $data = $this->getRequestData();
 
         $logOutput = $this->request->getParameterAsBool('log_output', true);
-        $output = null;
-        $engine = ScriptEngineManager::makeEngine($this->engineType, $this->scriptConfig);
-
-        $result = $engine->runScript(
-            $this->content,
-            'service.' . $this->name,
-            $this->scriptConfig,
-            $data,
-            $output
-        );
-
-        if (!empty($output) && $logOutput) {
-            Log::info("Script '{$this->name}' output:" . PHP_EOL . $output . PHP_EOL);
-        }
-
-        //  Bail on errors...
-        if (!is_array($result)) {
-            $message = 'Script did not return an expected format: ' . print_r($result, true);
-            // Should this return to client as error?
-            Log::error($message);
-            throw new InternalServerErrorException($message);
-        }
-
-        if (isset($result['exception'])) {
-            $ex = $result['exception'];
-            if ($ex instanceof \Exception) {
-                throw $ex;
-            } elseif (is_array($ex)) {
-                $code = array_get($ex, 'code', null);
-                $message = array_get($ex, 'message', 'Unknown scripting error.');
-                $status = array_get($ex, 'status_code', ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR);
-                throw new RestException($status, $message, $code);
-            }
-            throw new InternalServerErrorException(strval($ex));
-        }
-
-        // check for directly returned results, otherwise check for "response"
-        $response = (isset($result['script_result']) ? $result['script_result'] : null);
-        if (isset($response, $response['error'])) {
-            if (is_array($response['error'])) {
-                $msg = array_get($response, 'error.message');
-            } else {
-                $msg = $response['error'];
-            }
-            throw new InternalServerErrorException($msg);
-        }
-
-        if (empty($response)) {
-            $response = (isset($result['response']) ? $result['response'] : null);
-        }
+        $result = $this->handleScript('service.' . $this->name, $this->content, $this->engineType, $this->scriptConfig, $data, $logOutput);
 
         // check if this is a "response" array
-        if (is_array($response) && isset($response['content'])) {
-            $content = array_get($response, 'content');
-            $contentType = array_get($response, 'content_type');
-            $status = array_get($response, 'status_code', ServiceResponseInterface::HTTP_OK);
-
-//            $format = array_get($response, 'format', DataFormats::PHP_ARRAY);
+        if (is_array($result) && array_key_exists('content', $result)) {
+            $content = array_get($result, 'content');
+            $contentType = array_get($result, 'content_type');
+            $status = array_get($result, 'status_code', ServiceResponseInterface::HTTP_OK);
 
             return ResponseFactory::create($content, $contentType, $status);
         }
 
         // otherwise assume raw content
-        return ResponseFactory::create($response);
+        return ResponseFactory::create($result);
     }
 
     public function getApiDocInfo()

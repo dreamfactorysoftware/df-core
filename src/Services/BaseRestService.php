@@ -7,17 +7,11 @@ use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Components\RestHandler;
 use DreamFactory\Core\Contracts\ServiceInterface;
-use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
-use DreamFactory\Core\Events\ServicePostProcess;
-use DreamFactory\Core\Events\ServicePreProcess;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Inflector;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 use ServiceManager as ServiceMgr;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Class BaseRestService
@@ -73,40 +67,6 @@ class BaseRestService extends RestHandler implements ServiceInterface
         }
 
         return parent::handleRequest($request, $resource);
-    }
-
-    /**
-     * Runs pre process tasks/scripts
-     */
-    protected function preProcess()
-    {
-        /** @noinspection PhpUnusedLocalVariableInspection */
-        $results = \Event::fire(new ServicePreProcess($this->name, $this->request, $this->resourcePath));
-    }
-
-    /**
-     * Runs post process tasks/scripts
-     */
-    protected function postProcess()
-    {
-        $event = new ServicePostProcess($this->name, $this->request, $this->response, $this->resourcePath);
-        /** @noinspection PhpUnusedLocalVariableInspection */
-        $results = \Event::fire($event);
-    }
-
-    /**
-     * @return ServiceResponseInterface
-     */
-    protected function respond()
-    {
-        if ($this->response instanceof ServiceResponseInterface ||
-            $this->response instanceof RedirectResponse ||
-            $this->response instanceof StreamedResponse
-        ) {
-            return $this->response;
-        }
-
-        return ResponseFactory::create($this->response);
     }
 
     /**

@@ -78,8 +78,14 @@ class SystemResourceManager
             [
                 'name'        => 'event',
                 'label'       => 'Events',
-                'description' => 'Allows registering server-side scripts to system generated events.',
+                'description' => 'Provides a list of system generated events.',
                 'class_name'  => Event::class,
+            ],
+            [
+                'name'        => 'event_script',
+                'label'       => 'Event Scripts',
+                'description' => 'Allows registering server-side scripts to system generated events.',
+                'class_name'  => EventScript::class,
             ],
             [
                 'name'        => 'lookup',

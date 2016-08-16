@@ -4,8 +4,6 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
-use DreamFactory\Core\Events\ResourcePostProcess;
-use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -150,47 +148,26 @@ abstract class BaseFileService extends BaseRestService
         return $list;
     }
 
-    /**
-     * Runs pre process tasks/scripts
-     */
-    protected function preProcess()
+    protected function getEventName()
     {
+        $suffix = '';
         if (!empty($this->filePath)) {
-            // Try the generic table event
-            /** @noinspection PhpUnusedLocalVariableInspection */
-            $results = \Event::fire(
-                new ResourcePreProcess($this->name, '{file_path}', $this->request, $this->filePath)
-            );
+            $suffix = '.{file_path}';
         } elseif (!empty($this->folderPath)) {
-            // Try the generic table event
-            /** @noinspection PhpUnusedLocalVariableInspection */
-            $results = \Event::fire(
-                new ResourcePreProcess($this->name, '{folder_path}', $this->request, $this->folderPath)
-            );
-        } else {
-            parent::preProcess();
+            $suffix = '.{folder_path}';
         }
+
+        return parent::getEventName() . $suffix;
     }
 
-    /**
-     * Runs post process tasks/scripts
-     */
-    protected function postProcess()
+    protected function getEventResource()
     {
         if (!empty($this->filePath)) {
-            $event =
-                new ResourcePostProcess($this->name, '{file_path}', $this->request, $this->response,
-                    $this->filePath);
-            /** @noinspection PhpUnusedLocalVariableInspection */
-            $results = \Event::fire($event);
+            return $this->filePath;
         } elseif (!empty($this->folderPath)) {
-            $event =
-                new ResourcePostProcess($this->name, '{folder_path}', $this->request, $this->response,
-                    $this->folderPath);
-            /** @noinspection PhpUnusedLocalVariableInspection */
-            $results = \Event::fire($event);
+            return $this->folderPath;
         } else {
-            parent::postProcess();
+            return parent::getEventResource();
         }
     }
 
@@ -245,7 +222,7 @@ abstract class BaseFileService extends BaseRestService
                 // stream the file using StreamedResponse, exits processing
                 $response = new StreamedResponse();
                 $service = $this;
-                $response->setCallback(function () use ($service, $download){
+                $response->setCallback(function () use ($service, $download) {
                     $service->streamFile($service->container, $service->filePath, $download);
                 });
 
@@ -393,12 +370,14 @@ abstract class BaseFileService extends BaseRestService
         if (empty($this->folderPath)) {
             // update container properties
             $this->driver->updateContainerProperties($this->container, $content);
-        } else if (empty($this->filePath)) {
-            // update folder properties
-            $this->driver->updateFolderProperties($this->container, $this->folderPath, $content);
         } else {
-            // update file properties?
-            $this->driver->updateFileProperties($this->container, $this->filePath, $content);
+            if (empty($this->filePath)) {
+                // update folder properties
+                $this->driver->updateFolderProperties($this->container, $this->folderPath, $content);
+            } else {
+                // update file properties?
+                $this->driver->updateFileProperties($this->container, $this->filePath, $content);
+            }
         }
 
         return ['success' => true];
@@ -421,19 +400,21 @@ abstract class BaseFileService extends BaseRestService
             } else {
                 throw new BadRequestException('No resources given for delete.');
             }
-        } else if (empty($this->filePath)) {
-            // delete directory of files and the directory itself
-            // multi-file or folder delete via post data
-            if (!empty($content = ResourcesWrapper::unwrapResources($this->request->getPayloadData()))) {
-                $result = $this->deleteFolderContent($content, $this->folderPath, $force);
-            } else {
-                $this->driver->deleteFolder($this->container, $this->folderPath, $force);
-                $result = ['name' => basename($this->folderPath), 'path' => $this->folderPath];
-            }
         } else {
-            // delete file from permanent storage
-            $this->driver->deleteFile($this->container, $this->filePath);
-            $result = ['name' => basename($this->filePath), 'path' => $this->filePath];
+            if (empty($this->filePath)) {
+                // delete directory of files and the directory itself
+                // multi-file or folder delete via post data
+                if (!empty($content = ResourcesWrapper::unwrapResources($this->request->getPayloadData()))) {
+                    $result = $this->deleteFolderContent($content, $this->folderPath, $force);
+                } else {
+                    $this->driver->deleteFolder($this->container, $this->folderPath, $force);
+                    $result = ['name' => basename($this->folderPath), 'path' => $this->folderPath];
+                }
+            } else {
+                // delete file from permanent storage
+                $this->driver->deleteFile($this->container, $this->filePath);
+                $result = ['name' => basename($this->filePath), 'path' => $this->filePath];
+            }
         }
 
         return ResourcesWrapper::cleanResources($result);
@@ -482,7 +463,7 @@ abstract class BaseFileService extends BaseRestService
         $extract = false,
         $clean = false,
         $check_exist = false
-    ){
+    ) {
         $ext = FileUtilities::getFileExtension($dest_name);
         if (empty($contentType)) {
             $contentType = FileUtilities::determineContentType($ext, $content);
@@ -546,7 +527,7 @@ abstract class BaseFileService extends BaseRestService
         $extract = false,
         $clean = false,
         $check_exist = false
-    ){
+    ) {
         $ext = FileUtilities::getFileExtension($source_file);
         if (empty($contentType)) {
             $contentType = FileUtilities::determineContentType($ext, '', $source_file);
@@ -633,7 +614,7 @@ abstract class BaseFileService extends BaseRestService
         $clean = false,
         /** @noinspection PhpUnusedParameterInspection */
         $checkExist = false
-    ){
+    ) {
         $out = [];
         if (!empty($data) && ArrayUtils::isArrayNumeric($data)) {
             foreach ($data as $key => $resource) {
@@ -735,10 +716,12 @@ abstract class BaseFileService extends BaseRestService
 
                 if (!empty($path)) {
                     $fullPath = $path;
-                } else if (!empty($name)) {
-                    $fullPath = $root . '/' . $name;
                 } else {
-                    throw new BadRequestException('No path or name provided for resource.');
+                    if (!empty($name)) {
+                        $fullPath = $root . '/' . $name;
+                    } else {
+                        throw new BadRequestException('No path or name provided for resource.');
+                    }
                 }
 
                 switch (array_get($resource, 'type')) {
@@ -797,7 +780,7 @@ abstract class BaseFileService extends BaseRestService
 
         $base['paths'] = [
             '/' . $name                     => [
-                'get' => [
+                'get'    => [
                     'tags'              => [$name],
                     'summary'           => 'get' . $capitalized . 'Resources() - List all resources.',
                     'operationId'       => 'get' . $capitalized . 'Resources',
@@ -851,7 +834,7 @@ abstract class BaseFileService extends BaseRestService
                         ],
                     ],
                 ],
-                'post'       => [
+                'post'   => [
                     'tags'              => [$name],
                     'summary'           => 'create' . $capitalized . 'Content() - Create some folders and/or files.',
                     'operationId'       => 'create' . $capitalized . 'Content',
@@ -913,7 +896,7 @@ abstract class BaseFileService extends BaseRestService
                     ],
                     'description'       => 'Post data as an array of folders and/or files. Folders are created if they do not exist',
                 ],
-                'patch'      => [
+                'patch'  => [
                     'tags'              => [$name],
                     'summary'           => 'update' . $capitalized . 'ContainerProperties() - Update container properties.',
                     'operationId'       => 'update' . $capitalized . 'ContainerProperties',
@@ -941,7 +924,7 @@ abstract class BaseFileService extends BaseRestService
                     ],
                     'description'       => 'Post body as an array of folder properties.',
                 ],
-                'delete'     => [
+                'delete' => [
                     'tags'              => [$name],
                     'summary'           => 'delete' .
                         $capitalized .

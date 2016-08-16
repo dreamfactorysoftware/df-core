@@ -3,6 +3,9 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Events\PostProcessApiEvent;
+use DreamFactory\Core\Events\PreProcessApiEvent;
+use DreamFactory\Core\Events\QueuedApiEvent;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\ArrayUtils;
@@ -135,20 +138,6 @@ abstract class RestHandler implements RequestHandlerInterface
     }
 
     /**
-     * Runs pre process tasks/scripts
-     */
-    protected function preProcess()
-    {
-    }
-
-    /**
-     * Runs post process tasks/scripts
-     */
-    protected function postProcess()
-    {
-    }
-
-    /**
      * @param ServiceRequestInterface $request
      * @param string|null             $resource
      *
@@ -166,26 +155,52 @@ abstract class RestHandler implements RequestHandlerInterface
 
         $resources = $this->getResources(true);
         if (!empty($resources) && !empty($this->resource)) {
-            $this->response = $this->handleResource($resources);
-        } else {
-            //  Perform any pre-request processing
-            $this->preProcess();
+            try {
+                if (false === $this->response = $this->handleResource($resources)) {
+                    $message = ucfirst($this->action) . " requests for resource '{$this->resourcePath}' are not currently supported by the '{$this->name}' service.";
+                    throw new BadRequestException($message);
+                }
 
-            $this->response = $this->processRequest();
-
-            if (false !== $this->response) {
-                //  Perform any post-request processing
-                $this->postProcess();
+                if (!($this->response instanceof ServiceResponseInterface ||
+                    $this->response instanceof RedirectResponse ||
+                    $this->response instanceof StreamedResponse
+                )
+                ) {
+                    $this->response = ResponseFactory::create($this->response);
+                }
+            } catch (\Exception $e) {
+                $this->response = ResponseFactory::create($e);
             }
+
+            return $this->response;
         }
 
-        //	Inherent failure?
-        if (false === $this->response) {
-            $what = (!empty($this->resourcePath) ? " for resource '{$this->resourcePath}'" : ' without a resource');
-            $message =
-                ucfirst($this->action) . " requests $what are not currently supported by the '{$this->name}' service.";
+        try {
+            //  Perform any pre-processing
+            $this->preProcess();
 
-            throw new BadRequestException($message);
+            if (false === $this->response = $this->processRequest()) {
+                $message = ucfirst($this->action) . " requests without a resource are not currently supported by the '{$this->name}' service.";
+                throw new BadRequestException($message);
+            }
+
+            if (!($this->response instanceof ServiceResponseInterface ||
+                $this->response instanceof RedirectResponse ||
+                $this->response instanceof StreamedResponse
+            )
+            ) {
+                $this->response = ResponseFactory::create($this->response);
+            }
+        } catch (\Exception $e) {
+            $this->response = ResponseFactory::create($e);
+        }
+
+        //  Perform any post-processing
+        try {
+            $this->postProcess();
+        } catch (\Exception $e) {
+            // override the actual response with the exception
+            $this->response = ResponseFactory::create($e);
         }
 
         //  Perform any response processing
@@ -203,25 +218,25 @@ abstract class RestHandler implements RequestHandlerInterface
     protected function handleResource(array $resources)
     {
         $found = ArrayUtils::findByKeyValue($resources, 'name', $this->resource);
-        if (isset($found, $found['class_name'])) {
-            $className = $found['class_name'];
-
-            if (!class_exists($className)) {
-                throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
-                    $this->resourcePath);
-            }
-
-            /** @var ResourceInterface $resource */
-            $resource = $this->instantiateResource($className, $found);
-
-            $newPath = $this->resourceArray;
-            array_shift($newPath);
-            $newPath = implode('/', $newPath);
-
-            return $resource->handleRequest($this->request, $newPath);
+        if (!isset($found, $found['class_name'])) {
+            throw new NotFoundException("Resource '{$this->resource}' not found for service '{$this->name}'.");
         }
 
-        throw new NotFoundException("Resource '{$this->resource}' not found for service '{$this->name}'.");
+        $className = $found['class_name'];
+
+        if (!class_exists($className)) {
+            throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
+                $this->resourcePath);
+        }
+
+        /** @var ResourceInterface $resource */
+        $resource = $this->instantiateResource($className, $found);
+
+        $newPath = $this->resourceArray;
+        array_shift($newPath);
+        $newPath = implode('/', $newPath);
+
+        return $resource->handleRequest($this->request, $newPath);
     }
 
     protected function instantiateResource($class, $info = [])
@@ -231,6 +246,41 @@ abstract class RestHandler implements RequestHandlerInterface
         $obj->setParent($this);
 
         return $obj;
+    }
+
+    protected function getEventName()
+    {
+        return $this->name;
+    }
+
+    protected function getEventResource()
+    {
+        return $this->resourcePath;
+    }
+
+    /**
+     * Fires pre process event
+     * @param string|null $name     Optional override for name
+     * @param string|null $resource Optional override for resource
+     */
+    protected function firePreProcessEvent($name = null, $resource = null)
+    {
+        if (empty($name)) {
+            $name = $this->getEventName();
+        }
+        if (empty($resource)) {
+            $resource = $this->getEventResource();
+        }
+        /** @noinspection PhpUnusedLocalVariableInspection */
+        $results = \Event::fire(new PreProcessApiEvent($name, $this->request, $resource));
+    }
+
+    /**
+     * Runs pre processing tasks
+     */
+    protected function preProcess()
+    {
+        $this->firePreProcessEvent();
     }
 
     /**
@@ -273,7 +323,7 @@ abstract class RestHandler implements RequestHandlerInterface
                 $result instanceof StreamedResponse
             ) {
                 return $result;
-            } 
+            }
 
             return ResponseFactory::create($result);
         }
@@ -283,10 +333,62 @@ abstract class RestHandler implements RequestHandlerInterface
     }
 
     /**
+     * Fires post process event
+     * @param string|null $name     Optional name to append
+     * @param string|null $resource Optional override for resource
+     */
+    protected function firePostProcessEvent($name = null, $resource = null)
+    {
+        if (empty($name)) {
+            $name = $this->getEventName();
+        }
+        if (empty($resource)) {
+            $resource = $this->getEventResource();
+        }
+        /** @noinspection PhpUnusedLocalVariableInspection */
+        $results = \Event::fire(new PostProcessApiEvent($name, $this->request, $this->response, $resource));
+    }
+
+    /**
+     * Runs post process tasks
+     */
+    protected function postProcess()
+    {
+        $this->firePostProcessEvent();
+    }
+
+    /**
+     * Fires last event before responding
+     * @param string|null $name     Optional name to append
+     * @param string|null $resource Optional override for resource
+     */
+    protected function fireFinalEvent($name = null, $resource = null)
+    {
+        if (empty($name)) {
+            $name = $this->getEventName();
+        }
+        if (empty($resource)) {
+            $resource = $this->getEventResource();
+        }
+        /** @noinspection PhpUnusedLocalVariableInspection */
+        $results = \Event::fire(new QueuedApiEvent($name, $this->request, $this->response, $resource));
+    }
+
+    /**
      * @return ServiceResponseInterface
      */
     protected function respond()
     {
+        if (!($this->response instanceof ServiceResponseInterface ||
+            $this->response instanceof RedirectResponse ||
+            $this->response instanceof StreamedResponse
+        )
+        ) {
+            $this->response = ResponseFactory::create($this->response);
+        }
+
+        $this->fireFinalEvent();
+
         return $this->response;
     }
 
@@ -412,7 +514,7 @@ abstract class RestHandler implements RequestHandlerInterface
     public function getResources(
         /** @noinspection PhpUnusedParameterInspection */
         $only_handlers = false
-    ){
+    ) {
         return [];
     }
 
@@ -437,7 +539,7 @@ abstract class RestHandler implements RequestHandlerInterface
         /** @noinspection PhpUnusedParameterInspection */
         $operation,
         $resource = null
-    ){
+    ) {
         return false;
     }
 
@@ -449,7 +551,7 @@ abstract class RestHandler implements RequestHandlerInterface
     public function getPermissions(
         /** @noinspection PhpUnusedParameterInspection */
         $resource = null
-    ){
+    ) {
         return false;
     }
 

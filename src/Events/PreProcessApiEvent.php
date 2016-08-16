@@ -1,18 +1,30 @@
 <?php
 namespace DreamFactory\Core\Events;
 
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Models\EventScript;
 
 class PreProcessApiEvent extends InterProcessApiEvent
 {
-    protected function makeName()
+    public $request;
+
+    /**
+     * Create a new event instance.
+     *
+     * @param string                  $path
+     * @param ServiceRequestInterface $request
+     * @param mixed                   $resource
+     */
+    public function __construct($path, &$request, $resource = null)
     {
-        return parent::makeName() . '.pre_process';
+        $this->request = $request;
+        $name = strtolower($path . '.' . $request->getMethod()) . '.pre_process';
+        parent::__construct($name, $resource);
     }
-    
+
     /**
      * @param EventScript $script
-     * @param $result
+     * @param             $result
      *
      * @return bool
      */
@@ -22,7 +34,7 @@ class PreProcessApiEvent extends InterProcessApiEvent
             // request only
             $this->request->mergeFromArray((array)array_get($result, 'request'));
         }
-        
+
         return parent::handleEventScriptResult($script, $result);
     }
 }

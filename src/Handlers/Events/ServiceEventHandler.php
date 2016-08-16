@@ -2,10 +2,9 @@
 namespace DreamFactory\Core\Handlers\Events;
 
 use DreamFactory\Core\Events\ApiEvent;
-use DreamFactory\Core\Events\ResourcePreProcess;
-use DreamFactory\Core\Events\ResourcePostProcess;
-use DreamFactory\Core\Events\ServicePreProcess;
-use DreamFactory\Core\Events\ServicePostProcess;
+use DreamFactory\Core\Events\PostProcessApiEvent;
+use DreamFactory\Core\Events\PreProcessApiEvent;
+use DreamFactory\Core\Events\QueuedApiEvent;
 use Illuminate\Contracts\Events\Dispatcher;
 
 class ServiceEventHandler
@@ -21,17 +20,16 @@ class ServiceEventHandler
     {
         $events->listen(
             [
-                ServicePreProcess::class,
-                ServicePostProcess::class,
-                ResourcePreProcess::class,
-                ResourcePostProcess::class
+                PreProcessApiEvent::class,
+                PostProcessApiEvent::class,
+                QueuedApiEvent::class,
             ],
             static::class . '@handleApiEvent'
         );
     }
 
     /**
-     * Handle service pre-process events.
+     * Handle events.
      *
      * @param ApiEvent $event
      *

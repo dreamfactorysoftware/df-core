@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Events;
 
+use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Models\EventScript;
@@ -48,11 +49,22 @@ class PostProcessApiEvent extends InterProcessApiEvent
     protected function handleEventScriptResult($script, $result)
     {
         if ($script->allow_event_modification) {
+            if (empty($response = array_get($result, 'response', []))) {
+                // check for "return" results
+                // could be formatted array or raw content
+                if (is_array($result) && (isset($result['content']) || isset($result['status_code']))) {
+                    $response = $result;
+                } else {
+                    // otherwise must be raw content, assumes 200
+                    $response = ['content' => $result, 'status_code' => HttpStatusCodeInterface::HTTP_OK];
+                }
+            }
+
             // response only
             if ($this->response instanceof ServiceResponseInterface) {
-                $this->response->mergeFromArray(array_get($result, 'response', []));
+                $this->response->mergeFromArray($response);
             } else {
-                $this->response = array_get($result, 'response', []);
+                $this->response = $response;
             }
         }
 

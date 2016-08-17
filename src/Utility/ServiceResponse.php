@@ -139,9 +139,13 @@ class ServiceResponse implements ServiceResponseInterface
      */
     public function mergeFromArray(array $data)
     {
-        $this->setStatusCode(array_get($data, 'status_code'));
-        $this->setContent(array_get($data, 'content'));
-        $this->setContentType(array_get($data, 'content_type'));
-        $this->setDataFormat(array_get($data, 'format'));
+        if (array_key_exists('status_code', $data)) {
+            $this->setStatusCode(array_get($data, 'status_code'));
+        }
+        if (array_key_exists('content', $data)) {
+            $this->setContent(array_get($data, 'content'));
+            $this->setContentType(array_get($data, 'content_type'));
+            $this->setDataFormat(array_get($data, 'format'));
+        }
     }
 }

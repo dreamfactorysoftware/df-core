@@ -41,8 +41,7 @@ trait ScriptHandler
             throw new InternalServerErrorException($message);
         }
 
-        if (isset($result['exception'])) {
-            $ex = $result['exception'];
+        if (!empty($ex = array_get($result, 'exception'))) {
             if ($ex instanceof \Exception) {
                 throw $ex;
             } elseif (is_array($ex)) {
@@ -55,20 +54,19 @@ trait ScriptHandler
         }
 
         // check for directly returned results, otherwise check for "response"
-        $response = (isset($result['script_result']) ? $result['script_result'] : null);
-        if (isset($response, $response['error'])) {
-            if (is_array($response['error'])) {
-                $msg = array_get($response, 'error.message');
-            } else {
-                $msg = $response['error'];
+        if (!empty($response = array_get($result, 'script_result'))) {
+            if (isset($response, $response['error'])) {
+                if (is_array($response['error'])) {
+                    $msg = array_get($response, 'error.message');
+                } else {
+                    $msg = $response['error'];
+                }
+                throw new InternalServerErrorException($msg);
             }
-            throw new InternalServerErrorException($msg);
+
+            return $response;
         }
 
-        if (empty($response)) {
-            $response = (isset($result['response']) ? $result['response'] : null);
-        }
-
-        return $response;
+        return $result;
     }
 }

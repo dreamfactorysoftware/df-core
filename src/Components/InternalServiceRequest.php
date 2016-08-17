@@ -267,11 +267,21 @@ trait InternalServiceRequest
      */
     public function mergeFromArray(array $data)
     {
-        $this->setMethod(array_get($data, 'method'));
-        $this->setParameters(array_get($data, 'parameters'));
-        $this->setHeaders(array_get($data, 'headers'));
-        $this->setPayloadData(array_get($data, 'payload'));
-        $this->setContent(array_get($data, 'content'), array_get($data, 'content_type'));
+        if (array_key_exists('method', $data)) {
+            $this->setMethod(array_get($data, 'method'));
+        }
+        if (array_key_exists('parameters', $data)) {
+            $this->setParameters(array_get($data, 'parameters'));
+        }
+        if (array_key_exists('headers', $data)) {
+            $this->setHeaders(array_get($data, 'headers'));
+        }
+        if (array_key_exists('payload', $data)) {
+            $this->setPayloadData(array_get($data, 'payload'));
+        }
+        if (array_key_exists('content', $data)) {
+            $this->setContent(array_get($data, 'content'), array_get($data, 'content_type'));
+        }
     }
 
     /**

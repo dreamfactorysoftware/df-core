@@ -164,5 +164,5 @@ interface ServiceRequestInterface
      *
      * @return array|string
      */
-    public function input($key=null, $default=null);
+    public function input($key = null, $default = null);
 }

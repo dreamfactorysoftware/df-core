@@ -43,6 +43,24 @@ class PreProcessApiEvent extends InterProcessApiEvent
             $this->request->mergeFromArray((array)array_get($result, 'request'));
         }
 
+//        if (empty($response = array_get($result, 'response', []))) {
+//            // check for "return" results
+//            // could be formatted array or raw content
+//            if (is_array($result) && (isset($result['content']) || isset($result['status_code']))) {
+//                $response = $result;
+//            } else {
+//                // otherwise must be raw content, assumes 200
+//                $response = ['content' => $result, 'status_code' => HttpStatusCodeInterface::HTTP_OK];
+//            }
+//        }
+//
+//        // response only
+//        if ($this->response instanceof ServiceResponseInterface) {
+//            $this->response->mergeFromArray($response);
+//        } else {
+//            $this->response = $response;
+//        }
+
         return parent::handleEventScriptResult($script, $result);
     }
 }

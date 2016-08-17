@@ -30,7 +30,6 @@ class InterProcessApiEvent extends ApiEvent
      * @param array       $event
      *
      * @return array|null
-     * @throws
      * @throws \DreamFactory\Core\Events\Exceptions\ScriptException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \DreamFactory\Core\Exceptions\RestException
@@ -39,18 +38,6 @@ class InterProcessApiEvent extends ApiEvent
     public function handleEventScript($script, &$event)
     {
         $result = $this->handleScript($script->name, $script->content, $script->type, $script->config, $event);
-
-        // check for "return" results
-        if (!empty($result)) {
-            // could be formatted array or raw content
-            if (is_array($result) && (isset($result['content']) || isset($result['status_code']))) {
-                $result['response'] = $result;
-            } else {
-                // otherwise must be raw content, assumes 200
-                $result['response']['content'] = $result;
-                $result['response']['status_code'] = HttpStatusCodeInterface::HTTP_OK;
-            }
-        }
 
         return $result;
     }

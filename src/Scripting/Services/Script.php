@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Scripting\Services;
 
 use DreamFactory\Core\Components\ScriptHandler;
+use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Jobs\ScriptServiceJob;
@@ -124,13 +125,17 @@ class Script extends BaseRestService
         $data = $this->getRequestData();
 
         $logOutput = $this->request->getParameterAsBool('log_output', true);
-        $result = $this->handleScript('service.' . $this->name, $this->content, $this->engineType, $this->scriptConfig, $data, $logOutput);
+        $result = $this->handleScript('service.' . $this->name, $this->content, $this->engineType, $this->scriptConfig,
+            $data, $logOutput);
 
-        // check if this is a "response" array
+        if (is_array($result) && array_key_exists('response', $result)) {
+            $result = array_get($result, 'response', []);
+        }
+
         if (is_array($result) && array_key_exists('content', $result)) {
             $content = array_get($result, 'content');
             $contentType = array_get($result, 'content_type');
-            $status = array_get($result, 'status_code', ServiceResponseInterface::HTTP_OK);
+            $status = array_get($result, 'status_code', HttpStatusCodeInterface::HTTP_OK);
 
             return ResponseFactory::create($content, $contentType, $status);
         }

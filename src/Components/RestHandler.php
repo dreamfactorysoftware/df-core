@@ -179,9 +179,12 @@ abstract class RestHandler implements RequestHandlerInterface
             //  Perform any pre-processing
             $this->preProcess();
 
-            if (false === $this->response = $this->processRequest()) {
-                $message = ucfirst($this->action) . " requests without a resource are not currently supported by the '{$this->name}' service.";
-                throw new BadRequestException($message);
+            // pre-process can now create a response along with throw exceptions to circumvent the processRequest
+            if (null === $this->response) {
+                if (false === $this->response = $this->processRequest()) {
+                    $message = ucfirst($this->action) . " requests without a resource are not currently supported by the '{$this->name}' service.";
+                    throw new BadRequestException($message);
+                }
             }
 
             if (!($this->response instanceof ServiceResponseInterface ||
@@ -271,8 +274,13 @@ abstract class RestHandler implements RequestHandlerInterface
         if (empty($resource)) {
             $resource = $this->getEventResource();
         }
+        $event = new PreProcessApiEvent($name, $this->request, $this->response, $resource);
         /** @noinspection PhpUnusedLocalVariableInspection */
-        $results = \Event::fire(new PreProcessApiEvent($name, $this->request, $resource));
+        $results = \Event::fire($event);
+        $this->response = $event->response;
+
+//        /** @noinspection PhpUnusedLocalVariableInspection */
+//        $results = \Event::fire(new PreProcessApiEvent($name, $this->request, $this->response, $resource));
     }
 
     /**

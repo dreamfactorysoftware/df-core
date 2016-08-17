@@ -22,10 +22,10 @@ class QueuedApiEvent extends ApiEvent
     /**
      * Create a new event instance.
      *
-     * @param string                  $path
-     * @param ServiceRequestInterface $request
+     * @param string                   $path
+     * @param ServiceRequestInterface  $request
      * @param ServiceResponseInterface $response
-     * @param mixed                   $resource
+     * @param mixed                    $resource
      */
     public function __construct($path, $request, $response, $resource = null)
     {

@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Events;
 
 use DreamFactory\Core\Components\ScriptHandler;
-use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Models\EventScript;
 use Log;
 

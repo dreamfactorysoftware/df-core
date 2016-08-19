@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Components\ServiceDocBuilder;
 use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
@@ -23,6 +24,8 @@ use InvalidArgumentException;
 
 class ServiceManager
 {
+    use ServiceDocBuilder;
+
     /**
      * The application instance.
      *
@@ -62,82 +65,106 @@ class ServiceManager
         // Add our service types.
         $types = [
             [
-                'name'        => 'system',
-                'label'       => 'System Management',
-                'description' => 'Service supporting management of the system.',
-                'group'       => ServiceTypeGroups::SYSTEM,
-                'singleton'   => true,
-                'factory'     => function ($config){
+                'name'            => 'system',
+                'label'           => 'System Management',
+                'description'     => 'Service supporting management of the system.',
+                'group'           => ServiceTypeGroups::SYSTEM,
+                'singleton'       => true,
+                'default_api_doc' => function ($service) {
+                    return $this->buildServiceDoc($service->id, System::getApiDocInfo($service));
+                },
+                'factory'         => function ($config) {
                     return new System($config);
                 },
             ],
             [
-                'name'        => 'swagger',
-                'label'       => 'API Docs',
-                'description' => 'API documenting and testing service using Swagger specifications.',
-                'group'       => ServiceTypeGroups::API_DOC,
-                'singleton'   => true,
-                'factory'     => function ($config){
+                'name'            => 'swagger',
+                'label'           => 'API Docs',
+                'description'     => 'API documenting and testing service using Swagger specifications.',
+                'group'           => ServiceTypeGroups::API_DOC,
+                'singleton'       => true,
+                'default_api_doc' => function ($service) {
+                    return $this->buildServiceDoc($service->id, Swagger::getApiDocInfo($service));
+                },
+                'factory'         => function ($config) {
                     return new Swagger($config);
                 },
             ],
             [
-                'name'        => 'event',
-                'label'       => 'Event Management',
-                'description' => 'Service that allows clients to subscribe to system broadcast events.',
-                'group'       => ServiceTypeGroups::EVENT,
-                'singleton'   => true,
-                'factory'     => function ($config){
+                'name'            => 'event',
+                'label'           => 'Event Management',
+                'description'     => 'Service that allows clients to subscribe to system broadcast events.',
+                'group'           => ServiceTypeGroups::EVENT,
+                'singleton'       => true,
+                'default_api_doc' => function ($service) {
+                    return $this->buildServiceDoc($service->id, Event::getApiDocInfo($service));
+                },
+                'factory'         => function ($config) {
                     return new Event($config);
                 },
             ],
             [
-                'name'           => 'local_file',
-                'label'          => 'Local File Storage',
-                'description'    => 'File service supporting the local file system.',
-                'group'          => ServiceTypeGroups::FILE,
-                'config_handler' => FilePublicPath::class,
-                'factory'        => function ($config){
+                'name'            => 'local_file',
+                'label'           => 'Local File Storage',
+                'description'     => 'File service supporting the local file system.',
+                'group'           => ServiceTypeGroups::FILE,
+                'config_handler'  => FilePublicPath::class,
+                'default_api_doc' => function ($service) {
+                    return $this->buildServiceDoc($service->id, LocalFileService::getApiDocInfo($service));
+                },
+                'factory'         => function ($config) {
                     return new LocalFileService($config);
                 },
             ],
             [
-                'name'           => 'local_email',
-                'label'          => 'Local Email Service',
-                'description'    => 'Local email service using system configuration.',
-                'group'          => ServiceTypeGroups::EMAIL,
-                'config_handler' => LocalEmailConfig::class,
-                'factory'        => function ($config){
+                'name'            => 'local_email',
+                'label'           => 'Local Email Service',
+                'description'     => 'Local email service using system configuration.',
+                'group'           => ServiceTypeGroups::EMAIL,
+                'config_handler'  => LocalEmailConfig::class,
+                'default_api_doc' => function ($service) {
+                    return $this->buildServiceDoc($service->id, Local::getApiDocInfo($service));
+                },
+                'factory'         => function ($config) {
                     return new Local($config);
                 },
             ],
             [
-                'name'           => 'smtp_email',
-                'label'          => 'SMTP',
-                'description'    => 'SMTP-based email service',
-                'group'          => ServiceTypeGroups::EMAIL,
-                'config_handler' => SmtpConfig::class,
-                'factory'        => function ($config){
+                'name'            => 'smtp_email',
+                'label'           => 'SMTP',
+                'description'     => 'SMTP-based email service',
+                'group'           => ServiceTypeGroups::EMAIL,
+                'config_handler'  => SmtpConfig::class,
+                'default_api_doc' => function ($service) {
+                    return $this->buildServiceDoc($service->id, Smtp::getApiDocInfo($service));
+                },
+                'factory'         => function ($config) {
                     return new Smtp($config);
                 },
             ],
             [
-                'name'           => 'mailgun_email',
-                'label'          => 'Mailgun',
-                'description'    => 'Mailgun email service',
-                'group'          => ServiceTypeGroups::EMAIL,
-                'config_handler' => MailGunConfig::class,
-                'factory'        => function ($config){
+                'name'            => 'mailgun_email',
+                'label'           => 'Mailgun',
+                'description'     => 'Mailgun email service',
+                'group'           => ServiceTypeGroups::EMAIL,
+                'config_handler'  => MailGunConfig::class,
+                'default_api_doc' => function ($service) {
+                    return $this->buildServiceDoc($service->id, MailGun::getApiDocInfo($service));
+                },
+                'factory'         => function ($config) {
                     return new MailGun($config);
                 },
             ],
             [
-                'name'           => 'mandrill_email',
-                'label'          => 'Mandrill',
-                'description'    => 'Mandrill email service',
-                'group'          => ServiceTypeGroups::EMAIL,
-                'config_handler' => MandrillConfig::class,
-                'factory'        => function ($config){
+                'name'            => 'mandrill_email',
+                'label'           => 'Mandrill',
+                'description'     => 'Mandrill email service',
+                'group'           => ServiceTypeGroups::EMAIL,
+                'config_handler'  => MandrillConfig::class,
+                'default_api_doc' => function ($service) {
+                    return $this->buildServiceDoc($service->id, Mandrill::getApiDocInfo($service));
+                },
+                'factory'         => function ($config) {
                     return new Mandrill($config);
                 },
             ],
@@ -317,7 +344,7 @@ class ServiceManager
      * @param null        $payload
      * @param string|null $format
      *
-     * @return \DreamFactory\Core\Contracts\ServiceResponseInterface|mixed
+     * @return ServiceResponseInterface
      * @throws BadRequestException
      * @throws \Exception
      */
@@ -329,7 +356,7 @@ class ServiceManager
         $header = [],
         $payload = null,
         $format = null
-    ){
+    ) {
         $_FILES = []; // reset so that internal calls can handle other files.
         $request = new ServiceRequest();
         $request->setMethod($verb);
@@ -345,12 +372,6 @@ class ServiceManager
             }
         }
 
-        $response = $this->getService($service)->handleRequest($request, $resource);
-
-        if ($response instanceof ServiceResponseInterface) {
-            return $response->getContent();
-        } else {
-            return $response;
-        }
+        return $this->getService($service)->handleRequest($request, $resource);
     }
 }

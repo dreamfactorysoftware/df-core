@@ -119,7 +119,7 @@ class Script extends BaseRestService
             $result = $this->dispatch($job);
             Log::debug('API service script queued: ' . $this->name . PHP_EOL . $result);
 
-            return ResponseFactory::create(['success' => true]);
+            return ResponseFactory::create(['success' => true], null, HttpStatusCodeInterface::HTTP_ACCEPTED);
         }
 
         $data = $this->getRequestData();
@@ -144,8 +144,8 @@ class Script extends BaseRestService
         return ResponseFactory::create($result);
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo($service)
     {
-        return (!empty($this->apiDoc) ? $this->apiDoc : ['paths' => [], 'definitions' => []]);
+        return ['paths' => [], 'definitions' => []];
     }
 }

@@ -30,7 +30,6 @@ class Constant extends ReadOnlySystemResource
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
 
         return [
             'paths' => [
@@ -41,7 +40,6 @@ class Constant extends ReadOnlySystemResource
                             $capitalized .
                             '() - Retrieve all platform enumerated constants.',
                         'operationId'       => 'get' . $capitalized . 'Constants',
-                        'x-publishedEvents' => $eventPath . '.list',
                         'responses'         => [
                             '200'     => [
                                 'description' => 'Constants',
@@ -64,7 +62,6 @@ class Constant extends ReadOnlySystemResource
                             $capitalized .
                             'Constant() - Retrieve one constant type enumeration.',
                         'operationId'       => 'get' . $capitalized . 'Constant',
-                        'x-publishedEvents' => $eventPath . '.read',
                         'consumes'          => ['application/json', 'application/xml'],
                         'produces'          => ['application/json', 'application/xml'],
                         'parameters'        => [

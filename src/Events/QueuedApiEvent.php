@@ -32,14 +32,14 @@ class QueuedApiEvent extends ApiEvent
         $name = strtolower($path . '.' . $request->getMethod()) . '.queued';
         parent::__construct($name);
 
+        if ($response instanceof RedirectResponse || $response instanceof StreamedResponse) {
+            $response = [];
+        } else {
+            $response = $response->toArray();
+        }
         // these are serialized out to a foreign storage potentially, encrypt
         $this->request = Crypt::encrypt(json_encode($request->toArray()));
-        if ($this->response instanceof RedirectResponse || $this->response instanceof StreamedResponse) {
-            $this->response = [];
-        } else {
-            $this->response = $response->toArray();
-        }
-        $this->response = Crypt::encrypt(json_encode($this->response));
+        $this->response = Crypt::encrypt(json_encode($response));
     }
 
     public function makeData()

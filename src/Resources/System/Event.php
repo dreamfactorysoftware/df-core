@@ -79,7 +79,7 @@ class Event extends BaseRestResource
                     throw new \Exception('No access found.');
                 }
 
-                if (empty($content = $service->getApiDocInfo())) {
+                if (empty($content = $service->getApiDocInfo($service))) {
                     throw new \Exception('No event content found.');
                 }
 

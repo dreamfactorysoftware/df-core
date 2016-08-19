@@ -10,6 +10,7 @@ use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Services\BaseFileService;
 use Illuminate\Support\Arr;
@@ -62,9 +63,8 @@ class Exporter
      * @type array
      */
     protected $defaultRelation = [
-        'system/role'    => ['role_service_access_by_role_id', 'role_adldap_by_role_id'],
-        'system/user'    => ['user_to_app_to_role_by_user_id'],
-        'system/service' => ['service_doc_by_service_id']
+        'system/role' => ['role_service_access_by_role_id', 'role_adldap_by_role_id'],
+        'system/user' => ['user_to_app_to_role_by_user_id'],
     ];
 
     /**
@@ -157,10 +157,9 @@ class Exporter
         $this->data['system']['admin'] = $this->getAllResources('system', 'admin', ['fields' => 'id,email']);
         $this->data['system']['custom'] = $this->getAllResources('system', 'custom');
         $this->data['system']['cors'] = $this->getAllResources('system', 'cors', ['fields' => 'id,path']);
-        $this->data['system']['email_template'] =
-            $this->getAllResources('system', 'email_template', ['fields' => 'id,name']);
-        $this->data['system']['event'] =
-            $this->getAllResources('system', 'event', ['type' => 'process', 'only_scripted' => true]);
+        $this->data['system']['email_template'] = $this->getAllResources('system', 'email_template',
+            ['fields' => 'id,name']);
+        $this->data['system']['event_script'] = $this->getAllResources('system', 'event_script', ['fields' => 'name']);
         $this->data['system']['lookup'] = $this->getAllResources('system', 'lookup', ['fields' => 'id,name']);
 
         $manifest = $this->package->getManifestHeader();
@@ -172,10 +171,6 @@ class Exporter
                         case 'system/user':
                         case 'system/admin':
                             $manifest['service'][$service][$resourceName][] = array_get($record, 'email');
-                            break;
-                        case 'system/event':
-                            // Do not use array_get here as system/event names have dot (.) in them.
-                            $manifest['service'][$service][$resourceName][] = $record;
                             break;
                         case 'system/cors':
                             $manifest['service'][$service][$resourceName][] = array_get($record, 'id');
@@ -213,10 +208,10 @@ class Exporter
                                  * exporting of a large set of data (potentially sensitive in nature).
                                  *
                                  * $manifest['service'][$service]['_table'] = $this->getAllResources(
-                                    * $service,
-                                    * '_table',
-                                    * ['as_list' => true]
-                                 );*/
+                                 * $service,
+                                 * '_table',
+                                 * ['as_list' => true]
+                                 * );*/
                                 break;
                         }
                     } else {
@@ -540,7 +535,7 @@ class Exporter
                 break;
             case $service . '/_schema':
             case $service . '/_table':
-            case 'system/event':
+            case 'system/event_script':
             case 'system/custom':
             case 'user/custom':
                 if (is_string($id)) {
@@ -619,7 +614,11 @@ class Exporter
     {
         try {
             $result = ServiceManager::handleRequest($service, Verbs::GET, $resource, $params, [], $payload);
+            if ($result->getStatusCode() >= 300) {
+                throw ResponseFactory::createExceptionFromResponse($result);
+            }
 
+            $result = $result->getContent();
             if (is_string($result)) {
                 $result = ['value' => $result];
             } elseif (Arr::isAssoc($result) &&
@@ -644,8 +643,7 @@ class Exporter
 
             return $result;
         } catch (NotFoundException $e) {
-            throw new NotFoundException('Resource not found for ' . $service . '/' . $resource);
-        } catch (\Exception $e) {
+            $e->setMessage('Resource not found for ' . $service . '/' . $resource);
             throw $e;
         }
     }
@@ -665,6 +663,7 @@ class Exporter
             }
 
             foreach ($users as $i => $user) {
+                /** @noinspection PhpUndefinedMethodInspection */
                 $model = User::find($user['id']);
                 if (!empty($model)) {
                     $users[$i]['password'] = $model->password;

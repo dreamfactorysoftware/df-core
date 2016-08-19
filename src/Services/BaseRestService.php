@@ -117,10 +117,10 @@ class BaseRestService extends RestHandler implements ServiceInterface
         return parent::handleGET();
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo($service)
     {
-        $name = strtolower($this->name);
-        $capitalized = Inflector::camelize($this->name);
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $pluralClass = Inflector::pluralize($class);
         $wrapper = ResourcesWrapper::getWrapper();
@@ -133,7 +133,6 @@ class BaseRestService extends RestHandler implements ServiceInterface
                         'summary'           => 'get' . $capitalized . 'Resources() - Get resources for this service.',
                         'operationId'       => 'get' . $capitalized . 'Resources',
                         'description'       => 'Return an array of the resources available.',
-                        'x-publishedEvents' => [$name . '.list'],
                         'parameters'        => [
                             ApiOptions::documentOption(ApiOptions::AS_LIST),
                             ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),

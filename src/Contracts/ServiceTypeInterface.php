@@ -67,6 +67,15 @@ interface ServiceTypeInterface
     public function getConfigHandler();
 
     /**
+     * The default API Document generator for this service type
+     *
+     * @param mixed $service
+     *
+     * @return array|null
+     */
+    public function getDefaultApiDoc($service);
+
+    /**
      * The factory interface for this service type
      *
      * @param string $name

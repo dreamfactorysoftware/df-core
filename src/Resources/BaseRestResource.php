@@ -128,7 +128,6 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $pluralClass = Inflector::pluralize($class);
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
         $wrapper = ResourcesWrapper::getWrapper();
 
         return [
@@ -144,7 +143,6 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                                 $pluralClass,
                             'operationId'       => 'get' . $capitalized . $pluralClass,
                             'description'       => 'Return a list of the resource identifiers.',
-                            'x-publishedEvents' => [$eventPath . '.list'],
                             'parameters'        => [
                                 ApiOptions::documentOption(ApiOptions::AS_LIST),
                                 ApiOptions::documentOption(ApiOptions::ID_FIELD),

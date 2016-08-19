@@ -174,7 +174,7 @@ abstract class BaseFileService extends BaseRestService
     /**
      * Handles GET actions.
      *
-     * @return \DreamFactory\Core\Utility\ServiceResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse|StreamedResponse
      */
     protected function handleGET()
     {
@@ -380,7 +380,7 @@ abstract class BaseFileService extends BaseRestService
             }
         }
 
-        return ['success' => true];
+        return ResponseFactory::create(['success' => true]);
     }
 
     /**
@@ -772,11 +772,11 @@ abstract class BaseFileService extends BaseRestService
         return $this->folderPath;
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo($service)
     {
-        $base = parent::getApiDocInfo();
-        $name = strtolower($this->name);
-        $capitalized = Inflector::camelize($this->name);
+        $base = parent::getApiDocInfo($service);
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
 
         $base['paths'] = [
             '/' . $name                     => [
@@ -784,7 +784,6 @@ abstract class BaseFileService extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'get' . $capitalized . 'Resources() - List all resources.',
                     'operationId'       => 'get' . $capitalized . 'Resources',
-                    'x-publishedEvents' => [$name . '.list',],
                     'responses'         => [
                         '200'     => [
                             'description' => 'Success',
@@ -838,10 +837,6 @@ abstract class BaseFileService extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'create' . $capitalized . 'Content() - Create some folders and/or files.',
                     'operationId'       => 'create' . $capitalized . 'Content',
-                    'x-publishedEvents' => [
-                        $name . '.create',
-                        $name . '.content_created'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'body',
@@ -900,10 +895,6 @@ abstract class BaseFileService extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'update' . $capitalized . 'ContainerProperties() - Update container properties.',
                     'operationId'       => 'update' . $capitalized . 'ContainerProperties',
-                    'x-publishedEvents' => [
-                        $name . '.update',
-                        $name . '.container_updated'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'body',
@@ -930,10 +921,6 @@ abstract class BaseFileService extends BaseRestService
                         $capitalized .
                         'Content() - Delete some container contents.',
                     'operationId'       => 'delete' . $capitalized . 'Content',
-                    'x-publishedEvents' => [
-                        $name . '.delete',
-                        $name . '.content_deleted'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'force',
@@ -981,7 +968,6 @@ abstract class BaseFileService extends BaseRestService
                         $capitalized .
                         'Folder() - List the folder\'s content, including properties.',
                     'operationId'       => 'get' . $capitalized . 'Folder',
-                    'x-publishedEvents' => [$name . '.{folder_path}.describe'],
                     'parameters'        => [
                         [
                             'name'        => 'include_properties',
@@ -1037,10 +1023,6 @@ abstract class BaseFileService extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'create' . $capitalized . 'Folder() - Create a folder and/or add content.',
                     'operationId'       => 'create' . $capitalized . 'Folder',
-                    'x-publishedEvents' => [
-                        $name . '.{folder_path}.create',
-                        $name . '.folder_created'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'body',
@@ -1099,10 +1081,6 @@ abstract class BaseFileService extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'update' . $capitalized . 'FolderProperties() - Update folder properties.',
                     'operationId'       => 'update' . $capitalized . 'FolderProperties',
-                    'x-publishedEvents' => [
-                        $name . '.{folder_path}.update',
-                        $name . '.folder_updated'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'body',
@@ -1129,10 +1107,6 @@ abstract class BaseFileService extends BaseRestService
                         $capitalized .
                         'Folder() - Delete one folder and/or its contents.',
                     'operationId'       => 'delete' . $capitalized . 'Folder',
-                    'x-publishedEvents' => [
-                        $name . '.{folder_path}.delete',
-                        $name . '.folder_deleted'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'force',
@@ -1180,10 +1154,6 @@ abstract class BaseFileService extends BaseRestService
                         $capitalized .
                         'File() - Download the file contents and/or its properties.',
                     'operationId'       => 'get' . $capitalized . 'File',
-                    'x-publishedEvents' => [
-                        $name . '.{file_path}.download',
-                        $name . '.file_downloaded'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'download',
@@ -1211,10 +1181,6 @@ abstract class BaseFileService extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'create' . $capitalized . 'File() - Create a new file.',
                     'operationId'       => 'create' . $capitalized . 'File',
-                    'x-publishedEvents' => [
-                        $name . '.{file_path}.create',
-                        $name . '.file_created'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'check_exist',
@@ -1245,10 +1211,6 @@ abstract class BaseFileService extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'replace' . $capitalized . 'File() - Update content of the file.',
                     'operationId'       => 'replace' . $capitalized . 'File',
-                    'x-publishedEvents' => [
-                        $name . '.{file_path}.update',
-                        $name . '.file_updated'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'body',
@@ -1275,10 +1237,6 @@ abstract class BaseFileService extends BaseRestService
                         $capitalized .
                         'FileProperties() - Update properties of the file.',
                     'operationId'       => 'update' . $capitalized . 'FileProperties',
-                    'x-publishedEvents' => [
-                        $name . '.{file_path}.update',
-                        $name . '.file_updated'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'body',
@@ -1303,10 +1261,6 @@ abstract class BaseFileService extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'delete' . $capitalized . 'File() - Delete one file.',
                     'operationId'       => 'delete' . $capitalized . 'File',
-                    'x-publishedEvents' => [
-                        $name . '.{file_path}.delete',
-                        $name . '.file_deleted'
-                    ],
                     'parameters'        => [],
                     'responses'         => [
                         '200'     => [

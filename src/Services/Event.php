@@ -270,11 +270,11 @@ class Event extends BaseRestService
         return new static::$model;
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo($service)
     {
         $wrapper = ResourcesWrapper::getWrapper();
-        $name = strtolower($this->name);
-        $capitalized = Inflector::camelize($this->name);
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
 
         $apis = [
             '/' . $name           => [
@@ -286,7 +286,6 @@ class Event extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'get' . $capitalized . 'Subscribers() - Retrieve one or more subscribers.',
                     'operationId'       => 'get' . $capitalized . 'Subscribers',
-                    'x-publishedEvents' => $name . '.subscriber.list',
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -322,7 +321,6 @@ class Event extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'create' . $capitalized . 'Subscribers() - Create one or more subscribers.',
                     'operationId'       => 'create' . $capitalized . 'Subscribers',
-                    'x-publishedEvents' => $name . '.subscriber.create',
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -360,7 +358,6 @@ class Event extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'update' . $capitalized . 'Subscribers() - Update one or more subscribers.',
                     'operationId'       => 'update' . $capitalized . 'Subscribers',
-                    'x-publishedEvents' => $name . '.subscriber.update',
                     'parameters'        => [
                         [
                             'name'        => 'body',
@@ -389,7 +386,6 @@ class Event extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'delete' . $capitalized . 'Subscribers() - Delete one or more subscribers.',
                     'operationId'       => 'delete' . $capitalized . 'Subscribers',
-                    'x-publishedEvents' => $name . '.subscriber.delete',
                     'parameters'        => [
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FORCE),
@@ -427,7 +423,6 @@ class Event extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'get' . $capitalized . 'Subscriber() - Retrieve one subscriber.',
                     'operationId'       => 'get' . $capitalized . 'Subscriber',
-                    'x-publishedEvents' => $name . '.subscriber.read',
                     'parameters'        => [],
                     'responses'         => [
                         '200'     => [
@@ -445,7 +440,6 @@ class Event extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'update' . $capitalized . 'Subscriber() - Update one subscriber.',
                     'operationId'       => 'update' . $capitalized . 'Subscriber',
-                    'x-publishedEvents' => $name . '.subscriber.update',
                     'parameters'        => [
                         [
                             'name'        => 'body',
@@ -473,7 +467,6 @@ class Event extends BaseRestService
                     'tags'              => [$name],
                     'summary'           => 'delete' . $capitalized . 'Subscriber() - Delete one subscriber.',
                     'operationId'       => 'delete' . $capitalized . 'Subscriber',
-                    'x-publishedEvents' => $name . '.subscriber.delete',
                     'parameters'        => [
                     ],
                     'responses'         => [

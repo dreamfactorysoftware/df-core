@@ -18,7 +18,7 @@ use Illuminate\Database\Query\Builder;
  * @method static Builder|EventScript whereName($value)
  * @method static Builder|EventScript whereType($value)
  */
-class EventScript extends BaseModel
+class EventScript extends BaseSystemModel
 {
     /**
      * @const string The private cache file

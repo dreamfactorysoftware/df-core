@@ -2926,7 +2926,6 @@ abstract class BaseDbTableResource extends BaseDbResource
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
         $base = parent::getApiDocInfo($service, $resource);
 
         $wrapper = ResourcesWrapper::getWrapper();
@@ -2959,10 +2958,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'Alternatively, to send the <b>ids</b> as posted data, use the getRecordsByPost() POST request.<br/> ' .
                         'Use the <b>fields</b> parameter to limit properties returned for each record. ' .
                         'By default, all fields are returned for all records. ',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.select',
-                        $eventPath . '.table_selected',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -3001,10 +2996,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'Posted data should be an array of records wrapped in a <b>record</b> element.<br/> ' .
                         'By default, only the id property of the record is returned on success. ' .
                         'Use <b>fields</b> parameter to return more info.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.insert',
-                        $eventPath . '.table_inserted',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
@@ -3059,7 +3050,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'Filter can be included via URL parameter or included in the posted body.<br/> ' .
                         'By default, only the id property of the record is returned on success. ' .
                         'Use <b>fields</b> parameter to return more info.',
-                    'x-publishedEvents' => [$eventPath . '.{table_name}.update', $eventPath . '.table_updated',],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
@@ -3102,10 +3092,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'Filter can be included via URL parameter or included in the posted body.<br/> ' .
                         'By default, only the id property of the record is returned on success. ' .
                         'Use <b>fields</b> parameter to return more info.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.update',
-                        $eventPath . '.table_updated',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
@@ -3151,10 +3137,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ' .
                         'Set the <b>body</b> to an array of records, minimally including the identifying fields, to delete specific records.<br/> ' .
                         'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.delete',
-                        $eventPath . '.table_deleted',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
@@ -3211,10 +3193,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'description'       =>
                         'Use the <b>fields</b> parameter to limit properties that are returned. ' .
                         'By default, all fields are returned.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{id}.select',
-                        $eventPath . '.record_selected',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -3243,10 +3221,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'description'       =>
                         'Post data should be an array of fields for a single record.<br/> ' .
                         'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{id}.update',
-                        $eventPath . '.record_updated',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -3282,10 +3256,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'description'       =>
                         'Post data should be an array of fields for a single record.<br/> ' .
                         'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{id}.update',
-                        $eventPath . '.record_updated',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -3317,10 +3287,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'summary'           => 'delete' . $capitalized . 'Record() - Delete one record by identifier.',
                     'operationId'       => 'delete' . $capitalized . 'Record',
                     'description'       => 'Use the <b>fields</b> parameter to return more deleted properties. By default, the id is returned.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{id}.delete',
-                        $eventPath . '.record_deleted',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [

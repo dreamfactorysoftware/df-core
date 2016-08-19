@@ -43,9 +43,9 @@ class System extends BaseRestService
         return $list;
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo($service)
     {
-        $base = parent::getApiDocInfo();
+        $base = parent::getApiDocInfo($service);
 
         $apis = [];
         $models = [];
@@ -59,9 +59,9 @@ class System extends BaseRestService
             }
 
             $resourceName = $resourceInfo->getName();
-            if (Session::checkForAnyServicePermissions($this->name, $resourceName)) {
+            if (Session::checkForAnyServicePermissions($service->name, $resourceName)) {
                 /** @type BaseSystemResource $resourceClass */
-                $results = $resourceClass::getApiDocInfo($this->name, $resourceInfo->toArray());
+                $results = $resourceClass::getApiDocInfo($service->name, $resourceInfo->toArray());
                 if (isset($results, $results['paths'])) {
                     $apis = array_merge($apis, $results['paths']);
                 }

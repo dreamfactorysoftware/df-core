@@ -29,7 +29,8 @@ interface ServiceInterface extends RequestHandlerInterface
     public function getAccessList();
 
     /**
+     * @param null|string $service
      * @return array|null
      */
-    public function getApiDocInfo();
+    public static function getApiDocInfo($service);
 }

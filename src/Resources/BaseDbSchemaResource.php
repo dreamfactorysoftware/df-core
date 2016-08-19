@@ -660,7 +660,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         $pluralClass = Inflector::pluralize($class);
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
         $base = parent::getApiDocInfo($service, $resource);
 
         $add = [
@@ -668,7 +667,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 'tags'              => [$serviceName],
                 'summary'           => 'create' . $capitalized . 'Tables() - Create one or more tables.',
                 'operationId'       => 'create' . $capitalized . 'Tables',
-                'x-publishedEvents' => [$eventPath . '.create'],
                 'parameters'        => [
                     [
                         'name'        => 'tables',
@@ -694,7 +692,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 'tags'              => [$serviceName],
                 'summary'           => 'replace' . $capitalized . 'Tables() - Update (replace) one or more tables.',
                 'operationId'       => 'replace' . $capitalized . 'Tables',
-                'x-publishedEvents' => [$eventPath . '.alter'],
                 'parameters'        => [
                     [
                         'name'        => 'tables',
@@ -720,7 +717,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 'tags'              => [$serviceName],
                 'summary'           => 'update' . $capitalized . 'Tables() - Update (patch) one or more tables.',
                 'operationId'       => 'update' . $capitalized . 'Tables',
-                'x-publishedEvents' => [$eventPath . '.alter'],
                 'parameters'        => [
                     [
                         'name'        => 'tables',
@@ -762,10 +758,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Table() - Retrieve table definition for the given table.',
                     'operationId'       => 'describe' . $capitalized . 'Table',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.describe',
-                        $eventPath . '.table_described'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'refresh',
@@ -792,10 +784,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Table() - Create a table with the given properties and fields.',
                     'operationId'       => 'create' . $capitalized . 'Table',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.create',
-                        $eventPath . '.table_created'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'schema',
@@ -823,10 +811,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Table() - Update (replace) a table with the given properties.',
                     'operationId'       => 'replace' . $capitalized . 'Table',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.alter',
-                        $eventPath . '.table_altered'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'schema',
@@ -854,10 +838,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Table() - Update (patch) a table with the given properties.',
                     'operationId'       => 'update' . $capitalized . 'Table',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.alter',
-                        $eventPath . '.table_altered'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'schema',
@@ -883,7 +863,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                     'tags'              => [$serviceName],
                     'summary'           => 'delete' . $capitalized . 'Table() - Delete (aka drop) the given table.',
                     'operationId'       => 'delete' . $capitalized . 'Table',
-                    'x-publishedEvents' => [$eventPath . '.{table_name}.drop', $eventPath . '.table_dropped'],
                     'parameters'        => [
                     ],
                     'responses'         => [
@@ -922,10 +901,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Field() - Retrieve the definition of the given field for the given table.',
                     'operationId'       => 'describe' . $capitalized . 'Field',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{field_name}.describe',
-                        $eventPath . '.{table_name}.field_described'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'refresh',
@@ -950,10 +925,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                     'tags'              => [$serviceName],
                     'summary'           => 'replace' . $capitalized . 'Field() - Update one record by identifier.',
                     'operationId'       => 'replace' . $capitalized . 'Field',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{field_name}.alter',
-                        $eventPath . '.{table_name}.field_altered'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'properties',
@@ -979,10 +950,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                     'tags'              => [$serviceName],
                     'summary'           => 'update' . $capitalized . 'Field() - Update one record by identifier.',
                     'operationId'       => 'update' . $capitalized . 'Field',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{field_name}.alter',
-                        $eventPath . '.{table_name}.field_altered'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'properties',
@@ -1010,10 +977,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Field() - Remove the given field from the given table.',
                     'operationId'       => 'delete' . $capitalized . 'Field',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{field_name}.drop',
-                        $eventPath . '.{table_name}.field_dropped'
-                    ],
                     'parameters'        => [],
                     'responses'         => [
                         '200'     => [

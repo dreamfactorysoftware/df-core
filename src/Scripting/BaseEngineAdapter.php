@@ -413,7 +413,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
                 $result = $service->handleRequest($request, $resource);
             }
         } catch (\Exception $ex) {
-            $result = ResponseFactory::create($ex);
+            $result = ResponseFactory::createWithException($ex);
 
             Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
         }
@@ -465,7 +465,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
     {
         return [
             'api'     => static::getExposedApi(),
-            'config'  => Config::all(),
+            'config'  => Config::get('df'),
             'session' => Session::all(),
             'store'   => new ScriptSession(Config::get("script.$identifier.store"), app('cache'))
         ];

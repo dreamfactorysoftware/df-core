@@ -19,7 +19,7 @@ class Package extends BaseSystemResource
         $exporter = new Exporter(new \DreamFactory\Core\Components\Package\Package());
         $manifest = $exporter->getManifestOnly($systemOnly);
 
-        return ResponseFactory::create($manifest, null, ServiceResponseInterface::HTTP_OK);
+        return ResponseFactory::create($manifest);
     }
 
     /** @inheritdoc */
@@ -63,7 +63,7 @@ class Package extends BaseSystemResource
             $public = $exporter->isPublic();
             $result = ['success' => true, 'path' => $url, 'is_public' => $public];
 
-            return ResponseFactory::create($result, null, ServiceResponseInterface::HTTP_OK);
+            return ResponseFactory::create($result);
         }
     }
 
@@ -74,7 +74,6 @@ class Package extends BaseSystemResource
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $pluralClass = Inflector::pluralize($class);
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
         $wrapper = ResourcesWrapper::getWrapper();
 
         $apis = [
@@ -83,7 +82,6 @@ class Package extends BaseSystemResource
                     'tags'              => [$serviceName],
                     'summary'           => 'getManifestOnly() - Retrieves package manifest for all resources.',
                     'operationId'       => 'getManifestOnly',
-                    'x-publishedEvents' => [$eventPath . '.list'],
                     'parameters'        => [
                         [
                             'name'        => 'system_only',
@@ -109,7 +107,6 @@ class Package extends BaseSystemResource
                     'tags'              => [$serviceName],
                     'summary'           => 'importExport' . $class . '() - Exports or Imports package file.',
                     'operationId'       => 'importExport' . $class,
-                    'x-publishedEvents' => [$eventPath . '.list'],
                     'parameters'        => [
                         [
                             'name'        => 'body',

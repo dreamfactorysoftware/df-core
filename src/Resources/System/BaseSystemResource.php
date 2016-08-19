@@ -427,7 +427,6 @@ class BaseSystemResource extends BaseRestResource
             $pluralClass = $class . 'Entries';
         }
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
         $wrapper = ResourcesWrapper::getWrapper();
 
         $apis = [
@@ -441,7 +440,6 @@ class BaseSystemResource extends BaseRestResource
                         $pluralClass .
                         '.',
                     'operationId'       => 'get' . $capitalized . $pluralClass,
-                    'x-publishedEvents' => [$eventPath . '.list'],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -484,7 +482,6 @@ class BaseSystemResource extends BaseRestResource
                         $pluralClass .
                         '.',
                     'operationId'       => 'create' . $capitalized . $pluralClass,
-                    'x-publishedEvents' => [$eventPath . '.create'],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -534,7 +531,6 @@ class BaseSystemResource extends BaseRestResource
                         $pluralClass .
                         '.',
                     'operationId'       => 'update' . $capitalized . $pluralClass,
-                    'x-publishedEvents' => [$eventPath . '.update'],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -578,7 +574,6 @@ class BaseSystemResource extends BaseRestResource
                         $pluralClass .
                         '.',
                     'operationId'       => 'delete' . $capitalized . $pluralClass,
-                    'x-publishedEvents' => [$eventPath . '.delete'],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -630,7 +625,6 @@ class BaseSystemResource extends BaseRestResource
                     'tags'              => [$serviceName],
                     'summary'           => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
                     'operationId'       => 'get' . $capitalized . $class,
-                    'x-publishedEvents' => [$eventPath . '.read'],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -657,7 +651,6 @@ class BaseSystemResource extends BaseRestResource
                     'tags'              => [$serviceName],
                     'summary'           => 'update' . $capitalized . $class . '() - Update one ' . $class . '.',
                     'operationId'       => 'update' . $capitalized . $class,
-                    'x-publishedEvents' => [$eventPath . '.update'],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -693,7 +686,6 @@ class BaseSystemResource extends BaseRestResource
                     'tags'              => [$serviceName],
                     'summary'           => 'delete' . $capitalized . $class . '() - Delete one ' . $class . '.',
                     'operationId'       => 'delete' . $capitalized . $class,
-                    'x-publishedEvents' => [$eventPath . '.delete'],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [

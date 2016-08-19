@@ -74,7 +74,6 @@ class Cache extends BaseRestResource
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
 
         $apis = [
             $path                => [
@@ -82,7 +81,6 @@ class Cache extends BaseRestResource
                     'tags'              => [$serviceName],
                     'summary'           => 'deleteAllCache() - Delete all cache.',
                     'operationId'       => 'deleteAllCache',
-                    'x-publishedEvents' => [$eventPath . '.delete'],
                     'parameters'        => [],
                     'responses'         => [
                         '200'     => [
@@ -104,7 +102,6 @@ class Cache extends BaseRestResource
                     'tags'              => [$serviceName],
                     'summary'           => 'deleteServiceCache() - Delete cache for one service.',
                     'operationId'       => 'deleteServiceCache',
-                    'x-publishedEvents' => [$eventPath . '{service}.delete'],
                     'consumes'          => ['application/json', 'application/xml'],
                     'produces'          => ['application/json', 'application/xml'],
                     'parameters'        => [

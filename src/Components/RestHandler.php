@@ -169,7 +169,7 @@ abstract class RestHandler implements RequestHandlerInterface
                     $this->response = ResponseFactory::create($this->response);
                 }
             } catch (\Exception $e) {
-                $this->response = ResponseFactory::create($e);
+                $this->response = ResponseFactory::createWithException($e);
             }
 
             return $this->response;
@@ -195,7 +195,7 @@ abstract class RestHandler implements RequestHandlerInterface
                 $this->response = ResponseFactory::create($this->response);
             }
         } catch (\Exception $e) {
-            $this->response = ResponseFactory::create($e);
+            $this->response = ResponseFactory::createWithException($e);
         }
 
         //  Perform any post-processing
@@ -203,7 +203,7 @@ abstract class RestHandler implements RequestHandlerInterface
             $this->postProcess();
         } catch (\Exception $e) {
             // override the actual response with the exception
-            $this->response = ResponseFactory::create($e);
+            $this->response = ResponseFactory::createWithException($e);
         }
 
         //  Perform any response processing

@@ -11,7 +11,7 @@ class SubscriptionServiceProvider extends ServiceProvider
     public function register()
     {
         // subscription required, here for advertising
-        $this->app->resolving('df.service', function (ServiceManager $df){
+        $this->app->resolving('df.service', function (ServiceManager $df) {
             $df->addType(new ServiceType(
                 [
                     'name'                  => 'adldap',

@@ -137,10 +137,22 @@ class V8Js extends BaseEngineAdapter
 
     public static function buildPlatformAccess($identifier)
     {
+        /**
+         * For some mysterious reason the v8 library produces segmentation fault for PHP 7
+         * when $session ($session is an array) is used directly below. However,
+         * when $session is re-constructed into a $newSession variable using the
+         * code below it magically works!
+         */
+        $session = Session::all();
+        $newSession = [];
+        foreach ($session as $key => $value){
+            $newSession[$key] = $value;
+        }
+
         return [
             'api'     => static::getExposedApi(),
             'config'  => Config::get('df'),
-            'session' => $session = Session::all(),
+            'session' => $newSession,
             'store'   => new ScriptSession(Config::get("script.$identifier.store"), app('cache'))
         ];
     }
@@ -286,7 +298,7 @@ class V8Js extends BaseEngineAdapter
                 $result = $service->handleRequest($request, $resource);
             }
         } catch (\Exception $ex) {
-            $result = ResponseFactory::create($ex);
+            $result = ResponseFactory::createWithException($ex);
 
             Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
         }

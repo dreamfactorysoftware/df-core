@@ -106,8 +106,7 @@ class CreateSystemTables extends Migration
         Schema::create(
             'service_doc',
             function (Blueprint $t){
-                $t->increments('id');
-                $t->integer('service_id')->unsigned();
+                $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->integer('format')->unsigned()->default(0);
                 $t->mediumText('content')->nullable();

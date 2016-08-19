@@ -152,6 +152,7 @@ abstract class RestHandler implements RequestHandlerInterface
         $this->setRequest($request);
         $this->setAction($request->getMethod());
         $this->setResourceMembers($resource);
+        $this->response = null;
 
         $resources = $this->getResources(true);
         if (!empty($resources) && !empty($this->resource)) {

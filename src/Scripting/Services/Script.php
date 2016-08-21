@@ -10,6 +10,7 @@ use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Log;
 
@@ -68,6 +69,8 @@ class Script extends BaseRestService
         if (!is_string($this->content = array_get($config, 'content'))) {
             $this->content = '';
         }
+
+        $this->queued = Scalar::boolval(array_get($config, 'queued', false));
 
         if (empty($this->engineType = array_get($config, 'type'))) {
             throw new \InvalidArgumentException('Script engine configuration can not be empty.');

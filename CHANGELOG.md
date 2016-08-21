@@ -4,19 +4,39 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
-- DF-664 - Added support for Cassandra (beta)
-- DF-719 - Added cache service (local, redis)
 
 ### Changed
 
 ### Fixed
-- Fixed a scripting bug where the system failed to check a script file path.
+
+## [0.4.0] - 2016-08-21
+### Added
+- DF-664 Support for Cassandra database service(beta)
+- DF-719 Support for cache service (supporting local, redis, memcached)
+- DF-681 Event and scripting changes for supporting queued event scripts and script services.
+- Adding Microsoft Live OAuth2 support
+- Add is_base64 option for retrieving content of file along with properties
+
+### Changed
+- Default queue setup changed from 'sync' to 'database', 'job' and 'failed_job' migrations added
+- Allow post-process scripting to always run, even when processing throws exception
+- Allow pre-process to circumvent processing request by returning response directly
+- DF-607 Making service docs always viewable, even auto-generated ones
+- Cleanup for better PSR styling
+- Reduce config exposure to scripting to just 'df'
+
+### Fixed
+- Scripting bug where the system failed to check a script file path.
+- DF-800 Cleaned up the update schema handling to avoid sending unnecessary changes to database.
+- Showing wrong disk name for local file service container config options
+- Workaround for v8js segfault issue in PHP 7.0
+- Nodejs remote calls issue when URL has port in it
 
 ## [0.3.3] - 2016-07-28
 ### Fixed
 - Fix service name detection for manipulation of swagger files.
 - Needed to add require for symfony/yaml for Swagger support.
-- case-sensitivity issue with out parameters on procs.
+- Case-sensitivity issue with out parameters on procs.
 
 ## [0.3.2] - 2016-07-08
 ### Added
@@ -272,7 +292,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.3...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.3...0.4.0
 [0.3.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.2...0.3.3
 [0.3.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.1...0.3.2
 [0.3.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.0...0.3.1

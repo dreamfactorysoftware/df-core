@@ -110,7 +110,6 @@ class UserProfileResource extends BaseRestResource
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
 
         $apis = [
             $path => [
@@ -120,7 +119,6 @@ class UserProfileResource extends BaseRestResource
                         $capitalized .
                         'Profile() - Retrieve the current user\'s profile information.',
                     'operationId'       => 'get' . $capitalized . 'Profile',
-                    'x-publishedEvents' => [$eventPath . '.read'],
                     'responses'         => [
                         '200'     => [
                             'description' => 'Profile',
@@ -139,7 +137,6 @@ class UserProfileResource extends BaseRestResource
                     'tags'              => [$serviceName],
                     'summary'           => 'updateProfile() - Update the current user\'s profile information.',
                     'operationId'       => 'updateProfile',
-                    'x-publishedEvents' => [$eventPath . '.update'],
                     'parameters'        => [
                         [
                             'name'        => 'body',

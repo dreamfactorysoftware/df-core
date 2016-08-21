@@ -13,7 +13,6 @@ use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Cache;
 use Config;
-use Log;
 use ServiceManager;
 
 /**
@@ -131,7 +130,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
             //  Don't show output
             ob_start();
 
-            if (is_file($script)) {
+            if (strpos($script, "\n") === false && is_file($script)) {
                 $result = $this->executeScript($script, $identifier, $data, $config);
             } else {
                 $result = $this->executeString($script, $identifier, $data, $config);
@@ -220,7 +219,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
                     if (!empty($path) || is_dir($path) || is_readable($path)) {
                         static::$libraryPaths[] = $path;
                     } else {
-                        Log::debug("Invalid scripting library path given $path.");
+                        \Log::debug("Invalid scripting library path given $path.");
                     }
                 }
             }
@@ -229,7 +228,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
         \Cache::add('scripting.library_paths', static::$libraryPaths, static::DEFAULT_CACHE_TTL);
 
         if (empty(static::$libraryPaths)) {
-            Log::debug('No scripting library paths found.');
+            \Log::debug('No scripting library paths found.');
         }
     }
 
@@ -413,9 +412,9 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
                 $result = $service->handleRequest($request, $resource);
             }
         } catch (\Exception $ex) {
-            $result = ResponseFactory::create($ex);
+            $result = ResponseFactory::createWithException($ex);
 
-            Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
+            \Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
         }
 
         return ResponseFactory::sendScriptResponse($result);
@@ -465,7 +464,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
     {
         return [
             'api'     => static::getExposedApi(),
-            'config'  => Config::all(),
+            'config'  => Config::get('df'),
             'session' => Session::all(),
             'store'   => new ScriptSession(Config::get("script.$identifier.store"), app('cache'))
         ];

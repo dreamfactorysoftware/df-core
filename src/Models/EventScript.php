@@ -13,14 +13,12 @@ use Illuminate\Database\Query\Builder;
  * @property string  $content
  * @property string  $config
  * @property boolean $is_active
- * @property boolean $affects_process
  * @property boolean $allow_event_modification
- * @method static Builder|EventScript whereAffectsProcess($value)
  * @method static Builder|EventScript whereIsActive($value)
  * @method static Builder|EventScript whereName($value)
  * @method static Builder|EventScript whereType($value)
  */
-class EventScript extends BaseModel
+class EventScript extends BaseSystemModel
 {
     /**
      * @const string The private cache file
@@ -55,13 +53,11 @@ class EventScript extends BaseModel
         'content',
         'config',
         'is_active',
-        'affects_process',
         'allow_event_modification'
     ];
 
     protected $casts = [
         'is_active'                => 'boolean',
-        'affects_process'          => 'boolean',
         'allow_event_modification' => 'boolean'
     ];
 

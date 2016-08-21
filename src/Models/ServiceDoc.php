@@ -5,7 +5,6 @@ namespace DreamFactory\Core\Models;
 /**
  * ServiceDoc
  *
- * @property integer $id
  * @property integer $service_id
  * @property integer $format
  * @property string  $content
@@ -17,7 +16,11 @@ class ServiceDoc extends BaseSystemModel
 {
     protected $table = 'service_doc';
 
+    protected $primaryKey = 'service_id';
+
     protected $fillable = ['service_id', 'format', 'content'];
 
-    protected $casts = ['id' => 'integer', 'service_id' => 'integer', 'format' => 'integer'];
+    protected $hidden = ['id'];
+
+    protected $casts = ['service_id' => 'integer', 'format' => 'integer'];
 }

@@ -43,9 +43,13 @@ class ServiceType implements ServiceTypeInterface
      */
     protected $subscriptionRequired = false;
     /**
-     * @var string Designated configuration handler for this service type, typically ties to database storage
+     * @var ServiceConfigHandlerInterface Designated configuration handler for this service type, typically ties to database storage
      */
     protected $configHandler = null;
+    /**
+     * @var callable Designated callback for retrieving the default API Doc for this service type
+     */
+    protected $defaultApiDoc = null;
     /**
      * @var callable Designated callback for creating a service of this type
      */
@@ -153,6 +157,18 @@ class ServiceType implements ServiceTypeInterface
     }
 
     /**
+     * The default API Document generator for this service type
+     *
+     * @param mixed $service
+     *
+     * @return array|null
+     */
+    public function getDefaultApiDoc($service)
+    {
+        return call_user_func($this->defaultApiDoc, $service);
+    }
+
+    /**
      * The configuration handler interface for this service type
      *
      * @param string $name
@@ -168,14 +184,13 @@ class ServiceType implements ServiceTypeInterface
     /**
      * The configuration handler interface for this service type
      *
-     * @return ServiceConfigHandlerInterface | null
+     * @return array | null
      */
     public function toArray()
     {
         $configSchema = null;
         if ($this->configHandler) {
             $handler = $this->configHandler;
-            /** @var ServiceConfigHandlerInterface $handler */
             $configSchema = $handler::getConfigSchema();
         }
 

@@ -235,10 +235,10 @@ abstract class BaseService extends BaseRestService
         return $template->toArray();
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo($service)
     {
-        $name = strtolower($this->name);
-        $capitalized = Inflector::camelize($this->name);
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
         $paths = [
             '/' . $name => [
                 'post' => [
@@ -247,7 +247,6 @@ abstract class BaseService extends BaseRestService
                         $capitalized .
                         'Email() - Send an email created from posted data and/or a template.',
                     'operationId'       => 'send' . $capitalized . 'Email',
-                    'x-publishedEvents' => $name . '.email_sent',
                     'parameters'        => [
                         [
                             'name'        => 'template',

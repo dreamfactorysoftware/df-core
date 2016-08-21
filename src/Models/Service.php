@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Library\Utility\Inflector;
+use Illuminate\Database\Query\Builder;
 use ServiceManager;
 use Symfony\Component\Yaml\Yaml;
 
@@ -26,15 +27,15 @@ use Symfony\Component\Yaml\Yaml;
  * @property array   $config
  * @property string  $created_date
  * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|Service whereId($value)
- * @method static \Illuminate\Database\Query\Builder|Service whereName($value)
- * @method static \Illuminate\Database\Query\Builder|Service whereLabel($value)
- * @method static \Illuminate\Database\Query\Builder|Service whereIsActive($value)
- * @method static \Illuminate\Database\Query\Builder|Service whereMutable($value)
- * @method static \Illuminate\Database\Query\Builder|Service whereDeletable($value)
- * @method static \Illuminate\Database\Query\Builder|Service whereType($value)
- * @method static \Illuminate\Database\Query\Builder|Service whereCreatedDate($value)
- * @method static \Illuminate\Database\Query\Builder|Service whereLastModifiedDate($value)
+ * @method static Builder|Service whereId($value)
+ * @method static Builder|Service whereName($value)
+ * @method static Builder|Service whereLabel($value)
+ * @method static Builder|Service whereIsActive($value)
+ * @method static Builder|Service whereMutable($value)
+ * @method static Builder|Service whereDeletable($value)
+ * @method static Builder|Service whereType($value)
+ * @method static Builder|Service whereCreatedDate($value)
+ * @method static Builder|Service whereLastModifiedDate($value)
  */
 class Service extends BaseSystemModel
 {
@@ -42,7 +43,7 @@ class Service extends BaseSystemModel
 
     protected $table = 'service';
 
-    protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config'];
+    protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config', 'doc'];
 
     protected $rules = [
         'name' => 'regex:/(^[A-Za-z0-9_\-]+$)+/'
@@ -62,7 +63,7 @@ class Service extends BaseSystemModel
         'last_modified_by_id'
     ];
 
-    protected $appends = ['config'];
+    protected $appends = ['config', 'doc'];
 
     protected $casts = [
         'is_active' => 'boolean',
@@ -76,6 +77,11 @@ class Service extends BaseSystemModel
      */
     protected $config;
 
+    /**
+     * @var array Live API Documentation
+     */
+    protected $doc;
+
     public function disableRelated()
     {
         // allow config
@@ -86,7 +92,7 @@ class Service extends BaseSystemModel
         parent::boot();
 
         static::created(
-            function (Service $service){
+            function (Service $service) {
                 if (!empty($service->config)) {
                     // take the type information and get the config_handler class
                     // set the config giving the service id and new config
@@ -95,13 +101,17 @@ class Service extends BaseSystemModel
                         return $serviceCfg::setConfig($service->getKey(), $service->config);
                     }
                 }
+                if (!empty($service->doc)) {
+                    $service->doc['service_id'] = $service->id;
+                    ServiceDoc::create($service->doc);
+                }
 
                 return true;
             }
         );
 
         static::saved(
-            function (Service $service){
+            function (Service $service) {
                 \Cache::forget('service:' . $service->name);
                 \Cache::forget('service_id:' . $service->id);
 
@@ -113,7 +123,7 @@ class Service extends BaseSystemModel
         );
 
         static::deleting(
-            function (Service $service){
+            function (Service $service) {
                 // take the type information and get the config_handler class
                 // set the config giving the service id and new config
                 $serviceCfg = $service->getConfigHandler();
@@ -121,12 +131,14 @@ class Service extends BaseSystemModel
                     return $serviceCfg::removeConfig($service->getKey());
                 }
 
+                // ServiceDoc deleted automatically via database foreign key
+
                 return true;
             }
         );
 
         static::deleted(
-            function (Service $service){
+            function (Service $service) {
                 \Cache::forget('service:' . $service->name);
                 \Cache::forget('service_id:' . $service->id);
 
@@ -157,12 +169,12 @@ class Service extends BaseSystemModel
             case 'rws':
                 // fancy trick to grab the base url from swagger
                 if (empty(array_get($attributes, 'config.base_url')) &&
-                    !empty($content = array_get($attributes, 'service_doc_by_service_id.0.content'))
+                    !empty($content = array_get($attributes, 'doc.content'))
                 ) {
                     if (is_string($content)) {
                         $content =
                             static::storedContentToArray($content,
-                                array_get($attributes, 'service_doc_by_service_id.0.format'));
+                                array_get($attributes, 'doc.format'));
                     }
                     if (is_array($content) && !empty($host = array_get($content, 'host'))) {
                         if (!empty($protocol = array_get($content, 'schemes'))) {
@@ -181,12 +193,49 @@ class Service extends BaseSystemModel
         return parent::create($attributes);
     }
 
-    /**
-     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
-     */
-    public function serviceDocs()
+    public function getDocAttribute()
     {
-        return $this->hasMany(ServiceDoc::class, 'service_id', 'id');
+        /** @noinspection PhpUndefinedMethodInspection */
+        if (!empty($doc = ServiceDoc::find($this->id))) {
+            /** @noinspection PhpUndefinedMethodInspection */
+            $this->doc = $doc->toArray();
+        } else {
+            if (!empty($serviceType = ServiceManager::getServiceType($this->type))) {
+                $this->doc = $serviceType->getDefaultApiDoc($this);
+            }
+        }
+
+        return $this->doc;
+    }
+
+    /**
+     * @param array $val
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
+    public function setDocAttribute($val)
+    {
+        $val = (array)$val;
+        $this->doc = $val;
+        // take the type information and get the config_handler class
+        // set the config giving the service id and new config
+        if ($this->exists) {
+            /** @noinspection PhpUndefinedMethodInspection */
+            $model = ServiceDoc::find($this->id);
+            if (!empty($val)) {
+                if (!empty($model)) {
+                    /** @noinspection PhpUndefinedMethodInspection */
+                    $model->update($val);
+                } else {
+                    $val['service_id'] = $this->id;
+                    ServiceDoc::create($val);
+                }
+            } elseif (!empty($model)) {
+                // delete it
+                /** @noinspection PhpUndefinedMethodInspection */
+                $model->delete();
+            }
+        }
     }
 
     /**
@@ -196,6 +245,7 @@ class Service extends BaseSystemModel
      */
     public static function getTypeByName($name)
     {
+        /** @noinspection PhpUndefinedMethodInspection */
         $typeRec = static::whereName($name)->get(['type'])->first();
 
         return (isset($typeRec, $typeRec['type'])) ? $typeRec['type'] : null;
@@ -207,6 +257,7 @@ class Service extends BaseSystemModel
     public static function available()
     {
         // need to cache this possibly
+        /** @noinspection PhpUndefinedMethodInspection */
         return static::lists('name')->all();
     }
 
@@ -226,12 +277,13 @@ class Service extends BaseSystemModel
     }
 
     /**
-     * @param array $val
+     * @param array|null $val
      *
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
-    public function setConfigAttribute(array $val)
+    public function setConfigAttribute($val)
     {
+        $val = (array)$val;
         $this->config = $val;
         // take the type information and get the config_handler class
         // set the config giving the service id and new config
@@ -317,7 +369,17 @@ class Service extends BaseSystemModel
 //                        $tag[] = $name;
 //                        $verbDef['tags'] = $tag;
 //                    }
-                    $verbDef['tags'] = [$name];
+                    switch (strtolower($verb)) {
+                        case 'get':
+                        case 'post':
+                        case 'put':
+                        case 'patch':
+                        case 'delete':
+                        case 'options':
+                        case 'head':
+                            $verbDef['tags'] = [$name];
+                            break;
+                    }
                 }
             }
             $content['paths'] = $paths; // write any changes back
@@ -339,23 +401,23 @@ class Service extends BaseSystemModel
     public static function getCachedByName($name, $key = null, $default = null)
     {
         $cacheKey = 'service:' . $name;
-        $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name){
+        $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name) {
             $service = static::whereName($name)->first(['id', 'name', 'label', 'description', 'is_active', 'type']);
 
             if (empty($service)) {
                 throw new NotFoundException("Could not find a service for $name");
             }
 
-            if (!empty($info = $service->serviceDocs()->first())) {
-                $content = (isset($info)) ? $info->content : null;
-                if (is_string($content)) {
-                    $content = static::storedContentToArray($content, $info->format, $service);
-                }
-            }
-
             $settings = $service->toArray();
-            if (isset($content)) {
-                $settings['doc'] = $content;
+            if (!empty($doc = array_get($settings, 'doc'))) {
+                if (is_array($doc) && !empty($content = array_get($doc, 'content'))) {
+                    if (is_string($content)) {
+                        $content = static::storedContentToArray($content, array_get($doc, 'format'), $service);
+                        if (isset($content)) {
+                            $settings['doc'] = $content;
+                        }
+                    }
+                }
             }
 
             return $settings;
@@ -401,7 +463,7 @@ class Service extends BaseSystemModel
     {
         $cacheKey = 'service_id:' . $id;
 
-        return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
+        return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id) {
             $service = static::whereId($id)->first(['name']);
 
             if (empty($service)) {

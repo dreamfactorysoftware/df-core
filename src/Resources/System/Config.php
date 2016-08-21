@@ -30,7 +30,6 @@ class Config extends BaseSystemResource
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
         $config = [];
 
         $config['paths'] = [
@@ -41,7 +40,6 @@ class Config extends BaseSystemResource
                         $capitalized .
                         'Config() - Retrieve system configuration properties.',
                     'operationId'       => 'get' . $capitalized . 'Config',
-                    'x-publishedEvents' => $eventPath . '.read',
                     'description'       => 'The retrieved properties control how the system behaves.',
                     'consumes'          => ['application/json', 'application/xml'],
                     'produces'          => ['application/json', 'application/xml'],
@@ -62,7 +60,6 @@ class Config extends BaseSystemResource
                         $capitalized .
                         'Config() - Update one or more system configuration properties.',
                     'operationId'       => 'set' . $capitalized . 'Config',
-                    'x-publishedEvents' => $eventPath . '.update',
                     'description'       => 'Post data should be an array of properties.',
                     'consumes'          => ['application/json', 'application/xml'],
                     'produces'          => ['application/json', 'application/xml'],

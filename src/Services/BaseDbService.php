@@ -131,9 +131,9 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
         }
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo($service)
     {
-        $base = parent::getApiDocInfo();
+        $base = parent::getApiDocInfo($service);
 
         $apis = [];
         $models = [];
@@ -146,8 +146,8 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
             }
 
             $resourceName = array_get($resourceInfo, static::RESOURCE_IDENTIFIER);
-            if (Session::checkForAnyServicePermissions($this->name, $resourceName)) {
-                $results = $resourceClass::getApiDocInfo($this->name, $resourceInfo);
+            if (Session::checkForAnyServicePermissions($service->name, $resourceName)) {
+                $results = $resourceClass::getApiDocInfo($service->name, $resourceInfo);
                 if (isset($results, $results['paths'])) {
                     $apis = array_merge($apis, $results['paths']);
                 }

@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Events;
 
+use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Models\EventScript;
@@ -9,6 +10,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class PostProcessApiEvent extends InterProcessApiEvent
 {
+    public $request;
+
     public $response;
 
     /**
@@ -21,16 +24,13 @@ class PostProcessApiEvent extends InterProcessApiEvent
      */
     public function __construct($path, $request, &$response, $resource = null)
     {
-        parent::__construct($path, $request, $resource);
+        $this->request = $request;
         $this->response = $response;
+        $name = strtolower($path . '.' . $request->getMethod()) . '.post_process';
+        parent::__construct($name, $resource);
     }
 
-    protected function makeName()
-    {
-        return parent::makeName() . '.post_process';
-    }
-
-    protected function makeData()
+    public function makeData()
     {
         return [
             'request'  => $this->request->toArray(),
@@ -42,18 +42,29 @@ class PostProcessApiEvent extends InterProcessApiEvent
 
     /**
      * @param EventScript $script
-     * @param $result
+     * @param             $result
      *
      * @return bool
      */
     protected function handleEventScriptResult($script, $result)
     {
         if ($script->allow_event_modification) {
+            if (empty($response = array_get($result, 'response', []))) {
+                // check for "return" results
+                // could be formatted array or raw content
+                if (is_array($result) && (isset($result['content']) || isset($result['status_code']))) {
+                    $response = $result;
+                } else {
+                    // otherwise must be raw content, assumes 200
+                    $response = ['content' => $result, 'status_code' => HttpStatusCodeInterface::HTTP_OK];
+                }
+            }
+
             // response only
             if ($this->response instanceof ServiceResponseInterface) {
-                $this->response->mergeFromArray(array_get($result, 'response', []));
+                $this->response->mergeFromArray($response);
             } else {
-                $this->response = array_get($result, 'response', []);
+                $this->response = $response;
             }
         }
 

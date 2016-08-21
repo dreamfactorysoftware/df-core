@@ -318,9 +318,14 @@ class Packager
 
         try {
             $result = ServiceManager::handleRequest('system', Verbs::POST, 'app', ['fields' => '*'], [], [$record]);
+            if ($result->getStatusCode() >= 300) {
+                throw ResponseFactory::createExceptionFromResponse($result);
+            }
         } catch (\Exception $ex) {
             throw new InternalServerErrorException("Could not create the application.\n{$ex->getMessage()}");
         }
+
+        $result = $result->getContent();
 
         return ($this->resourceWrapped) ? $result[$this->resourceWrapper][0] : $result[0];
     }
@@ -369,7 +374,7 @@ class Packager
                     $resource = ($this->resourceWrapped) ? [$this->resourceWrapper => $tables] : [$tables];
                     if (!empty($tables)) {
                         try {
-                            ServiceManager::handleRequest(
+                            $result = ServiceManager::handleRequest(
                                 $serviceName,
                                 Verbs::POST,
                                 '_schema',
@@ -377,6 +382,9 @@ class Packager
                                 [],
                                 $resource
                             );
+                            if ($result->getStatusCode() >= 300) {
+                                throw ResponseFactory::createExceptionFromResponse($result);
+                            }
                         } catch (\Exception $e) {
                             if (in_array($e->getCode(), [404, 500])) {
                                 throw $e;
@@ -419,7 +427,7 @@ class Packager
                         $records = array_get($table, 'record');
                         $resource = ($this->resourceWrapped) ? [$this->resourceWrapper => $records] : [$records];
                         try {
-                            ServiceManager::handleRequest(
+                            $result = ServiceManager::handleRequest(
                                 $serviceName,
                                 Verbs::POST,
                                 '_table/' . $tableName,
@@ -427,6 +435,9 @@ class Packager
                                 [],
                                 $resource
                             );
+                            if ($result->getStatusCode() >= 300) {
+                                throw ResponseFactory::createExceptionFromResponse($result);
+                            }
                         } catch (\Exception $e) {
                             if (in_array($e->getCode(), [404, 500])) {
                                 throw $e;
@@ -658,9 +669,9 @@ class Packager
 
     /**
      * Package schemas for export.
-     *
      * @return bool
-     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\RestException
      */
     private function packageSchemas()
     {
@@ -682,13 +693,17 @@ class Packager
 
                 if (!empty($service) && !empty($component)) {
                     if ($service->type === 'sql_db') {
-                        $schema = ServiceManager::handleRequest(
+                        $result = ServiceManager::handleRequest(
                             $serviceName,
                             Verbs::GET,
                             '_schema',
                             ['ids' => $component]
                         );
+                        if ($result->getStatusCode() >= 300) {
+                            throw ResponseFactory::createExceptionFromResponse($result);
+                        }
 
+                        $schema = $result->getContent();
                         $schemas[] = [
                             'name'  => $serviceName,
                             'table' => ($this->resourceWrapped) ? $schema[$this->resourceWrapper] : $schema

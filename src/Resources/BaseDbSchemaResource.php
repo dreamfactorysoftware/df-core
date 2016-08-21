@@ -6,8 +6,6 @@ use DreamFactory\Core\Components\DataValidator;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Events\ResourcePostProcess;
-use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Core\Services\Swagger;
@@ -19,7 +17,7 @@ use DreamFactory\Library\Utility\Inflector;
 abstract class BaseDbSchemaResource extends BaseDbResource
 {
     use DataValidator;
-    
+
     //*************************************************************************
     //	Constants
     //*************************************************************************
@@ -28,6 +26,10 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * Resource tag for dealing with table schema
      */
     const RESOURCE_NAME = '_schema';
+    /**
+     * Replacement tag for dealing with table schema events
+     */
+    const EVENT_IDENTIFIER = '{table_name}';
 
     //*************************************************************************
     //	Members
@@ -161,126 +163,80 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         $this->checkPermission($action, $table);
     }
 
-    /**
-     * Runs pre process tasks/scripts
-     */
-    protected function preProcess()
+    protected function getEventName()
     {
+        $suffix = '';
         switch (count($this->resourceArray)) {
-            case 0:
-                parent::preProcess();
-                break;
             case 1:
-                // Try the generic table event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}', $this->request,
-                        $this->resourcePath
-                    )
-                );
-                // Try the actual table name event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(), $this->getFullPathName('.') . '.' . $this->resourceArray[0],
-                        $this->request,
-                        $this->resourcePath
-                    )
-                );
+                $suffix = '.' . static::EVENT_IDENTIFIER;
                 break;
             case 2:
-                // Try the generic table event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}.{field_name}',
-                        $this->request,
-                        $this->resourcePath
-                    )
-                );
-                // Try the actual table name event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(),
-                        $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.' . $this->resourceArray[1],
-                        $this->request,
-                        $this->resourcePath
-                    )
-                );
+                $suffix = '.' . static::EVENT_IDENTIFIER . '.{field}';
                 break;
             default:
-                // Do nothing is all we got?
+                break;
+        }
+
+        return parent::getEventName() . $suffix;
+    }
+
+
+    protected function firePreProcessEvent($name = null, $resource = null)
+    {
+        // fire default first
+        // Try the generic table event
+        parent::firePreProcessEvent($name, $resource);
+
+        // also fire more specific event
+        // Try the actual table name event
+        switch (count($this->resourceArray)) {
+            case 1:
+                parent::firePreProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $resource);
+                break;
+            case 2:
+                parent::firePreProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $this->resourceArray[1]);
                 break;
         }
     }
 
-    /**
-     * Runs post process tasks/scripts
-     */
-    protected function postProcess()
+    protected function firePostProcessEvent($name = null, $resource = null)
     {
+        // fire default first
+        // Try the generic table event
+        parent::firePostProcessEvent($name, $resource);
+
+        // also fire more specific event
+        // Try the actual table name event
         switch (count($this->resourceArray)) {
-            case 0:
-                parent::postProcess();
-                break;
             case 1:
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(),
-                    $this->getFullPathName('.') . '.{table_name}',
-                    $this->request,
-                    $this->response,
-                    $this->resourcePath
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-
-                // todo doing something wrong that I have to copy this array back over
-                $this->response = $event->response;
-
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(),
-                    $this->getFullPathName('.') . '.' . $this->resourceArray[0],
-                    $this->request,
-                    $this->response,
-                    $this->resourcePath
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-
-                // todo doing something wrong that I have to copy this array back over
-                $this->response = $event->response;
+                parent::firePostProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $resource);
                 break;
             case 2:
-                // todo how to handle proper response for more than one result?
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}.{field_name}',
-                    $this->request,
-                    $this->response,
-                    $this->resourcePath
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-
-                // todo doing something wrong that I have to copy this array back over
-                $this->response = $event->response;
-
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(),
-                    $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.' . $this->resourceArray[1],
-                    $this->request,
-                    $this->response,
-                    $this->resourcePath
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-
-                // todo doing something wrong that I have to copy this array back over
-                $this->response = $event->response;
+                parent::firePostProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $this->resourceArray[1]);
                 break;
-            default:
-                // Do nothing is all we got?
+        }
+    }
+
+    protected function fireFinalEvent($name = null, $resource = null)
+    {
+        // fire default first
+        // Try the generic table event
+        parent::fireFinalEvent($name, $resource);
+
+        // also fire more specific event
+        // Try the actual table name event
+        switch (count($this->resourceArray)) {
+            case 1:
+                parent::fireFinalEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $resource);
+                break;
+            case 2:
+                parent::fireFinalEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $this->resourceArray[1]);
                 break;
         }
     }
@@ -482,7 +438,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     public function describeTables(
         $tables,
         $refresh = false
-    ){
+    ) {
         $tables = static::validateAsArray(
             $tables,
             ',',
@@ -704,7 +660,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         $pluralClass = Inflector::pluralize($class);
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
         $base = parent::getApiDocInfo($service, $resource);
 
         $add = [
@@ -712,7 +667,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 'tags'              => [$serviceName],
                 'summary'           => 'create' . $capitalized . 'Tables() - Create one or more tables.',
                 'operationId'       => 'create' . $capitalized . 'Tables',
-                'x-publishedEvents' => [$eventPath . '.create'],
                 'parameters'        => [
                     [
                         'name'        => 'tables',
@@ -738,7 +692,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 'tags'              => [$serviceName],
                 'summary'           => 'replace' . $capitalized . 'Tables() - Update (replace) one or more tables.',
                 'operationId'       => 'replace' . $capitalized . 'Tables',
-                'x-publishedEvents' => [$eventPath . '.alter'],
                 'parameters'        => [
                     [
                         'name'        => 'tables',
@@ -764,7 +717,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 'tags'              => [$serviceName],
                 'summary'           => 'update' . $capitalized . 'Tables() - Update (patch) one or more tables.',
                 'operationId'       => 'update' . $capitalized . 'Tables',
-                'x-publishedEvents' => [$eventPath . '.alter'],
                 'parameters'        => [
                     [
                         'name'        => 'tables',
@@ -806,10 +758,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Table() - Retrieve table definition for the given table.',
                     'operationId'       => 'describe' . $capitalized . 'Table',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.describe',
-                        $eventPath . '.table_described'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'refresh',
@@ -836,10 +784,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Table() - Create a table with the given properties and fields.',
                     'operationId'       => 'create' . $capitalized . 'Table',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.create',
-                        $eventPath . '.table_created'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'schema',
@@ -867,10 +811,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Table() - Update (replace) a table with the given properties.',
                     'operationId'       => 'replace' . $capitalized . 'Table',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.alter',
-                        $eventPath . '.table_altered'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'schema',
@@ -898,10 +838,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Table() - Update (patch) a table with the given properties.',
                     'operationId'       => 'update' . $capitalized . 'Table',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.alter',
-                        $eventPath . '.table_altered'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'schema',
@@ -927,7 +863,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                     'tags'              => [$serviceName],
                     'summary'           => 'delete' . $capitalized . 'Table() - Delete (aka drop) the given table.',
                     'operationId'       => 'delete' . $capitalized . 'Table',
-                    'x-publishedEvents' => [$eventPath . '.{table_name}.drop', $eventPath . '.table_dropped'],
                     'parameters'        => [
                     ],
                     'responses'         => [
@@ -966,10 +901,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Field() - Retrieve the definition of the given field for the given table.',
                     'operationId'       => 'describe' . $capitalized . 'Field',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{field_name}.describe',
-                        $eventPath . '.{table_name}.field_described'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'refresh',
@@ -994,10 +925,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                     'tags'              => [$serviceName],
                     'summary'           => 'replace' . $capitalized . 'Field() - Update one record by identifier.',
                     'operationId'       => 'replace' . $capitalized . 'Field',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{field_name}.alter',
-                        $eventPath . '.{table_name}.field_altered'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'properties',
@@ -1023,10 +950,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                     'tags'              => [$serviceName],
                     'summary'           => 'update' . $capitalized . 'Field() - Update one record by identifier.',
                     'operationId'       => 'update' . $capitalized . 'Field',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{field_name}.alter',
-                        $eventPath . '.{table_name}.field_altered'
-                    ],
                     'parameters'        => [
                         [
                             'name'        => 'properties',
@@ -1054,10 +977,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                         $capitalized .
                         'Field() - Remove the given field from the given table.',
                     'operationId'       => 'delete' . $capitalized . 'Field',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{field_name}.drop',
-                        $eventPath . '.{table_name}.field_dropped'
-                    ],
                     'parameters'        => [],
                     'responses'         => [
                         '200'     => [

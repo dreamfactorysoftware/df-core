@@ -3,15 +3,13 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Models\EventScript;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Services\BaseFileService;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Utility\ServiceResponse;
 use DreamFactory\Library\Utility\Inflector;
 use ServiceManager;
 
@@ -57,8 +55,7 @@ class Event extends BaseRestResource
         //  Build event mapping from services in database
 
         //	Initialize the event map
-        $processEventMap = [];
-        $broadcastEventMap = [];
+        $eventMap = [];
 
         //  Pull any custom swagger docs
         $result = ServiceModel::whereIsActive(true)->pluck('name');
@@ -82,14 +79,12 @@ class Event extends BaseRestResource
                     throw new \Exception('No access found.');
                 }
 
-                if (empty($content = $service->getApiDocInfo())) {
+                if (empty($content = $service->getApiDocInfo($service))) {
                     throw new \Exception('No event content found.');
                 }
 
                 //	Parse the events while we get the chance...
-                $serviceEvents = static::parseSwaggerEvents($content, $accessList);
-                $processEventMap[$apiName] = array_get($serviceEvents, 'process', []);
-                $broadcastEventMap[$apiName] = array_get($serviceEvents, 'broadcast', []);
+                $eventMap[$apiName] = static::parseSwaggerEvents($content, $accessList);
             } catch (\Exception $ex) {
                 \Log::error("  * System error building event map for service '$apiName'.\n{$ex->getMessage()}");
             }
@@ -97,7 +92,7 @@ class Event extends BaseRestResource
             unset($content, $service, $serviceEvents);
         }
 
-        static::$eventMap = ['process' => $processEventMap, 'broadcast' => $broadcastEventMap];
+        static::$eventMap = $eventMap;
 
         \Log::info('Event cache build process complete');
     }
@@ -110,13 +105,11 @@ class Event extends BaseRestResource
      */
     protected static function parseSwaggerEvents(array $content, array $access = [])
     {
-        $processEvents = [];
-        $broadcastEvents = [];
+        $events = [];
         $eventCount = 0;
 
         foreach (array_get($content, 'paths', []) as $path => $api) {
-            $apiProcessEvents = [];
-            $apiBroadcastEvents = [];
+            $apiEvents = [];
             $apiParameters = [];
             $pathParameters = [];
 
@@ -131,39 +124,8 @@ class Event extends BaseRestResource
                 }
 
                 $method = strtolower($ixOps);
-                if (null !== ($eventNames = array_get($operation, 'x-publishedEvents'))) {
-                    if (is_string($eventNames) && false !== strpos($eventNames, ',')) {
-                        $eventNames = explode(',', $eventNames);
-
-                        //  Clean up any spaces...
-                        foreach ($eventNames as &$tempEvent) {
-                            $tempEvent = trim($tempEvent);
-                        }
-                    }
-
-                    if (empty($eventNames)) {
-                        $eventNames = [];
-                    } else if (!is_array($eventNames)) {
-                        $eventNames = [$eventNames];
-                    }
-
-                    foreach ($eventNames as $ixEventNames => $templateEventName) {
-                        $eventName = str_replace('{request.method}', $method, $templateEventName);
-
-                        if (!isset($apiBroadcastEvents[$method]) ||
-                            false === array_search($eventName, $apiBroadcastEvents[$method])
-                        ) {
-                            // should not have duplicates here.
-                            $apiBroadcastEvents[$method][] = $eventName;
-                        }
-
-                        $eventCount++;
-                    }
-                }
-
-                if (!isset($apiProcessEvents[$method])) {
-                    $apiProcessEvents[$method][] = "$eventPath.$method.pre_process";
-                    $apiProcessEvents[$method][] = "$eventPath.$method.post_process";
+                if (!isset($apiEvents[$method])) {
+                    $apiEvents[$method][] = "$eventPath.$method";
                     $parameters = array_get($operation, 'parameters', []);
                     if (!empty($pathParameters)) {
                         $parameters = array_merge($pathParameters, $parameters);
@@ -203,17 +165,16 @@ class Event extends BaseRestResource
                 unset($operation);
             }
 
-            $processEvents[$eventPath]['verb'] = $apiProcessEvents;
+            $events[$eventPath]['verb'] = $apiEvents;
             $apiParameters = (empty($apiParameters)) ? null : $apiParameters;
-            $processEvents[$eventPath]['parameter'] = $apiParameters;
-            $broadcastEvents[$eventPath]['verb'] = $apiBroadcastEvents;
+            $events[$eventPath]['parameter'] = $apiParameters;
 
-            unset($apiProcessEvents, $apiBroadcastEvents, $apiParameters, $api);
+            unset($apiEvents, $apiParameters, $api);
         }
 
         \Log::debug('  * Discovered ' . $eventCount . ' event(s).');
 
-        return ['process' => $processEvents, 'broadcast' => $broadcastEvents];
+        return $events;
     }
 
     /**
@@ -254,163 +215,48 @@ class Event extends BaseRestResource
     //	Methods
     //*************************************************************************
 
-    protected static function affectsProcess($event)
-    {
-        $sections = explode('.', $event);
-        $last = $sections[count($sections) - 1];
-        if ((0 === strcasecmp('pre_process', $last)) || (0 === strcasecmp('post_process', $last))) {
-            return true;
-        }
-
-        return false;
-    }
-
     /**
      * Handles GET action
      *
-     * @return array
+     * @return array|ServiceResponse
      * @throws NotFoundException
      */
     protected function handleGET()
     {
         $refresh = $this->request->getParameterAsBool('refresh');
-        if (empty($this->resource)) {
-            $service = $this->request->getParameter('service');
-            $type = $this->request->getParameter('type');
-            $onlyScripted = $this->request->getParameterAsBool('only_scripted');
-            if ($onlyScripted) {
-                switch ($type) {
-                    case 'process':
-                        $scripts = EventScript::whereAffectsProcess(1)->pluck('name')->all();
-                        break;
-                    case 'broadcast':
-                        $scripts = EventScript::whereAffectsProcess(0)->pluck('name')->all();
-                        break;
-                    default:
-                        $scripts = EventScript::pluck('name')->all();
-                        break;
+        $scriptable = $this->request->getParameterAsBool('scriptable');
+        $service = $this->request->getParameter('service');
+        $results = $this->getEventMap($refresh);
+        $allEvents = [];
+        foreach ($results as $serviceKey => $paths) {
+            if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
+                unset($results[$serviceKey]);
+            } else {
+                foreach ($paths as $path => $operations) {
+                    foreach ($operations['verb'] as $method => $events) {
+                        if ($scriptable) {
+                            foreach ($events as $ndx => $event) {
+                                $temp = [
+                                    $event . '.pre_process',
+                                    $event . '.post_process',
+                                    $event . '.queued',
+                                ];
+                                $results[$serviceKey][$path]['verb'][$method] = $temp;
+                                $allEvents = array_merge($allEvents, $temp);
+                            }
+                        } else {
+                            $allEvents = array_merge($allEvents, $events);
+                        }
+                    }
                 }
-
-                return ResourcesWrapper::cleanResources(array_values(array_unique($scripts)));
             }
-
-            $results = $this->getEventMap($refresh);
-            $allEvents = [];
-            switch ($type) {
-                case 'process':
-                    $results = array_get($results, 'process', []);
-                    foreach ($results as $serviceKey => $apis) {
-                        if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
-                            unset($results[$serviceKey]);
-                        } else {
-                            foreach ($apis as $path => $operations) {
-                                foreach ($operations['verb'] as $method => $events) {
-                                    $allEvents = array_merge($allEvents, $events);
-                                }
-                            }
-                        }
-                    }
-                    break;
-                case 'broadcast':
-                    $results = array_get($results, 'broadcast', []);
-                    foreach ($results as $serviceKey => $apis) {
-                        if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
-                            unset($results[$serviceKey]);
-                        } else {
-                            foreach ($apis as $path => $operations) {
-                                foreach ($operations['verb'] as $method => $events) {
-                                    $allEvents = array_merge($allEvents, $events);
-                                }
-                            }
-                        }
-                    }
-                    break;
-                default:
-                    foreach ($results as $type => $services) {
-                        foreach ($services as $serviceKey => $apis) {
-                            if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
-                                unset($results[$type][$serviceKey]);
-                            } else {
-                                foreach ($apis as $path => $operations) {
-                                    foreach ($operations['verb'] as $method => $events) {
-                                        $allEvents = array_merge($allEvents, $events);
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    break;
-            }
-
-            if (!$this->request->getParameterAsBool(ApiOptions::AS_LIST)) {
-                return $results;
-            }
-
-            return ResourcesWrapper::cleanResources(array_values(array_unique($allEvents)));
         }
 
-        $related = $this->request->getParameter(ApiOptions::RELATED);
-        if (!empty($related)) {
-            $related = explode(',', $related);
-        } else {
-            $related = [];
+        if (!$this->request->getParameterAsBool(ApiOptions::AS_LIST)) {
+            return $results;
         }
 
-        //	Single script by name
-        $fields = [ApiOptions::FIELDS_ALL];
-        if (null !== ($value = $this->request->getParameter(ApiOptions::FIELDS))) {
-            $fields = explode(',', $value);
-        }
-
-        if (null === $foundModel = EventScript::with($related)->find($this->resource, $fields)) {
-            throw new NotFoundException("Script not found.");
-        }
-
-        return ResponseFactory::create($foundModel->toArray());
-    }
-
-    /**
-     * Handles POST action
-     *
-     * @return \DreamFactory\Core\Utility\ServiceResponse
-     * @throws BadRequestException
-     * @throws \Exception
-     */
-    protected function handlePOST()
-    {
-        if (empty($this->resource)) {
-            return false;
-        }
-
-        $record = $this->getPayloadData();
-        if (empty($record)) {
-            throw new BadRequestException('No record detected in request.');
-        }
-
-        $record['affects_process'] = static::affectsProcess($this->resource);
-        if (EventScript::whereName($this->resource)->exists()) {
-            $result = EventScript::updateById($this->resource, $record, $this->request->getParameters());
-        } else {
-            $result = EventScript::createById($this->resource, $record, $this->request->getParameters());
-        }
-
-        return $result;
-    }
-
-    /**
-     * Handles DELETE action
-     *
-     * @return \DreamFactory\Core\Utility\ServiceResponse
-     * @throws BadRequestException
-     * @throws \Exception
-     */
-    protected function handleDELETE()
-    {
-        if (empty($this->resource)) {
-            return false;
-        }
-
-        return EventScript::deleteById($this->resource, $this->request->getParameters());
+        return ResourcesWrapper::cleanResources(array_values(array_unique($allEvents)));
     }
 
     public static function getApiDocInfo($service, array $resource = [])
@@ -420,22 +266,17 @@ class Event extends BaseRestResource
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
 
-        $apis = [
-            $path                   => [
+        $paths = [
+            $path => [
                 'get' => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'get' . $capitalized . 'EventList() - Retrieve list of events.',
-                    'operationId'       => 'get' . $capitalized . 'EventList',
-                    'description'       => 'A list of event names are returned.<br>' .
-                        'The list can be limited by service and/or by type.',
-                    'x-publishedEvents' => $eventPath . '.list',
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'        => [
-                        ApiOptions::documentOption(ApiOptions::FIELDS),
-                        ApiOptions::documentOption(ApiOptions::RELATED),
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' . $capitalized . 'EventList() - Retrieve list of events.',
+                    'operationId' => 'get' . $capitalized . 'EventList',
+                    'description' => 'A list of event names are returned. The list can be limited by service.',
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::AS_LIST),
                         [
                             'name'        => 'service',
@@ -444,24 +285,8 @@ class Event extends BaseRestResource
                             'in'          => 'query',
                             'required'    => false,
                         ],
-                        [
-                            'name'        => 'type',
-                            'description' => 'Get the events for only this type - process or broadcast.',
-                            'type'        => 'string',
-                            'in'          => 'query',
-                            'required'    => false,
-                            'enum'        => ['process', 'broadcast'],
-                        ],
-                        [
-                            'name'        => 'only_scripted',
-                            'description' => 'Get only the events that have associated scripts.',
-                            'type'        => 'boolean',
-                            'in'          => 'query',
-                            'required'    => false,
-                            'default'     => false,
-                        ],
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Resource List',
                             'schema'      => ['$ref' => '#/definitions/ResourceList']
@@ -473,106 +298,8 @@ class Event extends BaseRestResource
                     ],
                 ],
             ],
-            $path . '/{event_name}' => [
-                'parameters' => [
-                    [
-                        'name'        => 'event_name',
-                        'description' => 'Identifier of the event to retrieve.',
-                        'type'        => 'string',
-                        'in'          => 'path',
-                        'required'    => true,
-                    ],
-                    ApiOptions::documentOption(ApiOptions::FIELDS),
-                    ApiOptions::documentOption(ApiOptions::RELATED),
-                ],
-                'get'        => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'get' . $capitalized . 'EventScript() - Retrieve the script for an event.',
-                    'operationId'       => 'get' . $capitalized . 'EventScript',
-                    'description'       =>
-                        'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
-                        'By default, all fields and no relations are returned for each record.',
-                    'x-publishedEvents' => $eventPath . '.{event_name}.read',
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'        => [
-                        ApiOptions::documentOption(ApiOptions::FILE),
-                    ],
-                    'responses'         => [
-                        '200'     => [
-                            'description' => 'Event Script',
-                            'schema'      => ['$ref' => '#/definitions/EventScriptResponse']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                ],
-                'post'       => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'create' . $capitalized . 'EventScript() - Create a script for an event.',
-                    'operationId'       => 'create' . $capitalized . 'EventScript',
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'description'       =>
-                        'Post data should be a single record containing required fields for a script. ' .
-                        'By default, only the event name of the record affected is returned on success, ' .
-                        'use \'fields\' and \'related\' to return more info.',
-                    'x-publishedEvents' => $eventPath . '.{event_name}.create',
-                    'parameters'        => [
-                        [
-                            'name'        => 'body',
-                            'description' => 'Data containing name-value pairs of records to create.',
-                            'schema'      => ['$ref' => '#/definitions/EventScriptRequest'],
-                            'in'          => 'body',
-                            'required'    => true,
-                        ],
-                    ],
-                    'responses'         => [
-                        '200'     => [
-                            'description' => 'Event Script',
-                            'schema'      => ['$ref' => '#/definitions/EventScriptResponse']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                ],
-                'delete'     => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'delete' . $capitalized . 'EventScript() - Delete an event scripts.',
-                    'operationId'       => 'delete' . $capitalized . 'EventScript',
-                    'description'       =>
-                        'By default, only the event name of the record deleted is returned on success. ' .
-                        'Use \'fields\' and \'related\' to return more properties of the deleted record.',
-                    'x-publishedEvents' => $eventPath . '.{event_name}.delete',
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'        => [],
-                    'responses'         => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                ],
-            ],
         ];
 
-        $models = [];
-
-        $model = new EventScript;
-        $temp = $model->toApiDocsModel('EventScript');
-        if ($temp) {
-            $models = array_merge($models, $temp);
-        }
-
-        return ['paths' => $apis, 'definitions' => $models];
+        return ['paths' => $paths, 'definitions' => []];
     }
 }

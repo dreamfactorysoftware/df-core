@@ -198,7 +198,6 @@ class ReadOnlySystemResource extends BaseRestResource
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $pluralClass = Inflector::pluralize($class);
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
 //        $base = parent::getApiDocInfo($service, $resource);
         $wrapper = ResourcesWrapper::getWrapper();
 
@@ -217,7 +216,6 @@ class ReadOnlySystemResource extends BaseRestResource
                         $pluralClass .
                         '.',
                     'operationId'       => 'get' . $capitalized . $pluralClass,
-                    'x-publishedEvents' => [$eventPath . '.list'],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -266,7 +264,6 @@ class ReadOnlySystemResource extends BaseRestResource
                     'tags'              => [$serviceName],
                     'summary'           => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
                     'operationId'       => 'get' . $capitalized . $class,
-                    'x-publishedEvents' => [$eventPath . '.read'],
                     'parameters'        => [],
                     'responses'         => [
                         '200'     => [

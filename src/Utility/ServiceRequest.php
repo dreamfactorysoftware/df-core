@@ -119,6 +119,11 @@ class ServiceRequest implements ServiceRequestInterface
             return $this->csv($key, $default);
         }
 
+        if (Str::contains(Request::header('CONTENT_TYPE'), 'text/plain')) {
+            // Plain text content, return as is.
+            return $this->getContent();
+        }
+
         //Check the actual content. If it is blank return blank array.
         $content = $this->getContent();
         if (empty($content)) {

@@ -11,8 +11,6 @@ use DreamFactory\Core\Enums\DbComparisonOperators;
 use DreamFactory\Core\Enums\DbLogicalOperators;
 use DreamFactory\Core\Enums\DbSimpleTypes;
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Events\ResourcePostProcess;
-use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -29,7 +27,7 @@ use DreamFactory\Library\Utility\Scalar;
 abstract class BaseDbTableResource extends BaseDbResource
 {
     use DataValidator;
-    
+
     //*************************************************************************
     //	Constants
     //*************************************************************************
@@ -38,6 +36,10 @@ abstract class BaseDbTableResource extends BaseDbResource
      * Resource tag for dealing with table schema
      */
     const RESOURCE_NAME = '_table';
+    /**
+     * Replacement tag for dealing with table schema events
+     */
+    const EVENT_IDENTIFIER = '{table_name}';
     /**
      * Default maximum records returned on filter request
      */
@@ -268,118 +270,80 @@ abstract class BaseDbTableResource extends BaseDbResource
         $this->checkPermission($action, $table);
     }
 
-    /**
-     * Runs pre process tasks/scripts
-     */
-    protected function preProcess()
+    protected function getEventName()
     {
+        $suffix = '';
         switch (count($this->resourceArray)) {
-            case 0:
-                parent::preProcess();
-                break;
             case 1:
-                // Try the generic table event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}', $this->request,
-                        $this->resourcePath
-                    )
-                );
-                // Try the actual table name event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(), $this->getFullPathName('.') . '.' . $this->resourceArray[0],
-                        $this->request,
-                        $this->resourcePath
-                    )
-                );
+                $suffix = '.' . static::EVENT_IDENTIFIER;
                 break;
             case 2:
-                // Try the generic table event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}.{id}',
-                        $this->request,
-                        $this->resourcePath
-                    )
-                );
-                // Try the actual table name event
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire(
-                    new ResourcePreProcess(
-                        $this->getServiceName(),
-                        $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.{id}',
-                        $this->request,
-                        $this->resourceArray[1]
-                    )
-                );
+                $suffix = '.' . static::EVENT_IDENTIFIER . '.{id}';
                 break;
             default:
-                // Do nothing is all we got?
+                break;
+        }
+
+        return parent::getEventName() . $suffix;
+    }
+
+
+    protected function firePreProcessEvent($name = null, $resource = null)
+    {
+        // fire default first
+        // Try the generic table event
+        parent::firePreProcessEvent($name, $resource);
+
+        // also fire more specific event
+        // Try the actual table name event
+        switch (count($this->resourceArray)) {
+            case 1:
+                parent::firePreProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $resource);
+                break;
+            case 2:
+                parent::firePreProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $this->resourceArray[1]);
                 break;
         }
     }
 
-    /**
-     * Runs post process tasks/scripts
-     */
-    protected function postProcess()
+    protected function firePostProcessEvent($name = null, $resource = null)
     {
+        // fire default first
+        // Try the generic table event
+        parent::firePostProcessEvent($name, $resource);
+
+        // also fire more specific event
+        // Try the actual table name event
         switch (count($this->resourceArray)) {
-            case 0:
-                parent::postProcess();
-                break;
             case 1:
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(), $this->getFullPathName('.') . '.' . $this->resourceArray[0],
-                    $this->request,
-                    $this->response,
-                    $this->resourcePath
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-                // copy the event response back to this response
-                $this->response = $event->response;
-
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}', $this->request,
-                    $this->response,
-                    $this->resourcePath
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-
-                $this->response = $event->response;
+                parent::firePostProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $resource);
                 break;
             case 2:
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(),
-                    $this->getFullPathName('.') . '.' . $this->resourceArray[0] . '.{id}',
-                    $this->request,
-                    $this->response,
-                    $this->resourceArray[1]
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-
-                $this->response = $event->response;
-
-                // todo how to handle proper response for more than one result?
-                $event = new ResourcePostProcess(
-                    $this->getServiceName(), $this->getFullPathName('.') . '.{table_name}.{id}', $this->request,
-                    $this->response,
-                    $this->resourcePath
-                );
-                /** @noinspection PhpUnusedLocalVariableInspection */
-                $results = \Event::fire($event);
-
-                $this->response = $event->response;
+                parent::firePostProcessEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $this->resourceArray[1]);
                 break;
-            default:
-                // Do nothing is all we got?
+        }
+    }
+
+    protected function fireFinalEvent($name = null, $resource = null)
+    {
+        // fire default first
+        // Try the generic table event
+        parent::fireFinalEvent($name, $resource);
+
+        // also fire more specific event
+        // Try the actual table name event
+        switch (count($this->resourceArray)) {
+            case 1:
+                parent::fireFinalEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $resource);
+                break;
+            case 2:
+                parent::fireFinalEvent(str_replace(static::EVENT_IDENTIFIER, $this->resourceArray[0],
+                    $this->getEventName()), $this->resourceArray[1]);
                 break;
         }
     }
@@ -437,7 +401,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @return array
+     * @return bool|array
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
@@ -481,7 +445,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @return array
+     * @return bool|array
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
@@ -547,7 +511,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @return array
+     * @return bool|array
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
@@ -612,7 +576,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     }
 
     /**
-     * @return array
+     * @return bool|array
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
@@ -767,8 +731,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                 throw $ex;
             }
 
-            throw new InternalServerErrorException("Failed to create records in '$table'.\n$msg", null, null,
-                $context);
+            throw new InternalServerErrorException("Failed to create records in '$table'.\n$msg", null, null, $context);
         }
     }
 
@@ -1766,7 +1729,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $continue = false,
         /** @noinspection PhpUnusedParameterInspection */
         $single = false
-    ){
+    ) {
         if (!empty($record)) {
             $this->batchRecords[] = $record;
         }
@@ -1877,13 +1840,15 @@ abstract class BaseDbTableResource extends BaseDbResource
                     $value = $record;
                 }
                 if (!empty($value)) {
-                    switch ($info->type) {
-                        case 'int':
-                            $value = intval($value);
-                            break;
-                        case 'string':
-                            $value = strval($value);
-                            break;
+                    if (!is_array($value)) {
+                        switch ($info->type) {
+                            case 'int':
+                                $value = intval($value);
+                                break;
+                            case 'string':
+                                $value = strval($value);
+                                break;
+                        }
                     }
                     $id = $value;
                 } else {
@@ -1906,13 +1871,15 @@ abstract class BaseDbTableResource extends BaseDbResource
                         $value = $record;
                     }
                     if (!empty($value)) {
-                        switch ($info->type) {
-                            case 'int':
-                                $value = intval($value);
-                                break;
-                            case 'string':
-                                $value = strval($value);
-                                break;
+                        if (!is_array($value)) {
+                            switch ($info->type) {
+                                case 'int':
+                                    $value = intval($value);
+                                    break;
+                                case 'string':
+                                    $value = strval($value);
+                                    break;
+                            }
                         }
                         $id[$name] = $value;
                     } else {
@@ -1944,7 +1911,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $value,
         /** @noinspection PhpUnusedParameterInspection */
         $field_info
-    ){
+    ) {
         return $value;
     }
 
@@ -2436,7 +2403,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         // some classes define their own default
         $default = defined('static::MAX_RECORDS_RETURNED') ? static::MAX_RECORDS_RETURNED : 1000;
 
-        return intval(\Config::get('df.db.max_records_returned', $default));
+        return intval(Config::get('df.db.max_records_returned', $default));
     }
 
     /**
@@ -2752,13 +2719,13 @@ abstract class BaseDbTableResource extends BaseDbResource
         switch ($operator) {
             // Value-Modifying Operators
             case DbComparisonOperators::CONTAINS:
-                $value = '%'.$value.'%';
+                $value = '%' . $value . '%';
                 break;
             case DbComparisonOperators::STARTS_WITH:
-                $value = $value.'%';
+                $value = $value . '%';
                 break;
             case DbComparisonOperators::ENDS_WITH:
-                $value = '%'.$value;
+                $value = '%' . $value;
                 break;
         }
     }
@@ -2959,7 +2926,6 @@ abstract class BaseDbTableResource extends BaseDbResource
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
         $base = parent::getApiDocInfo($service, $resource);
 
         $wrapper = ResourcesWrapper::getWrapper();
@@ -2992,10 +2958,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'Alternatively, to send the <b>ids</b> as posted data, use the getRecordsByPost() POST request.<br/> ' .
                         'Use the <b>fields</b> parameter to limit properties returned for each record. ' .
                         'By default, all fields are returned for all records. ',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.select',
-                        $eventPath . '.table_selected',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -3034,10 +2996,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'Posted data should be an array of records wrapped in a <b>record</b> element.<br/> ' .
                         'By default, only the id property of the record is returned on success. ' .
                         'Use <b>fields</b> parameter to return more info.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.insert',
-                        $eventPath . '.table_inserted',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
@@ -3092,7 +3050,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'Filter can be included via URL parameter or included in the posted body.<br/> ' .
                         'By default, only the id property of the record is returned on success. ' .
                         'Use <b>fields</b> parameter to return more info.',
-                    'x-publishedEvents' => [$eventPath . '.{table_name}.update', $eventPath . '.table_updated',],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
@@ -3135,10 +3092,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'Filter can be included via URL parameter or included in the posted body.<br/> ' .
                         'By default, only the id property of the record is returned on success. ' .
                         'Use <b>fields</b> parameter to return more info.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.update',
-                        $eventPath . '.table_updated',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
@@ -3184,10 +3137,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                         'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ' .
                         'Set the <b>body</b> to an array of records, minimally including the identifying fields, to delete specific records.<br/> ' .
                         'By default, only the id property of the record is returned on success, use <b>fields</b> to return more info. ',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.delete',
-                        $eventPath . '.table_deleted',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        =>
@@ -3244,10 +3193,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'description'       =>
                         'Use the <b>fields</b> parameter to limit properties that are returned. ' .
                         'By default, all fields are returned.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{id}.select',
-                        $eventPath . '.record_selected',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -3276,10 +3221,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'description'       =>
                         'Post data should be an array of fields for a single record.<br/> ' .
                         'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{id}.update',
-                        $eventPath . '.record_updated',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -3315,10 +3256,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'description'       =>
                         'Post data should be an array of fields for a single record.<br/> ' .
                         'Use the <b>fields</b> parameter to return more properties. By default, the id is returned.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{id}.update',
-                        $eventPath . '.record_updated',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [
@@ -3350,10 +3287,6 @@ abstract class BaseDbTableResource extends BaseDbResource
                     'summary'           => 'delete' . $capitalized . 'Record() - Delete one record by identifier.',
                     'operationId'       => 'delete' . $capitalized . 'Record',
                     'description'       => 'Use the <b>fields</b> parameter to return more deleted properties. By default, the id is returned.',
-                    'x-publishedEvents' => [
-                        $eventPath . '.{table_name}.{id}.delete',
-                        $eventPath . '.record_deleted',
-                    ],
                     'consumes'          => ['application/json', 'application/xml', 'text/csv'],
                     'produces'          => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'        => [

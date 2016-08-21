@@ -316,7 +316,7 @@ class Environment extends BaseSystemResource
     {
         $oauth = ServiceModel::whereIn(
             'type',
-            ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google', 'oauth_linkedin']
+            ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google', 'oauth_linkedin', 'oauth_microsoft-live']
         )->whereIsActive(1)->get(['id', 'name', 'type', 'label']);
 
         $services = [];
@@ -528,7 +528,6 @@ class Environment extends BaseSystemResource
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
 
         $apis = [
             $path => [
@@ -536,7 +535,6 @@ class Environment extends BaseSystemResource
                     'tags'              => [$serviceName],
                     'summary'           => 'get' . $capitalized . 'Environment() - Retrieve system environment.',
                     'operationId'       => 'get' . $capitalized . 'Environment',
-                    'x-publishedEvents' => $eventPath . '.list',
                     'consumes'          => ['application/json', 'application/xml'],
                     'produces'          => ['application/json', 'application/xml'],
                     'responses'         => [

@@ -9,7 +9,9 @@ use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Inflector;
-use ServiceManager as ServiceMgrFacade;
+use Config;
+use Log;
+
 
 /**
  * Swagger
@@ -97,7 +99,7 @@ class Swagger extends BaseRestService
         }
 
         if (null === ($content = static::getFromCache($roleId))) {
-            \Log::info('Building Swagger cache');
+            Log::info('Building Swagger cache');
 
             //  Gather the services
             $paths = [];
@@ -106,34 +108,33 @@ class Swagger extends BaseRestService
 
             //  Build services from database
             //  Pull any custom swagger docs
-            $tags = Service::whereIsActive(true)->pluck('description', 'name');
-            foreach ($tags as $apiName => $description) {
+            $tags = [];
+            $models = Service::whereIsActive(true)->get();
+            foreach ($models as $model) {
+                $apiName = $model->name;
                 if (!Session::checkForAnyServicePermissions($apiName)) {
                     continue;
                 }
 
-                try {
-                /** @var BaseRestService $service */
-                if (empty($service = ServiceMgrFacade::getService($apiName))) {
-                    \Log::error('No service found.');
-                }
-                if (empty($content = $service->getApiDocInfo())) {
-                    \Log::error('No API documentation found.');
-                }
+                $tag[$apiName] = $model->description;
+                if ($doc = $model->getDocAttribute()) {
+                    if (is_array($doc) && !empty($content = array_get($doc, 'content'))) {
+                        if (is_string($content)) {
+                            $content = Service::storedContentToArray($content, array_get($doc, 'format'), $model);
+                            if (!empty($content)) {
+                                $servicePaths = (array)array_get($content, 'paths');
+                                $serviceDefs = (array)array_get($content, 'definitions');
+                                $serviceParams = (array)array_get($content, 'parameters');
 
-                $servicePaths = (array)array_get($content, 'paths');
-                $serviceDefs = (array)array_get($content, 'definitions');
-                $serviceParams = (array)array_get($content, 'parameters');
+                                //  Add to the pile
+                                $paths = array_merge($paths, $servicePaths);
+                                $definitions = array_merge($definitions, $serviceDefs);
+                                $parameters = array_merge($parameters, $serviceParams);
+                            }
+                        }
+                    }
 
-                //  Add to the pile
-                $paths = array_merge($paths, $servicePaths);
-                $definitions = array_merge($definitions, $serviceDefs);
-                $parameters = array_merge($parameters, $serviceParams);
-                } catch (\Exception $ex) {
-                    \Log::error("  * System error building API documentation for service '$apiName'.\n{$ex->getMessage()}");
                 }
-
-                unset($service);
             }
 
             // cache main api listing file
@@ -146,7 +147,7 @@ HTML;
                 'info'                => [
                     'title'       => 'DreamFactory Live API Documentation',
                     'description' => $description,
-                    'version'     => \Config::get('df.api_version', static::API_VERSION),
+                    'version'     => Config::get('df.api_version', static::API_VERSION),
                     //'termsOfServiceUrl' => 'http://www.dreamfactory.com/terms/',
                     'contact'     => [
                         'name'  => 'DreamFactory Software, Inc.',
@@ -171,7 +172,7 @@ HTML;
 
             static::addToCache($roleId, $content, true);
 
-            \Log::info('Swagger cache build process complete');
+            Log::info('Swagger cache build process complete');
         }
 
         return $content;
@@ -220,10 +221,10 @@ HTML;
         ];
     }
 
-    public function getApiDocInfo()
+    public static function getApiDocInfo($service)
     {
-        $name = strtolower($this->name);
-        $capitalized = Inflector::camelize($this->name);
+        $name = strtolower($service->name);
+        $capitalized = Inflector::camelize($service->name);
 
         return [
             'paths'       => [
@@ -233,7 +234,6 @@ HTML;
                             'tags'              => [$name],
                             'summary'           => 'get' . $capitalized . '() - Retrieve the Swagger document.',
                             'operationId'       => 'get' . $capitalized,
-                            'x-publishedEvents' => $name . '.retrieve',
                             'parameters'        => [
                                 [
                                     'name'        => 'file',

@@ -7,8 +7,6 @@ use DreamFactory\Core\Contracts\RequestHandlerInterface;
 use DreamFactory\Core\Contracts\ResourceInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
-use DreamFactory\Core\Events\ResourcePostProcess;
-use DreamFactory\Core\Events\ResourcePreProcess;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
@@ -82,32 +80,9 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         return '';
     }
 
-    /**
-     * Runs pre process tasks/scripts
-     */
-    protected function preProcess()
+    protected function getEventName()
     {
-        /** @noinspection PhpUnusedLocalVariableInspection */
-        $results = \Event::fire(
-            new ResourcePreProcess(
-                $this->getServiceName(), $this->getFullPathName('.'), $this->request, $this->resourcePath
-            )
-        );
-    }
-
-    /**
-     * Runs post process tasks/scripts
-     */
-    protected function postProcess()
-    {
-        $event = new ResourcePostProcess(
-            $this->getServiceName(), $this->getFullPathName('.'), $this->request, $this->response, $this->resourcePath
-        );
-        /** @noinspection PhpUnusedLocalVariableInspection */
-        $results = \Event::fire($event);
-
-        // todo doing something wrong that I have to copy this array back over
-        $this->response = $event->response;
+        return $this->getServiceName() . '.' . $this->getFullPathName('.');
     }
 
     /**
@@ -153,7 +128,6 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $pluralClass = Inflector::pluralize($class);
         $path = '/' . $serviceName . '/' . $resourceName;
-        $eventPath = $serviceName . '.' . $resourceName;
         $wrapper = ResourcesWrapper::getWrapper();
 
         return [
@@ -169,7 +143,6 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                                 $pluralClass,
                             'operationId'       => 'get' . $capitalized . $pluralClass,
                             'description'       => 'Return a list of the resource identifiers.',
-                            'x-publishedEvents' => [$eventPath . '.list'],
                             'parameters'        => [
                                 ApiOptions::documentOption(ApiOptions::AS_LIST),
                                 ApiOptions::documentOption(ApiOptions::ID_FIELD),

@@ -56,7 +56,7 @@ class Session
      * @param string $component - API component/resource name
      * @param int    $requestor - Entity type requesting the service
      *
-     * @returns array
+     * @returns int|boolean
      */
     public static function getServicePermissions($service, $component = null, $requestor = ServiceRequestorTypes::API)
     {
@@ -153,7 +153,7 @@ class Session
      * @param string $component - API component/resource name
      * @param int    $requestor - Entity type requesting the service
      *
-     * @returns array
+     * @returns boolean
      */
     public static function checkForAnyServicePermissions(
         $service,
@@ -264,7 +264,7 @@ class Session
      * @param string $service
      * @param string $component
      *
-     * @returns bool
+     * @returns array
      */
     public static function getServiceFilters($action, $service, $component = null)
     {
@@ -375,6 +375,7 @@ class Session
     {
         foreach ($lookups as $lookup) {
             if ($lookup['private']) {
+                /** @noinspection PhpUndefinedMethodInspection */
                 $secretLookup = $model::find($lookup['id']);
                 $mapSecret[$lookup['name']] = $secretLookup->value;
             } else {
@@ -558,11 +559,16 @@ class Session
     {
         if (\Auth::attempt($credentials, false, false)) {
             $user = \Auth::getLastAttempted();
+            /** @noinspection PhpUndefinedFieldInspection */
             static::checkRole($user->id);
             if ($login) {
+                /** @noinspection PhpUndefinedFieldInspection */
                 $user->last_login_date = Carbon::now()->toDateTimeString();
+                /** @noinspection PhpUndefinedFieldInspection */
                 $user->confirm_code = 'y';
+                /** @noinspection PhpUndefinedMethodInspection */
                 $user->save();
+                /** @noinspection PhpParamsInspection */
                 Session::setUserInfoWithJWT($user, $remember, $appId);
             }
 
@@ -754,6 +760,7 @@ class Session
     public static function user()
     {
         if (static::isAuthenticated()) {
+            /** @noinspection PhpUndefinedMethodInspection */
             return User::find(static::getCurrentUserId());
         }
 

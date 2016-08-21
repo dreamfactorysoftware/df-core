@@ -14,6 +14,7 @@ use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Services\BaseFileService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -119,7 +120,10 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($roles);
-                ServiceManager::handleRequest('system', Verbs::POST, 'role', [], [], $payload);
+                $result = ServiceManager::handleRequest('system', Verbs::POST, 'role', [], [], $payload);
+                if ($result->getStatusCode() >= 300) {
+                    throw ResponseFactory::createExceptionFromResponse($result);
+                }
 
                 return true;
             } catch (\Exception $e) {
@@ -151,7 +155,10 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($users);
-                ServiceManager::handleRequest('system', Verbs::POST, 'user', [], [], $payload);
+                $result = ServiceManager::handleRequest('system', Verbs::POST, 'user', [], [], $payload);
+                if ($result->getStatusCode() >= 300) {
+                    throw ResponseFactory::createExceptionFromResponse($result);
+                }
                 $this->updateUserPassword($users);
 
                 return true;
@@ -254,8 +261,11 @@ class Importer
 
                         if (!empty($cleanedUar)) {
                             $userUpdate = ['user_to_app_to_role_by_user_id' => $cleanedUar];
-                            ServiceManager::handleRequest('system', Verbs::PATCH, 'user/' . $newUserId, [], [],
+                            $result = ServiceManager::handleRequest('system', Verbs::PATCH, 'user/' . $newUserId, [], [],
                                 $userUpdate);
+                            if ($result->getStatusCode() >= 300) {
+                                throw ResponseFactory::createExceptionFromResponse($result);
+                            }
 
                             $imported = true;
                         }
@@ -321,7 +331,10 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($services);
-                ServiceManager::handleRequest('system', Verbs::POST, 'service', [], [], $payload);
+                $result = ServiceManager::handleRequest('system', Verbs::POST, 'service', [], [], $payload);
+                if ($result->getStatusCode() >= 300) {
+                    throw ResponseFactory::createExceptionFromResponse($result);
+                }
 
                 return true;
             } catch (\Exception $e) {
@@ -385,8 +398,11 @@ class Importer
 
                         if (!empty($cleanedRsa)) {
                             $roleUpdate = ['role_service_access_by_role_id' => $cleanedRsa];
-                            ServiceManager::handleRequest('system', Verbs::PATCH, 'role/' . $newRoleId, [], [],
+                            $result = ServiceManager::handleRequest('system', Verbs::PATCH, 'role/' . $newRoleId, [], [],
                                 $roleUpdate);
+                            if ($result->getStatusCode() >= 300) {
+                                throw ResponseFactory::createExceptionFromResponse($result);
+                            }
                             $imported = true;
                         }
                     } elseif (!empty($rsa) && empty($role)) {
@@ -545,7 +561,10 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($apps);
-                ServiceManager::handleRequest('system', Verbs::POST, 'app', [], [], $payload);
+                $result = ServiceManager::handleRequest('system', Verbs::POST, 'app', [], [], $payload);
+                if ($result->getStatusCode() >= 300) {
+                    throw ResponseFactory::createExceptionFromResponse($result);
+                }
 
                 return true;
             } catch (\Exception $e) {
@@ -574,7 +593,7 @@ class Importer
                         case 'system/app':
                         case 'system/role':
                         case 'system/service':
-                        case 'system/event':
+                        case 'system/event_script':
                         case 'system/user':
                             // Skip; already imported at this point.
                             break;
@@ -629,7 +648,7 @@ class Importer
                         }
 
                         $payload = ResourcesWrapper::wrapResources($records);
-                        ServiceManager::handleRequest(
+                        $result = ServiceManager::handleRequest(
                             $service,
                             Verbs::POST,
                             $resource,
@@ -637,6 +656,9 @@ class Importer
                             [],
                             $payload
                         );
+                        if ($result->getStatusCode() >= 300) {
+                            throw ResponseFactory::createExceptionFromResponse($result);
+                        }
                     } catch (\Exception $e) {
                         throw new InternalServerErrorException('Failed to insert ' .
                             $service .
@@ -656,27 +678,30 @@ class Importer
     }
 
     /**
-     * Imports system/event scripts.
+     * Imports system/event_scripts.
      *
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
     protected function insertEventScripts()
     {
-        $data = $this->package->getResourceFromZip('system/event.json');
-        $scripts = $this->cleanDuplicates($data, 'system', 'event');
+        $data = $this->package->getResourceFromZip('system/event_script.json');
+        $scripts = $this->cleanDuplicates($data, 'system', 'event_script');
 
         if (!empty($scripts)) {
             try {
                 foreach ($scripts as $script) {
                     $name = array_get($script, 'name');
                     $this->fixCommonFields($script);
-                    ServiceManager::handleRequest('system', Verbs::POST, 'event/' . $name, [], [], $script);
+                    $result = ServiceManager::handleRequest('system', Verbs::POST, 'event_script/' . $name, [], [], $script);
+                    if ($result->getStatusCode() >= 300) {
+                        throw ResponseFactory::createExceptionFromResponse($result);
+                    }
                 }
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert event script. ' . $this->getErrorDetails($e));
+                throw new InternalServerErrorException('Failed to insert event_script. ' . $this->getErrorDetails($e));
             }
         }
 
@@ -706,7 +731,10 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($records);
-                ServiceManager::handleRequest($service, Verbs::POST, $resource, ['continue' => true], [], $payload);
+                $result = ServiceManager::handleRequest($service, Verbs::POST, $resource, ['continue' => true], [], $payload);
+                if ($result->getStatusCode() >= 300) {
+                    throw ResponseFactory::createExceptionFromResponse($result);
+                }
                 if ($service . '/' . $resource === 'system/admin') {
                     $this->updateUserPassword($records);
                 }
@@ -1018,9 +1046,8 @@ class Importer
      * @param string $resource
      * @param mixed  $value
      * @param string $key
-     *
      * @return bool
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\RestException
      */
     protected function isDuplicate($service, $resource, $value, $key = 'name')
     {
@@ -1039,12 +1066,20 @@ class Importer
                     $app = App::where($key, $value)->first();
 
                     return (!empty($app)) ? true : false;
-                case 'system/event':
+                case 'system/event_script':
                 case 'system/custom':
                 case 'user/custom':
                 case $service . '/_schema':
                     try {
                         $result = ServiceManager::handleRequest($service, Verbs::GET, $resource . '/' . $value);
+                        if ($result->getStatusCode() === 404) {
+                            return false;
+                        }
+                        if ($result->getStatusCode() >= 300) {
+                            throw ResponseFactory::createExceptionFromResponse($result);
+                        }
+
+                        $result = $result->getContent();
                         if (is_string($result)) {
                             $result = ['value' => $result];
                         }
@@ -1058,6 +1093,14 @@ class Importer
                     try {
                         $result = ServiceManager::handleRequest($service, Verbs::GET, $resource,
                             ['filter' => "$key = $value"]);
+                        if ($result->getStatusCode() === 404) {
+                            return false;
+                        }
+                        if ($result->getStatusCode() >= 300) {
+                            throw ResponseFactory::createExceptionFromResponse($result);
+                        }
+
+                        $result = $result->getContent();
                         if (is_string($result)) {
                             $result = ['value' => $result];
                         }

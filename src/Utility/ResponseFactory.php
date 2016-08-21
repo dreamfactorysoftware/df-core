@@ -30,6 +30,29 @@ class ResponseFactory
         return new ServiceResponse($content, $content_type, $status);
     }
 
+    public static function createWithException(\Exception $exception)
+    {
+        $status = ($exception instanceof RestException) ?
+            $exception->getStatusCode() :
+            ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
+        $content = self::makeExceptionContent($exception);
+
+        return new ServiceResponse($content, null, $status);
+    }
+
+    public static function createExceptionFromResponse(ServiceResponseInterface $response)
+    {
+        $message = 'Unknown Exception';
+        $code = 0;
+
+        if (is_array($content = $response->getContent())) {
+            $code = array_get($content, 'error.code', $code);
+            $message = array_get($content, 'error.message', $message);
+        }
+
+        return new RestException($response->getStatusCode(), $message, $code);
+    }
+
     /**
      * @param \DreamFactory\Core\Contracts\ServiceResponseInterface $response
      * @param null                                                  $accepts
@@ -45,7 +68,7 @@ class ResponseFactory
         $accepts = null,
         $asFile = null,
         $resource = 'resource'
-    ){
+    ) {
         if (empty($accepts)) {
             $accepts = static::getAcceptedTypes();
         }
@@ -62,10 +85,14 @@ class ResponseFactory
                 if (!empty($format)) {
                     if ($format === 'csv') {
                         $accepts = ['text/csv'];
-                    } else if ($format === 'xml') {
-                        $accepts = ['application/xml'];
-                    } else if ($format === 'json') {
-                        $accepts = ['application/json'];
+                    } else {
+                        if ($format === 'xml') {
+                            $accepts = ['application/xml'];
+                        } else {
+                            if ($format === 'json') {
+                                $accepts = ['application/json'];
+                            }
+                        }
                     }
                 }
             } else {
@@ -106,7 +133,7 @@ class ResponseFactory
 
         // check if the current content type is acceptable for return
         $contentType = $response->getContentType();
-        if (empty($contentType)) {
+        if (empty($contentType) && is_numeric($format)) {
             $contentType = DataFormats::toMimeType($format, null);
         }
 
@@ -149,13 +176,16 @@ class ResponseFactory
             \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
 
             return DfResponse::create($content, $status, $responseHeaders);
-        } else if (false !== $reformatted) {
-            \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
+        } else {
+            if (false !== $reformatted) {
+                \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
 
-            return DfResponse::create($reformatted, $status, $responseHeaders);
+                return DfResponse::create($reformatted, $status, $responseHeaders);
+            }
         }
 
-        return DfResponse::create('Content in response can not be resolved to acceptable content type.', HttpStatusCodes::HTTP_BAD_REQUEST);
+        return DfResponse::create('Content in response can not be resolved to acceptable content type.',
+            HttpStatusCodes::HTTP_BAD_REQUEST);
     }
 
     /**
@@ -194,12 +224,12 @@ class ResponseFactory
      *
      * @return array|mixed|string
      */
-    public static function getException(
-        $e,
+    public static function sendException(
+        \Exception $e,
         /** @noinspection PhpUnusedParameterInspection */
-        $request
-    ){
-        $response = ResponseFactory::create($e);
+        $request = null
+    ) {
+        $response = ResponseFactory::createWithException($e);
 
         return ResponseFactory::sendResponse($response);
     }
@@ -257,11 +287,6 @@ class ResponseFactory
             $errorInfo['trace'] = $cleanTrace;
         }
 
-        $result = [
-            //Todo: $errorInfo used to be wrapped inside an array. May need to account for that for backward compatibility.
-            'error' => $errorInfo
-        ];
-
-        return $result;
+        return ['error' => $errorInfo];
     }
 }

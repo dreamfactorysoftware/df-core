@@ -106,8 +106,7 @@ class CreateSystemTables extends Migration
         Schema::create(
             'service_doc',
             function (Blueprint $t){
-                $t->increments('id');
-                $t->integer('service_id')->unsigned();
+                $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->integer('format')->unsigned()->default(0);
                 $t->mediumText('content')->nullable();
@@ -122,7 +121,7 @@ class CreateSystemTables extends Migration
             function (Blueprint $t){
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->text('content')->nullable();
+                $t->mediumText('content')->nullable();
                 $t->text('config')->nullable();
             }
         );
@@ -151,8 +150,7 @@ class CreateSystemTables extends Migration
                 $t->string('name', 80)->primary();
                 $t->string('type', 40);
                 $t->boolean('is_active')->default(0);
-                $t->boolean('affects_process')->default(0);
-                $t->text('content')->nullable();
+                $t->mediumText('content')->nullable();
                 $t->text('config')->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');

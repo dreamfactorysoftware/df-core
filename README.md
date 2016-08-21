@@ -1,4 +1,4 @@
-## DreamFactory Core v0.3.3
+## DreamFactory Core v0.4.0
 
 [![Total Downloads](https://poser.pugx.org/dreamfactory/df-core/d/total.svg)](https://packagist.org/packages/dreamfactory/df-core)
 [![Latest Stable Version](https://poser.pugx.org/dreamfactory/df-core/v/stable.svg)](https://packagist.org/packages/dreamfactory/df-core)
@@ -25,7 +25,7 @@ For more information, see the [full platform repository](https://github.com/drea
 Edit your project’s composer.json to require the following package.
 
 	“require”:{
-		"dreamfactory/df-core": "~0.3.0"
+		"dreamfactory/df-core": "~0.4.0"
 	}
 
 You may also need to add the following…

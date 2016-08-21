@@ -174,7 +174,7 @@ abstract class BaseFileService extends BaseRestService
     /**
      * Handles GET actions.
      *
-     * @return \DreamFactory\Core\Utility\ServiceResponse|StreamedResponse
+     * @return \DreamFactory\Core\Utility\ServiceResponse|StreamedResponse|array
      */
     protected function handleGET()
     {

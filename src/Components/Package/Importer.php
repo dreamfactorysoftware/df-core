@@ -593,7 +593,7 @@ class Importer
                         case 'system/app':
                         case 'system/role':
                         case 'system/service':
-                        case 'system/event':
+                        case 'system/event_script':
                         case 'system/user':
                             // Skip; already imported at this point.
                             break;
@@ -678,22 +678,22 @@ class Importer
     }
 
     /**
-     * Imports system/event scripts.
+     * Imports system/event_scripts.
      *
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
     protected function insertEventScripts()
     {
-        $data = $this->package->getResourceFromZip('system/event.json');
-        $scripts = $this->cleanDuplicates($data, 'system', 'event');
+        $data = $this->package->getResourceFromZip('system/event_script.json');
+        $scripts = $this->cleanDuplicates($data, 'system', 'event_script');
 
         if (!empty($scripts)) {
             try {
                 foreach ($scripts as $script) {
                     $name = array_get($script, 'name');
                     $this->fixCommonFields($script);
-                    $result = ServiceManager::handleRequest('system', Verbs::POST, 'event/' . $name, [], [], $script);
+                    $result = ServiceManager::handleRequest('system', Verbs::POST, 'event_script/' . $name, [], [], $script);
                     if ($result->getStatusCode() >= 300) {
                         throw ResponseFactory::createExceptionFromResponse($result);
                     }
@@ -701,7 +701,7 @@ class Importer
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert event script. ' . $this->getErrorDetails($e));
+                throw new InternalServerErrorException('Failed to insert event_script. ' . $this->getErrorDetails($e));
             }
         }
 
@@ -1046,9 +1046,8 @@ class Importer
      * @param string $resource
      * @param mixed  $value
      * @param string $key
-     *
      * @return bool
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\RestException
      */
     protected function isDuplicate($service, $resource, $value, $key = 'name')
     {
@@ -1067,12 +1066,15 @@ class Importer
                     $app = App::where($key, $value)->first();
 
                     return (!empty($app)) ? true : false;
-                case 'system/event':
+                case 'system/event_script':
                 case 'system/custom':
                 case 'user/custom':
                 case $service . '/_schema':
                     try {
                         $result = ServiceManager::handleRequest($service, Verbs::GET, $resource . '/' . $value);
+                        if ($result->getStatusCode() === 404) {
+                            return false;
+                        }
                         if ($result->getStatusCode() >= 300) {
                             throw ResponseFactory::createExceptionFromResponse($result);
                         }
@@ -1091,6 +1093,9 @@ class Importer
                     try {
                         $result = ServiceManager::handleRequest($service, Verbs::GET, $resource,
                             ['filter' => "$key = $value"]);
+                        if ($result->getStatusCode() === 404) {
+                            return false;
+                        }
                         if ($result->getStatusCode() >= 300) {
                             throw ResponseFactory::createExceptionFromResponse($result);
                         }

@@ -3,13 +3,12 @@
 namespace DreamFactory\Core\Services;
 
 use Config;
+use DreamFactory\Core\Aws\Components\S3FileSystem;
+use DreamFactory\Core\Azure\Components\AzureBlobFileSystem;
 use DreamFactory\Core\Components\LocalFileSystem;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Aws\Components\S3FileSystem;
 use DreamFactory\Core\Rackspace\Components\OpenStackObjectStorageSystem;
-use DreamFactory\Core\Azure\Components\AzureBlobFileSystem;
-use DreamFactory\Managed\Support\Managed;
+use DreamFactory\Core\Utility\Session;
 
 class LocalFileService extends BaseFileService
 {

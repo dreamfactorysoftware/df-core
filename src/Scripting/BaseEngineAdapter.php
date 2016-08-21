@@ -13,7 +13,6 @@ use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Cache;
 use Config;
-use Log;
 use ServiceManager;
 
 /**
@@ -220,7 +219,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
                     if (!empty($path) || is_dir($path) || is_readable($path)) {
                         static::$libraryPaths[] = $path;
                     } else {
-                        Log::debug("Invalid scripting library path given $path.");
+                        \Log::debug("Invalid scripting library path given $path.");
                     }
                 }
             }
@@ -229,7 +228,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
         \Cache::add('scripting.library_paths', static::$libraryPaths, static::DEFAULT_CACHE_TTL);
 
         if (empty(static::$libraryPaths)) {
-            Log::debug('No scripting library paths found.');
+            \Log::debug('No scripting library paths found.');
         }
     }
 
@@ -415,7 +414,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
         } catch (\Exception $ex) {
             $result = ResponseFactory::createWithException($ex);
 
-            Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
+            \Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
         }
 
         return ResponseFactory::sendScriptResponse($result);

@@ -5,7 +5,6 @@ namespace DreamFactory\Core\Jobs;
 use Crypt;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Scripting\Models\ScriptConfig;
 use DreamFactory\Core\Utility\Session;
 use Log;
 

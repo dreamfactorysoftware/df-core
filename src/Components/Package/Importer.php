@@ -309,8 +309,7 @@ class Importer
                     unset($service['id']);
                     unset($service['last_modified_by_id']);
                     $service['created_by_id'] = Session::getCurrentUserId();
-                    if (!empty(array_get($service, 'config.default_role'))) {
-                        $oldRoleId = array_get($service, 'config.default_role');
+                    if (!empty($oldRoleId = array_get($service, 'config.default_role'))) {
                         $newRoleId = $this->getNewRoleId($oldRoleId);
                         if (!empty($newRoleId)) {
                             array_set($service, 'config.default_role', $newRoleId);
@@ -325,6 +324,12 @@ class Importer
                             );
                             \Log::debug('Skipped service.', $service);
                             unset($service['config']);
+                        }
+                    }
+                    if (!empty($oldDoc = array_get($service, 'service_doc_by_service_id'))) {
+                        if (!empty($newDoc = current($oldDoc))) {
+                            $service['doc'] = $newDoc;
+                            unset($service['service_doc_by_service_id']);
                         }
                     }
                     $services[$i] = $service;
@@ -685,7 +690,10 @@ class Importer
      */
     protected function insertEventScripts()
     {
-        $data = $this->package->getResourceFromZip('system/event_script.json');
+        if (empty($data = $this->package->getResourceFromZip('system/event_script.json'))) {
+            // pre-2.3.0 version
+            $data = $this->package->getResourceFromZip('system/event.json');
+        }
         $scripts = $this->cleanDuplicates($data, 'system', 'event_script');
 
         if (!empty($scripts)) {

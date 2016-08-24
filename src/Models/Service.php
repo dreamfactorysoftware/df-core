@@ -98,7 +98,7 @@ class Service extends BaseSystemModel
                     // set the config giving the service id and new config
                     $serviceCfg = $service->getConfigHandler();
                     if (!empty($serviceCfg)) {
-                        return $serviceCfg::setConfig($service->getKey(), $service->config);
+                        $serviceCfg::setConfig($service->getKey(), $service->config);
                     }
                 }
                 if (!empty($service->doc)) {
@@ -128,7 +128,7 @@ class Service extends BaseSystemModel
                 // set the config giving the service id and new config
                 $serviceCfg = $service->getConfigHandler();
                 if (!empty($serviceCfg)) {
-                    return $serviceCfg::removeConfig($service->getKey());
+                    $serviceCfg::removeConfig($service->getKey());
                 }
 
                 // ServiceDoc deleted automatically via database foreign key

@@ -31,9 +31,14 @@ class UserSessionResource extends BaseRestResource
             /** @type BaseOAuthService $service */
             $service = ServiceManager::getService($serviceName);
             $serviceGroup = $service->getServiceTypeInfo()->getGroup();
-
-            if ($serviceGroup !== ServiceTypeGroups::OAUTH) {
-                throw new BadRequestException('Invalid login service provided. Please use an OAuth service.');
+            if (is_string($serviceGroup)) {
+                if (ServiceTypeGroups::OAUTH !== $serviceGroup) {
+                    throw new BadRequestException('Invalid login service provided. Please use an OAuth service.');
+                }
+            } elseif (is_array($serviceGroup)) {
+                if (!in_array(ServiceTypeGroups::OAUTH, $serviceGroup)) {
+                    throw new BadRequestException('Invalid login service provided. Please use an OAuth service.');
+                }
             }
 
             return $service->handleLogin($this->request->getDriver());
@@ -67,9 +72,30 @@ class UserSessionResource extends BaseRestResource
 
         $service = ServiceManager::getService($serviceName);
         $serviceGroup = $service->getServiceTypeInfo()->getGroup();
+        if (is_string($serviceGroup)) {
+            switch ($serviceGroup) {
+                case ServiceTypeGroups::LDAP:
+                    $credentials = [
+                        'username' => $this->getPayloadData('username'),
+                        'password' => $this->getPayloadData('password')
+                    ];
 
-        switch ($serviceGroup) {
-            case ServiceTypeGroups::LDAP:
+                    /** @type ADLdap $service */
+                    return $service->handleLogin($credentials, $this->getPayloadData('remember_me'));
+                case ServiceTypeGroups::OAUTH:
+                    $oauthCallback = $this->request->getParameterAsBool('oauth_callback');
+
+                    /** @type BaseOAuthService $service */
+                    if (!empty($oauthCallback)) {
+                        return $service->handleOAuthCallback();
+                    } else {
+                        return $service->handleLogin($this->request->getDriver());
+                    }
+                default:
+                    throw new BadRequestException('Invalid login service provided. Please use an OAuth or AD/Ldap service.');
+            }
+        } elseif (is_array($serviceGroup)) {
+            if (in_array(ServiceTypeGroups::LDAP, $serviceGroup)) {
                 $credentials = [
                     'username' => $this->getPayloadData('username'),
                     'password' => $this->getPayloadData('password')
@@ -77,7 +103,8 @@ class UserSessionResource extends BaseRestResource
 
                 /** @type ADLdap $service */
                 return $service->handleLogin($credentials, $this->getPayloadData('remember_me'));
-            case ServiceTypeGroups::OAUTH:
+            }
+            if (in_array(ServiceTypeGroups::OAUTH, $serviceGroup)) {
                 $oauthCallback = $this->request->getParameterAsBool('oauth_callback');
 
                 /** @type BaseOAuthService $service */
@@ -86,8 +113,9 @@ class UserSessionResource extends BaseRestResource
                 } else {
                     return $service->handleLogin($this->request->getDriver());
                 }
-            default:
-                throw new BadRequestException('Invalid login service provided. Please use an OAuth or AD/Ldap service.');
+            }
+
+            throw new BadRequestException('Invalid login service provided. Please use an OAuth or AD/Ldap service.');
         }
     }
 

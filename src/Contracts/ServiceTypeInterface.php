@@ -32,9 +32,9 @@ interface ServiceTypeInterface
     public function getDescription();
 
     /**
-     * Displayable service type group label
+     * Displayable service type group label(s)
      *
-     * @return string
+     * @return string|array
      */
     public function getGroup();
 

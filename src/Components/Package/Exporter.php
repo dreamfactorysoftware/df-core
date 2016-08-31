@@ -188,15 +188,41 @@ class Exporter
                 try {
                     if ($this->isServiceActive($service)) {
                         $group = static::getServiceGroup($service);
-                        switch ($group) {
-                            case ServiceTypeGroups::FILE:
+                        if (is_string($group)) {
+                            switch ($group) {
+                                case ServiceTypeGroups::FILE:
+                                    $manifest['service'][$service] = $this->getAllResources(
+                                        $service,
+                                        '',
+                                        ['as_list' => true, 'full_tree' => true]
+                                    );
+                                    break;
+                                case ServiceTypeGroups::DATABASE:
+                                    $manifest['service'][$service]['_schema'] = $this->getAllResources(
+                                        $service,
+                                        '_schema',
+                                        ['as_list' => true]
+                                    );
+                                    /**
+                                     * API for exporting table data is implemented and works. However,
+                                     * This is disabled on manifest for now as this can easily lead to accidental
+                                     * exporting of a large set of data (potentially sensitive in nature).
+                                     *
+                                     * $manifest['service'][$service]['_table'] = $this->getAllResources(
+                                     * $service,
+                                     * '_table',
+                                     * ['as_list' => true]
+                                     * );*/
+                                    break;
+                            }
+                        } elseif (is_array($group)) {
+                            if (in_array(ServiceTypeGroups::FILE, $group)) {
                                 $manifest['service'][$service] = $this->getAllResources(
                                     $service,
                                     '',
                                     ['as_list' => true, 'full_tree' => true]
                                 );
-                                break;
-                            case ServiceTypeGroups::DATABASE:
+                            } elseif (in_array(ServiceTypeGroups::DATABASE, $group)) {
                                 $manifest['service'][$service]['_schema'] = $this->getAllResources(
                                     $service,
                                     '_schema',
@@ -212,7 +238,7 @@ class Exporter
                                  * '_table',
                                  * ['as_list' => true]
                                  * );*/
-                                break;
+                            }
                         }
                     } else {
                         \Log::warning('Excluding inactive service:' . $service . ' from manifest.');

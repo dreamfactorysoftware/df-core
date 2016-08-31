@@ -317,11 +317,32 @@ class ServiceManager
 
     /**
      * Return all of the known service types.
+     * @param string $group
      *
      * @return ServiceTypeInterface[]
      */
-    public function getServiceTypes()
+    public function getServiceTypes($group = null)
     {
+        if (!empty($group)) {
+            $types = [];
+            foreach ($this->types as $type) {
+                $typeGroup = $type->getGroup();
+                if (is_string($typeGroup)) {
+                    if (0 === strcasecmp($group, $typeGroup)) {
+                        $types[] = $type;
+                    }
+                } elseif (is_array($typeGroup)) {
+                    foreach ($typeGroup as $item) {
+                        if (0 === strcasecmp($group, $item)) {
+                            $types[] = $type;
+                        }
+                    }
+                }
+            }
+
+            return $types;
+        }
+
         return $this->types;
     }
 

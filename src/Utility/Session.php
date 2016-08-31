@@ -588,7 +588,7 @@ class Session
         $appId = static::get('app.id', null);
 
         if (!empty($appId) && !empty($userId)) {
-            $roleId = static::getRoleIdByAppIdAndUserId($appId, $userId);
+            $roleId = UserAppRole::getRoleIdByAppIdAndUserId($appId, $userId);
             $roleInfo = ($roleId) ? Role::getCachedInfo($roleId) : null;
             if (!empty($roleInfo) && !array_get($roleInfo, 'is_active', false)) {
                 throw new ForbiddenException('Role is not active.');
@@ -690,7 +690,7 @@ class Session
 
         $roleId = null;
         if (!empty($userId) && !empty($appId)) {
-            $roleId = static::getRoleIdByAppIdAndUserId($appId, $userId);
+            $roleId = UserAppRole::getRoleIdByAppIdAndUserId($appId, $userId);
         }
 
         if (empty($roleId) && !empty($appInfo)) {
@@ -855,22 +855,6 @@ class Session
         }
 
         return null;
-    }
-
-    /**
-     * @param $app_id
-     * @param $user_id
-     * @param $role_id
-     */
-    public static function setRoleIdByAppIdAndUserId($app_id, $user_id, $role_id)
-    {
-        $map = \Cache::get('appIdUserIdToRoleIdMap', []);
-        if (empty($role_id)) {
-            unset($map[$app_id][$user_id]);
-        } else {
-            $map[$app_id][$user_id] = $role_id;
-        }
-        \Cache::put('appIdUserIdToRoleIdMap', $map, \Config::get('df.default_cache_ttl'));
     }
 
     /**

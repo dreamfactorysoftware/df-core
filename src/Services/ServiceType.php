@@ -27,7 +27,7 @@ class ServiceType implements ServiceTypeInterface
      */
     protected $description = '';
     /**
-     * @var string Designated group label for this service type
+     * @var string|array Designated group label for this service type, array if multiple
      */
     protected $group = '';
     /**
@@ -107,9 +107,9 @@ class ServiceType implements ServiceTypeInterface
     }
 
     /**
-     * Displayable service type group label
+     * Displayable service type group label(s)
      *
-     * @return string
+     * @return string|array
      */
     public function getGroup()
     {

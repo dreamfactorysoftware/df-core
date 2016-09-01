@@ -830,34 +830,6 @@ class Session
     }
 
     /**
-     * Use this primarily in middle-ware or where no session is established yet.
-     * Once session is established, the role id is accessible via Session.
-     *
-     * @param int $app_id
-     * @param int $user_id
-     *
-     * @return null|int The role id or null for admin
-     */
-    public static function getRoleIdByAppIdAndUserId($app_id, $user_id)
-    {
-        $map = \Cache::get('appIdUserIdToRoleIdMap', []);
-
-        if (isset($map[$app_id], $map[$app_id][$user_id])) {
-            return $map[$app_id][$user_id];
-        }
-
-        $model = UserAppRole::whereUserId($user_id)->whereAppId($app_id)->first(['role_id']);
-        if ($model) {
-            $map[$app_id][$user_id] = $model->role_id;
-            \Cache::put('appIdUserIdToRoleIdMap', $map, \Config::get('df.default_cache_ttl'));
-
-            return $model->role_id;
-        }
-
-        return null;
-    }
-
-    /**
      * @return bool
      */
     public static function isSysAdmin()

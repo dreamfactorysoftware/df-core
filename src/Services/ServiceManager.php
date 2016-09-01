@@ -326,17 +326,8 @@ class ServiceManager
         if (!empty($group)) {
             $types = [];
             foreach ($this->types as $type) {
-                $typeGroup = $type->getGroup();
-                if (is_string($typeGroup)) {
-                    if (0 === strcasecmp($group, $typeGroup)) {
-                        $types[] = $type;
-                    }
-                } elseif (is_array($typeGroup)) {
-                    foreach ($typeGroup as $item) {
-                        if (0 === strcasecmp($group, $item)) {
-                            $types[] = $type;
-                        }
-                    }
+                if (0 === strcasecmp($group, $type->getGroup())) {
+                    $types[] = $type;
                 }
             }
 

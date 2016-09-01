@@ -263,15 +263,8 @@ class Packager
                 if (null === $type = ServiceManager::getServiceType($serviceRecord->type)) {
                     throw new BadRequestException('Invalid Storage Service provided.');
                 }
-                $typeGroup = $type->getGroup();
-                if (is_string($typeGroup)) {
-                    if (ServiceTypeGroups::FILE !== $typeGroup) {
-                        throw new BadRequestException('Invalid Storage Service provided.');
-                    }
-                } elseif (is_array($typeGroup)) {
-                    if (!in_array(ServiceTypeGroups::FILE, $typeGroup)) {
-                        throw new BadRequestException('Invalid Storage Service provided.');
-                    }
+                if (ServiceTypeGroups::FILE !== $type->getGroup()) {
+                    throw new BadRequestException('Invalid Storage Service provided.');
                 }
             } else {
                 $record['storage_service_id'] = $this->getDefaultStorageServiceId();

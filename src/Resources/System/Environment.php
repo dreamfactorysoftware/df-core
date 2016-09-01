@@ -13,6 +13,7 @@ use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Library\Utility\Scalar;
+use ServiceManager;
 
 class Environment extends BaseSystemResource
 {
@@ -314,13 +315,16 @@ class Environment extends BaseSystemResource
      */
     protected static function getOAuthServices()
     {
-        $oauth = ServiceModel::whereIn(
-            'type',
-            ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google', 'oauth_linkedin', 'oauth_microsoft-live']
-        )->whereIsActive(1)->get(['id', 'name', 'type', 'label']);
+        $types = [];
+        foreach (ServiceManager::getServiceTypes('oauth') as $type) {
+            $types[] = $type->getName();
+        }
+
+        /** @var ServiceModel[] $oauth */
+        /** @noinspection PhpUndefinedMethodInspection */
+        $oauth = ServiceModel::whereIn('type', $types)->whereIsActive(1)->get(['id', 'name', 'type', 'label']);
 
         $services = [];
-
         foreach ($oauth as $o) {
             $config = ($o->getConfigAttribute()) ?: [];
             $services[] = [
@@ -341,6 +345,7 @@ class Environment extends BaseSystemResource
      */
     protected static function getAdLdapServices()
     {
+        /** @noinspection PhpUndefinedMethodInspection */
         $ldap = ServiceModel::whereIn(
             'type',
             ['ldap', 'adldap']

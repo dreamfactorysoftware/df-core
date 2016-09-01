@@ -82,9 +82,9 @@ class Packager
     {
         if (is_numeric($fileInfo)) {
             $this->exportAppId = $fileInfo;
-        } else if (is_array($fileInfo)) {
+        } elseif (is_array($fileInfo)) {
             $this->verifyUploadedFile($fileInfo);
-        } else if (!empty($fileInfo) && is_string($fileInfo)) {
+        } elseif (!empty($fileInfo) && is_string($fileInfo)) {
             $this->verifyImportFromUrl($fileInfo);
         }
 
@@ -97,7 +97,7 @@ class Packager
      */
     public function __destruct()
     {
-        if(!empty($this->zip)){
+        if (!empty($this->zip)) {
             $this->zip->close();
         }
         if (file_exists($this->zipFilePath)) {
@@ -250,7 +250,7 @@ class Packager
         if (isset($record['active']) && !isset($record['is_active'])) {
             $record['is_active'] = $record['active'];
             unset($record['active']);
-        } else if (!isset($record['is_active'])) {
+        } elseif (!isset($record['is_active'])) {
             $record['is_active'] = true;
         }
 
@@ -294,7 +294,7 @@ class Packager
             if (empty(array_get($record, 'path'))) {
                 throw new BadRequestException('No Application Path provided in description.json');
             }
-        } else if ($record['type'] === AppTypes::URL) {
+        } elseif ($record['type'] === AppTypes::URL) {
             if (empty(array_get($record, 'url'))) {
                 throw new BadRequestException('No Application URL provided in description.json');
             }

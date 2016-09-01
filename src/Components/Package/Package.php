@@ -291,7 +291,7 @@ class Package
                 return false;
             }
 
-            return ($type->getGroup() === ServiceTypeGroups::FILE) ? true : false;
+            return (ServiceTypeGroups::FILE === $type->getGroup());
         } elseif (!empty($resources)) {
             if (is_string($resources)) {
                 $resources = explode(',', $resources);

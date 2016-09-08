@@ -326,6 +326,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
             unset($options);
         }
 
+        Curl::setDecodeToArray(true);
         $result = Curl::request($method, $url, $payload, $curlOptions);
         $contentType = Curl::getInfo('content_type');
         $status = Curl::getLastHttpCode();

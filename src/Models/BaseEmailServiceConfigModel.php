@@ -18,13 +18,11 @@ class BaseEmailServiceConfigModel extends BaseServiceConfigModel
     }
 
     /**
-     * @param int $id
-     *
-     * @return array
+     * {@inheritdoc}
      */
-    public static function getConfig($id)
+    public static function getConfig($id, $protect = true)
     {
-        $config = parent::getConfig($id);
+        $config = parent::getConfig($id, $protect);
 
         $params = EmailServiceParameterConfig::whereServiceId($id)->get();
         $config['parameters'] = (empty($params)) ? [] : $params->toArray();

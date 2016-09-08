@@ -44,6 +44,7 @@ class ScriptServiceJob extends ScriptJob
         Log::notice('Queued Script handled for ' . $this->service_id);
         if (!empty($service = Service::whereId($this->service_id)->first())) {
 
+            $service->protectedView = false;
             $script = $service->getConfigAttribute();
             $script['content'] = Session::translateLookups(array_get($script,'content'), true);
             if (!isset($script['config']) || !is_array($script['config'])) {

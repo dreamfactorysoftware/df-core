@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Library\Utility\Scalar;
+use Illuminate\Database\Query\Builder;
 
 /**
  * BaseSystemLookup - an abstract base class for system lookups
@@ -14,18 +15,16 @@ use DreamFactory\Library\Utility\Scalar;
  * @property boolean $is_private
  * @property string  $created_date
  * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|Lookup whereId($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereName($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereValue($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereDescription($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereIsPrivate($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereCreatedDate($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereLastModifiedDate($value)
+ * @method static Builder|Lookup whereId($value)
+ * @method static Builder|Lookup whereName($value)
+ * @method static Builder|Lookup whereValue($value)
+ * @method static Builder|Lookup whereDescription($value)
+ * @method static Builder|Lookup whereIsPrivate($value)
+ * @method static Builder|Lookup whereCreatedDate($value)
+ * @method static Builder|Lookup whereLastModifiedDate($value)
  */
 class BaseSystemLookup extends BaseSystemModel
 {
-    const PRIVATE_MASK = '**********';
-
     protected $fillable = ['name', 'value', 'private', 'description'];
 
     protected $casts = ['private' => 'boolean', 'id' => 'integer'];
@@ -33,19 +32,31 @@ class BaseSystemLookup extends BaseSystemModel
     protected $encrypted = ['value'];
 
     /**
-     * Convert the model instance to an array.
-     *
-     * @return array
+     * {@inheritdoc}
      */
-    public function toArray()
+    public function attributesToArray()
     {
-        $attributes = $this->attributesToArray();
+        $attributes = parent::attributesToArray();
 
         if (Scalar::boolval(array_get($attributes, 'private'))) {
-            $attributes['value'] = self::PRIVATE_MASK;
+            $attributes['value'] = static::PROTECTION_MASK;
         }
 
-        return array_merge($attributes, $this->relationsToArray());
+        return $attributes;
+    }
+
+    // Don't use mutators here as it disrupts the flow of encryption
+    /**
+     * {@inheritdoc}
+     */
+    public function getAttribute($key)
+    {
+        // if protected, no need to do anything else, mask it.
+        if (('private' === $key) && Scalar::boolval(array_get($this->attributes, 'private'))) {
+            return static::PROTECTION_MASK;
+        }
+
+        return parent::getAttribute($key);
     }
 
     /**
@@ -53,10 +64,11 @@ class BaseSystemLookup extends BaseSystemModel
      */
     public function setAttribute($key, $value)
     {
-        if ($key === 'value' && $value === self::PRIVATE_MASK && $this->exists) {
-            $value = $this->value;
+        // if mask, no need to do anything else.
+        if (('private' === $key) && ($value === static::PROTECTION_MASK)) {
+            return $this;
         }
 
-        parent::setAttribute($key, $value);
+        return parent::setAttribute($key, $value);
     }
 }

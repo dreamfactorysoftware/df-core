@@ -197,7 +197,7 @@ trait DbSchemaExtras
                 if (!empty($extra['ref_service']) && empty($extra['ref_service_id'])) {
                     // translate name to id for storage
                     $extra['ref_service_id'] =
-                        Service::getCachedByName($extra['ref_service'], 'id', $this->getServiceId());
+                        Service::getCachedIdByName($extra['ref_service']) ?: $this->getServiceId();
                 }
                 if (!empty($extra['ref_table']) && empty($extra['ref_service_id'])) {
                     // don't allow empty ref_service_id into the database, needs to be searchable from other services

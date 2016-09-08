@@ -285,20 +285,20 @@ class Environment extends BaseSystemResource
             ],
         ];
 
-        if (class_exists(User::class)) {
+        if (class_exists('\DreamFactory\Core\User\Services\User')) {
             $oauth = static::getOAuthServices();
             $ldap = static::getAdLdapServices();
-            $userService = ServiceModel::getCachedByName('user');
-            $allowOpenRegistration = $userService['config']['allow_open_registration'];
-            $openRegEmailServiceId = $userService['config']['open_reg_email_service_id'];
+
+            /** @var \DreamFactory\Core\User\Services\User $userService */
+            $userService = ServiceManager::getService('user');
 
             return [
                 'admin'                     => $adminApi,
                 'user'                      => $userApi,
                 'oauth'                     => $oauth,
                 'adldap'                    => $ldap,
-                'allow_open_registration'   => $allowOpenRegistration,
-                'open_reg_email_service_id' => $openRegEmailServiceId,
+                'allow_open_registration'   => $userService->allowOpenRegistration,
+                'open_reg_email_service_id' => $userService->openRegEmailServiceId,
                 'allow_forever_sessions'    => config('df.allow_forever_sessions', false),
             ];
         }

@@ -135,6 +135,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     }
 
     /**
+     * Applies App to Role mapping to a user.
+     *
      * @param User    $user
      * @param integer $serviceId
      */

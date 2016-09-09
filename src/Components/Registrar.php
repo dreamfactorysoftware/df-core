@@ -40,14 +40,15 @@ class Registrar implements RegistrarContract
     /**
      * Creates a non-admin user.
      *
-     * @param array $data
+     * @param array   $data
+     * @param integer $serviceId
      *
      * @return \DreamFactory\Core\Models\User
      * @throws \DreamFactory\Core\Exceptions\ForbiddenException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \Exception
      */
-    public function create(array $data)
+    public function create(array $data, $serviceId = null)
     {
         $userService = Service::getCachedByName('user');
         if (!$userService['config']['allow_open_registration']) {
@@ -69,6 +70,9 @@ class Registrar implements RegistrarContract
 
         if (!empty($openRegRoleId)) {
             User::applyDefaultUserAppRole($user, $openRegRoleId);
+        }
+        if (!empty($serviceId)) {
+            User::applyAppRoleMapByService($user, $serviceId);
         }
 
         return $user;

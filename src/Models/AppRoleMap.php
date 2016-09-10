@@ -1,5 +1,4 @@
 <?php
-
 namespace DreamFactory\Core\Models;
 
 /**
@@ -74,6 +73,75 @@ class AppRoleMap extends BaseServiceConfigModel
                 $param = array_reverse($param, true);
                 static::create($param);
             }
+        }
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function getConfigSchema()
+    {
+        $schema =
+            [
+                'name'        => 'app_role_map',
+                'label'       => 'Role for Apps',
+                'description' => 'Select a desired Role for your Apps',
+                'type'        => 'array',
+                'required'    => false,
+                'allow_null'  => true
+            ];
+        $schema['items'] = parent::getConfigSchema();
+
+        return $schema;
+    }
+
+    /**
+     * @param array $schema
+     */
+    protected static function prepareConfigSchemaField(array &$schema)
+    {
+        parent::prepareConfigSchemaField($schema);
+
+        $roleList = [
+            [
+                'label' => '',
+                'name'  => null
+            ]
+        ];
+        $appList = [
+            [
+                'label' => '',
+                'name'  => null
+            ]
+        ];
+
+        switch ($schema['name']) {
+            case 'app_id':
+                $apps = App::whereIsActive(1)->get();
+                foreach ($apps as $app) {
+                    $appList[] = [
+                        'label' => $app->name,
+                        'name'  => $app->id
+                    ];
+                }
+                $schema['label'] = 'App';
+                $schema['type'] = 'picklist';
+                $schema['values'] = $appList;
+                $schema['description'] = 'Select an App.';
+                break;
+            case 'role_id':
+                $roles = Role::whereIsActive(1)->get();
+                foreach ($roles as $role) {
+                    $roleList[] = [
+                        'label' => $role->name,
+                        'name'  => $role->id
+                    ];
+                }
+                $schema['label'] = 'Role';
+                $schema['type'] = 'picklist';
+                $schema['values'] = $roleList;
+                $schema['description'] = 'Select a Role for your App.';
+                break;
         }
     }
 }

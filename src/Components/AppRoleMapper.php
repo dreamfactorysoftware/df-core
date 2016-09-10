@@ -1,12 +1,21 @@
 <?php
-
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Models\AppRoleMap;
 use DreamFactory\Core\Exceptions\BadRequestException;
 
+/**
+ * Trait AppRoleMapper
+ *
+ * @package DreamFactory\Core\Components
+ */
 trait AppRoleMapper
 {
+    /**
+     * @param $id
+     *
+     * @return mixed
+     */
     public static function getConfig($id)
     {
         $config = parent::getConfig($id);
@@ -18,6 +27,12 @@ trait AppRoleMapper
         return $config;
     }
 
+    /**
+     * @param $id
+     * @param $config
+     *
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     */
     public static function setConfig($id, $config)
     {
         if (isset($config['app_role_map'])) {

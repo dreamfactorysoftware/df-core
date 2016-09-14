@@ -33,15 +33,18 @@ class AppRoleMap extends BaseServiceConfigModel
     public $incrementing = true;
 
     /**
-     * @param int $id
+     * @param int     $id
+     * @param boolean $protect
      *
      * @return array
      */
-    public static function getConfig($id)
+    public static function getConfig($id, $protect = true)
     {
         $maps = static::whereServiceId($id);
 
         if (!empty($maps)) {
+            $maps->protectedView = $protect;
+
             return $maps->toArray();
         } else {
             return [];

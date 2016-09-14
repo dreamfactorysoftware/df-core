@@ -12,13 +12,14 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 trait AppRoleMapper
 {
     /**
-     * @param $id
+     * @param integer $id
+     * @param boolean $protect
      *
      * @return mixed
      */
-    public static function getConfig($id)
+    public static function getConfig($id, $protect = true)
     {
-        $config = parent::getConfig($id);
+        $config = parent::getConfig($id, $protect);
 
         /** @var AppRoleMap $appRoleMaps */
         $appRoleMaps = AppRoleMap::whereServiceId($id)->get();

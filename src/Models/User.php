@@ -135,6 +135,28 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     }
 
     /**
+     * Applies App to Role mapping to a user.
+     *
+     * @param User    $user
+     * @param integer $serviceId
+     */
+    public static function applyAppRoleMapByService($user, $serviceId)
+    {
+        $maps = AppRoleMap::whereServiceId($serviceId)->get();
+
+        foreach ($maps as $map) {
+            UserAppRole::whereUserId($user->id)->whereAppId($map->app_id)->delete();
+            $userAppRoleData = [
+                'user_id' => $user->id,
+                'app_id'  => $map->app_id,
+                'role_id' => $map->role_id
+            ];
+
+            UserAppRole::create($userAppRoleData);
+        }
+    }
+
+    /**
      * @param $password
      *
      * @throws \DreamFactory\Core\Exceptions\BadRequestException

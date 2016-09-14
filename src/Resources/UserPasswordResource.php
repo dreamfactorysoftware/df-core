@@ -61,7 +61,7 @@ class UserPasswordResource extends BaseRestResource
         $answer = $this->getPayloadData('security_answer');
 
         if ($this->request->getParameterAsBool('reset')) {
-            return static::passwordReset($email);
+            return $this->passwordReset($email);
         }
 
         if (!empty($code)) {
@@ -133,7 +133,7 @@ class UserPasswordResource extends BaseRestResource
      * @throws InternalServerErrorException
      * @throws NotFoundException
      */
-    protected static function passwordReset($email)
+    protected function passwordReset($email)
     {
         if (empty($email)) {
             throw new BadRequestException("Missing required email for password reset confirmation.");
@@ -160,7 +160,7 @@ class UserPasswordResource extends BaseRestResource
         $user->confirm_code = base64_encode($code);
         $user->save();
 
-        $sent = static::sendPasswordResetEmail($user);
+        $sent = $this->sendPasswordResetEmail($user);
 
         if (true === $sent) {
             return array('success' => true);
@@ -318,7 +318,7 @@ class UserPasswordResource extends BaseRestResource
      * @return bool
      * @throws InternalServerErrorException
      */
-    protected static function sendPasswordResetEmail(User $user)
+    protected function sendPasswordResetEmail(User $user)
     {
         $email = $user->email;
         $code = $user->confirm_code;

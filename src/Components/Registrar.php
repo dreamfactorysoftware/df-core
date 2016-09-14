@@ -2,12 +2,11 @@
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Exceptions\ForbiddenException;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\EmailTemplate;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 use DreamFactory\Core\Services\Email\BaseService as EmailService;
+use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 use Validator;
 use ServiceManager;
 
@@ -22,7 +21,6 @@ class Registrar implements RegistrarContract
      */
     public function validator(array $data)
     {
-        $userService = Service::getCachedByName('user');
         $validationRules = [
             'name'       => 'required|max:255',
             'first_name' => 'required',
@@ -30,7 +28,9 @@ class Registrar implements RegistrarContract
             'email'      => 'required|email|max:255|unique:user'
         ];
 
-        if (empty($userService['config']['open_reg_email_service_id'])) {
+        /** @var \DreamFactory\Core\User\Services\User $userService */
+        $userService = ServiceManager::getService('user');
+        if (empty($userService->openRegEmailServiceId)) {
             $validationRules['password'] = 'required|confirmed|min:6';
         }
 
@@ -49,26 +49,24 @@ class Registrar implements RegistrarContract
      */
     public function create(array $data)
     {
-        $userService = Service::getCachedByName('user');
-        if (!$userService['config']['allow_open_registration']) {
+        /** @var \DreamFactory\Core\User\Services\User $userService */
+        $userService = ServiceManager::getService('user');
+        if (!$userService->allowOpenRegistration) {
             throw new ForbiddenException('Open Registration is not enabled.');
         }
 
-        $openRegEmailSvcId = $userService['config']['open_reg_email_service_id'];
-        $openRegEmailTplId = $userService['config']['open_reg_email_template_id'];
-        $openRegRoleId = $userService['config']['open_reg_role_id'];
         /** @type User $user */
         $user = User::create($data);
 
-        if (!empty($openRegEmailSvcId)) {
-            $this->sendConfirmation($user, $openRegEmailSvcId, $openRegEmailTplId);
+        if (!empty($userService->openRegEmailServiceId)) {
+            $this->sendConfirmation($user, $userService->openRegEmailServiceId, $userService->openRegEmailTemplateId);
         } else if (!empty($data['password'])) {
             $user->password = $data['password'];
             $user->save();
         }
 
-        if (!empty($openRegRoleId)) {
-            User::applyDefaultUserAppRole($user, $openRegRoleId);
+        if (!empty($userService->openRegRoleId)) {
+            User::applyDefaultUserAppRole($user, $userService->openRegRoleId);
         }
 
         return $user;

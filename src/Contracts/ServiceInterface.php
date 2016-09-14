@@ -12,6 +12,11 @@ namespace DreamFactory\Core\Contracts;
 interface ServiceInterface extends RequestHandlerInterface
 {
     /**
+     * @return boolean
+     */
+    public function isActive();
+
+    /**
      * @return ServiceTypeInterface
      */
     public function getServiceTypeInfo();

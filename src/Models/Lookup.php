@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Models;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Query\Builder;
 
 /**
  * Lookup
@@ -14,13 +15,13 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
  * @property boolean $is_private
  * @property string  $created_date
  * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|Lookup whereId($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereName($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereValue($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereDescription($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereIsPrivate($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereCreatedDate($value)
- * @method static \Illuminate\Database\Query\Builder|Lookup whereLastModifiedDate($value)
+ * @method static Builder|Lookup whereId($value)
+ * @method static Builder|Lookup whereName($value)
+ * @method static Builder|Lookup whereValue($value)
+ * @method static Builder|Lookup whereDescription($value)
+ * @method static Builder|Lookup whereIsPrivate($value)
+ * @method static Builder|Lookup whereCreatedDate($value)
+ * @method static Builder|Lookup whereLastModifiedDate($value)
  */
 class Lookup extends BaseSystemLookup
 {

@@ -18,9 +18,9 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     protected $primaryKey = 'service_id';
 
     /**
-     * @var array
+     * @var array Attributes tend to be dynamic, so let them all be assignable
      */
-    protected $fillable = ['service_id'];
+    protected $guarded = [];
 
     protected $casts = ['service_id' => 'integer'];
 
@@ -35,15 +35,15 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     public $incrementing = false;
 
     /**
-     * @param int $id
-     *
-     * @return array
+     * {@inheritdoc}
      */
-    public static function getConfig($id)
+    public static function getConfig($id, $protect = true)
     {
+        /** @var BaseServiceConfigModel $model */
         $model = static::find($id);
 
         if (!empty($model)) {
+            $model->protectedView = $protect;
             return $model->toArray();
         } else {
             return null;
@@ -63,6 +63,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
      */
     public static function setConfig($id, $config)
     {
+        /** @var BaseServiceConfigModel $model */
         $model = static::find($id);
         if (!empty($model)) {
             $model->update($config);

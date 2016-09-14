@@ -9,14 +9,14 @@ namespace DreamFactory\Core\Contracts;
 interface ServiceConfigHandlerInterface
 {
     /**
-     * @param array $config The configuration to be handled.
+     * @param array   $config The configuration to be handled.
      * @param boolean $create A flag to indicate whether the config is being created or updated.
      *
      * @throws \Exception Detailed exception as to why the config isn't valid.
      *
      * @return boolean Returns true is config is valid, false otherwise.
      */
-    public static function validateConfig($config, $create=true);
+    public static function validateConfig($config, $create = true);
 
     /**
      * @param int   $id     The Service model key value
@@ -27,11 +27,13 @@ interface ServiceConfigHandlerInterface
     public static function setConfig($id, $config);
 
     /**
-     * @param int $id The Service model key value
+     * @param int     $id      The Service model key value
+     * @param boolean $protect Mask any sensitive data like passwords.
+     *                         Set to false when data is used for initializing a service.
      *
      * @return array|null The configuration value retrieved for the service id, or null if not found
      */
-    public static function getConfig($id);
+    public static function getConfig($id, $protect = true);
 
     /**
      * @param int $id The Service model key value

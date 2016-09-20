@@ -58,10 +58,12 @@ class Event extends BaseRestResource
         $eventMap = [];
 
         //  Pull any custom swagger docs
-        $result = ServiceModel::whereIsActive(true)->pluck('name');
+        $result = ServiceModel::whereIsActive(true)->get();
 
         //	Spin through services and pull the events
-        foreach ($result as $apiName) {
+        /** @var ServiceModel $model */
+        foreach ($result as $model) {
+            $apiName = $model->name;
             try {
                 /** @var BaseRestService $service */
                 if (empty($service = ServiceManager::getService($apiName))) {
@@ -75,16 +77,19 @@ class Event extends BaseRestResource
                     $accessList = $service->getAccessList();
                 }
 
-                if (empty($accessList)) {
-                    throw new \Exception('No access found.');
+                if (!empty($accessList)) {
+                    if (!empty($doc = $model->getDocAttribute())) {
+                        if (is_array($doc) && !empty($content = array_get($doc, 'content'))) {
+                            if (is_string($content)) {
+                                $content = ServiceModel::storedContentToArray($content, array_get($doc, 'format'),
+                                    $model);
+                                if (!empty($content)) {
+                                    $eventMap[$apiName] = static::parseSwaggerEvents($content, $accessList);
+                                }
+                            }
+                        }
+                    }
                 }
-
-                if (empty($content = $service->getApiDocInfo($service))) {
-                    throw new \Exception('No event content found.');
-                }
-
-                //	Parse the events while we get the chance...
-                $eventMap[$apiName] = static::parseSwaggerEvents($content, $accessList);
             } catch (\Exception $ex) {
                 \Log::error("  * System error building event map for service '$apiName'.\n{$ex->getMessage()}");
             }

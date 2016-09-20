@@ -4,6 +4,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- DF-425 Allowing configurable role per app for open registration, OAuth, and AD/Ldap services.
 
 ### Changed
 

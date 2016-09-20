@@ -9,6 +9,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 
+## [0.4.3] - 2016-09-20
+### Fixed
+- Event names were not being built properly for Scripting and HTTP services
+
 ## [0.4.2] - 2016-09-08
 ### Fixed
 - Scripting response from external platform.api calls not correctly formatted in all cases
@@ -300,7 +304,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.2...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.3...HEAD
+[0.4.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.2...0.4.3
 [0.4.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.3.3...0.4.0

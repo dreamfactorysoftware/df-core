@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Resources;
 
+use DreamFactory\Core\Components\Registrar;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -156,8 +157,7 @@ class UserPasswordResource extends BaseRestResource
         }
 
         // otherwise, is email confirmation required?
-        $code = \Hash::make($email);
-        $user->confirm_code = base64_encode($code);
+        $user->confirm_code = Registrar::generateConfirmationCode(\Config::get('df.confirm_code_length', 32));
         $user->save();
 
         $sent = $this->sendPasswordResetEmail($user);
@@ -334,7 +334,9 @@ class UserPasswordResource extends BaseRestResource
                 'email'          => $user->email,
                 'name'           => $user->name,
                 'confirm_code'   => $code,
-                'link'           => url(\Config::get('df.confirm_reset_url')) . '?code=' . $code
+                'link'           => url(\Config::get('df.confirm_reset_url')) .
+                    '?code=' . $code .
+                    '&email=' . $user->email
             ],
             function ($m) use ($email){
                 $m->to($email)->subject('[DF] Password Reset');

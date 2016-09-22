@@ -105,14 +105,15 @@ class Registrar implements RegistrarContract
 
             try {
                 $email = $user->email;
-                $code = \Hash::make($email);
-                $user->confirm_code = base64_encode($code);
+                $user->confirm_code = static::generateConfirmationCode(\Config::get('df.confirm_code_length', 32));
                 $user->save();
                 $templateData = $emailTemplate->toArray();
                 $data = array_merge($templateData, [
                     'to'             => $email,
                     'confirm_code'   => $user->confirm_code,
-                    'link'           => url(\Config::get('df.confirm_register_url')) . '?code=' . $user->confirm_code,
+                    'link'           => url(\Config::get('df.confirm_register_url')) .
+                        '?code=' . $user->confirm_code .
+                        '&email=' . $email,
                     'first_name'     => $user->first_name,
                     'last_name'      => $user->last_name,
                     'name'           => $user->name,
@@ -142,5 +143,25 @@ class Registrar implements RegistrarContract
             throw new InternalServerErrorException("Error processing user confirmation.\n{$e->getMessage()}",
                 $e->getCode());
         }
+    }
+
+    /**
+     * Generates a user confirmation code. (min 5 char)
+     *
+     * @param int $length
+     *
+     * @return string
+     */
+    public static function generateConfirmationCode($length = 32)
+    {
+        $length = ($length < 5) ? 5 : (($length > 32) ? 32 : $length);
+        $range = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $code = '';
+
+        for ($i = 0; $i < $length; $i++) {
+            $code .= $range[rand(0, strlen($range) - 1)];
+        }
+
+        return $code;
     }
 }

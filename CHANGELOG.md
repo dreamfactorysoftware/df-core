@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-444 Adding Log service supporting Logstash.
 
 ### Changed
+- DF-742 Customizable user confirmation code length.
 
 ### Fixed
 

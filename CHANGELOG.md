@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - DF-742 Customizable user confirmation code length.
+- DF-249 Configurable expiration for user confirmation codes.
 
 ### Fixed
 

@@ -87,7 +87,7 @@ class AppRoleMap extends BaseServiceConfigModel
         $schema =
             [
                 'name'        => 'app_role_map',
-                'label'       => 'Role for Apps',
+                'label'       => 'Role per App',
                 'description' => 'Select a desired Role for your Apps',
                 'type'        => 'array',
                 'required'    => false,
@@ -105,18 +105,8 @@ class AppRoleMap extends BaseServiceConfigModel
     {
         parent::prepareConfigSchemaField($schema);
 
-        $roleList = [
-            [
-                'label' => '',
-                'name'  => null
-            ]
-        ];
-        $appList = [
-            [
-                'label' => '',
-                'name'  => null
-            ]
-        ];
+        $roleList = [];
+        $appList = [];
 
         switch ($schema['name']) {
             case 'app_id':

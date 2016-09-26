@@ -15,7 +15,7 @@ interface ScriptingEngineInterface
      *
      * @param array $options
      *
-     * @return mixed
+     * @return void
      */
     public static function startup($options = null);
 
@@ -57,7 +57,7 @@ interface ScriptingEngineInterface
     /**
      * Handle cleanup for global/all instances of engine
      *
-     * @return mixed
+     * @return void
      */
     public static function shutdown();
 }

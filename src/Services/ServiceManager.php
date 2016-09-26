@@ -8,8 +8,8 @@ use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Models\LocalFileConfig;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Models\FilePublicPath;
 use DreamFactory\Core\Models\LocalEmailConfig;
 use DreamFactory\Core\Models\MailGunConfig;
 use DreamFactory\Core\Models\MandrillConfig;
@@ -108,7 +108,7 @@ class ServiceManager
                 'label'           => 'Local File Storage',
                 'description'     => 'File service supporting the local file system.',
                 'group'           => ServiceTypeGroups::FILE,
-                'config_handler'  => FilePublicPath::class,
+                'config_handler'  => LocalFileConfig::class,
                 'default_api_doc' => function ($service) {
                     return $this->buildServiceDoc($service->id, LocalFileService::getApiDocInfo($service));
                 },
@@ -184,7 +184,8 @@ class ServiceManager
     public function getService($name)
     {
         // If we haven't created this service, we'll create it based on the config provided.
-        if (!isset($this->services[$name])) {
+        // todo: Caching the service is causing some strange PHP7 only memory issues.
+//        if (!isset($this->services[$name])) {
             $service = $this->makeService($name);
 
 //            if ($this->app->bound('events')) {
@@ -192,7 +193,7 @@ class ServiceManager
 //            }
 
             $this->services[$name] = $service;
-        }
+//        }
 
         return $this->services[$name];
     }

@@ -94,13 +94,69 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     ];
 
     /**
+     * Appended fields.
+     *
+     * @var array
+     */
+    protected $appends = ['confirmed', 'expired'];
+
+    /**
      * The attributes excluded from the model's JSON form.
      *
      * @var array
      */
     protected $hidden = ['is_sys_admin', 'password', 'remember_token', 'security_answer'];
 
+    /**
+     * Field type casting
+     *
+     * @var array
+     */
     protected $casts = ['is_active' => 'boolean', 'is_sys_admin' => 'boolean', 'id' => 'integer'];
+
+    /**
+     * Gets account confirmation status.
+     *
+     * @return string
+     */
+    public function getConfirmedAttribute()
+    {
+        $code = $this->confirm_code;
+
+        if ($code === 'y' || is_null($code)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /**
+     * Shows confirmation expiration.
+     *
+     * @return bool
+     */
+    public function getExpiredAttribute()
+    {
+        return $this->isConfirmationExpired();
+    }
+
+    /**
+     * Checks to se if confirmation period is expired.
+     *
+     * @return bool
+     */
+    public function isConfirmationExpired()
+    {
+        $ttl = \Config::get('df.confirm_code_ttl', 1440);
+        $lastModTime = strtotime($this->last_modified_date);
+        $code = $this->confirm_code;
+
+        if ('y' !== $code && !is_null($code) && ((time() - $lastModTime) > ($ttl * 60))) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 
     /**
      * Assigns a role to a user for all apps in the system.

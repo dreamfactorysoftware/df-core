@@ -204,6 +204,8 @@ class UserPasswordResource extends BaseRestResource
         if (null === $user) {
             // bad code
             throw new NotFoundException("The supplied email and/or confirmation code were not found in the system.");
+        } elseif ($user->isConfirmationExpired()) {
+            throw new BadRequestException("Confirmation code expired.");
         }
 
         static::isAllowed($user);

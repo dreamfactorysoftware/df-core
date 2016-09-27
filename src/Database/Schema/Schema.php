@@ -13,7 +13,6 @@ use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Database\Connection;
 use Illuminate\Database\ConnectionInterface;
-use DB;
 
 /**
  * Schema is the base class for retrieving metadata information.
@@ -3654,7 +3653,7 @@ MYSQL;
     {
         switch ($field->dbType) {
             case null:
-                return DB::raw($field->getDbFunction() . ' AS ' . $this->quoteColumnName($field->getName(true)));
+                return $this->connection->raw($field->getDbFunction() . ' AS ' . $this->quoteColumnName($field->getName(true)));
             default :
                 $out = ($as_quoted_string) ? $field->rawName : $field->name;
                 if (!empty($field->alias)) {
@@ -3675,7 +3674,7 @@ MYSQL;
     {
         switch ($field->dbType) {
             case null:
-                return DB::raw($field->getDbFunction());
+                return $this->connection->raw($field->getDbFunction());
         }
 
         return ($as_quoted_string) ? $field->rawName : $field->name;

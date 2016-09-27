@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Scripting\Engines;
 
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Scripting\BaseEngineAdapter;
@@ -302,6 +303,24 @@ class V8Js extends BaseEngineAdapter
             Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
         }
 
+        /**
+         * For some mysterious reason the v8 library produces segmentation fault for PHP 7
+         * when $result or content of the $result object (ServiceResponse) is used directly below. However,
+         * when $result or content of the $result object is re-constructed into a array using the
+         * code below it magically works!
+         */
+        if (version_compare(PHP_VERSION, '7.0.0') >= 0) {
+            if ($result instanceof ServiceResponseInterface) {
+                $content = $result->getContent();
+                if (is_array($content)) {
+                    $content = static::reBuildArray($content);
+                }
+                $result->setContent($content);
+            } elseif (is_array($result)) {
+                $result = static::reBuildArray($result);
+            }
+        }
+
         return ResponseFactory::sendScriptResponse($result);
     }
 
@@ -403,6 +422,15 @@ class V8Js extends BaseEngineAdapter
      */
     protected function enrobeScript($script, array &$data = [], array $platform = [])
     {
+        /**
+         * For some mysterious reason the v8 library produces segmentation fault for PHP 7
+         * when $platform array is used directly below. However,
+         * when $platform array is re-constructed using the
+         * code below it magically works!
+         */
+        if (version_compare(PHP_VERSION, '7.0.0') >= 0) {
+            $platform = static::reBuildArray($platform);
+        }
         $this->engine->platform = $platform;
 
         $jsonEvent = json_encode($data, JSON_UNESCAPED_SLASHES);

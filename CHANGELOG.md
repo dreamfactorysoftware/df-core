@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - DF-425 Allowing configurable role per app for open registration, OAuth, and AD/Ldap services.
 - DF-444 Adding Log service supporting Logstash.
+- DF-641 Download files in chunks
 
 ### Changed
 - DF-742 Customizable user confirmation code length.

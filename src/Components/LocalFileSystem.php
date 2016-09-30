@@ -600,8 +600,8 @@ class LocalFileSystem implements FileSystemInterface
         if (!is_file($file)) {
             throw new NotFoundException("The specified file '" . $path . "' was not found in storage.");
         }
-
-        FileUtilities::sendFile($file, $download);
+        $chunk = \Config::get('df.file_chunk_size');
+        FileUtilities::sendFile($file, $download, $chunk);
     }
 
     /**

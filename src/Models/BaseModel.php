@@ -35,6 +35,21 @@ class BaseModel extends Model implements CacheInterface
     use Cacheable, ConnectionExtension, SchemaToOpenApiDefinition;
 
     /**
+     * Mask to return when visible, but masked, attributes are returned from toArray()
+     *
+     * @var string
+     */
+    const PROTECTION_MASK = '**********';
+
+    /**
+     * The attributes that should be visible, but masked for protection.
+     * Set this to false to use internally to expose passwords, etc., i.e. unprotected.
+     *
+     * @var boolean
+     */
+    public $protectedView = true;
+
+    /**
      * TableSchema
      *
      * @var TableSchema
@@ -49,11 +64,18 @@ class BaseModel extends Model implements CacheInterface
     protected $references = [];
 
     /**
-     * Lists the config params (fields) that need to be encrypted
+     * The attributes that should be encrypted on write, decrypted on read.
      *
      * @var array
      */
     protected $encrypted = [];
+
+    /**
+     * The attributes that should be visible, but masked in arrays, if used externally.
+     *
+     * @var array
+     */
+    protected $protected = [];
 
     /**
      * Rules for validating model data
@@ -1134,13 +1156,27 @@ class BaseModel extends Model implements CacheInterface
     /**
      * {@inheritdoc}
      */
-    public function getAttribute($key)
+    public function getAttributeValue($key)
     {
-        if (in_array($key, $this->encrypted) && !empty($this->attributes[$key])) {
-            return Crypt::decrypt($this->attributes[$key]);
+        // if protected, no need to do anything else, mask it.
+        if ($this->protectedView && in_array($key, $this->protected)) {
+            return static::PROTECTION_MASK;
         }
 
-        return parent::getAttribute($key);
+        return parent::getAttributeValue($key);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getAttributeFromArray($key)
+    {
+        $value = parent::getAttributeFromArray($key);
+        if (array_key_exists($key, $this->attributes) && in_array($key, $this->encrypted) && !empty($value)) {
+            $value = Crypt::decrypt($value);
+        }
+
+        return $value;
     }
 
     /**
@@ -1148,11 +1184,18 @@ class BaseModel extends Model implements CacheInterface
      */
     public function setAttribute($key, $value)
     {
-        if (in_array($key, $this->encrypted)) {
-            $value = Crypt::encrypt($value);
+        // if protected, and trying to set the mask, throw it away
+        if (in_array($key, $this->protected) && ($value === static::PROTECTION_MASK)) {
+            return $this;
         }
 
-        parent::setAttribute($key, $value);
+        $return = parent::setAttribute($key, $value);
+
+        if (array_key_exists($key, $this->attributes) && in_array($key, $this->encrypted)) {
+            $this->attributes[$key] = Crypt::encrypt($this->attributes[$key]);
+        }
+
+        return $return;
     }
 
     /**
@@ -1163,7 +1206,9 @@ class BaseModel extends Model implements CacheInterface
         $attributes = parent::attributesToArray();
 
         foreach ($attributes as $key => $value) {
-            if (in_array($key, $this->encrypted) && !empty($this->attributes[$key])) {
+            if ($this->protectedView && in_array($key, $this->protected)) {
+                $attributes[$key] = static::PROTECTION_MASK;;
+            } elseif (in_array($key, $this->encrypted) && !empty($attributes[$key])) {
                 $attributes[$key] = Crypt::decrypt($value);
             }
         }

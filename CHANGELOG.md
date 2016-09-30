@@ -4,10 +4,24 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+### Changed
+### Fixed
+
+## [0.5.0] - 2016-09-30
+### Added
+- DF-425 Allowing configurable role per app for open registration, OAuth, and AD/Ldap services
+- DF-444 Adding Log service supporting Logstash
+- DF-641 Download files in chunks
+- New 'count_only' option to query parameters, returns count of records filtered, but not the records
 
 ### Changed
+- DF-826 Core changes for encryption and protection control in BaseModel
+- DF-742 Customizable user confirmation code length
+- DF-249 Configurable expiration for user confirmation codes
+- Cleaning up cached Service model usage
 
 ### Fixed
+- Make server-side filter usage case-insensitive like the rest of record processing
 
 ## [0.4.3] - 2016-09-20
 ### Fixed
@@ -25,9 +39,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - DF-664 Support for Cassandra database service(beta)
 - DF-719 Support for cache service (supporting local, redis, memcached)
-- DF-681 Event and scripting changes for supporting queued event scripts and script services.
+- DF-681 Event and scripting changes for supporting queued event scripts and script services
 - Adding Microsoft Live OAuth2 support
-- Add is_base64 option for retrieving content of file along with properties
+- Add 'is_base64' option for retrieving content of file along with properties
 
 ### Changed
 - Default queue setup changed from 'sync' to 'database', 'job' and 'failed_job' migrations added
@@ -304,7 +318,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.3...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.3...0.5.0
 [0.4.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.2...0.4.3
 [0.4.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.0...0.4.1

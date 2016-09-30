@@ -225,6 +225,7 @@ class ReadOnlySystemResource extends BaseRestResource
                         ApiOptions::documentOption(ApiOptions::ORDER),
                         ApiOptions::documentOption(ApiOptions::GROUP),
                         ApiOptions::documentOption(ApiOptions::OFFSET),
+                        ApiOptions::documentOption(ApiOptions::COUNT_ONLY),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                         ApiOptions::documentOption(ApiOptions::FILE),

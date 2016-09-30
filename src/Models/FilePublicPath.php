@@ -14,9 +14,9 @@ class FilePublicPath extends BaseServiceConfigModel
     /**
      * {@inheritdoc}
      */
-    public static function getConfig($id)
+    public static function getConfig($id, $protect = true)
     {
-        if (null === $config = parent::getConfig($id)) {
+        if (null === $config = parent::getConfig($id, $protect)) {
             $config = ['public_path' => [], 'container' => null, 'service_id' => $id];
         }
 
@@ -28,9 +28,7 @@ class FilePublicPath extends BaseServiceConfigModel
      */
     public static function validateConfig($config, $create = true)
     {
-        $validator = static::makeValidator($config, [
-            'container' => 'required'
-        ], $create);
+        $validator = static::makeValidator($config, ['container' => 'required'], $create);
 
         if ($validator->fails()) {
             $messages = $validator->messages()->getMessages();
@@ -51,30 +49,13 @@ class FilePublicPath extends BaseServiceConfigModel
             case 'public_path':
                 $schema['type'] = 'array';
                 $schema['items'] = 'string';
-                $schema['description'] =
-                    'An array of paths to make public.' .
+                $schema['description'] = 'An array of paths to make public.' .
                     ' All folders and files under these paths will be available as public but read-only via the server\'s URL.';
                 break;
             case 'container':
-                $values = [];
-                $defaultDiskName = \Config::get('filesystems.default');
-                $disks = \Config::get('filesystems.disks');
-
-                foreach ($disks as $key => $disk) {
-                    $default = false;
-                    if ($defaultDiskName === $key) {
-                        $default = true;
-                    }
-                    $values[] = [
-                        'name'    => $key,
-                        'label'   => $key,
-                        'default' => $default
-                    ];
-                }
-
-                $schema['type'] = 'picklist';
-                $schema['description'] = 'Select a disk configuration to use for local file service.';
-                $schema['values'] = $values;
+                $schema['type'] = 'text';
+                $schema['description'] = 'Enter a Container (root directory) for your storage service.' .
+                    ' It will be created if it does not exist already.';
                 break;
         }
     }

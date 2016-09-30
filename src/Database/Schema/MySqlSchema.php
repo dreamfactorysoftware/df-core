@@ -537,6 +537,7 @@ MYSQL;
      */
     public function dropForeignKey($name, $table)
     {
+        /** @noinspection SqlNoDataSourceInspection */
         return 'ALTER TABLE ' . $this->quoteTableName($table) . ' DROP FOREIGN KEY ' . $this->quoteColumnName($name);
     }
 
@@ -550,6 +551,7 @@ MYSQL;
      */
     public function dropPrimaryKey($name, $table)
     {
+        /** @noinspection SqlNoDataSourceInspection */
         return 'ALTER TABLE ' . $this->quoteTableName($table) . ' DROP PRIMARY KEY';
     }
 
@@ -573,6 +575,7 @@ MYSQL;
             $columns[$i] = $this->quoteColumnName($col);
         }
 
+        /** @noinspection SqlNoDataSourceInspection */
         return 'ALTER TABLE ' . $this->quoteTableName($table) . ' ADD PRIMARY KEY (' . implode(', ', $columns) . ' )';
     }
 

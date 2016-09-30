@@ -4,9 +4,10 @@ namespace DreamFactory\Core\Scripting\Services;
 use DreamFactory\Core\Components\ScriptHandler;
 use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
-use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Jobs\ScriptServiceJob;
 use DreamFactory\Core\Services\BaseRestService;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -46,6 +47,10 @@ class Script extends BaseRestService
      * @var array
      */
     protected $apiDoc = [];
+    /**
+     * @type bool
+     */
+    protected $implementsAccessList = false;
 
     //*************************************************************************
     //	Methods
@@ -81,6 +86,7 @@ class Script extends BaseRestService
         }
 
         $this->apiDoc = (array)array_get($settings, 'doc');
+        $this->implementsAccessList = boolval(array_get($config, 'implements_access_list', false));
     }
 
     /**
@@ -101,6 +107,28 @@ class Script extends BaseRestService
         ];
     }
 
+    public function getAccessList()
+    {
+        $list = parent::getAccessList();
+
+        $paths = array_keys((array)array_get($this->apiDoc, 'paths'));
+        foreach ($paths as $path) {
+            // drop service from path
+            if (!empty($path = ltrim(strstr(ltrim($path, '/'), '/'), '/'))) {
+                $list[] = $path;
+                $path = explode("/", $path);
+                end($path);
+                while ($level = prev($path)) {
+                    $list[] = $level . '/*';
+                }
+            }
+        }
+
+        natsort($list);
+
+        return array_values(array_unique($list));
+    }
+
     /**
      * @return bool|mixed
      * @throws
@@ -112,9 +140,13 @@ class Script extends BaseRestService
      */
     protected function processRequest()
     {
-        //	Now all actions must be HTTP verbs
-        if (!Verbs::contains($this->action)) {
-            throw new BadRequestException("The action '{$this->action}' is not supported.");
+        if (!$this->implementsAccessList &&
+            (Verbs::GET === $this->action) &&
+            ($this->request->getParameterAsBool(ApiOptions::AS_ACCESS_LIST))
+        ) {
+            $result = ResourcesWrapper::wrapResources($this->getAccessList());
+
+            return ResponseFactory::create($result);
         }
 
         if ($this->queued) {

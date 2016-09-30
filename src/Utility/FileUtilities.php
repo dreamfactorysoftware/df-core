@@ -141,7 +141,7 @@ class FileUtilities
         }
     }
 
-    public static function sendFile($file, $download = false)
+    public static function sendFile($file, $download = false, $chunk = null)
     {
         if (is_file($file)) {
             $ext = FileUtilities::getFileExtension($file);
@@ -155,10 +155,18 @@ class FileUtilities
             header('Cache-Control: private'); // use this to open files directly
             header('Expires: 0');
             header('Pragma: public');
-            readfile($file);
+            if (empty($chunk)) {
+                readfile($file);
+            } else {
+                if ($fileRs = fopen($file, 'rb')) {
+                    while (!feof($fileRs) and (connection_status() == 0)) {
+                        print(fread($fileRs, $chunk));
+                        flush();
+                    }
+                }
+            }
         } else {
             Log::debug('FileUtilities::downloadFile is_file call fail: ' . $file);
-
             $statusHeader = 'HTTP/1.1 404 The specified file ' . $file . ' does not exist.';
             header($statusHeader);
             header('Content-Type: text/html');

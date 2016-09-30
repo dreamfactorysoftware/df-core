@@ -189,27 +189,32 @@ abstract class BaseDbTableResource extends BaseDbResource
         return $out;
     }
 
+    protected function getOptionalParameters()
+    {
+        return [
+            ApiOptions::FIELDS,
+            ApiOptions::IDS,
+            ApiOptions::FILTER,
+            ApiOptions::LIMIT,
+            ApiOptions::OFFSET,
+            ApiOptions::ORDER,
+            ApiOptions::GROUP,
+            ApiOptions::COUNT_ONLY,
+            ApiOptions::PARAMS,
+            ApiOptions::CONTINUES,
+            ApiOptions::ROLLBACK
+        ];
+    }
+
     protected function detectRequestMembers()
     {
         if (!empty($this->resource)) {
             $payload = $this->getPayloadData();
             $options = $this->request->getParameters();
+            $optionNames = $this->getOptionalParameters();
+            $updateOptions = false;
 
             // merge in possible payload options
-            $optionNames = [
-                ApiOptions::LIMIT,
-                ApiOptions::OFFSET,
-                ApiOptions::ORDER,
-                ApiOptions::GROUP,
-                ApiOptions::FIELDS,
-                ApiOptions::IDS,
-                ApiOptions::FILTER,
-                ApiOptions::PARAMS,
-                ApiOptions::CONTINUES,
-                ApiOptions::ROLLBACK
-            ];
-
-            $updateOptions = false;
             foreach ($optionNames as $key => $value) {
                 if (!array_key_exists($value, $options)) {
                     if (array_key_exists($value, $payload)) {
@@ -2035,6 +2040,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected function validateRecord($record, $filter_info, $for_update = false, $old_record = null)
     {
+        $record = array_change_key_case($record, CASE_LOWER);
         $filters = array_get($filter_info, 'filters');
 
         if (empty($filters) || empty($record)) {
@@ -2043,7 +2049,7 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $combiner = array_get($filter_info, 'filter_op', 'and');
         foreach ($filters as $filter) {
-            $filterField = array_get($filter, 'name');
+            $filterField = strtolower(array_get($filter, 'name'));
             $operator = array_get($filter, 'operator');
             $filterValue = array_get($filter, 'value');
             $filterValue = static::interpretFilterValue($filterValue);
@@ -2968,6 +2974,7 @@ abstract class BaseDbTableResource extends BaseDbResource
                         ApiOptions::documentOption(ApiOptions::OFFSET),
                         ApiOptions::documentOption(ApiOptions::ORDER),
                         ApiOptions::documentOption(ApiOptions::GROUP),
+                        ApiOptions::documentOption(ApiOptions::COUNT_ONLY),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                         ApiOptions::documentOption(ApiOptions::IDS),

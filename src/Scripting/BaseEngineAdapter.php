@@ -60,7 +60,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
      *
      * @param array $options
      *
-     * @return mixed
+     * @return void
      */
     public static function startup($options = null)
     {
@@ -70,7 +70,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
     /**
      * Handle cleanup for global/all instances of engine
      *
-     * @return mixed
+     * @return void
      */
     public static function shutdown()
     {
@@ -88,9 +88,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
      *
      * @return mixed
      */
-    public function executeScript($path, $identifier, array &$data = [], array $engineArguments = [])
-    {
-    }
+    abstract public function executeScript($path, $identifier, array &$data = [], array $engineArguments = []);
 
     /**
      * Process a single script
@@ -102,9 +100,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
      *
      * @return mixed
      */
-    public function executeString($path, $identifier, array &$data = [], array $engineArguments = [])
-    {
-    }
+    abstract public function executeString($path, $identifier, array &$data = [], array $engineArguments = []);
 
     /**
      * @param string $script      The script to run or a script file name

@@ -270,7 +270,7 @@ class Service extends BaseSystemModel
         // set the config giving the service id and new config
         $serviceCfg = $this->getConfigHandler();
         if (!empty($serviceCfg)) {
-            $this->config = $serviceCfg::getConfig($this->getKey());
+            $this->config = $serviceCfg::getConfig($this->getKey(), $this->protectedView);
         }
 
         return $this->config;
@@ -402,22 +402,25 @@ class Service extends BaseSystemModel
     {
         $cacheKey = 'service:' . $name;
         $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name) {
-            $service = static::whereName($name)->first(['id', 'name', 'label', 'description', 'is_active', 'type']);
-
+            $service = static::whereName($name)->first();
             if (empty($service)) {
                 throw new NotFoundException("Could not find a service for $name");
             }
 
-            $settings = $service->toArray();
-            if (!empty($doc = array_get($settings, 'doc'))) {
+            $service->protectedView = false;
+
+            $content = null;
+            if (!empty($doc = $service->getDocAttribute())) {
                 if (is_array($doc) && !empty($content = array_get($doc, 'content'))) {
                     if (is_string($content)) {
                         $content = static::storedContentToArray($content, array_get($doc, 'format'), $service);
-                        if (isset($content)) {
-                            $settings['doc'] = $content;
-                        }
                     }
                 }
+            }
+
+            $settings = $service->toArray();
+            if (isset($content)) {
+                $settings['doc'] = $content;
             }
 
             return $settings;
@@ -453,7 +456,6 @@ class Service extends BaseSystemModel
 
     /**
      * Returns service name cached, or reads from db if not present.
-     * Pass in a key to return a portion/index of the cached data.
      *
      * @param int $id
      *
@@ -464,13 +466,35 @@ class Service extends BaseSystemModel
         $cacheKey = 'service_id:' . $id;
 
         return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id) {
-            $service = static::whereId($id)->first(['name']);
+            $name = static::whereId($id)->value('name');
 
-            if (empty($service)) {
+            if (empty($name)) {
                 throw new NotFoundException("Could not find a service for id $id");
             }
 
-            return $service->name;
+            return $name;
+        });
+    }
+
+    /**
+     * Returns service id cached, or reads from db if not present.
+     *
+     * @param string $name
+     *
+     * @return integer|null
+     */
+    public static function getCachedIdByName($name)
+    {
+        $cacheKey = 'service_name:' . $name;
+
+        return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name) {
+            $id = static::whereName($name)->value('id');
+
+            if (empty($id)) {
+                throw new NotFoundException("Could not find a service for name $name");
+            }
+
+            return $id;
         });
     }
 

@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Components\RestHandler;
@@ -51,6 +52,17 @@ class BaseRestService extends RestHandler implements ServiceInterface
         return $this->id;
     }
 
+    /**
+     * @return string
+     */
+    public function getType()
+    {
+        return $this->type;
+    }
+
+    /**
+     * @return ServiceTypeInterface
+     */
     public function getServiceTypeInfo()
     {
         if (null !== $typeInfo = ServiceMgr::getServiceType($this->type)) {
@@ -58,6 +70,14 @@ class BaseRestService extends RestHandler implements ServiceInterface
         }
 
         return null;
+    }
+
+    /**
+     * @return boolean
+     */
+    public function isActive()
+    {
+        return $this->isActive;
     }
 
     public function handleRequest(ServiceRequestInterface $request, $resource = null)

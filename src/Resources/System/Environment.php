@@ -13,6 +13,7 @@ use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Library\Utility\Scalar;
+use ServiceManager;
 
 class Environment extends BaseSystemResource
 {
@@ -284,20 +285,20 @@ class Environment extends BaseSystemResource
             ],
         ];
 
-        if (class_exists(User::class)) {
+        if (class_exists('\DreamFactory\Core\User\Services\User')) {
             $oauth = static::getOAuthServices();
             $ldap = static::getAdLdapServices();
-            $userService = ServiceModel::getCachedByName('user');
-            $allowOpenRegistration = $userService['config']['allow_open_registration'];
-            $openRegEmailServiceId = $userService['config']['open_reg_email_service_id'];
+
+            /** @var \DreamFactory\Core\User\Services\User $userService */
+            $userService = ServiceManager::getService('user');
 
             return [
                 'admin'                     => $adminApi,
                 'user'                      => $userApi,
                 'oauth'                     => $oauth,
                 'adldap'                    => $ldap,
-                'allow_open_registration'   => $allowOpenRegistration,
-                'open_reg_email_service_id' => $openRegEmailServiceId,
+                'allow_open_registration'   => $userService->allowOpenRegistration,
+                'open_reg_email_service_id' => $userService->openRegEmailServiceId,
                 'allow_forever_sessions'    => config('df.allow_forever_sessions', false),
             ];
         }
@@ -314,13 +315,16 @@ class Environment extends BaseSystemResource
      */
     protected static function getOAuthServices()
     {
-        $oauth = ServiceModel::whereIn(
-            'type',
-            ['oauth_facebook', 'oauth_twitter', 'oauth_github', 'oauth_google', 'oauth_linkedin', 'oauth_microsoft-live']
-        )->whereIsActive(1)->get(['id', 'name', 'type', 'label']);
+        $types = [];
+        foreach (ServiceManager::getServiceTypes('oauth') as $type) {
+            $types[] = $type->getName();
+        }
+
+        /** @var ServiceModel[] $oauth */
+        /** @noinspection PhpUndefinedMethodInspection */
+        $oauth = ServiceModel::whereIn('type', $types)->whereIsActive(1)->get(['id', 'name', 'type', 'label']);
 
         $services = [];
-
         foreach ($oauth as $o) {
             $config = ($o->getConfigAttribute()) ?: [];
             $services[] = [
@@ -341,6 +345,7 @@ class Environment extends BaseSystemResource
      */
     protected static function getAdLdapServices()
     {
+        /** @noinspection PhpUndefinedMethodInspection */
         $ldap = ServiceModel::whereIn(
             'type',
             ['ldap', 'adldap']

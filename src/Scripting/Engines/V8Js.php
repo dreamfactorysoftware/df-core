@@ -113,7 +113,7 @@ class V8Js extends BaseEngineAdapter
      *
      * @param array $options
      *
-     * @return mixed
+     * @return void
      */
     public static function startup($options = null)
     {

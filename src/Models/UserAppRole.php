@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Utility\Session;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
  * UserAppRole
@@ -59,15 +60,60 @@ class UserAppRole extends BaseModel
         parent::boot();
 
         static::saved(
-            function (UserAppRole $map){
-                Session::setRoleIdByAppIdAndUserId($map->app_id, $map->user_id, $map->role_id);
+            function (UserAppRole $map) {
+                static::setRoleIdByAppIdAndUserId($map->app_id, $map->user_id, $map->role_id);
             }
         );
 
         static::deleted(
-            function (UserAppRole $map){
-                Session::setRoleIdByAppIdAndUserId($map->app_id, $map->user_id, null);
+            function (UserAppRole $map) {
+                static::setRoleIdByAppIdAndUserId($map->app_id, $map->user_id, null);
             }
         );
+    }
+
+    /**
+     * Use this primarily in middle-ware or where no session is established yet.
+     * Once session is established, the role id is accessible via Session.
+     *
+     * @param int $app_id
+     * @param int $user_id
+     *
+     * @return null|int The role id or null for admin
+     */
+    public static function getRoleIdByAppIdAndUserId($app_id, $user_id)
+    {
+        $cacheKey = static::makeRoleIdCacheKey($app_id, $user_id);
+        $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'),
+            function () use ($app_id, $user_id) {
+                try {
+                    return static::whereAppId($app_id)->whereUserId($user_id)->value('role_id');
+                } catch (ModelNotFoundException $ex) {
+                    return null;
+                }
+            });
+
+        return $result;
+    }
+
+    /**
+     * @param $app_id
+     * @param $user_id
+     * @param $role_id
+     */
+    public static function setRoleIdByAppIdAndUserId($app_id, $user_id, $role_id)
+    {
+        $cacheKey = static::makeRoleIdCacheKey($app_id, $user_id);
+        \Cache::put($cacheKey, $role_id, \Config::get('df.default_cache_ttl'));
+    }
+
+    /**
+     * @param $app_id
+     * @param $user_id
+     * @return string
+     */
+    public static function makeRoleIdCacheKey($app_id, $user_id)
+    {
+        return "app-$app_id:user-$user_id:role_id";
     }
 }

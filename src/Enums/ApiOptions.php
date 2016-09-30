@@ -97,6 +97,10 @@ class ApiOptions extends FactoryEnum
     /**
      * @var string
      */
+    const COUNT_ONLY = 'count_only';
+    /**
+     * @var string
+     */
     const INCLUDE_SCHEMA = 'include_schema';
     /**
      * @var string
@@ -246,6 +250,12 @@ class ApiOptions extends FactoryEnum
             'in'          => 'query',
             'description' => 'Include the access permissions for the returned resource.'
         ],
+        self::COUNT_ONLY           => [
+            'name'        => self::COUNT_ONLY,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'Return only the total number of filter results.'
+        ],
         self::INCLUDE_COUNT        => [
             'name'        => self::INCLUDE_COUNT,
             'type'        => 'boolean',
@@ -307,15 +317,15 @@ class ApiOptions extends FactoryEnum
         if (isset(static::$swaggerMap[$option])) {
             $found = static::$swaggerMap[$option];
 //            if ($required || isset($default)) {
-                // override, do not reference
-                if ($required) {
-                    $found['required'] = true;
-                }
-                if (isset($default)) {
-                    $found['default'] = $default;
-                }
+            // override, do not reference
+            if ($required) {
+                $found['required'] = true;
+            }
+            if (isset($default)) {
+                $found['default'] = $default;
+            }
 
-                return $found;
+            return $found;
 //            } else {
 //                return ['$ref' => '#/parameters/' . $option];
 //            }
@@ -347,7 +357,7 @@ class ApiOptions extends FactoryEnum
         ServiceRequestInterface $request,
         $default = null,
         $checkPayload = false
-    ){
+    ) {
         $checkBool = ('boolean' === static::getType($option));
         $value = ($checkBool) ? $request->getParameterAsBool($option) : $request->getParameter($option);
         if (!is_null($value)) {

@@ -54,6 +54,7 @@ class DfServiceProvider extends ServiceProvider
                 'Cassandra',
                 'CouchDb',
                 'IbmDb2',
+                'Logger',
                 'MongoDb',
                 'OAuth',
                 'Oracle',
@@ -66,7 +67,7 @@ class DfServiceProvider extends ServiceProvider
                 'SqlSrv',
                 'User'
             ];
-        foreach ($names as $name){
+        foreach ($names as $name) {
             $space = "DreamFactory\\Core\\$name\\ServiceProvider";
             if (class_exists($space)) {
                 \App::register($space);

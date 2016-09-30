@@ -55,6 +55,7 @@ abstract class BaseNoSqlDbTableResource extends BaseDbTableResource
                         ApiOptions::documentOption(ApiOptions::LIMIT),
                         ApiOptions::documentOption(ApiOptions::OFFSET),
                         ApiOptions::documentOption(ApiOptions::ORDER),
+                        ApiOptions::documentOption(ApiOptions::COUNT_ONLY),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
                         ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                         ApiOptions::documentOption(ApiOptions::IDS),

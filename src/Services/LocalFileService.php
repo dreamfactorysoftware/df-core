@@ -21,42 +21,37 @@ class LocalFileService extends BaseFileService
             $diskName = $config['container'];
         }
 
+        //  Replace any private lookups
+        Session::replaceLookups($diskName, true);
         if (empty($diskName)) {
-            throw new InternalServerErrorException('Local file service driver/disk not configured. Please check configuration for file service - ' .
-                $this->name .
-                '.');
+            throw new InternalServerErrorException('Local file service folder/disk not configured.' .
+                ' Please check configuration for file service - ' . $this->name . '.');
         }
 
         $disks = Config::get('filesystems.disks');
+        if (empty($disk = array_get($disks, $diskName))) {
+            $disk = ['driver' => 'local', 'root' => $diskName];
+        } else {
+            //  Replace any private lookups
+            Session::replaceLookups($disk, true);
 
-        if (!array_key_exists($diskName, $disks)) {
-            throw new InternalServerErrorException('Local file service disk - ' .
-                $diskName .
-                ' not found.Please check configuration for file service - ' .
-                $this->name .
-                '.');
-        }
-
-        $disk = array_get($disks, $diskName);
-        //  Replace any private lookups
-        Session::replaceLookups($disk, true);
-
-        if (!isset($disk['driver'])) {
-            throw new InternalServerErrorException('Mis-configured disk - ' . $diskName . '. Driver not specified.');
+            if (!isset($disk['driver'])) {
+                throw new InternalServerErrorException('Mis-configured disk - ' . $diskName . '. Driver not specified.');
+            }
         }
 
         switch ($disk['driver']) {
             case 'local':
                 $root = $disk['root'];
 
-                if (!is_dir($root)) {
-                    mkdir($root, 0775);
-                }
-
                 if (empty($root)) {
                     throw new InternalServerErrorException('Mis-configured disk - ' .
                         $diskName .
                         '. Root path not specified.');
+                }
+
+                if (!is_dir($root)) {
+                    mkdir($root, 0775);
                 }
 
                 if (!is_dir($root)) {

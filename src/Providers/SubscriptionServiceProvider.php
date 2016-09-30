@@ -11,7 +11,7 @@ class SubscriptionServiceProvider extends ServiceProvider
     public function register()
     {
         // subscription required, here for advertising
-        $this->app->resolving('df.service', function (ServiceManager $df) {
+        $this->app->resolving('df.service', function (ServiceManager $df){
             $df->addType(new ServiceType(
                 [
                     'name'                  => 'adldap',
@@ -74,6 +74,14 @@ class SubscriptionServiceProvider extends ServiceProvider
                     'label'                 => 'IBM DB2',
                     'description'           => 'Database service supporting IBM DB2 SQL connections.',
                     'group'                 => ServiceTypeGroups::DATABASE,
+                    'subscription_required' => true,
+                ]));
+            $df->addType(new ServiceType(
+                [
+                    'name'                  => 'logstash',
+                    'label'                 => 'Logstash',
+                    'description'           => 'Log service supporting Logstash.',
+                    'group'                 => ServiceTypeGroups::LOG,
                     'subscription_required' => true,
                 ]));
         });

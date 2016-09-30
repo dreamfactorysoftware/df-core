@@ -163,20 +163,20 @@ class Exporter
         $this->data['system']['lookup'] = $this->getAllResources('system', 'lookup', ['fields' => 'id,name']);
 
         $manifest = $this->package->getManifestHeader();
-        foreach ($this->data as $service => $resource) {
+        foreach ($this->data as $serviceName => $resource) {
             foreach ($resource as $resourceName => $records) {
                 foreach ($records as $record) {
-                    $api = $service . '/' . $resourceName;
+                    $api = $serviceName . '/' . $resourceName;
                     switch ($api) {
                         case 'system/user':
                         case 'system/admin':
-                            $manifest['service'][$service][$resourceName][] = array_get($record, 'email');
+                            $manifest['service'][$serviceName][$resourceName][] = array_get($record, 'email');
                             break;
                         case 'system/cors':
-                            $manifest['service'][$service][$resourceName][] = array_get($record, 'id');
+                            $manifest['service'][$serviceName][$resourceName][] = array_get($record, 'id');
                             break;
                         default:
-                            $manifest['service'][$service][$resourceName][] = array_get($record, 'name');
+                            $manifest['service'][$serviceName][$resourceName][] = array_get($record, 'name');
                             break;
                     }
                 }
@@ -184,21 +184,23 @@ class Exporter
         }
 
         if (false === $systemOnly) {
-            foreach ($manifest['service']['system']['service'] as $service) {
+            // get list of active services with type for group lookup
+            foreach ($manifest['service']['system']['service'] as $serviceName) {
                 try {
-                    if ($this->isServiceActive($service)) {
-                        $group = static::getServiceGroup($service);
-                        switch ($group) {
+                    $service = ServiceManager::getService($serviceName);
+                    if ($service->isActive()) {
+                        $typeInfo = $service->getServiceTypeInfo();
+                        switch ($typeInfo->getGroup()) {
                             case ServiceTypeGroups::FILE:
-                                $manifest['service'][$service] = $this->getAllResources(
-                                    $service,
+                                $manifest['service'][$serviceName] = $this->getAllResources(
+                                    $serviceName,
                                     '',
                                     ['as_list' => true, 'full_tree' => true]
                                 );
                                 break;
                             case ServiceTypeGroups::DATABASE:
-                                $manifest['service'][$service]['_schema'] = $this->getAllResources(
-                                    $service,
+                                $manifest['service'][$serviceName]['_schema'] = $this->getAllResources(
+                                    $serviceName,
                                     '_schema',
                                     ['as_list' => true]
                                 );
@@ -215,12 +217,12 @@ class Exporter
                                 break;
                         }
                     } else {
-                        \Log::warning('Excluding inactive service:' . $service . ' from manifest.');
+                        \Log::warning('Excluding inactive service:' . $serviceName . ' from manifest.');
                     }
                 } catch (\Exception $e) {
                     // Error occurred. Log and let go.
                     \Log::alert('Failed to include service:' .
-                        $service .
+                        $serviceName .
                         ' in manifest due to error:' .
                         $e->getMessage());
                 }
@@ -228,42 +230,6 @@ class Exporter
         }
 
         return $manifest;
-    }
-
-    /**
-     * Checks to see if service exists and active.
-     *
-     * @param $serviceName
-     *
-     * @return bool
-     */
-    protected function isServiceActive($serviceName)
-    {
-        $service = Service::getCachedByName($serviceName);
-
-        if (!empty($service)) {
-            return boolval(array_get($service, 'is_active', false));
-        }
-
-        return false;
-    }
-
-    /**
-     * Retrieves service group name.
-     *
-     * @param $serviceName
-     *
-     * @return null
-     */
-    protected static function getServiceGroup($serviceName)
-    {
-        $service = Service::getCachedByName($serviceName);
-        if (!empty($service)) {
-
-            return ServiceManager::getServiceType(array_get($service, 'type'))->getGroup();
-        }
-
-        return null;
     }
 
     /**

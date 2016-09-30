@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Resources;
 
+use DreamFactory\Core\Components\Registrar;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -61,7 +62,7 @@ class UserPasswordResource extends BaseRestResource
         $answer = $this->getPayloadData('security_answer');
 
         if ($this->request->getParameterAsBool('reset')) {
-            return static::passwordReset($email);
+            return $this->passwordReset($email);
         }
 
         if (!empty($code)) {
@@ -133,7 +134,7 @@ class UserPasswordResource extends BaseRestResource
      * @throws InternalServerErrorException
      * @throws NotFoundException
      */
-    protected static function passwordReset($email)
+    protected function passwordReset($email)
     {
         if (empty($email)) {
             throw new BadRequestException("Missing required email for password reset confirmation.");
@@ -156,11 +157,10 @@ class UserPasswordResource extends BaseRestResource
         }
 
         // otherwise, is email confirmation required?
-        $code = \Hash::make($email);
-        $user->confirm_code = base64_encode($code);
+        $user->confirm_code = Registrar::generateConfirmationCode(\Config::get('df.confirm_code_length', 32));
         $user->save();
 
-        $sent = static::sendPasswordResetEmail($user);
+        $sent = $this->sendPasswordResetEmail($user);
 
         if (true === $sent) {
             return array('success' => true);
@@ -204,6 +204,8 @@ class UserPasswordResource extends BaseRestResource
         if (null === $user) {
             // bad code
             throw new NotFoundException("The supplied email and/or confirmation code were not found in the system.");
+        } elseif ($user->isConfirmationExpired()) {
+            throw new BadRequestException("Confirmation code expired.");
         }
 
         static::isAllowed($user);
@@ -318,7 +320,7 @@ class UserPasswordResource extends BaseRestResource
      * @return bool
      * @throws InternalServerErrorException
      */
-    protected static function sendPasswordResetEmail(User $user)
+    protected function sendPasswordResetEmail(User $user)
     {
         $email = $user->email;
         $code = $user->confirm_code;
@@ -334,7 +336,9 @@ class UserPasswordResource extends BaseRestResource
                 'email'          => $user->email,
                 'name'           => $user->name,
                 'confirm_code'   => $code,
-                'link'           => url(\Config::get('df.confirm_reset_url')) . '?code=' . $code
+                'link'           => url(\Config::get('df.confirm_reset_url')) .
+                    '?code=' . $code .
+                    '&email=' . $user->email
             ],
             function ($m) use ($email){
                 $m->to($email)->subject('[DF] Password Reset');

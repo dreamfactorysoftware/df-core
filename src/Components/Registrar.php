@@ -2,12 +2,11 @@
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Exceptions\ForbiddenException;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\EmailTemplate;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 use DreamFactory\Core\Services\Email\BaseService as EmailService;
+use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 use Validator;
 use ServiceManager;
 
@@ -22,7 +21,6 @@ class Registrar implements RegistrarContract
      */
     public function validator(array $data)
     {
-        $userService = Service::getCachedByName('user');
         $validationRules = [
             'name'       => 'required|max:255',
             'first_name' => 'required',
@@ -30,7 +28,9 @@ class Registrar implements RegistrarContract
             'email'      => 'required|email|max:255|unique:user'
         ];
 
-        if (empty($userService['config']['open_reg_email_service_id'])) {
+        /** @var \DreamFactory\Core\User\Services\User $userService */
+        $userService = ServiceManager::getService('user');
+        if (empty($userService->openRegEmailServiceId)) {
             $validationRules['password'] = 'required|confirmed|min:6';
         }
 
@@ -40,35 +40,37 @@ class Registrar implements RegistrarContract
     /**
      * Creates a non-admin user.
      *
-     * @param array $data
+     * @param array   $data
+     * @param integer $serviceId
      *
      * @return \DreamFactory\Core\Models\User
      * @throws \DreamFactory\Core\Exceptions\ForbiddenException
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      * @throws \Exception
      */
-    public function create(array $data)
+    public function create(array $data, $serviceId = null)
     {
-        $userService = Service::getCachedByName('user');
-        if (!$userService['config']['allow_open_registration']) {
+        /** @var \DreamFactory\Core\User\Services\User $userService */
+        $userService = ServiceManager::getService('user');
+        if (!$userService->allowOpenRegistration) {
             throw new ForbiddenException('Open Registration is not enabled.');
         }
 
-        $openRegEmailSvcId = $userService['config']['open_reg_email_service_id'];
-        $openRegEmailTplId = $userService['config']['open_reg_email_template_id'];
-        $openRegRoleId = $userService['config']['open_reg_role_id'];
         /** @type User $user */
         $user = User::create($data);
 
-        if (!empty($openRegEmailSvcId)) {
-            $this->sendConfirmation($user, $openRegEmailSvcId, $openRegEmailTplId);
+        if (!empty($userService->openRegEmailServiceId)) {
+            $this->sendConfirmation($user, $userService->openRegEmailServiceId, $userService->openRegEmailTemplateId);
         } else if (!empty($data['password'])) {
             $user->password = $data['password'];
             $user->save();
         }
 
-        if (!empty($openRegRoleId)) {
-            User::applyDefaultUserAppRole($user, $openRegRoleId);
+        if (!empty($userService->openRegRoleId)) {
+            User::applyDefaultUserAppRole($user, $userService->openRegRoleId);
+        }
+        if (!empty($serviceId)) {
+            User::applyAppRoleMapByService($user, $serviceId);
         }
 
         return $user;
@@ -103,14 +105,15 @@ class Registrar implements RegistrarContract
 
             try {
                 $email = $user->email;
-                $code = \Hash::make($email);
-                $user->confirm_code = base64_encode($code);
+                $user->confirm_code = static::generateConfirmationCode(\Config::get('df.confirm_code_length', 32));
                 $user->save();
                 $templateData = $emailTemplate->toArray();
                 $data = array_merge($templateData, [
                     'to'             => $email,
                     'confirm_code'   => $user->confirm_code,
-                    'link'           => url(\Config::get('df.confirm_register_url')) . '?code=' . $user->confirm_code,
+                    'link'           => url(\Config::get('df.confirm_register_url')) .
+                        '?code=' . $user->confirm_code .
+                        '&email=' . $email,
                     'first_name'     => $user->first_name,
                     'last_name'      => $user->last_name,
                     'name'           => $user->name,
@@ -140,5 +143,25 @@ class Registrar implements RegistrarContract
             throw new InternalServerErrorException("Error processing user confirmation.\n{$e->getMessage()}",
                 $e->getCode());
         }
+    }
+
+    /**
+     * Generates a user confirmation code. (min 5 char)
+     *
+     * @param int $length
+     *
+     * @return string
+     */
+    public static function generateConfirmationCode($length = 32)
+    {
+        $length = ($length < 5) ? 5 : (($length > 32) ? 32 : $length);
+        $range = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $code = '';
+
+        for ($i = 0; $i < $length; $i++) {
+            $code .= $range[rand(0, strlen($range) - 1)];
+        }
+
+        return $code;
     }
 }

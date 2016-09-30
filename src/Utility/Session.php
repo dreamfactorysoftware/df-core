@@ -588,7 +588,7 @@ class Session
         $appId = static::get('app.id', null);
 
         if (!empty($appId) && !empty($userId)) {
-            $roleId = static::getRoleIdByAppIdAndUserId($appId, $userId);
+            $roleId = UserAppRole::getRoleIdByAppIdAndUserId($appId, $userId);
             $roleInfo = ($roleId) ? Role::getCachedInfo($roleId) : null;
             if (!empty($roleInfo) && !array_get($roleInfo, 'is_active', false)) {
                 throw new ForbiddenException('Role is not active.');
@@ -690,7 +690,7 @@ class Session
 
         $roleId = null;
         if (!empty($userId) && !empty($appId)) {
-            $roleId = static::getRoleIdByAppIdAndUserId($appId, $userId);
+            $roleId = UserAppRole::getRoleIdByAppIdAndUserId($appId, $userId);
         }
 
         if (empty($roleId) && !empty($appInfo)) {
@@ -827,50 +827,6 @@ class Session
     public static function getApiKey()
     {
         return \Session::get('api_key');
-    }
-
-    /**
-     * Use this primarily in middle-ware or where no session is established yet.
-     * Once session is established, the role id is accessible via Session.
-     *
-     * @param int $app_id
-     * @param int $user_id
-     *
-     * @return null|int The role id or null for admin
-     */
-    public static function getRoleIdByAppIdAndUserId($app_id, $user_id)
-    {
-        $map = \Cache::get('appIdUserIdToRoleIdMap', []);
-
-        if (isset($map[$app_id], $map[$app_id][$user_id])) {
-            return $map[$app_id][$user_id];
-        }
-
-        $model = UserAppRole::whereUserId($user_id)->whereAppId($app_id)->first(['role_id']);
-        if ($model) {
-            $map[$app_id][$user_id] = $model->role_id;
-            \Cache::put('appIdUserIdToRoleIdMap', $map, \Config::get('df.default_cache_ttl'));
-
-            return $model->role_id;
-        }
-
-        return null;
-    }
-
-    /**
-     * @param $app_id
-     * @param $user_id
-     * @param $role_id
-     */
-    public static function setRoleIdByAppIdAndUserId($app_id, $user_id, $role_id)
-    {
-        $map = \Cache::get('appIdUserIdToRoleIdMap', []);
-        if (empty($role_id)) {
-            unset($map[$app_id][$user_id]);
-        } else {
-            $map[$app_id][$user_id] = $role_id;
-        }
-        \Cache::put('appIdUserIdToRoleIdMap', $map, \Config::get('df.default_cache_ttl'));
     }
 
     /**

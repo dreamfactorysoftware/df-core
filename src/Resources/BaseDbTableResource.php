@@ -2040,6 +2040,7 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     protected function validateRecord($record, $filter_info, $for_update = false, $old_record = null)
     {
+        $record = array_change_key_case($record, CASE_LOWER);
         $filters = array_get($filter_info, 'filters');
 
         if (empty($filters) || empty($record)) {
@@ -2048,7 +2049,7 @@ abstract class BaseDbTableResource extends BaseDbResource
 
         $combiner = array_get($filter_info, 'filter_op', 'and');
         foreach ($filters as $filter) {
-            $filterField = array_get($filter, 'name');
+            $filterField = strtolower(array_get($filter, 'name'));
             $operator = array_get($filter, 'operator');
             $filterValue = array_get($filter, 'value');
             $filterValue = static::interpretFilterValue($filterValue);

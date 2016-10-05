@@ -35,8 +35,13 @@ class System extends BaseRestService
         foreach ($this->getResources() as $resource) {
             $name = array_get($resource, $nameField);
             if (!empty($this->getPermissions())) {
-                $list[] = $name . '/';
-                $list[] = $name . '/*';
+                // some resources carry additional operations like admin
+                if (false === strpos($name, '/')) {
+                    $list[] = $name . '/';
+                    $list[] = $name . '/*';
+                } else {
+                    $list[] = $name;
+                }
             }
         }
 

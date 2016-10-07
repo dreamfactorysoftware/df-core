@@ -98,7 +98,6 @@ class Session
 
             $tempService = strval(array_get($svcInfo, 'service'));
             $tempComponent = strval(array_get($svcInfo, 'component'));
-            $tempCompStarPos = strpos($tempComponent, '*');
             $tempVerbs = array_get($svcInfo, 'verb_mask');
 
             if (0 == strcasecmp($service, $tempService)) {
@@ -107,9 +106,15 @@ class Session
                         // exact match
                         $exactAllowed |= $tempVerbs;
                         $exactFound = true;
-                    } elseif ($tempCompStarPos &&
-                        (0 == strcasecmp(substr($component, 0, $tempCompStarPos) . '*', $tempComponent))
+                    } elseif (($starPos = strpos($tempComponent, '*')) &&
+                        (0 == strcasecmp(substr($component, 0, $starPos) . '*', $tempComponent))
                     ) {
+                        $componentAllowed |= $tempVerbs;
+                        $componentFound = true;
+                    } elseif (($parenPos = strpos($component, '(')) &&
+                        (0 == strcasecmp(substr($component, 0, $parenPos), $tempComponent))
+                    ) {
+                        // for resources called with options like foo() or foo(x, y, z)
                         $componentAllowed |= $tempVerbs;
                         $componentFound = true;
                     } elseif ('*' == $tempComponent) {

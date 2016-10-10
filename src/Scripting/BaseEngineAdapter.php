@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Exceptions\ServiceUnavailableException;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Curl;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use Cache;
@@ -103,11 +104,11 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
     abstract public function executeString($path, $identifier, array &$data = [], array $engineArguments = []);
 
     /**
-     * @param string $script      The script to run or a script file name
-     * @param string $identifier  The name of this script
-     * @param array  $config      The config for this particular script
-     * @param array  $data        The additional data as it will be exposed to script
-     * @param string $output      Any output of the script
+     * @param string $script     The script to run or a script file name
+     * @param string $identifier The name of this script
+     * @param array  $config     The config for this particular script
+     * @param array  $data       The additional data as it will be exposed to script
+     * @param string $output     Any output of the script
      *
      * @return array
      * @throws ScriptException
@@ -119,7 +120,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
         array $config = [],
         array &$data = [],
         &$output = null
-    ){
+    ) {
         $result = $message = false;
 
         try {
@@ -307,6 +308,37 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
      */
     protected static function externalRequest($method, $url, $payload = [], $curlOptions = [])
     {
+        if (!empty($parameters = (array)array_get($curlOptions, 'parameters'))) {
+            unset($curlOptions['parameters']);
+            $paramStr = '';
+            foreach ($parameters as $key => $value) {
+                if (!empty($paramStr)) {
+                    $paramStr .= '&';
+                }
+                $paramStr .= $key . '=' . urlencode(strval($value));
+            }
+            $url .= (strpos($url, '?') ? '&' : '?') . $paramStr;
+        }
+
+        if (!empty($headers = (array)array_get($curlOptions, 'headers'))) {
+            unset($curlOptions['headers']);
+            $curlHeaders = [];
+            if (ArrayUtils::isArrayNumeric($headers)) {
+                $curlHeaders = $headers;
+            } else {
+                foreach ($headers as $key => $value) {
+                    $curlHeaders[] = "$key: $value";
+                }
+            }
+
+            $existing = (array)array_get($curlOptions, CURLOPT_HTTPHEADER);
+            if (array_key_exists('CURLOPT_HTTPHEADER', $curlOptions)) {
+                $existing = array_merge($existing, (array)$curlOptions['CURLOPT_HTTPHEADER']);
+                unset($curlOptions['CURLOPT_HTTPHEADER']);
+            }
+            $curlOptions[CURLOPT_HTTPHEADER] = array_merge($existing, $curlHeaders);
+        }
+
         if (!empty($curlOptions)) {
             $options = [];
 
@@ -356,7 +388,8 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
                 $result = static::externalRequest($method, $path, $payload, $curlOptions);
             } else {
                 $result = null;
-                $params = [];
+                $params = (array)array_get($curlOptions, 'parameters');
+                $headers = (array)array_get($curlOptions, 'headers');
                 if (false !== $pos = strpos($path, '?')) {
                     $paramString = substr($path, $pos + 1);
                     if (!empty($paramString)) {
@@ -401,7 +434,7 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
 
                 Session::checkServicePermission($method, $serviceName, $resource, ServiceRequestorTypes::SCRIPT);
 
-                $request = new ScriptServiceRequest($method, $params);
+                $request = new ScriptServiceRequest($method, $params, $headers);
                 $request->setContent($payload, $format);
 
                 //  Now set the request object and go...
@@ -414,7 +447,14 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
             \Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
         }
 
+        static::formatResult($result);
+
         return ResponseFactory::sendScriptResponse($result);
+    }
+
+    protected static function formatResult(&$result)
+    {
+        // nothing special here
     }
 
     /**
@@ -430,27 +470,27 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
 
         $api = new \stdClass();
 
-        $api->call = function ($method, $path, $payload = null, $curlOptions = []){
+        $api->call = function ($method, $path, $payload = null, $curlOptions = []) {
             return static::inlineRequest($method, $path, $payload, $curlOptions);
         };
 
-        $api->get = function ($path, $payload = null, $curlOptions = []){
+        $api->get = function ($path, $payload = null, $curlOptions = []) {
             return static::inlineRequest(Verbs::GET, $path, $payload, $curlOptions);
         };
 
-        $api->post = function ($path, $payload = null, $curlOptions = []){
+        $api->post = function ($path, $payload = null, $curlOptions = []) {
             return static::inlineRequest(Verbs::POST, $path, $payload, $curlOptions);
         };
 
-        $api->put = function ($path, $payload = null, $curlOptions = []){
+        $api->put = function ($path, $payload = null, $curlOptions = []) {
             return static::inlineRequest(Verbs::PUT, $path, $payload, $curlOptions);
         };
 
-        $api->patch = function ($path, $payload = null, $curlOptions = []){
+        $api->patch = function ($path, $payload = null, $curlOptions = []) {
             return static::inlineRequest(Verbs::PATCH, $path, $payload, $curlOptions);
         };
 
-        $api->delete = function ($path, $payload = null, $curlOptions = []){
+        $api->delete = function ($path, $payload = null, $curlOptions = []) {
             return static::inlineRequest(Verbs::DELETE, $path, $payload, $curlOptions);
         };
 

@@ -4,6 +4,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+- DF-896 Added parameter and header options to scripting inline calls using platform
+
 ### Changed
 ### Fixed
 

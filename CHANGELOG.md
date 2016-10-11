@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 ### Fixed
+- DF-868 Protecting user, role, and app lookups against duplicate named entries
 
 ## [0.5.0] - 2016-09-30
 ### Added

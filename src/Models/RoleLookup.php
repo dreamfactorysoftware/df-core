@@ -2,25 +2,14 @@
 
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Exceptions\BadRequestException;
+use Illuminate\Database\Query\Builder;
+
 /**
  * RoleLookup
  *
- * @property integer $id
  * @property integer $role_id
- * @property string  $name
- * @property string  $value
- * @property string  $description
- * @property boolean $is_private
- * @property string  $created_date
- * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereId($value)
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereRoleId($value)
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereName($value)
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereValue($value)
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereDescription($value)
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereIsPrivate($value)
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereCreatedDate($value)
- * @method static \Illuminate\Database\Query\Builder|RoleLookup whereLastModifiedDate($value)
+ * @method static Builder|RoleLookup whereRoleId($value)
  */
 class RoleLookup extends BaseSystemLookup
 {
@@ -29,4 +18,32 @@ class RoleLookup extends BaseSystemLookup
     protected $fillable = ['role_id', 'name', 'value', 'private', 'description'];
 
     protected $casts = ['private' => 'boolean', 'id' => 'integer', 'role_id' => 'integer'];
+
+    protected static function findCompositeForeignKeyModel($foreign, $data)
+    {
+        if (empty($roleId = array_get($data, 'role_id'))) {
+            $roleId = $foreign;
+        }
+
+        if (!empty($name = array_get($data, 'name'))) {
+            return static::whereRoleId($roleId)->whereName($name)->first();
+        }
+
+        return null;
+    }
+
+    public function fill(array $attributes)
+    {
+        if (array_key_exists('name', $attributes)) {
+            $newName = array_get($attributes, 'name');
+            if (0!==strcasecmp($this->name, $newName)) {
+                // check if lookup by that name already exists
+                if (static::whereRoleId($this->role_id)->whereName($newName)->exists()) {
+                    throw new BadRequestException('Lookup name can not be modified to one that already exists.');
+                }
+            }
+        }
+
+        return parent::fill($attributes);
+    }
 }

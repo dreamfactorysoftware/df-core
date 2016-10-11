@@ -3,26 +3,7 @@
 namespace DreamFactory\Core\Models;
 
 use Illuminate\Database\Eloquent\ModelNotFoundException;
-use Illuminate\Database\Query\Builder;
 
-/**
- * Lookup
- *
- * @property integer $id
- * @property string  $name
- * @property string  $value
- * @property string  $description
- * @property boolean $is_private
- * @property string  $created_date
- * @property string  $last_modified_date
- * @method static Builder|Lookup whereId($value)
- * @method static Builder|Lookup whereName($value)
- * @method static Builder|Lookup whereValue($value)
- * @method static Builder|Lookup whereDescription($value)
- * @method static Builder|Lookup whereIsPrivate($value)
- * @method static Builder|Lookup whereCreatedDate($value)
- * @method static Builder|Lookup whereLastModifiedDate($value)
- */
 class Lookup extends BaseSystemLookup
 {
     protected $table = 'system_lookup';
@@ -31,12 +12,14 @@ class Lookup extends BaseSystemLookup
     {
         parent::boot();
 
+        /** @noinspection PhpUnusedParameterInspection */
         static::saved(
             function (Lookup $lookup){
                 \Cache::forget('system_lookups');
             }
         );
 
+        /** @noinspection PhpUnusedParameterInspection */
         static::deleted(
             function (Lookup $lookup){
                 \Cache::forget('system_lookups');

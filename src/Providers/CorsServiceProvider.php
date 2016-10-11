@@ -18,8 +18,6 @@ class CorsServiceProvider extends ServiceProvider
      */
     public function boot(Request $request, Kernel $kernel)
     {
-        /** @var \Illuminate\Http\Request $request */
-        $request = $this->app['request'];
         $config = $this->getOptions($request);
         $this->app->bind('Asm89\Stack\CorsService', function () use ($config){
             return new CorsService($config);
@@ -45,7 +43,6 @@ class CorsServiceProvider extends ServiceProvider
         $paths = $this->getPath();
 
         $uri = $request->getPathInfo() ?: '/';
-        $host = $request->getHost();
 
         foreach ($paths as $pathPattern => $options) {
             //Check for legacy patterns
@@ -53,16 +50,6 @@ class CorsServiceProvider extends ServiceProvider
                 (Str::startsWith($pathPattern, '^') && preg_match('{' . $pathPattern . '}i', $uri))
             ) {
                 $options = array_merge($defaults, $options);
-
-                // skip if the host is not matching
-                if (isset($options['hosts']) && count($options['hosts']) > 0) {
-                    foreach ($options['hosts'] as $hostPattern) {
-                        if (Str::is($hostPattern, $host)) {
-                            return $options;
-                        }
-                    }
-                    continue;
-                }
 
                 return $options;
             }
@@ -92,16 +79,7 @@ class CorsServiceProvider extends ServiceProvider
 
         if (!empty($cors)) {
             $path = [];
-            foreach ($cors as $p) {
-                $cc = new CorsConfig([
-                    'id'      => $p->id,
-                    'path'    => $p->path,
-                    'origin'  => $p->origin,
-                    'header'  => $p->header,
-                    'method'  => $p->method,
-                    'max_age' => $p->max_age,
-                    'enabled' => $p->enabled
-                ]);
+            foreach ($cors as $cc) {
                 $path[$cc->path] = [
                     "allowedOrigins" => explode(',', $cc->origin),
                     "allowedHeaders" => explode(',', $cc->header),

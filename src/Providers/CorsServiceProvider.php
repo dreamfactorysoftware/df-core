@@ -1,16 +1,28 @@
 <?php
 namespace DreamFactory\Core\Providers;
 
-use Asm89\Stack\CorsService;
-use Barryvdh\Cors\ServiceProvider;
-use DreamFactory\Core\Models\CorsConfig;
+use Barryvdh\Cors\HandleCors;
+use Barryvdh\Cors\HandlePreflight;
+use Barryvdh\Cors\Stack\CorsService;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Str;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
+use Illuminate\Support\ServiceProvider as BaseServiceProvider;
+use Illuminate\Support\Str;
 
-class CorsServiceProvider extends ServiceProvider
+class CorsServiceProvider extends BaseServiceProvider
 {
+    /**
+     * Indicates if loading of the provider is deferred.
+     *
+     * @var bool
+     */
+    protected $defer = false;
+
+    public function register()
+    {
+    }
+
     /**
      * Add the Cors middleware to the router.
      * @param Request $request
@@ -19,14 +31,14 @@ class CorsServiceProvider extends ServiceProvider
     public function boot(Request $request, Kernel $kernel)
     {
         $config = $this->getOptions($request);
-        $this->app->bind('Asm89\Stack\CorsService', function () use ($config){
+        $this->app->singleton(CorsService::class, function () use ($config){
             return new CorsService($config);
         });
 
-        $this->app['router']->middleware('cors', 'Barryvdh\Cors\HandleCors');
+        $this->app['router']->middleware('cors', HandleCors::class);
 
         if ($request->isMethod('OPTIONS')) {
-            $kernel->pushMiddleware('Barryvdh\Cors\HandlePreflight');
+            $kernel->prependMiddleware(HandlePreflight::class);
         }
     }
 
@@ -78,7 +90,6 @@ class CorsServiceProvider extends ServiceProvider
         $path = [];
 
         if (!empty($cors)) {
-            $path = [];
             foreach ($cors as $cc) {
                 $path[$cc->path] = [
                     "allowedOrigins" => explode(',', $cc->origin),

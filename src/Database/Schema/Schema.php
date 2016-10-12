@@ -3247,6 +3247,13 @@ MYSQL;
                 case 'INOUT':
                 case 'OUT':
                     $pdoType = $this->getPdoType($paramSchema->type);
+
+                    //iSeries output params must be initilzed to length
+                    if ($values[$key] == "")
+                    {
+                        $values[$key] = str_repeat(" ", $paramSchema->length);
+                    }
+                    
                     $this->bindParam($statement, ':' . $paramSchema->name, $values[$key],
                         $pdoType | \PDO::PARAM_INPUT_OUTPUT, $paramSchema->length);
                     break;

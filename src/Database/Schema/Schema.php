@@ -3130,6 +3130,18 @@ MYSQL;
                     }
                     if ($keep) {
                         $result[] = $temp;
+                        //trim the result set values, there may be a more elegant way to do this?
+                        foreach ($result as $resultId => $row)
+                        {
+                            foreach ($row as $rowId => $column )
+                            {
+                                foreach ($column as $columnId => $columnValue)
+                                {
+                                    $result[$resultId][$rowId][$columnId] = trim($columnValue);
+                                }
+                            }
+                            
+                        }                        
                     }
                 }
             } while ($reader->nextResult());

@@ -16,8 +16,9 @@ class Package extends BaseSystemResource
     protected function handleGET()
     {
         $systemOnly = $this->request->getParameterAsBool('system_only');
+        $fullTree = $this->request->getParameterAsBool('full_tree');
         $exporter = new Exporter(new \DreamFactory\Core\Components\Package\Package());
-        $manifest = $exporter->getManifestOnly($systemOnly);
+        $manifest = $exporter->getManifestOnly($systemOnly, $fullTree);
 
         return ResponseFactory::create($manifest);
     }
@@ -79,19 +80,25 @@ class Package extends BaseSystemResource
         $apis = [
             $path => [
                 'get'  => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'getManifestOnly() - Retrieves package manifest for all resources.',
-                    'operationId'       => 'getManifestOnly',
-                    'parameters'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'getManifestOnly() - Retrieves package manifest for all resources.',
+                    'operationId' => 'getManifestOnly',
+                    'parameters'  => [
                         [
                             'name'        => 'system_only',
                             'type'        => 'boolean',
                             'in'          => 'query',
                             'description' => 'Set true to only include system resources in manifest'
                         ],
+                        [
+                            'name'        => 'full_tree',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                            'description' => 'Set true to include full tree of file service resources'
+                        ],
                         ApiOptions::documentOption(ApiOptions::FILE)
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Response',
                             'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
@@ -101,13 +108,13 @@ class Package extends BaseSystemResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       => 'Get package manifest only'
+                    'description' => 'Get package manifest only'
                 ],
                 'post' => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'importExport' . $class . '() - Exports or Imports package file.',
-                    'operationId'       => 'importExport' . $class,
-                    'parameters'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'importExport' . $class . '() - Exports or Imports package file.',
+                    'operationId' => 'importExport' . $class,
+                    'parameters'  => [
                         [
                             'name'        => 'body',
                             'in'          => 'body',
@@ -121,7 +128,7 @@ class Package extends BaseSystemResource
                             'description' => 'URL of the package file to import'
                         ]
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Response',
                             'schema'      => ['$ref' => '#/definitions/' . $class . 'ExportResponse']
@@ -135,7 +142,7 @@ class Package extends BaseSystemResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       => 'Get package manifest only'
+                    'description' => 'Get package manifest only'
                 ]
             ]
         ];

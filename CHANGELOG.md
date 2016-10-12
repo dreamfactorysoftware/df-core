@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 - DF-868 Protecting user, role, and app lookups against duplicate named entries
+- DF-861 Preventing timeout on package export manifest by only showing top level folders for file services
 
 ## [0.5.0] - 2016-09-30
 ### Added

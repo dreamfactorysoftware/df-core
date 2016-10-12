@@ -144,10 +144,11 @@ class Exporter
      * Returns a manifest file for system-wide resources.
      *
      * @param bool $systemOnly
+     * @param bool $fullTree
      *
      * @return array
      */
-    public function getManifestOnly($systemOnly = false)
+    public function getManifestOnly($systemOnly = false, $fullTree = false)
     {
         $this->data['system']['role'] = $this->getAllResources('system', 'role', ['fields' => 'id,name']);
         $this->data['system']['service'] = $this->getAllResources('system', 'service', ['fields' => 'id,name']);
@@ -195,7 +196,7 @@ class Exporter
                                 $manifest['service'][$serviceName] = $this->getAllResources(
                                     $serviceName,
                                     '',
-                                    ['as_list' => true, 'full_tree' => true]
+                                    ['as_list' => true, 'full_tree' => $fullTree]
                                 );
                                 break;
                             case ServiceTypeGroups::DATABASE:

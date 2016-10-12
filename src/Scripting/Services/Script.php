@@ -150,7 +150,8 @@ class Script extends BaseRestService
         }
 
         if ($this->queued) {
-            $job = new ScriptServiceJob($this->getServiceId(), $this->request, $this->resourcePath);
+            $job = new ScriptServiceJob($this->getServiceId(), $this->request, $this->resourcePath,
+                $this->scriptConfig);
             $result = $this->dispatch($job);
             Log::debug('API service script queued: ' . $this->name . PHP_EOL . $result);
 

@@ -18,4 +18,15 @@ abstract class Job
     */
 
     use Queueable;
+
+    /**
+     * Create a new job instance.
+     * @param array $config
+     */
+    public function __construct($config = [])
+    {
+        $this->onConnection(array_get($config, 'connection'));
+        $this->onQueue(array_get($config, 'queue'));
+        $this->delay(array_get($config, 'delay'));
+    }
 }

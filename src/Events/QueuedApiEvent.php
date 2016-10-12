@@ -53,8 +53,9 @@ class QueuedApiEvent extends ApiEvent
 
     public function handle()
     {
+        $script = EventScript::whereName($this->name)->whereIsActive(true)->first();
         if (EventScript::whereName($this->name)->whereIsActive(true)->exists()) {
-            $result = $this->dispatch(new ApiEventScriptJob($this->name, $this));
+            $result = $this->dispatch(new ApiEventScriptJob($this->name, $this, $script->config));
             Log::debug('API event queued: ' . $this->name . PHP_EOL . $result);
         }
 

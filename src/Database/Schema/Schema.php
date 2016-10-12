@@ -3167,7 +3167,7 @@ MYSQL;
                 case 'OUT':
                 case 'INOUT':
                     if (array_key_exists($key, $values)) {
-                        $out_params[$paramSchema->name] = $this->formatValue($values[$key], $paramSchema->type);
+                        $out_params[$paramSchema->name] = $this->formatValue(trim($values[$key]), $paramSchema->type);
                     }
                     break;
             }

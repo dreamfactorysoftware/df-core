@@ -5,7 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-896 Added parameter and header options to scripting inline calls using platform
-- DF-867 Added a pre-configured local file service for the logs and scripting directory
+- DF-867 Added a pre-configured local file service for the logs directory
 
 ### Changed
 ### Fixed

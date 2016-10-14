@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-867 Added a pre-configured local file service for the logs directory
 
 ### Changed
+- DF-893 Update CORS to use the latest laravel-cors with additional options and new path matching
+
 ### Fixed
 - DF-868 Protecting user, role, and app lookups against duplicate named entries
 - DF-861 Preventing timeout on package export manifest by only showing top level folders for file services

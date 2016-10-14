@@ -33,14 +33,14 @@ class CreateSystemTables extends Migration
                 $t->string('last_name')->nullable();
                 $t->dateTime('last_login_date')->nullable();
                 $t->string('email')->unique();
-                $t->longText('password')->nullable();
+                $t->text('password')->nullable();
                 $t->boolean('is_sys_admin')->default(0);
                 $t->boolean('is_active')->default(1);
                 $t->string('phone', 32)->nullable();
                 $t->string('security_question')->nullable();
-                $t->longText('security_answer')->nullable();
+                $t->text('security_answer')->nullable();
                 $t->string('confirm_code')->nullable();
-                $t->integer('default_app_id')->nullable();
+                $t->integer('default_app_id')->unsigned()->nullable();
                 $t->rememberToken();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
@@ -318,7 +318,7 @@ class CreateSystemTables extends Migration
             function (Blueprint $t) use ($userOnDelete){
                 $t->string('db_version', 32)->primary();
                 $t->boolean('login_with_user_name')->default(0);
-                $t->integer('default_app_id')->nullable();
+                $t->integer('default_app_id')->unsigned()->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();
@@ -334,10 +334,10 @@ class CreateSystemTables extends Migration
             function (Blueprint $t) use ($userOnDelete){
                 $t->increments('id');
                 $t->string('path')->unique();
-                $t->string('origin');
-                $t->longText('header');
-                $t->integer('method')->default(0);
-                $t->integer('max_age')->default(3600);
+                $t->string('origin')->nullable();
+                $t->text('header')->nullable();
+                $t->integer('method')->unsigned()->default(0);
+                $t->integer('max_age')->unsigned()->default(0);
                 $t->boolean('enabled')->default(true);
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
@@ -357,8 +357,8 @@ class CreateSystemTables extends Migration
                 $t->string('host');
                 $t->string('port')->default('587');
                 $t->string('encryption')->default('tls');
-                $t->longText('username'); //encrypted
-                $t->longText('password'); //encrypted
+                $t->text('username'); //encrypted
+                $t->text('password'); //encrypted
             }
         );
 
@@ -369,7 +369,7 @@ class CreateSystemTables extends Migration
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->string('domain')->nullable();
-                $t->longText('key'); //encrypted
+                $t->text('key'); //encrypted
             }
         );
 
@@ -505,7 +505,7 @@ class CreateSystemTables extends Migration
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->boolean('cache_enabled')->default(0);
-                $t->integer('cache_ttl')->default(0);
+                $t->integer('cache_ttl')->unsigned()->default(0);
             }
         );
 
@@ -514,7 +514,7 @@ class CreateSystemTables extends Migration
             'system_custom',
             function (Blueprint $t) use ($userOnDelete){
                 $t->string('name')->primary();
-                $t->longText('value')->nullable();
+                $t->mediumText('value')->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
                 $t->integer('created_by_id')->unsigned()->nullable();

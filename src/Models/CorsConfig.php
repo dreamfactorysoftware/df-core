@@ -3,11 +3,24 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Exceptions\BadRequestException;
+use Illuminate\Database\Query\Builder;
 
 /**
  * Class CorsConfig
  *
+ * @property integer $id
+ * @property string  $description
+ * @property string  $path
+ * @property string  $origin
+ * @property string  $header
+ * @property string  $exposed_header
+ * @property integer $max_age
+ * @property integer $method
+ * @property boolean $supports_credentials
+ * @property boolean $enabled
+ * @method static Builder|CorsConfig whereId($value)
+ * @method static Builder|CorsConfig whereName($value)
+ * @method static Builder|CorsConfig whereEnabled($value)
  * @package DreamFactory\Core\Models
  */
 class CorsConfig extends BaseSystemModel
@@ -20,75 +33,26 @@ class CorsConfig extends BaseSystemModel
     /**
      * @var array
      */
-    protected $fillable = ['path', 'origin', 'header', 'method', 'max_age', 'enabled'];
+    protected $guarded = ['id'];
 
     /**
      * @var array
      */
     protected $casts = [
-        'id'      => 'integer',
-        'method'  => 'integer',
-        'max_age' => 'integer',
-        'enabled' => 'boolean'
+        'id'                   => 'integer',
+        'method'               => 'integer',
+        'max_age'              => 'integer',
+        'enabled'              => 'boolean',
+        'supports_credentials' => 'boolean',
     ];
 
-    /**
-     * {@inheritdoc}
-     */
-    public static function boot()
-    {
-        parent::boot();
+    protected $rules = [
+        'path' => 'required',
+    ];
 
-        static::creating(
-            function (CorsConfig $config){
-                $config->validateAndClean();
-
-                return true;
-            }
-        );
-
-        static::updating(
-            function (CorsConfig $config){
-                $config->validateAndClean();
-
-                return true;
-            }
-        );
-    }
-
-    /**
-     * Validates and cleans model attributes
-     *
-     * @throws BadRequestException
-     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
-     */
-    public function validateAndClean()
-    {
-        $path = $this->getAttribute('path');
-        $header = $this->getAttribute('header');
-        $method = $this->getAttribute('method');
-
-        if (empty($path)) {
-            throw new BadRequestException('No path specified. Use * to apply to all api paths.');
-        }
-
-        if (empty($header)) {
-            $this->setAttribute('header', '*');
-        }
-
-        if (is_string($method)) {
-            $method = explode(',', $method);
-        }
-
-        if (is_array($method)) {
-            $action = 0;
-            foreach ($method as $verb) {
-                $action = $action | VerbsMask::toNumeric($verb);
-            }
-            $method = $action;
-        }
-        $this->setAttribute('method', $method);
-    }
+    protected $validationMessages = [
+        'required' => 'The :attribute is required.'
+    ];
 
     /**
      * Converts verb masks to array of verbs (string) as needed.
@@ -101,8 +65,10 @@ class CorsConfig extends BaseSystemModel
     {
         if (is_array($method)) {
             return $method;
-        } else if (is_string($method)) {
-            $method = (integer)$method;
+        } else {
+            if (is_string($method)) {
+                $method = (integer)$method;
+            }
         }
 
         return VerbsMask::maskToArray($method);

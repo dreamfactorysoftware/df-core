@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Changed
 - DF-893 Update CORS to use the latest laravel-cors with additional options and new path matching
+- Removed array wrapping of event.request.headers values done by Symfony HeaderBag class
 
 ### Fixed
 - DF-868 Protecting user, role, and app lookups against duplicate named entries

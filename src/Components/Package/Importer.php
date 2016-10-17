@@ -261,8 +261,9 @@ class Importer
 
                         if (!empty($cleanedUar)) {
                             $userUpdate = ['user_to_app_to_role_by_user_id' => $cleanedUar];
-                            $result = ServiceManager::handleRequest('system', Verbs::PATCH, 'user/' . $newUserId, [], [],
-                                $userUpdate);
+                            $result =
+                                ServiceManager::handleRequest('system', Verbs::PATCH, 'user/' . $newUserId, [], [],
+                                    $userUpdate);
                             if ($result->getStatusCode() >= 300) {
                                 throw ResponseFactory::createExceptionFromResponse($result);
                             }
@@ -403,8 +404,9 @@ class Importer
 
                         if (!empty($cleanedRsa)) {
                             $roleUpdate = ['role_service_access_by_role_id' => $cleanedRsa];
-                            $result = ServiceManager::handleRequest('system', Verbs::PATCH, 'role/' . $newRoleId, [], [],
-                                $roleUpdate);
+                            $result =
+                                ServiceManager::handleRequest('system', Verbs::PATCH, 'role/' . $newRoleId, [], [],
+                                    $roleUpdate);
                             if ($result->getStatusCode() >= 300) {
                                 throw ResponseFactory::createExceptionFromResponse($result);
                             }
@@ -701,7 +703,8 @@ class Importer
                 foreach ($scripts as $script) {
                     $name = array_get($script, 'name');
                     $this->fixCommonFields($script);
-                    $result = ServiceManager::handleRequest('system', Verbs::POST, 'event_script/' . $name, [], [], $script);
+                    $result =
+                        ServiceManager::handleRequest('system', Verbs::POST, 'event_script/' . $name, [], [], $script);
                     if ($result->getStatusCode() >= 300) {
                         throw ResponseFactory::createExceptionFromResponse($result);
                     }
@@ -728,6 +731,7 @@ class Importer
     protected function insertGenericResources($service, $resource)
     {
         $data = $this->package->getResourceFromZip($service . '/' . $resource . '.json');
+        $merged = $this->mergeSchemas($service, $resource, $data);
         $records = $this->cleanDuplicates($data, $service, $resource);
 
         if (!empty($records)) {
@@ -739,7 +743,8 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($records);
-                $result = ServiceManager::handleRequest($service, Verbs::POST, $resource, ['continue' => true], [], $payload);
+                $result =
+                    ServiceManager::handleRequest($service, Verbs::POST, $resource, ['continue' => true], [], $payload);
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
@@ -759,7 +764,31 @@ class Importer
             }
         }
 
-        return false;
+        return $merged;
+    }
+
+    /**
+     * Merges any schema changes.
+     *
+     * @param $service
+     * @param $resource
+     * @param $data
+     *
+     * @return bool
+     */
+    protected function mergeSchemas($service, $resource, $data)
+    {
+        $merged = false;
+        if ('db/_schema' === $service . '/' . $resource) {
+            $payload =
+                (true === config('df.always_wrap_resources')) ? [config('df.resources_wrapper') => $data] : $data;
+            $result = ServiceManager::handleRequest($service, Verbs::PATCH, $resource, [], [], $payload);
+            if ($result->getStatusCode() === 200) {
+                $merged = true;
+            }
+        }
+
+        return $merged;
     }
 
     /**
@@ -1054,6 +1083,7 @@ class Importer
      * @param string $resource
      * @param mixed  $value
      * @param string $key
+     *
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\RestException
      */

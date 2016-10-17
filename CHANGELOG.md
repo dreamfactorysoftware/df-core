@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - DF-896 Added parameter and header options to scripting inline calls using platform
 - DF-867 Added a pre-configured local file service for the logs directory
+- DF-862 Added support for schema merge in package import
 
 ### Changed
 - DF-893 Update CORS to use the latest laravel-cors with additional options and new path matching

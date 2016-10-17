@@ -340,18 +340,16 @@ abstract class BaseEngineAdapter implements ScriptingEngineInterface
         }
 
         if (!empty($curlOptions)) {
-            $options = [];
-
+            $badKeys = [];
             foreach ($curlOptions as $key => $value) {
                 if (!is_numeric($key)) {
                     if (defined($key)) {
-                        $options[constant($key)] = $value;
+                        $badKeys[] = $key;
+                        $curlOptions[constant($key)] = $value;
                     }
                 }
             }
-
-            $curlOptions = $options;
-            unset($options);
+            $curlOptions = array_except($curlOptions, $badKeys);
         }
 
         Curl::setDecodeToArray(true);

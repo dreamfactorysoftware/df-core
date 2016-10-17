@@ -66,7 +66,7 @@ _platform = bunchify(platformJson);
 
 
 __protocol = $protocol;
-__host = _event.request.headers.host[0];
+__host = _event.request.headers.host;
 __headers = {
     'x-dreamfactory-api-key':_platform.session.api_key,
     'x-dreamfactory-session-token':_platform.session.session_token

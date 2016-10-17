@@ -68,7 +68,7 @@ _wrapperResult = (function() {
     //noinspection JSUnresolvedVariable
     var _protocol = {$protocol};
     //noinspection JSUnresolvedVariable
-    var _host = _event.request.headers.host[0];
+    var _host = _event.request.headers.host;
     
     function getProtocol(path) {
         path = path.trim(path);

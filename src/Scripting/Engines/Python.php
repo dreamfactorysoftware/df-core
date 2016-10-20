@@ -115,7 +115,9 @@ class Api:
                 
                 conn = self.getConnection(path);
                 if(self.isInternalApi(path)):
-                        header = self.header;
+                        for key in self.header:
+                                header[key] = self.header[key];
+                            
                 conn.request(verb, path, payload, header);
                 response = conn.getresponse();
                 return response;

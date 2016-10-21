@@ -138,6 +138,7 @@ _wrapperResult = (function() {
     
     _platform.api = {
         call: function (verb, path, payload, options, callback) {
+            options = (options===null || options===undefined)? '' : options;
             var headers = (options.headers)? options.headers : (options.parameters)? '' : options;
             
             var host = getHost(path);

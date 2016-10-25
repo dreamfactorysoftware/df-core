@@ -78,26 +78,46 @@ class Api:
                 self.header = header;
                 self.protocol = protocol;
 
-        def get(self, path, headers=''):
-                return self.call('GET', path, '', headers);
+        def get(self, path, options=''):
+                return self.call('GET', path, '', options);
 
-        def post(self, path, payload='', headers=''):
-                return self.call('POST', path, payload, headers);
+        def post(self, path, payload='', options=''):
+                return self.call('POST', path, payload, options);
 
-        def put(self, path, payload='', headers=''):
-                return self.call('PUT', path, payload, headers);
+        def put(self, path, payload='', options=''):
+                return self.call('PUT', path, payload, options);
 
-        def patch(self, path, payload='', headers=''):
-                return self.call('PATCH', path, payload, headers);
+        def patch(self, path, payload='', options=''):
+                return self.call('PATCH', path, payload, options);
 
-        def delete(self, path, payload='', headers=''):
-                return self.call('DELETE', path, payload, headers);
+        def delete(self, path, payload='', options=''):
+                return self.call('DELETE', path, payload, options);
 
-        def call(self, verb, path, payload='', header=''):
+        def call(self, verb, path, payload='', options={}):
+                if(type(options) is dict):
+                        options = bunchify(options);
+                if(options and ('headers' in options)):
+                        header = options.headers;
+                elif(options and ('parameters' in options)):
+                        header = bunchify({});
+                elif(options):
+                        header = options;
+                else:
+                        header = bunchify({});
+
                 path = self.cleanPath(path);
+                if(options and ('parameters' in options)):
+                        for key in options.parameters:
+                                if(path.find('?') == -1):
+                                        path = path + '?' + str(key) + '=' + str(options.parameters[key]);
+                                else:
+                                        path = path + '&' + str(key) + '=' + str(options.parameters[key]);
+                
                 conn = self.getConnection(path);
                 if(self.isInternalApi(path)):
-                        header = self.header;
+                        for key in self.header:
+                                header[key] = self.header[key];
+                            
                 conn.request(verb, path, payload, header);
                 response = conn.getresponse();
                 return response;

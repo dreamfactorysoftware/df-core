@@ -88,8 +88,8 @@ abstract class BaseService extends BaseRestService
     protected function handlePOST()
     {
         $data = $this->getPayloadData();
-        $templateName = $this->request->getParameter('template', null);
-        $templateId = $this->request->getParameter('template_id', null);
+        $templateName = $this->request->getParameter('template', $this->request->getPayloadData('template'));
+        $templateId = $this->request->getParameter('template_id', $this->request->getPayloadData('template_id'));
         $templateData = [];
 
         if (!empty($templateName)) {
@@ -242,12 +242,12 @@ abstract class BaseService extends BaseRestService
         $paths = [
             '/' . $name => [
                 'post' => [
-                    'tags'              => [$name],
-                    'summary'           => 'send' .
+                    'tags'        => [$name],
+                    'summary'     => 'send' .
                         $capitalized .
                         'Email() - Send an email created from posted data and/or a template.',
-                    'operationId'       => 'send' . $capitalized . 'Email',
-                    'parameters'        => [
+                    'operationId' => 'send' . $capitalized . 'Email',
+                    'parameters'  => [
                         [
                             'name'        => 'template',
                             'description' => 'Optional template name to base email on.',
@@ -271,7 +271,7 @@ abstract class BaseService extends BaseRestService
                             'required'    => false,
                         ],
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Send Email Response',
                             'schema'      => ['$ref' => '#/definitions/EmailResponse']
@@ -281,7 +281,7 @@ abstract class BaseService extends BaseRestService
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       =>
+                    'description' =>
                         'If a template is not used with all required fields, then they must be included in the request. ' .
                         'If the \'from\' address is not provisioned in the service, then it must be included in the request.',
                 ],

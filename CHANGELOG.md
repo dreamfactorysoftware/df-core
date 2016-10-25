@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.5.1] - 2016-10-25
+### Changed
+- DF-852 Use FETCH_NAMED so as to return unnamed multiple columns or multiple columns with the same name.
+
 ## [0.5.0] - 2016-09-30
 ### Added
 - DF-425 Allowing configurable role per app for open registration, OAuth, and AD/Ldap services
@@ -318,7 +322,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.1...HEAD
+[0.5.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.3...0.5.0
 [0.4.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.2...0.4.3
 [0.4.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.1...0.4.2

@@ -2982,6 +2982,7 @@ MYSQL;
         try {
             $statement->execute();
             $reader = new DataReader($statement);
+            $reader->setFetchMode(\PDO::FETCH_NAMED);
             do {
                 $temp = $reader->readAll();
                 if (!empty($temp)) {
@@ -3109,6 +3110,7 @@ MYSQL;
         try {
             $statement->execute();
             $reader = new DataReader($statement);
+            $reader->setFetchMode(\PDO::FETCH_NAMED);
             do {
                 $temp = $reader->readAll();
                 if (!empty($temp)) {

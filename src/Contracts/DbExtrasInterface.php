@@ -6,12 +6,13 @@ namespace DreamFactory\Core\Contracts;
  */
 interface DbExtrasInterface
 {
+    public function getServiceId();
+
     /**
      * @param string | array $table_names
-     * @param bool           $include_fields
      * @param string | array $select
      */
-    public function getSchemaExtrasForTables($table_names, $include_fields = true, $select = '*');
+    public function getSchemaExtrasForTables($table_names, $select = '*');
 
     /**
      * @param string         $table_name
@@ -22,17 +23,16 @@ interface DbExtrasInterface
 
     /**
      * @param string         $table_name
-     * @param string | array $field_names
-     * @param string | array $select
-     */
-    public function getSchemaExtrasForFieldsReferenced($table_name, $field_names = '*', $select = '*');
-
-    /**
-     * @param string         $table_name
      * @param string | array $related_names
      * @param string | array $select
      */
     public function getSchemaExtrasForRelated($table_name, $related_names = '*', $select = '*');
+
+    /**
+     * @param string         $table_name
+     * @param string | array $select
+     */
+    public function getSchemaVirtualRelationships($table_name, $select = '*');
 
     /**
      * @param array $extras
@@ -50,6 +50,11 @@ interface DbExtrasInterface
     public function setSchemaRelatedExtras($extras);
 
     /**
+     * @param array $relationships
+     */
+    public function setSchemaVirtualRelationships($relationships);
+
+    /**
      * @param string | array $table_names
      */
     public function removeSchemaExtrasForTables($table_names);
@@ -65,4 +70,10 @@ interface DbExtrasInterface
      * @param string | array $related_names
      */
     public function removeSchemaExtrasForRelated($table_name, $related_names);
+
+    /**
+     * @param string         $table_name
+     * @param string | array $relationships
+     */
+    public function removeSchemaVirtualRelationships($table_name, $relationships);
 }

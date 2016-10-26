@@ -45,7 +45,23 @@ abstract class BaseNoSqlDbSchemaResource extends BaseDbSchemaResource
     /**
      * {@inheritdoc}
      */
+    public function describeRelationship($table, $relationship, $refresh = false)
+    {
+        throw new NotImplementedException('Not currently supported for NoSQL database services.');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function createField($table, $field, $properties = array(), $check_exist = false, $return_schema = false)
+    {
+        throw new NotImplementedException('Not currently supported for NoSQL database services.');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function createRelationship($table, $field, $properties = array(), $check_exist = false, $return_schema = false)
     {
         throw new NotImplementedException('Not currently supported for NoSQL database services.');
     }
@@ -66,7 +82,27 @@ abstract class BaseNoSqlDbSchemaResource extends BaseDbSchemaResource
     /**
      * {@inheritdoc}
      */
+    public function updateRelationship(
+        $table,
+        $field,
+        $properties = array(),
+        $allow_delete_parts = false,
+        $return_schema = false
+    ){
+        throw new NotImplementedException('Not currently supported for NoSQL database services.');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function deleteField($table, $field)
+    {
+        throw new NotImplementedException('Not currently supported for NoSQL database services.');
+    }
+    /**
+     * {@inheritdoc}
+     */
+    public function deleteRelationship($table, $field)
     {
         throw new NotImplementedException('Not currently supported for NoSQL database services.');
     }

@@ -123,12 +123,15 @@ class TableSchema
                     $temp = new ColumnSchema($field);
                     $this->addColumn($temp);
                 }
-            } elseif ('related' === $key) {
+                continue;
+            }
+            if ('related' === $key) {
                 // reconstitute relations
                 foreach ($value as $related) {
                     $temp = new RelationSchema($related);
                     $this->addRelation($temp);
                 }
+                continue;
             }
             if (!property_exists($this, $key)) {
                 // try camel cased

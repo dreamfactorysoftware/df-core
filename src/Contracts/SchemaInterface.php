@@ -159,6 +159,14 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
     public function dropColumn($table, $column);
 
     /**
+     * @param $table
+     * @param $relationship
+     *
+     * @return mixed
+     */
+    public function dropRelationship($table, $relationship);
+
+    /**
      * Set the Caching interface.
      *
      * @param  CacheInterface $cache

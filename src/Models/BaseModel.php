@@ -1038,8 +1038,8 @@ class BaseModel extends Model implements CacheInterface
         $references = $this->getReferences();
         $rf = null;
         foreach ($references as $item) {
-            if ($item->refTable === $table && $table . '_by_' . $item->refFields === $name) {
-                $rf = $item->refFields;
+            if ($item->refTable === $table && $table . '_by_' . $item->refField === $name) {
+                $rf = $item->refField;
                 break;
             }
         }

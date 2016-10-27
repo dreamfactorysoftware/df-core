@@ -1323,7 +1323,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
+                    'description' => 'Post data should be an array of field properties.',
                 ],
                 'put'        => [
                     'tags'        => [$serviceName],
@@ -1350,7 +1350,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
+                    'description' => 'Post data should be an array of field properties.',
                 ],
                 'patch'      => [
                     'tags'        => [$serviceName],
@@ -1377,7 +1377,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Post data should be an array of field properties for a single record or an array of fields.',
+                    'description' => 'Post data should be an array of field properties.',
                 ],
                 'delete'     => [
                     'tags'        => [$serviceName],
@@ -1398,7 +1398,279 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                     'description' => 'Careful, this drops the database table and all of its contents.',
                 ],
             ],
-            $path . '/{table_name}/{field_name}' => [
+            $path . '/{table_name}/_field'              => [
+                'parameters' => [
+                    [
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                ],
+                'get'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'describe' .
+                        $capitalized .
+                        'Fields() - Retrieve table field definitions for the given table.',
+                    'operationId' => 'describe' . $capitalized . 'Fields',
+                    'parameters'  => [
+                        [
+                            'name'        => 'refresh',
+                            'description' => 'Refresh any cached copy of the schema.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Table Fields Schema',
+                            'schema'      => ['$ref' => '#/definitions/FieldSchemas']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'This describes the table\'s fields.',
+                ],
+                'post'       => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'create' .
+                        $capitalized .
+                        'Fields() - Create table fields.',
+                    'operationId' => 'create' . $capitalized . 'Fields',
+                    'parameters'  => [
+                        [
+                            'name'        => 'schema',
+                            'description' => 'Array of table properties and fields definitions.',
+                            'schema'      => ['$ref' => '#/definitions/FieldSchemas'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of fields and their properties.',
+                ],
+                'put'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'replace' .
+                        $capitalized .
+                        'Fields() - Update (replace) table fields with the given properties.',
+                    'operationId' => 'replace' . $capitalized . 'Fields',
+                    'parameters'  => [
+                        [
+                            'name'        => 'schema',
+                            'description' => 'Array of field definitions.',
+                            'schema'      => ['$ref' => '#/definitions/FieldSchemas'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of fields and their properties.',
+                ],
+                'patch'      => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'update' .
+                        $capitalized .
+                        'Fields() - Update (patch) table fields with the given properties.',
+                    'operationId' => 'update' . $capitalized . 'Fields',
+                    'parameters'  => [
+                        [
+                            'name'        => 'schema',
+                            'description' => 'Array of field definitions.',
+                            'schema'      => ['$ref' => '#/definitions/FieldSchemas'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of field properties.',
+                ],
+                'delete'     => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'delete' . $capitalized . 'Fields() - Delete (aka drop) the given fields.',
+                    'operationId' => 'delete' . $capitalized . 'Fields',
+                    'parameters'  => [
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Careful, this drops the table column and all of its contents.',
+                ],
+            ],
+            $path . '/{table_name}/_related'              => [
+                'parameters' => [
+                    [
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                ],
+                'get'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'describe' .
+                        $capitalized .
+                        'Relationships() - Retrieve relationships definition for the given table.',
+                    'operationId' => 'describe' . $capitalized . 'Relationships',
+                    'parameters'  => [
+                        [
+                            'name'        => 'refresh',
+                            'description' => 'Refresh any cached copy of the schema.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Relationships Schema',
+                            'schema'      => ['$ref' => '#/definitions/RelationshipSchemas']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'This describes the table relationships to other tables.',
+                ],
+                'post'       => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'create' .
+                        $capitalized .
+                        'Relationships() - Create table relationships with the given properties.',
+                    'operationId' => 'create' . $capitalized . 'Relationships',
+                    'parameters'  => [
+                        [
+                            'name'        => 'schema',
+                            'description' => 'Array of relationship definitions.',
+                            'schema'      => ['$ref' => '#/definitions/RelationshipSchemas'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of relationship properties.',
+                ],
+                'put'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'replace' .
+                        $capitalized .
+                        'Relationships() - Update (replace) table relationships with the given properties.',
+                    'operationId' => 'replace' . $capitalized . 'Relationships',
+                    'parameters'  => [
+                        [
+                            'name'        => 'schema',
+                            'description' => 'Array of field definitions.',
+                            'schema'      => ['$ref' => '#/definitions/RelationshipSchemas'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of relationship properties.',
+                ],
+                'patch'      => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'update' .
+                        $capitalized .
+                        'Relationships() - Update (patch) a table with the given properties.',
+                    'operationId' => 'update' . $capitalized . 'Relationships',
+                    'parameters'  => [
+                        [
+                            'name'        => 'schema',
+                            'description' => 'Array of field definitions.',
+                            'schema'      => ['$ref' => '#/definitions/RelationshipSchemas'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of relationship properties.',
+                ],
+                'delete'     => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'delete' . $capitalized . 'Relationships() - Delete the given table relationships.',
+                    'operationId' => 'delete' . $capitalized . 'Relationships',
+                    'parameters'  => [
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Removes the relationships between tables.',
+                ],
+            ],
+            $path . '/{table_name}/_field/{field_name}' => [
                 'parameters' => [
                     [
                         'name'        => 'table_name',
@@ -1443,7 +1715,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 ],
                 'put'        => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'replace' . $capitalized . 'Field() - Update one record by identifier.',
+                    'summary'     => 'replace' . $capitalized . 'Field() - Update one field by identifier.',
                     'operationId' => 'replace' . $capitalized . 'Field',
                     'parameters'  => [
                         [
@@ -1468,7 +1740,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                 ],
                 'patch'      => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'update' . $capitalized . 'Field() - Update one record by identifier.',
+                    'summary'     => 'update' . $capitalized . 'Field() - Update one field by identifier.',
                     'operationId' => 'update' . $capitalized . 'Field',
                     'parameters'  => [
                         [
@@ -1496,6 +1768,232 @@ abstract class BaseDbSchemaResource extends BaseDbResource
                     'summary'     => 'delete' .
                         $capitalized .
                         'Field() - Remove the given field from the given table.',
+                    'operationId' => 'delete' . $capitalized . 'Field',
+                    'parameters'  => [],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Careful, this drops the database table field/column and all of its contents.',
+                ],
+            ],
+            $path . '/{table_name}/_related/{relationship_name}' => [
+                'parameters' => [
+                    [
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                    [
+                        'name'        => 'relationship_name',
+                        'description' => 'Name of the relationship to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                ],
+                'get'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'describe' .
+                        $capitalized .
+                        'Relationship() - Retrieve the definition of the given relationship for the given table.',
+                    'operationId' => 'describe' . $capitalized . 'Field',
+                    'parameters'  => [
+                        [
+                            'name'        => 'refresh',
+                            'description' => 'Refresh any cached copy of the schema.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Relationship Schema',
+                            'schema'      => ['$ref' => '#/definitions/RelationshipSchema']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'This describes the relationship and its properties.',
+                ],
+                'put'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'replace' . $capitalized . 'Relationship() - Update one relationship by identifier.',
+                    'operationId' => 'replace' . $capitalized . 'Relationship',
+                    'parameters'  => [
+                        [
+                            'name'        => 'properties',
+                            'description' => 'Array of relationship properties.',
+                            'schema'      => ['$ref' => '#/definitions/RelationshipSchema'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of properties for the given relationship.',
+                ],
+                'patch'      => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'update' . $capitalized . 'Relationship() - Update one relationship by identifier.',
+                    'operationId' => 'update' . $capitalized . 'Relationship',
+                    'parameters'  => [
+                        [
+                            'name'        => 'properties',
+                            'description' => 'Array of relationship properties.',
+                            'schema'      => ['$ref' => '#/definitions/RelationshipSchema'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of properties for the given relationship.',
+                ],
+                'delete'     => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'delete' .
+                        $capitalized .
+                        'Relationship() - Remove the given relationship from the given table.',
+                    'operationId' => 'delete' . $capitalized . 'Relationship',
+                    'parameters'  => [],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Removes the relationship between the tables given.',
+                ],
+            ],
+            $path . '/{table_name}/{field_name}' => [
+                'parameters' => [
+                    [
+                        'name'        => 'table_name',
+                        'description' => 'Name of the table to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                    [
+                        'name'        => 'field_name',
+                        'description' => 'Name of the field to perform operations on.',
+                        'type'        => 'string',
+                        'in'          => 'path',
+                        'required'    => true,
+                    ],
+                ],
+                'get'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'describe' .
+                        $capitalized .
+                        'Field() - Retrieve the definition of the given field for the given table. DEPRECATED',
+                    'operationId' => 'describe' . $capitalized . 'Field',
+                    'parameters'  => [
+                        [
+                            'name'        => 'refresh',
+                            'description' => 'Refresh any cached copy of the schema.',
+                            'type'        => 'boolean',
+                            'in'          => 'query',
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Field Schema',
+                            'schema'      => ['$ref' => '#/definitions/FieldSchema']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'This describes the field and its properties.',
+                ],
+                'put'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'replace' . $capitalized . 'Field() - Update one field by identifier. DEPRECATED',
+                    'operationId' => 'replace' . $capitalized . 'Field',
+                    'parameters'  => [
+                        [
+                            'name'        => 'properties',
+                            'description' => 'Array of field properties.',
+                            'schema'      => ['$ref' => '#/definitions/FieldSchema'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of field properties for the given field.',
+                ],
+                'patch'      => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'update' . $capitalized . 'Field() - Update one field by identifier. DEPRECATED',
+                    'operationId' => 'update' . $capitalized . 'Field',
+                    'parameters'  => [
+                        [
+                            'name'        => 'properties',
+                            'description' => 'Array of field properties.',
+                            'schema'      => ['$ref' => '#/definitions/FieldSchema'],
+                            'in'          => 'body',
+                            'required'    => true,
+                        ],
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => ['$ref' => '#/definitions/Success']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Post data should be an array of field properties for the given field.',
+                ],
+                'delete'     => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'delete' .
+                        $capitalized .
+                        'Field() - Remove the given field from the given table. DEPRECATED',
                     'operationId' => 'delete' . $capitalized . 'Field',
                     'parameters'  => [],
                     'responses'   => [

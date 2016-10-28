@@ -36,6 +36,11 @@ abstract class Schema
     const RIGHT_QUOTE_CHARACTER = '"';
 
     /**
+     *
+     */
+    const ROUTINE_FETCH_MODE = \PDO::FETCH_NAMED;
+
+    /**
      * @var CacheInterface
      */
     protected $cache = null;
@@ -2982,7 +2987,7 @@ MYSQL;
         try {
             $statement->execute();
             $reader = new DataReader($statement);
-            $reader->setFetchMode(\PDO::FETCH_NAMED);
+            $reader->setFetchMode(static::ROUTINE_FETCH_MODE);
             do {
                 $temp = $reader->readAll();
                 if (!empty($temp)) {
@@ -3110,7 +3115,7 @@ MYSQL;
         try {
             $statement->execute();
             $reader = new DataReader($statement);
-            $reader->setFetchMode(\PDO::FETCH_NAMED);
+            $reader->setFetchMode(static::ROUTINE_FETCH_MODE);
             do {
                 $temp = $reader->readAll();
                 if (!empty($temp)) {

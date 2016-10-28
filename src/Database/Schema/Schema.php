@@ -3117,7 +3117,14 @@ MYSQL;
             $reader = new DataReader($statement);
             $reader->setFetchMode(static::ROUTINE_FETCH_MODE);
             do {
-                $temp = $reader->readAll();
+                try {
+                    $temp = $reader->readAll();
+                } catch (\Exception $ex) {
+                    // latest oracle driver seems to kick this back for all OUT params even though it works, ignore for now
+                    if (false === stripos($ex->getMessage(), 'ORA-24374: define not done before fetch or execute and fetch')) {
+                        throw $ex;
+                    }
+                }
                 if (!empty($temp)) {
                     $keep = true;
                     if (1 == count($temp)) {

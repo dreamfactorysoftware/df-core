@@ -20,9 +20,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-861 Preventing timeout on package export manifest by only showing top level folders for file services
 - DF-910 Node.js and Python scripting improvements
 
+## [0.5.2] - 2016-10-28
+### Changed
+- Use class designated fetch mode because Oracle doesn't support all fetch modes
+
 ## [0.5.1] - 2016-10-25
 ### Changed
-- DF-852 Use FETCH_NAMED so as to return unnamed multiple columns or multiple columns with the same name.
+- DF-852 Use FETCH_NAMED so as to return unnamed multiple columns or multiple columns with the same name
 
 ## [0.5.0] - 2016-09-30
 ### Added
@@ -335,7 +339,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.1...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.2...HEAD
+[0.5.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.3...0.5.0
 [0.4.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.4.2...0.4.3

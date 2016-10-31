@@ -19,15 +19,6 @@ class DbForeignKey extends Migration
         // so set the default no action and clear out created/modified by another user when deleting a user.
         $userOnDelete = ($sqlsrv ? 'no action' : 'set null');
 
-        Schema::table('db_field_extras', function (Blueprint $t) {
-            $t->integer('ref_service_id')->unsigned()->nullable();
-            $t->foreign('ref_service_id')->references('id')->on('service');
-            $t->string('ref_table')->nullable();
-            $t->string('ref_fields')->nullable();
-            $t->string('ref_on_update')->nullable();
-            $t->string('ref_on_delete')->nullable();
-        });
-
         // Database Relationship Extras
         Schema::create(
             'db_relationship_extras',
@@ -60,14 +51,6 @@ class DbForeignKey extends Migration
      */
     public function down()
     {
-        Schema::table('db_field_extras', function (Blueprint $t) {
-            $t->dropColumn('ref_service_id');
-            $t->dropColumn('ref_table');
-            $t->dropColumn('ref_fields');
-            $t->dropColumn('ref_on_update');
-            $t->dropColumn('ref_on_delete');
-        });
-
         // Database Extras
         Schema::dropIfExists('db_relationship_extras');
     }

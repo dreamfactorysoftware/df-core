@@ -284,10 +284,7 @@ class PostgresSchema extends Schema
      */
     protected function loadTable(TableSchema $table)
     {
-        if (!$this->findColumns($table)) {
-            return null;
-        }
-        $this->findConstraints($table);
+        parent::loadTable($table);
 
         if (is_string($table->primaryKey) && isset($this->sequences[$table->rawName . '.' . $table->primaryKey])) {
 //            $table->sequenceName = $this->sequences[$table->rawName . '.' . $table->primaryKey];
@@ -306,13 +303,9 @@ class PostgresSchema extends Schema
     }
 
     /**
-     * Collects the table column metadata.
-     *
-     * @param TableSchema $table the table metadata
-     *
-     * @return boolean whether the table exists in the database
+     * @inheritdoc
      */
-    protected function findColumns($table)
+    protected function findColumns(TableSchema $table)
     {
         $sql = <<<EOD
 SELECT a.attname, LOWER(format_type(a.atttypid, a.atttypmod)) AS type, d.adsrc, a.attnotnull, a.atthasdef,
@@ -346,7 +339,7 @@ EOD;
             }
         }
 
-        return true;
+        $this->findPrimaryKey($table);
     }
 
     /**
@@ -373,20 +366,12 @@ EOD;
     }
 
     /**
-     * Collects the primary and foreign key column details for the given table.
-     *
-     * @param TableSchema $table the table metadata
+     * @inheritdoc
      */
-    protected function findConstraints($table)
+    protected function findTableReferences()
     {
-        $this->findPrimaryKey($table);
-
         $rc = 'information_schema.referential_constraints';
         $kcu = 'information_schema.key_column_usage';
-        if (isset($table->catalogName)) {
-            $kcu = $table->catalogName . '.' . $kcu;
-            $rc = $table->catalogName . '.' . $rc;
-        }
 
         $sql = <<<EOD
 		SELECT
@@ -408,9 +393,7 @@ EOD;
 		   AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION
 EOD;
 
-        $constraints = $this->connection->select($sql);
-
-        $this->buildTableRelations($table, $constraints);
+        return $this->connection->select($sql);
     }
 
     /**

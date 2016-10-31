@@ -81,29 +81,13 @@ class ColumnSchema
      */
     public $isForeignKey = false;
     /**
-     * @var boolean whether this column is a virtual foreign key
-     */
-    public $isVirtualForeignKey = false;
-    /**
-     * @var boolean whether this virtual foreign key is to a foreign service
-     */
-    public $isForeignRefService = false;
-    /**
-     * @var string if a foreign key, then this is referenced service id
-     */
-    public $refServiceId;
-    /**
-     * @var string if a foreign key, then this is referenced service name
-     */
-    public $refService;
-    /**
      * @var string if a foreign key, then this is referenced table name
      */
     public $refTable;
     /**
      * @var string if a foreign key, then this is the referenced fields of the referenced table
      */
-    public $refFields;
+    public $refField;
     /**
      * @var string if a foreign key, then what to do with this field's value when the foreign is updated
      */
@@ -114,17 +98,14 @@ class ColumnSchema
     public $refOnDelete;
     /**
      * @var boolean whether this column is auto-incremental
-     * @since 1.1.7
      */
     public $autoIncrement = false;
     /**
      * @var boolean whether this column supports
-     * @since 1.1.7
      */
     public $supportsMultibyte = false;
     /**
      * @var boolean whether this column is auto-incremental
-     * @since 1.1.7
      */
     public $fixedLength = false;
     /**
@@ -230,35 +211,31 @@ class ColumnSchema
     public function toArray($use_alias = false)
     {
         $out = [
-            'name'                   => $this->getName($use_alias),
-            'label'                  => $this->getLabel(),
-            'description'            => $this->description,
-            'type'                   => $this->type,
-            'db_type'                => $this->dbType,
-            'length'                 => $this->size,
-            'precision'              => $this->precision,
-            'scale'                  => $this->scale,
-            'default'                => $this->defaultValue,
-            'required'               => $this->getRequired(),
-            'allow_null'             => $this->allowNull,
-            'fixed_length'           => $this->fixedLength,
-            'supports_multibyte'     => $this->supportsMultibyte,
-            'auto_increment'         => $this->autoIncrement,
-            'is_primary_key'         => $this->isPrimaryKey,
-            'is_unique'              => $this->isUnique,
-            'is_index'               => $this->isIndex,
-            'is_foreign_key'         => $this->isForeignKey,
-            'is_virtual_foreign_key' => $this->isVirtualForeignKey,
-            'is_foreign_ref_service' => $this->isForeignRefService,
-            'ref_service'            => $this->refService,
-            'ref_service_id'         => $this->refServiceId,
-            'ref_table'              => $this->refTable,
-            'ref_fields'             => $this->refFields,
-            'ref_on_update'          => $this->refOnUpdate,
-            'ref_on_delete'          => $this->refOnDelete,
-            'picklist'               => $this->picklist,
-            'validation'             => $this->validation,
-            'db_function'            => $this->dbFunction,
+            'name'               => $this->getName($use_alias),
+            'label'              => $this->getLabel(),
+            'description'        => $this->description,
+            'type'               => $this->type,
+            'db_type'            => $this->dbType,
+            'length'             => $this->size,
+            'precision'          => $this->precision,
+            'scale'              => $this->scale,
+            'default'            => $this->defaultValue,
+            'required'           => $this->getRequired(),
+            'allow_null'         => $this->allowNull,
+            'fixed_length'       => $this->fixedLength,
+            'supports_multibyte' => $this->supportsMultibyte,
+            'auto_increment'     => $this->autoIncrement,
+            'is_primary_key'     => $this->isPrimaryKey,
+            'is_unique'          => $this->isUnique,
+            'is_index'           => $this->isIndex,
+            'is_foreign_key'     => $this->isForeignKey,
+            'ref_table'          => $this->refTable,
+            'ref_field'          => $this->refField,
+            'ref_on_update'      => $this->refOnUpdate,
+            'ref_on_delete'      => $this->refOnDelete,
+            'picklist'           => $this->picklist,
+            'validation'         => $this->validation,
+            'db_function'        => $this->dbFunction,
         ];
 
         if (!$use_alias) {

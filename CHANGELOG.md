@@ -7,10 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-896 Added parameter and header options to scripting inline calls using platform
 - DF-867 Added a pre-configured local file service for the logs directory
 - DF-862 Added support for schema merge in package import
+- DF-869, DF-871, DF-879 Reworked Virtual Foreign Keys to support all relationship types
+- Added new API paths for database table field and related management (_schema/<table_name>/_field and _related)
 
 ### Changed
 - DF-893 Update CORS to use the latest laravel-cors with additional options and new path matching
 - Removed array wrapping of event.request.headers values done by Symfony HeaderBag class
+- Marked API path for database table field management (_schema/<table_name>/<field_name>) as deprecated
 
 ### Fixed
 - DF-868 Protecting user, role, and app lookups against duplicate named entries

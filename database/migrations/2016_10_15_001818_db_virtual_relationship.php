@@ -47,10 +47,9 @@ class DbVirtualRelationship extends Migration
             }
         );
 
-        if (false && Schema::hasColumn('db_field_extras', 'ref_table')) {
+        if (Schema::hasColumn('db_field_extras', 'ref_table')) {
             // Insert old virtual belongs_to relationships
             if (!empty($old = DB::table('db_field_extras')->whereNotNull('ref_table')->get([
-                'id',
                 'service_id',
                 'table',
                 'field',
@@ -61,8 +60,18 @@ class DbVirtualRelationship extends Migration
                 'ref_on_delete',
             ]))
             ) {
+                Log::debug('Pre-migrating VFK to Virtual Relationships: ' . count($old));
                 // change ref_fields to ref_field
-                DB::table('db_virtual_relationship')->insert($old);
+                $new = [];
+                foreach ($old as $each) {
+                    $each = (array)$each;
+                    $each['type'] = 'belongs_to';
+                    $each['ref_field'] = $each['ref_fields'];
+                    unset($each['ref_fields']);
+                    $new[] = $each;
+                }
+                $result = \DreamFactory\Core\Models\DbVirtualRelationship::bulkCreate($new);
+                Log::debug('Post-migrating VFK to Virtual Relationships: ' . print_r($result, true));
             }
         }
     }

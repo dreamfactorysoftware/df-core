@@ -76,4 +76,15 @@ interface DbExtrasInterface
      * @param string | array $relationships
      */
     public function removeSchemaVirtualRelationships($table_name, $relationships);
+
+    /**
+     * @param string $table_name
+     */
+    public function tablesDropped($table_name);
+
+    /**
+     * @param string $table_name
+     * @param string $field_name
+     */
+    public function fieldsDropped($table_name, $field_name);
 }

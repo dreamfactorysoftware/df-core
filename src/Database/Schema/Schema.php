@@ -438,6 +438,35 @@ abstract class Schema
     }
 
     /**
+     * @param $table_names
+     *
+     * @return null
+     */
+    public function tablesDropped($table_names)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->tablesDropped($table_names);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param $table_name
+     * @param $field_names
+     *
+     * @return null
+     */
+    public function fieldsDropped($table_name, $field_names)
+    {
+        if ($this->extraStore) {
+            $this->extraStore->fieldsDropped($table_name, $field_names);
+        }
+
+        return null;
+    }
+
+    /**
      * @return null|integer
      */
     public function getServiceId()
@@ -3064,7 +3093,7 @@ MYSQL;
     {
         $sql = "DROP TABLE " . $this->quoteTableName($table);
         $result = $this->connection->statement($sql);
-        $this->removeSchemaExtrasForTables($table);
+        $this->tablesDropped($table);
 
         //  Any changes here should refresh cached schema
         $this->refresh();
@@ -3086,7 +3115,7 @@ MYSQL;
             $sql = "ALTER TABLE " . $this->quoteTableName($table) . " DROP COLUMN " . $this->quoteColumnName($column);
             $result = $this->connection->statement($sql);
         }
-        $this->removeSchemaExtrasForFields($table, $column);
+        $this->fieldsDropped($table, $column);
 
         //  Any changes here should refresh cached schema
         $this->refresh();

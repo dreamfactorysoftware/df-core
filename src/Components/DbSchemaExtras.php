@@ -324,4 +324,53 @@ trait DbSchemaExtras
                 ->delete();
         }
     }
+
+    /**
+     * @param string $table_names
+     */
+    public function tablesDropped($table_names)
+    {
+        if (false === $values = static::validateAsArray($table_names, ',', true)) {
+            throw new \InvalidArgumentException('Invalid table list. ' . $table_names);
+        }
+
+        try {
+            DbTableExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
+            DbFieldExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
+            DbRelationshipExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
+            DbVirtualRelationship::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
+            DbVirtualRelationship::whereRefServiceId($this->getServiceId())->whereIn('ref_table', $values)->delete();
+            DbVirtualRelationship::whereJunctionServiceId($this->getServiceId())
+                ->whereIn('junction_table', $values)->delete();
+        } catch (\Exception $ex) {
+            Log::error('Failed to delete from DB Table Schema Extras. ' . $ex->getMessage());
+        }
+    }
+
+    /**
+     * @param string $table_name
+     * @param string $field_names
+     */
+    public function fieldsDropped($table_name, $field_names)
+    {
+        if (false === $values = static::validateAsArray($field_names, ',', true)) {
+            throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
+        }
+
+        try {
+            DbFieldExtras::whereServiceId($this->getServiceId())->whereTable($table_name)
+                ->whereIn('field', $values)->delete();
+//            DbRelationshipExtras::whereServiceId($this->getServiceId())->whereTable($table_name)->whereIn('field', $values)->delete();
+            DbVirtualRelationship::whereServiceId($this->getServiceId())->whereTable($table_name)
+                ->whereIn('field', $values)->delete();
+            DbVirtualRelationship::whereRefServiceId($this->getServiceId())->whereRefTable($table_name)
+                ->whereIn('ref_field', $values)->delete();
+            DbVirtualRelationship::whereJunctionServiceId($this->getServiceId())->whereJunctionTable($table_name)
+                ->whereIn('junction_field', $values)->delete();
+            DbVirtualRelationship::whereJunctionServiceId($this->getServiceId())->whereJunctionTable($table_name)
+                ->whereIn('junction_ref_field', $values)->delete();
+        } catch (\Exception $ex) {
+            Log::error('Failed to delete from DB Field Schema Extras. ' . $ex->getMessage());
+        }
+    }
 }

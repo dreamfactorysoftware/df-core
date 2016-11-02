@@ -3473,6 +3473,18 @@ MYSQL;
                     }
                     if ($keep) {
                         $result[] = $temp;
+                        //trim the result set values, there may be a more elegant way to do this?
+                        foreach ($result as $resultId => $row)
+                        {
+                            foreach ($row as $rowId => $column )
+                            {
+                                foreach ($column as $columnId => $columnValue)
+                                {
+                                    $result[$resultId][$rowId][$columnId] = trim($columnValue);
+                                }
+                            }
+                            
+                        }                        
                     }
                 }
             } while ($reader->nextResult());
@@ -3498,7 +3510,7 @@ MYSQL;
                 case 'OUT':
                 case 'INOUT':
                     if (array_key_exists($key, $values)) {
-                        $out_params[$paramSchema->name] = $this->formatValue($values[$key], $paramSchema->type);
+                        $out_params[$paramSchema->name] = $this->formatValue(trim($values[$key]), $paramSchema->type);
                     }
                     break;
             }
@@ -3578,6 +3590,13 @@ MYSQL;
                 case 'INOUT':
                 case 'OUT':
                     $pdoType = $this->getPdoType($paramSchema->type);
+
+                    //iSeries output params must be initilzed to length
+                    if ($values[$key] == "")
+                    {
+                        $values[$key] = str_repeat(" ", $paramSchema->length);
+                    }
+                    
                     $this->bindParam($statement, ':' . $paramSchema->name, $values[$key],
                         $pdoType | \PDO::PARAM_INPUT_OUTPUT, $paramSchema->length);
                     break;

@@ -118,7 +118,13 @@ _wrapperResult = (function() {
             'x-dreamfactory-session-token': _platform.session.session_token 
         }
     };
-    
+
+    if(_platform.session.session_token == null)
+        _options.headers = {
+                'x-dreamfactory-api-key': _platform.session.api_key
+            }
+        };
+
     _event.setReturn = function(content){
         _event.script_result = content;
         console.log(JSON.stringify(_event));

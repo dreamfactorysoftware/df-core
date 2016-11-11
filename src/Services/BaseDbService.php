@@ -3,8 +3,11 @@
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Components\Cacheable;
+use DreamFactory\Core\Components\DbSchemaExtras;
 use DreamFactory\Core\Contracts\CachedInterface;
-use DreamFactory\Core\Database\Schema\TableSchema;
+use DreamFactory\Core\Contracts\CacheInterface;
+use DreamFactory\Core\Contracts\DbExtrasInterface;
+use DreamFactory\Core\Contracts\SchemaInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -12,10 +15,11 @@ use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Resources\BaseDbResource;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\Scalar;
+use Illuminate\Database\ConnectionInterface;
 
-abstract class BaseDbService extends BaseRestService implements CachedInterface
+abstract class BaseDbService extends BaseRestService implements CachedInterface, CacheInterface, DbExtrasInterface
 {
-    use Cacheable;
+    use DbSchemaExtras, Cacheable;
 
     //*************************************************************************
     //	Members
@@ -29,13 +33,21 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
      * @type bool
      */
     protected $cacheEnabled = false;
+    /**
+     * @var ConnectionInterface
+     */
+    protected $dbConn;
+    /**
+     * @var SchemaInterface
+     */
+    protected $schema;
 
     //*************************************************************************
     //	Methods
     //*************************************************************************
 
     /**
-     * Create a new SqlDbSvc
+     * Create a new Database Service
      *
      * @param array $settings
      *
@@ -53,6 +65,18 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
     }
 
     /**
+     * Object destructor
+     */
+    public function __destruct()
+    {
+        try {
+            $this->dbConn = null;
+        } catch (\Exception $ex) {
+            error_log("Failed to disconnect from database.\n{$ex->getMessage()}");
+        }
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function getAccessList()
@@ -61,7 +85,7 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
         $refresh = ($this->request ? $this->request->getParameterAsBool(ApiOptions::REFRESH) : false);
         $schema = ($this->request ? $this->request->getParameter(ApiOptions::SCHEMA, '') : false);
 
-        foreach (static::$resources as $resourceInfo) {
+        foreach ($this->getResources(true) as $resourceInfo) {
             $className = $resourceInfo['class_name'];
 
             if (!class_exists($className)) {
@@ -96,17 +120,36 @@ abstract class BaseDbService extends BaseRestService implements CachedInterface
     }
 
     /**
-     * @param string|null $schema
-     * @param bool        $refresh
-     * @param bool        $use_alias
-     *
-     * @return TableSchema[]
+     * @throws \Exception
      */
-    abstract public function getTableNames($schema = null, $refresh = false, $use_alias = false);
+    public function getConnection()
+    {
+        if (!isset($this->dbConn)) {
+            throw new InternalServerErrorException('Database connection has not been initialized.');
+        }
+
+        return $this->dbConn;
+    }
+
+    /**
+     * @throws \Exception
+     * @return SchemaInterface
+     */
+    public function getSchema()
+    {
+        if (!isset($this->schema)) {
+            throw new InternalServerErrorException('Database schema extension has not been initialized.');
+        }
+
+        return $this->schema;
+    }
 
     /**
      */
-    abstract public function refreshTableCache();
+    public function refreshTableCache()
+    {
+        $this->schema->refresh();
+    }
 
     /**
      * {@InheritDoc}

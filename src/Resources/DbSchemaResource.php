@@ -3,10 +3,15 @@
 namespace DreamFactory\Core\Resources;
 
 use DreamFactory\Core\Components\DataValidator;
+use DreamFactory\Core\Database\Schema\ColumnSchema;
+use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Enums\DbResourceTypes;
 use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Core\Utility\ResourcesWrapper;
@@ -14,7 +19,7 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 
-abstract class BaseDbSchemaResource extends BaseDbResource
+class DbSchemaResource extends BaseDbResource
 {
     use DataValidator;
 
@@ -58,7 +63,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     public function listResources($schema = null, $refresh = false)
     {
         /** @type TableSchema[] $result */
-        $result = $this->parent->getTableNames($schema, $refresh);
+        $result = $this->parent->getSchema()->getResourceNames(DbResourceTypes::TYPE_TABLE, $schema, $refresh);
         $resources = [];
         foreach ($result as $table) {
             if (!empty($this->getPermissions($table->name))) {
@@ -100,7 +105,7 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         $schema = $this->request->getParameter(ApiOptions::SCHEMA, '');
 
         /** @type TableSchema[] $result */
-        $result = $this->parent->getTableNames($schema, $refresh);
+        $result = $this->parent->getSchema()->getResourceNames(DbResourceTypes::TYPE_TABLE, $schema, $refresh);
         $resources = [];
         foreach ($result as $table) {
             $access = $this->getPermissions($table->name);
@@ -127,31 +132,6 @@ abstract class BaseDbSchemaResource extends BaseDbResource
         }
 
         return $this;
-    }
-
-    /**
-     * @param string $name       The name of the table to check
-     * @param bool   $returnName If true, the table name is returned instead of TRUE
-     *
-     * @throws \InvalidArgumentException
-     * @return bool
-     */
-    public function doesTableExist($name, $returnName = false)
-    {
-        if (empty($name)) {
-            throw new \InvalidArgumentException('Table name cannot be empty.');
-        }
-
-        //  Build the lower-cased table array
-        $tables = $this->parent->getTableNames();
-
-        //	Search normal, return real name
-        $ndx = strtolower($name);
-        if (isset($tables[$ndx])) {
-            return $returnName ? $tables[$ndx]->name : true;
-        }
-
-        return false;
     }
 
     /**
@@ -646,10 +626,8 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    public function describeTables(
-        $tables,
-        $refresh = false
-    ) {
+    public function describeTables($tables, $refresh = false)
+    {
         $tables = static::validateAsArray(
             $tables,
             ',',
@@ -671,13 +649,35 @@ abstract class BaseDbSchemaResource extends BaseDbResource
     /**
      * Get any properties related to the table
      *
-     * @param string | array $table   Table name or defining properties
+     * @param string | array $name   Table name or defining properties
      * @param bool           $refresh Force a refresh of the schema from the database
      *
      * @return array
      * @throws \Exception
      */
-    abstract public function describeTable($table, $refresh = false);
+    public function describeTable($name, $refresh = false)
+    {
+        $name = (is_array($name) ? array_get($name, 'name') : $name);
+        if (empty($name)) {
+            throw new BadRequestException('Table name can not be empty.');
+        }
+
+        try {
+            $table = $this->parent->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $name, $refresh);
+            if (!$table) {
+                throw new NotFoundException("Table '$name' does not exist in the database.");
+            }
+
+            $result = $table->toArray();
+            $result['access'] = $this->getPermissions($name);
+
+            return $result;
+        } catch (RestException $ex) {
+            throw $ex;
+        } catch (\Exception $ex) {
+            throw new InternalServerErrorException("Failed to query database schema.\n{$ex->getMessage()}");
+        }
+    }
 
     /**
      * Describe multiple table fields
@@ -724,7 +724,23 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function describeField($table, $field, $refresh = false);
+    public function describeField($table, $field, $refresh = false)
+    {
+        if (empty($table)) {
+            throw new BadRequestException('Table name can not be empty.');
+        }
+
+        try {
+            $result = $this->describeTableFields($table, $field, $refresh);
+
+            return array_get($result, 0);
+        } catch (RestException $ex) {
+            throw $ex;
+        } catch (\Exception $ex) {
+            throw new InternalServerErrorException("Error describing database table '$table' field '$field'.\n" .
+                $ex->getMessage(), $ex->getCode());
+        }
+    }
 
     /**
      * Describe multiple table fields
@@ -771,7 +787,23 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function describeRelationship($table, $relationship, $refresh = false);
+    public function describeRelationship($table, $relationship, $refresh = false)
+    {
+        if (empty($table)) {
+            throw new BadRequestException('Table name can not be empty.');
+        }
+
+        try {
+            $result = $this->describeTableRelationships($table, $relationship, $refresh);
+
+            return array_get($result, 0);
+        } catch (RestException $ex) {
+            throw $ex;
+        } catch (\Exception $ex) {
+            throw new InternalServerErrorException("Error describing database table '$table' relationship '$relationship'.\n" .
+                $ex->getMessage(), $ex->getCode());
+        }
+    }
 
     /**
      * Create one or more tables by array of table properties
@@ -785,20 +817,24 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      */
     public function createTables($tables, $check_exist = false, $return_schema = false)
     {
-        $tables = static::validateAsArray(
-            $tables,
-            ',',
-            true,
-            'The request contains no valid table names or properties.'
-        );
+        $tables = static::validateAsArray($tables, null, true, 'There are no table sets in the request.');
 
-        $out = [];
         foreach ($tables as $table) {
-            $name = (is_array($table)) ? array_get($table, 'name') : $table;
-            $out[] = $this->createTable($name, $table, $check_exist, $return_schema);
+            if (null === ($name = array_get($table, 'name'))) {
+                throw new BadRequestException("Table schema received does not have a valid name.");
+            }
         }
 
-        return $out;
+        $result = $this->parent->getSchema()->updateSchema($tables);
+
+        //  Any changes here should refresh cached schema
+        $this->refreshCachedTables();
+
+        if ($return_schema) {
+            return $this->describeTables($tables);
+        }
+
+        return $result;
     }
 
     /**
@@ -808,8 +844,26 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @param array  $properties
      * @param bool   $check_exist
      * @param bool   $return_schema Return a refreshed copy of the schema from the database
+     * @return array|mixed
      */
-    abstract public function createTable($table, $properties = [], $check_exist = false, $return_schema = false);
+    public function createTable($table, $properties = [], $check_exist = false, $return_schema = false)
+    {
+        $properties = (is_array($properties) ? $properties : []);
+        $properties['name'] = $table;
+
+        $tables = static::validateAsArray($properties, null, true, 'Bad data format in request.');
+        $result = $this->parent->getSchema()->updateSchema($tables);
+        $result = array_get($result, 0, []);
+
+        //  Any changes here should refresh cached schema
+        $this->refreshCachedTables();
+
+        if ($return_schema) {
+            return $this->describeTable($table);
+        }
+
+        return $result;
+    }
 
     /**
      * Create multiple table fields
@@ -849,14 +903,28 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @param array  $properties
      * @param bool   $check_exist
      * @param bool   $return_schema Return a refreshed copy of the schema from the database
+     * @return array|mixed
      */
-    abstract public function createField(
-        $table,
-        $field,
-        $properties = [],
-        $check_exist = false,
-        $return_schema = false
-    );
+    public function createField($table, $field, $properties = [], $check_exist = false, $return_schema = false)
+    {
+        $properties = (is_array($properties) ? $properties : []);
+        $properties['name'] = $field;
+
+        $fields = static::validateAsArray($properties, null, true, 'Bad data format in request.');
+
+        $tables = [['name' => $table, 'field' => $fields]];
+        $result = $this->parent->getSchema()->updateSchema($tables, true);
+        $result = array_get(array_get($result, 0, []), 'field', []);
+
+        //  Any changes here should refresh cached schema
+        $this->refreshCachedTables();
+
+        if ($return_schema) {
+            return $this->describeField($table, $field);
+        }
+
+        return $result;
+    }
 
     /**
      * Create multiple table relationships
@@ -896,14 +964,33 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @param array  $properties
      * @param bool   $check_exist
      * @param bool   $return_schema Return a refreshed copy of the schema from the database
+     * @return array|mixed
      */
-    abstract public function createRelationship(
+    public function createRelationship(
         $table,
         $relationship,
         $properties = [],
         $check_exist = false,
         $return_schema = false
-    );
+    ) {
+        $properties = (is_array($properties) ? $properties : []);
+        $properties['name'] = $relationship;
+
+        $fields = static::validateAsArray($properties, null, true, 'Bad data format in request.');
+
+        $tables = [['name' => $table, 'related' => $fields]];
+        $result = $this->parent->getSchema()->updateSchema($tables, true);
+        $result = array_get(array_get($result, 0, []), 'related', []);
+
+        //  Any changes here should refresh cached schema
+        $this->refreshCachedTables();
+
+        if ($return_schema) {
+            return $this->describeRelationship($table, $relationship);
+        }
+
+        return $result;
+    }
 
     /**
      * Update one or more tables by array of table properties
@@ -911,32 +998,35 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @param array $tables
      * @param bool  $allow_delete_fields
      * @param bool  $return_schema Return a refreshed copy of the schema from the database
-     *
      * @return array
+     * @throws BadRequestException
      */
     public function updateTables($tables, $allow_delete_fields = false, $return_schema = false)
     {
-        $tables = static::validateAsArray(
-            $tables,
-            null,
-            true,
-            'The request contains no valid table properties.'
-        );
+        $tables = static::validateAsArray($tables, null, true, 'There are no table sets in the request.');
 
-        // update tables allows for create as well
-        $out = [];
         foreach ($tables as $table) {
             $name = (is_array($table)) ? array_get($table, 'name') : $table;
+            if (empty($name)) {
+                throw new BadRequestException("Table schema received does not have a valid name.");
+            }
             if ($this->doesTableExist($name)) {
                 $this->validateSchemaAccess($name, Verbs::PATCH);
-                $out[] = $this->updateTable($name, $table, $allow_delete_fields, $return_schema);
             } else {
                 $this->validateSchemaAccess(null, Verbs::POST);
-                $out[] = $this->createTable($name, $table, false, $return_schema);
             }
         }
 
-        return $out;
+        $result = $this->parent->getSchema()->updateSchema($tables, true, $allow_delete_fields);
+
+        //  Any changes here should refresh cached schema
+        $this->refreshCachedTables();
+
+        if ($return_schema) {
+            return $this->describeTables($tables);
+        }
+
+        return $result;
     }
 
     /**
@@ -950,7 +1040,25 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function updateTable($table, $properties, $allow_delete_fields = false, $return_schema = false);
+    public function updateTable($table, $properties, $allow_delete_fields = false, $return_schema = false)
+    {
+        $properties = (is_array($properties) ? $properties : []);
+        $properties['name'] = $table;
+
+        $tables = static::validateAsArray($properties, null, true, 'Bad data format in request.');
+
+        $result = $this->parent->getSchema()->updateSchema($tables, true, $allow_delete_fields);
+        $result = array_get($result, 0, []);
+
+        //  Any changes here should refresh cached schema
+        $this->refreshCachedTables();
+
+        if ($return_schema) {
+            return $this->describeTable($table);
+        }
+
+        return $result;
+    }
 
     /**
      * Update multiple table fields
@@ -994,13 +1102,30 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function updateField(
-        $table,
-        $field,
-        $properties,
-        $allow_delete_parts = false,
-        $return_schema = false
-    );
+    public function updateField($table, $field, $properties = [], $allow_delete_parts = false, $return_schema = false)
+    {
+        if (empty($table)) {
+            throw new BadRequestException('Table name can not be empty.');
+        }
+
+        $properties = (is_array($properties) ? $properties : []);
+        $properties['name'] = $field;
+
+        $fields = static::validateAsArray($properties, null, true, 'Bad data format in request.');
+
+        $tables = [['name' => $table, 'field' => $fields]];
+        $result = $this->parent->getSchema()->updateSchema($tables, true);
+        $result = array_get(array_get($result, 0, []), 'field', []);
+
+        //  Any changes here should refresh cached schema
+        $this->refreshCachedTables();
+
+        if ($return_schema) {
+            return $this->describeField($table, $field);
+        }
+
+        return $result;
+    }
 
     /**
      * Update multiple table relationships
@@ -1044,13 +1169,35 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @return array
      * @throws \Exception
      */
-    abstract public function updateRelationship(
+    public function updateRelationship(
         $table,
         $relationship,
-        $properties,
+        $properties = [],
         $allow_delete_parts = false,
         $return_schema = false
-    );
+    ) {
+        if (empty($table)) {
+            throw new BadRequestException('Table name can not be empty.');
+        }
+
+        $properties = (is_array($properties) ? $properties : []);
+        $properties['name'] = $relationship;
+
+        $fields = static::validateAsArray($properties, null, true, 'Bad data format in request.');
+
+        $tables = [['name' => $table, 'related' => $fields]];
+        $result = $this->parent->getSchema()->updateSchema($tables, true);
+        $result = array_get(array_get($result, 0, []), 'related', []);
+
+        //  Any changes here should refresh cached schema
+        $this->refreshCachedTables();
+
+        if ($return_schema) {
+            return $this->describeRelationship($table, $relationship);
+        }
+
+        return $result;
+    }
 
     /**
      * Delete multiple tables and all of their contents
@@ -1089,7 +1236,30 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @throws \Exception
      * @return array
      */
-    abstract public function deleteTable($table, $check_empty = false);
+    public function deleteTable($table, $check_empty = false)
+    {
+        if (empty($table)) {
+            throw new BadRequestException('Table name can not be empty.');
+        }
+
+        //  Does it exist
+        if (!$this->doesTableExist($table)) {
+            throw new NotFoundException("Table '$table' not found.");
+        }
+
+        try {
+            $this->parent->getSchema()->dropResource(DbResourceTypes::TYPE_TABLE, $table);
+        } catch (\Exception $ex) {
+            \Log::error('Exception dropping table: ' . $ex->getMessage());
+
+            throw $ex;
+        }
+
+        //  Any changes here should refresh cached schema
+        $this->refreshCachedTables();
+
+        return ['name' => $table];
+    }
 
     /**
      * Delete multiple table fields
@@ -1128,7 +1298,29 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @throws \Exception
      * @return array
      */
-    abstract public function deleteField($table, $field);
+    public function deleteField($table, $field)
+    {
+        if (empty($table)) {
+            throw new BadRequestException('Table name can not be empty.');
+        }
+
+        // does it already exist
+        if (!$this->doesTableExist($table)) {
+            throw new NotFoundException("A table with name '$table' does not exist in the database.");
+        }
+
+        try {
+            $this->parent->getSchema()->dropResource(DbResourceTypes::TYPE_TABLE_FIELD, [$table, $field]);
+        } catch (\Exception $ex) {
+            error_log($ex->getMessage());
+            throw $ex;
+        }
+
+        //  Any changes here should refresh cached schema
+        $this->refreshCachedTables();
+
+        return ['name' => $field];
+    }
 
     /**
      * Delete multiple table fields
@@ -1167,7 +1359,139 @@ abstract class BaseDbSchemaResource extends BaseDbResource
      * @throws \Exception
      * @return array
      */
-    abstract public function deleteRelationship($table, $relationship);
+    public function deleteRelationship($table, $relationship)
+    {
+        if (empty($table)) {
+            throw new BadRequestException('Table name can not be empty.');
+        }
+
+        // does it already exist
+        if (!$this->doesTableExist($table)) {
+            throw new NotFoundException("A table with name '$table' does not exist in the database.");
+        }
+
+        try {
+            $this->parent->getSchema()->dropResource(DbResourceTypes::TYPE_TABLE_RELATIONSHIP, [$table, $relationship]);
+        } catch (\Exception $ex) {
+            error_log($ex->getMessage());
+            throw $ex;
+        }
+
+        //  Any changes here should refresh cached schema
+        $this->refreshCachedTables();
+
+        return ['name' => $relationship];
+    }
+
+    /**
+     * @param string $name
+     *
+     * @throws BadRequestException
+     * @throws NotFoundException
+     * @return string
+     */
+    public function correctTableName(&$name)
+    {
+        if (false !== ($table = $this->doesTableExist($name, true))) {
+            $name = $table;
+
+            return $name;
+        } else {
+            throw new NotFoundException('Table "' . $name . '" does not exist in the database.');
+        }
+    }
+
+    /**
+     * @param string $name       The name of the table to check
+     * @param bool   $returnName If true, the table name is returned instead of TRUE
+     *
+     * @throws \InvalidArgumentException
+     * @return bool
+     */
+    public function doesTableExist($name, $returnName = false)
+    {
+        return $this->parent->getSchema()->doesResourceExist(DbResourceTypes::TYPE_TABLE, $name, $returnName);
+    }
+
+
+    /**
+     * @param string                $table_name
+     * @param null | string | array $field_names
+     * @param bool                  $refresh
+     *
+     * @throws NotFoundException
+     * @throws InternalServerErrorException
+     * @return array
+     */
+    public function describeTableFields($table_name, $field_names = null, $refresh = false)
+    {
+        $table = $this->parent->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $table_name, $refresh);
+        if (!$table) {
+            throw new NotFoundException("Table '$table_name' does not exist in the database.");
+        }
+
+        if (!empty($field_names)) {
+            $field_names = static::validateAsArray($field_names, ',', true, 'No valid field names given.');
+        }
+
+        $out = [];
+        try {
+            /** @var ColumnSchema $column */
+            foreach ($table->columns as $column) {
+                if (empty($field_names) || (false !== array_search($column->name, $field_names))) {
+                    $out[] = $column->toArray();
+                }
+            }
+        } catch (\Exception $ex) {
+            throw new InternalServerErrorException("Failed to query table field schema.\n{$ex->getMessage()}");
+        }
+
+        if (empty($out)) {
+            throw new NotFoundException("No requested fields found in table '$table_name'.");
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param string                $table_name
+     * @param null | string | array $relationships
+     * @param bool                  $refresh
+     *
+     * @throws NotFoundException
+     * @throws InternalServerErrorException
+     * @return array
+     */
+    public function describeTableRelationships($table_name, $relationships = null, $refresh = false)
+    {
+        /** @var TableSchema $table */
+        $table = $this->parent->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $table_name, $refresh);
+        if (!$table) {
+            throw new NotFoundException("Table '$table_name' does not exist in the database.");
+        }
+
+        if (!empty($relationships)) {
+            $relationships = static::validateAsArray($relationships, ',', true, 'No valid relationship names given.');
+        }
+
+        $out = [];
+        try {
+            /** @var RelationSchema $relation */
+            foreach ($table->relations as $relation) {
+                if (empty($relationships) || (false !== array_search($relation->name, $relationships))) {
+                    $out[] = $relation->toArray();
+                }
+            }
+        } catch (\Exception $ex) {
+            throw new InternalServerErrorException("Failed to query table relationship schema.\n{$ex->getMessage()}");
+        }
+
+        if (empty($out)) {
+            throw new NotFoundException("No requested relationships found in table '$table_name'.");
+        }
+
+        return $out;
+    }
 
     /**
      * @inheritdoc

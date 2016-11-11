@@ -8,6 +8,11 @@ use DreamFactory\Core\Enums\DbSimpleTypes;
  */
 class SqliteSchema extends Schema
 {
+    /**
+     * Underlying database provides field-level schema, i.e. SQL (true) vs NoSQL (false)
+     */
+    const PROVIDES_FIELD_SCHEMA = true;
+
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class
@@ -320,48 +325,13 @@ class SqliteSchema extends Schema
     }
 
     /**
-     * Collects the table column metadata.
-     *
-     * @param TableSchema $table the table metadata
-     *
-     * @return boolean whether the table exists in the database
+     * @inheritdoc
      */
     protected function findColumns(TableSchema $table)
     {
         $sql = "PRAGMA table_info({$table->rawName})";
-        $columns = $this->connection->select($sql);
-        if (empty($columns)) {
-            return false;
-        }
 
-        foreach ($columns as $column) {
-            $column = array_change_key_case((array)$column, CASE_LOWER);
-            $c = $this->createColumn($column);
-            $table->addColumn($c);
-            if ($c->isPrimaryKey) {
-                if ($c->autoIncrement) {
-                    $table->sequenceName = '';
-                }
-                if ($table->primaryKey === null) {
-                    $table->primaryKey = $c->name;
-                } elseif (is_string($table->primaryKey)) {
-                    $table->primaryKey = [$table->primaryKey, $c->name];
-                } else {
-                    $table->primaryKey[] = $c->name;
-                }
-            }
-        }
-        if (is_string($table->primaryKey)) {
-            $column = $table->getColumn($table->primaryKey);
-            if ((DbSimpleTypes::TYPE_INTEGER === $column->type)) {
-                $table->sequenceName = '';
-                $column->autoIncrement = true;
-                $column->type = DbSimpleTypes::TYPE_ID;
-                $table->addColumn($column);
-            }
-        }
-
-        return true;
+        return $this->connection->select($sql);
     }
 
     /**
@@ -380,10 +350,13 @@ class SqliteSchema extends Schema
         $c->comment = null; // SQLite does not support column comments at all
 
         $c->dbType = strtolower($column['type']);
-        $this->extractLimit($c, strtolower($column['type']));
-        $c->fixedLength = $this->extractFixedLength($column['type']);
-        $c->supportsMultibyte = $this->extractMultiByteSupport($column['type']);
-        $this->extractType($c, strtolower($column['type']));
+        $this->extractLimit($c, $c->dbType);
+        $c->fixedLength = $this->extractFixedLength($c->dbType);
+        $c->supportsMultibyte = $this->extractMultiByteSupport($c->dbType);
+        $this->extractType($c, $c->dbType);
+        if ($c->isPrimaryKey && (DbSimpleTypes::TYPE_INTEGER === $c->type)) {
+            $c->autoIncrement = true; //defaults to alias of ROWID internally
+        }
         $this->extractDefault($c, $column['dflt_value']);
 
         return $c;

@@ -56,7 +56,6 @@ trait DbSchemaExtras
             $result = DbFieldExtras::whereServiceId($this->getServiceId())
                 ->whereTable($table_name)->get()->toArray();
         } else {
-
             if (false === $values = static::validateAsArray($field_names, ',', true)) {
                 throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
             }

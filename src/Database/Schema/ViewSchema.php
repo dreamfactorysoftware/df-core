@@ -4,11 +4,11 @@ namespace DreamFactory\Core\Database\Schema;
 use DreamFactory\Library\Utility\Inflector;
 
 /**
- * TableSchema is the base class for representing the metadata of a database table.
+ * ViewSchema is the base class for representing the metadata of a database view.
  *
- * It may be extended by different DBMS driver to provide DBMS-specific table metadata.
+ * It may be extended by different DBMS driver to provide DBMS-specific view metadata.
  *
- * TableSchema provides the following information about a table:
+ * ViewSchema provides the following information about a view:
  * <ul>
  * <li>{@link name}</li>
  * <li>{@link rawName}</li>
@@ -20,7 +20,7 @@ use DreamFactory\Library\Utility\Inflector;
  *
  * @property array $columnNames List of column names.
  */
-class TableSchema
+class ViewSchema
 {
     /**
      * @var string Name of the catalog (database) that this table belongs to (SQL Server specific).
@@ -61,10 +61,6 @@ class TableSchema
      * @var string Optional public description of this table.
      */
     public $description;
-    /**
-     * @var boolean Table or View?.
-     */
-    public $isView = false;
     /**
      * @var string Optional field of this table that may contain a displayable name for each row/record.
      */
@@ -108,10 +104,6 @@ class TableSchema
      * @var boolean Has the full schema been discovered, or just name and type.
      */
     public $discoveryCompleted = false;
-    /**
-     * @var array Any table-specific information native to this platform.
-     */
-    public $native = [];
 
     public function __construct(array $settings)
     {
@@ -316,11 +308,9 @@ class TableSchema
     {
         $out = [
             'name'        => $this->getName($use_alias),
-            'is_view'     => $this->isView,
             'label'       => $this->getLabel(),
             'plural'      => $this->getPlural(),
             'description' => $this->description,
-            'native'      => $this->native,
         ];
 
         if (!$use_alias) {

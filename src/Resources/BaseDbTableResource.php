@@ -4,11 +4,14 @@ namespace DreamFactory\Core\Resources;
 
 use Config;
 use DreamFactory\Core\Components\DataValidator;
+use DreamFactory\Core\Components\Service2ServiceRequest;
+use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Database\Schema\ColumnSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DbComparisonOperators;
 use DreamFactory\Core\Enums\DbLogicalOperators;
+use DreamFactory\Core\Enums\DbResourceTypes;
 use DreamFactory\Core\Enums\DbSimpleTypes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -17,12 +20,14 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Library\Utility\Scalar;
+use ServiceManager;
 
 abstract class BaseDbTableResource extends BaseDbResource
 {
@@ -96,7 +101,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     public function listResources($schema = null, $refresh = false)
     {
         /** @type TableSchema[] $result */
-        $result = $this->parent->getTableNames($schema, $refresh);
+        $result = $this->parent->getSchema()->getResourceNames(DbResourceTypes::TYPE_TABLE, $schema, $refresh);
         $resources = [];
         foreach ($result as $table) {
             $name = $table->getName(true);
@@ -138,7 +143,7 @@ abstract class BaseDbTableResource extends BaseDbResource
         $refresh = $this->request->getParameterAsBool(ApiOptions::REFRESH);
         $schema = $this->request->getParameter(ApiOptions::SCHEMA, '');
         /** @type TableSchema[] $result */
-        $result = $this->parent->getTableNames($schema, $refresh);
+        $result = $this->parent->getSchema()->getResourceNames(DbResourceTypes::TYPE_TABLE, $schema, $refresh);
         $resources = [];
         foreach ($result as $table) {
             $access = $this->getPermissions($table->getName(true));
@@ -166,7 +171,12 @@ abstract class BaseDbTableResource extends BaseDbResource
         }
 
         //  Build the lower-cased table array
-        $tables = $this->parent->getTableNames(null, false, true);
+        /** @var TableSchema[] $result */
+        $result = $this->parent->getSchema()->getResourceNames(DbResourceTypes::TYPE_TABLE);
+        $tables = [];
+        foreach ($result as $table) {
+            $tables[strtolower($table->getName(true))] = $table;
+        }
 
         //	Search normal, return real name
         $ndx = strtolower($name);
@@ -206,6 +216,9 @@ abstract class BaseDbTableResource extends BaseDbResource
         ];
     }
 
+    /**
+     * {@InheritDoc}
+     */
     protected function detectRequestMembers()
     {
         if (!empty($this->resource)) {
@@ -257,7 +270,37 @@ abstract class BaseDbTableResource extends BaseDbResource
             if ($updateOptions) {
                 $this->request->setParameters($options);
             }
+
+            // All calls can request related data to be returned
+            $related = $this->request->getParameter(ApiOptions::RELATED);
+            if (!empty($related) && is_string($related) && ('*' !== $related)) {
+                if (!is_array($related)) {
+                    $related = array_map('trim', explode(',', $related));
+                }
+                $relations = [];
+                foreach ($related as $relative) {
+                    // search for relation + '_' + option because '.' is replaced by '_'
+                    $relations[strtolower($relative)] =
+                        [
+                            'name'             => $relative,
+                            ApiOptions::FIELDS => $this->request->getParameter(
+                                str_replace('.', '_', $relative . '.' . ApiOptions::FIELDS),
+                                '*'),
+                            ApiOptions::LIMIT  => $this->request->getParameter(
+                                str_replace('.', '_', $relative . '.' . ApiOptions::LIMIT),
+                                static::getMaxRecordsReturnedLimit()),
+                            ApiOptions::ORDER  => $this->request->getParameter(
+                                str_replace('.', '_', $relative . '.' . ApiOptions::ORDER)),
+                            ApiOptions::GROUP  => $this->request->getParameter(
+                                str_replace('.', '_', $relative . '.' . ApiOptions::GROUP)),
+                        ];
+                }
+
+                $this->request->setParameter(ApiOptions::RELATED, $relations);
+            }
         }
+
+        return $this;
     }
 
     /**
@@ -1773,21 +1816,1031 @@ abstract class BaseDbTableResource extends BaseDbResource
      */
     abstract protected function rollbackTransaction();
 
+    // Related records helpers
+
+    /**
+     * @param array            $record Record containing relationships by name if any
+     * @param RelationSchema[] $relations
+     *
+     * @throws InternalServerErrorException
+     * @return void
+     */
+    protected function updatePreRelations(&$record, $relations)
+    {
+        $record = array_change_key_case($record, CASE_LOWER);
+        foreach ($relations as $name => $relationInfo) {
+            if (!empty($relatedRecords = array_get($record, $name))) {
+                switch ($relationInfo->type) {
+                    case RelationSchema::BELONGS_TO:
+                        $this->updateBelongsTo($relationInfo, $record, $relatedRecords);
+                        unset($record[$name]);
+                        break;
+                }
+            }
+        }
+    }
+
+    /**
+     * @param string           $table
+     * @param array            $record Record containing relationships by name if any
+     * @param RelationSchema[] $relations
+     * @param bool             $allow_delete
+     *
+     * @throws InternalServerErrorException
+     * @return void
+     */
+    protected function updatePostRelations($table, $record, $relations, $allow_delete = false)
+    {
+        $schema = $this->getTableSchema(null, $table);
+        $record = array_change_key_case($record, CASE_LOWER);
+        foreach ($relations as $name => $relationInfo) {
+            if (array_key_exists($name, $record)) {
+                $relatedRecords = $record[$name];
+                unset($record[$name]);
+                switch ($relationInfo->type) {
+                    case RelationSchema::HAS_MANY:
+                        $this->assignManyToOne(
+                            $schema,
+                            $record,
+                            $relationInfo,
+                            $relatedRecords,
+                            $allow_delete
+                        );
+                        break;
+                    case RelationSchema::MANY_MANY:
+                        $this->assignManyToOneByJunction(
+                            $schema,
+                            $record,
+                            $relationInfo,
+                            $relatedRecords
+                        );
+                        break;
+                }
+            }
+        }
+    }
+
+    /**
+     * @param TableSchema      $schema
+     * @param RelationSchema[] $relations
+     * @param string|array     $requests
+     * @param array            $data
+     *
+     * @throws InternalServerErrorException
+     * @throws BadRequestException
+     * @return void
+     */
+    protected function retrieveRelatedRecords(TableSchema $schema, $relations, $requests, &$data)
+    {
+        $relatedExtras = [ApiOptions::LIMIT => static::getMaxRecordsReturnedLimit(), ApiOptions::FIELDS => '*'];
+        foreach ($relations as $key => $relation) {
+            if (empty($relation)) {
+                throw new BadRequestException("Empty relationship found.");
+            }
+
+            if (is_array($requests) && array_key_exists($key, $requests)) {
+                $this->retrieveRelationRecords($schema, $relation, $data, $requests[$key]);
+            } elseif (('*' == $requests) || $relation->alwaysFetch) {
+                $this->retrieveRelationRecords($schema, $relation, $data, $relatedExtras);
+            }
+        }
+    }
+
+    /**
+     * @param string $serviceName
+     * @param string $resource
+     * @param null   $params
+     *
+     * @return mixed|null
+     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\RestException
+     */
+    protected function retrieveVirtualRecords($serviceName, $resource, $params = null)
+    {
+        if (empty($serviceName)) {
+            return null;
+        }
+
+        $result = null;
+        $params = (is_array($params) ? $params : []);
+
+        $request = new Service2ServiceRequest(Verbs::GET, $params);
+
+        //  Now set the request object and go...
+        $service = ServiceManager::getService($serviceName);
+        $response = $service->handleRequest($request, $resource);
+        $content = $response->getContent();
+        $status = $response->getStatusCode();
+
+        if (empty($content)) {
+            // No content specified.
+            return null;
+        }
+
+        switch ($status) {
+            case 200:
+                if (isset($content)) {
+                    return (isset($content['resource']) ? $content['resource'] : $content);
+                }
+
+                throw new InternalServerErrorException('Virtual query succeeded but returned invalid format.');
+                break;
+            default:
+                if (isset($content, $content['error'])) {
+                    $error = $content['error'];
+                    extract($error);
+                    /** @noinspection PhpUndefinedVariableInspection */
+                    throw new RestException($status, $message, $code);
+                }
+
+                throw new RestException($status, 'Virtual query failed but returned invalid format.');
+        }
+    }
+
+    /**
+     * @param string     $serviceName
+     * @param string     $resource
+     * @param string     $verb
+     * @param null|array $records
+     * @param null|array $params
+     *
+     * @return mixed|null
+     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\RestException
+     * @internal param $path
+     */
+    protected function handleVirtualRecords($serviceName, $resource, $verb, $records = null, $params = null)
+    {
+        if (empty($serviceName)) {
+            return null;
+        }
+
+        $result = null;
+        $params = (is_array($params) ? $params : []);
+
+        $request = new Service2ServiceRequest($verb, $params);
+        if (!empty($records)) {
+            $records = ResourcesWrapper::wrapResources($records);
+            $request->setContent($records);
+        }
+
+        //  Now set the request object and go...
+        $service = ServiceManager::getService($serviceName);
+        $response = $service->handleRequest($request, $resource);
+        $content = $response->getContent();
+        $status = $response->getStatusCode();
+
+        if (empty($content)) {
+            // No content specified.
+            return null;
+        }
+
+        switch ($status) {
+            case 200:
+            case 201:
+                if (isset($content)) {
+                    return (isset($content['resource']) ? $content['resource'] : $content);
+                }
+
+                throw new InternalServerErrorException('Virtual query succeeded but returned invalid format.');
+                break;
+            default:
+                if (isset($content, $content['error'])) {
+                    $error = $content['error'];
+                    extract($error);
+                    /** @noinspection PhpUndefinedVariableInspection */
+                    throw new RestException($status, $message, $code);
+                }
+
+                throw new RestException($status, 'Virtual query failed but returned invalid format.');
+        }
+    }
+
+    protected function getTableSchema($service, $table)
+    {
+        if (!empty($service) && ($service !== $this->getServiceName())) {
+            // non-native service relation, go get it
+            if (!empty($result = $this->retrieveVirtualRecords($service, '_schema/' . $table))) {
+                return new TableSchema($result);
+            }
+        } else {
+            return $this->parent->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $table);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param string $service
+     * @param string $table
+     * @param array  $fields
+     *
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\RestException
+     */
+    protected function replaceWithAliases($service, &$table, array &$fields)
+    {
+        if (!empty($refSchema = $this->getTableSchema($service, $table))) {
+            $table = $refSchema->getName(true);
+            foreach ($fields as &$field) {
+                if (!empty($temp = $refSchema->getColumn($field))) {
+                    $field = $temp->getName(true);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param TableSchema    $schema
+     * @param RelationSchema $relation
+     * @param array          $data
+     * @param array          $extras
+     *
+     * @return void
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\RestException
+     * @throws \Exception
+     */
+    protected function retrieveRelationRecords(TableSchema $schema, RelationSchema $relation, &$data, $extras)
+    {
+        $relationName = $relation->getName(true);
+        $localFieldInfo = $schema->getColumn($relation->field);
+        $localField = $localFieldInfo->getName(true);
+        $extras = (is_array($extras) ? $extras : []);
+
+        $fieldValues = [];
+        foreach ($data as $ndx => $record) {
+            switch ($relation->type) {
+                case RelationSchema::BELONGS_TO:
+                    $data[$ndx][$relationName] = null;
+                    break;
+                default:
+                    $data[$ndx][$relationName] = [];
+                    break;
+            }
+            $fieldValues[$ndx] = array_get($record, $localField);
+        }
+
+        // clean up values before query
+        $values = array_unique($fieldValues);
+        $values = array_filter($values, function ($v) {
+            return !is_null($v);
+        });
+        if (empty($values)) {
+            return;
+        }
+
+        switch ($relation->type) {
+            case RelationSchema::BELONGS_TO:
+                $refService = ($this->getServiceId() !== $relation->refServiceId) ?
+                    Service::getCachedNameById($relation->refServiceId) :
+                    $this->getServiceName();
+                $refSchema = $this->getTableSchema($refService, $relation->refTable);
+                $refTable = $refSchema->getName(true);
+                if (empty($refField = $refSchema->getColumn($relation->refField))) {
+                    throw new InternalServerErrorException("Incorrect relationship configuration detected. Field '{$relation->refField} not found.");
+                }
+
+                // check for access
+                Session::checkServicePermission(Verbs::GET, $refService, '_table/' . $refTable);
+
+                // Get records
+                $refFieldName = $refField->getName(true);
+                $extras[ApiOptions::FILTER] = "($refFieldName IN (" . implode(',', $values) . '))';
+                $relatedRecords = $this->retrieveVirtualRecords($refService, '_table/' . $refTable, $extras);
+
+                // Map the records back to data
+                if (!empty($relatedRecords)) {
+                    foreach ($fieldValues as $ndx => $fieldValue) {
+                        if (empty($fieldValue)) {
+                            continue;
+                        }
+
+                        foreach ($relatedRecords as $record) {
+                            if ($fieldValue === array_get($record, $refFieldName)) {
+                                $data[$ndx][$relationName] = $record;
+                                continue 2; // belongs_to only supports one related per record
+                            }
+                        }
+                    }
+                }
+                break;
+            case RelationSchema::HAS_MANY:
+                $refService = ($this->getServiceId() !== $relation->refServiceId) ?
+                    Service::getCachedNameById($relation->refServiceId) :
+                    $this->getServiceName();
+                $refSchema = $this->getTableSchema($refService, $relation->refTable);
+                $refTable = $refSchema->getName(true);
+                if (empty($refField = $refSchema->getColumn($relation->refField))) {
+                    throw new InternalServerErrorException("Incorrect relationship configuration detected. Field '{$relation->refField} not found.");
+                }
+
+                // check for access
+                Session::checkServicePermission(Verbs::GET, $refService, '_table/' . $refTable);
+
+                // Get records
+                $refFieldName = $refField->getName(true);
+                $extras[ApiOptions::FILTER] = "($refFieldName IN (" . implode(',', $values) . '))';
+                $relatedRecords = $this->retrieveVirtualRecords($refService, '_table/' . $refTable, $extras);
+
+                // Map the records back to data
+                if (!empty($relatedRecords)) {
+                    foreach ($fieldValues as $ndx => $fieldValue) {
+                        if (empty($fieldValue)) {
+                            continue;
+                        }
+
+                        foreach ($relatedRecords as $record) {
+                            if ($fieldValue === array_get($record, $refFieldName)) {
+                                $data[$ndx][$relationName][] = $record;
+                            }
+                        }
+                    }
+                }
+                break;
+            case RelationSchema::MANY_MANY:
+                $junctionService = ($this->getServiceId() !== $relation->junctionServiceId) ?
+                    Service::getCachedNameById($relation->junctionServiceId) :
+                    $this->getServiceName();
+                $junctionSchema = $this->getTableSchema($junctionService, $relation->junctionTable);
+                $junctionTable = $junctionSchema->getName(true);
+                $junctionField = $junctionSchema->getColumn($relation->junctionField);
+                $junctionRefField = $junctionSchema->getColumn($relation->junctionRefField);
+                if (empty($junctionTable) ||
+                    empty($junctionField) ||
+                    empty($junctionRefField)
+                ) {
+                    throw new InternalServerErrorException('Many to many relationship not configured properly.');
+                }
+
+                // check for access
+                Session::checkServicePermission(Verbs::GET, $junctionService, '_table/' . $junctionTable);
+
+                // Get records
+                $junctionFieldName = $junctionField->getName(true);
+                $junctionRefFieldName = $junctionRefField->getName(true);
+                $filter = "($junctionFieldName IN (" . implode(',', $values) . '))';
+                $filter .= static::padOperator(DbLogicalOperators::AND_STR);
+                $filter .= "($junctionRefFieldName " . DbComparisonOperators::IS_NOT_NULL . ')';
+                $temp = [
+                    ApiOptions::FILTER => $filter,
+                    ApiOptions::FIELDS => [$junctionFieldName, $junctionRefFieldName]
+                ];
+                $junctionData = $this->retrieveVirtualRecords($junctionService, '_table/' . $junctionTable, $temp);
+                if (!empty($junctionData)) {
+                    $relatedIds = [];
+                    foreach ($junctionData as $record) {
+                        if (!is_null($rightValue = array_get($record, $junctionRefFieldName))) {
+                            $relatedIds[] = $rightValue;
+                        }
+                    }
+                    if (!empty($relatedIds)) {
+                        $refService = ($this->getServiceId() !== $relation->refServiceId) ?
+                            Service::getCachedNameById($relation->refServiceId) :
+                            $this->getServiceName();
+                        $refSchema = $this->getTableSchema($refService, $relation->refTable);
+                        $refTable = $refSchema->getName(true);
+                        if (empty($refField = $refSchema->getColumn($relation->refField))) {
+                            throw new InternalServerErrorException("Incorrect relationship configuration detected. Field '{$relation->refField} not found.");
+                        }
+                        $refFieldName = $refField->getName(true);
+
+                        // check for access
+                        Session::checkServicePermission(Verbs::GET, $refService, '_table/' . $refTable);
+
+                        // Get records
+                        $filter = $refFieldName . ' IN (' . implode(',', $relatedIds) . ')';
+                        $extras[ApiOptions::FILTER] = $filter;
+                        $relatedRecords = $this->retrieveVirtualRecords($refService, '_table/' . $refTable, $extras);
+
+                        // Map the records back to data
+                        if (!empty($relatedRecords)) {
+                            foreach ($fieldValues as $ndx => $fieldValue) {
+                                if (empty($fieldValue)) {
+                                    continue;
+                                }
+
+                                foreach ($junctionData as $junction) {
+                                    if ($fieldValue === array_get($junction, $junctionFieldName)) {
+                                        $rightValue = array_get($junction, $junctionRefFieldName);
+                                        foreach ($relatedRecords as $record) {
+                                            if ($rightValue === array_get($record, $refFieldName)) {
+                                                $data[$ndx][$relationName][] = $record;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                    }
+                }
+                break;
+            default:
+                throw new InternalServerErrorException('Invalid relationship type detected.');
+                break;
+        }
+    }
+
+    /**
+     * @param RelationSchema $relation
+     * @param array          $record
+     * @param array          $parent
+     *
+     * @throws BadRequestException
+     * @return void
+     */
+    protected function updateBelongsTo(RelationSchema $relation, &$record, $parent)
+    {
+        try {
+            $refService = ($this->getServiceId() !== $relation->refServiceId) ?
+                Service::getCachedNameById($relation->refServiceId) :
+                $this->getServiceName();
+            $refSchema = $this->getTableSchema($refService, $relation->refTable);
+            $refTable = $refSchema->getName(true);
+            if (empty($refField = $refSchema->getColumn($relation->refField))) {
+                throw new InternalServerErrorException("Incorrect relationship configuration detected. Field '{$relation->refField} not found.");
+            }
+
+            if (is_array($refSchema->primaryKey)) {
+                if (1 < count($refSchema->primaryKey)) {
+                    // todo How to handle multiple primary keys?
+                    throw new NotImplementedException("Relating records with multiple field primary keys is not currently supported.");
+                } else {
+                    $pkField = $refSchema->primaryKey[0];
+                }
+            } else {
+                $pkField = $refSchema->primaryKey;
+            }
+            $pkField = $refSchema->getColumn($pkField);
+
+            $pkAutoSet = $pkField->autoIncrement;
+            $pkFieldAlias = $pkField->getName(true);
+
+            // figure out which batch each related record falls into
+            $insertMany = [];
+            $updateMany = [];
+            $id = array_get($parent, $pkFieldAlias);
+            if (empty($id)) {
+                if (!$pkAutoSet) {
+                    throw new BadRequestException("Related record has no primary key value for '$pkFieldAlias'.");
+                }
+
+                // create new parent record
+                $insertMany[] = $parent;
+            } else {
+                // update or insert a parent
+                // check for access
+                Session::checkServicePermission(Verbs::GET, $refService, '_table/' . $refTable);
+
+                // Get records
+                $filterVal = ('string' === gettype($id)) ? "'$id'" : $id;
+                $temp = [ApiOptions::FILTER => "$pkFieldAlias = $filterVal"];
+                $matchIds = $this->retrieveVirtualRecords($refService, '_table/' . $refTable, $temp);
+
+                if ($found = static::findRecordByNameValue($matchIds, $pkFieldAlias, $id)) {
+                    $updateMany[] = $parent;
+                } else {
+                    $insertMany[] = $parent;
+                }
+            }
+
+            if (!empty($insertMany)) {
+                if (!empty($newIds = $this->createForeignRecords($refService, $refSchema, $insertMany))) {
+                    if ($relation->refField === $pkFieldAlias) {
+                        $record[$relation->field] = array_get(reset($newIds), $pkFieldAlias);
+                    } else {
+                        $record[$relation->field] = array_get(reset($insertMany), $relation->refField);
+                    }
+                }
+            }
+
+            if (!empty($updateMany)) {
+                $this->updateForeignRecords($refService, $refSchema, $pkField, $updateMany);
+            }
+        } catch (\Exception $ex) {
+            throw new BadRequestException("Failed to update belongs-to assignment.\n{$ex->getMessage()}");
+        }
+    }
+
+    /**
+     * @param TableSchema    $one_table
+     * @param array          $one_record
+     * @param RelationSchema $relation
+     * @param array          $many_records
+     * @param bool           $allow_delete
+     *
+     * @throws BadRequestException
+     * @return void
+     */
+    protected function assignManyToOne(
+        TableSchema $one_table,
+        $one_record,
+        RelationSchema $relation,
+        $many_records = [],
+        $allow_delete = false
+    ) {
+        // update currently only supports one id field
+        if (empty($one_id = array_get($one_record, $relation->field))) {
+            throw new BadRequestException("The {$one_table->getName(true)} id can not be empty.");
+        }
+
+        try {
+            $refService = ($this->getServiceId() !== $relation->refServiceId) ?
+                Service::getCachedNameById($relation->refServiceId) :
+                $this->getServiceName();
+            $refSchema = $this->getTableSchema($refService, $relation->refTable);
+            $refTable = $refSchema->getName(true);
+            if (empty($refField = $refSchema->getColumn($relation->refField))) {
+                throw new InternalServerErrorException("Incorrect relationship configuration detected. Field '{$relation->refField} not found.");
+            }
+
+            if (is_array($refSchema->primaryKey)) {
+                if (1 < count($refSchema->primaryKey)) {
+                    // todo How to handle multiple primary keys?
+                    throw new NotImplementedException("Relating records with multiple field primary keys is not currently supported.");
+                } else {
+                    $pkField = $refSchema->primaryKey[0];
+                }
+            } else {
+                $pkField = $refSchema->primaryKey;
+            }
+            $pkField = $refSchema->getColumn($pkField);
+
+            $pkAutoSet = $pkField->autoIncrement;
+            $pkFieldAlias = $pkField->getName(true);
+            $refFieldAlias = $refField->getName(true);
+            $deleteRelated = (!$refField->allowNull && $allow_delete);
+
+            // figure out which batch each related record falls into
+            $relateMany = [];
+            $disownMany = [];
+            $insertMany = [];
+            $updateMany = [];
+            $upsertMany = [];
+            $deleteMany = [];
+            foreach ($many_records as $item) {
+                $id = array_get($item, $pkFieldAlias);
+                if (empty($id)) {
+                    if (!$pkAutoSet) {
+                        throw new BadRequestException("Related record has no primary key value for '$pkFieldAlias'.");
+                    }
+
+                    // create new child record
+                    $item[$refFieldAlias] = $one_id; // assign relationship
+                    $insertMany[] = $item;
+                } else {
+                    if (array_key_exists($refFieldAlias, $item)) {
+                        if (null == array_get($item, $refFieldAlias)) {
+                            // disown this child or delete them
+                            if ($deleteRelated) {
+                                $deleteMany[] = $id;
+                            } elseif (count($item) > 1) {
+                                $item[$refFieldAlias] = null; // assign relationship
+                                $updateMany[] = $item;
+                            } else {
+                                $disownMany[] = $id;
+                            }
+
+                            continue;
+                        }
+                    }
+
+                    // update or upsert this child
+                    if (count($item) > 1) {
+                        $item[$refFieldAlias] = $one_id; // assign relationship
+                        if ($pkAutoSet) {
+                            $updateMany[] = $item;
+                        } else {
+                            $upsertMany[$id] = $item;
+                        }
+                    } else {
+                        $relateMany[] = $id;
+                    }
+                }
+            }
+
+            // resolve any upsert situations
+            if (!empty($upsertMany)) {
+                // check for access
+                Session::checkServicePermission(Verbs::GET, $refService, '_table/' . $refTable);
+
+                // Get records
+                $checkIds = array_keys($upsertMany);
+                if (count($checkIds) > 1) {
+                    $filter = $pkFieldAlias . ' IN (' . implode(',', $checkIds) . ')';
+                } else {
+                    $filter = $pkFieldAlias . ' = ' . $checkIds[0];
+                }
+                $temp = [ApiOptions::FILTER => $filter];
+                $matchIds = $this->retrieveVirtualRecords($refService, '_table/' . $refTable, $temp);
+
+                foreach ($upsertMany as $uId => $record) {
+                    if ($found = static::findRecordByNameValue($matchIds, $pkFieldAlias, $uId)) {
+                        $updateMany[] = $record;
+                    } else {
+                        $insertMany[] = $record;
+                    }
+                }
+            }
+
+            // Now handle the batches
+            if (!empty($insertMany)) {
+                // create new children
+                $this->createForeignRecords($refService, $refSchema, $insertMany);
+            }
+
+            if (!empty($deleteMany)) {
+                // destroy linked children that can't stand alone - sounds sinister
+                $this->deleteForeignRecords($refService, $refSchema, $pkField, $deleteMany);
+            }
+
+            if (!empty($updateMany)) {
+                $this->updateForeignRecords($refService, $refSchema, $pkField, $updateMany);
+            }
+
+            if (!empty($relateMany)) {
+                // adopt/relate/link unlinked children
+                $updates = [$refFieldAlias => $one_id];
+                $this->updateForeignRecordsByIds($refService, $refSchema, $pkField, $relateMany, $updates);
+            }
+
+            if (!empty($disownMany)) {
+                // disown/un-relate/unlink linked children
+                $updates = [$refFieldAlias => null];
+                $this->updateForeignRecordsByIds($refService, $refSchema, $pkField, $disownMany, $updates);
+            }
+        } catch (\Exception $ex) {
+            throw new BadRequestException("Failed to update many to one assignment.\n{$ex->getMessage()}");
+        }
+    }
+
+    protected function createForeignRecords($service, TableSchema $schema, $records)
+    {
+        // do we have permission to do so?
+        Session::checkServicePermission(Verbs::POST, $service, '_table/' . $schema->getName(true));
+//        if (!empty($service) && ($service !== $this->getServiceName())) {
+            $newIds = $this->handleVirtualRecords($service, '_table/' . $schema->getName(true), Verbs::POST, $records);
+//        } else {
+//            $tableName = $schema->getName();
+//            $builder = $this->dbConn->table($tableName);
+//            $fields = $schema->getColumns(true);
+//            $ssFilters = Session::getServiceFilters(Verbs::POST, $service, $schema->getName(true));
+//            $newIds = [];
+//            foreach ($records as $record) {
+//                $parsed = $this->parseRecord($record, $fields, $ssFilters);
+//                if (empty($parsed)) {
+//                    throw new BadRequestException('No valid fields were found in record.');
+//                }
+//
+//                $newIds[] = (int)$builder->insertGetId($parsed, $schema->primaryKey);
+//            }
+//        }
+
+        return $newIds;
+    }
+
+    protected function updateForeignRecords(
+        $service,
+        TableSchema $schema,
+        ColumnSchema $linkerField,
+        $records
+    ) {
+        // do we have permission to do so?
+        Session::checkServicePermission(Verbs::PUT, $service, '_table/' . $schema->getName(true));
+//        if (!empty($service) && ($service !== $this->getServiceName())) {
+            $this->handleVirtualRecords($service, '_table/' . $schema->getName(true), Verbs::PATCH, $records);
+//        } else {
+//            $fields = $schema->getColumns(true);
+//            $ssFilters = Session::getServiceFilters(Verbs::PUT, $service, $schema->getName(true));
+//            // update existing and adopt new children
+//            foreach ($records as $record) {
+//                $pk = array_get($record, $linkerField->getName(true));
+//                $parsed = $this->parseRecord($record, $fields, $ssFilters, true);
+//                if (empty($parsed)) {
+//                    throw new BadRequestException('No valid fields were found for foreign link updates.');
+//                }
+//
+//                $builder = $this->dbConn->table($schema->getName());
+//                $builder->where($linkerField->name, $pk);
+//                $serverFilter = $this->buildQueryStringFromData($ssFilters);
+//                if (!empty($serverFilter)) {
+//                    Session::replaceLookups($serverFilter);
+//                    $params = [];
+//                    $filterString = $this->parseFilterString($serverFilter, $params, $this->tableFieldsInfo);
+//                    $builder->whereRaw($filterString, $params);
+//                }
+//
+//                $rows = $builder->update($parsed);
+//                if (0 >= $rows) {
+////            throw new NotFoundException( 'No foreign linked records were found using the given identifiers.' );
+//                }
+//            }
+//        }
+    }
+
+    protected function updateForeignRecordsByIds(
+        $service,
+        TableSchema $schema,
+        ColumnSchema $linkerField,
+        $linkerIds,
+        $record
+    ) {
+        // do we have permission to do so?
+        Session::checkServicePermission(Verbs::PUT, $service, '_table/' . $schema->getName(true));
+//        if (!empty($service) && ($service !== $this->getServiceName())) {
+            $temp = [ApiOptions::IDS => $linkerIds, ApiOptions::ID_FIELD => $linkerField->getName(true)];
+            $this->handleVirtualRecords($service, '_table/' . $schema->getName(true), Verbs::PATCH, $record, $temp);
+//        } else {
+//            $fields = $schema->getColumns(true);
+//            $ssFilters = Session::getServiceFilters(Verbs::PUT, $service, $schema->getName(true));
+//            $parsed = $this->parseRecord($record, $fields, $ssFilters, true);
+//            if (empty($parsed)) {
+//                throw new BadRequestException('No valid fields were found for foreign link updates.');
+//            }
+//            $builder = $this->dbConn->table($schema->getName());
+//            $builder->whereIn($linkerField->name, $linkerIds);
+//            $serverFilter = $this->buildQueryStringFromData($ssFilters);
+//            if (!empty($serverFilter)) {
+//                Session::replaceLookups($serverFilter);
+//                $params = [];
+//                $filterString = $this->parseFilterString($serverFilter, $params, $this->tableFieldsInfo);
+//                $builder->whereRaw($filterString, $params);
+//            }
+//
+//            $rows = $builder->update($parsed);
+//            if (0 >= $rows) {
+////            throw new NotFoundException( 'No foreign linked records were found using the given identifiers.' );
+//            }
+//        }
+    }
+
+    protected function deleteForeignRecords(
+        $service,
+        TableSchema $schema,
+        ColumnSchema $linkerField,
+        $linkerIds,
+        $addCondition = null
+    ) {
+        // do we have permission to do so?
+        Session::checkServicePermission(Verbs::DELETE, $service, '_table/' . $schema->getName(true));
+//        if (!empty($service) && ($service !== $this->getServiceName())) {
+            if (!empty($addCondition) && is_array($addCondition)) {
+                $filter = '(' . $linkerField->getName(true) . ' IN (' . implode(',', $$linkerIds) . '))';
+                foreach ($addCondition as $key => $value) {
+                    $column = $schema->getColumn($key);
+                    $filter .= 'AND (' . $column->getName(true) . ' = ' . $value . ')';
+                }
+                $temp = [ApiOptions::FILTER => $filter];
+            } else {
+                $temp = [ApiOptions::IDS => $linkerIds, ApiOptions::ID_FIELD => $linkerField->getName(true)];
+            }
+
+            $this->handleVirtualRecords($service, '_table/' . $schema->getName(true), Verbs::DELETE, null, $temp);
+//        } else {
+//            $builder = $this->dbConn->table($schema->getName());
+//            $builder->whereIn($linkerField->name, $linkerIds);
+//
+//            $ssFilters = Session::getServiceFilters(Verbs::DELETE, $service, $schema->getName(true));
+//            $serverFilter = $this->buildQueryStringFromData($ssFilters);
+//            if (!empty($serverFilter)) {
+//                Session::replaceLookups($serverFilter);
+//                $params = [];
+//                $filterString = $this->parseFilterString($serverFilter, $params, $this->tableFieldsInfo);
+//                $builder->whereRaw($filterString, $params);
+//            }
+//
+//            if (!empty($addCondition) && is_array($addCondition)) {
+//                foreach ($addCondition as $key => $value) {
+//                    $column = $schema->getColumn($key);
+//                    $builder->where($column->name, $value);
+//                }
+//            }
+//
+//            $rows = $builder->delete();
+//            if (0 >= $rows) {
+////            throw new NotFoundException( 'No foreign linked records were found using the given identifiers.' );
+//            }
+//        }
+    }
+
+    /**
+     * @param TableSchema    $one_table
+     * @param array          $one_record
+     * @param RelationSchema $relation
+     * @param array          $many_records
+     *
+     * @throws InternalServerErrorException
+     * @throws BadRequestException
+     * @return void
+     */
+    protected function assignManyToOneByJunction(
+        TableSchema $one_table,
+        $one_record,
+        RelationSchema $relation,
+        $many_records = []
+    ) {
+        if (empty($one_id = array_get($one_record, $relation->field))) {
+            throw new BadRequestException("The {$one_table->getName(true)} id can not be empty.");
+        }
+
+        try {
+            if (is_array($one_table->primaryKey)) {
+                if (1 !== count($one_table->primaryKey)) {
+                    // todo How to handle multiple primary keys?
+                    throw new NotImplementedException("Relating records with multiple field primary keys is not currently supported.");
+                } else {
+                    $onePkFieldName = $one_table->primaryKey[0];
+                }
+            } else {
+                $onePkFieldName = $one_table->primaryKey;
+            }
+            if (empty($onePkField = $one_table->getColumn($onePkFieldName))) {
+                throw new InternalServerErrorException("Incorrect relationship configuration detected. Field '$onePkFieldName' not found.");
+            }
+
+            $refService = ($this->getServiceId() !== $relation->refServiceId) ?
+                Service::getCachedNameById($relation->refServiceId) :
+                $this->getServiceName();
+            $refSchema = $this->getTableSchema($refService, $relation->refTable);
+            $refTable = $refSchema->getName(true);
+            if (empty($refField = $refSchema->getColumn($relation->refField))) {
+                throw new InternalServerErrorException("Incorrect relationship configuration detected. Field '{$relation->refField} not found.");
+            }
+            if (is_array($refSchema->primaryKey)) {
+                if (1 !== count($refSchema->primaryKey)) {
+                    // todo How to handle multiple primary keys?
+                    throw new NotImplementedException("Relating records with multiple field primary keys is not currently supported.");
+                } else {
+                    $refPkFieldName = $refSchema->primaryKey[0];
+                }
+            } else {
+                $refPkFieldName = $refSchema->primaryKey;
+            }
+            if (empty($refPkField = $refSchema->getColumn($refPkFieldName))) {
+                throw new InternalServerErrorException("Incorrect relationship configuration detected. Field '$refPkFieldName' not found.");
+            }
+
+            $junctionService = ($this->getServiceId() !== $relation->junctionServiceId) ?
+                Service::getCachedNameById($relation->junctionServiceId) :
+                $this->getServiceName();
+            $junctionSchema = $this->getTableSchema($junctionService, $relation->junctionTable);
+            $junctionTable = $junctionSchema->getName(true);
+            if (empty($junctionField = $junctionSchema->getColumn($relation->junctionField))) {
+                throw new InternalServerErrorException("Incorrect relationship configuration detected. Field '{$relation->junctionField} not found.");
+            }
+            if (empty($junctionRefField = $junctionSchema->getColumn($relation->junctionRefField))) {
+                throw new InternalServerErrorException("Incorrect relationship configuration detected. Field '{$relation->junctionRefField} not found.");
+            }
+
+            // check for access
+            Session::checkServicePermission(Verbs::GET, $junctionService, '_table/' . $junctionTable);
+
+            // Get records
+            $filter =
+                $junctionField->getName(true) . " = $one_id AND (" . $junctionRefField->getName(true) . " IS NOT NULL)";
+            $temp = [ApiOptions::FILTER => $filter, ApiOptions::FIELDS => $junctionRefField->getName(true)];
+
+            $maps = $this->retrieveVirtualRecords($junctionService, '_table/' . $junctionTable, $temp);
+
+            $createMap = []; // map records to create
+            $deleteMap = []; // ids of 'many' records to delete from maps
+            $insertMany = [];
+            $updateMany = [];
+            $upsertMany = [];
+
+            $pkAutoSet = $refPkField->autoIncrement;
+            $refPkFieldAlias = $refPkField->getName(true);
+            foreach ($many_records as $item) {
+                $id = array_get($item, $refPkFieldAlias);
+                if (empty($id)) {
+                    if (!$pkAutoSet) {
+                        throw new BadRequestException("Related record has no primary key value for '$refPkFieldAlias'.");
+                    }
+
+                    // create new child record
+                    $insertMany[] = $item;
+                } else {
+                    // pk fields exists, must be dealing with existing 'many' record
+                    $oneLookup = $one_table->getName(true) . '.' . $onePkField->getName(true);
+                    if (array_key_exists($oneLookup, $item)) {
+                        if (null == array_get($item, $oneLookup)) {
+                            // delete this relationship
+                            $deleteMap[] = $id;
+                            continue;
+                        }
+                    }
+
+                    // update the 'many' record if more than the above fields
+                    if (count($item) > 1) {
+                        if ($pkAutoSet) {
+                            $updateMany[] = $item;
+                        } else {
+                            $upsertMany[$id] = $item;
+                        }
+                    }
+
+                    // if relationship doesn't exist, create it
+                    foreach ($maps as $map) {
+                        if (array_get($map, $junctionRefField->getName(true)) == $id) {
+                            continue 2; // got what we need from this one
+                        }
+                    }
+
+                    $createMap[] = [$junctionRefField->getName(true) => $id, $junctionField->getName(true) => $one_id];
+                }
+            }
+
+            // resolve any upsert situations
+            if (!empty($upsertMany)) {
+                // check for access
+                Session::checkServicePermission(Verbs::GET, $refService, '_table/' . $refTable);
+
+                // Get records
+                $checkIds = array_keys($upsertMany);
+                if (count($checkIds) > 1) {
+                    $filter = $refPkFieldAlias . ' IN (' . implode(',', $checkIds) . ')';
+                } else {
+                    $filter = $refPkFieldAlias . ' = ' . $checkIds[0];
+                }
+                $temp = [ApiOptions::FILTER => $filter];
+                $matchIds = $this->retrieveVirtualRecords($refService, '_table/' . $refTable, $temp);
+
+                foreach ($upsertMany as $uId => $record) {
+                    if ($found = static::findRecordByNameValue($matchIds, $refPkFieldAlias, $uId)) {
+                        $updateMany[] = $record;
+                    } else {
+                        $insertMany[] = $record;
+                    }
+                }
+            }
+
+            if (!empty($insertMany)) {
+                $refIds = $this->createForeignRecords($refService, $refSchema, $insertMany);
+                // create new many records
+                foreach ($refIds as $refId) {
+                    if (!empty($refId)) {
+                        $createMap[] =
+                            [$junctionRefField->getName(true) => $refId, $junctionField->getName(true) => $one_id];
+                    }
+                }
+            }
+
+            if (!empty($updateMany)) {
+                // update existing many records
+                $this->updateForeignRecords($refService, $refSchema, $refPkField, $updateMany);
+            }
+
+            if (!empty($createMap)) {
+                $this->createForeignRecords($junctionService, $junctionSchema, $createMap);
+            }
+
+            if (!empty($deleteMap)) {
+                $addCondition = [$junctionField->getName() => $one_id];
+                $this->deleteForeignRecords($junctionService, $junctionSchema, $junctionRefField, $deleteMap,
+                    $addCondition);
+            }
+        } catch (\Exception $ex) {
+            throw new InternalServerErrorException("Failed to update many to one map assignment.\n{$ex->getMessage()}");
+        }
+    }
+
     // Helper function for record usage
 
     /**
-     * @param $table
+     * @param $table_name
      *
-     * @return array
-     * @throws BadRequestException
+     * @return ColumnSchema[]
+     * @throws \Exception
      */
-    protected function getFieldsInfo($table)
+    protected function getFieldsInfo($table_name)
     {
-        if (empty($table)) {
-            throw new BadRequestException('Table can not be empty.');
+        $table = $this->schema->getResource(DbResourceTypes::TYPE_TABLE, $table_name);
+        if (!$table) {
+            throw new NotFoundException("Table '$table_name' does not exist in the database.");
         }
 
-        return [];
+        return $table->getColumns(true);
+    }
+
+    /**
+     * @param $table_name
+     *
+     * @return RelationSchema[]
+     * @throws \Exception
+     */
+    protected function describeTableRelated($table_name)
+    {
+        $table = $this->schema->getResource(DbResourceTypes::TYPE_TABLE, $table_name);
+        if (!$table) {
+            throw new NotFoundException("Table '$table_name' does not exist in the database.");
+        }
+
+        return $table->getRelations(true);
     }
 
     /**
@@ -2410,6 +3463,17 @@ abstract class BaseDbTableResource extends BaseDbResource
         $default = defined('static::MAX_RECORDS_RETURNED') ? static::MAX_RECORDS_RETURNED : 1000;
 
         return intval(Config::get('df.db.max_records_returned', $default));
+    }
+
+    protected static function findRecordByNameValue($data, $field, $value)
+    {
+        foreach ($data as $record) {
+            if (array_get($record, $field) === $value) {
+                return $record;
+            }
+        }
+
+        return null;
     }
 
     /**

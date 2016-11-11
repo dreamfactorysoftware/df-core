@@ -10,6 +10,7 @@ use DreamFactory\Core\Database\ConnectionExtension;
 use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Enums\DbResourceTypes;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -751,7 +752,7 @@ class BaseModel extends Model implements CacheInterface
      */
     public function getTableSchema()
     {
-        return $this->getSchema()->getTable($this->table);
+        return $this->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $this->table);
     }
 
     public function getSchema()

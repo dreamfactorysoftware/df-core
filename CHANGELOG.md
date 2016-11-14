@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-862 Added support for schema merge in package import
 - DF-869, DF-871, DF-879 Reworked Virtual Foreign Keys to support all relationship types
 - Added new API paths for database table field and related management (_schema/<table_name>/_field and _related)
+- DF-552 Added support for Couchbase Database
 
 ### Changed
 - DF-893 Update CORS to use the latest laravel-cors with additional options and new path matching

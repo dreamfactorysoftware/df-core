@@ -52,6 +52,7 @@ class DfServiceProvider extends ServiceProvider
                 'Azure',
                 'Cache',
                 'Cassandra',
+                'Couchbase',
                 'CouchDb',
                 'IbmDb2',
                 'Logger',

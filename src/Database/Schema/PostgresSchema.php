@@ -644,9 +644,7 @@ MYSQL;
     }
 
     /**
-     * Extracts the PHP type from DB type.
-     *
-     * @param string $dbType DB type
+     * @inheritdoc
      */
     public function extractType(ColumnSchema &$column, $dbType)
     {

@@ -991,6 +991,9 @@ class Schema implements SchemaInterface
                 if (!empty($columnName = array_get($extra, 'field'))) {
                     if (null !== $c = $table->getColumn($columnName)) {
                         $c->fill($extra);
+                        // may need to reevaluate internal types
+                        $c->phpType = static::extractPhpType($c->type);
+                        $c->pdoType = static::extractPdoType($c->type);
                     } elseif (!static::PROVIDES_FIELD_SCHEMA && !empty($type = array_get($extra, 'extra_type'))) {
                         $extra['name'] = $extra['field'];
                         unset($extra['field']);
@@ -1827,6 +1830,21 @@ MYSQL;
         }
     }
 
+    protected static function isUndiscoverableType($type)
+    {
+        switch ($type) {
+            // keep our type extensions
+            case DbSimpleTypes::TYPE_USER_ID:
+            case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
+            case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
+                return true;
+        }
+
+        return false;
+    }
+
     /**
      * @param string $table_name
      * @param array  $fields
@@ -1867,15 +1885,10 @@ MYSQL;
                 // no need to build what the db doesn't support, use extras and bail
                 $extraNew['extra_type'] = $type;
             } else {
+                if (static::isUndiscoverableType($type)) {
+                    $extraNew['extra_type'] = $type;
+                }
                 switch ($type) {
-                    // keep our type extensions
-                    case DbSimpleTypes::TYPE_USER_ID:
-                    case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
-                    case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
-                    case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
-                    case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
-                        $extraNew['extra_type'] = $type;
-                        break;
                     case DbSimpleTypes::TYPE_ID:
                         $pkExtras = $this->getPrimaryKeyCommands($table_name, $name);
                         $commands = array_merge($commands, $pkExtras);
@@ -2064,15 +2077,10 @@ MYSQL;
                     // no need to build what the db doesn't support, use extras and bail
                     $extraNew['extra_type'] = $type;
                 } else {
+                    if (static::isUndiscoverableType($type)) {
+                        $extraNew['extra_type'] = $type;
+                    }
                     switch ($type) {
-                        // keep our type extensions
-                        case DbSimpleTypes::TYPE_USER_ID:
-                        case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
-                        case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
-                        case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
-                        case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
-                            $extraNew['extra_type'] = $type;
-                            break;
                         case DbSimpleTypes::TYPE_ID:
                             $pkExtras = $this->getPrimaryKeyCommands($table_name, $name);
                             $commands = array_merge($commands, $pkExtras);
@@ -3044,11 +3052,6 @@ MYSQL;
 
                     \Log::debug('Schema update: ' . $tableName);
 
-                    //  Is there a name update
-                    if (!empty($schema['new_name'])) {
-                        // todo change table name, has issue with references
-                    }
-
                     $oldSchema = $this->getTable($tableName);
 
                     $results = [];
@@ -3060,7 +3063,7 @@ MYSQL;
                         $results = array_merge($results, $related);
                     }
 
-                    $this->updateTable($tableName, $results);
+                    $this->updateTable($table, $results);
                 } else {
                     \Log::debug('Creating table: ' . $tableName);
 
@@ -3073,7 +3076,7 @@ MYSQL;
                         $results = array_merge($results, $temp);
                     }
 
-                    $this->createTable($tableName, array_get($results, 'columns'), array_get($table, 'options'));
+                    $this->createTable($table, $results);
 
                     if (!$singleTable && $rollback) {
                         $created[] = $tableName;
@@ -3173,18 +3176,21 @@ MYSQL;
      * If a column is specified with definition only (e.g. 'PRIMARY KEY (name, type)'), it will be directly
      * inserted into the generated SQL.
      *
-     * @param string $table   the name of the table to be created. The name will be properly quoted by the method.
-     * @param array  $columns the columns for the new table.
-     * @param string $options additional SQL fragment that will be appended to the generated SQL.
+     * @param array $table   the whole schema of the table to be created. The name will be properly quoted by the method.
+     * @param array $options the options for the new table, including columns.
      *
      * @return int 0 is always returned. See <a
      *             href='http://php.net/manual/en/pdostatement.rowcount.php'>http://php.net/manual/en/pdostatement.rowcount.php</a>
      *             for more for more information.
      * @throws \Exception
      */
-    protected function createTable($table, $columns, $options = null)
+    protected function createTable($table, $options)
     {
-        if (empty($columns)) {
+        if (empty($tableName = array_get($table, 'name'))) {
+            throw new \Exception("No valid name exist in the received table schema.");
+        }
+
+        if (empty($columns = array_get($options, 'columns'))) {
             throw new \Exception("No valid fields exist in the received table schema.");
         }
 
@@ -3196,46 +3202,47 @@ MYSQL;
                 $cols[] = "\t" . $type;
             }
         }
-        $sql = "CREATE TABLE " . $this->quoteTableName($table) . " (\n" . implode(",\n", $cols) . "\n)";
+        $sql = "CREATE TABLE " . $this->quoteTableName($tableName) . " (\n" . implode(",\n", $cols) . "\n)";
 
-        if ($options) {
-            $sql .= ' ' . $options;
+        // string additional SQL fragment that will be appended to the generated SQL
+        if (!empty($addOn = array_get($table, 'options'))) {
+            $sql .= ' ' . $addOn;
         }
 
         return $this->connection->statement($sql);
     }
 
     /**
-     * @param string $table_name
-     * @param array  $schema
+     * @param string $table
+     * @param array  $changes
      *
      * @throws \Exception
      */
-    protected function updateTable($table_name, $schema)
+    protected function updateTable($table, $changes)
     {
-        if (empty($table_name)) {
-            throw new \Exception("Table schema received does not have a valid name.");
+        if (empty($tableName = array_get($table, 'name'))) {
+            throw new \Exception("No valid name exist in the received table schema.");
         }
 
         //  Is there a name update
-        if (!empty($schema['new_name'])) {
+        if (!empty($changes['new_name'])) {
             // todo change table name, has issue with references
         }
 
         // update column types
-        if (isset($fields['columns']) && is_array($fields['columns'])) {
-            foreach ($fields['columns'] as $name => $definition) {
-                $this->connection->statement($this->addColumn($table_name, $name, $definition));
+        if (isset($changes['columns']) && is_array($changes['columns'])) {
+            foreach ($changes['columns'] as $name => $definition) {
+                $this->connection->statement($this->addColumn($tableName, $name, $definition));
             }
         }
-        if (isset($fields['alter_columns']) && is_array($fields['alter_columns'])) {
-            foreach ($fields['alter_columns'] as $name => $definition) {
-                $this->connection->statement($this->alterColumn($table_name, $name, $definition));
+        if (isset($changes['alter_columns']) && is_array($changes['alter_columns'])) {
+            foreach ($changes['alter_columns'] as $name => $definition) {
+                $this->connection->statement($this->alterColumn($tableName, $name, $definition));
             }
         }
-        if (isset($fields['drop_columns']) && is_array($fields['drop_columns'])) {
-            foreach ($fields['drop_columns'] as $name) {
-                $this->connection->statement($this->dropColumn($table_name, $name));
+        if (isset($changes['drop_columns']) && is_array($changes['drop_columns'])) {
+            foreach ($changes['drop_columns'] as $name) {
+                $this->connection->statement($this->dropColumn($tableName, $name));
             }
         }
     }
@@ -3251,6 +3258,7 @@ MYSQL;
     public function dropTable($table)
     {
         $sql = "DROP TABLE " . $this->quoteTableName($table);
+
         return $this->connection->statement($sql);
     }
 
@@ -3776,6 +3784,9 @@ MYSQL;
             case DbSimpleTypes::TYPE_INTEGER:
             case DbSimpleTypes::TYPE_ID:
             case DbSimpleTypes::TYPE_REF:
+            case DbSimpleTypes::TYPE_USER_ID:
+            case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
+            case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
                 return 'integer';
 
             case DbSimpleTypes::TYPE_DECIMAL:
@@ -3805,6 +3816,9 @@ MYSQL;
             case DbSimpleTypes::TYPE_INTEGER:
             case DbSimpleTypes::TYPE_ID:
             case DbSimpleTypes::TYPE_REF:
+            case DbSimpleTypes::TYPE_USER_ID:
+            case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
+            case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
                 return \PDO::PARAM_INT;
 
             case DbSimpleTypes::TYPE_STRING:

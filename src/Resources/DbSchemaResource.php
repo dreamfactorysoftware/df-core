@@ -825,7 +825,7 @@ class DbSchemaResource extends BaseDbResource
             }
         }
 
-        $result = $this->parent->getSchema()->updateSchema($tables);
+        $result = $this->parent->getSchema()->updateSchema($tables, !$check_exist);
 
         //  Any changes here should refresh cached schema
         $this->refreshCachedTables();
@@ -852,7 +852,7 @@ class DbSchemaResource extends BaseDbResource
         $properties['name'] = $table;
 
         $tables = static::validateAsArray($properties, null, true, 'Bad data format in request.');
-        $result = $this->parent->getSchema()->updateSchema($tables);
+        $result = $this->parent->getSchema()->updateSchema($tables, !$check_exist);
         $result = array_get($result, 0, []);
 
         //  Any changes here should refresh cached schema
@@ -913,7 +913,7 @@ class DbSchemaResource extends BaseDbResource
         $fields = static::validateAsArray($properties, null, true, 'Bad data format in request.');
 
         $tables = [['name' => $table, 'field' => $fields]];
-        $result = $this->parent->getSchema()->updateSchema($tables, true);
+        $result = $this->parent->getSchema()->updateSchema($tables, !$check_exist);
         $result = array_get(array_get($result, 0, []), 'field', []);
 
         //  Any changes here should refresh cached schema
@@ -979,7 +979,7 @@ class DbSchemaResource extends BaseDbResource
         $fields = static::validateAsArray($properties, null, true, 'Bad data format in request.');
 
         $tables = [['name' => $table, 'related' => $fields]];
-        $result = $this->parent->getSchema()->updateSchema($tables, true);
+        $result = $this->parent->getSchema()->updateSchema($tables, !$check_exist);
         $result = array_get(array_get($result, 0, []), 'related', []);
 
         //  Any changes here should refresh cached schema
@@ -1114,7 +1114,7 @@ class DbSchemaResource extends BaseDbResource
         $fields = static::validateAsArray($properties, null, true, 'Bad data format in request.');
 
         $tables = [['name' => $table, 'field' => $fields]];
-        $result = $this->parent->getSchema()->updateSchema($tables, true);
+        $result = $this->parent->getSchema()->updateSchema($tables, true, $allow_delete_parts);
         $result = array_get(array_get($result, 0, []), 'field', []);
 
         //  Any changes here should refresh cached schema
@@ -1186,7 +1186,7 @@ class DbSchemaResource extends BaseDbResource
         $fields = static::validateAsArray($properties, null, true, 'Bad data format in request.');
 
         $tables = [['name' => $table, 'related' => $fields]];
-        $result = $this->parent->getSchema()->updateSchema($tables, true);
+        $result = $this->parent->getSchema()->updateSchema($tables, true, $allow_delete_parts);
         $result = array_get(array_get($result, 0, []), 'related', []);
 
         //  Any changes here should refresh cached schema
@@ -1221,7 +1221,7 @@ class DbSchemaResource extends BaseDbResource
         foreach ($tables as $table) {
             $name = (is_array($table)) ? array_get($table, 'name') : $table;
             $this->validateSchemaAccess($name, Verbs::DELETE);
-            $out[] = $this->deleteTable($table, $check_empty);
+            $out[] = $this->deleteTable($name, $check_empty);
         }
 
         return $out;
@@ -1247,6 +1247,9 @@ class DbSchemaResource extends BaseDbResource
             throw new NotFoundException("Table '$table' not found.");
         }
 
+        if ($check_empty) {
+            // todo exist query here
+        }
         try {
             $this->parent->getSchema()->dropResource(DbResourceTypes::TYPE_TABLE, $table);
         } catch (\Exception $ex) {

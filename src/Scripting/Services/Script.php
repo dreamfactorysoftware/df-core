@@ -182,6 +182,6 @@ class Script extends BaseRestService
 
     public static function getApiDocInfo($service)
     {
-        return ['paths' => [], 'definitions' => []];
+        return null;
     }
 }

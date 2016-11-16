@@ -3176,7 +3176,8 @@ MYSQL;
      * If a column is specified with definition only (e.g. 'PRIMARY KEY (name, type)'), it will be directly
      * inserted into the generated SQL.
      *
-     * @param array $table   the whole schema of the table to be created. The name will be properly quoted by the method.
+     * @param array $table   the whole schema of the table to be created. The name will be properly quoted by the
+     *                       method.
      * @param array $options the options for the new table, including columns.
      *
      * @return int 0 is always returned. See <a
@@ -3419,10 +3420,12 @@ MYSQL;
             if (1 == count($result)) {
                 $result = current($result);
                 if (array_key_exists('output', $result)) {
-                    return $this->formatValue($result['output'], $function->returnType);
+                    return (is_null($result['output']) ? null : $this->formatValue($result['output'],
+                        $function->returnType));
                 } elseif (array_key_exists($function->name, $result)) {
                     // some vendors return the results as the function's name
-                    return $this->formatValue($result[$function->name], $function->returnType);
+                    return (is_null($result[$function->name]) ? null : $this->formatValue($result[$function->name],
+                        $function->returnType));
                 }
             }
         }
@@ -3573,7 +3576,8 @@ MYSQL;
                 case 'OUT':
                 case 'INOUT':
                     if (array_key_exists($key, $values)) {
-                        $out_params[$paramSchema->name] = $this->formatValue($values[$key], $paramSchema->type);
+                        $out_params[$paramSchema->name] =
+                            (is_null($values[$key]) ? null : $this->formatValue($values[$key], $paramSchema->type));
                     }
                     break;
             }
@@ -3654,6 +3658,9 @@ MYSQL;
                 case 'OUT':
                     $pdoType = $this->getPdoType($paramSchema->type);
 //                    $values[$key] = $this->formatValue($values[$key], $paramSchema->type);
+//                    if (empty($values[$key]) && (\PDO::PARAM_STR === $pdoType)) {
+//                        $values[$key] = str_repeat(" ", $paramSchema->length);
+//                    }
                     $this->bindParam(
                         $statement, ':' . $paramSchema->name,
                         $values[$key],

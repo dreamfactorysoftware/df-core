@@ -2973,6 +2973,11 @@ abstract class BaseDbTableResource extends BaseDbResource
         return $value;
     }
 
+    protected function restrictFieldsToDefined()
+    {
+        return false;
+    }
+
     /**
      * @param array          $record
      * @param ColumnSchema[] $fields_info
@@ -2987,7 +2992,7 @@ abstract class BaseDbTableResource extends BaseDbResource
     {
         $record = $this->interpretRecordValues($record);
 
-        $parsed = (empty($fields_info)) ? $record : [];
+        $parsed = ($this->restrictFieldsToDefined() ? [] : $record);
         if (!empty($fields_info)) {
             $record = array_change_key_case($record, CASE_LOWER);
 

@@ -4,22 +4,35 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+### Changed
+### Fixed
+
+## [0.6.0] - 2016-11-17
+### Added
 - DF-896 Added parameter and header options to scripting inline calls using platform
 - DF-867 Added a pre-configured local file service for the logs directory
 - DF-862 Added support for schema merge in package import
 - DF-869, DF-871, DF-879 Reworked Virtual Foreign Keys to support all relationship types
 - Added new API paths for database table field and related management (_schema/<table_name>/_field and _related)
-- DF-552 Added support for Couchbase Database
+- DF-552 Added support for Couchbase database
+- DF-892 Adding allowed modifier access in lookup designations
 
 ### Changed
 - DF-893 Update CORS to use the latest laravel-cors with additional options and new path matching
 - Removed array wrapping of event.request.headers values done by Symfony HeaderBag class
 - Marked API path for database table field management (_schema/<table_name>/<field_name>) as deprecated
+- Use null for empty service doc instead of default JSON object
+- Database service schema-handling base class changes to support field configuration across all database types
+- change base create and update table methods to allow for native settings
 
 ### Fixed
 - DF-868 Protecting user, role, and app lookups against duplicate named entries
 - DF-861 Preventing timeout on package export manifest by only showing top level folders for file services
 - DF-910 Node.js and Python scripting improvements
+- DF-922 Don't format null to defined param type
+- Clean up database extras upon dropping table or column
+- Casting boolean correctly for Sqlite
+- Parsing incoming record for NoSQL databases for pre-defined fields
 
 ## [0.5.3] - 2016-10-28
 ### Changed
@@ -344,7 +357,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.3...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.3...0.6.0
 [0.5.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.2...0.5.3
 [0.5.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.1...0.5.2
 [0.5.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.0...0.5.1

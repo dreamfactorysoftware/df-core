@@ -68,7 +68,9 @@ _wrapperResult = (function() {
     //noinspection JSUnresolvedVariable
     var _protocol = {$protocol};
     //noinspection JSUnresolvedVariable
-    var _host = _event.request.headers.host[0];
+    var _host = _event.request.headers.host;
+    //request options
+    var _options = {};
     
     function getProtocol(path) {
         path = path.trim(path);
@@ -110,14 +112,6 @@ _wrapperResult = (function() {
         }
         return path;
     }
-
-    var _options = {
-        host: _event.request.headers.host[0],
-        headers: {
-            'x-dreamfactory-api-key': _platform.session.api_key,
-            'x-dreamfactory-session-token': _platform.session.session_token 
-        }
-    };
     
     _event.setReturn = function(content){
         _event.script_result = content;
@@ -143,7 +137,10 @@ _wrapperResult = (function() {
     }
     
     _platform.api = {
-        call: function (verb, path, payload, headers, callback) {
+        call: function (verb, path, payload, options, callback) {
+            options = (options===null || options===undefined)? '' : options;
+            var headers = (options.headers)? options.headers : (options.parameters)? '' : options;
+            
             var host = getHost(path);
             if(host.indexOf(':') !== -1){
                 host = host.split(':');    
@@ -151,12 +148,35 @@ _wrapperResult = (function() {
                 _options.port = host[1];
             } else {
                 _options.host = host;
+                if(_options.port) delete _options.port;
             }
             _options.method = verb;
             _options.path = cleanPath(path);
             
+            if(options.parameters){
+                for(var param in options.parameters){
+                    if(_options.path.indexOf('?') === -1){
+                        _options.path = _options.path + '?' + param + '=' + options.parameters[param];
+                    } else {
+                        _options.path = _options.path + '&' + param + '=' + options.parameters[param];
+                    }
+                }
+            }
+            
             if(!isInternalApi(path)){
                 _options.headers = headers;
+            } else {
+                _options.headers = {
+                    'x-dreamfactory-api-key': _platform.session.api_key,
+                    'x-dreamfactory-session-token': _platform.session.session_token 
+                }
+                if(headers){
+                    for(var header in headers){
+                        if(!_options.headers[header]){
+                            _options.headers[header] = headers[header];
+                        }
+                    }
+                }
             }
             
             if(typeof payload === 'object'){
@@ -182,20 +202,20 @@ _wrapperResult = (function() {
             
             return request;
         },
-        get: function (path, headers, callback) {
-            return this.call('GET', path, '', headers, callback);
+        get: function (path, options, callback) {
+            return this.call('GET', path, '', options, callback);
         },
-        post: function (path, payload, headers, callback) {
-            return this.call('POST', path, payload, headers, callback);
+        post: function (path, payload, options, callback) {
+            return this.call('POST', path, payload, options, callback);
         },
-        put: function (path, payload, headers, callback) {
-            return this.call('PUT', path, payload, headers, callback);
+        put: function (path, payload, options, callback) {
+            return this.call('PUT', path, payload, options, callback);
         },
-        patch: function (path, payload, headers, callback) {
-            return this.call('PATCH', path, payload, headers, callback);
+        patch: function (path, payload, options, callback) {
+            return this.call('PATCH', path, payload, options, callback);
         },
-        delete: function (path, payload, headers, callback) {
-            return this.call('DELETE', path, payload, headers, callback);
+        delete: function (path, payload, options, callback) {
+            return this.call('DELETE', path, payload, options, callback);
         }
     };
 

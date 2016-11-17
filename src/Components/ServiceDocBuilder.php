@@ -6,13 +6,22 @@ use DreamFactory\Core\Enums\ApiDocFormatTypes;
 trait ServiceDocBuilder
 {
     /**
-     * @param integer $id
-     * @param array   $content
+     * @param integer      $id
+     * @param array|null   $content
      *
-     * @return array
+     * @param integer|null $format
+     * @return array|null
      */
-    public function buildServiceDoc($id, array $content)
+    public function buildServiceDoc($id, $content, $format = null)
     {
-        return ['service_id' => $id, 'content' => json_encode($content), 'format' => ApiDocFormatTypes::SWAGGER_JSON];
+        if (empty($content)) {
+            return null;
+        }
+
+        if (is_null($format)) {
+            $format = ApiDocFormatTypes::SWAGGER_JSON;
+        }
+
+        return ['service_id' => $id, 'content' => json_encode($content), 'format' => $format];
     }
 }

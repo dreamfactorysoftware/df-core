@@ -4,59 +4,57 @@ namespace DreamFactory\Core\Contracts;
 interface SchemaInterface extends CacheInterface, DbExtrasInterface
 {
     /**
-     * Return an array of table names.
+     * Return an array of supported schema resource types.
      *
-     * @param string $schema
-     * @param bool   $include_views
-     * @param bool   $refresh
-     *
-     * @return  []
+     * @return array
      */
-    public function getTableNames($schema = '', $include_views = true, $refresh = false);
+    public function getSupportedResourceTypes();
 
     /**
+     * @param string $type Resource type
+     *
+     * @return boolean
+     */
+    public function supportsResourceType($type);
+
+    /**
+     * @param string $type Resource type
      * @param string $name
-     * @param bool   $refresh
+     * @param bool   $returnName
      *
      * @return mixed
      */
-    public function getTable($name, $refresh = false);
+    public function doesResourceExist($type, $name, $returnName = false);
 
     /**
-     * Return an array of table names.
+     * Return an array of names of a particular type of resource.
      *
-     * @param string $schema
-     * @param bool   $refresh
+     * @param string $type    Resource type
+     * @param string $schema  Schema name if any specific requested
+     * @param bool   $refresh Clear cache and retrieve anew?
      *
-     * @return  []
+     * @return array
      */
-    public function getFunctionNames($schema = '', $refresh = false);
+    public function getResourceNames($type, $schema = '', $refresh = false);
 
     /**
-     * @param string $name
-     * @param bool   $refresh
+     * Return the metadata about a particular schema resource.
+     *
+     * @param string $type    Resource type
+     * @param string $name    Resource name
+     * @param bool   $refresh Clear cache and retrieve anew?
      *
      * @return mixed
      */
-    public function getFunction($name, $refresh = false);
+    public function getResource($type, $name, $refresh = false);
 
     /**
-     * Return an array of table names.
-     *
-     * @param string $schema
-     * @param bool   $refresh
-     *
-     * @return  []
-     */
-    public function getProcedureNames($schema = '', $refresh = false);
-
-    /**
-     * @param string $name
-     * @param bool   $refresh
+     * @param string $type Resource type
+     * @param string $name Resource name
      *
      * @return mixed
      */
-    public function getProcedure($name, $refresh = false);
+    public function dropResource($type, $name);
 
     /**
      * @return string
@@ -91,8 +89,6 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
 
     /**
      * @param $defaultSchemaOnly
-     *
-     * @return mixed
      */
     public function setDefaultSchemaOnly($defaultSchemaOnly);
 
@@ -112,24 +108,6 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
     public function updateSchema($tables, $allow_merge = false, $allow_delete = false, $rollback = false);
 
     /**
-     * @param      $table_name
-     * @param      $fields
-     * @param bool $allow_update
-     * @param bool $allow_delete
-     *
-     * @return mixed
-     */
-    public function updateFields($table_name, $fields, $allow_update = false, $allow_delete = false);
-
-    /**
-     * @param      $name
-     * @param bool $returnName
-     *
-     * @return mixed
-     */
-    public function doesTableExist($name, $returnName = false);
-
-    /**
      * @param $table
      *
      * @return mixed
@@ -142,21 +120,6 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
      * @return mixed
      */
     public function quoteColumnName($column);
-
-    /**
-     * @param $table
-     *
-     * @return mixed
-     */
-    public function dropTable($table);
-
-    /**
-     * @param $table
-     * @param $column
-     *
-     * @return mixed
-     */
-    public function dropColumn($table, $column);
 
     /**
      * Set the Caching interface.
@@ -183,13 +146,6 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
     public function refresh();
 
     /**
-     * Does this connection support stored functions
-     *
-     * @return boolean
-     */
-    public function supportsFunctions();
-
-    /**
      * @param string $name
      * @param array  $in_params
      *
@@ -197,13 +153,6 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
      * @return mixed
      */
     public function callFunction($name, array $in_params);
-
-    /**
-     * Does this connection support stored procedures
-     *
-     * @return boolean
-     */
-    public function supportsProcedures();
 
     /**
      * @param string $name
@@ -223,16 +172,16 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
     public function getPdoBinding($field);
 
     /**
-     * @param mixed $field
-     * @param boolean  $as_quoted_string
+     * @param mixed   $field
+     * @param boolean $as_quoted_string
      *
      * @return string
      */
     public function parseFieldForSelect($field, $as_quoted_string = false);
 
     /**
-     * @param mixed $field
-     * @param boolean  $as_quoted_string
+     * @param mixed   $field
+     * @param boolean $as_quoted_string
      *
      * @return string
      */

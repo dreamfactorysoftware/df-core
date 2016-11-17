@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Models;
 
+use Illuminate\Database\Query\Builder;
+
 /**
  * DbTableExtras
  *
@@ -13,9 +15,9 @@ namespace DreamFactory\Core\Models;
  * @property string  $name_field
  * @property string  $description
  * @property string  $model
- * @method static \Illuminate\Database\Query\Builder|DbTableExtras whereId($value)
- * @method static \Illuminate\Database\Query\Builder|DbTableExtras whereServiceId($value)
- * @method static \Illuminate\Database\Query\Builder|DbTableExtras whereTable($value)
+ * @method static Builder|DbTableExtras whereId($value)
+ * @method static Builder|DbTableExtras whereServiceId($value)
+ * @method static Builder|DbTableExtras whereTable($value)
  */
 class DbTableExtras extends BaseSystemModel
 {

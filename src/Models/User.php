@@ -385,16 +385,16 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 /** @type RelationSchema $reference */
                 foreach ($references as $reference) {
                     if ((RelationSchema::HAS_MANY === $reference->type) &&
-                        (('created_by_id' === $reference->refFields) ||
-                            ('last_modified_by_id' === $reference->refFields))
+                        (('created_by_id' === $reference->refField) ||
+                            ('last_modified_by_id' === $reference->refField))
                     ) {
                         $stmt =
                             'update [' .
                             $reference->refTable .
                             '] set [' .
-                            $reference->refFields .
+                            $reference->refField .
                             '] = null where [' .
-                            $reference->refFields .
+                            $reference->refField .
                             '] = ' .
                             $id;
                         if (0 !== $rows = \DB::update($stmt)) {
@@ -412,7 +412,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                             '] = null where [' .
                             $reference->field .
                             '] = ' .
-                            $id . ' and [' . $reference->refFields . '] != ' . $id;
+                            $id . ' and [' . $reference->refField . '] != ' . $id;
                         if (0 !== $rows = \DB::update($stmt)) {
                             \Log::debug('found rows: ' . $rows);
                         }

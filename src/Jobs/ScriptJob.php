@@ -13,11 +13,11 @@ class ScriptJob extends Job implements ShouldQueue
 
     /**
      * Create a new job instance.
-     *
+     * @param array $config
      */
-    public function __construct()
+    public function __construct($config = [])
     {
-        //
+        parent::__construct($config);
     }
 
     /**
@@ -27,6 +27,5 @@ class ScriptJob extends Job implements ShouldQueue
      */
     public function handle()
     {
-        //
     }
 }

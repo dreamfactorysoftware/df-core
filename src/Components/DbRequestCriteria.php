@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Database\Schema\ColumnSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
@@ -20,6 +21,9 @@ use Config;
  */
 trait DbRequestCriteria
 {
+    /** @var  ServiceRequestInterface */
+    protected $request;
+
     protected function getMaxRecordsReturnedLimit()
     {
         // some classes define their own default
@@ -51,6 +55,7 @@ trait DbRequestCriteria
 
         if (null !== ($value = $this->request->getParameter(ApiOptions::FILTER))) {
             /** @type TableSchema $schema */
+            /** @noinspection PhpUndefinedMethodInspection */
             $schema = $this->getModel()->getTableSchema();
             $native = $this->convertFilterToNative($value, $criteria['params'], [], $schema->getColumns());
             $criteria['condition'] = $native['where'];

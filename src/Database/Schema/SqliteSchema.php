@@ -8,6 +8,11 @@ use DreamFactory\Core\Enums\DbSimpleTypes;
  */
 class SqliteSchema extends Schema
 {
+    /**
+     * Underlying database provides field-level schema, i.e. SQL (true) vs NoSQL (false)
+     */
+    const PROVIDES_FIELD_SCHEMA = true;
+
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class
@@ -228,9 +233,9 @@ class SqliteSchema extends Schema
                 throw new \Exception("Invalid schema detected - no table element for reference type.");
             }
 
-            $refColumns = (isset($info['ref_fields'])) ? $info['ref_fields'] : 'id';
-            $refOnDelete = (isset($info['ref_on_delete'])) ? $info['ref_on_delete'] : null;
-            $refOnUpdate = (isset($info['ref_on_update'])) ? $info['ref_on_update'] : null;
+            $refColumns = array_get($info, 'ref_field', array_get($info, 'ref_fields'));
+            $refOnDelete = array_get($info, 'ref_on_delete');
+            $refOnUpdate = array_get($info, 'ref_on_update');
 
             $definition .= " REFERENCES $refTable($refColumns)";
             if (!empty($refOnUpdate)) {
@@ -322,60 +327,11 @@ class SqliteSchema extends Schema
     /**
      * @inheritdoc
      */
-    protected function loadTable(TableSchema $table)
-    {
-        if (!$this->findColumns($table)) {
-            return null;
-        }
-
-        $this->findConstraints($table);
-
-        return $table;
-    }
-
-    /**
-     * Collects the table column metadata.
-     *
-     * @param TableSchema $table the table metadata
-     *
-     * @return boolean whether the table exists in the database
-     */
-    protected function findColumns($table)
+    protected function findColumns(TableSchema $table)
     {
         $sql = "PRAGMA table_info({$table->rawName})";
-        $columns = $this->connection->select($sql);
-        if (empty($columns)) {
-            return false;
-        }
 
-        foreach ($columns as $column) {
-            $column = array_change_key_case((array)$column, CASE_LOWER);
-            $c = $this->createColumn($column);
-            $table->addColumn($c);
-            if ($c->isPrimaryKey) {
-                if ($c->autoIncrement) {
-                    $table->sequenceName = '';
-                }
-                if ($table->primaryKey === null) {
-                    $table->primaryKey = $c->name;
-                } elseif (is_string($table->primaryKey)) {
-                    $table->primaryKey = [$table->primaryKey, $c->name];
-                } else {
-                    $table->primaryKey[] = $c->name;
-                }
-            }
-        }
-        if (is_string($table->primaryKey)) {
-            $column = $table->getColumn($table->primaryKey);
-            if ((DbSimpleTypes::TYPE_INTEGER === $column->type)) {
-                $table->sequenceName = '';
-                $column->autoIncrement = true;
-                $column->type = DbSimpleTypes::TYPE_ID;
-                $table->addColumn($column);
-            }
-        }
-
-        return true;
+        return $this->connection->select($sql);
     }
 
     /**
@@ -394,88 +350,42 @@ class SqliteSchema extends Schema
         $c->comment = null; // SQLite does not support column comments at all
 
         $c->dbType = strtolower($column['type']);
-        $this->extractLimit($c, strtolower($column['type']));
-        $c->fixedLength = $this->extractFixedLength($column['type']);
-        $c->supportsMultibyte = $this->extractMultiByteSupport($column['type']);
-        $this->extractType($c, strtolower($column['type']));
+        $this->extractLimit($c, $c->dbType);
+        $c->fixedLength = $this->extractFixedLength($c->dbType);
+        $c->supportsMultibyte = $this->extractMultiByteSupport($c->dbType);
+        $this->extractType($c, $c->dbType);
+        if ($c->isPrimaryKey && (DbSimpleTypes::TYPE_INTEGER === $c->type)) {
+            $c->autoIncrement = true; //defaults to alias of ROWID internally
+        }
         $this->extractDefault($c, $column['dflt_value']);
 
         return $c;
     }
 
     /**
-     * Collects the foreign key column details for the given table.
-     *
-     * @param TableSchema $table the table metadata
+     * @inheritdoc
      */
-    protected function findConstraints($table)
+    protected function findTableReferences()
     {
+        $references = [];
         /** @type TableSchema $each */
         foreach ($this->getTableNames() as $each) {
             $sql = "PRAGMA foreign_key_list({$each->name})";
             $fks = $this->connection->select($sql);
-            if ($each->name === $table->name) {
-                foreach ($fks as $key) {
-                    $key = (array)$key;
-                    $column = $table->getColumn($key['from']);
-                    $column->isForeignKey = true;
-                    $column->refTable = $key['table'];
-                    $column->refFields = $key['to'];
-                    if (DbSimpleTypes::TYPE_INTEGER === $column->type) {
-                        $column->type = DbSimpleTypes::TYPE_REF;
-                    }
-                    // update the column in the table
-                    $table->addColumn($column);
-                    $table->foreignKeys[$key['from']] = [$key['table'], $key['to']];
-                    // Add it to our foreign references as well
-                    $relation =
-                        new RelationSchema([
-                            'type'       => RelationSchema::BELONGS_TO,
-                            'ref_table'  => $key['table'],
-                            'ref_fields' => $key['to'],
-                            'field'      => $key['from']
-                        ]);
-
-                    $table->addRelation($relation);
-                }
-            } else {
-                foreach ($fks as $key => $fk) {
-                    $fk = (array)$fk;
-                    if ($fk['table'] === $table->name) {
-                        $relation =
-                            new RelationSchema([
-                                'type'       => RelationSchema::HAS_MANY,
-                                'ref_table'  => $each->name,
-                                'ref_fields' => $fk['from'],
-                                'field'      => $fk['to']
-                            ]);
-
-                        $table->addRelation($relation);
-                        $fks2 = $fks;
-                        // if other has foreign keys to other tables, we can say these are related as well
-                        foreach ($fks2 as $key2 => $fk2) {
-                            $fk2 = (array)$fk2;
-                            if (($key !== $key2) && ($fk2['table'] !== $table->name)) {
-                                // not same as parent, i.e. via reference back to self
-                                // not the same key
-                                $relation =
-                                    new RelationSchema([
-                                        'type'               => RelationSchema::MANY_MANY,
-                                        'ref_table'          => $fk2['table'],
-                                        'ref_fields'         => $fk['to'],
-                                        'field'              => $fk2['to'],
-                                        'junction_table'     => $each->name,
-                                        'junction_field'     => $fk['from'],
-                                        'junction_ref_field' => $fk2['from']
-                                    ]);
-
-                                $table->addRelation($relation);
-                            }
-                        }
-                    }
-                }
+            foreach ($fks as $key) {
+                $key = (array)$key;
+                $references[] = [
+                    'table_schema'            => '',
+                    'table_name'              => $each->name,
+                    'column_name'             => $key['from'],
+                    'referenced_table_schema' => '',
+                    'referenced_table_name'   => $key['table'],
+                    'referenced_column_name'  => $key['to'],
+                ];
             }
         }
+
+        return $references;
     }
 
     /**
@@ -485,7 +395,6 @@ class SqliteSchema extends Schema
      * @param string $newName the new table name. The name will be properly quoted by the method.
      *
      * @return string the SQL statement for renaming a DB table.
-     * @since 1.1.13
      */
     public function renameTable($table, $newName)
     {
@@ -498,7 +407,6 @@ class SqliteSchema extends Schema
      * @param string $table the table to be truncated. The name will be properly quoted by the method.
      *
      * @return string the SQL statement for truncating a DB table.
-     * @since 1.1.6
      */
     public function truncateTable($table)
     {
@@ -514,7 +422,6 @@ class SqliteSchema extends Schema
      *
      * @throws \Exception
      * @return string the SQL statement for dropping a DB column.
-     * @since 1.1.6
      */
     public function dropColumn($table, $column)
     {
@@ -531,7 +438,6 @@ class SqliteSchema extends Schema
      *
      * @throws \Exception
      * @return string the SQL statement for renaming a DB column.
-     * @since 1.1.6
      */
     public function renameColumn($table, $name, $newName)
     {
@@ -557,7 +463,6 @@ class SqliteSchema extends Schema
      *
      * @throws \Exception
      * @return string the SQL statement for adding a foreign key constraint to an existing table.
-     * @since 1.1.6
      */
     public function addForeignKey($name, $table, $columns, $refTable, $refColumns, $delete = null, $update = null)
     {
@@ -574,7 +479,6 @@ class SqliteSchema extends Schema
      *
      * @throws \Exception
      * @return string the SQL statement for dropping a foreign key constraint.
-     * @since 1.1.6
      */
     public function dropForeignKey($name, $table)
     {
@@ -596,7 +500,6 @@ class SqliteSchema extends Schema
      *
      * @throws \Exception
      * @return string the SQL statement for changing the definition of a column.
-     * @since 1.1.6
      */
     public function alterColumn($table, $column, $definition)
     {
@@ -610,7 +513,6 @@ class SqliteSchema extends Schema
      * @param string $table the table whose index is to be dropped. The name will be properly quoted by the method.
      *
      * @return string the SQL statement for dropping an index.
-     * @since 1.1.6
      */
     public function dropIndex($name, $table)
     {
@@ -627,7 +529,6 @@ class SqliteSchema extends Schema
      *
      * @throws \Exception
      * @return string the SQL statement for adding a primary key constraint to an existing table.
-     * @since 1.1.13
      */
     public function addPrimaryKey($name, $table, $columns)
     {
@@ -643,7 +544,6 @@ class SqliteSchema extends Schema
      *
      * @throws \Exception
      * @return string the SQL statement for removing a primary key constraint from an existing table.
-     * @since 1.1.13
      */
     public function dropPrimaryKey($name, $table)
     {
@@ -660,11 +560,23 @@ class SqliteSchema extends Schema
         return false;
     }
 
+    public function parseValueForSet($value, $field_info)
+    {
+        switch ($field_info->type) {
+            case DbSimpleTypes::TYPE_BOOLEAN:
+                $value = (filter_var($value, FILTER_VALIDATE_BOOLEAN) ? 1 : 0);
+                break;
+        }
+
+        return $value;
+    }
+
     /**
      * Extracts the default value for the column.
      * The value is typecasted to correct PHP type.
      *
-     * @param mixed $defaultValue the default value obtained from metadata
+     * @param ColumnSchema $field
+     * @param mixed        $defaultValue the default value obtained from metadata
      */
     public function extractDefault(ColumnSchema &$field, $defaultValue)
     {

@@ -3,8 +3,10 @@ namespace DreamFactory\Core\Resources;
 
 use DreamFactory\Core\Components\DbSchemaExtras;
 use DreamFactory\Core\Contracts\RequestHandlerInterface;
+use DreamFactory\Core\Contracts\SchemaInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Services\BaseDbService;
+use Illuminate\Database\ConnectionInterface;
 
 abstract class BaseDbResource extends BaseRestResource
 {
@@ -24,6 +26,14 @@ abstract class BaseDbResource extends BaseRestResource
      * @var BaseDbService
      */
     protected $parent = null;
+    /**
+     * @var ConnectionInterface
+     */
+    protected $dbConn = null;
+    /**
+     * @var SchemaInterface
+     */
+    protected $schema = null;
 
     //*************************************************************************
     //	Methods
@@ -46,6 +56,10 @@ abstract class BaseDbResource extends BaseRestResource
 
         /** @var BaseDbService $parent */
         $this->serviceId = $parent->getServiceId();
+        /** @var BaseDbService $parent */
+        $this->dbConn = $parent->getConnection();
+        /** @var BaseDbService $parent */
+        $this->schema = $parent->getSchema();
     }
 
     /**

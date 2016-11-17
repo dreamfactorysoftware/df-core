@@ -19,14 +19,15 @@ class ApiEventScriptJob extends ScriptJob
      * Create a new job instance.
      * @param integer        $id
      * @param QueuedApiEvent $event
+     * @param array          $config
      */
-    public function __construct($id, QueuedApiEvent $event)
+    public function __construct($id, QueuedApiEvent $event, $config = [])
     {
         $this->script_id = $id;
         $this->event = $event;
         $this->session = Crypt::encrypt(json_encode(Session::all()));
 
-        parent::__construct();
+        parent::__construct($config);
     }
 
     /**
@@ -43,7 +44,7 @@ class ApiEventScriptJob extends ScriptJob
 
             $data = $this->event->makeData();
             if (null !== $this->handleScript($script->name, $script->content, $script->type, $script->config, $data)) {
-                Log::notice('Queued Script success for '. $this->script_id);
+                Log::notice('Queued Script success for ' . $this->script_id);
             }
         }
     }

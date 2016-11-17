@@ -34,7 +34,7 @@ class Session
         $service,
         $component = null,
         $requestor = ServiceRequestorTypes::API
-    ){
+    ) {
         $verb = VerbsMask::toNumeric(static::cleanAction($action));
 
         $mask = static::getServicePermissions($service, $component, $requestor);
@@ -98,7 +98,6 @@ class Session
 
             $tempService = strval(array_get($svcInfo, 'service'));
             $tempComponent = strval(array_get($svcInfo, 'component'));
-            $tempCompStarPos = strpos($tempComponent, '*');
             $tempVerbs = array_get($svcInfo, 'verb_mask');
 
             if (0 == strcasecmp($service, $tempService)) {
@@ -107,9 +106,15 @@ class Session
                         // exact match
                         $exactAllowed |= $tempVerbs;
                         $exactFound = true;
-                    } elseif ($tempCompStarPos &&
-                        (0 == strcasecmp(substr($component, 0, $tempCompStarPos) . '*', $tempComponent))
+                    } elseif (($starPos = strpos($tempComponent, '*')) &&
+                        (0 == strcasecmp(substr($component, 0, $starPos) . '*', $tempComponent))
                     ) {
+                        $componentAllowed |= $tempVerbs;
+                        $componentFound = true;
+                    } elseif (($parenPos = strpos($component, '(')) &&
+                        (0 == strcasecmp(substr($component, 0, $parenPos), $tempComponent))
+                    ) {
+                        // for resources called with options like foo() or foo(x, y, z)
                         $componentAllowed |= $tempVerbs;
                         $componentFound = true;
                     } elseif ('*' == $tempComponent) {
@@ -159,7 +164,7 @@ class Session
         $service,
         $component = null,
         $requestor = ServiceRequestorTypes::API
-    ){
+    ) {
         if (static::isSysAdmin()) {
             return true;
         }
@@ -522,26 +527,47 @@ class Session
         if (is_string($subject)) {
             // filter string values should be wrapped in curly braces
             if (false !== strpos($subject, '{')) {
-                $_search = [];
-                $_replace = [];
-                // brute force, yeah this could be better
-                foreach (explode('{', $subject) as $_word) {
-                    $_lookup = strstr($_word, '}', true);
-                    if (!empty($_lookup)) {
-                        if (static::getLookupValue($_lookup, $_value, $use_private)) {
-                            $_search[] = '{' . $_lookup . '}';
-                            $_replace[] = $_value;
+                $search = [];
+                $replace = [];
+                if (0 < preg_match_all('/{\w+[\(|\w|\.|\)]*}/', $subject, $targets)) {
+                    foreach (current($targets) as $target) {
+                        if (0 < preg_match_all('/[\w|\.]+/', $target, $words)) {
+                            $words = current($words);
+                            switch (count($words)) {
+                                case 0:
+                                    break;
+                                case 1:
+                                    if (static::getLookupValue($words[0], $value, $use_private)) {
+                                        $search[] = $target;
+                                        $replace[] = $value;
+                                    }
+                                    break;
+                                default:
+                                    $lookup = array_pop($words);
+                                    if (static::getLookupValue($lookup, $value, $use_private)) {
+                                        do {
+                                            $word = array_pop($words);
+                                            if (function_exists($word) &&
+                                                in_array($word, config('df.lookup.allowed_modifiers', []))
+                                            ) {
+                                                $value = $word($value);
+                                            }
+                                        } while (!empty($words));
+                                        $search[] = $target;
+                                        $replace[] = $value;
+                                    }
+                                    break;
+                            }
                         }
                     }
                 }
-
-                if (!empty($_search)) {
-                    $subject = str_replace($_search, $_replace, $subject);
+                if (!empty($search)) {
+                    $subject = str_replace($search, $replace, $subject);
                 }
             }
         } elseif (is_array($subject)) {
-            foreach ($subject as &$_value) {
-                static::replaceLookups($_value, $use_private);
+            foreach ($subject as &$value) {
+                static::replaceLookups($value, $use_private);
             }
         }
     }

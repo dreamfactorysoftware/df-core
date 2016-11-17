@@ -10,6 +10,7 @@ use DreamFactory\Core\Database\ConnectionExtension;
 use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Enums\DbResourceTypes;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -751,7 +752,7 @@ class BaseModel extends Model implements CacheInterface
      */
     public function getTableSchema()
     {
-        return $this->getSchema()->getTable($this->table);
+        return $this->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $this->table);
     }
 
     public function getSchema()
@@ -837,7 +838,6 @@ class BaseModel extends Model implements CacheInterface
         }
 
         $condition = array_get($criteria, 'condition');
-        /** @type \Illuminate\Database\Eloquent\Builder $builder */
         if (!empty($condition)) {
             $params = array_get($criteria, 'params');
             $builder = static::whereRaw($condition, $params)->with($related);
@@ -889,7 +889,6 @@ class BaseModel extends Model implements CacheInterface
      */
     public static function countByRequest(array $criteria = [])
     {
-        /** @type \Illuminate\Database\Eloquent\Builder $builder */
         if (!empty($condition = array_get($criteria, 'condition'))) {
             $params = array_get($criteria, 'params', []);
 
@@ -904,10 +903,10 @@ class BaseModel extends Model implements CacheInterface
      * then it updates the record otherwise it will
      * create the record.
      *
-     * @param Model   $relatedModel Model class
-     * @param HasMany $hasMany
-     * @param         $data
-     * @param         $relationName
+     * @param BaseModel $relatedModel Model class
+     * @param HasMany   $hasMany
+     * @param           $data
+     * @param           $relationName
      *
      * @throws \Exception
      */
@@ -916,15 +915,20 @@ class BaseModel extends Model implements CacheInterface
         if ($this->exists) {
             $models = [];
             $pk = $hasMany->getRelated()->primaryKey;
+            $fk = $hasMany->getPlainForeignKey();
 
             foreach ($data as $d) {
                 /** @var Model $model */
-                $model = $relatedModel::find(array_get($d, $pk));
+                if (empty($pkValue = array_get($d, $pk))) {
+                    $model = $relatedModel::findCompositeForeignKeyModel($this->{$this->primaryKey}, $d);
+                } else {
+                    $model = $relatedModel::find($pkValue);
+                }
                 if (!empty($model)) {
-                    $fk = $hasMany->getPlainForeignKey();
+                    /** @var Model $parent */
                     $fkId = array_get($d, $fk);
-                    if (null === $fkId) {
-                        //Foreign key field is null therefore delete the child record.
+                    if (array_key_exists($fk, $d) && is_null($fkId)) {
+                        //Foreign key field is set to null therefore delete the child record.
                         $model->delete();
                         continue;
                     } elseif (!empty($fkId) &&
@@ -937,10 +941,10 @@ class BaseModel extends Model implements CacheInterface
                         $parent->update($relatedData);
                         continue;
                     } else {
-                        $model->update($d);
-                        continue;
+                        $model->fill($d);
                     }
                 } else {
+                    // not found, create a new one
                     $model = new $relatedModel($d);
                 }
                 $models[] = $model;
@@ -948,6 +952,20 @@ class BaseModel extends Model implements CacheInterface
 
             $hasMany->saveMany($models);
         }
+    }
+
+    /**
+     * @param mixed $foreign Foreign key by which to search
+     * @param array $data    Data containing possible other search attributes
+     * @return Model
+     */
+    protected static function findCompositeForeignKeyModel(
+        /** @noinspection PhpUnusedParameterInspection */
+        $foreign,
+        /** @noinspection PhpUnusedParameterInspection */
+        $data
+    ) {
+        return null;
     }
 
     /**
@@ -1021,8 +1039,8 @@ class BaseModel extends Model implements CacheInterface
         $references = $this->getReferences();
         $rf = null;
         foreach ($references as $item) {
-            if ($item->refTable === $table && $table . '_by_' . $item->refFields === $name) {
-                $rf = $item->refFields;
+            if ($item->refTable === $table && $table . '_by_' . $item->refField === $name) {
+                $rf = $item->refField;
                 break;
             }
         }
@@ -1081,7 +1099,7 @@ class BaseModel extends Model implements CacheInterface
      *
      * @param $name
      *
-     * @return BaseModel
+     * @return string
      */
     protected function getReferencingModel($name)
     {
@@ -1137,7 +1155,7 @@ class BaseModel extends Model implements CacheInterface
      *
      * @param  \Illuminate\Database\Query\Builder $query
      *
-     * @return \Illuminate\Database\Eloquent\Builder|static
+     * @return \Illuminate\Database\Eloquent\Builder
      */
     public function newEloquentBuilder($query)
     {

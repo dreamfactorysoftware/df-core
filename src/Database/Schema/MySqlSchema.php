@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Enums\DbResourceTypes;
 use DreamFactory\Core\Enums\DbSimpleTypes;
 
 /**
@@ -9,12 +10,33 @@ use DreamFactory\Core\Enums\DbSimpleTypes;
 class MySqlSchema extends Schema
 {
     /**
+     * Underlying database provides field-level schema, i.e. SQL (true) vs NoSQL (false)
+     */
+    const PROVIDES_FIELD_SCHEMA = true;
+
+    /**
      * @const string Quoting characters
      */
     const LEFT_QUOTE_CHARACTER = '`';
 
     const RIGHT_QUOTE_CHARACTER = '`';
 
+    /**
+     * @inheritdoc
+     */
+    public function getSupportedResourceTypes()
+    {
+        return [
+            DbResourceTypes::TYPE_TABLE,
+            DbResourceTypes::TYPE_VIEW,
+            DbResourceTypes::TYPE_PROCEDURE,
+            DbResourceTypes::TYPE_FUNCTION
+        ];
+    }
+
+    /**
+     * @inheritdoc
+     */
     protected function translateSimpleColumnTypes(array &$info)
     {
         // override this in each schema class
@@ -300,54 +322,11 @@ MYSQL;
     /**
      * @inheritdoc
      */
-    protected function loadTable(TableSchema $table)
-    {
-        if (!$this->findColumns($table)) {
-            return null;
-        }
-
-        $this->findConstraints($table);
-
-        return $table;
-    }
-
-    /**
-     * Collects the table column metadata.
-     *
-     * @param TableSchema $table the table metadata
-     *
-     * @return boolean whether the table exists in the database
-     */
-    protected function findColumns($table)
+    protected function findColumns(TableSchema $table)
     {
         $sql = 'SHOW FULL COLUMNS FROM ' . $table->rawName;
-        try {
-            $columns = $this->connection->select($sql);
-        } catch (\Exception $e) {
-            return false;
-        }
-        foreach ($columns as $column) {
-            $column = (array)$column;
-            $c = $this->createColumn($column);
-            if ($c->isPrimaryKey) {
-                if ($table->primaryKey === null) {
-                    $table->primaryKey = $c->name;
-                } elseif (is_string($table->primaryKey)) {
-                    $table->primaryKey = [$table->primaryKey, $c->name];
-                } else {
-                    $table->primaryKey[] = $c->name;
-                }
-                if ($c->autoIncrement) {
-                    $table->sequenceName = '';
-                    if ((DbSimpleTypes::TYPE_INTEGER === $c->type)) {
-                        $c->type = DbSimpleTypes::TYPE_ID;
-                    }
-                }
-            }
-            $table->addColumn($c);
-        }
 
-        return true;
+        return $this->connection->select($sql);
     }
 
     /**
@@ -359,30 +338,29 @@ MYSQL;
      */
     protected function createColumn($column)
     {
-        $c = new ColumnSchema(['name' => $column['Field']]);
+        $c = new ColumnSchema(['name' => $column['field']]);
         $c->rawName = $this->quoteColumnName($c->name);
-        $c->allowNull = $column['Null'] === 'YES';
-        $c->isPrimaryKey = strpos($column['Key'], 'PRI') !== false;
-        $c->isUnique = strpos($column['Key'], 'UNI') !== false;
-        $c->isIndex = strpos($column['Key'], 'MUL') !== false;
-        $c->autoIncrement = strpos(strtolower($column['Extra']), 'auto_increment') !== false;
-        $c->dbType = $column['Type'];
-        if (isset($column['Collation']) && !empty($column['Collation'])) {
-            $collation = $column['Collation'];
+        $c->allowNull = $column['null'] === 'YES';
+        $c->isPrimaryKey = strpos($column['key'], 'PRI') !== false;
+        $c->isUnique = strpos($column['key'], 'UNI') !== false;
+        $c->isIndex = strpos($column['key'], 'MUL') !== false;
+        $c->autoIncrement = strpos(strtolower($column['extra']), 'auto_increment') !== false;
+        $c->dbType = $column['type'];
+        if (isset($column['collation']) && !empty($column['collation'])) {
+            $collation = $column['collation'];
             if (0 === stripos($collation, 'utf') || 0 === stripos($collation, 'ucs')) {
                 $c->supportsMultibyte = true;
             }
         }
-        if (isset($column['Comment'])) {
-            $c->comment = $column['Comment'];
+        if (isset($column['comment'])) {
+            $c->comment = $column['comment'];
         }
-        $this->extractLimit($c, $column['Type']);
-        $c->fixedLength = $this->extractFixedLength($column['Type']);
-//        $c->extractMultiByteSupport( $column['Type'] );
-        $this->extractType($c, $column['Type']);
+        $this->extractLimit($c, $c->dbType);
+        $c->fixedLength = $this->extractFixedLength($c->dbType);
+        $this->extractType($c, $c->dbType);
 
-        if ($c->dbType === 'timestamp' && (0 === strcasecmp(strval($column['Default']), 'CURRENT_TIMESTAMP'))) {
-            if (0 === strcasecmp(strval($column['Extra']), 'on update CURRENT_TIMESTAMP')) {
+        if ($c->dbType === 'timestamp' && (0 === strcasecmp(strval($column['default']), 'CURRENT_TIMESTAMP'))) {
+            if (0 === strcasecmp(strval($column['extra']), 'on update CURRENT_TIMESTAMP')) {
                 $c->defaultValue = ['expression' => 'CURRENT_TIMESTAMP on update CURRENT_TIMESTAMP'];
                 $c->type = DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE;
             } else {
@@ -390,7 +368,7 @@ MYSQL;
                 $c->type = DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE;
             }
         } else {
-            $this->extractDefault($c, $column['Default']);
+            $this->extractDefault($c, $column['default']);
         }
 
         return $c;
@@ -410,24 +388,18 @@ MYSQL;
     }
 
     /**
-     * Collects the foreign key column details for the given table.
-     * Also, collects the foreign tables and columns that reference the given table.
-     *
-     * @param TableSchema $table the table metadata
+     * Collects the foreign key column details.
      */
-    protected function findConstraints($table)
+    protected function findTableReferences()
     {
-        $constraints = [];
-        foreach ($this->getSchemaNames() as $schema) {
-            $sql = <<<MYSQL
+        $schemas = implode("','", $this->getSchemaNames());
+        $sql = <<<MYSQL
 SELECT table_schema, table_name, column_name, referenced_table_schema, referenced_table_name, referenced_column_name
-FROM information_schema.KEY_COLUMN_USAGE WHERE referenced_table_name IS NOT NULL AND table_schema = '$schema';
+FROM information_schema.KEY_COLUMN_USAGE 
+WHERE referenced_table_name IS NOT NULL AND table_schema IN ('{$schemas}');
 MYSQL;
 
-            $constraints = array_merge($constraints, $this->connection->select($sql));
-        }
-
-        $this->buildTableRelations($table, $constraints);
+        return $this->connection->select($sql);
     }
 
     /**

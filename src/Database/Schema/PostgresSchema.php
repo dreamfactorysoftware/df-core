@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Enums\DbResourceTypes;
 use DreamFactory\Core\Enums\DbSimpleTypes;
 
 /**
@@ -8,9 +9,12 @@ use DreamFactory\Core\Enums\DbSimpleTypes;
  */
 class PostgresSchema extends Schema
 {
-    const DEFAULT_SCHEMA = 'public';
+    /**
+     * Underlying database provides field-level schema, i.e. SQL (true) vs NoSQL (false)
+     */
+    const PROVIDES_FIELD_SCHEMA = true;
 
-    private $sequences = [];
+    const DEFAULT_SCHEMA = 'public';
 
     /**
      * @param boolean $refresh if we need to refresh schema cache.
@@ -20,6 +24,19 @@ class PostgresSchema extends Schema
     public function getDefaultSchema($refresh = false)
     {
         return static::DEFAULT_SCHEMA;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function getSupportedResourceTypes()
+    {
+        return [
+            DbResourceTypes::TYPE_TABLE,
+            DbResourceTypes::TYPE_VIEW,
+            DbResourceTypes::TYPE_PROCEDURE,
+            DbResourceTypes::TYPE_FUNCTION
+        ];
     }
 
     protected function translateSimpleColumnTypes(array &$info)
@@ -43,7 +60,7 @@ class PostgresSchema extends Schema
                 // check foreign tables
                 break;
 
-            case 'datetime':
+            case DbSimpleTypes::TYPE_DATETIME:
                 $info['type'] = 'timestamp';
                 break;
 
@@ -68,11 +85,11 @@ class PostgresSchema extends Schema
                 $info['type'] = 'integer';
                 break;
 
-            case 'float':
+            case DbSimpleTypes::TYPE_FLOAT:
                 $info['type'] = 'real';
                 break;
 
-            case 'double':
+            case DbSimpleTypes::TYPE_DOUBLE:
                 $info['type'] = 'double precision';
                 break;
 
@@ -282,38 +299,9 @@ class PostgresSchema extends Schema
     /**
      * @inheritdoc
      */
-    protected function loadTable(TableSchema $table)
+    protected function findColumns(TableSchema $table)
     {
-        if (!$this->findColumns($table)) {
-            return null;
-        }
-        $this->findConstraints($table);
-
-        if (is_string($table->primaryKey) && isset($this->sequences[$table->rawName . '.' . $table->primaryKey])) {
-//            $table->sequenceName = $this->sequences[$table->rawName . '.' . $table->primaryKey];
-            $table->sequenceName = $table->primaryKey;
-        } elseif (is_array($table->primaryKey)) {
-            foreach ($table->primaryKey as $pk) {
-                if (isset($this->sequences[$table->rawName . '.' . $pk])) {
-//                    $table->sequenceName = $this->sequences[$table->rawName . '.' . $pk];
-                    $table->sequenceName = $pk;
-                    break;
-                }
-            }
-        }
-
-        return $table;
-    }
-
-    /**
-     * Collects the table column metadata.
-     *
-     * @param TableSchema $table the table metadata
-     *
-     * @return boolean whether the table exists in the database
-     */
-    protected function findColumns($table)
-    {
+        $params = [':table' => $table->tableName, ':schema' => $table->schemaName];
         $sql = <<<EOD
 SELECT a.attname, LOWER(format_type(a.atttypid, a.atttypmod)) AS type, d.adsrc, a.attnotnull, a.atthasdef,
 	pg_catalog.col_description(a.attrelid, a.attnum) AS comment
@@ -323,30 +311,53 @@ WHERE a.attnum > 0 AND NOT a.attisdropped
 		AND relnamespace = (SELECT oid FROM pg_catalog.pg_namespace WHERE nspname = :schema))
 ORDER BY a.attnum
 EOD;
-        $columns = $this->connection->select($sql, [':table' => $table->tableName, ':schema' => $table->schemaName]);
+        if (!empty($columns = $this->connection->select($sql, $params))) {
+            foreach ($columns as &$column) {
+                $column = (array)$column;
 
-        if (empty($columns)) {
-            return false;
-        }
-
-        foreach ($columns as $column) {
-            $column = (array)$column;
-            $c = $this->createColumn($column);
-            $table->addColumn($c);
-
-            if (stripos($column['adsrc'], 'nextval') === 0 &&
-                preg_match('/nextval\([^\']*\'([^\']+)\'[^\)]*\)/i', $column['adsrc'], $matches)
-            ) {
-                if (strpos($matches[1], '.') !== false || $table->schemaName === self::DEFAULT_SCHEMA) {
-                    $this->sequences[$table->rawName . '.' . $c->name] = $matches[1];
-                } else {
-                    $this->sequences[$table->rawName . '.' . $c->name] = $table->schemaName . '.' . $matches[1];
+                if (stripos($column['adsrc'], 'nextval') === 0 &&
+                    preg_match('/nextval\([^\']*\'([^\']+)\'[^\)]*\)/i', $column['adsrc'], $matches)
+                ) {
+                    if (strpos($matches[1], '.') !== false || $table->schemaName === self::DEFAULT_SCHEMA) {
+                        $column['sequence'] = $matches[1];
+                    } else {
+                        $column['sequence'] = $table->schemaName . '.' . $matches[1];
+                    }
+                    $column['auto_increment'] = true;
                 }
-                $c->autoIncrement = true;
+            }
+
+            $kcu = 'information_schema.key_column_usage';
+            $tc = 'information_schema.table_constraints';
+            if (isset($table->catalogName)) {
+                $kcu = $table->catalogName . '.' . $kcu;
+                $tc = $table->catalogName . '.' . $tc;
+            }
+
+            $sql = <<<EOD
+		SELECT k.column_name field_name
+			FROM {$this->quoteTableName($kcu)} k
+		    LEFT JOIN {$this->quoteTableName($tc)} c
+		      ON k.table_name = c.table_name
+		     AND k.constraint_name = c.constraint_name
+		   WHERE c.constraint_type ='PRIMARY KEY'
+		   	    AND k.table_name = :table
+				AND k.table_schema = :schema
+EOD;
+            $rows = $this->connection->select($sql, $params);
+
+            foreach ($rows as $row) {
+                $row = (array)$row;
+                $name = $row['field_name'];
+                foreach ($columns as &$column) {
+                    if ($name === array_get($column, 'attname')) {
+                        $column['is_primary_key'] = true;
+                    }
+                }
             }
         }
 
-        return true;
+        return $columns;
     }
 
     /**
@@ -359,6 +370,8 @@ EOD;
     protected function createColumn($column)
     {
         $c = new ColumnSchema(['name' => $column['attname']]);
+        $c->autoIncrement = array_get($column, 'auto_increment', false);
+        $c->isPrimaryKey = array_get($column, 'is_primary_key', false);
         $c->rawName = $this->quoteColumnName($c->name);
         $c->allowNull = !$column['attnotnull'];
         $c->comment = $column['comment'] === null ? '' : $column['comment'];
@@ -373,20 +386,12 @@ EOD;
     }
 
     /**
-     * Collects the primary and foreign key column details for the given table.
-     *
-     * @param TableSchema $table the table metadata
+     * @inheritdoc
      */
-    protected function findConstraints($table)
+    protected function findTableReferences()
     {
-        $this->findPrimaryKey($table);
-
         $rc = 'information_schema.referential_constraints';
         $kcu = 'information_schema.key_column_usage';
-        if (isset($table->catalogName)) {
-            $kcu = $table->catalogName . '.' . $kcu;
-            $rc = $table->catalogName . '.' . $rc;
-        }
 
         $sql = <<<EOD
 		SELECT
@@ -408,60 +413,7 @@ EOD;
 		   AND KCU2.ORDINAL_POSITION = KCU1.ORDINAL_POSITION
 EOD;
 
-        $constraints = $this->connection->select($sql);
-
-        $this->buildTableRelations($table, $constraints);
-    }
-
-    /**
-     * Gets the primary key column(s) details for the given table.
-     *
-     * @param TableSchema $table table
-     *
-     * @return mixed primary keys (null if no pk, string if only 1 column pk, or array if composite pk)
-     */
-    protected function findPrimaryKey($table)
-    {
-        $kcu = 'information_schema.key_column_usage';
-        $tc = 'information_schema.table_constraints';
-        if (isset($table->catalogName)) {
-            $kcu = $table->catalogName . '.' . $kcu;
-            $tc = $table->catalogName . '.' . $tc;
-        }
-
-        $sql = <<<EOD
-		SELECT k.column_name field_name
-			FROM {$this->quoteTableName($kcu)} k
-		    LEFT JOIN {$this->quoteTableName($tc)} c
-		      ON k.table_name = c.table_name
-		     AND k.constraint_name = c.constraint_name
-		   WHERE c.constraint_type ='PRIMARY KEY'
-		   	    AND k.table_name = :table
-				AND k.table_schema = :schema
-EOD;
-        $rows = $this->connection->select($sql, [':table' => $table->tableName, ':schema' => $table->schemaName]);
-
-        $table->primaryKey = null;
-        foreach ($rows as $row) {
-            $row = (array)$row;
-            $name = $row['field_name'];
-            $column = $table->getColumn($name);
-            if (isset($column)) {
-                $column->isPrimaryKey = true;
-                if ((DbSimpleTypes::TYPE_INTEGER === $column->type) && $column->autoIncrement) {
-                    $column->type = DbSimpleTypes::TYPE_ID;
-                }
-                if ($table->primaryKey === null) {
-                    $table->primaryKey = $name;
-                } elseif (is_string($table->primaryKey)) {
-                    $table->primaryKey = [$table->primaryKey, $name];
-                } else {
-                    $table->primaryKey[] = $name;
-                }
-                // update the column in the table
-                $table->addColumn($column);
-            }
-        }
+        return $this->connection->select($sql);
     }
 
     protected function findSchemaNames()
@@ -692,9 +644,7 @@ MYSQL;
     }
 
     /**
-     * Extracts the PHP type from DB type.
-     *
-     * @param string $dbType DB type
+     * @inheritdoc
      */
     public function extractType(ColumnSchema &$column, $dbType)
     {

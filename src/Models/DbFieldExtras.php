@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Models;
 
+use Illuminate\Database\Query\Builder;
+
 /**
  * DbFieldExtras
  *
@@ -16,18 +18,11 @@ namespace DreamFactory\Core\Models;
  * @property string  $extra_type
  * @property string  $client_info
  * @property array   $db_function
- * @property integer $ref_service_id
- * @property string  $ref_table
- * @property string  $ref_fields
- * @property string  $ref_on_update
- * @property string  $ref_on_delete
- * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereId($value)
- * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereServiceId($value)
- * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereTable($value)
- * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereField($value)
- * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereRefServiceId($value)
- * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereRefTable($value)
- * @method static \Illuminate\Database\Query\Builder|DbFieldExtras whereRefFields($value)
+ * @method static Builder|DbFieldExtras whereId($value)
+ * @method static Builder|DbFieldExtras whereServiceId($value)
+ * @method static Builder|DbFieldExtras whereTable($value)
+ * @method static Builder|DbFieldExtras whereField($value)
+ * @method static Builder|DbFieldExtras whereAlias($value)
  */
 class DbFieldExtras extends BaseSystemModel
 {
@@ -45,19 +40,13 @@ class DbFieldExtras extends BaseSystemModel
         'extra_type',
         'client_info',
         'db_function',
-        'ref_service_id',
-        'ref_table',
-        'ref_fields',
-        'ref_on_update',
-        'ref_on_delete',
     ];
 
     protected $casts = [
+        'id'                  => 'integer',
+        'service_id'          => 'integer',
         'picklist'            => 'array',
         'validation'          => 'array',
         'db_function'         => 'array',
-        'id'                  => 'integer',
-        'service_id'          => 'integer',
-        'ref_service_id'      => 'integer',
     ];
 }

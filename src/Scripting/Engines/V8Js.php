@@ -8,13 +8,8 @@ use DreamFactory\Core\Scripting\BaseEngineAdapter;
 use DreamFactory\Library\Utility\Scalar;
 use DreamFactory\Core\Scripting\ScriptSession;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Enums\DataFormats;
-use DreamFactory\Core\Scripting\ScriptServiceRequest;
-use DreamFactory\Core\Enums\ServiceRequestorTypes;
-use DreamFactory\Core\Utility\ResponseFactory;
 use Log;
 use Config;
-use ServiceManager;
 
 /**
  * Plugin for the php-v8js extension which exposes the V8 Javascript engine
@@ -226,83 +221,8 @@ class V8Js extends BaseEngineAdapter
         return null;
     }
 
-    /**
-     * @param string $method
-     * @param string $path
-     * @param array  $payload
-     * @param array  $curlOptions Additional CURL options for external requests
-     *
-     * @return array
-     */
-    public static function inlineRequest($method, $path, $payload = null, $curlOptions = [])
+    protected static function formatResult(&$result)
     {
-        if (null === $payload || 'null' == $payload) {
-            $payload = [];
-        }
-
-        try {
-            if ('https:/' == ($protocol = substr($path, 0, 7)) || 'http://' == $protocol) {
-                $result = static::externalRequest($method, $path, $payload, $curlOptions);
-            } else {
-                $result = null;
-                $params = [];
-                if (false !== $pos = strpos($path, '?')) {
-                    $paramString = substr($path, $pos + 1);
-                    if (!empty($paramString)) {
-                        $pArray = explode('&', $paramString);
-                        foreach ($pArray as $k => $p) {
-                            if (!empty($p)) {
-                                $tmp = explode('=', $p);
-                                $name = array_get($tmp, 0, $k);
-                                $value = array_get($tmp, 1);
-                                $params[$name] = urldecode($value);
-                            }
-                        }
-                    }
-                    $path = substr($path, 0, $pos);
-                }
-
-                if (false === ($pos = strpos($path, '/'))) {
-                    $serviceName = $path;
-                    $resource = null;
-                } else {
-                    $serviceName = substr($path, 0, $pos);
-                    $resource = substr($path, $pos + 1);
-
-                    //	Fix removal of trailing slashes from resource
-                    if (!empty($resource)) {
-                        if ((false === strpos($path, '?') && '/' === substr($path, strlen($path) - 1, 1)) ||
-                            ('/' === substr($path, strpos($path, '?') - 1, 1))
-                        ) {
-                            $resource .= '/';
-                        }
-                    }
-                }
-
-                if (empty($serviceName)) {
-                    return null;
-                }
-
-                $format = DataFormats::PHP_ARRAY;
-                if (!is_array($payload)) {
-                    $format = DataFormats::TEXT;
-                }
-
-                Session::checkServicePermission($method, $serviceName, $resource, ServiceRequestorTypes::SCRIPT);
-
-                $request = new ScriptServiceRequest($method, $params);
-                $request->setContent($payload, $format);
-
-                //  Now set the request object and go...
-                $service = ServiceManager::getService($serviceName);
-                $result = $service->handleRequest($request, $resource);
-            }
-        } catch (\Exception $ex) {
-            $result = ResponseFactory::createWithException($ex);
-
-            Log::error('Exception: ' . $ex->getMessage(), ['response' => $result]);
-        }
-
         /**
          * For some mysterious reason the v8 library produces segmentation fault for PHP 7
          * when $result or content of the $result object (ServiceResponse) is used directly below. However,
@@ -320,8 +240,6 @@ class V8Js extends BaseEngineAdapter
                 $result = static::reBuildArray($result);
             }
         }
-
-        return ResponseFactory::sendScriptResponse($result);
     }
 
     /**

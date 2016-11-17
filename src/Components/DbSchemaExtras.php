@@ -1,10 +1,10 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\DbFieldExtras;
-use DreamFactory\Core\Models\DbRelatedExtras;
+use DreamFactory\Core\Models\DbRelationshipExtras;
 use DreamFactory\Core\Models\DbTableExtras;
+use DreamFactory\Core\Models\DbVirtualRelationship;
 use Log;
 
 /**
@@ -14,16 +14,15 @@ use Log;
 trait DbSchemaExtras
 {
     use DataValidator;
-    
+
     /**
      * @param string | array $table_names
-     * @param bool           $include_all
      * @param string | array $select
      *
      * @throws \InvalidArgumentException
      * @return array
      */
-    public function getSchemaExtrasForTables($table_names, $include_all = true, $select = '*')
+    public function getSchemaExtrasForTables($table_names, $select = '*')
     {
         if (empty($table_names)) {
             return [];
@@ -33,16 +32,8 @@ trait DbSchemaExtras
             throw new \InvalidArgumentException('Invalid table list provided.');
         }
 
-        $result = DbTableExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->get()->toArray();
-
-        if ($include_all) {
-            $fieldResult =
-                DbFieldExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->get()->toArray();
-
-            $relatedResult =
-                DbRelatedExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->get()->toArray();
-            $result = array_merge($result, $fieldResult, $relatedResult);
-        }
+        $result = DbTableExtras::whereServiceId($this->getServiceId())
+            ->whereIn('table', $values)->get((array)$select)->toArray();
 
         return $result;
     }
@@ -63,66 +54,14 @@ trait DbSchemaExtras
 
         if ('*' === $field_names) {
             $result = DbFieldExtras::whereServiceId($this->getServiceId())
-                ->whereTable($table_name)
-                ->get()
-                ->toArray();
+                ->whereTable($table_name)->get()->toArray();
         } else {
-
             if (false === $values = static::validateAsArray($field_names, ',', true)) {
                 throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
             }
 
             $result = DbFieldExtras::whereServiceId($this->getServiceId())
-                ->whereTable($table_name)
-                ->whereIn('field', $values)
-                ->get()
-                ->toArray();
-        }
-
-        foreach ($result as &$extra) {
-            if (!empty($extra['ref_service_id']) && ($extra['ref_service_id'] != $extra['service_id'])) {
-                $extra['ref_service'] = Service::getCachedNameById($extra['ref_service_id']);
-            }
-        }
-
-        return $result;
-    }
-
-    /**
-     * @param string         $table_name
-     * @param string | array $field_names
-     * @param string | array $select
-     *
-     * @throws \InvalidArgumentException
-     * @return array
-     */
-    public function getSchemaExtrasForFieldsReferenced($table_name, $field_names = '*', $select = '*')
-    {
-        if (empty($field_names)) {
-            return [];
-        }
-
-        if ('*' === $field_names) {
-            $result = DbFieldExtras::whereRefServiceId($this->getServiceId())
-                ->whereRefTable($table_name)
-                ->get()
-                ->toArray();
-        } else {
-            if (false === $values = static::validateAsArray($field_names, ',', true)) {
-                throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
-            }
-
-            $result = DbFieldExtras::whereRefServiceId($this->getServiceId())
-                ->whereRefTable($table_name)
-                ->whereIn('ref_fields', $values)
-                ->get()
-                ->toArray();
-        }
-
-        foreach ($result as &$extra) {
-            if (!empty($extra['ref_service_id']) && ($extra['ref_service_id'] != $extra['service_id'])) {
-                $extra['service'] = Service::getCachedNameById($extra['service_id']);
-            }
+                ->whereTable($table_name)->whereIn('field', $values)->get((array)$select)->toArray();
         }
 
         return $result;
@@ -143,21 +82,29 @@ trait DbSchemaExtras
         }
 
         if ('*' === $related_names) {
-            return DbRelatedExtras::whereServiceId($this->getServiceId())
-                ->whereTable($table_name)
-                ->get()
-                ->toArray();
+            return DbRelationshipExtras::whereServiceId($this->getServiceId())
+                ->whereTable($table_name)->get((array)$select)->toArray();
         }
 
         if (false === $values = static::validateAsArray($related_names, ',', true)) {
             throw new \InvalidArgumentException('Invalid related list. ' . $related_names);
         }
 
-        return DbRelatedExtras::whereServiceId($this->getServiceId())
-            ->whereTable($table_name)
-            ->whereIn('relationship', $values)
-            ->get()
-            ->toArray();
+        return DbRelationshipExtras::whereServiceId($this->getServiceId())
+            ->whereTable($table_name)->whereIn('name', $values)->get((array)$select)->toArray();
+    }
+
+    /**
+     * @param string         $table_name
+     * @param string | array $select
+     *
+     * @throws \InvalidArgumentException
+     * @return array
+     */
+    public function getSchemaVirtualRelationships($table_name, $select = '*')
+    {
+        return DbVirtualRelationship::whereServiceId($this->getServiceId())
+            ->whereTable($table_name)->get((array)$select)->toArray();
     }
 
     /**
@@ -194,15 +141,6 @@ trait DbSchemaExtras
             if (!empty($table = array_get($extra, 'table')) &&
                 !empty($field = array_get($extra, 'field'))
             ) {
-                if (!empty($extra['ref_service']) && empty($extra['ref_service_id'])) {
-                    // translate name to id for storage
-                    $extra['ref_service_id'] =
-                        Service::getCachedIdByName($extra['ref_service']) ?: $this->getServiceId();
-                }
-                if (!empty($extra['ref_table']) && empty($extra['ref_service_id'])) {
-                    // don't allow empty ref_service_id into the database, needs to be searchable from other services
-                    $extra['ref_service_id'] = $this->getServiceId();
-                }
                 DbFieldExtras::updateOrCreate([
                     'service_id' => $this->getServiceId(),
                     'table'      => $table,
@@ -217,11 +155,6 @@ trait DbSchemaExtras
                         'validation',
                         'client_info',
                         'db_function',
-                        'ref_service_id',
-                        'ref_table',
-                        'ref_fields',
-                        'ref_on_update',
-                        'ref_on_delete',
                     ]));
             }
         }
@@ -240,22 +173,70 @@ trait DbSchemaExtras
 
         foreach ($extras as $extra) {
             if (!empty($table = array_get($extra, 'table')) &&
-                !empty($relationship = array_get($extra, 'relationship'))
+                !empty($name = array_get($extra, 'relationship'))
             ) {
-                DbRelatedExtras::updateOrCreate([
-                    'service_id'   => $this->getServiceId(),
-                    'table'        => $table,
-                    'relationship' => $relationship
-                ], array_only($extra,
+                DbRelationshipExtras::updateOrCreate(
                     [
-                        'alias',
-                        'label',
-                        'description',
-                        'always_fetch',
-                        'flatten',
-                        'flatten_drop_prefix',
-                    ]));
+                        'service_id'   => $this->getServiceId(),
+                        'table'        => $table,
+                        'relationship' => $name
+                    ],
+                    array_only($extra,
+                        [
+                            'alias',
+                            'label',
+                            'description',
+                            'always_fetch',
+                            'flatten',
+                            'flatten_drop_prefix',
+                        ]
+                    )
+                );
             }
+        }
+    }
+
+    /**
+     * @param array $relationships
+     *
+     * @return void
+     */
+    public function setSchemaVirtualRelationships($relationships)
+    {
+        if (empty($relationships)) {
+            return;
+        }
+
+        foreach ($relationships as $extra) {
+            if (!empty($extra['ref_table']) && empty($extra['ref_service_id'])) {
+                // don't allow empty ref_service_id into the database, needs to be searchable from other services
+                $extra['ref_service_id'] = $this->getServiceId();
+            }
+            if (!empty($extra['junction_table']) && empty($extra['junction_service_id'])) {
+                // don't allow empty junction_service_id into the database, needs to be searchable from other services
+                $extra['junction_service_id'] = $this->getServiceId();
+            }
+            DbVirtualRelationship::updateOrCreate(
+                [
+                    'type'                => array_get($extra, 'type'),
+                    'service_id'          => $this->getServiceId(),
+                    'table'               => array_get($extra, 'table'),
+                    'field'               => array_get($extra, 'field'),
+                    'ref_service_id'      => array_get($extra, 'ref_service_id'),
+                    'ref_table'           => array_get($extra, 'ref_table'),
+                    'ref_field'           => array_get($extra, 'ref_field'),
+                    'junction_service_id' => array_get($extra, 'junction_service_id'),
+                    'junction_table'      => array_get($extra, 'junction_table'),
+                    'junction_field'      => array_get($extra, 'junction_field'),
+                    'junction_ref_field'  => array_get($extra, 'junction_ref_field'),
+                ],
+                array_only($extra,
+                    [
+                        'ref_on_update',
+                        'ref_on_delete',
+                    ]
+                )
+            );
         }
     }
 
@@ -271,8 +252,6 @@ trait DbSchemaExtras
 
         try {
             DbTableExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
-            DbFieldExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
-            DbRelatedExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
         } catch (\Exception $ex) {
             Log::error('Failed to delete from DB Table Schema Extras. ' . $ex->getMessage());
         }
@@ -290,9 +269,7 @@ trait DbSchemaExtras
 
         try {
             DbFieldExtras::whereServiceId($this->getServiceId())
-                ->whereTable($table_name)
-                ->whereIn('field', $values)
-                ->delete();
+                ->whereTable($table_name)->whereIn('field', $values)->delete();
         } catch (\Exception $ex) {
             Log::error('Failed to delete DB Field Schema Extras. ' . $ex->getMessage());
         }
@@ -309,12 +286,90 @@ trait DbSchemaExtras
         }
 
         try {
-            DbRelatedExtras::whereServiceId($this->getServiceId())
-                ->whereTable($table_name)
-                ->whereIn('relationship', $values)
-                ->delete();
+            DbRelationshipExtras::whereServiceId($this->getServiceId())
+                ->whereTable($table_name)->whereIn('relationship', $values)->delete();
         } catch (\Exception $ex) {
             Log::error('Failed to delete DB Related Schema Extras. ' . $ex->getMessage());
+        }
+    }
+
+    /**
+     * @param string         $table_name
+     * @param string | array $relationships
+     */
+    public function removeSchemaVirtualRelationships($table_name, $relationships)
+    {
+        if (empty($relationships)) {
+            return;
+        }
+
+        foreach ($relationships as $extra) {
+            if (!empty($extra['ref_table']) && empty($extra['ref_service_id'])) {
+                // don't allow empty ref_service_id into the database, needs to be searchable from other services
+                $extra['ref_service_id'] = $this->getServiceId();
+            }
+            if (!empty($extra['junction_table']) && empty($extra['junction_service_id'])) {
+                // don't allow empty junction_service_id into the database, needs to be searchable from other services
+                $extra['junction_service_id'] = $this->getServiceId();
+            }
+            DbVirtualRelationship::whereType(array_get($extra, 'type'))->whereServiceId($this->getServiceId())
+                ->whereTable($table_name)->whereField(array_get($extra, 'field'))
+                ->whereRefServiceId(array_get($extra, 'ref_service_id'))
+                ->whereRefTable(array_get($extra, 'ref_table'))->whereRefField(array_get($extra, 'ref_field'))
+                ->whereJunctionServiceId(array_get($extra, 'junction_service_id'))
+                ->whereJunctionTable(array_get($extra, 'junction_table'))
+                ->whereJunctionField(array_get($extra, 'junction_field'))
+                ->whereJunctionRefField(array_get($extra, 'junction_ref_field'))
+                ->delete();
+        }
+    }
+
+    /**
+     * @param string $table_names
+     */
+    public function tablesDropped($table_names)
+    {
+        if (false === $values = static::validateAsArray($table_names, ',', true)) {
+            throw new \InvalidArgumentException('Invalid table list. ' . $table_names);
+        }
+
+        try {
+            DbTableExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
+            DbFieldExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
+            DbRelationshipExtras::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
+            DbVirtualRelationship::whereServiceId($this->getServiceId())->whereIn('table', $values)->delete();
+            DbVirtualRelationship::whereRefServiceId($this->getServiceId())->whereIn('ref_table', $values)->delete();
+            DbVirtualRelationship::whereJunctionServiceId($this->getServiceId())
+                ->whereIn('junction_table', $values)->delete();
+        } catch (\Exception $ex) {
+            Log::error('Failed to delete from DB Table Schema Extras. ' . $ex->getMessage());
+        }
+    }
+
+    /**
+     * @param string $table_name
+     * @param string $field_names
+     */
+    public function fieldsDropped($table_name, $field_names)
+    {
+        if (false === $values = static::validateAsArray($field_names, ',', true)) {
+            throw new \InvalidArgumentException('Invalid field list. ' . $field_names);
+        }
+
+        try {
+            DbFieldExtras::whereServiceId($this->getServiceId())->whereTable($table_name)
+                ->whereIn('field', $values)->delete();
+//            DbRelationshipExtras::whereServiceId($this->getServiceId())->whereTable($table_name)->whereIn('field', $values)->delete();
+            DbVirtualRelationship::whereServiceId($this->getServiceId())->whereTable($table_name)
+                ->whereIn('field', $values)->delete();
+            DbVirtualRelationship::whereRefServiceId($this->getServiceId())->whereRefTable($table_name)
+                ->whereIn('ref_field', $values)->delete();
+            DbVirtualRelationship::whereJunctionServiceId($this->getServiceId())->whereJunctionTable($table_name)
+                ->whereIn('junction_field', $values)->delete();
+            DbVirtualRelationship::whereJunctionServiceId($this->getServiceId())->whereJunctionTable($table_name)
+                ->whereIn('junction_ref_field', $values)->delete();
+        } catch (\Exception $ex) {
+            Log::error('Failed to delete from DB Field Schema Extras. ' . $ex->getMessage());
         }
     }
 }

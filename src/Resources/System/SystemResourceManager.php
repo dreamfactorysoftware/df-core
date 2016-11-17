@@ -36,6 +36,24 @@ class SystemResourceManager
                 'class_name'  => Admin::class,
             ],
             [
+                'name'        => 'admin/password',
+                'label'       => 'Administrator\'s Password Operations',
+                'description' => 'Allows password operations for system administrators.',
+                'class_name'  => Password::class,
+            ],
+            [
+                'name'        => 'admin/profile',
+                'label'       => 'Administrator\'s Profile Operations',
+                'description' => 'Allows profile operations for system administrators.',
+                'class_name'  => Profile::class,
+            ],
+            [
+                'name'        => 'admin/session',
+                'label'       => 'Administrator\'s Session Operations',
+                'description' => 'Allows session operations for system administrators.',
+                'class_name'  => Session::class,
+            ],
+            [
                 'name'        => 'cache',
                 'label'       => 'Cache Administration',
                 'description' => 'Allows administration of system-wide and service cache.',

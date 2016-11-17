@@ -45,7 +45,7 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getParameter($key = null, $default = null)
     {
-        if (!is_null($this->parameters)) {
+        if ($this->parameters) {
             if (null === $key) {
                 return $this->parameters;
             } else {
@@ -53,11 +53,7 @@ class ServiceRequest implements ServiceRequestInterface
             }
         }
 
-        if (null === $key) {
-            return Request::query();
-        } else {
-            return Request::query($key, $default);
-        }
+        return Request::query($key, $default);
     }
 
     /**
@@ -65,7 +61,7 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getParameters()
     {
-        if (!is_null($this->parameters)) {
+        if ($this->parameters) {
             return $this->parameters;
         }
 
@@ -74,11 +70,7 @@ class ServiceRequest implements ServiceRequestInterface
 
     public function getParameterAsBool($key, $default = false)
     {
-        if (!is_null($this->parameters)) {
-            return Scalar::boolval(array_get($this->parameters, $key, $default));
-        }
-
-        return Scalar::boolval(Request::query($key, $default));
+        return Scalar::boolval($this->getParameter($key, $default));
     }
 
     /**
@@ -140,14 +132,18 @@ class ServiceRequest implements ServiceRequestInterface
 
             //Decoded json data is cached internally using parameterBag.
             return $this->json($key, $default);
-        } else if (DataFormatter::xmlToArray($content) !== null) {
-            $this->contentType = DataFormats::toMimeType(DataFormats::XML);
+        } else {
+            if (DataFormatter::xmlToArray($content) !== null) {
+                $this->contentType = DataFormats::toMimeType(DataFormats::XML);
 
-            return $this->xml($key, $default);
-        } else if (!empty(DataFormatter::csvToArray($content))) {
-            $this->contentType = DataFormats::toMimeType(DataFormats::CSV);
+                return $this->xml($key, $default);
+            } else {
+                if (!empty(DataFormatter::csvToArray($content))) {
+                    $this->contentType = DataFormats::toMimeType(DataFormats::CSV);
 
-            return $this->csv($key, $default);
+                    return $this->csv($key, $default);
+                }
+            }
         }
 
         throw new BadRequestException('Unrecognized payload type');
@@ -290,19 +286,15 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getHeader($key = null, $default = null)
     {
-        if (!is_null($this->headers)) {
-            if (null === $key) {
-                return $this->headers;
-            } else {
-                return array_get($this->headers, $key, $default);
-            }
+        if (null === $key) {
+            return $this->getHeaders();
         }
 
-        if (null === $key) {
-            return Request::header();
-        } else {
-            return Request::header($key, $default);
+        if ($this->headers) {
+            return array_get($this->headers, $key, $default);
         }
+
+        return Request::header($key, $default);
     }
 
     /**
@@ -310,11 +302,16 @@ class ServiceRequest implements ServiceRequestInterface
      */
     public function getHeaders()
     {
-        if (!is_null($this->headers)) {
+        if ($this->headers) {
             return $this->headers;
         }
 
-        return Request::header();
+        return array_map(
+            function ($value) {
+                return (is_array($value)) ? implode(',', $value) : $value;
+            },
+            Request::header()
+        );
     }
 
     /**

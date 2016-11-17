@@ -69,13 +69,9 @@ class RelationSchema
      */
     public $isVirtual = false;
     /**
-     * @var boolean Is this a virtual reference to a foreign service.
+     * @var string The local table's field that is the foreign key
      */
-    public $isForeignService = false;
-    /**
-     * @var string|null The referenced service name
-     */
-    public $refService;
+    public $field;
     /**
      * @var integer|null The referenced service id
      */
@@ -87,7 +83,7 @@ class RelationSchema
     /**
      * @var string The referenced fields of the referenced table
      */
-    public $refFields;
+    public $refField;
     /**
      * @var string if a foreign key, then what to do with this field's value when the foreign is updated
      */
@@ -96,18 +92,6 @@ class RelationSchema
      * @var string if a foreign key, then what to do with this field's value when the foreign is deleted
      */
     public $refOnDelete;
-    /**
-     * @var string The local table's field that is the foreign key
-     */
-    public $field;
-    /**
-     * @var boolean Is this a junction table on a foreign service.
-     */
-    public $isForeignJunctionService = false;
-    /**
-     * @var string details the service name of the pivot or junction table
-     */
-    public $junctionService;
     /**
      * @var integer details the service id of the pivot or junction table
      */
@@ -125,32 +109,43 @@ class RelationSchema
      */
     public $junctionRefField;
 
+    public static function buildName(
+        $type,
+        $field,
+        $refService,
+        $refTable,
+        $refField,
+        $junctionService = null,
+        $junctionTable = null
+    ) {
+        $table = $refTable;
+        if (!empty($refService)) {
+            $table = $refService . '.' . $table;
+        }
+        switch ($type) {
+            case static::BELONGS_TO:
+                return $table . '_by_' . $field;
+            case static::HAS_MANY:
+                return $table . '_by_' . $refField;
+            case static::MANY_MANY:
+                $junction = $junctionTable;
+                if (!empty($junctionService)) {
+                    $junction = $junctionService . '.' . $junction;
+                }
+
+                return $table . '_by_' . $junction;
+            default:
+                return null;
+        }
+    }
+
     public function __construct(array $settings)
     {
         $this->fill($settings);
 
         if (empty($this->name)) {
-            $table = $this->refTable;
-            if ($this->isForeignService && $this->refService) {
-                $table = $this->refService . '.' . $table;
-            }
-            switch ($this->type) {
-                case static::BELONGS_TO:
-                    $this->name = $table . '_by_' . $this->field;
-                    break;
-                case static::HAS_MANY:
-                    $this->name = $table . '_by_' . $this->refFields;
-                    break;
-                case static::MANY_MANY:
-                    $junction = $this->junctionTable;
-                    if ($this->isForeignJunctionService && $this->junctionService) {
-                        $junction = $this->junctionService . '.' . $junction;
-                    }
-                    $this->name = $table . '_by_' . $junction;
-                    break;
-                default:
-                    break;
-            }
+            $this->name = static::buildName($this->type, $this->field, null, $this->refTable,
+                $this->refField, null, $this->junctionTable);
         }
     }
 
@@ -185,28 +180,24 @@ class RelationSchema
     public function toArray($use_alias = false)
     {
         $out = [
-            'name'                        => $this->getName($use_alias),
-            'label'                       => $this->getLabel(),
-            'description'                 => $this->description,
-            'always_fetch'                => $this->alwaysFetch,
-            'flatten'                     => $this->flatten,
-            'flatten_drop_prefix'         => $this->flattenDropPrefix,
-            'type'                        => $this->type,
-            'field'                       => $this->field,
-            'is_virtual'                  => $this->isVirtual,
-            'is_foreign_service'          => $this->isForeignService,
-            'ref_service'                 => $this->refService,
-            'ref_service_id'              => $this->refServiceId,
-            'ref_table'                   => $this->refTable,
-            'ref_fields'                  => $this->refFields,
-            'ref_on_update'               => $this->refOnUpdate,
-            'ref_on_delete'               => $this->refOnDelete,
-            'is_foreign_junction_service' => $this->isForeignJunctionService,
-            'junction_service'            => $this->junctionService,
-            'junction_service_id'         => $this->junctionServiceId,
-            'junction_table'              => $this->junctionTable,
-            'junction_field'              => $this->junctionField,
-            'junction_ref_field'          => $this->junctionRefField,
+            'name'                => $this->getName($use_alias),
+            'label'               => $this->getLabel(),
+            'description'         => $this->description,
+            'type'                => $this->type,
+            'field'               => $this->field,
+            'is_virtual'          => $this->isVirtual,
+            'ref_service_id'      => $this->refServiceId,
+            'ref_table'           => $this->refTable,
+            'ref_field'           => $this->refField,
+            'ref_on_update'       => $this->refOnUpdate,
+            'ref_on_delete'       => $this->refOnDelete,
+            'junction_service_id' => $this->junctionServiceId,
+            'junction_table'      => $this->junctionTable,
+            'junction_field'      => $this->junctionField,
+            'junction_ref_field'  => $this->junctionRefField,
+            'always_fetch'        => $this->alwaysFetch,
+            'flatten'             => $this->flatten,
+            'flatten_drop_prefix' => $this->flattenDropPrefix,
         ];
 
         if (!$use_alias) {

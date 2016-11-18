@@ -631,7 +631,10 @@ MYSQL;
                     $paramStr .= (empty($paramStr)) ? $pName : ", $pName";
                     // not using binding for out or inout params here due to earlier (<5.5.3) mysql library bug
                     // since binding isn't working, set the values via statements, get the values via select
-                    $pre .= "SET $pName = " . array_get($values, $key) . ';';
+                    if (is_null($value = array_get($values, $key))) {
+                        $value = 'NULL';
+                    }
+                    $pre .= "SET $pName = $value;";
                     break;
                 case 'OUT':
                     $pName = '@' . $paramSchema->name;

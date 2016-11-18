@@ -2875,8 +2875,8 @@ MYSQL;
     }
 
     /**
-     * @param $value
-     * @param $type
+     * @param mixed  $value
+     * @param string $type
      *
      * @return bool|int|null|string
      */
@@ -3586,6 +3586,33 @@ MYSQL;
         return $result;
     }
 
+    protected static function cleanParameters(array $param_schemas, array $in_params)
+    {
+        $out = [];
+        foreach ($in_params as $key => $value) {
+            if (is_string($key)) {
+                // $key is name, check if we have array with value
+                if (is_array($value)) {
+                    $value = array_get(array_change_key_case($value, CASE_LOWER), 'value');
+                }
+                $out[strtolower($key)] = $value;
+            } else {
+                if (is_array($value)) {
+                    $param = array_change_key_case($value, CASE_LOWER);
+                    if (array_key_exists('name', $param)) {
+                        $out[strtolower($param['name'])] = array_get($param, 'value');
+                    }
+                } else {
+                    if ($name = array_get(array_keys($param_schemas), $key)) {
+                        $out[$name] = $value;
+                    }
+                }
+            }
+        }
+
+        return $out;
+    }
+
     /**
      * @param array $param_schemas
      * @param array $in_params
@@ -3595,10 +3622,7 @@ MYSQL;
      */
     protected function determineRoutineValues(array $param_schemas, array $in_params)
     {
-        // check associative
-        $keys = array_keys($in_params);
-        $isAssociative = (array_keys($keys) !== $keys);
-        $in_params = array_change_key_case($in_params, CASE_LOWER);
+        $in_params = static::cleanParameters($param_schemas, $in_params);
         $values = [];
         $index = -1;
         // key is lowercase index
@@ -3607,28 +3631,12 @@ MYSQL;
             switch ($paramSchema->paramType) {
                 case 'IN':
                 case 'INOUT':
-                    $value = null;
-                    if ($isAssociative) {
-                        if (array_key_exists($key, $in_params)) {
-                            $value = $in_params[$key];
-                        } elseif (empty($paramSchema->defaultValue)) {
-                            throw new BadRequestException("Routine requires value for parameter '{$paramSchema->name}'.");
-                        }
-                    } elseif (array_key_exists($index, $in_params)) {
-                        if (is_array($in_params[$index])) {
-                            if (array_key_exists('value', $in_params[$index])) {
-                                $value = $in_params[$index]['value'];
-                            } elseif (empty($paramSchema->defaultValue)) {
-                                throw new BadRequestException("Routine requires value for parameter '{$paramSchema->name}'.");
-                            }
-                        } else {
-                            $value = $in_params[$index];
-                        }
-                    } elseif (empty($paramSchema->defaultValue)) {
-                        throw new BadRequestException("Routine requires value for parameter '{$paramSchema->name}'.");
+                    if (array_key_exists($key, $in_params)) {
+                        $value = $in_params[$key];
+                    } else {
+                        $value = $paramSchema->defaultValue;
                     }
-
-                    $values[$key] = $value;
+                    $values[$key] = (is_null($value) ? null : $this->formatValue($value, $paramSchema->type));
                     break;
                 case 'OUT':
                     $values[$key] = null;
@@ -3658,9 +3666,6 @@ MYSQL;
                 case 'OUT':
                     $pdoType = $this->getPdoType($paramSchema->type);
 //                    $values[$key] = $this->formatValue($values[$key], $paramSchema->type);
-//                    if (empty($values[$key]) && (\PDO::PARAM_STR === $pdoType)) {
-//                        $values[$key] = str_repeat(" ", $paramSchema->length);
-//                    }
                     $this->bindParam(
                         $statement, ':' . $paramSchema->name,
                         $values[$key],

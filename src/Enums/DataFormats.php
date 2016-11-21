@@ -279,7 +279,6 @@ class DataFormats extends FactoryEnum
 
         $mime_type = (false !== strpos($mime_type, ';')) ? trim(strstr($mime_type, ';', true)) : $mime_type;
         $mime_type = strtolower($mime_type);
-        $mime_type = static::getBaseMimeType($mime_type);
         if (!array_key_exists($mime_type, static::$mimeTypeMap)) {
             if ($throw_if_not_found) {
                 throw new NotImplementedException('The mime type "' . $mime_type . '" is not supported.');
@@ -289,27 +288,6 @@ class DataFormats extends FactoryEnum
         }
 
         return (static::$mimeTypeMap[$mime_type]) ?: $default;
-    }
-
-    /**
-     * Changes vendor specific mime type to standard type eg:
-     * application/vnd.bla.bla+json to application/json
-     *
-     * @param string $type
-     *
-     * @return string
-     */
-    public static function getBaseMimeType($type)
-    {
-        if (strpos($type, '+') !== false) {
-            $parts = explode('+', $type);
-            $baseFormat = array_get($parts, 1);
-            $parts = explode('/', $type);
-
-            return array_get($parts, 0) . '/' . $baseFormat;
-        } else {
-            return $type;
-        }
     }
 
     /**

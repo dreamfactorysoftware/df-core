@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 ### Changed
 ### Fixed
+- Handling vendor specific Content Type
 
 ## [0.6.1] - 2016-11-18
 ### Fixed

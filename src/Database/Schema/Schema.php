@@ -3523,7 +3523,9 @@ MYSQL;
             $reader->setFetchMode(static::ROUTINE_FETCH_MODE);
             do {
                 try {
-                    $temp = $reader->readAll();
+                    if (0 < $reader->getColumnCount()) {
+                        $temp = $reader->readAll();
+                    }
                 } catch (\Exception $ex) {
                     // latest oracle driver seems to kick this back for all OUT params even though it works, ignore for now
                     if (false === stripos($ex->getMessage(),

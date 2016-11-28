@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Handling errors and showing original content when content in response cannot be resolved to Accept type.
 
 ### Fixed
+- DF-916 Handling exceptions thrown in callback functions in NodeJS scripting.
 
 ## [0.6.1] - 2016-11-18
 ### Fixed

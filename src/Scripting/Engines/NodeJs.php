@@ -218,6 +218,16 @@ _wrapperResult = (function() {
             return this.call('DELETE', path, payload, options, callback);
         }
     };
+    
+    process.on('uncaughtException', function(error){
+        var content = {
+            error : {
+                message : error.message,
+                code : 500
+            }
+        }
+        _event.setResponse(content, 500, 'application/json');
+    });
 
 	try	{
         //noinspection JSUnresolvedVariable

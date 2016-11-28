@@ -9,6 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ### Fixed
 - DF-916 Handling exceptions thrown in callback functions in NodeJS scripting.
+- DF-712 Support for SMTP without SSL/TLS.
 
 ## [0.6.1] - 2016-11-18
 ### Fixed

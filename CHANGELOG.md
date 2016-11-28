@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 ### Changed
+- Handling errors and showing original content when content in response cannot be resolved to Accept type.
+
 ### Fixed
 
 ## [0.6.1] - 2016-11-18

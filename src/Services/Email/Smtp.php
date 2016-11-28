@@ -30,8 +30,11 @@ class Smtp extends BaseService
      */
     public static function getTransport($host, $port, $encryption, $username, $password)
     {
-        if (empty($host) || empty($port) || empty($encryption) || empty($username) || empty($password)) {
-            throw new InternalServerErrorException("Missing one or more configuration for SMTP driver.");
+        if (empty($host)) {
+            throw new InternalServerErrorException("Missing SMTP host. Check service configuration.");
+        }
+        if (empty($port)) {
+            throw new InternalServerErrorException("Missing SMTP port. Check service configuration.");
         }
         $transport = SmtpTransport::newInstance($host, $port);
 

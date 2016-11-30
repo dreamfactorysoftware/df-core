@@ -115,17 +115,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // Script Service Config
-        Schema::create(
-            'script_config',
-            function (Blueprint $t){
-                $t->integer('service_id')->unsigned()->primary();
-                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->mediumText('content')->nullable();
-                $t->text('config')->nullable();
-            }
-        );
-
         // Event Subscriber
         Schema::create(
             'event_subscriber',
@@ -133,24 +122,6 @@ class CreateSystemTables extends Migration
                 $t->increments('id');
                 $t->string('name', 80)->unique();
                 $t->string('type');
-                $t->text('config')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-            }
-        );
-
-        // Event Scripts
-        Schema::create(
-            'event_script',
-            function (Blueprint $t) use ($userOnDelete){
-                $t->string('name', 80)->primary();
-                $t->string('type', 40);
-                $t->boolean('is_active')->default(0);
-                $t->mediumText('content')->nullable();
                 $t->text('config')->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
@@ -546,10 +517,6 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('user_to_app_to_role');
         // Service Docs
         Schema::dropIfExists('service_doc');
-        // Script Service Configs
-        Schema::dropIfExists('script_config');
-        // Event Scripts
-        Schema::dropIfExists('event_script');
         // Event Subscribers
         Schema::dropIfExists('event_subscriber');
         // System Configuration

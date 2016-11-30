@@ -5,7 +5,6 @@ use DreamFactory\Core\Database\DatabaseServiceProvider;
 use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
 use DreamFactory\Core\Models\SystemTableModelMapper;
 use DreamFactory\Core\Resources\System\SystemResourceManager;
-use DreamFactory\Core\Scripting\ScriptingServiceProvider;
 use DreamFactory\Core\Services\ServiceManager;
 use Illuminate\Support\ServiceProvider;
 
@@ -36,9 +35,6 @@ class DfServiceProvider extends ServiceProvider
         // Add our database drivers.
         \App::register(DatabaseServiceProvider::class);
 
-        // Add our scripting drivers.
-        \App::register(ScriptingServiceProvider::class);
-
         // Add our subscription-based services.
         \App::register(SubscriptionServiceProvider::class);
 
@@ -62,6 +58,7 @@ class DfServiceProvider extends ServiceProvider
                 'Rackspace',
                 'Rws',
                 'Salesforce',
+                'Script',
                 'Soap',
                 'SqlAnywhere',
                 'SqlDb',

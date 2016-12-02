@@ -22,7 +22,7 @@ use Config;
 trait DbRequestCriteria
 {
     /** @var  ServiceRequestInterface */
-    protected $request;
+//    protected $request; // Not liked by PHP 5.6 - redeclaration warning
 
     protected function getMaxRecordsReturnedLimit()
     {

@@ -7,9 +7,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.6.2] - 2016-12-02
+### Fixed
+- Fix PHP 5.6 redeclaration warning for trait member usage
+
 ## [0.6.1] - 2016-11-18
 ### Fixed
-- Routine parameters not searched correctly when passed as array of objects.
+- Routine parameters not searched correctly when passed as array of objects
 
 ## [0.6.0] - 2016-11-17
 ### Added
@@ -361,7 +365,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.1...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.2...HEAD
+[0.6.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.3...0.6.0
 [0.5.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.2...0.5.3

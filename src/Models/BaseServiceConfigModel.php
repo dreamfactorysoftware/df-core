@@ -4,9 +4,13 @@ namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
 use DreamFactory\Core\Database\Schema\ColumnSchema;
+use Illuminate\Database\Query\Builder;
 
 /**
  * Class BaseServiceConfigModel
+ *
+ * @property integer $service_id
+ * @method static Builder|EmailTemplate whereServiceId($value)
  *
  * @package DreamFactory\Core\Models
  */
@@ -40,6 +44,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     public static function getConfig($id, $protect = true)
     {
         /** @var BaseServiceConfigModel $model */
+        /** @noinspection PhpUndefinedMethodInspection */
         $model = static::find($id);
 
         if (!empty($model)) {
@@ -64,6 +69,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     public static function setConfig($id, $config)
     {
         /** @var BaseServiceConfigModel $model */
+        /** @noinspection PhpUndefinedMethodInspection */
         $model = static::find($id);
         if (!empty($model)) {
             $model->update($config);

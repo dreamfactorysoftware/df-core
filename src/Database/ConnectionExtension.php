@@ -21,8 +21,7 @@ trait ConnectionExtension
      *
      * @param \Illuminate\Database\Connection|\Illuminate\Database\ConnectionInterface $conn
      *
-     * @return SchemaInterface if Connection does not support reading schema for specified
-     *                                                      database driver
+     * @return SchemaInterface
      * @throws \Exception if Connection does not support reading schema for specified database driver
      */
     public function getSchemaExtension(ConnectionInterface $conn)

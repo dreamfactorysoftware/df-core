@@ -319,44 +319,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        //Email service config table
-        Schema::create(
-            'smtp_config',
-            function (Blueprint $t){
-                $t->integer('service_id')->unsigned()->primary();
-                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('host');
-                $t->string('port')->default('587');
-                $t->string('encryption')->default('tls');
-                $t->text('username'); //encrypted
-                $t->text('password'); //encrypted
-            }
-        );
-
-        //Email service config table
-        Schema::create(
-            'cloud_email_config',
-            function (Blueprint $t){
-                $t->integer('service_id')->unsigned()->primary();
-                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('domain')->nullable();
-                $t->text('key'); //encrypted
-            }
-        );
-
-        //Email service parameters config table
-        Schema::create(
-            'email_parameters_config',
-            function (Blueprint $t){
-                $t->increments('id');
-                $t->integer('service_id')->unsigned();
-                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('name');
-                $t->mediumText('value')->nullable();
-                $t->boolean('active')->default(1);
-            }
-        );
-
         // Applications
         Schema::create(
             'app',
@@ -539,10 +501,6 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('db_field_extras');
         //Cors config table
         Schema::dropIfExists('cors_config');
-        //Email service config table
-        Schema::dropIfExists('email_config');
-        //Email service parameters config table
-        Schema::dropIfExists('email_parameters_config');
         // App relationship for user
         Schema::dropIfExists('user_to_app_role');
         // App Lookup Keys

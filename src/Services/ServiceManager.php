@@ -10,14 +10,6 @@ use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\LocalFileConfig;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Models\LocalEmailConfig;
-use DreamFactory\Core\Models\MailGunConfig;
-use DreamFactory\Core\Models\MandrillConfig;
-use DreamFactory\Core\Models\SmtpConfig;
-use DreamFactory\Core\Services\Email\Local;
-use DreamFactory\Core\Services\Email\MailGun;
-use DreamFactory\Core\Services\Email\Mandrill;
-use DreamFactory\Core\Services\Email\Smtp;
 use DreamFactory\Core\Utility\ServiceRequest;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use InvalidArgumentException;
@@ -91,19 +83,6 @@ class ServiceManager
                 },
             ],
             [
-                'name'            => 'event',
-                'label'           => 'Event Management',
-                'description'     => 'Service that allows clients to subscribe to system broadcast events.',
-                'group'           => ServiceTypeGroups::EVENT,
-                'singleton'       => true,
-                'default_api_doc' => function ($service) {
-                    return $this->buildServiceDoc($service->id, Event::getApiDocInfo($service));
-                },
-                'factory'         => function ($config) {
-                    return new Event($config);
-                },
-            ],
-            [
                 'name'            => 'local_file',
                 'label'           => 'Local File Storage',
                 'description'     => 'File service supporting the local file system.',
@@ -114,58 +93,6 @@ class ServiceManager
                 },
                 'factory'         => function ($config) {
                     return new LocalFileService($config);
-                },
-            ],
-            [
-                'name'            => 'local_email',
-                'label'           => 'Local Email Service',
-                'description'     => 'Local email service using system configuration.',
-                'group'           => ServiceTypeGroups::EMAIL,
-                'config_handler'  => LocalEmailConfig::class,
-                'default_api_doc' => function ($service) {
-                    return $this->buildServiceDoc($service->id, Local::getApiDocInfo($service));
-                },
-                'factory'         => function ($config) {
-                    return new Local($config);
-                },
-            ],
-            [
-                'name'            => 'smtp_email',
-                'label'           => 'SMTP',
-                'description'     => 'SMTP-based email service',
-                'group'           => ServiceTypeGroups::EMAIL,
-                'config_handler'  => SmtpConfig::class,
-                'default_api_doc' => function ($service) {
-                    return $this->buildServiceDoc($service->id, Smtp::getApiDocInfo($service));
-                },
-                'factory'         => function ($config) {
-                    return new Smtp($config);
-                },
-            ],
-            [
-                'name'            => 'mailgun_email',
-                'label'           => 'Mailgun',
-                'description'     => 'Mailgun email service',
-                'group'           => ServiceTypeGroups::EMAIL,
-                'config_handler'  => MailGunConfig::class,
-                'default_api_doc' => function ($service) {
-                    return $this->buildServiceDoc($service->id, MailGun::getApiDocInfo($service));
-                },
-                'factory'         => function ($config) {
-                    return new MailGun($config);
-                },
-            ],
-            [
-                'name'            => 'mandrill_email',
-                'label'           => 'Mandrill',
-                'description'     => 'Mandrill email service',
-                'group'           => ServiceTypeGroups::EMAIL,
-                'config_handler'  => MandrillConfig::class,
-                'default_api_doc' => function ($service) {
-                    return $this->buildServiceDoc($service->id, Mandrill::getApiDocInfo($service));
-                },
-                'factory'         => function ($config) {
-                    return new Mandrill($config);
                 },
             ],
         ];

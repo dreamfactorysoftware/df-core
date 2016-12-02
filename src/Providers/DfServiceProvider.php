@@ -50,6 +50,7 @@ class DfServiceProvider extends ServiceProvider
                 'Cassandra',
                 'Couchbase',
                 'CouchDb',
+                'Email',
                 'IbmDb2',
                 'Logger',
                 'MongoDb',

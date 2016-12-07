@@ -84,6 +84,14 @@ class SubscriptionServiceProvider extends ServiceProvider
                     'group'                 => ServiceTypeGroups::LOG,
                     'subscription_required' => true,
                 ]));
+            $df->addType(new ServiceType(
+                [
+                    'name'                  => 'oauth_azure_ad',
+                    'label'                 => 'Azure Active Directory OAuth',
+                    'description'           => 'OAuth service for supporting Azure Active Directory authentication and API access.',
+                    'group'                 => ServiceTypeGroups::OAUTH,
+                    'subscription_required' => true,
+                ]));
         });
     }
 }

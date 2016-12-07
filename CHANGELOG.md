@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-920 Allowing SMTP service without authentication.
+- DF-447 Adding support for Azure Active Directory.
 
 ### Changed
 - Handling errors and showing original content when content in response cannot be resolved to Accept type.

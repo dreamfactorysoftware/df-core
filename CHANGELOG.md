@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-770 Package manager improvement.
 - Refactored email services out to new repo df-email.
 - DF-899 Indicating bad services on package manager.
+- OAuth callback handler now checks for service name using state identifier when service name is not present on callback url.
 
 ### Fixed
 - DF-916 Handling exceptions thrown in callback functions in NodeJS scripting.

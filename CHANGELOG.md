@@ -5,11 +5,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-920 Allowing SMTP service without authentication.
+- DF-447 Adding support for Azure Active Directory.
 
 ### Changed
 - Handling errors and showing original content when content in response cannot be resolved to Accept type.
 - DF-770 Package manager improvement.
 - Refactored email services out to new repo df-email.
+- DF-899 Indicating bad services on package manager.
+- OAuth callback handler now checks for service name using state identifier when service name is not present on callback url.
 
 ### Fixed
 - DF-916 Handling exceptions thrown in callback functions in NodeJS scripting.

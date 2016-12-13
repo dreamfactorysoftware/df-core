@@ -62,6 +62,7 @@ class DfServiceProvider extends ServiceProvider
                 'ADLdap',
                 'Aws',
                 'Azure',
+                'AzureAD',
                 'Cache',
                 'Cassandra',
                 'Couchbase',

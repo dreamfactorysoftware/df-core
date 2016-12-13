@@ -308,7 +308,7 @@ trait DbRequestCriteria
                     $sqlOp = DbLogicalOperators::NOT_STR . ' ' . $sqlOp;
                 }
 
-                $out = $info->rawName . " $sqlOp";
+                $out = $info->quotedName . " $sqlOp";
                 $out .= (isset($value) ? " $value" : null);
                 if ($leftParen) {
                     $out = $leftParen . $out;

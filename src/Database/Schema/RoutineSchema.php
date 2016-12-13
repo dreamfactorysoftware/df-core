@@ -19,10 +19,15 @@ class RoutineSchema
      */
     public $name;
     /**
-     * @var string Raw name of this routine. This is the quoted version of routine name with optional schema name.
-     *      It can be directly used in SQL statements.
+     * @var string Internal full name of this table. This is the non-quoted version of table name with schema name.
+     * It can be directly used in SQL statements.
      */
-    public $rawName;
+    public $internalName;
+    /**
+     * @var string Quoted full name of this table. This is the quoted version of table name with schema name.
+     * It can be directly used in SQL statements.
+     */
+    public $quotedName;
     /**
      * @var string Public name of this routine. This is the routine name with optional non-default schema name.
      *      It is to be used by clients.

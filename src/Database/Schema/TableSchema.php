@@ -11,7 +11,6 @@ use DreamFactory\Library\Utility\Inflector;
  * TableSchema provides the following information about a table:
  * <ul>
  * <li>{@link name}</li>
- * <li>{@link rawName}</li>
  * <li>{@link columns}</li>
  * <li>{@link primaryKey}</li>
  * <li>{@link foreignKeys}</li>
@@ -36,10 +35,15 @@ class TableSchema
      */
     public $tableName;
     /**
-     * @var string Raw name of this table. This is the quoted version of table name with optional schema name.
+     * @var string Internal full name of this table. This is the non-quoted version of table name with schema name.
      * It can be directly used in SQL statements.
      */
-    public $rawName;
+    public $internalName;
+    /**
+     * @var string Quoted full name of this table. This is the quoted version of table name with schema name.
+     * It can be directly used in SQL statements.
+     */
+    public $quotedName;
     /**
      * @var string Public name of this table. This is the table name with optional non-default schema name.
      * It is to be used by clients.

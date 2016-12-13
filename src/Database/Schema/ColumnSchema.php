@@ -13,9 +13,9 @@ class ColumnSchema
      */
     public $name;
     /**
-     * @var string raw name of this column. This is the quoted name that can be used in SQL queries.
+     * @var string This is the quoted name that can be used in SQL queries.
      */
-    public $rawName;
+    public $quotedName;
     /**
      * @var string Optional alias for this column.
      */

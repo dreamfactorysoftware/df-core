@@ -5,7 +5,7 @@ namespace DreamFactory\Core\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see DreamFactory\Core\Models\SystemTableModelMapper
+ * @see \DreamFactory\Core\Models\SystemTableModelMapper
  */
 class SystemTableModelMapper extends Facade
 {

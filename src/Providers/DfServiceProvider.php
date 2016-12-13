@@ -1,11 +1,14 @@
 <?php
 namespace DreamFactory\Core\Providers;
 
-use DreamFactory\Core\Database\DatabaseServiceProvider;
+use DreamFactory\Core\Components\DbSchemaExtensions;
+use DreamFactory\Core\Database\Connectors\SQLiteConnector;
 use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
 use DreamFactory\Core\Models\SystemTableModelMapper;
 use DreamFactory\Core\Resources\System\SystemResourceManager;
 use DreamFactory\Core\Services\ServiceManager;
+use Illuminate\Database\DatabaseManager;
+use Illuminate\Database\SQLiteConnection;
 use Illuminate\Support\ServiceProvider;
 
 class DfServiceProvider extends ServiceProvider
@@ -33,7 +36,20 @@ class DfServiceProvider extends ServiceProvider
         });
 
         // Add our database drivers.
-        \App::register(DatabaseServiceProvider::class);
+        $this->app->resolving('db', function (DatabaseManager $db){
+            $db->extend('sqlite', function ($config){
+                $connector = new SQLiteConnector();
+                $connection = $connector->connect($config);
+
+                return new SQLiteConnection($connection, $config["database"], $config["prefix"], $config);
+            });
+        });
+
+        // The database schema extension manager is used to resolve various database schema extensions.
+        // It also implements the resolver interface which may be used by other components adding schema extensions.
+        $this->app->singleton('db.schema', function ($app){
+            return new DbSchemaExtensions($app);
+        });
 
         // Add our subscription-based services.
         \App::register(SubscriptionServiceProvider::class);
@@ -50,6 +66,7 @@ class DfServiceProvider extends ServiceProvider
                 'Cassandra',
                 'Couchbase',
                 'CouchDb',
+                'Database',
                 'Email',
                 'IbmDb2',
                 'Logger',

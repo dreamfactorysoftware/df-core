@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Handling errors and showing original content when content in response cannot be resolved to Accept type.
 - DF-770 Package manager improvement.
 - Refactored email services out to new repo df-email.
+- Refactored database services out to new repo df-database.
 - DF-899 Indicating bad services on package manager.
 - OAuth callback handler now checks for service name using state identifier when service name is not present on callback url.
 

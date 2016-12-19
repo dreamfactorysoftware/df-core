@@ -8,13 +8,13 @@ use ServiceManager;
 
 class ServiceEventMap extends BaseServiceConfigModel
 {
-    /** @var string  */
+    /** @var string */
     protected $table = 'service_event_map';
 
-    /** @var array  */
+    /** @var array */
     protected $fillable = ['service_id', 'event', 'data'];
 
-    /** @var array  */
+    /** @var array */
     protected $casts = [
         'id'         => 'integer',
         'service_id' => 'integer'

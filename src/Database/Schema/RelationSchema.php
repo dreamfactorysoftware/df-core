@@ -1,12 +1,10 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
-use DreamFactory\Library\Utility\Inflector;
-
 /**
  * RelationSchema class describes the relationship meta data of a database table.
  */
-class RelationSchema
+class RelationSchema extends NamedResourceSchema
 {
     /**
      * The followings are the supported abstract relationship types.
@@ -31,22 +29,6 @@ class RelationSchema
      */
     public static $extraFields = ['label', 'description', 'always_fetch', 'flatten', 'flatten_drop_prefix'];
 
-    /**
-     * @var string Auto-generated name of this relationship.
-     */
-    public $name;
-    /**
-     * @var string Optional alias for this relationship.
-     */
-    public $alias;
-    /**
-     * @var string Optional label for this relationship.
-     */
-    public $label;
-    /**
-     * @var string Optional description for this relationship.
-     */
-    public $description;
     /**
      * @var boolean Fetch this relationship whenever the parent is fetched.
      */
@@ -141,7 +123,7 @@ class RelationSchema
 
     public function __construct(array $settings)
     {
-        $this->fill($settings);
+        parent::__construct($settings);
 
         if (empty($this->name)) {
             $this->name = static::buildName($this->type, $this->field, null, $this->refTable,
@@ -149,40 +131,9 @@ class RelationSchema
         }
     }
 
-    public function fill(array $settings)
-    {
-        foreach ($settings as $key => $value) {
-            if (!property_exists($this, $key)) {
-                // try camel cased
-                $camel = camel_case($key);
-                if (property_exists($this, $camel)) {
-                    $this->{$camel} = $value;
-                    continue;
-                }
-            }
-            // set real and virtual
-            $this->{$key} = $value;
-        }
-    }
-
-    public function getName($use_alias = false)
-    {
-        return ($use_alias && !empty($this->alias)) ? $this->alias : $this->name;
-    }
-
-    public function getLabel()
-    {
-        $name = str_replace('.', ' ', $this->getName(true));
-
-        return (empty($this->label)) ? Inflector::camelize($name, '_', true) : $this->label;
-    }
-
     public function toArray($use_alias = false)
     {
         $out = [
-            'name'                => $this->getName($use_alias),
-            'label'               => $this->getLabel(),
-            'description'         => $this->description,
             'type'                => $this->type,
             'field'               => $this->field,
             'is_virtual'          => $this->isVirtual,
@@ -200,10 +151,6 @@ class RelationSchema
             'flatten_drop_prefix' => $this->flattenDropPrefix,
         ];
 
-        if (!$use_alias) {
-            $out = array_merge(['alias' => $this->alias], $out);
-        }
-
-        return $out;
+        return array_merge(parent::toArray($use_alias), $out);
     }
 }

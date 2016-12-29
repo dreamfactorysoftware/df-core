@@ -138,7 +138,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     protected static function prepareConfigSchemaField(array &$schema)
     {
         // clear out server-specific info
-        unset($schema['php_type'], $schema['pdo_type'], $schema['db_type'], $schema['auto_increment'], $schema['is_index']);
+        unset($schema['php_type'], $schema['db_type'], $schema['auto_increment'], $schema['is_index']);
     }
 
     /**

@@ -35,7 +35,6 @@ class DbSimpleTypes extends FactoryEnum
     const TYPE_USER_ID             = 'user_id';
     const TYPE_USER_ID_ON_CREATE   = 'user_id_on_create';
     const TYPE_USER_ID_ON_UPDATE   = 'user_id_on_update';
-    const TYPE_VIRTUAL             = 'virtual';
 
     //Cassandra specific Types
     const TYPE_UUID                = 'uuid';

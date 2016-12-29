@@ -358,8 +358,16 @@ trait DbRequestCriteria
         // if not already a replacement parameter, evaluate it
 //            $value = $this->dbConn->getSchema()->parseValueForSet($value, $info);
 
-        switch ($cnvType = $this->determinePhpConversionType($info->type)) {
-            case 'int':
+        switch ($info->type) {
+            case DbSimpleTypes::TYPE_BOOLEAN:
+                break;
+
+            case DbSimpleTypes::TYPE_INTEGER:
+            case DbSimpleTypes::TYPE_ID:
+            case DbSimpleTypes::TYPE_REF:
+            case DbSimpleTypes::TYPE_USER_ID:
+            case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
+            case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
                 if (!is_int($value)) {
                     if (!(ctype_digit($value))) {
                         throw new BadRequestException("Field '{$info->getName(true)}' must be a valid integer.");
@@ -369,22 +377,37 @@ trait DbRequestCriteria
                 }
                 break;
 
-            case 'time':
-                $cfgFormat = Config::get('df.db_time_format');
-                $outFormat = 'H:i:s.u';
-                $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
+            case DbSimpleTypes::TYPE_DECIMAL:
+            case DbSimpleTypes::TYPE_DOUBLE:
+            case DbSimpleTypes::TYPE_FLOAT:
                 break;
-            case 'date':
+
+            case DbSimpleTypes::TYPE_STRING:
+            case DbSimpleTypes::TYPE_TEXT:
+                break;
+
+            // special checks
+            case DbSimpleTypes::TYPE_DATE:
                 $cfgFormat = Config::get('df.db_date_format');
                 $outFormat = 'Y-m-d';
                 $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
                 break;
-            case 'datetime':
+
+            case DbSimpleTypes::TYPE_TIME:
+                $cfgFormat = Config::get('df.db_time_format');
+                $outFormat = 'H:i:s.u';
+                $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
+                break;
+
+            case DbSimpleTypes::TYPE_DATETIME:
                 $cfgFormat = Config::get('df.db_datetime_format');
                 $outFormat = 'Y-m-d H:i:s';
                 $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
                 break;
-            case 'timestamp':
+
+            case DbSimpleTypes::TYPE_TIMESTAMP:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
+            case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
                 $cfgFormat = Config::get('df.db_timestamp_format');
                 $outFormat = 'Y-m-d H:i:s';
                 $value = DataFormatter::formatDateTime($outFormat, $value, $cfgFormat);
@@ -519,52 +542,5 @@ trait DbRequestCriteria
         }
 
         return $record;
-    }
-
-    /**
-     * @param $type
-     *
-     * @return null|string
-     */
-    public static function determinePhpConversionType($type)
-    {
-        switch ($type) {
-            case DbSimpleTypes::TYPE_BOOLEAN:
-                return 'bool';
-
-            case DbSimpleTypes::TYPE_INTEGER:
-            case DbSimpleTypes::TYPE_ID:
-            case DbSimpleTypes::TYPE_REF:
-            case DbSimpleTypes::TYPE_USER_ID:
-            case DbSimpleTypes::TYPE_USER_ID_ON_CREATE:
-            case DbSimpleTypes::TYPE_USER_ID_ON_UPDATE:
-                return 'int';
-
-            case DbSimpleTypes::TYPE_DECIMAL:
-            case DbSimpleTypes::TYPE_DOUBLE:
-            case DbSimpleTypes::TYPE_FLOAT:
-                return 'float';
-
-            case DbSimpleTypes::TYPE_STRING:
-            case DbSimpleTypes::TYPE_TEXT:
-                return 'string';
-
-            // special checks
-            case DbSimpleTypes::TYPE_DATE:
-                return 'date';
-
-            case DbSimpleTypes::TYPE_TIME:
-                return 'time';
-
-            case DbSimpleTypes::TYPE_DATETIME:
-                return 'datetime';
-
-            case DbSimpleTypes::TYPE_TIMESTAMP:
-            case DbSimpleTypes::TYPE_TIMESTAMP_ON_CREATE:
-            case DbSimpleTypes::TYPE_TIMESTAMP_ON_UPDATE:
-                return 'timestamp';
-        }
-
-        return null;
     }
 }

@@ -19,52 +19,12 @@ use DreamFactory\Library\Utility\Inflector;
  *
  * @property array $columnNames List of column names.
  */
-class TableSchema
+class TableSchema extends NamedResourceSchema
 {
     /**
-     * @var string Name of the catalog (database) that this table belongs to (SQL Server specific).
-     * Defaults to null, meaning no catalog (or the current database).
-     */
-    public $catalogName;
-    /**
-     * @var string Name of the schema that this table belongs to.
-     */
-    public $schemaName;
-    /**
-     * @var string Name of this table without any additional schema declaration.
-     */
-    public $tableName;
-    /**
-     * @var string Internal full name of this table. This is the non-quoted version of table name with schema name.
-     * It can be directly used in SQL statements.
-     */
-    public $internalName;
-    /**
-     * @var string Quoted full name of this table. This is the quoted version of table name with schema name.
-     * It can be directly used in SQL statements.
-     */
-    public $quotedName;
-    /**
-     * @var string Public name of this table. This is the table name with optional non-default schema name.
-     * It is to be used by clients.
-     */
-    public $name;
-    /**
-     * @var string Optional alias for this table. This alias can be used in the API to access the table.
-     */
-    public $alias;
-    /**
-     * @var string Optional label for this table.
-     */
-    public $label;
-    /**
-     * @var string Optional plural form of the label for of this table.
+     * @var string Optional plural form of the label for of this resource.
      */
     public $plural;
-    /**
-     * @var string Optional public description of this table.
-     */
-    public $description;
     /**
      * @var boolean Table or View?.
      */
@@ -108,19 +68,6 @@ class TableSchema
      * @var boolean Are any of the relationships required during fetch on this table?
      */
     public $fetchRequiresRelations = false;
-    /**
-     * @var boolean Has the full schema been discovered, or just name and type.
-     */
-    public $discoveryCompleted = false;
-    /**
-     * @var array Any table-specific information native to this platform.
-     */
-    public $native = [];
-
-    public function __construct(array $settings)
-    {
-        $this->fill($settings);
-    }
 
     public function fill(array $settings)
     {
@@ -152,16 +99,6 @@ class TableSchema
             // set real and virtual
             $this->{$key} = $value;
         }
-    }
-
-    public function getName($use_alias = false)
-    {
-        return ($use_alias && !empty($this->alias)) ? $this->alias : $this->name;
-    }
-
-    public function getLabel($use_alias = false)
-    {
-        return (empty($this->label)) ? Inflector::camelize($this->getName($use_alias), '_', true) : $this->label;
     }
 
     public function getPlural($use_alias = false)
@@ -318,19 +255,10 @@ class TableSchema
 
     public function toArray($use_alias = false)
     {
-        $out = [
-            'name'        => $this->getName($use_alias),
-            'is_view'     => $this->isView,
-            'label'       => $this->getLabel(),
-            'plural'      => $this->getPlural(),
-            'description' => $this->description,
-            'native'      => $this->native,
-        ];
+        $out = parent::toArray($use_alias);
 
-        if (!$use_alias) {
-            $out = array_merge(['alias' => $this->alias], $out);
-        }
-
+        $out['plural'] = $this->getPlural();
+        $out['is_view'] = $this->isView;
         $out['primary_key'] = $this->primaryKey;
         $out['name_field'] = $this->nameField;
 

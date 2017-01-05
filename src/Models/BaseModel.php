@@ -1188,12 +1188,13 @@ class BaseModel extends Model implements CacheInterface
      */
     public function getAttributeValue($key)
     {
+        $value = parent::getAttributeValue($key);
         // if protected, no need to do anything else, mask it.
-        if ($this->protectedView && in_array($key, $this->protected)) {
+        if ($this->protectedView && in_array($key, $this->protected) && !is_null($value)) {
             return static::PROTECTION_MASK;
         }
 
-        return parent::getAttributeValue($key);
+        return $value;
     }
 
     /**
@@ -1236,10 +1237,12 @@ class BaseModel extends Model implements CacheInterface
         $attributes = parent::attributesToArray();
 
         foreach ($attributes as $key => $value) {
-            if ($this->protectedView && in_array($key, $this->protected)) {
-                $attributes[$key] = static::PROTECTION_MASK;;
-            } elseif (in_array($key, $this->encrypted) && !empty($attributes[$key])) {
-                $attributes[$key] = Crypt::decrypt($value);
+            if (!is_null($attributes[$key])) {
+                if ($this->protectedView && in_array($key, $this->protected)) {
+                    $attributes[$key] = static::PROTECTION_MASK;
+                } elseif (in_array($key, $this->encrypted)) {
+                    $attributes[$key] = Crypt::decrypt($value);
+                }
             }
         }
 

@@ -38,7 +38,7 @@ class BaseSystemLookup extends BaseSystemModel
     {
         $attributes = parent::attributesToArray();
 
-        if (Scalar::boolval(array_get($attributes, 'private'))) {
+        if (Scalar::boolval(array_get($attributes, 'private')) && !is_null(array_get($attributes, 'value'))) {
             $attributes['value'] = static::PROTECTION_MASK;
         }
 
@@ -51,12 +51,13 @@ class BaseSystemLookup extends BaseSystemModel
      */
     public function getAttribute($key)
     {
+        $value = parent::getAttribute($key);
         // if protected, no need to do anything else, mask it.
-        if (('private' === $key) && Scalar::boolval(array_get($this->attributes, 'private'))) {
+        if (('private' === $key) && Scalar::boolval(array_get($this->attributes, 'private')) && !is_null($value)) {
             return static::PROTECTION_MASK;
         }
 
-        return parent::getAttribute($key);
+        return $value;
     }
 
     /**

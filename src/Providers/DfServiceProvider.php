@@ -77,6 +77,7 @@ class DfServiceProvider extends ServiceProvider
                 'Rackspace',
                 'Rws',
                 'Salesforce',
+                'Saml',
                 'Script',
                 'Soap',
                 'SqlAnywhere',

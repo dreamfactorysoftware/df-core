@@ -5,9 +5,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-920 Allowing SMTP service without authentication.
-- DF-447 Adding support for Azure Active Directory.
-- DF-924 Adding support for event-driven logging service.
+- DF-447 Support for Azure Active Directory.
+- DF-924 Support for event-driven logging service.
 - DF-735 Clear cached WSDL files from SOAP services upon system cache clear.
+- DF-926 SAML 2.0 support.
 
 ### Changed
 - Handling errors and showing original content when content in response cannot be resolved to Accept type.

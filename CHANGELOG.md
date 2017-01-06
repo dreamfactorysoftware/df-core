@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-920 Allowing SMTP service without authentication.
 - DF-447 Adding support for Azure Active Directory.
 - DF-924 Adding support for event-driven logging service.
+- DF-735 Clear cached WSDL files from SOAP services upon system cache clear.
 
 ### Changed
 - Handling errors and showing original content when content in response cannot be resolved to Accept type.

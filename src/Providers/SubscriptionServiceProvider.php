@@ -92,6 +92,14 @@ class SubscriptionServiceProvider extends ServiceProvider
                     'group'                 => ServiceTypeGroups::OAUTH,
                     'subscription_required' => true,
                 ]));
+            $df->addType(new ServiceType(
+                [
+                    'name'                  => 'saml',
+                    'label'                 => 'SAML 2.0',
+                    'description'           => 'SAML 2.0 service supporting SSO.',
+                    'group'                 => ServiceTypeGroups::SSO,
+                    'subscription_required' => true,
+                ]));
         });
     }
 }

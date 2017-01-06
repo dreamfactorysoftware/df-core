@@ -37,4 +37,6 @@ class ServiceTypeGroups extends FactoryEnum
     const USER = 'User';
 
     const LOG = 'Log';
+
+    const SSO = 'SSO';
 }

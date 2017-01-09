@@ -20,6 +20,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - DF-916 Handling exceptions thrown in callback functions in NodeJS scripting.
 - DF-712 Support for SMTP without SSL/TLS.
+- DF-821 Adding send_invite parameter to swagger definition
 
 ## [0.6.2] - 2016-12-02
 ### Fixed

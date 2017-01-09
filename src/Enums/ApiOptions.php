@@ -118,6 +118,10 @@ class ApiOptions extends FactoryEnum
      * @var string
      */
     const FORCE = 'force';
+    /**
+     * @var string
+     */
+    const SEND_INVITE = 'send_invite';
 
     //*************************************************************************
     //	Common Option Values
@@ -310,6 +314,12 @@ class ApiOptions extends FactoryEnum
             'in'          => 'query',
             'description' => 'Select only a single schema of a database. Not applicable on all database services.'
         ],
+        self::SEND_INVITE          => [
+            'name'        => self::SEND_INVITE,
+            'type'        => 'boolean',
+            'in'          => 'query',
+            'description' => 'Send email invite to user.'
+        ],
     ];
 
     public static function documentOption($option, $required = false, $default = null)
@@ -357,7 +367,7 @@ class ApiOptions extends FactoryEnum
         ServiceRequestInterface $request,
         $default = null,
         $checkPayload = false
-    ) {
+    ){
         $checkBool = ('boolean' === static::getType($option));
         $value = ($checkBool) ? $request->getParameterAsBool($option) : $request->getParameter($option);
         if (!is_null($value)) {

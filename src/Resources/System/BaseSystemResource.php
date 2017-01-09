@@ -41,7 +41,6 @@ class BaseSystemResource extends BaseRestResource
         $settings = (array)$settings;
         $settings['verbAliases'] = [
             Verbs::PUT   => Verbs::PATCH,
-            Verbs::MERGE => Verbs::PATCH
         ];
 
         parent::__construct($settings);

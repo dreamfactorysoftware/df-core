@@ -56,6 +56,12 @@ class Cache extends BaseRestResource
     {
         if (empty($this->resource)) {
             \Cache::flush();
+            if (boolval(ini_get('soap.wsdl_cache_enabled'))) {
+                // soap services may cache wsdl file contents
+                if (false !== $path = realpath(ini_get('soap.wsdl_cache_dir'))) {
+                    array_map('unlink', glob("$path/wsdl-*"));
+                }
+            }
         } else {
             $service = ServiceManager::getService($this->resource);
             if ($service instanceof CachedInterface) {

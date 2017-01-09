@@ -23,7 +23,6 @@ class UserPasswordResource extends BaseRestResource
     {
         $verbAliases = [
             Verbs::PUT   => Verbs::POST,
-            Verbs::MERGE => Verbs::POST,
             Verbs::PATCH => Verbs::POST
         ];
         $settings["verbAliases"] = $verbAliases;

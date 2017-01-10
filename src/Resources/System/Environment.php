@@ -348,12 +348,14 @@ class Environment extends BaseSystemResource
 
         $services = [];
         foreach ($samls as $saml) {
+            $config = ($saml->getConfigAttribute()) ?: [];
             $services[] = [
                 'path'  => $saml->name . '/sso',
                 'name'  => $saml->name,
                 'label' => $saml->label,
                 'verb'  => Verbs::GET,
-                'type'  => 'saml'
+                'type'  => 'saml',
+                'icon_class' => array_get($config, 'icon_class'),
             ];
         }
 

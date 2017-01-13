@@ -4,24 +4,31 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
-- DF-920 Allowing SMTP service without authentication.
-- DF-447 Support for Azure Active Directory.
-- DF-924 Support for event-driven logging service.
-- DF-735 Clear cached WSDL files from SOAP services upon system cache clear.
-- DF-926 SAML 2.0 support.
+- DF-920 Allowing SMTP service without authentication
+- DF-447 Support for Azure Active Directory
+- DF-924 Support for event-driven logging service
+- DF-735 Clear cached WSDL files from SOAP services upon system cache clear
+- DF-926 SAML 2.0 support
+- DF-814 Database function support across all fields, not just virtual, so we can support binary and unknown data types
 
 ### Changed
-- Handling errors and showing original content when content in response cannot be resolved to Accept type.
-- DF-770 Package manager improvement.
-- Refactored email services out to new repo df-email.
-- Refactored database services out to new repo df-database.
-- DF-899 Indicating bad services on package manager.
-- OAuth callback handler now checks for service name using state identifier when service name is not present on callback url.
+- Handling errors and showing original content when content in response cannot be resolved to Accept type
+- DF-770 Package manager improvement
+- Refactored email services out to new repo df-email
+- Refactored database services out to new repo df-database
+- Refactored scripting out to new repo df-script
+- DF-899 Indicating bad services on package manager
+- OAuth callback handler now checks for service name using state identifier when service name is not present on callback url
+- Cleanup of old MERGE verb, handled at router/controller level
 
 ### Fixed
-- DF-916 Handling exceptions thrown in callback functions in NodeJS scripting.
+- DF-916 Handling exceptions thrown in callback functions in NodeJS scripting
 - DF-712 Support for SMTP without SSL/TLS.
 - DF-821 Adding send_invite parameter to swagger definition
+- If value is null, don't return protected mask or encryption, just null
+- Handling errors and showing original content when content in response cannot be resolved to Accept type
+- Check column count so we don't attempt a fetch on a non-existent rowset
+- Better handling for vendor-specific MIME type
 
 ## [0.6.2] - 2016-12-02
 ### Fixed
@@ -47,7 +54,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Marked API path for database table field management (_schema/<table_name>/<field_name>) as deprecated
 - Use null for empty service doc instead of default JSON object
 - Database service schema-handling base class changes to support field configuration across all database types
-- change base create and update table methods to allow for native settings
+- Database create and update table methods allow for native settings
 
 ### Fixed
 - DF-868 Protecting user, role, and app lookups against duplicate named entries

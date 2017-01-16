@@ -1,9 +1,6 @@
 <?php
 namespace DreamFactory\Core\Events;
 
-use DreamFactory\Core\Models\EventScript;
-use DreamFactory\Core\Utility\Session;
-
 abstract class ApiEvent extends Event
 {
     public $resource;
@@ -18,25 +15,6 @@ abstract class ApiEvent extends Event
     {
         parent::__construct($path);
         $this->resource = $resource;
-    }
-
-    /**
-     * @param string $name
-     *
-     * @return EventScript|null
-     */
-    public function getEventScript($name)
-    {
-        if (empty($model = EventScript::whereName($name)->whereIsActive(true)->first())) {
-            return null;
-        }
-
-        $model->content = Session::translateLookups($model->content, true);
-        if (!is_array($model->config)) {
-            $model->config = [];
-        }
-
-        return $model;
     }
 
     public function makeData()

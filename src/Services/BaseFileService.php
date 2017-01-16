@@ -58,7 +58,6 @@ abstract class BaseFileService extends BaseRestService
         $settings = (array)$settings;
         $settings['verbAliases'] = [
             Verbs::PUT   => Verbs::POST,
-            Verbs::MERGE => Verbs::PATCH
         ];
         parent::__construct($settings);
 

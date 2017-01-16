@@ -8,26 +8,8 @@ namespace DreamFactory\Core\Database\Schema;
  *
  * RoutineSchema provides the following information about a routine:
  */
-class RoutineSchema
+class RoutineSchema extends NamedResourceSchema
 {
-    /**
-     * @var string Name of the schema that this routine belongs to.
-     */
-    public $schemaName;
-    /**
-     * @var string Name of this routine.
-     */
-    public $name;
-    /**
-     * @var string Raw name of this routine. This is the quoted version of routine name with optional schema name.
-     *      It can be directly used in SQL statements.
-     */
-    public $rawName;
-    /**
-     * @var string Public name of this routine. This is the routine name with optional non-default schema name.
-     *      It is to be used by clients.
-     */
-    public $publicName;
     /**
      * @var string Return clause/type for this routine.
      */
@@ -41,15 +23,6 @@ class RoutineSchema
      *      parameter name.
      */
     public $parameters = [];
-    /**
-     * @var boolean Has the full schema been discovered, or just name and type.
-     */
-    public $discoveryCompleted = false;
-
-    public function __construct(array $settings)
-    {
-        $this->fill($settings);
-    }
 
     public function fill(array $settings)
     {
@@ -130,7 +103,7 @@ class RoutineSchema
         return null;
     }
 
-    public function toArray()
+    public function toArray($use_alias = false)
     {
         $parameters = [];
         /** @var ParameterSchema $parameter */
@@ -139,12 +112,11 @@ class RoutineSchema
         }
 
         $out = [
-            'name'          => $this->publicName,
             'return_type'   => $this->returnType,
             'return_schema' => $this->returnSchema,
             'params'        => $parameters,
         ];
 
-        return $out;
+        return array_merge(parent::toArray($use_alias), $out);
     }
 }

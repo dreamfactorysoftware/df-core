@@ -5,7 +5,7 @@ namespace DreamFactory\Core\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see DreamFactory\Core\Database\DbSchemaExtensions
+ * @see \DreamFactory\Core\Components\DbSchemaExtensions
  */
 class DbSchemaExtensions extends Facade
 {

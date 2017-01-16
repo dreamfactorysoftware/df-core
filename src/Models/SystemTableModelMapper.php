@@ -38,7 +38,6 @@ class SystemTableModelMapper
             'app_lookup'          => AppLookup::class,
             'app_group'           => AppGroup::class,
             'app_to_app_group'    => AppToAppGroup::class,
-            'event_script'        => EventScript::class,
             'event_subscriber'    => EventSubscriber::class,
             'email_template'      => EmailTemplate::class,
             'system_custom'       => SystemCustom::class,

@@ -1,11 +1,11 @@
 <?php
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Core\Contracts\EmailServiceInterface;
 use DreamFactory\Core\Exceptions\ForbiddenException;
-use DreamFactory\Core\Models\User;
-use DreamFactory\Core\Models\EmailTemplate;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\Services\Email\BaseService as EmailService;
+use DreamFactory\Core\Models\EmailTemplate;
+use DreamFactory\Core\Models\User;
 use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 use Validator;
 use ServiceManager;
@@ -95,8 +95,10 @@ class Registrar implements RegistrarContract
                 throw new InternalServerErrorException("No default email template for user invite.");
             }
 
-            /** @var EmailService $emailService */
+            /** @var EmailServiceInterface $emailService */
             $emailService = ServiceManager::getServiceById($emailServiceId);
+            /** @var EmailTemplate $emailTemplate */
+            /** @noinspection PhpUndefinedMethodInspection */
             $emailTemplate = EmailTemplate::find($emailTemplateId);
 
             if (empty($emailTemplate)) {

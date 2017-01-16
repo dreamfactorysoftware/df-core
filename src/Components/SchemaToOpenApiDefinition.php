@@ -53,7 +53,6 @@ trait SchemaToOpenApiDefinition
             case DbSimpleTypes::TYPE_TEXT:
             case DbSimpleTypes::TYPE_BIGINT:
             case DbSimpleTypes::TYPE_MONEY:
-            case DbSimpleTypes::TYPE_VIRTUAL:
                 $type = 'string';
                 break;
         }

@@ -5,8 +5,8 @@ namespace DreamFactory\Core\Facades;
 use Illuminate\Support\Facades\Facade;
 
 /**
- * @see DreamFactory\Core\Services\ServiceManager
- * @see DreamFactory\Core\Contracts\ServiceInterface
+ * @see \DreamFactory\Core\Services\ServiceManager
+ * @see \DreamFactory\Core\Contracts\ServiceInterface
  */
 class ServiceManager extends Facade
 {

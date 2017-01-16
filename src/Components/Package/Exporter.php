@@ -200,6 +200,7 @@ class Exporter
                                 );
                                 break;
                             case ServiceTypeGroups::DATABASE:
+                                $manifest['service'][$serviceName]['reachable'] = true;
                                 $manifest['service'][$serviceName]['_schema'] = $this->getAllResources(
                                     $serviceName,
                                     '_schema',
@@ -221,7 +222,8 @@ class Exporter
                         \Log::warning('Excluding inactive service:' . $serviceName . ' from manifest.');
                     }
                 } catch (\Exception $e) {
-                    // Error occurred. Log and let go.
+                    // Error occurred. Flag it, Log and let go.
+                    $manifest['service'][$serviceName]['reachable'] = false;
                     \Log::alert('Failed to include service:' .
                         $serviceName .
                         ' in manifest due to error:' .

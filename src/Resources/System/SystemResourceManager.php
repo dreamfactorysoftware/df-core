@@ -100,12 +100,6 @@ class SystemResourceManager
                 'class_name'  => Event::class,
             ],
             [
-                'name'        => 'event_script',
-                'label'       => 'Event Scripts',
-                'description' => 'Allows registering server-side scripts to system generated events.',
-                'class_name'  => EventScript::class,
-            ],
-            [
                 'name'        => 'lookup',
                 'label'       => 'Lookup Keys',
                 'description' => 'Allows configuration of lookup keys.',
@@ -128,13 +122,6 @@ class SystemResourceManager
                 'label'       => 'Service Types',
                 'description' => 'Read-only system service types.',
                 'class_name'  => ServiceType::class,
-                'read_only'   => true,
-            ],
-            [
-                'name'        => 'script_type',
-                'label'       => 'Script Types',
-                'description' => 'Read-only system scripting types.',
-                'class_name'  => ScriptType::class,
                 'read_only'   => true,
             ],
             [

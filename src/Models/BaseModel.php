@@ -6,7 +6,7 @@ use DreamFactory\Core\Components\Builder as DfBuilder;
 use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Components\SchemaToOpenApiDefinition;
 use DreamFactory\Core\Contracts\CacheInterface;
-use DreamFactory\Core\Database\ConnectionExtension;
+use DreamFactory\Core\Contracts\SchemaInterface;
 use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
@@ -24,6 +24,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Crypt;
 use DB;
+use DbSchemaExtensions;
 use SystemTableModelMapper;
 
 /**
@@ -33,7 +34,7 @@ use SystemTableModelMapper;
  */
 class BaseModel extends Model implements CacheInterface
 {
-    use Cacheable, ConnectionExtension, SchemaToOpenApiDefinition;
+    use Cacheable, SchemaToOpenApiDefinition;
 
     /**
      * Mask to return when visible, but masked, attributes are returned from toArray()
@@ -49,6 +50,11 @@ class BaseModel extends Model implements CacheInterface
      * @var boolean
      */
     public $protectedView = true;
+
+    /**
+     * @var SchemaInterface
+     */
+    protected $schemaExtension;
 
     /**
      * TableSchema
@@ -757,8 +763,14 @@ class BaseModel extends Model implements CacheInterface
 
     public function getSchema()
     {
-        $this->cachePrefix = 'model_' . $this->getTable() . ':';
-        $this->getSchemaExtension($this->getConnection())->setCache($this);
+        if ($this->schemaExtension === null) {
+            $conn = $this->getConnection();
+            $driver = $conn->getDriverName();
+            if ($this->schemaExtension = DbSchemaExtensions::getSchemaExtension($driver, $conn)) {
+                $this->cachePrefix = 'model_' . $this->getTable() . ':';
+                $this->schemaExtension->setCache($this);
+            }
+        }
 
         return $this->schemaExtension;
     }
@@ -1176,12 +1188,13 @@ class BaseModel extends Model implements CacheInterface
      */
     public function getAttributeValue($key)
     {
+        $value = parent::getAttributeValue($key);
         // if protected, no need to do anything else, mask it.
-        if ($this->protectedView && in_array($key, $this->protected)) {
+        if ($this->protectedView && in_array($key, $this->protected) && !is_null($value)) {
             return static::PROTECTION_MASK;
         }
 
-        return parent::getAttributeValue($key);
+        return $value;
     }
 
     /**
@@ -1224,10 +1237,12 @@ class BaseModel extends Model implements CacheInterface
         $attributes = parent::attributesToArray();
 
         foreach ($attributes as $key => $value) {
-            if ($this->protectedView && in_array($key, $this->protected)) {
-                $attributes[$key] = static::PROTECTION_MASK;;
-            } elseif (in_array($key, $this->encrypted) && !empty($attributes[$key])) {
-                $attributes[$key] = Crypt::decrypt($value);
+            if (!is_null($attributes[$key])) {
+                if ($this->protectedView && in_array($key, $this->protected)) {
+                    $attributes[$key] = static::PROTECTION_MASK;
+                } elseif (in_array($key, $this->encrypted)) {
+                    $attributes[$key] = Crypt::decrypt($value);
+                }
             }
         }
 

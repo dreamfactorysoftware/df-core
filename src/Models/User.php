@@ -379,8 +379,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
             $result = static::buildResult($model, $params);
 
-            $driver = $model->getConnection()->getDriverName();
-            if (('sqlsrv' === $driver) || ('dblib' === $driver)) {
+            if ('sqlsrv' === $model->getConnection()->getDriverName()) {
+                // cleanup references not happening automatically due to schema setup
                 $references = $model->getReferences();
                 /** @type RelationSchema $reference */
                 foreach ($references as $reference) {

@@ -27,7 +27,7 @@ class UserSessionResource extends BaseRestResource
      */
     protected function handleGET()
     {
-        $serviceName = $this->request->getParameter('service');
+        $serviceName = $this->getOAuthServiceName();
         if (!empty($serviceName)) {
             /** @type BaseOAuthService $service */
             $service = ServiceManager::getService($serviceName);
@@ -52,10 +52,8 @@ class UserSessionResource extends BaseRestResource
      */
     protected function handlePOST()
     {
-        $serviceName = $this->getPayloadData('service');
-        if (empty($serviceName)) {
-            $serviceName = $this->request->getParameter('service');
-        }
+        $serviceName = $this->getOAuthServiceName();
+
         if (empty($serviceName)) {
             $credentials = [
                 'email'        => $this->getPayloadData('email'),
@@ -90,6 +88,29 @@ class UserSessionResource extends BaseRestResource
             default:
                 throw new BadRequestException('Invalid login service provided. Please use an OAuth or AD/Ldap service.');
         }
+    }
+
+    /**
+     * Retrieves OAuth service name from request param, payload, or using state identifier.
+     *
+     * @return mixed
+     */
+    protected function getOAuthServiceName()
+    {
+        $serviceName = $this->getPayloadData('service', $this->request->getParameter('service'));
+
+        if (empty($serviceName)) {
+            $state = $this->getPayloadData('state', $this->request->getParameter('state'));
+            if (empty($state)) {
+                $state = $this->getPayloadData('oauth_token', $this->request->getParameter('oauth_token'));
+            }
+            if (!empty($state)) {
+                $key = BaseOAuthService::CACHE_KEY_PREFIX . $state;
+                $serviceName = \Cache::pull($key);
+            }
+        }
+
+        return $serviceName;
     }
 
     /**
@@ -133,12 +154,12 @@ class UserSessionResource extends BaseRestResource
         $apis = [
             $path => [
                 'get'    => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'get' .
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' .
                         $capitalized .
                         'Session() - Retrieve the current user session information.',
-                    'operationId'       => 'getSession' . $capitalized,
-                    'responses'         => [
+                    'operationId' => 'getSession' . $capitalized,
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Session',
                             'schema'      => ['$ref' => '#/definitions/Session']
@@ -148,13 +169,13 @@ class UserSessionResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       => 'Calling this refreshes the current session, or returns an error for timed-out or invalid sessions.',
+                    'description' => 'Calling this refreshes the current session, or returns an error for timed-out or invalid sessions.',
                 ],
                 'post'   => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'login' . $capitalized . '() - Login and create a new user session.',
-                    'operationId'       => 'login' . $capitalized,
-                    'parameters'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'login' . $capitalized . '() - Login and create a new user session.',
+                    'operationId' => 'login' . $capitalized,
+                    'parameters'  => [
                         [
                             'name'        => 'body',
                             'description' => 'Data containing name-value pairs used for logging into the system.',
@@ -163,7 +184,7 @@ class UserSessionResource extends BaseRestResource
                             'required'    => true,
                         ],
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Session',
                             'schema'      => ['$ref' => '#/definitions/Session']
@@ -173,15 +194,15 @@ class UserSessionResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       => 'Calling this creates a new session and logs in the user.',
+                    'description' => 'Calling this creates a new session and logs in the user.',
                 ],
                 'delete' => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'logout' .
+                    'tags'        => [$serviceName],
+                    'summary'     => 'logout' .
                         $capitalized .
                         '() - Logout and destroy the current user session.',
-                    'operationId'       => 'logout' . $capitalized,
-                    'responses'         => [
+                    'operationId' => 'logout' . $capitalized,
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -191,7 +212,7 @@ class UserSessionResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       => 'Calling this deletes the current session and logs out the user.',
+                    'description' => 'Calling this deletes the current session and logs out the user.',
                 ],
             ],
         ];

@@ -288,6 +288,7 @@ class Environment extends BaseSystemResource
         if (class_exists('\DreamFactory\Core\User\Services\User')) {
             $oauth = static::getOAuthServices();
             $ldap = static::getAdLdapServices();
+            $saml = static::getSamlServices();
 
             /** @var \DreamFactory\Core\User\Services\User $userService */
             $userService = ServiceManager::getService('user');
@@ -297,6 +298,7 @@ class Environment extends BaseSystemResource
                 'user'                      => $userApi,
                 'oauth'                     => $oauth,
                 'adldap'                    => $ldap,
+                'saml'                      => $saml,
                 'allow_open_registration'   => $userService->allowOpenRegistration,
                 'open_reg_email_service_id' => $userService->openRegEmailServiceId,
                 'allow_forever_sessions'    => config('df.allow_forever_sessions', false),
@@ -333,6 +335,26 @@ class Environment extends BaseSystemResource
                 'label'      => $o->label,
                 'verb'       => [Verbs::GET, Verbs::POST],
                 'type'       => $o->type,
+                'icon_class' => array_get($config, 'icon_class'),
+            ];
+        }
+
+        return $services;
+    }
+
+    protected static function getSamlServices()
+    {
+        $samls = ServiceModel::whereType('saml')->whereIsActive(1)->get(['id', 'name', 'type', 'label']);
+
+        $services = [];
+        foreach ($samls as $saml) {
+            $config = ($saml->getConfigAttribute()) ?: [];
+            $services[] = [
+                'path'  => $saml->name . '/sso',
+                'name'  => $saml->name,
+                'label' => $saml->label,
+                'verb'  => Verbs::GET,
+                'type'  => 'saml',
                 'icon_class' => array_get($config, 'icon_class'),
             ];
         }
@@ -537,18 +559,18 @@ class Environment extends BaseSystemResource
         $apis = [
             $path => [
                 'get' => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'get' . $capitalized . 'Environment() - Retrieve system environment.',
-                    'operationId'       => 'get' . $capitalized . 'Environment',
-                    'consumes'          => ['application/json', 'application/xml'],
-                    'produces'          => ['application/json', 'application/xml'],
-                    'responses'         => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' . $capitalized . 'Environment() - Retrieve system environment.',
+                    'operationId' => 'get' . $capitalized . 'Environment',
+                    'consumes'    => ['application/json', 'application/xml'],
+                    'produces'    => ['application/json', 'application/xml'],
+                    'responses'   => [
                         '200' => [
                             'description' => 'Environment',
                             'schema'      => ['$ref' => '#/definitions/EnvironmentResponse']
                         ]
                     ],
-                    'description'       =>
+                    'description' =>
                         'Minimum environment information given without a valid user session.' .
                         ' More information given based on user privileges.',
                 ],

@@ -185,7 +185,8 @@ class Package
      */
     public function getExportStorageFolder($default = null)
     {
-        return array_get($this->manifest, 'storage.folder', array_get($this->manifest, 'storage.path', $default));
+        $folder =  array_get($this->manifest, 'storage.folder', array_get($this->manifest, 'storage.path', $default));
+        return (empty($folder))? $default : $folder;
     }
 
     /**
@@ -202,6 +203,8 @@ class Package
             'storage.filename',
             array_get($this->manifest, 'storage.file', $default)
         );
+
+        $filename = (empty($filename))? $default : $filename;
 
         if (strpos($filename, static::FILE_EXTENSION) === false) {
             $filename .= '.' . static::FILE_EXTENSION;
@@ -680,7 +683,7 @@ class Package
             );
 
             $url = Environment::getURI() .
-                '/' .
+                '/api/v2/' .
                 $storageService .
                 '/' .
                 $storageFolder .

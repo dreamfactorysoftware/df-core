@@ -3,12 +3,9 @@ namespace DreamFactory\Core\Events;
 
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
-use DreamFactory\Core\Models\EventScript;
-use DreamFactory\Core\Jobs\ApiEventScriptJob;
 use Illuminate\Foundation\Bus\DispatchesJobs;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use Log;
 use Crypt;
 
 class QueuedApiEvent extends ApiEvent
@@ -49,16 +46,5 @@ class QueuedApiEvent extends ApiEvent
         $data['response'] = json_decode(Crypt::decrypt($this->response), true);
 
         return $data;
-    }
-
-    public function handle()
-    {
-        $script = EventScript::whereName($this->name)->whereIsActive(true)->first();
-        if (EventScript::whereName($this->name)->whereIsActive(true)->exists()) {
-            $result = $this->dispatch(new ApiEventScriptJob($this->name, $this, $script->config));
-            Log::debug('API event queued: ' . $this->name . PHP_EOL . $result);
-        }
-
-        return true;
     }
 }

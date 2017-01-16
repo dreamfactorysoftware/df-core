@@ -14,11 +14,10 @@ class CreateSystemTables extends Migration
     public function up()
     {
         $driver = Schema::getConnection()->getDriverName();
-        $sqlsrv = (('sqlsrv' === $driver) || ('dblib' === $driver));
         // Even though we take care of this scenario in the code,
         // SQL Server does not allow potential cascading loops,
         // so set the default no action and clear out created/modified by another user when deleting a user.
-        $userOnDelete = ($sqlsrv ? 'no action' : 'set null');
+        $userOnDelete = (('sqlsrv' === $driver) ? 'no action' : 'set null');
 
         $output = new ConsoleOutput();
         $output->writeln("Migration driver used: $driver");
@@ -115,17 +114,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // Script Service Config
-        Schema::create(
-            'script_config',
-            function (Blueprint $t){
-                $t->integer('service_id')->unsigned()->primary();
-                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->mediumText('content')->nullable();
-                $t->text('config')->nullable();
-            }
-        );
-
         // Event Subscriber
         Schema::create(
             'event_subscriber',
@@ -133,24 +121,6 @@ class CreateSystemTables extends Migration
                 $t->increments('id');
                 $t->string('name', 80)->unique();
                 $t->string('type');
-                $t->text('config')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-            }
-        );
-
-        // Event Scripts
-        Schema::create(
-            'event_script',
-            function (Blueprint $t) use ($userOnDelete){
-                $t->string('name', 80)->primary();
-                $t->string('type', 40);
-                $t->boolean('is_active')->default(0);
-                $t->mediumText('content')->nullable();
                 $t->text('config')->nullable();
                 $t->timestamp('created_date');
                 $t->timestamp('last_modified_date');
@@ -266,52 +236,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // Database Table Extras
-        Schema::create(
-            'db_table_extras',
-            function (Blueprint $t) use ($userOnDelete){
-                $t->increments('id');
-                $t->integer('service_id')->unsigned();
-                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('table');
-                $t->string('label')->nullable();
-                $t->string('plural')->nullable();
-                $t->string('name_field', 128)->nullable();
-                $t->string('model')->nullable();
-                $t->text('description')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-            }
-        );
-
-        // Database Field Extras
-        Schema::create(
-            'db_field_extras',
-            function (Blueprint $t) use ($userOnDelete){
-                $t->increments('id');
-                $t->integer('service_id')->unsigned();
-                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('table');
-                $t->string('field');
-                $t->string('label')->nullable();
-                $t->string('extra_type')->nullable();
-                $t->text('description')->nullable();
-                $t->text('picklist')->nullable();
-                $t->text('validation')->nullable();
-                $t->text('client_info')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-            }
-        );
-
         // System Configuration
         Schema::create(
             'system_config',
@@ -345,44 +269,6 @@ class CreateSystemTables extends Migration
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
                 $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-            }
-        );
-
-        //Email service config table
-        Schema::create(
-            'smtp_config',
-            function (Blueprint $t){
-                $t->integer('service_id')->unsigned()->primary();
-                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('host');
-                $t->string('port')->default('587');
-                $t->string('encryption')->default('tls');
-                $t->text('username'); //encrypted
-                $t->text('password'); //encrypted
-            }
-        );
-
-        //Email service config table
-        Schema::create(
-            'cloud_email_config',
-            function (Blueprint $t){
-                $t->integer('service_id')->unsigned()->primary();
-                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('domain')->nullable();
-                $t->text('key'); //encrypted
-            }
-        );
-
-        //Email service parameters config table
-        Schema::create(
-            'email_parameters_config',
-            function (Blueprint $t){
-                $t->increments('id');
-                $t->integer('service_id')->unsigned();
-                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->string('name');
-                $t->mediumText('value')->nullable();
-                $t->boolean('active')->default(1);
             }
         );
 
@@ -546,10 +432,6 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('user_to_app_to_role');
         // Service Docs
         Schema::dropIfExists('service_doc');
-        // Script Service Configs
-        Schema::dropIfExists('script_config');
-        // Event Scripts
-        Schema::dropIfExists('event_script');
         // Event Subscribers
         Schema::dropIfExists('event_subscriber');
         // System Configuration
@@ -566,16 +448,8 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('system_lookup');
         // Services
         Schema::dropIfExists('service');
-        // Database Extras
-        Schema::dropIfExists('db_table_extras');
-        // Database Extras
-        Schema::dropIfExists('db_field_extras');
         //Cors config table
         Schema::dropIfExists('cors_config');
-        //Email service config table
-        Schema::dropIfExists('email_config');
-        //Email service parameters config table
-        Schema::dropIfExists('email_parameters_config');
         // App relationship for user
         Schema::dropIfExists('user_to_app_role');
         // App Lookup Keys

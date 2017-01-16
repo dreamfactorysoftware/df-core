@@ -279,9 +279,6 @@ abstract class RestHandler implements RequestHandlerInterface
         /** @noinspection PhpUnusedLocalVariableInspection */
         $results = \Event::fire($event);
         $this->response = $event->response;
-
-//        /** @noinspection PhpUnusedLocalVariableInspection */
-//        $results = \Event::fire(new PreProcessApiEvent($name, $this->request, $this->response, $resource));
     }
 
     /**

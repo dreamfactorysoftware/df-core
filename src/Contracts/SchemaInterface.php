@@ -57,27 +57,6 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
     public function dropResource($type, $name);
 
     /**
-     * @return string
-     */
-    public function getTimestampForSet();
-
-    /**
-     * @param mixed $value
-     * @param       $field_info
-     *
-     * @return mixed
-     */
-    public function parseValueForSet($value, $field_info);
-
-    /**
-     * @param mixed  $value
-     * @param string $type
-     *
-     * @return mixed
-     */
-    public function formatValue($value, $type);
-
-    /**
      * @return string|null
      */
     public function getUserSchema();
@@ -106,20 +85,6 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
      * @return mixed
      */
     public function updateSchema($tables, $allow_merge = false, $allow_delete = false, $rollback = false);
-
-    /**
-     * @param $table
-     *
-     * @return mixed
-     */
-    public function quoteTableName($table);
-
-    /**
-     * @param $column
-     *
-     * @return mixed
-     */
-    public function quoteColumnName($column);
 
     /**
      * Set the Caching interface.
@@ -165,32 +130,23 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
     public function callProcedure($name, array $in_params, array &$out_params);
 
     /**
-     * @param mixed $field
+     * @param mixed $value
+     * @param       $field_info
      *
      * @return mixed
      */
-    public function getPdoBinding($field);
+    public function parseValueForSet($value, $field_info);
 
     /**
-     * @param mixed   $field
-     * @param boolean $as_quoted_string
-     *
      * @return string
      */
-    public function parseFieldForSelect($field, $as_quoted_string = false);
+    public function getTimestampForSet();
 
     /**
-     * @param mixed   $field
-     * @param boolean $as_quoted_string
+     * @param mixed  $value
+     * @param string $type
      *
-     * @return string
+     * @return mixed
      */
-    public function parseFieldForFilter($field, $as_quoted_string = false);
-
-    /**
-     * @param string $type DbSimpleTypes value
-     *
-     * @return string Valid PHP type
-     */
-    public function determinePhpConversionType($type);
+    public function formatValue($value, $type);
 }

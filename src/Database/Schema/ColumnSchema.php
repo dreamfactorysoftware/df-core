@@ -1,29 +1,11 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
-use DreamFactory\Library\Utility\Inflector;
-
 /**
  * ColumnSchema class describes the column meta data of a database table.
  */
-class ColumnSchema
+class ColumnSchema extends NamedResourceSchema
 {
-    /**
-     * @var string name of this column (without quotes).
-     */
-    public $name;
-    /**
-     * @var string raw name of this column. This is the quoted name that can be used in SQL queries.
-     */
-    public $rawName;
-    /**
-     * @var string Optional alias for this column.
-     */
-    public $alias;
-    /**
-     * @var string Optional label for this column.
-     */
-    public $label;
     /**
      * @var string the DB type of this column.
      */
@@ -36,10 +18,6 @@ class ColumnSchema
      * @var string the PHP type of this column.
      */
     public $phpType;
-    /**
-     * @var string the PHP PDO type of this column.
-     */
-    public $pdoType;
     /**
      * @var string the DF extra type of this column.
      */
@@ -63,7 +41,7 @@ class ColumnSchema
     /**
      * @var boolean whether this column can be null.
      */
-    public $allowNull = false;
+    public $allowNull = true;
     /**
      * @var boolean whether this column is a primary key
      */
@@ -121,9 +99,13 @@ class ColumnSchema
      */
     public $dbFunction;
     /**
-     * @var string Optional description of this column.
+     * @var boolean whether this column is virtual, i.e. doesn't exist in the database
      */
-    public $description;
+    public $isVirtual = false;
+    /**
+     * @var boolean whether this column is a virtual column that is an aggregate function
+     */
+    public $isAggregate = false;
     /**
      * @var string comment of this column. Default value is empty string which means that no comment
      * has been set for the column. Null value means that RDBMS does not support column comments
@@ -131,17 +113,19 @@ class ColumnSchema
      */
     public $comment = '';
 
-    public function __construct(array $settings)
-    {
-        $this->fill($settings);
-    }
-
     public function fill(array $settings)
     {
         foreach ($settings as $key => $value) {
-            if (('extra_type' === $key) && !empty($value)) {
-                $this->type = $value;
-                continue;
+            if (empty($value)) {
+                switch ($key) {
+                    case 'type':
+                    case 'db_function':
+                    case 'dbFunction':
+                    case 'validation':
+                        // don't let extras override these
+                        continue;
+                        break;
+                }
             }
             if (!property_exists($this, $key)) {
                 // try camel cased
@@ -169,51 +153,22 @@ class ColumnSchema
         return true;
     }
 
-    public function getName($use_alias = false)
+    public function getDbFunction($operation)
     {
-        return ($use_alias && !empty($this->alias)) ? $this->alias : $this->name;
-    }
-
-    public function getLabel()
-    {
-        return (empty($this->label)) ? Inflector::camelize($this->getName(true), '_', true) : $this->label;
-    }
-
-    public function getDbFunction()
-    {
-        $function = 'NULL';
-        if (!empty($this->dbFunction) && isset($this->dbFunction['function'])) {
-            $function = $this->dbFunction['function'];
+        if (!empty($this->dbFunction)) {
+            foreach ($this->dbFunction as $functionInfo) {
+                if (in_array($operation, (array)array_get($functionInfo, 'use'))) {
+                    return array_get($functionInfo, 'function');
+                }
+            }
         }
 
-        return $function;
-    }
-
-    public function getDbFunctionType()
-    {
-        $type = 'string';
-        if (!empty($this->dbFunction) && isset($this->dbFunction['type'])) {
-            $type = $this->dbFunction['type'];
-        }
-
-        return $type;
-    }
-
-    public function isAggregate()
-    {
-        if (!empty($this->dbFunction) && isset($this->dbFunction['aggregate'])) {
-            return filter_var($this->dbFunction['aggregate'], FILTER_VALIDATE_BOOLEAN);
-        }
-
-        return false;
+        return null;
     }
 
     public function toArray($use_alias = false)
     {
         $out = [
-            'name'               => $this->getName($use_alias),
-            'label'              => $this->getLabel(),
-            'description'        => $this->description,
             'type'               => $this->type,
             'db_type'            => $this->dbType,
             'length'             => $this->size,
@@ -236,12 +191,10 @@ class ColumnSchema
             'picklist'           => $this->picklist,
             'validation'         => $this->validation,
             'db_function'        => $this->dbFunction,
+            'is_virtual'         => $this->isVirtual,
+            'is_aggregate'       => $this->isAggregate,
         ];
 
-        if (!$use_alias) {
-            $out = array_merge(['alias' => $this->alias], $out);
-        }
-
-        return $out;
+        return array_merge(parent::toArray($use_alias), $out);
     }
 }

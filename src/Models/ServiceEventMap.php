@@ -1,25 +1,23 @@
 <?php
 namespace DreamFactory\Core\Models;
 
-/**
- * Class AppRoleMap
- *
- * @package DreamFactory\Core\Models
- * @method static \Illuminate\Database\Query\Builder|AppRoleMap whereId($value)
- * @method static \Illuminate\Database\Query\Builder|AppRoleMap whereName($value)
- * @method static \Illuminate\Database\Query\Builder|AppRoleMap whereServiceId($value)
- */
-class AppRoleMap extends BaseServiceConfigModel
+use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Core\Utility\ServiceResponse;
+use DreamFactory\Library\Utility\Enums\Verbs;
+use ServiceManager;
+
+class ServiceEventMap extends BaseServiceConfigModel
 {
-    protected $table = 'app_role_map';
+    /** @var string */
+    protected $table = 'service_event_map';
 
-    protected $fillable = ['service_id', 'app_id', 'role_id'];
+    /** @var array */
+    protected $fillable = ['service_id', 'event', 'data'];
 
+    /** @var array */
     protected $casts = [
         'id'         => 'integer',
-        'service_id' => 'integer',
-        'app_id'     => 'integer',
-        'role_id'    => 'integer'
+        'service_id' => 'integer'
     ];
 
     /**
@@ -86,9 +84,9 @@ class AppRoleMap extends BaseServiceConfigModel
     {
         $schema =
             [
-                'name'        => 'app_role_map',
-                'label'       => 'Role per App',
-                'description' => 'Select a desired Role per App for users logging in via this service.',
+                'name'        => 'service_event_map',
+                'label'       => 'Service Event',
+                'description' => 'Select event(s) when you would like this service to fire!',
                 'type'        => 'array',
                 'required'    => false,
                 'allow_null'  => true
@@ -105,35 +103,41 @@ class AppRoleMap extends BaseServiceConfigModel
     {
         parent::prepareConfigSchemaField($schema);
 
-        $roleList = [];
-        $appList = [];
+        $eventList = [];
 
         switch ($schema['name']) {
-            case 'app_id':
-                $apps = App::whereIsActive(1)->get();
-                foreach ($apps as $app) {
-                    $appList[] = [
-                        'label' => $app->name,
-                        'name'  => $app->id
+            case 'event':
+                /** @var ServiceResponse $response */
+                $response = ServiceManager::handleRequest('system', Verbs::GET, 'event', ['as_list' => 1]);
+                $events = ResourcesWrapper::unwrapResources($response->getContent());
+                $temp = [];
+                foreach ($events as $event) {
+                    $service = substr($event, 0, strpos($event, '.'));
+                    if(!isset($temp[$service])) {
+                        $temp[$service] = [];
+                    }
+                    $temp[$service][] = [
+                        'label' => $event,
+                        'name'  => $event
                     ];
                 }
-                $schema['label'] = 'App';
-                $schema['type'] = 'picklist';
-                $schema['values'] = $appList;
-                $schema['description'] = 'Select an App.';
+                foreach ($temp as $service => $items){
+                    array_unshift($items, ['label' => 'All ' . $service . ' events', 'name' => $service . '.*']);
+                    $eventList[] = [
+                        'label' => $service,
+                        'name'  => $service,
+                        'items' => $items
+                    ];
+                }
+                $schema['label'] = 'Event';
+                $schema['type'] = 'grouped_picklist';
+                $schema['values'] = $eventList;
+                $schema['description'] = 'Select an Event.';
+                $schema['allow_null'] = false;
                 break;
-            case 'role_id':
-                $roles = Role::whereIsActive(1)->get();
-                foreach ($roles as $role) {
-                    $roleList[] = [
-                        'label' => $role->name,
-                        'name'  => $role->id
-                    ];
-                }
-                $schema['label'] = 'Role';
-                $schema['type'] = 'picklist';
-                $schema['values'] = $roleList;
-                $schema['description'] = 'Select a Role for your App.';
+            case 'data':
+                $schema['label'] = 'Payload data';
+                $schema['description'] = 'Payload data for related service.';
                 break;
         }
     }

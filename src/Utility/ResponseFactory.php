@@ -32,8 +32,10 @@ class ResponseFactory
 
     public static function createWithException(\Exception $exception)
     {
-        $status = ($exception instanceof RestException) ?
-            $exception->getStatusCode() :
+        $status = ($exception instanceof RestException)
+            ?
+            $exception->getStatusCode()
+            :
             ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
         $content = self::makeExceptionContent($exception);
 
@@ -68,7 +70,7 @@ class ResponseFactory
         $accepts = null,
         $asFile = null,
         $resource = 'resource'
-    ) {
+    ){
         if (empty($accepts)) {
             $accepts = static::getAcceptedTypes();
         }
@@ -184,8 +186,15 @@ class ResponseFactory
             }
         }
 
-        return DfResponse::create('Content in response can not be resolved to acceptable content type.',
-            HttpStatusCodes::HTTP_BAD_REQUEST);
+        if ($status >= 400) {
+            return DfResponse::create($content, $status, ["Content-Type" => $contentType]);
+        }
+        $content = (is_array($content)) ? print_r($content, true) : $content;
+
+        return DfResponse::create(
+            'Content in response can not be resolved to acceptable content type. Original content: ' . $content,
+            HttpStatusCodes::HTTP_BAD_REQUEST
+        );
     }
 
     /**
@@ -228,7 +237,7 @@ class ResponseFactory
         \Exception $e,
         /** @noinspection PhpUnusedParameterInspection */
         $request = null
-    ) {
+    ){
         $response = ResponseFactory::createWithException($e);
 
         return ResponseFactory::sendResponse($response);

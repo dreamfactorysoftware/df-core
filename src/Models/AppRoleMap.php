@@ -88,7 +88,7 @@ class AppRoleMap extends BaseServiceConfigModel
             [
                 'name'        => 'app_role_map',
                 'label'       => 'Role per App',
-                'description' => 'Select a desired Role per Apps for your users logging in using this service.',
+                'description' => 'Select a desired Role per App for users logging in via this service.',
                 'type'        => 'array',
                 'required'    => false,
                 'allow_null'  => true

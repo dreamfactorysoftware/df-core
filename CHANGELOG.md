@@ -4,6 +4,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
+### Changed
+### Fixed
+
+## [0.7.0] - 2017-01-16
+### Added
 - DF-920 Allowing SMTP service without authentication
 - DF-447 Support for Azure Active Directory
 - DF-924 Support for event-driven logging service
@@ -28,7 +33,6 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - If value is null, don't return protected mask or encryption, just null
 - Handling errors and showing original content when content in response cannot be resolved to Accept type
 - Check column count so we don't attempt a fetch on a non-existent rowset
-- Better handling for vendor-specific MIME type
 
 ## [0.6.2] - 2016-12-02
 ### Fixed
@@ -388,7 +392,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.2...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.0...0.6.1
 [0.6.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.5.3...0.6.0

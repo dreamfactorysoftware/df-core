@@ -26,7 +26,7 @@ class QueuedApiEvent extends ApiEvent
      */
     public function __construct($path, $request, $response, $resource = null)
     {
-        $name = strtolower($path . '.' . $request->getMethod()) . '.queued';
+        $name = strtolower($path . '.' . str_replace('/', '.', $resource) . '.' . $request->getMethod()) . '.queued';
         parent::__construct($name);
 
         if ($response instanceof RedirectResponse || $response instanceof StreamedResponse) {

@@ -44,8 +44,9 @@ class Package extends BaseSystemResource
                 $result = $package->importAppFromPackage();
             } else {
                 $password = $this->request->input('password');
+                $overwrite = $this->request->getParameterAsBool('overwrite');
                 $package = new \DreamFactory\Core\Components\Package\Package($file, true, $password);
-                $importer = new Importer($package, true);
+                $importer = new Importer($package, $overwrite);
                 $imported = $importer->import();
                 $log = $importer->getLog();
                 $result = ['success' => $imported, 'log' => $log];
@@ -126,6 +127,18 @@ class Package extends BaseSystemResource
                             'in'          => 'query',
                             'type'        => 'string',
                             'description' => 'URL of the package file to import'
+                        ],
+                        [
+                            'name'        => 'overwrite',
+                            'in'          => 'query',
+                            'type'        => 'boolean',
+                            'description' => 'Set true to overwrite (PATCH) existing resource during import'
+                        ],
+                        [
+                            'name'        => 'password',
+                            'in'          => 'query',
+                            'type'        => 'string',
+                            'description' => 'Provide password here if package file is encrypted.'
                         ]
                     ],
                     'responses'   => [

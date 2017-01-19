@@ -214,7 +214,7 @@ class BaseSystemResource extends BaseRestResource
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
 
         if (empty($records)) {
-            throw new BadRequestException('No record(s) detected in request.');
+            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
         $result = $this->bulkCreate($records, $this->request->getParameters());
@@ -301,13 +301,13 @@ class BaseSystemResource extends BaseRestResource
         } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
             if (empty($records)) {
-                throw new BadRequestException('No record(s) detected in request.');
+                throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
             }
             $result = $this->updateByIds($ids, $records[0], $this->request->getParameters());
         } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
             $result = $this->bulkUpdate($records, $this->request->getParameters());
         } else {
-            throw new BadRequestException('No record(s) detected in request.');
+            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
@@ -389,7 +389,7 @@ class BaseSystemResource extends BaseRestResource
                 $result = $this->deleteByIds($records, $this->request->getParameters());
             }
         } else {
-            throw new BadRequestException('No record(s) detected in request.');
+            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);

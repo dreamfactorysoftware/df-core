@@ -103,4 +103,15 @@ class ResourcesWrapper
 
         return array_get($payload, static::getWrapper(), (isset($payload[0]) ? $payload : []));
     }
+
+    public static function getWrapperMsg()
+    {
+        $msg = '';
+        if(\Config::get('df.always_wrap_resources', false) === true) {
+            $rw = static::getWrapper();
+            $msg = " Please make sure record(s) are wrapped in a '$rw' tag. Example: " . '{"'.$rw.'":[{"record":1},{"record":2}]}';
+        }
+
+        return $msg;
+    }
 }

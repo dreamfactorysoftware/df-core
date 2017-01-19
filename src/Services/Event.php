@@ -168,7 +168,7 @@ class Event extends BaseRestService
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
 
         if (empty($records)) {
-            throw new BadRequestException('No record(s) detected in request.');
+            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
         $model = $this->getModel();
@@ -206,13 +206,13 @@ class Event extends BaseRestService
         } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
             $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
             if (empty($records)) {
-                throw new BadRequestException('No record(s) detected in request.');
+                throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
             }
             $result = $modelClass::updateByIds($ids, $records[0], $this->request->getParameters());
         } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
             $result = $modelClass::bulkUpdate($records, $this->request->getParameters());
         } else {
-            throw new BadRequestException('No record(s) detected in request.');
+            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
@@ -245,7 +245,7 @@ class Event extends BaseRestService
                 $result = $modelClass::deleteByIds($records, $this->request->getParameters());
             }
         } else {
-            throw new BadRequestException('No record(s) detected in request.');
+            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);

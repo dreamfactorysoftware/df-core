@@ -7,6 +7,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 ### Fixed
 
+## [0.7.1] - 2017-01-25
+### Fixed
+- Allow dashes in lookup names
+
 ## [0.7.0] - 2017-01-16
 ### Added
 - DF-920 Allowing SMTP service without authentication
@@ -392,7 +396,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.1...HEAD
+[0.7.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.1...0.6.2
 [0.6.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.0...0.6.1

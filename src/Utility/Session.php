@@ -529,7 +529,7 @@ class Session
             if (false !== strpos($subject, '{')) {
                 $search = [];
                 $replace = [];
-                if (0 < preg_match_all('/{\w+[\(|\w|\.|\)]*}/', $subject, $targets)) {
+                if (0 < preg_match_all('/{\w+[\(|\w|\.\-|\)]*}/', $subject, $targets)) {
                     foreach (current($targets) as $target) {
                         if (0 < preg_match_all('/[\w|\.]+/', $target, $words)) {
                             $words = current($words);

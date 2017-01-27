@@ -536,36 +536,64 @@ class DataFormatter
     protected static function arrayToXmlInternal($data, $root = null, $level = 1, $format = true)
     {
         $xml = null;
-        if (ArrayUtils::isArrayNumeric($data)) {
-            foreach ($data as $value) {
-                $xml .= self::arrayToXmlInternal($value, $root, $level, $format);
-            }
-        } else if (ArrayUtils::isArrayAssociative($data)) {
-            if (!empty($root)) {
-                if ($format) {
-                    $xml .= str_repeat("\t", $level - 1);
+        if (is_array($data)) {
+            if (ArrayUtils::isArrayNumeric($data)) {
+                foreach ($data as $value) {
+                    $xml .= self::arrayToXmlInternal($value, $root, $level, $format);
                 }
-                $xml .= "<$root>";
-                if ($format) {
-                    $xml .= "\n";
+            } else {
+                if (ArrayUtils::isArrayAssociative($data)) {
+                    if (!empty($root)) {
+                        if ($format) {
+                            $xml .= str_repeat("\t", $level - 1);
+                        }
+                        $xml .= "<$root>";
+                        if ($format) {
+                            $xml .= "\n";
+                        }
+                    }
+                    foreach ($data as $key => $value) {
+                        $xml .= self::arrayToXmlInternal($value, $key, $level + 1, $format);
+                    }
+                    if (!empty($root)) {
+                        if ($format) {
+                            $xml .= str_repeat("\t", $level - 1);
+                        }
+                        $xml .= "</$root>";
+                        if ($format) {
+                            $xml .= "\n";
+                        }
+                    }
+                } else {
+                    // empty array
+                    if (!empty($root)) {
+                        if ($format) {
+                            $xml .= str_repeat("\t", $level - 1);
+                        }
+                        $xml .= "<$root></$root>";
+                        if ($format) {
+                            $xml .= "\n";
+                        }
+                    }
                 }
             }
-            foreach ($data as $key => $value) {
-                $xml .= self::arrayToXmlInternal($value, $key, $level + 1, $format);
-            }
-            if (!empty($root)) {
-                if ($format) {
-                    $xml .= str_repeat("\t", $level - 1);
+        } elseif (is_object($data)) {
+            if ($data instanceof Arrayable) {
+                $xml .= self::arrayToXmlInternal($data->toArray(), $root, $level, $format);
+            } else {
+                $dataString = (string)$data;
+                if (!empty($root)) {
+                    if ($format) {
+                        $xml .= str_repeat("\t", $level - 1);
+                    }
+                    $xml .= "<$root>$dataString</$root>";
+                    if ($format) {
+                        $xml .= "\n";
+                    }
                 }
-                $xml .= "</$root>";
-                if ($format) {
-                    $xml .= "\n";
-                }
             }
-        } else if (is_array($data)) {
-            // empty array
         } else {
-            // not an array
+            // not an array or object
             if (!empty($root)) {
                 if ($format) {
                     $xml .= str_repeat("\t", $level - 1);
@@ -574,11 +602,15 @@ class DataFormatter
                 if (!is_null($data)) {
                     if (is_bool($data)) {
                         $xml .= ($data) ? 'true' : 'false';
-                    } else if (is_int($data) || is_float($data)) {
-                        $xml .= $data;
-                    } else if (is_string($data)) {
-                        $htmlValue = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
-                        $xml .= $htmlValue;
+                    } else {
+                        if (is_int($data) || is_float($data)) {
+                            $xml .= $data;
+                        } else {
+                            if (is_string($data)) {
+                                $htmlValue = htmlspecialchars($data, ENT_QUOTES, 'UTF-8');
+                                $xml .= $htmlValue;
+                            }
+                        }
                     }
                 }
                 $xml .= "</$root>";
@@ -605,7 +637,7 @@ class DataFormatter
             $root = config('df.xml_response_root', 'dfapi');
         }
 
-        return '<?xml version="1.0" ?>' . static::arrayToXmlInternal($data, $root);
+        return '<?xml version="1.0" ?>' . static::arrayToXmlInternal($data, $root, $level, $format);
     }
 
     /**
@@ -748,11 +780,13 @@ class DataFormatter
                 $outOfQuotes = !$outOfQuotes;
                 // If this character is the end of an element,
                 // output a new line and indent the next line.
-            } else if (($char == '}' || $char == ']') && $outOfQuotes) {
-                $result .= $newLine;
-                $pos--;
-                for ($j = 0; $j < $pos; $j++) {
-                    $result .= $indentString;
+            } else {
+                if (($char == '}' || $char == ']') && $outOfQuotes) {
+                    $result .= $newLine;
+                    $pos--;
+                    for ($j = 0; $j < $pos; $j++) {
+                        $result .= $indentString;
+                    }
                 }
             }
 
@@ -850,7 +884,8 @@ class DataFormatter
     {
         // Using regex here for more control. Could have used ctype_print but that
         // does not consider tab, carriage return, and linefeed as printable.
-        return preg_match('/^[A-Za-zàèìòùÀÈÌÒÙáéíóúýÁÉÍÓÚÝâêîôûÂÊÎÔÛãñõÃÑÕäëïöüÿÄËÏÖÜŸçÇßØøÅåÆæœ0-9_~\-!@#\$%\^&\*\(\)\/\\\,=\"\'\.\s\[\]\(\)\{\}\+\-\?\<\>]+$/', $string);
+        return preg_match('/^[A-Za-zàèìòùÀÈÌÒÙáéíóúýÁÉÍÓÚÝâêîôûÂÊÎÔÛãñõÃÑÕäëïöüÿÄËÏÖÜŸçÇßØøÅåÆæœ0-9_~\-!@#\$%\^&\*\(\)\/\\\,=\"\'\.\s\[\]\(\)\{\}\+\-\?\<\>]+$/',
+            $string);
     }
 
     public static function formatValue($value, $type)

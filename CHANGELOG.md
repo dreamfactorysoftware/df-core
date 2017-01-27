@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - DF-716 Fixed AD login issue with accented characters in user names.
 - Fixed migrations with timestamp fields due to Laravel issue #11518 with some MySQL versions
+- DF-856 Data formatting now takes Arrayable and stringable objects into consideration
 
 ## [0.7.1] - 2017-01-25
 ### Fixed

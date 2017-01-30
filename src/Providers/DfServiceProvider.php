@@ -70,6 +70,7 @@ class DfServiceProvider extends ServiceProvider
                 'Database',
                 'Email',
                 'IbmDb2',
+                'Limit',
                 'Logger',
                 'MongoDb',
                 'OAuth',

@@ -92,10 +92,8 @@ class BaseSystemResource extends BaseRestResource
         /** @var BaseSystemModel $modelClass */
         $modelClass = static::$model;
         $criteria = $this->getSelectionCriteria();
-
-        if(empty($data = $modelClass::selectByIds($ids, $related, $criteria))){
-            throw new NotFoundException('Record not found');
-        }
+        $data = $modelClass::selectByIds($ids, $related, $criteria);
+        
         return $data;
     }
 

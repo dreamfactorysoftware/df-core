@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-978 Added overwrite option for package import.
+- Added 409 Conflict rest exception.
 
 ### Changed
 - DF-967 Made the error message 'No record(s) detected in request.' more verbose.

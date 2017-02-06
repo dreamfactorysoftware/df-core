@@ -1,10 +1,12 @@
 <?php
 namespace DreamFactory\Core\Exceptions;
 
+use Illuminate\Contracts\Support\Arrayable;
+
 /**
  * DfException
  */
-class DfException extends \Exception
+class DfException extends \Exception implements Arrayable
 {
     //*************************************************************************
     //* Members
@@ -51,6 +53,33 @@ class DfException extends \Exception
     public function __toString()
     {
         return '[' . $this->getCode() . '] ' . $this->getMessage();
+    }
+
+    /**
+     * Convert this exception to array output
+     *
+     * @return array
+     */
+    public function toArray()
+    {
+        $errorInfo['code'] = $this->getCode();
+        $errorInfo['context'] = $this->getContext();
+        $errorInfo['message'] = htmlentities($this->getMessage());
+
+        if ("local" === env("APP_ENV")) {
+            $trace = $this->getTraceAsString();
+            $trace = str_replace(["\n", "#"], ["", "<br>"], $trace);
+            $traceArray = explode("<br>", $trace);
+            $cleanTrace = [];
+            foreach ($traceArray as $k => $v) {
+                if (!empty($v)) {
+                    $cleanTrace[] = $v;
+                }
+            }
+            $errorInfo['trace'] = $cleanTrace;
+        }
+
+        return $errorInfo;
     }
 
     /**

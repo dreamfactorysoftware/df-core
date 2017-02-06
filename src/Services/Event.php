@@ -59,8 +59,8 @@ class Event extends BaseRestService
     {
         $payload = parent::getPayloadData();
 
-        if (null !== $key && !empty($payload[$key])) {
-            return $payload[$key];
+        if (null !== $key && is_array($payload) && array_key_exists($key, $payload)) {
+            return array_get($payload, $key);
         }
 
 //        $alwaysWrap = \Config::get('df.always_wrap_resources', false);

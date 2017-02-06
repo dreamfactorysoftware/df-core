@@ -95,9 +95,9 @@ class ReadOnlySystemResource extends BaseRestResource
 
     protected function retrieveByRecords(array $records, array $related = [])
     {
-        /** @var BaseSystemModel $model */
-        $model = $this->getModel();
-        $pk = $model->getPrimaryKey();
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = static::$model;
+        $pk = $modelClass::getPrimaryKeyStatic();
         $ids = array_column($records, $pk);
 
         return $this->retrieveByIds($ids, $related);

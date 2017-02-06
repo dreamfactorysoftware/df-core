@@ -836,7 +836,7 @@ class Session
      */
     public static function setSessionToken($token)
     {
-        \Session::set('session_token', $token);
+        \Session::put('session_token', $token);
     }
 
     /**
@@ -844,7 +844,7 @@ class Session
      */
     public static function setApiKey($apiKey)
     {
-        \Session::set('api_key', $apiKey);
+        \Session::put('api_key', $apiKey);
     }
 
     /**
@@ -866,11 +866,6 @@ class Session
     public static function get($key, $default = null)
     {
         return \Session::get($key, $default);
-    }
-
-    public static function set($name, $value)
-    {
-        \Session::set($name, $value);
     }
 
     public static function put($key, $value = null)

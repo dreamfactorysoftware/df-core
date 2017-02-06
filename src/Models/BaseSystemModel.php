@@ -2,7 +2,6 @@
 
 namespace DreamFactory\Core\Models;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 
 /**
  * Class BaseSystemModel
@@ -74,7 +73,7 @@ class BaseSystemModel extends BaseModel
     }
 
     /**
-     * Removes 'config' from field list if supplied as it chokes the model.
+     * Removes unwanted fields from field list if supplied.
      *
      * @param mixed $fields
      *
@@ -86,58 +85,19 @@ class BaseSystemModel extends BaseModel
             $fields = explode(',', $fields);
         }
 
-        //If config is requested add id and type as they are need to pull config.
-        if (in_array('config', $fields)) {
-            $fields[] = 'id';
-            $fields[] = 'type';
-        }
-
-        //Removing config from field list as it is not a real column in the table.
-        if (in_array('config', $fields)) {
-            $key = array_keys($fields, 'config');
-            unset($fields[$key[0]]);
-        }
-
         return $fields;
     }
 
     /**
-     * If fields is not '*' (all) then remove the empty 'config' property.
+     * If fields is not '*' (all) then clean out any unwanted properties.
      *
-     * @param array $response
+     * @param mixed $response
      * @param mixed $fields
      *
      * @return array
      */
-    protected static function cleanResult(array $response, $fields)
+    protected static function cleanResult($response, /** @noinspection PhpUnusedParameterInspection */ $fields)
     {
-        if (!is_array($fields)) {
-            $fields = explode(',', $fields);
-        }
-
-        //config is only available when both id and type is present. Therefore only show config if id and type is there.
-        if (array_get($fields, 0) !== '*' && (!in_array('type', $fields) || !in_array('id', $fields))) {
-            $result = [];
-
-            if (ArrayUtils::isArrayNumeric($response)) {
-                foreach ($response as $r) {
-                    if (isset($r['config'])) {
-                        unset($r['config']);
-                    }
-                    $result[] = $r;
-                }
-            } else {
-                foreach ($response as $k => $v) {
-                    if ('config' === $k) {
-                        unset($response[$k]);
-                    }
-                }
-                $result = $response;
-            }
-
-            return $result;
-        }
-
         return $response;
     }
 }

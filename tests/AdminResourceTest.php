@@ -74,7 +74,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $rs = $this->makeRequest(Verbs::POST, static::RESOURCE . '/session', [], $payload);
         $content = $rs->getContent();
         $token = $content['session_token'];
-        $tokenMap = DB::table('token_map')->where('token', $token)->get();
+        $tokenMap = DB::table('token_map')->where('token', $token)->get()->all();
 
         $this->assertEquals($user['first_name'], $content['first_name']);
         $this->assertTrue(!empty($token));
@@ -97,13 +97,13 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $rs = $this->makeRequest(Verbs::POST, static::RESOURCE . '/session', [], $payload);
         $content = $rs->getContent();
         $token = $content['session_token'];
-        $tokenMap = DB::table('token_map')->where('token', $token)->get();
+        $tokenMap = DB::table('token_map')->where('token', $token)->get()->all();
         $this->assertTrue(!empty($token));
         $this->assertTrue(!empty($tokenMap));
 
         $rs = $this->makeRequest(Verbs::DELETE, static::RESOURCE . '/session', ['session_token' => $token]);
         $content = $rs->getContent();
-        $tokenMap = DB::table('token_map')->where('token', $token)->get();
+        $tokenMap = DB::table('token_map')->where('token', $token)->get()->all();
         $this->assertTrue($content['success']);
         $this->assertTrue(empty($tokenMap));
 
@@ -156,7 +156,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         );
         $content = $rs->getContent();
         $token = $content['session_token'];
-        $tokenMap = DB::table('token_map')->where('token', $token)->get();
+        $tokenMap = DB::table('token_map')->where('token', $token)->get()->all();
         $this->assertTrue(!empty($token));
         $this->assertTrue(!empty($tokenMap));
     }
@@ -189,7 +189,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
                 ['email' => $user['email'], 'password' => '778877']);
         $content = $rs->getContent();
         $token = $content['session_token'];
-        $tokenMap = DB::table('token_map')->where('token', $token)->get();
+        $tokenMap = DB::table('token_map')->where('token', $token)->get()->all();
         $this->assertTrue(!empty($token));
         $this->assertTrue(!empty($tokenMap));
     }
@@ -227,7 +227,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
                 ['email' => $user['email'], 'password' => '778877']);
         $content = $rs->getContent();
         $token = $content['session_token'];
-        $tokenMap = DB::table('token_map')->where('token', $token)->get();
+        $tokenMap = DB::table('token_map')->where('token', $token)->get()->all();
         $this->assertTrue(!empty($token));
         $this->assertTrue(!empty($tokenMap));
     }

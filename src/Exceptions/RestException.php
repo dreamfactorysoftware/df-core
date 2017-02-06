@@ -78,4 +78,12 @@ class RestException extends DfServiceException
     {
         return $this->statusCode;
     }
+
+    public function toArray()
+    {
+        $out = parent::toArray();
+        $out['status_code'] = $this->statusCode;
+
+        return $out;
+    }
 }

@@ -45,7 +45,6 @@ class LaravelServiceProvider extends ServiceProvider
         $this->publishes([$configPath => $publishPath], 'config');
 
         $this->addAliases();
-        $this->addExtensions();
 
         // add commands, https://laravel.com/docs/5.4/packages#commands
         /** @noinspection PhpUndefinedMethodInspection */
@@ -72,6 +71,7 @@ class LaravelServiceProvider extends ServiceProvider
         $this->mergeConfigFrom($configPath, 'df');
 
         $this->registerServices();
+        $this->registerExtensions();
         $this->registerOtherProviders();
     }
 
@@ -88,19 +88,6 @@ class LaravelServiceProvider extends ServiceProvider
         $loader->alias('SystemResourceManager', SystemResourceManagerFacade::class);
         $loader->alias('SystemTableModelMapper', SystemTableModelMapperFacade::class);
         $loader->alias('DbSchemaExtensions', DbSchemaExtensionsFacade::class);
-    }
-
-    protected function addExtensions()
-    {
-        // Add our database drivers.
-        $this->app->resolving('db', function (DatabaseManager $db) {
-            $db->extend('sqlite', function ($config) {
-                $connector = new SQLiteConnector();
-                $connection = $connector->connect($config);
-
-                return new SQLiteConnection($connection, $config["database"], $config["prefix"], $config);
-            });
-        });
     }
 
     protected function addCommands()
@@ -139,6 +126,19 @@ class LaravelServiceProvider extends ServiceProvider
         // It also implements the resolver interface which may be used by other components adding schema extensions.
         $this->app->singleton('db.schema', function ($app) {
             return new DbSchemaExtensions($app);
+        });
+    }
+
+    protected function registerExtensions()
+    {
+        // Add our database drivers.
+        $this->app->resolving('db', function (DatabaseManager $db) {
+            $db->extend('sqlite', function ($config) {
+                $connector = new SQLiteConnector();
+                $connection = $connector->connect($config);
+
+                return new SQLiteConnection($connection, $config["database"], $config["prefix"], $config);
+            });
         });
     }
 

@@ -3,11 +3,15 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- Major restructuring to upgrade to Laravel 5.4 and be more dynamically available
+
 ### Added
-- DF-978 Added overwrite option for package import.
+- DF-978 Added overwrite option for package import
+- Added 409 Conflict rest exception.
 
 ### Changed
-- DF-967 Made the error message 'No record(s) detected in request.' more verbose.
+- DF-967 Made the error message 'No record(s) detected in request.' more verbose
+- Made batch handling consist across database and system services, using new BatchException
 
 ### Fixed
 - DF-716 Fixed AD login issue with accented characters in user names.

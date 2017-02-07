@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Utility;
 
+use DreamFactory\Core\Components\ExceptionResponse;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Components\DfResponse;
@@ -18,6 +19,8 @@ use DreamFactory\Core\Exceptions\DfException;
  */
 class ResponseFactory
 {
+    use ExceptionResponse;
+
     /**
      * @param mixed       $content
      * @param string|null $content_type
@@ -28,18 +31,6 @@ class ResponseFactory
     public static function create($content, $content_type = null, $status = ServiceResponseInterface::HTTP_OK)
     {
         return new ServiceResponse($content, $content_type, $status);
-    }
-
-    public static function createWithException(\Exception $exception)
-    {
-        $status = ($exception instanceof RestException)
-            ?
-            $exception->getStatusCode()
-            :
-            ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-        $content = self::makeExceptionContent($exception);
-
-        return new ServiceResponse($content, null, $status);
     }
 
     public static function createExceptionFromResponse(ServiceResponseInterface $response)
@@ -129,7 +120,7 @@ class ResponseFactory
             $status =
                 ($content instanceof RestException) ? $content->getStatusCode()
                     : ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-            $content = self::makeExceptionContent($content);
+            $content = self::exceptionToArray($content);
             $format = DataFormats::PHP_ARRAY;
         }
 
@@ -220,7 +211,7 @@ class ResponseFactory
             $status =
                 ($content instanceof RestException) ? $content->getStatusCode()
                     : ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-            $content = self::makeExceptionContent($content);
+            $content = self::exceptionToArray($content);
             $format = DataFormats::PHP_ARRAY;
         }
 
@@ -238,7 +229,7 @@ class ResponseFactory
         /** @noinspection PhpUnusedParameterInspection */
         $request = null
     ){
-        $response = ResponseFactory::createWithException($e);
+        $response = static::exceptionToServiceResponse($e);
 
         return ResponseFactory::sendResponse($response);
     }
@@ -277,11 +268,12 @@ class ResponseFactory
      */
     protected static function makeExceptionContent(\Exception $exception)
     {
-        $code = ($exception->getCode()) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-        $context = ($exception instanceof DfException) ? $exception->getContext() : null;
-        $errorInfo['context'] = $context;
+        if ($exception instanceof DfException) {
+            return ['error' => $exception->toArray()];
+        }
+
+        $errorInfo['code'] = ($exception->getCode()) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
         $errorInfo['message'] = htmlentities($exception->getMessage());
-        $errorInfo['code'] = $code;
 
         if ("local" === env("APP_ENV")) {
             $trace = $exception->getTraceAsString();

@@ -11,12 +11,12 @@ use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DbResourceTypes;
+use DreamFactory\Core\Exceptions\BatchException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\DataFormatter;
-use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session as SessionUtility;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Scalar;
@@ -240,73 +240,51 @@ class BaseModel extends Model implements CacheInterface
     /**
      * @param       $records
      * @param array $params
-     * @param bool  $singlePayload
      *
      * @return array|mixed
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkCreate($records, $params = [], $singlePayload = false)
+    public static function bulkCreate($records, $params = [])
     {
         if (empty($records)) {
             throw new BadRequestException('There are no record sets in the request.');
         }
 
-        $singleRow = (1 === count($records)) ? true : false;
         $response = [];
-        $transaction = false;
-        $errors = [];
+        $errors = false;
         $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
         $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
 
-        try {
-            //	Start a transaction
-            if (!$singleRow && $rollback) {
-                DB::beginTransaction();
-                $transaction = true;
-            }
+        //	Start a transaction
+        DB::beginTransaction();
 
-            foreach ($records as $key => $record) {
-                try {
-                    $response[$key] = static::createInternal($record, $params);
-                } catch (\Exception $ex) {
-                    if ($singleRow) {
-                        throw $ex;
-                    }
-
-                    if ($rollback && $transaction) {
-                        DB::rollBack();
-                        throw $ex;
-                    }
-
-                    // track the index of the error and copy error to results
-                    $errors[] = $key;
-                    $response[$key] = $ex->getMessage();
-                    if (!$continue) {
-                        break;
-                    }
+        foreach ($records as $key => $record) {
+            try {
+                $response[$key] = static::createInternal($record, $params);
+            } catch (\Exception $ex) {
+                $errors = true;
+                $response[$key] = $ex;
+                // track the index of the error and copy error to results
+                if ($rollback || !$continue) {
+                    break;
                 }
             }
-        } catch (\Exception $ex) {
-            throw $ex;
         }
 
-        if (!empty($errors)) {
-            $msg = ['errors' => $errors, ResourcesWrapper::getWrapper() => $response];
-            throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
-                $msg);
-        }
-
-        //	Commit
-        if ($transaction) {
-            try {
-                DB::commit();
-            } catch (\Exception $ex) {
-                throw $ex;
+        if ($errors) {
+            $msg = "Batch Error: Not all parts of the request were successful.";
+            if ($rollback) {
+                DB::rollBack();
+                $msg .= " All changes rolled back.";
             }
+
+            throw new BatchException($response, $msg);
         }
 
-        return $singlePayload ? current($response) : $response;
+        DB::commit();
+
+        return $response;
     }
 
     /**
@@ -317,11 +295,7 @@ class BaseModel extends Model implements CacheInterface
      */
     protected static function createInternal($record, $params = [])
     {
-        try {
-            $model = static::create($record);
-        } catch (\PDOException $e) {
-            throw $e;
-        }
+        $model = static::create($record);
 
         return static::buildResult($model, $params);
     }
@@ -341,7 +315,20 @@ class BaseModel extends Model implements CacheInterface
         $pk = $m->getPrimaryKey();
         $record[$pk] = $id;
 
-        return static::bulkCreate([$record], $params, true);
+        try {
+            $response = static::bulkCreate([$record], $params);
+
+            return current($response);
+        } catch (BatchException $ex) {
+            $response = $ex->pickResponse(0);
+            if ($response instanceof \Exception) {
+                throw $response;
+            }
+
+            return $response;
+        } catch (\Exception $ex) {
+            throw new InternalServerErrorException($ex->getMessage());
+        }
     }
 
     /**
@@ -417,7 +404,20 @@ class BaseModel extends Model implements CacheInterface
         $pk = $m->getPrimaryKey();
         $record[$pk] = $id;
 
-        return static::bulkUpdate([$record], $params, true);
+        try {
+            $response = static::bulkUpdate([$record], $params);
+
+            return current($response);
+        } catch (BatchException $ex) {
+            $response = $ex->pickResponse(0);
+            if ($response instanceof \Exception) {
+                throw $response;
+            }
+
+            return $response;
+        } catch (\Exception $ex) {
+            throw new InternalServerErrorException($ex->getMessage());
+        }
     }
 
     /**
@@ -450,76 +450,54 @@ class BaseModel extends Model implements CacheInterface
     /**
      * @param       $records
      * @param array $params
-     * @param bool  $singlePayload
      *
      * @return array|mixed
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkUpdate($records, $params = [], $singlePayload = false)
+    public static function bulkUpdate($records, $params = [])
     {
         if (empty($records)) {
             throw new BadRequestException('There is no record in the request.');
         }
 
         $response = [];
-        $transaction = null;
-        $errors = [];
-        $singleRow = (1 === count($records)) ? true : false;
+        $errors = false;
         $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
         $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
 
-        try {
-            //	Start a transaction
-            if (!$singleRow && $rollback) {
-                DB::beginTransaction();
-                $transaction = true;
-            }
+        //	Start a transaction
+        DB::beginTransaction();
 
-            foreach ($records as $key => $record) {
-                try {
-                    $m = new static;
-                    $pk = $m->getPrimaryKey();
-                    $id = array_get($record, $pk);
-                    $response[$key] = static::updateInternal($id, $record, $params);
-                } catch (\Exception $ex) {
-                    if ($singleRow) {
-                        throw $ex;
-                    }
-
-                    if ($rollback && $transaction) {
-                        DB::rollBack();
-                        throw $ex;
-                    }
-
-                    // track the index of the error and copy error to results
-                    $errors[] = $key;
-                    $response[$key] = $ex->getMessage();
-                    if (!$continue) {
-                        break;
-                    }
+        foreach ($records as $key => $record) {
+            try {
+                $m = new static;
+                $pk = $m->getPrimaryKey();
+                $id = array_get($record, $pk);
+                $response[$key] = static::updateInternal($id, $record, $params);
+            } catch (\Exception $ex) {
+                // track the index of the error and copy error to results
+                $errors = true;
+                $response[$key] = $ex;
+                if ($rollback || !$continue) {
+                    break;
                 }
             }
-        } catch (\Exception $ex) {
-            throw $ex;
         }
 
-        if (!empty($errors)) {
-            $msg = ['errors' => $errors, ResourcesWrapper::getWrapper() => $response];
-            throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
-                $msg);
-        }
-
-        //	Commit
-        if ($transaction) {
-            try {
-                DB::commit();
-            } catch (\Exception $ex) {
-                throw $ex;
+        if ($errors) {
+            $msg = "Batch Error: Not all parts of the request were successful.";
+            if ($rollback) {
+                DB::rollBack();
+                $msg .= " All changes rolled back.";
             }
+
+            throw new BatchException($response, $msg);
         }
 
-        return $singlePayload ? current($response) : $response;
+        DB::commit();
+
+        return $response;
     }
 
     /**
@@ -576,7 +554,20 @@ class BaseModel extends Model implements CacheInterface
         $m = new static;
         $pk = $m->getPrimaryKey();
 
-        return static::bulkDelete([[$pk => $id]], $params, true);
+        try {
+            $response = static::bulkDelete([[$pk => $id]], $params);
+
+            return current($response);
+        } catch (BatchException $ex) {
+            $response = $ex->pickResponse(0);
+            if ($response instanceof \Exception) {
+                throw $response;
+            }
+
+            return $response;
+        } catch (\Exception $ex) {
+            throw new InternalServerErrorException($ex->getMessage());
+        }
     }
 
     /**
@@ -606,76 +597,54 @@ class BaseModel extends Model implements CacheInterface
     /**
      * @param       $records
      * @param array $params
-     * @param bool  $singlePayload
      *
      * @return array|mixed
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkDelete($records, $params = [], $singlePayload = false)
+    public static function bulkDelete($records, $params = [])
     {
         if (empty($records)) {
             throw new BadRequestException('There is no record in the request.');
         }
 
         $response = [];
-        $transaction = null;
-        $errors = [];
-        $singleRow = (1 === count($records)) ? true : false;
+        $errors = false;
         $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
         $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
 
-        try {
-            //	Start a transaction
-            if (!$singleRow && $rollback) {
-                DB::beginTransaction();
-                $transaction = true;
-            }
+        //	Start a transaction
+        DB::beginTransaction();
 
-            foreach ($records as $key => $record) {
-                try {
-                    $m = new static;
-                    $pk = $m->getPrimaryKey();
-                    $id = array_get($record, $pk);
-                    $response[$key] = static::deleteInternal($id, $record, $params);
-                } catch (\Exception $ex) {
-                    if ($singleRow) {
-                        throw $ex;
-                    }
-
-                    if ($rollback && $transaction) {
-                        DB::rollBack();
-                        throw $ex;
-                    }
-
-                    // track the index of the error and copy error to results
-                    $errors[] = $key;
-                    $response[$key] = $ex->getMessage();
-                    if (!$continue) {
-                        break;
-                    }
+        foreach ($records as $key => $record) {
+            try {
+                $m = new static;
+                $pk = $m->getPrimaryKey();
+                $id = array_get($record, $pk);
+                $response[$key] = static::deleteInternal($id, $record, $params);
+            } catch (\Exception $ex) {
+                // track the index of the error and copy error to results
+                $errors = true;
+                $response[$key] = $ex;
+                if ($rollback || !$continue) {
+                    break;
                 }
             }
-        } catch (\Exception $ex) {
-            throw $ex;
         }
 
-        if (!empty($errors)) {
-            $msg = ['errors' => $errors, ResourcesWrapper::getWrapper() => $response];
-            throw new BadRequestException("Batch Error: Not all parts of the request were successful.", null, null,
-                $msg);
-        }
-
-        //	Commit
-        if ($transaction) {
-            try {
-                DB::commit();
-            } catch (\Exception $ex) {
-                throw $ex;
+        if ($errors) {
+            $msg = "Batch Error: Not all parts of the request were successful.";
+            if ($rollback) {
+                DB::rollBack();
+                $msg .= " All changes rolled back.";
             }
+
+            throw new BatchException($response, $msg);
         }
 
-        return $singlePayload ? current($response) : $response;
+        DB::commit();
+
+        return $response;
     }
 
     /**
@@ -786,11 +755,11 @@ class BaseModel extends Model implements CacheInterface
      */
     public static function selectById($id, array $related = [], array $fields = ['*'])
     {
-        $model = static::with($related)->find($id, $fields);
+        if ($model = static::with($related)->find($id, $fields)) {
+            return $model;
+        }
 
-        $data = (!empty($model)) ? $model->toArray() : [];
-
-        return $data;
+        return null;
     }
 
     /**
@@ -886,10 +855,7 @@ class BaseModel extends Model implements CacheInterface
             }
         }
 
-        $collections = $builder->get($selection);
-        $result = $collections->toArray();
-
-        return $result;
+        return $builder->get($selection);
     }
 
     /**

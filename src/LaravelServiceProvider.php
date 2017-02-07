@@ -192,6 +192,14 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::DATABASE,
                 ],
             ],
+            'Limit'      => [
+                [
+                    'name'        => 'limit',
+                    'label'       => 'limit',
+                    'description' => 'API rate limiting service.',
+                    'group'       => ServiceTypeGroups::LIMIT,
+                ],
+            ],
             'Logger'      => [
                 [
                     'name'        => 'logstash',

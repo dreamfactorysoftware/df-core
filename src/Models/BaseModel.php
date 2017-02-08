@@ -893,7 +893,7 @@ class BaseModel extends Model implements CacheInterface
         if ($this->exists) {
             $models = [];
             $pk = $hasMany->getRelated()->primaryKey;
-            $fk = $hasMany->getPlainForeignKey();
+            $fk = $hasMany->getForeignKeyName();
 
             foreach ($data as $d) {
                 /** @var Model $model */

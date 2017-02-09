@@ -289,7 +289,7 @@ class BaseModel extends Model implements CacheInterface
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkCreate($records, $params = [])
+    public static function bulkCreate(array $records, array $params = [])
     {
         if (empty($records)) {
             throw new BadRequestException('There are no record sets in the request.');
@@ -442,7 +442,7 @@ class BaseModel extends Model implements CacheInterface
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \Exception
      */
-    public static function updateById($id, $record, $params = [])
+    public static function updateById($id, array $record, array $params = [])
     {
         $m = new static;
         $pk = $m->getPrimaryKey();
@@ -473,7 +473,7 @@ class BaseModel extends Model implements CacheInterface
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \Exception
      */
-    public static function updateByIds($ids, $record, $params = [])
+    public static function updateByIds($ids, array $record, array $params = [])
     {
         if (!is_array($ids)) {
             $ids = explode(",", $ids);
@@ -499,7 +499,7 @@ class BaseModel extends Model implements CacheInterface
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkUpdate($records, $params = [])
+    public static function bulkUpdate(array $records, array $params = [])
     {
         if (empty($records)) {
             throw new BadRequestException('There is no record in the request.');
@@ -593,7 +593,7 @@ class BaseModel extends Model implements CacheInterface
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \Exception
      */
-    public static function deleteById($id, $params = [])
+    public static function deleteById($id, array $params = [])
     {
         $m = new static;
         $pk = $m->getPrimaryKey();
@@ -622,7 +622,7 @@ class BaseModel extends Model implements CacheInterface
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \Exception
      */
-    public static function deleteByIds($ids, $params = [])
+    public static function deleteByIds($ids, array $params = [])
     {
         if (!is_array($ids)) {
             $ids = explode(",", $ids);
@@ -646,7 +646,7 @@ class BaseModel extends Model implements CacheInterface
      * @throws BadRequestException
      * @throws \Exception
      */
-    public static function bulkDelete($records, $params = [])
+    public static function bulkDelete(array $records, array $params = [])
     {
         if (empty($records)) {
             throw new BadRequestException('There is no record in the request.');

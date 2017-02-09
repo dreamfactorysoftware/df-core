@@ -12,17 +12,12 @@ class Custom extends BaseSystemResource
     protected static $model = SystemCustom::class;
 
     /**
-     * Retrieves records by id.
-     *
-     * @param integer $id
-     * @param array   $related
-     *
-     * @return array
+     * @inheritdoc
      */
-    protected function retrieveById($id, array $related = [])
+    protected function handleGET()
     {
-        $data = parent::retrieveById($id, $related);
+        $data = parent::handleGET();
 
-        return (array_key_exists('value', $data)) ? $data['value'] : [];
+        return (array_key_exists('value', $data)) ? $data['value'] : $data;
     }
 }

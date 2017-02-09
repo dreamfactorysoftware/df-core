@@ -5,7 +5,6 @@ namespace DreamFactory\Core\Resources\System;
 use DreamFactory\Core\Components\DbRequestCriteria;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Exceptions\BatchException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
@@ -14,6 +13,7 @@ use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
+use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -59,93 +59,6 @@ class BaseSystemResource extends BaseRestResource
     }
 
     /**
-     * Retrieves records by id.
-     *
-     * @param integer $id
-     * @param array   $related
-     *
-     * @return array
-     * @throws \DreamFactory\Core\Exceptions\NotFoundException
-     */
-    protected function retrieveById($id, array $related = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $criteria = $this->getSelectionCriteria();
-        $fields = array_get($criteria, 'select');
-        if (empty($data = $modelClass::selectById($id, $related, $fields))) {
-            throw new NotFoundException('Record not found');
-        }
-
-        return $data;
-    }
-
-    /**
-     * Retrieves records by ids.
-     *
-     * @param mixed $ids
-     * @param array $related
-     * @return array
-     * @throws BatchException
-     */
-    protected function retrieveByIds($ids, array $related = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $pk = $modelClass::getPrimaryKeyStatic();
-        $criteria = $this->getSelectionCriteria();
-        $data = $modelClass::selectByIds($ids, $related, $criteria);
-        if (!is_array($ids)) {
-            $ids = explode(',', $ids);
-        }
-        if (count($data) != count($ids)) {
-            $out = [];
-            foreach ($ids as $index => $id) {
-                foreach ($data as $record) {
-                    if ($id == array_get($record, $pk)) {
-                        $out[$index] = $record;
-                        break;
-                    }
-                }
-                if (!array_key_exists($index, $out)) {
-                    $out[$index] = new NotFoundException("Record with id '$id' not found.");
-                }
-            }
-
-            throw new BatchException($out, 'Batch Error: Not all records could be retrieved.');
-        }
-
-        return $data;
-    }
-
-    protected function retrieveByRecords(array $records, array $related = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $pk = $modelClass::getPrimaryKeyStatic();
-        $ids = array_column($records, $pk);
-
-        return $this->retrieveByIds($ids, $related);
-    }
-
-    /**
-     * Retrieves records by criteria/filters.
-     *
-     * @param array $related
-     *
-     * @return array
-     */
-    protected function retrieveByRequest(array $related = [])
-    {
-        /** @type BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $criteria = $this->getSelectionCriteria();
-        $data = $modelClass::selectByRequest($criteria, $related);
-
-        return $data;
-    }
-
-    /**
      * Handles GET action
      *
      * @return array
@@ -153,39 +66,36 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handleGET()
     {
-        $data = null;
+        /** @type BaseSystemModel $modelClass */
+        $modelClass = static::$model;
 
-        $related = $this->request->getParameter(ApiOptions::RELATED);
-        if (!empty($related)) {
-            $related = explode(',', $related);
-        } else {
-            $related = [];
+        $options = $this->request->getParameters();
+        $criteria = $this->getSelectionCriteria();
+
+        if (!empty($this->resource)) {
+            //	Single resource by ID
+            $fields = array_get($criteria, 'select');
+            if (empty($data = $modelClass::selectById($this->resource, $options, $fields))) {
+                throw new NotFoundException("Record with identifier '{$this->resource}' not found.");
+            }
+
+            return $data;
         }
 
         $meta = [];
-        if (!empty($this->resource)) {
-            //	Single resource by ID
-            $data = $this->retrieveById($this->resource, $related);
+        if (!empty($ids = array_get($options, ApiOptions::IDS))) {
+            //	Multiple resources by ID
+            $result = $modelClass::selectByIds($ids, $options, $criteria);
+        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
+            //  Multiple resources by passing records to have them updated with new or more values, id field required
+            $pk = $modelClass::getPrimaryKeyStatic();
+            $ids = array_column($records, $pk);
+            $result = $modelClass::selectByIds($ids, $options, $criteria);
         } else {
-            if (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-                $data = $this->retrieveByIds($ids, $related);
-            } else {
-                if (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
-                    if (isset($records[0]) && is_array($records[0])) {
-                        $data = $this->retrieveByRecords($records, $related);
-                    } else {
-                        // this may be a list of ids
-                        $data = $this->retrieveByIds($ids, $related);
-                    }
-                } else {
-                    /** @type BaseSystemModel $modelClass */
-                    $modelClass = static::$model;
-                    $criteria = $this->getSelectionCriteria();
-                    $data = $modelClass::selectByRequest($criteria, $related);
-                    if ($this->request->getParameterAsBool(ApiOptions::INCLUDE_COUNT)) {
-                        $meta['count'] = $modelClass::countByRequest($criteria);
-                    }
-                }
+            $result = $modelClass::selectByRequest($criteria, $options);
+
+            if ($this->request->getParameterAsBool(ApiOptions::INCLUDE_COUNT)) {
+                $meta['count'] = $modelClass::countByRequest($criteria);
             }
         }
 
@@ -196,29 +106,12 @@ class BaseSystemResource extends BaseRestResource
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
-        $data = ResourcesWrapper::cleanResources($data, $asList, $id, ApiOptions::FIELDS_ALL, !empty($meta));
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
-            $data['meta'] = $meta;
+            $result['meta'] = $meta;
         }
-
-        return $data;
-    }
-
-    /**
-     * Creates new records in bulk.
-     *
-     * @param array $records
-     * @param array $params
-     *
-     * @return mixed
-     */
-    protected function bulkCreate(array $records, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::bulkCreate($records, $params);
 
         return $result;
     }
@@ -232,84 +125,25 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handlePOST()
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = static::$model;
+
         if (!empty($this->resource)) {
             throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
-
         if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
-        $result = $this->bulkCreate($records, $this->request->getParameters());
+        $result = $modelClass::bulkCreate($records, $this->request->getParameters());
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
-        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL);
 
         return ResponseFactory::create($result, null, ServiceResponseInterface::HTTP_CREATED);
-    }
-
-    /**
-     * @throws BadRequestException
-     */
-    protected function handlePUT()
-    {
-        throw new BadRequestException('PUT is not supported on System Resource. Use PATCH');
-    }
-
-    /**
-     * Updates record by id.
-     *
-     * @param integer $id
-     * @param array   $record
-     * @param array   $params
-     *
-     * @return mixed
-     */
-    protected function updateById($id, array $record, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::updateById($id, $record, $params);
-
-        return $result;
-    }
-
-    /**
-     * Updates records by ids.
-     *
-     * @param array|string $ids
-     * @param array        $record
-     * @param array        $params
-     *
-     * @return mixed
-     */
-    protected function updateByIds($ids, array $record, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::updateByIds($ids, $record, $params);
-
-        return $result;
-    }
-
-    /**
-     * Bulk updates records.
-     *
-     * @param                 $records
-     * @param array           $params
-     *
-     * @return mixed
-     */
-    protected function bulkUpdate(array $records, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::bulkUpdate($records, $params);
-
-        return $result;
     }
 
     /**
@@ -321,74 +155,41 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handlePATCH()
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = static::$model;
+        $options = $this->request->getParameters();
+
         if (!empty($this->resource)) {
-            $result = $this->updateById($this->resource, $this->getPayloadData(), $this->request->getParameters());
-        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-            $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
-            if (empty($records)) {
-                throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
-            }
-            $result = $this->updateByIds($ids, $records[0], $this->request->getParameters());
-        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
-            $result = $this->bulkUpdate($records, $this->request->getParameters());
-        } else {
+            return $modelClass::updateById($this->resource, $this->getPayloadData(), $options);
+        }
+
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+        if (empty($records)) {
             throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
+        if (!empty($ids = array_get($options, ApiOptions::IDS))) {
+            $record = array_get($records, 0, $records);
+            $result = $modelClass::updateByIds($ids, $record, $options);
+        } else {
+            $filter = array_get($options, ApiOptions::FILTER);
+            if (!empty($filter)) {
+                $record = array_get($records, 0, $records);
+                $params = array_get($options, ApiOptions::PARAMS, []);
+                $result = $modelClass::updateByFilter(
+                    $record,
+                    $filter,
+                    $params,
+                    $options
+                );
+            } else {
+                $result = $modelClass::bulkUpdate($records, $options);
+            }
+        }
+
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
-        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
-
-        return $result;
-    }
-
-    /**
-     * Deletes a record by id.
-     *
-     * @param integer $id
-     * @param array   $params
-     *
-     * @return mixed
-     */
-    protected function deleteById($id, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::deleteById($id, $params);
-
-        return $result;
-    }
-
-    /**
-     * Deletes records by ids.
-     *
-     * @param array|string $ids
-     * @param array        $params
-     *
-     * @return mixed
-     */
-    protected function deleteByIds($ids, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::deleteByIds($ids, $params);
-
-        return $result;
-    }
-
-    /**
-     * Deletes records.
-     *
-     * @param array $records
-     * @param array $params
-     *
-     * @return mixed
-     */
-    protected function bulkDelete(array $records, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::bulkDelete($records, $params);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL);
 
         return $result;
     }
@@ -402,24 +203,38 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handleDELETE()
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = static::$model;
+        $options = $this->request->getParameters();
+
         if (!empty($this->resource)) {
-            $result = $this->deleteById($this->resource, $this->request->getParameters());
-        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-            $result = $this->deleteByIds($ids, $this->request->getParameters());
-        } elseif ($records = ResourcesWrapper::unwrapResources($this->getPayloadData())) {
-            if (isset($records[0]) && is_array($records[0])) {
-                $result = $this->bulkDelete($records, $this->request->getParameters());
-            } else {
-                // this may be a list of ids
-                $result = $this->deleteByIds($records, $this->request->getParameters());
-            }
+            return $modelClass::deleteById($this->resource, $options);
+        }
+
+        if (!empty($ids = array_get($options, ApiOptions::IDS))) {
+            $result = $modelClass::deleteByIds($ids, $options);
         } else {
-            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
+            $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+            if (!empty($records)) {
+                $result = $modelClass::bulkDelete($records, $options);
+            } else {
+                $filter = array_get($options, ApiOptions::FILTER);
+                if (!empty($filter)) {
+                    $params = array_get($options, ApiOptions::PARAMS, []);
+                    $result = $modelClass::deleteByFilter($filter, $params, $options);
+                } else {
+                    if (!Scalar::boolval(array_get($options, ApiOptions::FORCE))) {
+                        throw new BadRequestException('No filter or records given for delete request.');
+                    }
+
+                    return $modelClass::truncate($options);
+                }
+            }
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
-        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL);
 
         return $result;
     }

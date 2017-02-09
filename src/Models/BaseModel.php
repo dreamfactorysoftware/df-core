@@ -238,6 +238,50 @@ class BaseModel extends Model implements CacheInterface
     }
 
     /**
+     * Removes 'config' from select criteria if supplied as it chokes the model.
+     *
+     * @param array $criteria
+     *
+     * @return array
+     */
+    protected static function cleanCriteria(array $criteria)
+    {
+        $fields = array_get($criteria, 'select');
+        $criteria['select'] = static::cleanFields($fields);
+
+        return $criteria;
+    }
+
+    /**
+     * Removes unwanted fields from field list if supplied.
+     *
+     * @param mixed $fields
+     *
+     * @return array
+     */
+    public static function cleanFields($fields)
+    {
+        if (!is_array($fields)) {
+            $fields = explode(',', $fields);
+        }
+
+        return $fields;
+    }
+
+    /**
+     * If fields is not '*' (all) then clean out any unwanted properties.
+     *
+     * @param mixed $response
+     * @param mixed $fields
+     *
+     * @return array
+     */
+    protected static function cleanResult($response, /** @noinspection PhpUnusedParameterInspection */ $fields)
+    {
+        return $response;
+    }
+
+    /**
      * @param       $records
      * @param array $params
      *
@@ -273,7 +317,7 @@ class BaseModel extends Model implements CacheInterface
         }
 
         if ($errors) {
-            $msg = "Batch Error: Not all parts of the request were successful.";
+            $msg = "Batch Error: Not all requested records could be created.";
             if ($rollback) {
                 DB::rollBack();
                 $msg .= " All changes rolled back.";
@@ -486,7 +530,7 @@ class BaseModel extends Model implements CacheInterface
         }
 
         if ($errors) {
-            $msg = "Batch Error: Not all parts of the request were successful.";
+            $msg = "Batch Error: Not all requested records could be updated.";
             if ($rollback) {
                 DB::rollBack();
                 $msg .= " All changes rolled back.";
@@ -525,7 +569,7 @@ class BaseModel extends Model implements CacheInterface
         $model = static::find($id);
 
         if (!$model instanceof Model) {
-            throw new NotFoundException('No resource found for ' . $id);
+            throw new NotFoundException("Record with identifier '$id' not found.");
         }
 
         $pk = $model->primaryKey;
@@ -633,7 +677,7 @@ class BaseModel extends Model implements CacheInterface
         }
 
         if ($errors) {
-            $msg = "Batch Error: Not all parts of the request were successful.";
+            $msg = "Batch Error: Not all requested records could be deleted.";
             if ($rollback) {
                 DB::rollBack();
                 $msg .= " All changes rolled back.";
@@ -672,7 +716,7 @@ class BaseModel extends Model implements CacheInterface
         $model = static::find($id);
 
         if (!$model instanceof Model) {
-            throw new NotFoundException('No resource found for ' . $id);
+            throw new NotFoundException("Record with identifier '$id' not found.");
         }
 
         try {
@@ -748,15 +792,21 @@ class BaseModel extends Model implements CacheInterface
      * Selects a model by id.
      *
      * @param integer $id
-     * @param array   $related
+     * @param array   $options
      * @param array   $fields
      *
      * @return array
      */
-    public static function selectById($id, array $related = [], array $fields = ['*'])
+    public static function selectById($id, array $options = [], array $fields = ['*'])
     {
+        $fields = static::cleanFields($fields);
+        $related = array_get($options, ApiOptions::RELATED, []);
+        if (is_string($related)) {
+            $related = explode(',', $related);
+        }
+
         if ($model = static::with($related)->find($id, $fields)) {
-            return $model;
+            return static::cleanResult($model, $fields);
         }
 
         return null;
@@ -766,13 +816,14 @@ class BaseModel extends Model implements CacheInterface
      * Selects records by multiple ids.
      *
      * @param string|array $ids
-     * @param array        $related
+     * @param array        $options
      * @param array        $criteria
-     *
      * @return mixed
+     * @throws BatchException
      */
-    public static function selectByIds($ids, array $related = [], array $criteria = [])
+    public static function selectByIds($ids, array $options = [], array $criteria = [])
     {
+        $criteria = static::cleanCriteria($criteria);
         if (empty($criteria)) {
             $criteria['select'] = ['*'];
         }
@@ -781,8 +832,8 @@ class BaseModel extends Model implements CacheInterface
             $ids = implode(',', $ids);
         }
 
+        $pk = static::getPrimaryKeyStatic();
         if (!empty($ids)) {
-            $pk = static::getPrimaryKeyStatic();
             $idsPhrase = " $pk IN ($ids) ";
 
             $condition = array_get($criteria, 'condition');
@@ -796,7 +847,34 @@ class BaseModel extends Model implements CacheInterface
             $criteria['condition'] = $condition;
         }
 
-        $data = static::selectByRequest($criteria, $related);
+        $data = static::selectByRequest($criteria, $options);
+
+        $data = static::cleanResult($data, array_get($criteria, 'select'));
+        if (!is_array($ids)) {
+            $ids = explode(',', $ids);
+        }
+        if (count($data) != count($ids)) {
+            $out = [];
+            $continue = Scalar::boolval(array_get($options, ApiOptions::CONTINUES));
+            foreach ($ids as $index => $id) {
+                $found = false;
+                foreach ($data as $record) {
+                    if ($id == array_get($record, $pk)) {
+                        $out[$index] = $record;
+                        $found = true;
+                        break;
+                    }
+                }
+                if (!$found) {
+                    $out[$index] = new NotFoundException("Record with identifier '$id' not found.");
+                    if (!$continue) {
+                        break;
+                    }
+                }
+            }
+
+            throw new BatchException($out, 'Batch Error: Not all requested records could be retrieved.');
+        }
 
         return $data;
     }
@@ -806,16 +884,22 @@ class BaseModel extends Model implements CacheInterface
      * query criteria supplied from api request.
      *
      * @param array $criteria
-     * @param array $related
+     * @param array $options
      *
      * @return array
      */
-    public static function selectByRequest(array $criteria = [], array $related = [])
+    public static function selectByRequest(array $criteria = [], array $options = [])
     {
+        $criteria = static::cleanCriteria($criteria);
         $pk = static::getPrimaryKeyStatic();
         $selection = array_get($criteria, 'select');
         if (empty($selection)) {
             $selection = ['*'];
+        }
+
+        $related = array_get($options, ApiOptions::RELATED, []);
+        if (is_string($related)) {
+            $related = explode(',', $related);
         }
 
         $condition = array_get($criteria, 'condition');
@@ -855,7 +939,9 @@ class BaseModel extends Model implements CacheInterface
             }
         }
 
-        return $builder->get($selection);
+        $response = $builder->get($selection);
+
+        return static::cleanResult($response, array_get($criteria, 'select'));
     }
 
     /**

@@ -57,70 +57,6 @@ class ReadOnlySystemResource extends BaseRestResource
     }
 
     /**
-     * Retrieves records by id.
-     *
-     * @param integer $id
-     * @param array   $related
-     *
-     * @return array
-     */
-    protected function retrieveById($id, array $related = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $criteria = $this->getSelectionCriteria();
-        $fields = array_get($criteria, 'select');
-        $data = $modelClass::selectById($id, $related, $fields);
-
-        return $data;
-    }
-
-    /**
-     * Retrieves records by ids.
-     *
-     * @param mixed $ids
-     * @param array $related
-     *
-     * @return array
-     */
-    protected function retrieveByIds($ids, array $related = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $criteria = $this->getSelectionCriteria();
-        $data = $modelClass::selectByIds($ids, $related, $criteria);
-
-        return $data;
-    }
-
-    protected function retrieveByRecords(array $records, array $related = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $pk = $modelClass::getPrimaryKeyStatic();
-        $ids = array_column($records, $pk);
-
-        return $this->retrieveByIds($ids, $related);
-    }
-
-    /**
-     * Retrieves records by criteria/filters.
-     *
-     * @param array $related
-     *
-     * @return array
-     */
-    protected function retrieveByRequest(array $related = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $criteria = $this->getSelectionCriteria();
-        $data = $modelClass::selectByRequest($criteria, $related);
-
-        return $data;
-    }
-
-    /**
      * Handles GET action
      *
      * @return array
@@ -128,32 +64,36 @@ class ReadOnlySystemResource extends BaseRestResource
      */
     protected function handleGET()
     {
-        $data = null;
+        /** @type BaseSystemModel $modelClass */
+        $modelClass = static::$model;
 
-        $related = $this->request->getParameter(ApiOptions::RELATED);
-        if (!empty($related)) {
-            $related = explode(',', $related);
-        } else {
-            $related = [];
+        $options = $this->request->getParameters();
+        $criteria = $this->getSelectionCriteria();
+
+        if (!empty($this->resource)) {
+            //	Single resource by ID
+            $fields = array_get($criteria, 'select');
+            if (empty($data = $modelClass::selectById($this->resource, $options, $fields))) {
+                throw new NotFoundException("Record with identifier '{$this->resource}'not found.");
+            }
+
+            return $data;
         }
 
         $meta = [];
-        if (!empty($this->resource)) {
-            //	Single resource by ID
-            $data = $this->retrieveById($this->resource, $related);
-        } else if (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-            $data = $this->retrieveByIds($ids, $related);
-        } else if (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
-            if (isset($records[0]) && is_array($records[0])) {
-                $data = $this->retrieveByRecords($records, $related);
-            } else {
-                // this may be a list of ids
-                $data = $this->retrieveByIds($ids, $related);
-            }
+        if (!empty($ids = array_get($options, ApiOptions::IDS))) {
+            //	Multiple resources by ID
+            $result = $modelClass::selectByIds($ids, $options, $criteria);
+        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
+            //  Multiple resources by passing records to have them updated with new or more values, id field required
+            $pk = $modelClass::getPrimaryKeyStatic();
+            $ids = array_column($records, $pk);
+            $result = $modelClass::selectByIds($ids, $options, $criteria);
         } else {
-            $data = $this->retrieveByRequest($related);
+            $result = $modelClass::selectByRequest($criteria, $options);
+
             if ($this->request->getParameterAsBool(ApiOptions::INCLUDE_COUNT)) {
-                $meta['count'] = count($data);
+                $meta['count'] = $modelClass::countByRequest($criteria);
             }
         }
 
@@ -164,14 +104,14 @@ class ReadOnlySystemResource extends BaseRestResource
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
-        $data = ResourcesWrapper::cleanResources($data, $asList, $id, ApiOptions::FIELDS_ALL, !empty($meta));
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
-            $data['meta'] = $meta;
+            $result['meta'] = $meta;
         }
 
-        return $data;
+        return $result;
     }
 
     /**

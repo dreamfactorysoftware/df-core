@@ -35,7 +35,7 @@ class HomesteadConfig extends Command
      */
     public function handle()
     {
-        if(file_exists('vendor/bin/homestead')){
+        if (file_exists('vendor/bin/homestead')) {
             exec('php vendor/bin/homestead make', $out);
             $output = implode('\n', $out);
             $this->info($output);

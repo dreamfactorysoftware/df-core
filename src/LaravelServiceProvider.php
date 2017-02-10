@@ -209,6 +209,20 @@ class LaravelServiceProvider extends ServiceProvider
                 ],
             ],
             'MongoDb'     => [],
+            'Notification' => [
+                [
+                    'name'        => 'apns',
+                    'label'       => 'Apple Push Notification',
+                    'description' => 'Apple Push Notification Service Provider.',
+                    'group'       => ServiceTypeGroups::NOTIFICATION,
+                ],
+                [
+                    'name'        => 'gcm',
+                    'label'       => 'GCM Push Notification',
+                    'description' => 'GCM Push Notification Service Provider.',
+                    'group'       => ServiceTypeGroups::NOTIFICATION,
+                ]
+            ],
             'OAuth'       => [],
             'Oracle'      => [
                 [

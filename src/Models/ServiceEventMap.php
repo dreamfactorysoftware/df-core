@@ -5,6 +5,7 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ServiceResponse;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use ServiceManager;
+use Cache;
 
 class ServiceEventMap extends BaseServiceConfigModel
 {
@@ -29,6 +30,25 @@ class ServiceEventMap extends BaseServiceConfigModel
      * @var bool
      */
     public $incrementing = true;
+
+    public static function boot()
+    {
+        parent::boot();
+
+        static::saved(
+            function (ServiceEventMap $map){
+                $key = 'event:' . $map->event;
+                Cache::forget($key);
+            }
+        );
+
+        static::deleted(
+            function (ServiceEventMap $map){
+                $key = 'event:' . $map->event;
+                Cache::forget($key);
+            }
+        );
+    }
 
     /**
      * @param int     $id
@@ -62,7 +82,13 @@ class ServiceEventMap extends BaseServiceConfigModel
      */
     public static function setConfig($id, $config)
     {
-        static::whereServiceId($id)->delete();
+        // Deleting records using model as oppose to chaining with the where clause.
+        // This way forcing model to trigger the 'deleted' event which clears necessary cache.
+        // See the boot method above.
+        $models = static::whereServiceId($id)->get()->all();
+        foreach ($models as $model) {
+            $model->delete();
+        }
         if (!empty($config)) {
             foreach ($config as $param) {
                 //Making sure service_id is the first item in the config.

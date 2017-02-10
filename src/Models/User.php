@@ -296,7 +296,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         $model = static::find($id);
 
         if (!$model instanceof Model) {
-            throw new NotFoundException('No resource found for ' . $id);
+            throw new NotFoundException("Record with identifier '$id' not found.");
         }
 
         $pk = $model->primaryKey;
@@ -365,7 +365,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         $model = static::find($id);
 
         if (!$model instanceof Model) {
-            throw new NotFoundException('No resource found for ' . $id);
+            throw new NotFoundException("Record with identifier '$id' not found.");
         }
 
         try {

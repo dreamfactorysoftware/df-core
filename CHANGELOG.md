@@ -8,6 +8,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - DF-978 Added overwrite option for package import
 - Added 409 Conflict rest exception.
+- DF-688 Added support for iOS push notification.
+- DF-462 Added support for GCM push notification.
 
 ### Changed
 - DF-967 Made the error message 'No record(s) detected in request.' more verbose

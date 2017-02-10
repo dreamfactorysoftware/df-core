@@ -1075,7 +1075,7 @@ class Importer
                         } catch (RestException $e) {
                             throw new InternalServerErrorException(
                                 'An unexpected error occurred. ' .
-                                'Could not delete an existing ' .
+                                'Could not overwrite an existing ' .
                                 $api . ' resource with ' . $key . ' ' .
                                 $value . '. ' . $e->getMessage()
                             );

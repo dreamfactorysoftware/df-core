@@ -21,7 +21,7 @@ return [
     'always_wrap_resources'        => env('DF_ALWAYS_WRAP_RESOURCES', true),
     'resources_wrapper'            => env('DF_RESOURCE_WRAPPER', 'resource'),
     // Default content-type of response when accepts header is missing or empty.
-    'default_response_type'        => env('DF_XML_ROOT', 'application/json'),
+    'default_response_type'        => env('DF_CONTENT_TYPE', 'application/json'),
     // Local File Storage setup, see also local config/filesystems.php
     'storage_path'                 => env('DF_MANAGED_STORAGE_PATH', storage_path()),
     // Path to package file/folder/url to import during instance launch.

@@ -14,6 +14,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - DF-967 Made the error message 'No record(s) detected in request.' more verbose
 - Made batch handling consist across database and system services, using new BatchException
+- Allowed editing event in event-driven service configuration UI
 
 ### Fixed
 - DF-716 Fixed AD login issue with accented characters in user names.

@@ -14,9 +14,8 @@ return [
     'instance_name'                => env('DF_INSTANCE_NAME', gethostname()),
     // Log level
     'log_level'                    => env('DF_LOG_LEVEL', 'WARNING'),
-    // XML root tag for http request and response.
-    'xml_request_root'             => env('DF_XML_ROOT', 'dfapi'),
-    'xml_response_root'            => env('DF_XML_ROOT', 'dfapi'),
+    // XML root tag for http responses.
+    'xml_root'                     => env('DF_XML_ROOT', 'dfapi'),
     // Most API calls return a resource array or a single resource, if array, do we wrap it?
     'always_wrap_resources'        => env('DF_ALWAYS_WRAP_RESOURCES', true),
     'resources_wrapper'            => env('DF_RESOURCE_WRAPPER', 'resource'),

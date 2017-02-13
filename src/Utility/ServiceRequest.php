@@ -160,39 +160,19 @@ class ServiceRequest implements ServiceRequestInterface
      */
     protected function csv($key = null, $default = null)
     {
-        if (!empty($this->contentAsArray)) {
-            if (null === $key) {
-                return $this->contentAsArray;
-            } else {
-                return array_get($this->contentAsArray, $key, $default);
+        if (empty($this->contentAsArray)) {
+            $content = $this->getContent();
+            $data = DataFormatter::csvToArray($content);
+
+            if (!empty($data)) {
+                $this->contentAsArray = ResourcesWrapper::wrapResources($data);
             }
         }
-
-        $content = $this->getContent();
-        $data = DataFormatter::csvToArray($content);
-
-        if (!empty($content) && empty($data)) {
-            throw new BadRequestException('Invalid CSV payload supplied.');
-        }
-
-        $payload = ResourcesWrapper::wrapResources($data);
-
-        // Store the content so that formatting is only done once.
-        $this->contentAsArray = (empty($payload)) ? [] : $payload;
-        $this->content = $content;
 
         if (null === $key) {
-            if (empty($payload)) {
-                return [];
-            } else {
-                return $payload;
-            }
+            return $this->contentAsArray;
         } else {
-            if (empty($payload)) {
-                return $default;
-            } else {
-                return array_get($payload, $key, $default);
-            }
+            return array_get($this->contentAsArray, $key, $default);
         }
     }
 
@@ -207,38 +187,24 @@ class ServiceRequest implements ServiceRequestInterface
      */
     protected function xml($key = null, $default = null)
     {
-        if (!empty($this->contentAsArray)) {
-            if (null === $key) {
-                return $this->contentAsArray;
-            } else {
-                return array_get($this->contentAsArray, $key, $default);
+        if (empty($this->contentAsArray)) {
+            $content = $this->getContent();
+            $data = DataFormatter::xmlToArray($content);
+
+            if (!empty($data)) {
+                if ((1 === count($data)) && !array_key_exists(ResourcesWrapper::getWrapper(), $data)) {
+                    // All XML comes wrapped in a single wrapper, if not resource wrapper, remove it
+                    $data = reset($data);
+                }
+
+                $this->contentAsArray = $data;
             }
         }
-
-        $content = $this->getContent();
-        $data = DataFormatter::xmlToArray($content);
-        $rootTag = config('df.xml_request_root');
-
-        if (!empty($content) && (empty($data) || !empty(array_get($data, $rootTag)))) {
-            $data = $data[$rootTag];
-        }
-
-        // Store the content so that formatting is only done once.
-        $this->contentAsArray = (empty($data)) ? [] : $data;
-        $this->content = $content;
 
         if (null === $key) {
-            if (empty($data)) {
-                return [];
-            } else {
-                return $data;
-            }
+            return $this->contentAsArray;
         } else {
-            if (empty($data)) {
-                return $default;
-            } else {
-                return array_get($data, $key, $default);
-            }
+            return array_get($this->contentAsArray, $key, $default);
         }
     }
 

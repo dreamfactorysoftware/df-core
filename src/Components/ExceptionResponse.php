@@ -21,7 +21,7 @@ trait ExceptionResponse
             $exception->getStatusCode()
             :
             ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-        $content = self::exceptionToArray($exception);
+        $content = ['error' => self::exceptionToArray($exception)];
 
         return new ServiceResponse($content, null, $status);
     }
@@ -47,7 +47,7 @@ trait ExceptionResponse
     public static function exceptionToArray(\Exception $exception)
     {
         if ($exception instanceof DfException) {
-            return ['error' => $exception->toArray()];
+            return $exception->toArray();
         }
 
         $errorInfo['code'] = ($exception->getCode()) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;

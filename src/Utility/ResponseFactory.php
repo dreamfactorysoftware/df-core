@@ -120,7 +120,7 @@ class ResponseFactory
             $status =
                 ($content instanceof RestException) ? $content->getStatusCode()
                     : ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-            $content = self::exceptionToArray($content);
+            $content = ['error' => self::exceptionToArray($content)];
             $format = DataFormats::PHP_ARRAY;
         }
 
@@ -211,7 +211,7 @@ class ResponseFactory
             $status =
                 ($content instanceof RestException) ? $content->getStatusCode()
                     : ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-            $content = self::exceptionToArray($content);
+            $content = ['error' => self::exceptionToArray($content)];
             $format = DataFormats::PHP_ARRAY;
         }
 

@@ -14,14 +14,13 @@ return [
     'instance_name'                => env('DF_INSTANCE_NAME', gethostname()),
     // Log level
     'log_level'                    => env('DF_LOG_LEVEL', 'WARNING'),
-    // XML root tag for http request and response.
-    'xml_request_root'             => env('DF_XML_ROOT', 'dfapi'),
-    'xml_response_root'            => env('DF_XML_ROOT', 'dfapi'),
+    // XML root tag for http responses.
+    'xml_root'                     => env('DF_XML_ROOT', 'dfapi'),
     // Most API calls return a resource array or a single resource, if array, do we wrap it?
     'always_wrap_resources'        => env('DF_ALWAYS_WRAP_RESOURCES', true),
     'resources_wrapper'            => env('DF_RESOURCE_WRAPPER', 'resource'),
     // Default content-type of response when accepts header is missing or empty.
-    'default_response_type'        => env('DF_XML_ROOT', 'application/json'),
+    'default_response_type'        => env('DF_CONTENT_TYPE', 'application/json'),
     // Local File Storage setup, see also local config/filesystems.php
     'storage_path'                 => env('DF_MANAGED_STORAGE_PATH', storage_path()),
     // Path to package file/folder/url to import during instance launch.

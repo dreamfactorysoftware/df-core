@@ -76,7 +76,7 @@ class Role extends BaseSystemModel
             $value = substr($value, 0, 255);
         }
 
-        return $value;
+        $this->attributes['description'] = $value;
     }
 
     /**

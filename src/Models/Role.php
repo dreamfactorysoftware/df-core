@@ -64,6 +64,22 @@ class Role extends BaseSystemModel
     }
 
     /**
+     * Making sure description is no longer than 255 characters.
+     *
+     * @param $value
+     *
+     * @return string
+     */
+    public function setDescriptionAttribute($value)
+    {
+        if (strlen($value) > 255) {
+            $value = substr($value, 0, 255);
+        }
+
+        return $value;
+    }
+
+    /**
      * @return array
      */
     public function getRoleServiceAccess()

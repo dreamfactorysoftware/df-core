@@ -22,6 +22,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-856 Data formatting now takes Arrayable and stringable objects into consideration
 - DF-935 On incoming XML, handle any outer wrapper, not just 'dfapi', as there is no need to restrict
 - DF-1027 Fixed a package export error
+- Fixed creating role where description is longer than 255 characters.
 
 ## [0.7.1] - 2017-01-25
 ### Fixed

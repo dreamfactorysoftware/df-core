@@ -156,7 +156,7 @@ class ServiceEventMap extends BaseServiceConfigModel
                     ];
                 }
                 $schema['label'] = 'Event';
-                $schema['type'] = 'grouped_picklist';
+                $schema['type'] = 'event_picklist';
                 $schema['values'] = $eventList;
                 $schema['description'] = 'Select an Event.';
                 $schema['allow_null'] = false;

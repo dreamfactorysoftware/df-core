@@ -88,7 +88,7 @@ class Importer
             $imported = ($this->insertOtherResource()) ?: $imported;
             $imported = ($this->insertEventScripts()) ?: $imported;
             $imported = ($this->storeFiles()) ?: $imported;
-            $imported = ($this->overwrote)?: $imported;
+            $imported = ($this->overwrote) ?: $imported;
         } catch (\Exception $e) {
             \DB::rollBack();
             \Log::error('Failed to import package. Rolling back. ' . $e->getMessage());
@@ -1117,41 +1117,82 @@ class Importer
      */
     protected static function patchExisting($service, $resource, $record, $key)
     {
+        $api = $service . '/' . $resource;
         $value = array_get($record, $key);
-        /** @var ServiceResponseInterface $result */
-        $result = ServiceManager::handleRequest(
-            $service,
-            Verbs::GET,
-            $resource,
-            ['filter' => "$key='$value'"]
-        );
-        if ($result->getStatusCode() >= 300) {
-            throw ResponseFactory::createExceptionFromResponse($result);
-        }
-        $content = ResourcesWrapper::unwrapResources($result->getContent());
-        $existing = array_get($content, 0);
-        $existingId = array_get($existing, BaseModel::getPrimaryKeyStatic());
-        if (!empty($existingId)) {
-            unset($record[BaseModel::getPrimaryKeyStatic()]);
-            $result = ServiceManager::handleRequest(
-                $service,
-                Verbs::PATCH,
-                $resource . '/' . $existingId,
-                [],
-                [],
-                $record
-            );
-            if ($result->getStatusCode() >= 300) {
-                throw ResponseFactory::createExceptionFromResponse($result);
-            }
+        switch ($api) {
+            case 'system/event_script':
+            case 'system/custom':
+            case 'user/custom':
+            case $service . '/_schema':
+                $result = ServiceManager::handleRequest(
+                    $service,
+                    Verbs::PATCH,
+                    $resource . '/' . $value,
+                    [],
+                    [],
+                    $record
+                );
+                if ($result->getStatusCode() === 404) {
+                    throw new InternalServerErrorException(
+                        'Could not find existing resource to PATCH for ' .
+                        $service . '/' . $resource . '/' . $value
+                    );
+                }
+                if ($result->getStatusCode() >= 300) {
+                    throw ResponseFactory::createExceptionFromResponse($result);
+                }
 
-            return true;
-        } else {
-            throw new InternalServerErrorException(
-                'Could not get ID for ' .
-                $service . '/' . $resource .
-                ' resource using ID field ' . BaseModel::getPrimaryKeyStatic()
-            );
+                return true;
+            default:
+                /** @var ServiceResponseInterface $result */
+                $result = ServiceManager::handleRequest(
+                    $service,
+                    Verbs::GET,
+                    $resource,
+                    ['filter' => "$key='$value'"]
+                );
+                if ($result->getStatusCode() === 404) {
+                    throw new InternalServerErrorException(
+                        'Could not find existing resource for ' .
+                        $service . '/' . $resource .
+                        ' using ' . $key . ' = ' . $value
+                    );
+                }
+                if ($result->getStatusCode() >= 300) {
+                    throw ResponseFactory::createExceptionFromResponse($result);
+                }
+                $content = ResourcesWrapper::unwrapResources($result->getContent());
+                $existing = array_get($content, 0);
+                $existingId = array_get($existing, BaseModel::getPrimaryKeyStatic());
+                if (!empty($existingId)) {
+                    unset($record[BaseModel::getPrimaryKeyStatic()]);
+                    $result = ServiceManager::handleRequest(
+                        $service,
+                        Verbs::PATCH,
+                        $resource . '/' . $existingId,
+                        [],
+                        [],
+                        $record
+                    );
+                    if ($result->getStatusCode() === 404) {
+                        throw new InternalServerErrorException(
+                            'Could not find existing resource to PATCH for ' .
+                            $service . '/' . $resource . '/' . $existingId
+                        );
+                    }
+                    if ($result->getStatusCode() >= 300) {
+                        throw ResponseFactory::createExceptionFromResponse($result);
+                    }
+
+                    return true;
+                } else {
+                    throw new InternalServerErrorException(
+                        'Could not get ID for ' .
+                        $service . '/' . $resource .
+                        ' resource using ID field ' . BaseModel::getPrimaryKeyStatic()
+                    );
+                }
+                break;
         }
     }
 

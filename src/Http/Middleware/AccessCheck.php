@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Http\Middleware;
 
 use Closure;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
@@ -84,14 +85,16 @@ class AccessCheck
             if (static::isAccessAllowed()) {
                 return $next($request);
             } elseif (static::isException($request)) {
-                //API key and/or (non-admin) user logged in, but if access is still not allowed then check for exception case.
+                //  API key and/or (non-admin) user logged in, but if access is still not allowed then check for exception case.
                 return $next($request);
             } else {
+                // No access allowed, figure out the best error response
                 $apiKey = Session::getApiKey();
                 $token = Session::getSessionToken();
                 $roleId = Session::getRoleId();
+                $callFromLocalScript = (ServiceRequestorTypes::SCRIPT == Session::getRequestor());
 
-                if (empty($apiKey) && empty($token)) {
+                if (!$callFromLocalScript && empty($apiKey) && empty($token)) {
                     $msg = 'No session token (JWT) or API Key detected in request. ' .
                         'Please send in X-DreamFactory-Session-Token and/or X-Dreamfactory-API-Key request header. ' .
                         'You can also use URL query parameters session_token and/or api_key.';
@@ -183,7 +186,8 @@ class AccessCheck
         $router = app('router');
         $service = strtolower($router->input('service'));
         $component = strtolower($router->input('resource'));
-        $allowed = Session::getServicePermissions($service, $component);
+        $requestor = Session::getRequestor();
+        $allowed = Session::getServicePermissions($service, $component, $requestor);
         $action = VerbsMask::toNumeric($method);
 
         return ($action & $allowed) ? true : false;

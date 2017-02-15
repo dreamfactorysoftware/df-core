@@ -52,6 +52,18 @@ interface ServiceResponseInterface extends HttpStatusCodeInterface
     public function getDataFormat();
 
     /**
+     * @param $headers array Additional headers to send
+     *
+     * @return ServiceResponseInterface
+     */
+    public function setHeaders($headers);
+
+    /**
+     * @return array Additional headers
+     */
+    public function getHeaders();
+
+    /**
      * @return array All attributes as an array
      */
     public function toArray();

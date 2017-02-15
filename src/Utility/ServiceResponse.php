@@ -29,6 +29,11 @@ class ServiceResponse implements ServiceResponseInterface
     protected $dataFormat = null;
 
     /**
+     * @var array Array of additional headers
+     */
+    protected $headers = [];
+
+    /**
      * @param mixed       $content      Response content
      * @param string|null $content_type Content Type of content
      * @param int         $status       HTTP Status code
@@ -122,6 +127,24 @@ class ServiceResponse implements ServiceResponseInterface
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function setHeaders($headers)
+    {
+        $this->headers = $headers;
+
+        return $this;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getHeaders()
+    {
+        return $this->headers;
+    }
+
+    /**
      * @return array All attributes as an array
      */
     public function toArray()
@@ -131,6 +154,7 @@ class ServiceResponse implements ServiceResponseInterface
             'content_type' => $this->getContentType(),
             'content'      => $this->getContent(),
             'format'       => $this->getDataFormat(),
+            'headers'      => $this->getHeaders(),
         ];
     }
 
@@ -146,6 +170,9 @@ class ServiceResponse implements ServiceResponseInterface
             $this->setContent(array_get($data, 'content'));
             $this->setContentType(array_get($data, 'content_type'));
             $this->setDataFormat(array_get($data, 'format'));
+        }
+        if (array_key_exists('headers', $data)) {
+            $this->setHeaders(array_merge($this->headers, array_get($data, 'headers', [])));
         }
     }
 }

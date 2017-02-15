@@ -111,6 +111,7 @@ class ResponseFactory
         $status = $response->getStatusCode();
         $content = $response->getContent();
         $format = $response->getDataFormat();
+        $headers = $response->getHeaders();
 
         if (is_null($content) && is_null($status)) {
             // No content and type specified. (File stream already handled by service)
@@ -143,8 +144,9 @@ class ResponseFactory
         $accepts = (array)$accepts;
         if (!empty($contentType) && static::acceptedContentType($accepts, $contentType)) {
             \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
+            $headers['Content-Type'] = $contentType;
 
-            return DfResponse::create($content, $status, ["Content-Type" => $contentType]);
+            return DfResponse::create($content, $status, $headers);
         }
 
         // we don't have an acceptable content type, see if we can convert the content.
@@ -164,36 +166,37 @@ class ResponseFactory
             $reformatted = DataFormatter::reformatData($content, $format, $acceptFormat);
         }
 
-        $responseHeaders = ["Content-Type" => $contentType];
+        $headers['Content-Type'] = $contentType;
         if (!empty($asFile)) {
-            $responseHeaders['Content-Disposition'] = 'attachment; filename="' . $asFile . '";';
+            $headers['Content-Disposition'] = 'attachment; filename="' . $asFile . '";';
         }
 
         if ($acceptsAny) {
             $contentType =
                 (empty($contentType)) ? DataFormats::toMimeType($format, config('df.default_response_type'))
                     : $contentType;
-            $responseHeaders['Content-Type'] = $contentType;
+            $headers['Content-Type'] = $contentType;
 
             \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
 
-            return DfResponse::create($content, $status, $responseHeaders);
+            return DfResponse::create($content, $status, $headers);
         } else {
             if (false !== $reformatted) {
                 \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
 
-                return DfResponse::create($reformatted, $status, $responseHeaders);
+                return DfResponse::create($reformatted, $status, $headers);
             }
         }
 
         if ($status >= 400) {
-            return DfResponse::create($content, $status, ["Content-Type" => $contentType]);
+            return DfResponse::create($content, $status, $headers);
         }
         $content = (is_array($content)) ? print_r($content, true) : $content;
 
         return DfResponse::create(
             'Content in response can not be resolved to acceptable content type. Original content: ' . $content,
-            HttpStatusCodes::HTTP_BAD_REQUEST
+            HttpStatusCodes::HTTP_BAD_REQUEST,
+            $headers
         );
     }
 

@@ -300,8 +300,10 @@ class BaseModel extends Model implements CacheInterface
         $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
         $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
 
-        //	Start a transaction
-        DB::beginTransaction();
+        if ($rollback) {
+            //	Start a transaction
+            DB::beginTransaction();
+        }
 
         foreach ($records as $key => $record) {
             try {
@@ -326,7 +328,9 @@ class BaseModel extends Model implements CacheInterface
             throw new BatchException($response, $msg);
         }
 
-        DB::commit();
+        if ($rollback) {
+            DB::commit();
+        }
 
         return $response;
     }
@@ -510,8 +514,10 @@ class BaseModel extends Model implements CacheInterface
         $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
         $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
 
-        //	Start a transaction
-        DB::beginTransaction();
+        if ($rollback) {
+            //	Start a transaction
+            DB::beginTransaction();
+        }
 
         foreach ($records as $key => $record) {
             try {
@@ -539,7 +545,9 @@ class BaseModel extends Model implements CacheInterface
             throw new BatchException($response, $msg);
         }
 
-        DB::commit();
+        if ($rollback) {
+            DB::commit();
+        }
 
         return $response;
     }
@@ -657,8 +665,10 @@ class BaseModel extends Model implements CacheInterface
         $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
         $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
 
-        //	Start a transaction
-        DB::beginTransaction();
+        if ($rollback) {
+            //	Start a transaction
+            DB::beginTransaction();
+        }
 
         foreach ($records as $key => $record) {
             try {
@@ -686,7 +696,9 @@ class BaseModel extends Model implements CacheInterface
             throw new BatchException($response, $msg);
         }
 
-        DB::commit();
+        if ($rollback) {
+            DB::commit();
+        }
 
         return $response;
     }

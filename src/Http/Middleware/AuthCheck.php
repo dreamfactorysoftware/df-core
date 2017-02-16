@@ -121,7 +121,7 @@ class AuthCheck
         }
         if (empty($token)) {
             // Check for script token in request payload.
-            $token = $request->input('api_key');
+            $token = $request->input('script_token');
         }
 
         return $token;

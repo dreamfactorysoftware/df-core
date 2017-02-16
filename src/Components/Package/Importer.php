@@ -170,7 +170,7 @@ class Importer
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
-                $this->updateUserPassword($users);
+                static::updateUserPassword($users);
 
                 return true;
             } catch (DecryptException $e) {
@@ -190,10 +190,9 @@ class Importer
      *
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
-    protected function updateUserPassword($users)
+    protected static function updateUserPassword($users)
     {
         if (!empty($users)) {
-
             foreach ($users as $i => $user) {
                 if (isset($user['password'])) {
                     /** @type User $model */
@@ -760,7 +759,7 @@ class Importer
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
                 if ($service . '/' . $resource === 'system/admin') {
-                    $this->updateUserPassword($records);
+                    static::updateUserPassword($records);
                 }
 
                 return true;
@@ -1182,6 +1181,10 @@ class Importer
                     }
                     if ($result->getStatusCode() >= 300) {
                         throw ResponseFactory::createExceptionFromResponse($result);
+                    }
+
+                    if (in_array($api, ['system/admin', 'system/user'])) {
+                        static::updateUserPassword([$record]);
                     }
 
                     return true;

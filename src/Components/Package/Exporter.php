@@ -13,6 +13,7 @@ use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Services\BaseFileService;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Arr;
 use ServiceManager;
 
@@ -588,6 +589,10 @@ class Exporter
             }
 
             $result = $result->getContent();
+            if ($result instanceof Arrayable) {
+                $result = $result->toArray();
+            }
+
             if (is_string($result)) {
                 $result = ['value' => $result];
             } elseif (Arr::isAssoc($result) &&

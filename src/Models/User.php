@@ -259,7 +259,9 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             }
 
             $password = array_get($record, 'password');
-            static::validatePassword($password);
+            if (!empty($password)) {
+                static::validatePassword($password);
+            }
             $model = static::create($record);
 
             if (Scalar::boolval(array_get($params, 'admin')) &&

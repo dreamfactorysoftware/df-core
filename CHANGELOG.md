@@ -14,11 +14,20 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - DF-967 Made the error message 'No record(s) detected in request.' more verbose
 - Made batch handling consist across database and system services, using new BatchException
+- Allowed editing event in event-driven service configuration UI
 
 ### Fixed
 - DF-716 Fixed AD login issue with accented characters in user names.
 - Fixed migrations with timestamp fields due to Laravel issue #11518 with some MySQL versions
 - DF-856 Data formatting now takes Arrayable and stringable objects into consideration
+- DF-935 On incoming XML, handle any outer wrapper, not just 'dfapi', as there is no need to restrict
+- DF-915 Script tokening to authenticate internal script calls from node.js and python scripting
+- DF-1027 Fixed a package export error
+- Fixed creating role where description is longer than 255 characters.
+
+## [0.7.2] - 2017-02-15
+### Fixed
+- ServiceResponse allows setting additional headers directly
 
 ## [0.7.1] - 2017-01-25
 ### Fixed
@@ -409,7 +418,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.1...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.2...HEAD
+[0.7.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.1...0.7.2
 [0.7.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.2...0.7.0
 [0.6.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.6.1...0.6.2

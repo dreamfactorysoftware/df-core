@@ -2,18 +2,20 @@
 namespace DreamFactory\Core\Http\Middleware;
 
 use Auth;
-use JWTAuth;
+use Cache;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Exceptions\UnauthorizedException;
+use DreamFactory\Core\Models\App;
+use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\JWTUtilities;
+use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Utility\Session;
+use Illuminate\Http\Request;
+use JWTAuth;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
 use Tymon\JWTAuth\Payload;
-use Illuminate\Http\Request;
-use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Models\App;
-use DreamFactory\Core\Exceptions\UnauthorizedException;
-use DreamFactory\Core\Models\User;
-use DreamFactory\Core\Utility\ResponseFactory;
 
 class AuthCheck
 {
@@ -24,10 +26,10 @@ class AuthCheck
      */
     public static function getApiKey($request)
     {
-        //Check for API key in request parameters.
+        // Check for API key in request parameters.
         $apiKey = $request->query('api_key');
         if (empty($apiKey)) {
-            //Check for API key in request HEADER.
+            // Check for API key in request HEADER.
             $apiKey = $request->header('X_DREAMFACTORY_API_KEY');
         }
         if (empty($apiKey)) {
@@ -71,7 +73,7 @@ class AuthCheck
     protected static function getJWTFromAuthHeader()
     {
         if ('testing' === env('APP_ENV')) {
-            //getallheaders method is not available in unit test mode.
+            // getallheaders method is not available in unit test mode.
             return [];
         }
 
@@ -105,6 +107,27 @@ class AuthCheck
     }
 
     /**
+     * @param Request $request
+     *
+     * @return mixed
+     */
+    public static function getScriptToken($request)
+    {
+        // Check for script authorizing token in request parameters.
+        $token = $request->query('script_token');
+        if (empty($token)) {
+            // Check for script token in request HEADER.
+            $token = $request->header('X_DREAMFACTORY_SCRIPT_TOKEN');
+        }
+        if (empty($token)) {
+            // Check for script token in request payload.
+            $token = $request->input('script_token');
+        }
+
+        return $token;
+    }
+
+    /**
      * @param Request  $request
      * @param \Closure $next
      *
@@ -114,20 +137,26 @@ class AuthCheck
     {
         if (!in_array($route = $request->getPathInfo(), ['/setup', '/setup_db',])) {
             try {
+                // Get the API key
                 $apiKey = static::getApiKey($request);
                 Session::setApiKey($apiKey);
                 $appId = App::getAppIdByApiKey($apiKey);
 
-                //Get the JWT.
+                // Get the session token (JWT)
                 $token = static::getJwt($request);
                 Session::setSessionToken($token);
 
-                //Check for basic auth attempt.
+                // Get the script token
+                if (!empty($scriptToken = static::getScriptToken($request))) {
+                    Session::setRequestor(ServiceRequestorTypes::SCRIPT);
+                }
+
+                // Check for basic auth attempt
                 $basicAuthUser = $request->getUser();
                 $basicAuthPassword = $request->getPassword();
 
                 if (!empty($basicAuthUser) && !empty($basicAuthPassword)) {
-                    //Attempting to login using basic auth.
+                    // Attempting to login using basic auth.
                     Auth::onceBasic();
                     /** @var User $authenticatedUser */
                     $authenticatedUser = Auth::user();
@@ -138,7 +167,7 @@ class AuthCheck
                         throw new UnauthorizedException('Unauthorized. User credentials did not match.');
                     }
                 } elseif (!empty($token)) {
-                    //JWT supplied meaning an authenticated user session/token.
+                    // JWT supplied meaning an authenticated user session/token.
 
                     /**
                      * Note: All caught exception from JWT are stored in session variables.
@@ -175,7 +204,15 @@ class AuthCheck
                         Session::put('token_invalid', true);
                         Session::put('token_invalid_msg', 'Invalid token: ' . $e->getMessage());
                     }
-                } elseif (!empty($apiKey)) {
+                } elseif (!empty($scriptToken)) {
+                    // keep this separate from basic auth and jwt handling,
+                    // as this is the fall back when those are not provided from scripting (see node.js and python)
+                    if ($temp = Cache::get('script-token:'.$scriptToken)) {
+                        \Log::debug('script token: '.$scriptToken);
+                        \Log::debug('script token cache: '.print_r($temp, true));
+                        Session::setSessionData(array_get($temp, 'app_id'), array_get($temp, 'user_id'));
+                    }
+                } elseif (!empty($appId)) {
                     //Just Api Key is supplied. No authenticated session
                     Session::setSessionData($appId);
                 }

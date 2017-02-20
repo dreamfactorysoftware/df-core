@@ -634,7 +634,7 @@ class DataFormatter
     public static function arrayToXml($data, $root = null, $level = 1, $format = true)
     {
         if (empty($root)) {
-            $root = config('df.xml_response_root', 'dfapi');
+            $root = config('df.xml_root', 'dfapi');
         }
 
         return '<?xml version="1.0" ?>' . static::arrayToXmlInternal($data, $root, $level, $format);

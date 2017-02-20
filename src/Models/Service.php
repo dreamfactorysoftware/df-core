@@ -153,6 +153,10 @@ class Service extends BaseSystemModel
 
     public static function create(array $attributes = [])
     {
+        // if no label given, use name
+        if (empty(array_get($attributes, 'label'))) {
+            $attributes['label'] = array_get($attributes, 'name');
+        }
         // if type is old sql_db or script, need to upgrade
         switch (array_get($attributes, 'type')) {
             case 'script':

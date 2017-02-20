@@ -13,6 +13,7 @@ class DbSimpleTypes extends FactoryEnum
     //	Constants
     //*************************************************************************
 
+    const TYPE_ARRAY = 'array';
     const TYPE_BIG_ID = 'bigid';
     const TYPE_BIG_INT = 'bigint';
     const TYPE_BINARY = 'binary';
@@ -34,6 +35,7 @@ class DbSimpleTypes extends FactoryEnum
     const TYPE_MEDIUM_INTEGER = 'mediumint';
     const TYPE_MEDIUM_TEXT = 'mediumtext';
     const TYPE_MONEY = 'money';
+    const TYPE_OBJECT = 'object';
     const TYPE_REF = 'reference';
     const TYPE_REF_CURSOR = 'ref_cursor'; // mainly, routine return types
     const TYPE_ROW = 'row'; // mainly, routine return types

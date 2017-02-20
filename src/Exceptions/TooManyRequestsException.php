@@ -18,6 +18,6 @@ class TooManyRequestsException extends RestException
 	 */
 	public function __construct( $message = null, $code = null, $previous = null, $context = null )
 	{
-        parent::__construct(Response::HTTP_TOO_MANY_REQUESTS, $message, $code ?: Response::HTTP_TOO_MANY_REQUESTS, $previous, $context);
+        	parent::__construct(Response::HTTP_TOO_MANY_REQUESTS, $message, $code ?: Response::HTTP_TOO_MANY_REQUESTS, $previous, $context);
 	}
 }

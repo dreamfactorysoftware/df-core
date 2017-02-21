@@ -43,17 +43,21 @@ class RouteServiceProvider extends ServiceProvider
              * If this route is removed or disabled Enterprise functions will break
              */
             // todo this needs to be upgraded to work
-//            Route::controller('/instance', '\DreamFactory\Managed\Http\Controllers\InstanceController');
+            //Route::controller('/instance', '\DreamFactory\Managed\Http\Controllers\InstanceController');
         }
 
         $this->mapApiRoutes();
 
         Route::prefix(config('df.status_route_prefix'))
             ->namespace($this->namespace)
+            // TODO: Investigate a better way to add this middleware since df.cors is defined in CorsServiceProvicer.php
+            ->middleware('df.cors')
             ->group(__DIR__ . '/../../routes/status.php');
 
         Route::prefix(config('df.storage_route_prefix'))
             ->namespace($this->namespace)
+            // TODO: Investigate a better way to add this middleware since df.cors is defined in CorsServiceProvicer.php
+            ->middleware('df.cors')
             ->group(__DIR__ . '/../../routes/storage.php');
     }
 
@@ -103,7 +107,7 @@ class RouteServiceProvider extends ServiceProvider
         ) {
             Request::setMethod($method = strtoupper($dfOverride));
         }
-// support old MERGE as PATCH
+        // support old MERGE as PATCH
         if ('MERGE' === strtoupper($method)) {
             Request::setMethod('PATCH');
         }

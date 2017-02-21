@@ -10,6 +10,7 @@ use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
+use Route;
 
 class CorsServiceProvider extends ServiceProvider
 {
@@ -37,7 +38,16 @@ class CorsServiceProvider extends ServiceProvider
         });
 
         /** @noinspection PhpUndefinedMethodInspection */
-        $this->app['router']->middleware('cors', HandleCors::class);
+        //$this->app['router']->middleware('cors', HandleCors::class);
+
+        if (method_exists(\Illuminate\Routing\Router::class, 'aliasMiddleware')) {
+            Route::aliasMiddleware('df.cors', HandleCors::class);
+        } else {
+            /** @noinspection PhpUndefinedMethodInspection */
+            Route::middleware('df.cors', HandleCors::class);
+        }
+
+        Route::prependMiddlewareToGroup('df.api', 'df.cors');
 
         if ($request->isMethod('OPTIONS')) {
             /** @noinspection PhpUndefinedMethodInspection */

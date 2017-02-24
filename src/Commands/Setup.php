@@ -126,12 +126,30 @@ class Setup extends Command
         $this->info('Creating the first admin user...');
         $user = false;
         while (!$user) {
-            $firstName = $this->getInput('Enter your first name', 'admin_first_name');
-            $lastName = $this->getInput('Enter your last name', 'admin_last_name');
+            $firstName = $this->option('admin_first_name');
+            $lastName = $this->option('admin_last_name');
+            $email = $this->option('admin_email');
+            $password = $this->option('admin_password');
+            $prompt = true;
+            if (!empty($email) && !empty($password)) {
+                $prompt = false;
+            }
+
+            if (empty($firstName)) {
+                $firstName = ($prompt) ? $this->ask('Enter your first name') : 'FirstName';
+            }
+            if (empty($lastName)) {
+                $lastName = ($prompt) ? $this->ask('Enter your last name') : 'LastName';
+            }
+            if (empty($email)) {
+                $email = $this->ask('Enter your email address?');
+            }
+            if (empty($password)) {
+                $password = $this->ask('Choose a password');
+            }
+
+            $passwordConfirm = ($prompt) ? $this->ask('Re-enter password') : $password;
             $displayName = empty($displayName) ? $firstName . ' ' . $lastName : $displayName;
-            $email = $this->getInput('Enter your email address?', 'admin_email');
-            $password = $this->getInput('Choose a password', 'admin_password');
-            $passwordConfirm = $this->getInput('Re-enter password', 'admin_password');
 
             $data = [
                 'first_name'            => $firstName,
@@ -157,16 +175,6 @@ class Setup extends Command
         $this->info('* Setup is complete! Your instance is ready. Please launch your instance using a browser.');
         $this->info('* You can run "php artisan serve" to try out your instance without setting up a web server.');
         $this->info('**********************************************************************************************************************');
-    }
-
-    protected function getInput($prompt, $option)
-    {
-        $value = $this->option($option);
-        if(empty($value)){
-            $value = $this->ask($prompt);
-        }
-
-        return $value;
     }
 
     /**

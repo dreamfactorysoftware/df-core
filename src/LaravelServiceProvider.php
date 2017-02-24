@@ -2,6 +2,7 @@
 namespace DreamFactory\Core;
 
 use DreamFactory\Core\Commands\ClearAllFileCache;
+use DreamFactory\Core\Commands\CreateAdmin;
 use DreamFactory\Core\Commands\HomesteadConfig;
 use DreamFactory\Core\Commands\Import;
 use DreamFactory\Core\Commands\ImportPackage;
@@ -99,6 +100,7 @@ class LaravelServiceProvider extends ServiceProvider
             ImportPackage::class,
             Request::class,
             Setup::class,
+            CreateAdmin::class
         ]);
     }
 
@@ -184,6 +186,7 @@ class LaravelServiceProvider extends ServiceProvider
             'CouchDb'     => [],
             'Database'    => [],
             'Email'       => [],
+            //'Firebird'    => [],
             'IbmDb2'      => [
                 [
                     'name'        => 'ibmdb2',

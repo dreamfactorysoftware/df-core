@@ -2,7 +2,6 @@
 namespace DreamFactory\Core;
 
 use DreamFactory\Core\Commands\ClearAllFileCache;
-use DreamFactory\Core\Commands\CreateAdmin;
 use DreamFactory\Core\Commands\HomesteadConfig;
 use DreamFactory\Core\Commands\Import;
 use DreamFactory\Core\Commands\ImportPackage;
@@ -99,8 +98,7 @@ class LaravelServiceProvider extends ServiceProvider
             Import::class,
             ImportPackage::class,
             Request::class,
-            Setup::class,
-            CreateAdmin::class
+            Setup::class
         ]);
     }
 

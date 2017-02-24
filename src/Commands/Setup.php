@@ -17,7 +17,7 @@ class Setup extends Command
                             {--force : Force run migration and seeder.}
                             {--no-app-key : Skip generating APP_KEY. }
                             {--db_host= : Database host.}
-                            {--db_driver= : System database driver. [sqlite, mysql, pgsql, sqlsrv].}
+                            {--db_connection= : System database driver. [sqlite, mysql, pgsql, sqlsrv].}
                             {--db_database= : Database name.}
                             {--db_username= : Database username.}
                             {--db_password= : Database password.}
@@ -30,7 +30,11 @@ class Setup extends Command
                             {--redis_password= : Cache driver redis password}
                             {--memcached_host= : Cache driver memcached host}
                             {--memcached_port= : Cache driver memcached port}
-                            {--memcached_weight= : Cache driver memcached weight}';
+                            {--memcached_weight= : Cache driver memcached weight}
+                            {--admin_first_name= : Admin user first name}
+                            {--admin_last_name= : Admin user last name}
+                            {--admin_email= : Admin user email}
+                            {--admin_password= : Admin user password}';
 
     /**
      * The console command description.
@@ -122,13 +126,12 @@ class Setup extends Command
         $this->info('Creating the first admin user...');
         $user = false;
         while (!$user) {
-            $firstName = $this->ask('Enter your first name');
-            $lastName = $this->ask('Enter your last name');
-            $displayName = $this->ask('Enter display name');
+            $firstName = $this->getInput('Enter your first name', 'admin_first_name');
+            $lastName = $this->getInput('Enter your last name', 'admin_last_name');
             $displayName = empty($displayName) ? $firstName . ' ' . $lastName : $displayName;
-            $email = $this->ask('Enter your email address?');
-            $password = $this->secret('Choose a password');
-            $passwordConfirm = $this->secret('Re-enter password');
+            $email = $this->getInput('Enter your email address?', 'admin_email');
+            $password = $this->getInput('Choose a password', 'admin_password');
+            $passwordConfirm = $this->getInput('Re-enter password', 'admin_password');
 
             $data = [
                 'first_name'            => $firstName,
@@ -154,6 +157,16 @@ class Setup extends Command
         $this->info('* Setup is complete! Your instance is ready. Please launch your instance using a browser.');
         $this->info('* You can run "php artisan serve" to try out your instance without setting up a web server.');
         $this->info('**********************************************************************************************************************');
+    }
+
+    protected function getInput($prompt, $option)
+    {
+        $value = $this->option($option);
+        if(empty($value)){
+            $value = $this->ask($prompt);
+        }
+
+        return $value;
     }
 
     /**
@@ -223,17 +236,17 @@ class Setup extends Command
                 $port = $this->ask('Enter your Database Port', config('database.connections.' . $db . '.port'));
 
                 $config = [
-                    'DB_DRIVER'   => $driver,
-                    'DB_HOST'     => $host,
-                    'DB_DATABASE' => $database,
-                    'DB_USERNAME' => $username,
-                    'DB_PASSWORD' => $password,
-                    'DB_PORT'     => $port,
-                    'DF_INSTALL'  => $this->option('df_install')
+                    'DB_CONNECTION' => $driver,
+                    'DB_HOST'       => $host,
+                    'DB_DATABASE'   => $database,
+                    'DB_USERNAME'   => $username,
+                    'DB_PASSWORD'   => $password,
+                    'DB_PORT'       => $port,
+                    'DF_INSTALL'    => $this->option('df_install')
                 ];
             }
         } else {
-            $driver = $this->option('db_driver');
+            $driver = $this->option('db_connection');
             if (!in_array($driver, ['sqlite', 'mysql', 'pgsql', 'sqlsrv'])) {
                 $this->warn('DB DRIVER ' . $driver . ' is not supported. Using default driver sqlite.');
                 $driver = 'sqlite';
@@ -245,13 +258,12 @@ class Setup extends Command
             } else {
                 static::setIfValid($config, 'DF_INSTALL', $this->option('df_install'));
                 static::setIfValid($config, 'DB_HOST', $this->option('db_host'));
-                static::setIfValid($config, 'DB_DRIVER', $this->option('db_driver'));
+                static::setIfValid($config, 'DB_CONNECTION', $this->option('db_connection'));
                 static::setIfValid($config, 'DB_DATABASE', $this->option('db_database'));
                 static::setIfValid($config, 'DB_USERNAME', $this->option('db_username'));
                 static::setIfValid($config, 'DB_PASSWORD', $this->option('db_password'));
                 static::setIfValid($config, 'DB_PORT', $this->option('db_port'));
             }
-
         }
 
         $this->updateCacheConfig($config);
@@ -270,7 +282,7 @@ class Setup extends Command
 
         static::setIfValid($config, 'CACHE_DRIVER', $cacheDriver);
 
-        if('redis' === strtolower($cacheDriver)) {
+        if ('redis' === strtolower($cacheDriver)) {
             static::setIfValid($config, 'REDIS_HOST', $this->option('redis_host'));
             static::setIfValid($config, 'REDIS_PORT', $this->option('redis_port'));
             static::setIfValid($config, 'REDIS_DATABASE', $this->option('redis_database'));
@@ -303,7 +315,7 @@ class Setup extends Command
         $this->warn('*');
         $this->warn('* Please take a moment to review the .env file. You can make any changes as necessary there. ');
         $this->warn('*');
-        $this->warn('* Please run "php artisan dreamfactory:setup" again to complete the setup process.');
+        $this->warn('* Please run "php artisan df:setup" again to complete the setup process.');
         $this->warn('*');
         $this->warn('**********************************************************************************************************************');
     }

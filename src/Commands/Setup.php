@@ -145,10 +145,10 @@ class Setup extends Command
                 $email = $this->ask('Enter your email address?');
             }
             if (empty($password)) {
-                $password = $this->ask('Choose a password');
+                $password = $this->secret('Choose a password');
             }
 
-            $passwordConfirm = ($prompt) ? $this->ask('Re-enter password') : $password;
+            $passwordConfirm = ($prompt) ? $this->secret('Re-enter password') : $password;
             $displayName = empty($displayName) ? $firstName . ' ' . $lastName : $displayName;
 
             $data = [

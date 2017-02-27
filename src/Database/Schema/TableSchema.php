@@ -128,17 +128,16 @@ class TableSchema extends NamedResourceSchema
      */
     public function getColumn($name, $use_alias = false)
     {
-        $key = strtolower($name);
-
-        if (isset($this->columns[$key])) {
-            return $this->columns[$key];
-        }
-
         if ($use_alias) {
             foreach ($this->columns as $column) {
-                if ($key == $column->alias) {
+                if (0 === strcasecmp($name, $column->getName($use_alias))) {
                     return $column;
                 }
+            }
+        } else {
+            $key = strtolower($name);
+            if (isset($this->columns[$key])) {
+                return $this->columns[$key];
             }
         }
 
@@ -200,17 +199,16 @@ class TableSchema extends NamedResourceSchema
      */
     public function getRelation($name, $use_alias = false)
     {
-        $key = strtolower($name);
-
-        if (isset($this->relations[$key])) {
-            return $this->relations[$key];
-        }
-
         if ($use_alias) {
             foreach ($this->relations as $relation) {
-                if ($key == $relation->alias) {
+                if (0 === strcasecmp($name, $relation->getName($use_alias))) {
                     return $relation;
                 }
+            }
+        } else {
+            $key = strtolower($name);
+            if (isset($this->relations[$key])) {
+                return $this->relations[$key];
             }
         }
 

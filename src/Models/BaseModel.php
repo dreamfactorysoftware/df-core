@@ -276,8 +276,11 @@ class BaseModel extends Model implements CacheInterface
      *
      * @return array
      */
-    protected static function cleanResult($response, /** @noinspection PhpUnusedParameterInspection */ $fields)
-    {
+    protected static function cleanResult(
+        $response,
+        /** @noinspection PhpUnusedParameterInspection */
+        $fields
+    ){
         return $response;
     }
 
@@ -385,6 +388,7 @@ class BaseModel extends Model implements CacheInterface
      * @param array $attributes
      *
      * @param array $options
+     *
      * @return bool|int
      * @throws \Exception
      */
@@ -830,6 +834,7 @@ class BaseModel extends Model implements CacheInterface
      * @param string|array $ids
      * @param array        $options
      * @param array        $criteria
+     *
      * @return mixed
      * @throws BatchException
      */
@@ -1033,6 +1038,7 @@ class BaseModel extends Model implements CacheInterface
     /**
      * @param mixed $foreign Foreign key by which to search
      * @param array $data    Data containing possible other search attributes
+     *
      * @return Model
      */
     protected static function findCompositeForeignKeyModel(
@@ -1040,7 +1046,7 @@ class BaseModel extends Model implements CacheInterface
         $foreign,
         /** @noinspection PhpUnusedParameterInspection */
         $data
-    ) {
+    ){
         return null;
     }
 
@@ -1281,7 +1287,19 @@ class BaseModel extends Model implements CacheInterface
     {
         // if protected, and trying to set the mask, throw it away
         if (in_array($key, $this->protected) && ($value === static::PROTECTION_MASK)) {
-            return $this;
+            // If this is an update throw it away and don't change existing data.
+            // If this is for creating new record then only throw it away
+            // if the field is not required. Otherwise, services imported from packages
+            // with protected field produces error -> no default value for non-nullable field.
+            if ($this->exists) {
+                return $this;
+            }
+            $column = $this->getSchema()->getTable($this->table)->getColumn($key);
+            if (!empty($column)) {
+                if ($column->getRequired() === false) {
+                    return $this;
+                }
+            }
         }
 
         $return = parent::setAttribute($key, $value);

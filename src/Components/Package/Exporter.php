@@ -163,8 +163,11 @@ class Exporter
             ['fields' => 'id,name']);
         $this->data['system']['event_script'] = $this->getAllResources('system', 'event_script', ['fields' => 'name']);
         $this->data['system']['lookup'] = $this->getAllResources('system', 'lookup', ['fields' => 'id,name']);
-        // Todo: add limit only when limit package is installed. Limit is a paid package. Will not be present is free install.
-        //$this->data['system']['limit'] = $this->getAllResources('system', 'limit', ['fields' => 'id,name']);
+
+        /* Check for paid limits class */
+        if (class_exists(\DreamFactory\Core\Limit\ServiceProvider::class)) {
+            $this->data['system']['limit'] = $this->getAllResources('system', 'limit', ['fields' => 'id,name']);
+        }
 
         $manifest = $this->package->getManifestHeader();
         foreach ($this->data as $serviceName => $resource) {

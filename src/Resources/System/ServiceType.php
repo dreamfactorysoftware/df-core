@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Utility\ResourcesWrapper;
@@ -27,6 +28,7 @@ class ServiceType extends BaseRestResource
     protected function handleGET()
     {
         if (!empty($this->resource)) {
+            /** @type ServiceTypeInterface $type */
             if (null === $type = ServiceManager::getServiceType($this->resource)) {
                 throw new NotFoundException("Service type '{$this->resource}' not found.");
             }
@@ -42,6 +44,10 @@ class ServiceType extends BaseRestResource
             $resources[] = $type->toArray();
         }
 
-        return ResourcesWrapper::wrapResources($resources);
+        $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $fields = $this->request->getParameter(ApiOptions::FIELDS, ApiOptions::FIELDS_ALL);
+
+        return ResourcesWrapper::cleanResources($resources, $asList, $idField, $fields);
     }
 }

@@ -763,9 +763,8 @@ class BaseModel extends Model implements CacheInterface
         }
 
         $fieldsArray = explode(',', $fields);
-        $relatedArray = (!empty($related)) ? explode(',', $related) : [];
 
-        $result = static::selectById($id, $relatedArray, $fieldsArray);
+        $result = static::selectById($id, $params, $fieldsArray);
 
         return $result;
     }

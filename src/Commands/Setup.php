@@ -205,6 +205,7 @@ class Setup extends Command
             copy('.env-dist', '.env');
             $this->info('Created .env file with default configuration.');
             if ($this->option('no-app-key') === false) {
+                FileUtilities::updateEnvSetting(['APP_KEY' => '']);
                 $this->call('key:generate');
             } else {
                 $this->info('Skipping APP_KEY generate.');

@@ -24,6 +24,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-915 Script tokening to authenticate internal script calls from node.js and python scripting
 - DF-1027 Fixed a package export error
 - Fixed creating role where description is longer than 255 characters.
+- Fixed password reset after Laravel 5.4 upgrade.
 
 ## [0.7.2] - 2017-02-15
 ### Fixed

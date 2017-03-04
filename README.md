@@ -1,4 +1,4 @@
-## DreamFactory Core v0.7
+## DreamFactory Core v0.8
 
 [![Total Downloads](https://poser.pugx.org/dreamfactory/df-core/d/total.svg)](https://packagist.org/packages/dreamfactory/df-core)
 [![Latest Stable Version](https://poser.pugx.org/dreamfactory/df-core/v/stable.svg)](https://packagist.org/packages/dreamfactory/df-core)
@@ -25,7 +25,7 @@ For more information, see the [full platform repository](https://github.com/drea
 Edit your project’s composer.json to require the following package.
 
 	“require”:{
-		"dreamfactory/df-core": "~0.7.0"
+		"dreamfactory/df-core": "~0.8.0"
 	}
 
 You may also need to add the following…
@@ -35,12 +35,12 @@ You may also need to add the following…
 
 
 Save your composer.json and do a "composer update" to install the package.
-Once the package is installed edit your config/app.php file to add the DfServiceProvider in the Providers array.
+Once the package is installed edit your config/app.php file to add the LaravelServiceProvider in the Providers array.
 
 	‘providers’ => [
 		….,
 		….,
-		'DreamFactory\Core\DfServiceProvider'
+		'DreamFactory\Core\LaravelServiceProvider'
 	]
 
 Next run "php artisan vendor:publish" to publish the config file df.php to config/ directory and a helpful test_rest.html file to public/ directory.

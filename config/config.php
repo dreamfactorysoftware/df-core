@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'version'                      => '2.4.2',
     // General API version number, 1.x was earlier product and may be supported by some services
     'api_version'                  => '2.0',
     // By default, API calls take the form of http://<server_name>/<api_route_prefix>/v<version_number>

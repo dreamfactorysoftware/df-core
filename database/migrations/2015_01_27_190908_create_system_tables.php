@@ -41,8 +41,8 @@ class CreateSystemTables extends Migration
                 $t->string('confirm_code')->nullable();
                 $t->integer('default_app_id')->unsigned()->nullable();
                 $t->rememberToken();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -61,8 +61,8 @@ class CreateSystemTables extends Migration
                 $t->text('value')->nullable();
                 $t->boolean('private')->default(0);
                 $t->text('description')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -76,7 +76,7 @@ class CreateSystemTables extends Migration
             function (Blueprint $t){
                 $t->string('email')->index();
                 $t->string('token')->index();
-                $t->timestamp('created_date');
+                $t->timestamp('created_date')->nullable();
             }
         );
 
@@ -92,8 +92,8 @@ class CreateSystemTables extends Migration
                 $t->string('type', 40);
                 $t->boolean('mutable')->default(1);
                 $t->boolean('deletable')->default(1);
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -109,8 +109,8 @@ class CreateSystemTables extends Migration
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
                 $t->integer('format')->unsigned()->default(0);
                 $t->mediumText('content')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
             }
         );
 
@@ -122,8 +122,8 @@ class CreateSystemTables extends Migration
                 $t->string('name', 80)->unique();
                 $t->string('type');
                 $t->text('config')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -139,8 +139,8 @@ class CreateSystemTables extends Migration
                 $t->string('name', 64)->unique();
                 $t->string('description')->nullable();
                 $t->boolean('is_active')->default(0);
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -162,8 +162,8 @@ class CreateSystemTables extends Migration
                 $t->integer('requestor_mask')->unsigned()->default(0);
                 $t->text('filters')->nullable();
                 $t->string('filter_op', 32)->default('and');
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -182,8 +182,8 @@ class CreateSystemTables extends Migration
                 $t->text('value')->nullable();
                 $t->boolean('private')->default(0);
                 $t->text('description')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -200,8 +200,8 @@ class CreateSystemTables extends Migration
                 $t->text('value')->nullable();
                 $t->boolean('private')->default(0);
                 $t->text('description')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -227,8 +227,8 @@ class CreateSystemTables extends Migration
                 $t->string('reply_to_name', 80)->nullable();
                 $t->string('reply_to_email')->nullable();
                 $t->text('defaults')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -243,8 +243,8 @@ class CreateSystemTables extends Migration
                 $t->string('db_version', 32)->primary();
                 $t->boolean('login_with_user_name')->default(0);
                 $t->integer('default_app_id')->unsigned()->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -263,8 +263,8 @@ class CreateSystemTables extends Migration
                 $t->integer('method')->unsigned()->default(0);
                 $t->integer('max_age')->unsigned()->default(0);
                 $t->boolean('enabled')->default(true);
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -292,8 +292,8 @@ class CreateSystemTables extends Migration
                 $t->string('toggle_location', 64)->default('top');
                 $t->integer('role_id')->unsigned()->nullable();
                 $t->foreign('role_id')->references('id')->on('role')->onDelete('set null');
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -312,8 +312,8 @@ class CreateSystemTables extends Migration
                 $t->text('value')->nullable();
                 $t->boolean('private')->default(0);
                 $t->text('description')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -328,8 +328,8 @@ class CreateSystemTables extends Migration
                 $t->increments('id');
                 $t->string('name', 64)->unique();
                 $t->string('description')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
@@ -401,8 +401,8 @@ class CreateSystemTables extends Migration
             function (Blueprint $t) use ($userOnDelete){
                 $t->string('name')->primary();
                 $t->mediumText('value')->nullable();
-                $t->timestamp('created_date');
-                $t->timestamp('last_modified_date');
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();

@@ -24,6 +24,8 @@ class ServiceTypeGroups extends FactoryEnum
 
     const LDAP = 'LDAP';
 
+    const LIMIT = 'Limit';
+
     const NOTIFICATION = 'Notification';
 
     const OAUTH = 'OAuth';

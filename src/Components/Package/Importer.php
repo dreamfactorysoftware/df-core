@@ -2,11 +2,14 @@
 
 namespace DreamFactory\Core\Components\Package;
 
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\DfException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\App;
+use DreamFactory\Core\Models\BaseModel;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\RoleServiceAccess;
 use DreamFactory\Core\Models\Service;
@@ -44,18 +47,25 @@ class Importer
      *
      * @type bool
      */
-    protected $ignoreExisting = true;
+    protected $overwriteExisting = false;
+
+    /**
+     * A flag to indicate if an existing record was overwritten during import.
+     *
+     * @var bool
+     */
+    protected $overwrote = false;
 
     /**
      * Importer constructor.
      *
-     * @param Package $package        Package info (uploaded file array or url of file)
-     * @param bool    $ignoreExisting Set true to ignore duplicates or false to throw exception.
+     * @param Package $package           Package info (uploaded file array or url of file)
+     * @param bool    $overwriteExisting Set true to ignore duplicates or false to throw exception.
      */
-    public function __construct($package, $ignoreExisting = true)
+    public function __construct($package, $overwriteExisting = false)
     {
         $this->package = $package;
-        $this->ignoreExisting = $ignoreExisting;
+        $this->overwriteExisting = $overwriteExisting;
     }
 
     /**
@@ -78,6 +88,7 @@ class Importer
             $imported = ($this->insertOtherResource()) ?: $imported;
             $imported = ($this->insertEventScripts()) ?: $imported;
             $imported = ($this->storeFiles()) ?: $imported;
+            $imported = ($this->overwrote) ?: $imported;
         } catch (\Exception $e) {
             \DB::rollBack();
             \Log::error('Failed to import package. Rolling back. ' . $e->getMessage());
@@ -159,7 +170,7 @@ class Importer
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
-                $this->updateUserPassword($users);
+                static::updateUserPassword($users);
 
                 return true;
             } catch (DecryptException $e) {
@@ -179,10 +190,9 @@ class Importer
      *
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
-    protected function updateUserPassword($users)
+    protected static function updateUserPassword($users)
     {
         if (!empty($users)) {
-
             foreach ($users as $i => $user) {
                 if (isset($user['password'])) {
                     /** @type User $model */
@@ -749,7 +759,7 @@ class Importer
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
                 if ($service . '/' . $resource === 'system/admin') {
-                    $this->updateUserPassword($records);
+                    static::updateUserPassword($records);
                 }
 
                 return true;
@@ -1049,15 +1059,33 @@ class Importer
 
             foreach ($data as $rec) {
                 if (isset($rec[$key])) {
+                    $value = array_get($rec, $key);
                     if (!$this->isDuplicate($service, $resource, array_get($rec, $key), $key)) {
                         $cleaned[] = $rec;
+                    } elseif ($this->overwriteExisting === true) {
+                        try {
+                            if (true === static::patchExisting($service, $resource, $rec, $key)) {
+                                $this->overwrote = true;
+                                $this->log(
+                                    'notice',
+                                    'Overwrote duplicate found for ' . $api . ' with ' . $key . ' ' . $value
+                                );
+                            }
+                        } catch (RestException $e) {
+                            throw new InternalServerErrorException(
+                                'An unexpected error occurred. ' .
+                                'Could not overwrite an existing ' .
+                                $api . ' resource with ' . $key . ' ' .
+                                $value . '. ' . $e->getMessage()
+                            );
+                        }
                     } else {
                         $this->log(
                             'notice',
                             'Ignored duplicate found for ' .
-                            $service . '/' . $resource .
+                            $api .
                             ' with ' . $key .
-                            ' ' . array_get($rec, $key)
+                            ' ' . $value
                         );
                     }
                 } else {
@@ -1065,7 +1093,7 @@ class Importer
                     $this->log(
                         'warning',
                         'Skipped duplicate check for ' .
-                        $service . '/' . $resource .
+                        $api .
                         ' by key/field ' . $key .
                         '. Key/Field is not set'
                     );
@@ -1074,6 +1102,101 @@ class Importer
         }
 
         return $cleaned;
+    }
+
+    /**
+     * @param $service
+     * @param $resource
+     * @param $record
+     * @param $key
+     *
+     * @return bool
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @throws \DreamFactory\Core\Exceptions\RestException
+     */
+    protected static function patchExisting($service, $resource, $record, $key)
+    {
+        $api = $service . '/' . $resource;
+        $value = array_get($record, $key);
+        switch ($api) {
+            case 'system/event_script':
+            case 'system/custom':
+            case 'user/custom':
+            case $service . '/_schema':
+                $result = ServiceManager::handleRequest(
+                    $service,
+                    Verbs::PATCH,
+                    $resource . '/' . $value,
+                    [],
+                    [],
+                    $record
+                );
+                if ($result->getStatusCode() === 404) {
+                    throw new InternalServerErrorException(
+                        'Could not find existing resource to PATCH for ' .
+                        $service . '/' . $resource . '/' . $value
+                    );
+                }
+                if ($result->getStatusCode() >= 300) {
+                    throw ResponseFactory::createExceptionFromResponse($result);
+                }
+
+                return true;
+            default:
+                /** @var ServiceResponseInterface $result */
+                $result = ServiceManager::handleRequest(
+                    $service,
+                    Verbs::GET,
+                    $resource,
+                    ['filter' => "$key='$value'"]
+                );
+                if ($result->getStatusCode() === 404) {
+                    throw new InternalServerErrorException(
+                        'Could not find existing resource for ' .
+                        $service . '/' . $resource .
+                        ' using ' . $key . ' = ' . $value
+                    );
+                }
+                if ($result->getStatusCode() >= 300) {
+                    throw ResponseFactory::createExceptionFromResponse($result);
+                }
+                $content = ResourcesWrapper::unwrapResources($result->getContent());
+                $existing = array_get($content, 0);
+                $existingId = array_get($existing, BaseModel::getPrimaryKeyStatic());
+                if (!empty($existingId)) {
+                    unset($record[BaseModel::getPrimaryKeyStatic()]);
+                    $result = ServiceManager::handleRequest(
+                        $service,
+                        Verbs::PATCH,
+                        $resource . '/' . $existingId,
+                        [],
+                        [],
+                        $record
+                    );
+                    if ($result->getStatusCode() === 404) {
+                        throw new InternalServerErrorException(
+                            'Could not find existing resource to PATCH for ' .
+                            $service . '/' . $resource . '/' . $existingId
+                        );
+                    }
+                    if ($result->getStatusCode() >= 300) {
+                        throw ResponseFactory::createExceptionFromResponse($result);
+                    }
+
+                    if (in_array($api, ['system/admin', 'system/user'])) {
+                        static::updateUserPassword([$record]);
+                    }
+
+                    return true;
+                } else {
+                    throw new InternalServerErrorException(
+                        'Could not get ID for ' .
+                        $service . '/' . $resource .
+                        ' resource using ID field ' . BaseModel::getPrimaryKeyStatic()
+                    );
+                }
+                break;
+        }
     }
 
     /**
@@ -1089,68 +1212,64 @@ class Importer
      */
     protected function isDuplicate($service, $resource, $value, $key = 'name')
     {
-        if ($this->ignoreExisting) {
-            $api = $service . '/' . $resource;
-            switch ($api) {
-                case 'system/role':
-                    $role = Role::where($key, $value)->first();
+        $api = $service . '/' . $resource;
+        switch ($api) {
+            case 'system/role':
+                $role = Role::where($key, $value)->first();
 
-                    return (!empty($role)) ? true : false;
-                case 'system/service':
-                    $service = Service::where($key, $value)->first();
+                return (!empty($role)) ? true : false;
+            case 'system/service':
+                $service = Service::where($key, $value)->first();
 
-                    return (!empty($service)) ? true : false;
-                case 'system/app':
-                    $app = App::where($key, $value)->first();
+                return (!empty($service)) ? true : false;
+            case 'system/app':
+                $app = App::where($key, $value)->first();
 
-                    return (!empty($app)) ? true : false;
-                case 'system/event_script':
-                case 'system/custom':
-                case 'user/custom':
-                case $service . '/_schema':
-                    try {
-                        $result = ServiceManager::handleRequest($service, Verbs::GET, $resource . '/' . $value);
-                        if ($result->getStatusCode() === 404) {
-                            return false;
-                        }
-                        if ($result->getStatusCode() >= 300) {
-                            throw ResponseFactory::createExceptionFromResponse($result);
-                        }
-
-                        $result = $result->getContent();
-                        if (is_string($result)) {
-                            $result = ['value' => $result];
-                        }
-                        $result = array_get($result, config('df.resources_wrapper'), $result);
-
-                        return (count($result) > 0) ? true : false;
-                    } catch (NotFoundException $e) {
+                return (!empty($app)) ? true : false;
+            case 'system/event_script':
+            case 'system/custom':
+            case 'user/custom':
+            case $service . '/_schema':
+                try {
+                    $result = ServiceManager::handleRequest($service, Verbs::GET, $resource . '/' . $value);
+                    if ($result->getStatusCode() === 404) {
                         return false;
                     }
-                default:
-                    try {
-                        $result = ServiceManager::handleRequest($service, Verbs::GET, $resource,
-                            ['filter' => "$key = $value"]);
-                        if ($result->getStatusCode() === 404) {
-                            return false;
-                        }
-                        if ($result->getStatusCode() >= 300) {
-                            throw ResponseFactory::createExceptionFromResponse($result);
-                        }
+                    if ($result->getStatusCode() >= 300) {
+                        throw ResponseFactory::createExceptionFromResponse($result);
+                    }
 
-                        $result = $result->getContent();
-                        if (is_string($result)) {
-                            $result = ['value' => $result];
-                        }
-                        $result = array_get($result, config('df.resources_wrapper'), $result);
+                    $result = $result->getContent();
+                    if (is_string($result)) {
+                        $result = ['value' => $result];
+                    }
+                    $result = array_get($result, config('df.resources_wrapper'), $result);
 
-                        return (count($result) > 0) ? true : false;
-                    } catch (NotFoundException $e) {
+                    return (count($result) > 0) ? true : false;
+                } catch (NotFoundException $e) {
+                    return false;
+                }
+            default:
+                try {
+                    $result = ServiceManager::handleRequest($service, Verbs::GET, $resource,
+                        ['filter' => "$key = $value"]);
+                    if ($result->getStatusCode() === 404) {
                         return false;
                     }
-            }
+                    if ($result->getStatusCode() >= 300) {
+                        throw ResponseFactory::createExceptionFromResponse($result);
+                    }
+
+                    $result = $result->getContent();
+                    if (is_string($result)) {
+                        $result = ['value' => $result];
+                    }
+                    $result = array_get($result, config('df.resources_wrapper'), $result);
+
+                    return (count($result) > 0) ? true : false;
+                } catch (NotFoundException $e) {
+                    return false;
+                }
         }
-
-        return false;
     }
 }

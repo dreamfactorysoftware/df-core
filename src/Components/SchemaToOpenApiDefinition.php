@@ -51,7 +51,7 @@ trait SchemaToOpenApiDefinition
                 break;
             case DbSimpleTypes::TYPE_TIME:
             case DbSimpleTypes::TYPE_TEXT:
-            case DbSimpleTypes::TYPE_BIGINT:
+            case DbSimpleTypes::TYPE_BIG_INT:
             case DbSimpleTypes::TYPE_MONEY:
                 $type = 'string';
                 break;

@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Utility;
 use Config;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Library\Utility\ArrayUtils;
+use Illuminate\Database\Eloquent\Collection;
 
 class ResourcesWrapper
 {
@@ -30,8 +31,12 @@ class ResourcesWrapper
         $identifier = null,
         $fields = null,
         $force_wrap = false
-    ){
+    ) {
         // avoid single resources or already wrapped resources
+        if ($resources instanceof Collection) {
+            $resources = $resources->toArray();
+        }
+
         if (ArrayUtils::isArrayNumeric($resources)) {
             // may already be a simple list
             if (is_array(array_get($resources, 0))) {
@@ -96,11 +101,21 @@ class ResourcesWrapper
     {
         // Always check, in case they are sending query params in payload.
 //        $alwaysWrap = Config::get('df.always_wrap_resources', false);
-        if (empty($payload) || !is_array($payload))
-        {
+        if (empty($payload) || !is_array($payload)) {
             return $payload;
         }
 
         return array_get($payload, static::getWrapper(), (isset($payload[0]) ? $payload : []));
+    }
+
+    public static function getWrapperMsg()
+    {
+        $msg = '';
+        if (\Config::get('df.always_wrap_resources', false) === true) {
+            $rw = static::getWrapper();
+            $msg = " Please make sure record(s) are wrapped in a '$rw' tag. Example: " . '{"' . $rw . '":[{"record":1},{"record":2}]}';
+        }
+
+        return $msg;
     }
 }

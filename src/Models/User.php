@@ -259,7 +259,9 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             }
 
             $password = array_get($record, 'password');
-            static::validatePassword($password);
+            if (!empty($password)) {
+                static::validatePassword($password);
+            }
             $model = static::create($record);
 
             if (Scalar::boolval(array_get($params, 'admin')) &&
@@ -296,7 +298,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         $model = static::find($id);
 
         if (!$model instanceof Model) {
-            throw new NotFoundException('No resource found for ' . $id);
+            throw new NotFoundException("Record with identifier '$id' not found.");
         }
 
         $pk = $model->primaryKey;
@@ -365,7 +367,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         $model = static::find($id);
 
         if (!$model instanceof Model) {
-            throw new NotFoundException('No resource found for ' . $id);
+            throw new NotFoundException("Record with identifier '$id' not found.");
         }
 
         try {

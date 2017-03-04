@@ -13,6 +13,7 @@ use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Services\BaseFileService;
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Arr;
 use ServiceManager;
 
@@ -162,6 +163,11 @@ class Exporter
             ['fields' => 'id,name']);
         $this->data['system']['event_script'] = $this->getAllResources('system', 'event_script', ['fields' => 'name']);
         $this->data['system']['lookup'] = $this->getAllResources('system', 'lookup', ['fields' => 'id,name']);
+
+        /* Check for paid limits class */
+        if (class_exists(\DreamFactory\Core\Limit\ServiceProvider::class)) {
+            $this->data['system']['limit'] = $this->getAllResources('system', 'limit', ['fields' => 'id,name']);
+        }
 
         $manifest = $this->package->getManifestHeader();
         foreach ($this->data as $serviceName => $resource) {
@@ -588,6 +594,10 @@ class Exporter
             }
 
             $result = $result->getContent();
+            if ($result instanceof Arrayable) {
+                $result = $result->toArray();
+            }
+
             if (is_string($result)) {
                 $result = ['value' => $result];
             } elseif (Arr::isAssoc($result) &&

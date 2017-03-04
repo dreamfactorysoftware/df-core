@@ -8,6 +8,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Core\Services\Swagger;
+use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
 use Illuminate\Database\Query\Builder;
 use ServiceManager;
@@ -152,6 +153,10 @@ class Service extends BaseSystemModel
 
     public static function create(array $attributes = [])
     {
+        // if no label given, use name
+        if (empty(array_get($attributes, 'label'))) {
+            $attributes['label'] = array_get($attributes, 'name');
+        }
         // if type is old sql_db or script, need to upgrade
         switch (array_get($attributes, 'type')) {
             case 'script':
@@ -258,7 +263,7 @@ class Service extends BaseSystemModel
     {
         // need to cache this possibly
         /** @noinspection PhpUndefinedMethodInspection */
-        return static::lists('name')->all();
+        return static::pluck('name')->all();
     }
 
     /**
@@ -512,5 +517,71 @@ class Service extends BaseSystemModel
         }
 
         return null;
+    }
+
+    /**
+     * Removes 'config' from field list if supplied as it chokes the model.
+     *
+     * @param mixed $fields
+     *
+     * @return array
+     */
+    public static function cleanFields($fields)
+    {
+        $fields = parent::cleanFields($fields);
+
+        //If config is requested add id and type as they are need to pull config.
+        if (in_array('config', $fields)) {
+            $fields[] = 'id';
+            $fields[] = 'type';
+        }
+
+        //Removing config from field list as it is not a real column in the table.
+        if (in_array('config', $fields)) {
+            $key = array_keys($fields, 'config');
+            unset($fields[$key[0]]);
+        }
+
+        return $fields;
+    }
+
+    /**
+     * If fields is not '*' (all) then remove the empty 'config' property.
+     *
+     * @param mixed $response
+     * @param mixed $fields
+     *
+     * @return array
+     */
+    protected static function cleanResult($response, $fields)
+    {
+        if (!is_array($fields)) {
+            $fields = explode(',', $fields);
+        }
+
+        //config is only available when both id and type is present. Therefore only show config if id and type is there.
+        if (array_get($fields, 0) !== '*' && (!in_array('type', $fields) || !in_array('id', $fields))) {
+            $result = [];
+
+            if (ArrayUtils::isArrayNumeric($response)) {
+                foreach ($response as $r) {
+                    if (isset($r['config'])) {
+                        unset($r['config']);
+                    }
+                    $result[] = $r;
+                }
+            } else {
+                foreach ($response as $k => $v) {
+                    if ('config' === $k) {
+                        unset($response[$k]);
+                    }
+                }
+                $result = $response;
+            }
+
+            return $result;
+        }
+
+        return $response;
     }
 }

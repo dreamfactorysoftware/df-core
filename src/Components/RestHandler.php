@@ -27,6 +27,8 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 abstract class RestHandler implements RequestHandlerInterface
 {
+    use ExceptionResponse;
+
     //*************************************************************************
     //	Constants
     //*************************************************************************
@@ -170,7 +172,7 @@ abstract class RestHandler implements RequestHandlerInterface
                     $this->response = ResponseFactory::create($this->response);
                 }
             } catch (\Exception $e) {
-                $this->response = ResponseFactory::createWithException($e);
+                $this->response = static::exceptionToServiceResponse($e);
             }
 
             return $this->response;
@@ -196,7 +198,7 @@ abstract class RestHandler implements RequestHandlerInterface
                 $this->response = ResponseFactory::create($this->response);
             }
         } catch (\Exception $e) {
-            $this->response = ResponseFactory::createWithException($e);
+            $this->response = static::exceptionToServiceResponse($e);
         }
 
         //  Perform any post-processing
@@ -204,7 +206,7 @@ abstract class RestHandler implements RequestHandlerInterface
             $this->postProcess();
         } catch (\Exception $e) {
             // override the actual response with the exception
-            $this->response = ResponseFactory::createWithException($e);
+            $this->response = static::exceptionToServiceResponse($e);
         }
 
         //  Perform any response processing

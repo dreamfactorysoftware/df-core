@@ -6,6 +6,7 @@ use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 
 class Config extends BaseSystemResource
 {
@@ -126,7 +127,7 @@ class Config extends BaseSystemResource
         $records = $this->getPayloadData();
 
         if (empty($records)) {
-            throw new BadRequestException('No record detected in request.');
+            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
         /** @type BaseSystemModel $modelClass */

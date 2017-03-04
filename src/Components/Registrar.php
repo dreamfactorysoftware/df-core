@@ -6,11 +6,10 @@ use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Models\EmailTemplate;
 use DreamFactory\Core\Models\User;
-use Illuminate\Contracts\Auth\Registrar as RegistrarContract;
 use Validator;
 use ServiceManager;
 
-class Registrar implements RegistrarContract
+class Registrar
 {
     /**
      * Get a validator for an incoming registration request.

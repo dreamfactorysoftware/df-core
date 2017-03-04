@@ -13,6 +13,7 @@ use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
+use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -40,7 +41,7 @@ class BaseSystemResource extends BaseRestResource
     {
         $settings = (array)$settings;
         $settings['verbAliases'] = [
-            Verbs::PUT   => Verbs::PATCH,
+            Verbs::PUT => Verbs::PATCH,
         ];
 
         parent::__construct($settings);
@@ -58,73 +59,6 @@ class BaseSystemResource extends BaseRestResource
     }
 
     /**
-     * Retrieves records by id.
-     *
-     * @param integer $id
-     * @param array   $related
-     *
-     * @return array
-     * @throws \DreamFactory\Core\Exceptions\NotFoundException
-     */
-    protected function retrieveById($id, array $related = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $criteria = $this->getSelectionCriteria();
-        $fields = array_get($criteria, 'select');
-        if (empty($data = $modelClass::selectById($id, $related, $fields))) {
-            throw new NotFoundException('Record not found');
-        }
-
-        return $data;
-    }
-
-    /**
-     * Retrieves records by ids.
-     *
-     * @param mixed $ids
-     * @param array $related
-     *
-     * @return array
-     */
-    protected function retrieveByIds($ids, array $related = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $criteria = $this->getSelectionCriteria();
-        $data = $modelClass::selectByIds($ids, $related, $criteria);
-
-        return $data;
-    }
-
-    protected function retrieveByRecords(array $records, array $related = [])
-    {
-        /** @var BaseSystemModel $model */
-        $model = $this->getModel();
-        $pk = $model->getPrimaryKey();
-        $ids = array_column($records, $pk);
-
-        return $this->retrieveByIds($ids, $related);
-    }
-
-    /**
-     * Retrieves records by criteria/filters.
-     *
-     * @param array $related
-     *
-     * @return array
-     */
-    protected function retrieveByRequest(array $related = [])
-    {
-        /** @type BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $criteria = $this->getSelectionCriteria();
-        $data = $modelClass::selectByRequest($criteria, $related);
-
-        return $data;
-    }
-
-    /**
      * Handles GET action
      *
      * @return array
@@ -132,33 +66,34 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handleGET()
     {
-        $data = null;
+        /** @type BaseSystemModel $modelClass */
+        $modelClass = static::$model;
 
-        $related = $this->request->getParameter(ApiOptions::RELATED);
-        if (!empty($related)) {
-            $related = explode(',', $related);
-        } else {
-            $related = [];
+        $options = $this->request->getParameters();
+        $criteria = $this->getSelectionCriteria();
+
+        if (!empty($this->resource)) {
+            //	Single resource by ID
+            $fields = array_get($criteria, 'select');
+            if (empty($data = $modelClass::selectById($this->resource, $options, $fields))) {
+                throw new NotFoundException("Record with identifier '{$this->resource}' not found.");
+            }
+
+            return $data;
         }
 
         $meta = [];
-        if (!empty($this->resource)) {
-            //	Single resource by ID
-            $data = $this->retrieveById($this->resource, $related);
-        } else if (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-            $data = $this->retrieveByIds($ids, $related);
-        } else if (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
-            if (isset($records[0]) && is_array($records[0])) {
-                $data = $this->retrieveByRecords($records, $related);
-            } else {
-                // this may be a list of ids
-                $data = $this->retrieveByIds($ids, $related);
-            }
+        if (!empty($ids = array_get($options, ApiOptions::IDS))) {
+            //	Multiple resources by ID
+            $result = $modelClass::selectByIds($ids, $options, $criteria);
+        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
+            //  Multiple resources by passing records to have them updated with new or more values, id field required
+            $pk = $modelClass::getPrimaryKeyStatic();
+            $ids = array_column($records, $pk);
+            $result = $modelClass::selectByIds($ids, $options, $criteria);
         } else {
-            /** @type BaseSystemModel $modelClass */
-            $modelClass = static::$model;
-            $criteria = $this->getSelectionCriteria();
-            $data = $modelClass::selectByRequest($criteria, $related);
+            $result = $modelClass::selectByRequest($criteria, $options);
+
             if ($this->request->getParameterAsBool(ApiOptions::INCLUDE_COUNT)) {
                 $meta['count'] = $modelClass::countByRequest($criteria);
             }
@@ -171,29 +106,12 @@ class BaseSystemResource extends BaseRestResource
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
-        $data = ResourcesWrapper::cleanResources($data, $asList, $id, ApiOptions::FIELDS_ALL, !empty($meta));
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL, !empty($meta));
 
         if (!empty($meta)) {
-            $data['meta'] = $meta;
+            $result['meta'] = $meta;
         }
-
-        return $data;
-    }
-
-    /**
-     * Creates new records in bulk.
-     *
-     * @param array $records
-     * @param array $params
-     *
-     * @return mixed
-     */
-    protected function bulkCreate(array $records, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::bulkCreate($records, $params);
 
         return $result;
     }
@@ -207,84 +125,25 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handlePOST()
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = static::$model;
+
         if (!empty($this->resource)) {
             throw new BadRequestException('Create record by identifier not currently supported.');
         }
 
         $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
-
         if (empty($records)) {
-            throw new BadRequestException('No record(s) detected in request.');
+            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
         }
 
-        $result = $this->bulkCreate($records, $this->request->getParameters());
+        $result = $modelClass::bulkCreate($records, $this->request->getParameters());
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
-        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL);
 
         return ResponseFactory::create($result, null, ServiceResponseInterface::HTTP_CREATED);
-    }
-
-    /**
-     * @throws BadRequestException
-     */
-    protected function handlePUT()
-    {
-        throw new BadRequestException('PUT is not supported on System Resource. Use PATCH');
-    }
-
-    /**
-     * Updates record by id.
-     *
-     * @param integer $id
-     * @param array   $record
-     * @param array   $params
-     *
-     * @return mixed
-     */
-    protected function updateById($id, array $record, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::updateById($id, $record, $params);
-
-        return $result;
-    }
-
-    /**
-     * Updates records by ids.
-     *
-     * @param array|string $ids
-     * @param array        $record
-     * @param array        $params
-     *
-     * @return mixed
-     */
-    protected function updateByIds($ids, array $record, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::updateByIds($ids, $record, $params);
-
-        return $result;
-    }
-
-    /**
-     * Bulk updates records.
-     *
-     * @param                 $records
-     * @param array           $params
-     *
-     * @return mixed
-     */
-    protected function bulkUpdate(array $records, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::bulkUpdate($records, $params);
-
-        return $result;
     }
 
     /**
@@ -296,74 +155,41 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handlePATCH()
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = static::$model;
+        $options = $this->request->getParameters();
+
         if (!empty($this->resource)) {
-            $result = $this->updateById($this->resource, $this->getPayloadData(), $this->request->getParameters());
-        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-            $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
-            if (empty($records)) {
-                throw new BadRequestException('No record(s) detected in request.');
-            }
-            $result = $this->updateByIds($ids, $records[0], $this->request->getParameters());
-        } elseif (!empty($records = ResourcesWrapper::unwrapResources($this->getPayloadData()))) {
-            $result = $this->bulkUpdate($records, $this->request->getParameters());
+            return $modelClass::updateById($this->resource, $this->getPayloadData(), $options);
+        }
+
+        $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+        if (empty($records)) {
+            throw new BadRequestException('No record(s) detected in request.' . ResourcesWrapper::getWrapperMsg());
+        }
+
+        if (!empty($ids = array_get($options, ApiOptions::IDS))) {
+            $record = array_get($records, 0, $records);
+            $result = $modelClass::updateByIds($ids, $record, $options);
         } else {
-            throw new BadRequestException('No record(s) detected in request.');
+            $filter = array_get($options, ApiOptions::FILTER);
+            if (!empty($filter)) {
+                $record = array_get($records, 0, $records);
+                $params = array_get($options, ApiOptions::PARAMS, []);
+                $result = $modelClass::updateByFilter(
+                    $record,
+                    $filter,
+                    $params,
+                    $options
+                );
+            } else {
+                $result = $modelClass::bulkUpdate($records, $options);
+            }
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
-        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
-
-        return $result;
-    }
-
-    /**
-     * Deletes a record by id.
-     *
-     * @param integer $id
-     * @param array   $params
-     *
-     * @return mixed
-     */
-    protected function deleteById($id, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::deleteById($id, $params);
-
-        return $result;
-    }
-
-    /**
-     * Deletes records by ids.
-     *
-     * @param array|string $ids
-     * @param array        $params
-     *
-     * @return mixed
-     */
-    protected function deleteByIds($ids, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::deleteByIds($ids, $params);
-
-        return $result;
-    }
-
-    /**
-     * Deletes records.
-     *
-     * @param array $records
-     * @param array $params
-     *
-     * @return mixed
-     */
-    protected function bulkDelete(array $records, array $params = [])
-    {
-        /** @var BaseSystemModel $modelClass */
-        $modelClass = static::$model;
-        $result = $modelClass::bulkDelete($records, $params);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL);
 
         return $result;
     }
@@ -377,24 +203,38 @@ class BaseSystemResource extends BaseRestResource
      */
     protected function handleDELETE()
     {
+        /** @var BaseSystemModel $modelClass */
+        $modelClass = static::$model;
+        $options = $this->request->getParameters();
+
         if (!empty($this->resource)) {
-            $result = $this->deleteById($this->resource, $this->request->getParameters());
-        } elseif (!empty($ids = $this->request->getParameter(ApiOptions::IDS))) {
-            $result = $this->deleteByIds($ids, $this->request->getParameters());
-        } elseif ($records = ResourcesWrapper::unwrapResources($this->getPayloadData())) {
-            if (isset($records[0]) && is_array($records[0])) {
-                $result = $this->bulkDelete($records, $this->request->getParameters());
-            } else {
-                // this may be a list of ids
-                $result = $this->deleteByIds($records, $this->request->getParameters());
-            }
+            return $modelClass::deleteById($this->resource, $options);
+        }
+
+        if (!empty($ids = array_get($options, ApiOptions::IDS))) {
+            $result = $modelClass::deleteByIds($ids, $options);
         } else {
-            throw new BadRequestException('No record(s) detected in request.');
+            $records = ResourcesWrapper::unwrapResources($this->getPayloadData());
+            if (!empty($records)) {
+                $result = $modelClass::bulkDelete($records, $options);
+            } else {
+                $filter = array_get($options, ApiOptions::FILTER);
+                if (!empty($filter)) {
+                    $params = array_get($options, ApiOptions::PARAMS, []);
+                    $result = $modelClass::deleteByFilter($filter, $params, $options);
+                } else {
+                    if (!Scalar::boolval(array_get($options, ApiOptions::FORCE))) {
+                        throw new BadRequestException('No filter or records given for delete request.');
+                    }
+
+                    return $modelClass::truncate($options);
+                }
+            }
         }
 
         $asList = $this->request->getParameterAsBool(ApiOptions::AS_LIST);
-        $id = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
-        $result = ResourcesWrapper::cleanResources($result, $asList, $id, ApiOptions::FIELDS_ALL);
+        $idField = $this->request->getParameter(ApiOptions::ID_FIELD, static::getResourceIdentifier());
+        $result = ResourcesWrapper::cleanResources($result, $asList, $idField, ApiOptions::FIELDS_ALL);
 
         return $result;
     }
@@ -430,18 +270,18 @@ class BaseSystemResource extends BaseRestResource
 
         $apis = [
             $path           => [
-                'get'        => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'get' .
+                'get'    => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' .
                         $capitalized .
                         $pluralClass .
                         '() - Retrieve one or more ' .
                         $pluralClass .
                         '.',
-                    'operationId'       => 'get' . $capitalized . $pluralClass,
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'        => [
+                    'operationId' => 'get' . $capitalized . $pluralClass,
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::IDS),
@@ -455,7 +295,7 @@ class BaseSystemResource extends BaseRestResource
                         ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                         ApiOptions::documentOption(ApiOptions::FILE),
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
@@ -465,7 +305,7 @@ class BaseSystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       =>
+                    'description' =>
                         'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
                         'By default, all records up to the maximum are returned. <br>' .
                         'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
@@ -473,18 +313,18 @@ class BaseSystemResource extends BaseRestResource
                         'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
                         'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                 ],
-                'post'       => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'create' .
+                'post'   => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'create' .
                         $capitalized .
                         $pluralClass .
                         '() - Create one or more ' .
                         $pluralClass .
                         '.',
-                    'operationId'       => 'create' . $capitalized . $pluralClass,
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'        => [
+                    'operationId' => 'create' . $capitalized . $pluralClass,
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
                         [
                             'name'        => 'body',
                             'description' => 'Data containing name-value pairs of records to create.',
@@ -503,7 +343,7 @@ class BaseSystemResource extends BaseRestResource
                             'required'    => false,
                         ],
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => [
@@ -517,23 +357,23 @@ class BaseSystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       =>
+                    'description' =>
                         'Post data should be a single record or an array of records (shown). ' .
                         'By default, only the id property of the record affected is returned on success, ' .
                         'use \'fields\' and \'related\' to return more info.',
                 ],
-                'patch'      => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'update' .
+                'patch'  => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'update' .
                         $capitalized .
                         $pluralClass .
                         '() - Update one or more ' .
                         $pluralClass .
                         '.',
-                    'operationId'       => 'update' . $capitalized . $pluralClass,
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'        => [
+                    'operationId' => 'update' . $capitalized . $pluralClass,
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
                         [
                             'name'        => 'body',
                             'description' => 'Data containing name-value pairs of records to update.',
@@ -546,7 +386,7 @@ class BaseSystemResource extends BaseRestResource
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => [
@@ -560,23 +400,23 @@ class BaseSystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       =>
+                    'description' =>
                         'Post data should be a single record or an array of records (shown). ' .
                         'By default, only the id property of the record is returned on success, ' .
                         'use \'fields\' and \'related\' to return more info.',
                 ],
-                'delete'     => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'delete' .
+                'delete' => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'delete' .
                         $capitalized .
                         $pluralClass .
                         '() - Delete one or more ' .
                         $pluralClass .
                         '.',
-                    'operationId'       => 'delete' . $capitalized . $pluralClass,
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'        => [
+                    'operationId' => 'delete' . $capitalized . $pluralClass,
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
                         [
                             'name'        => 'force',
                             'description' => 'Set force to true to delete all records in this table, otherwise \'ids\' parameter is required.',
@@ -590,7 +430,7 @@ class BaseSystemResource extends BaseRestResource
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => [
@@ -604,7 +444,7 @@ class BaseSystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       =>
+                    'description' =>
                         'By default, only the id property of the record deleted is returned on success. ' .
                         'Use \'fields\' and \'related\' to return more properties of the deleted records. <br>' .
                         'Alternatively, to delete by record or a large list of ids, ' .
@@ -622,16 +462,16 @@ class BaseSystemResource extends BaseRestResource
                     ],
                 ],
                 'get'        => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
-                    'operationId'       => 'get' . $capitalized . $class,
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
+                    'operationId' => 'get' . $capitalized . $class,
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => [
@@ -645,15 +485,15 @@ class BaseSystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
+                    'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                 ],
                 'patch'      => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'update' . $capitalized . $class . '() - Update one ' . $class . '.',
-                    'operationId'       => 'update' . $capitalized . $class,
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'update' . $capitalized . $class . '() - Update one ' . $class . '.',
+                    'operationId' => 'update' . $capitalized . $class,
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
                         [
                             'name'        => 'body',
                             'description' => 'Data containing name-value pairs of fields to update.',
@@ -664,7 +504,7 @@ class BaseSystemResource extends BaseRestResource
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => [
@@ -678,21 +518,21 @@ class BaseSystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       =>
+                    'description' =>
                         'Post data should be an array of fields to update for a single record. <br>' .
                         'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
                 ],
                 'delete'     => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'delete' . $capitalized . $class . '() - Delete one ' . $class . '.',
-                    'operationId'       => 'delete' . $capitalized . $class,
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'delete' . $capitalized . $class . '() - Delete one ' . $class . '.',
+                    'operationId' => 'delete' . $capitalized . $class,
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => [
@@ -706,7 +546,7 @@ class BaseSystemResource extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
+                    'description' => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
                 ],
             ],
         ];

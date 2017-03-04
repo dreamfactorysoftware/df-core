@@ -3,13 +3,15 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [0.8.0] - 2017-02-03
 - Major restructuring to upgrade to Laravel 5.4 and be more dynamically available
 
 ### Added
 - DF-978 Added overwrite option for package import
-- Added 409 Conflict rest exception.
-- DF-688 Added support for iOS push notification.
-- DF-462 Added support for GCM push notification.
+- Added 409 Conflict rest exception
+- DF-688 Added support for iOS push notification
+- DF-462 Added support for GCM push notification
 
 ### Changed
 - DF-967 Made the error message 'No record(s) detected in request.' more verbose
@@ -17,14 +19,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Allowed editing event in event-driven service configuration UI
 
 ### Fixed
-- DF-716 Fixed AD login issue with accented characters in user names.
+- DF-716 Fixed AD login issue with accented characters in user names
 - Fixed migrations with timestamp fields due to Laravel issue #11518 with some MySQL versions
 - DF-856 Data formatting now takes Arrayable and stringable objects into consideration
 - DF-935 On incoming XML, handle any outer wrapper, not just 'dfapi', as there is no need to restrict
 - DF-915 Script tokening to authenticate internal script calls from node.js and python scripting
 - DF-1027 Fixed a package export error
-- Fixed creating role where description is longer than 255 characters.
-- Fixed password reset after Laravel 5.4 upgrade.
+- Fixed creating role where description is longer than 255 characters
+- Fixed password reset after Laravel 5.4 upgrade
 
 ## [0.7.2] - 2017-02-15
 ### Fixed

@@ -8,7 +8,7 @@ use DreamFactory\Core\Models\App as AppModel;
 use DreamFactory\Core\Utility\Packager;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Core\Services\BaseFileService;
+use DreamFactory\Core\Contracts\FileServiceInterface;
 use ServiceManager;
 
 class App extends BaseSystemResource
@@ -175,7 +175,7 @@ class App extends BaseSystemResource
         $app = AppModel::whereId($id)->first();
 
         if (empty($app) && !empty($storageServiceId) && !empty($storageFolder)) {
-            /** @type BaseFileService $storageService */
+            /** @type FileServiceInterface $storageService */
             $storageService = ServiceManager::getServiceById($storageServiceId);
 
             if ($storageService->driver()->folderExists(null, $storageFolder)) {

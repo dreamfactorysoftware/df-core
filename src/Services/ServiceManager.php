@@ -8,7 +8,6 @@ use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Models\LocalFileConfig;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ServiceRequest;
 use DreamFactory\Library\Utility\Enums\Verbs;
@@ -80,19 +79,6 @@ class ServiceManager
                 },
                 'factory'         => function ($config) {
                     return new Swagger($config);
-                },
-            ],
-            [
-                'name'            => 'local_file',
-                'label'           => 'Local File Storage',
-                'description'     => 'File service supporting the local file system.',
-                'group'           => ServiceTypeGroups::FILE,
-                'config_handler'  => LocalFileConfig::class,
-                'default_api_doc' => function ($service) {
-                    return $this->buildServiceDoc($service->id, LocalFileService::getApiDocInfo($service));
-                },
-                'factory'         => function ($config) {
-                    return new LocalFileService($config);
                 },
             ],
         ];

@@ -2,7 +2,7 @@
 namespace DreamFactory\Core\Http\Controllers;
 
 use DreamFactory\Core\Exceptions\ForbiddenException;
-use DreamFactory\Core\Services\BaseFileService;
+use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Components\DfResponse;
 use ServiceManager;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -20,11 +20,11 @@ class StorageController extends Controller
 
             $storage = strtolower($storage);
 
-            /** @type BaseFileService $service */
+            /** @type FileServiceInterface $service */
             $service = ServiceManager::getService($storage);
 
             //Check for private paths here.
-            $publicPaths = $service->publicPaths;
+            $publicPaths = $service->getPublicPaths();
 
             //Clean trailing slashes from paths
             array_walk($publicPaths, function (&$value){

@@ -8,7 +8,7 @@ use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Utility\FileUtilities;
-use DreamFactory\Core\Services\BaseFileService;
+use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Resources\System\Environment;
 use ServiceManager;
 
@@ -669,7 +669,7 @@ class Package
                 @FileUtilities::deleteTree($extractDir, true);
             }
 
-            /** @type BaseFileService $storage */
+            /** @type FileServiceInterface $storage */
             $storage = ServiceManager::getService($storageService);
             $container = $storage->getContainerId();
             if (!$storage->driver()->folderExists($container, $storageFolder)) {

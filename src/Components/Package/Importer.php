@@ -15,7 +15,7 @@ use DreamFactory\Core\Models\RoleServiceAccess;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
-use DreamFactory\Core\Services\BaseFileService;
+use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
@@ -815,7 +815,7 @@ class Importer
             }
 
             try {
-                /** @type BaseFileService $storage */
+                /** @type FileServiceInterface $storage */
                 $storage = ServiceManager::getService($service);
                 foreach ($resources as $resource) {
                     try {

@@ -186,6 +186,7 @@ class LaravelServiceProvider extends ServiceProvider
             'CouchDb'      => [],
             'Database'     => [],
             'Email'        => [],
+            'File'         => [],
             'IbmDb2'       => [
                 [
                     'name'        => 'ibmdb2',

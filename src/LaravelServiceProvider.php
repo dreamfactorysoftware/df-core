@@ -156,7 +156,7 @@ class LaravelServiceProvider extends ServiceProvider
         // Add conditional service providers here or
         // Add DreamFactory subscription-based service types for advertising
         $packages = [
-            'ADLdap'      => [
+            'ADLdap'       => [
                 [
                     'name'        => 'adldap',
                     'label'       => 'Active Directory',
@@ -170,9 +170,9 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::LDAP,
                 ],
             ],
-            'Aws'         => [],
-            'Azure'       => [],
-            'AzureAD'     => [
+            'Aws'          => [],
+            'Azure'        => [],
+            'AzureAD'      => [
                 [
                     'name'        => 'oauth_azure_ad',
                     'label'       => 'Azure Active Directory OAuth',
@@ -180,14 +180,14 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::OAUTH,
                 ],
             ],
-            'Cache'       => [],
-            'Cassandra'   => [],
-            'Couchbase'   => [],
-            'CouchDb'     => [],
-            'Database'    => [],
-            'Email'       => [],
-            //'Firebird'    => [],
-            'IbmDb2'      => [
+            'Cache'        => [],
+            'Cassandra'    => [],
+            'Couchbase'    => [],
+            'CouchDb'      => [],
+            'Database'     => [],
+            'Email'        => [],
+            'File'         => [],
+            'IbmDb2'       => [
                 [
                     'name'        => 'ibmdb2',
                     'label'       => 'IBM DB2',
@@ -195,15 +195,8 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::DATABASE,
                 ],
             ],
-            'Limit'      => [
-                [
-                    'name'        => 'limit',
-                    'label'       => 'limit',
-                    'description' => 'API rate limiting service.',
-                    'group'       => ServiceTypeGroups::LIMIT,
-                ],
-            ],
-            'Logger'      => [
+            'Limit'        => [],
+            'Logger'       => [
                 [
                     'name'        => 'logstash',
                     'label'       => 'Logstash',
@@ -211,7 +204,7 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::LOG,
                 ],
             ],
-            'MongoDb'     => [],
+            'MongoDb'      => [],
             'Notification' => [
                 [
                     'name'        => 'apns',
@@ -226,8 +219,8 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::NOTIFICATION,
                 ]
             ],
-            'OAuth'       => [],
-            'Oracle'      => [
+            'OAuth'        => [],
+            'Oracle'       => [
                 [
                     'name'        => 'oracle',
                     'label'       => 'Oracle',
@@ -235,9 +228,9 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::DATABASE,
                 ],
             ],
-            'Rackspace'   => [],
-            'Rws'         => [],
-            'Salesforce'  => [
+            'Rackspace'    => [],
+            'Rws'          => [],
+            'Salesforce'   => [
                 [
                     'name'        => 'salesforce_db',
                     'label'       => 'Salesforce',
@@ -245,7 +238,7 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::DATABASE,
                 ],
             ],
-            'Saml'        => [
+            'Saml'         => [
                 [
                     'name'        => 'saml',
                     'label'       => 'SAML 2.0',
@@ -253,8 +246,8 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::SSO,
                 ]
             ],
-            'Script'      => [],
-            'Soap'        => [
+            'Script'       => [],
+            'Soap'         => [
                 [
                     'name'        => 'soap',
                     'label'       => 'SOAP Service',
@@ -262,7 +255,7 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::REMOTE,
                 ],
             ],
-            'SqlAnywhere' => [
+            'SqlAnywhere'  => [
                 [
                     'name'        => 'sqlanywhere',
                     'label'       => 'SAP SQL Anywhere',
@@ -270,8 +263,8 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::DATABASE,
                 ],
             ],
-            'SqlDb'       => [],
-            'SqlSrv'      => [
+            'SqlDb'        => [],
+            'SqlSrv'       => [
                 [
                     'name'        => 'sqlsrv',
                     'label'       => 'SQL Server',
@@ -279,7 +272,7 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::DATABASE,
                 ],
             ],
-            'User'        => [],
+            'User'         => [],
         ];
         foreach ($packages as $name => $serviceTypes) {
             $space = "DreamFactory\\Core\\$name\\ServiceProvider";

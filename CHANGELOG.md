@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.8.1] - 2017-03-08
+### Fixed
+- Remove the false limits service type
+
 ## [0.8.0] - 2017-03-03
 - Major restructuring to upgrade to Laravel 5.4 and be more dynamically available
 
@@ -421,7 +425,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.1...HEAD
+[0.8.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.2...0.8.0
 [0.7.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.1...0.7.2
 [0.7.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.0...0.7.1

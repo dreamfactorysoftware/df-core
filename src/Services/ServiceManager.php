@@ -2,11 +2,9 @@
 
 namespace DreamFactory\Core\Services;
 
-use DreamFactory\Core\Components\ServiceDocBuilder;
 use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
-use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ServiceRequest;
@@ -15,8 +13,6 @@ use InvalidArgumentException;
 
 class ServiceManager
 {
-    use ServiceDocBuilder;
-
     /**
      * The application instance.
      *
@@ -53,38 +49,6 @@ class ServiceManager
     public function __construct($app)
     {
         $this->app = $app;
-        // Add our service types.
-        $types = [
-            [
-                'name'            => 'system',
-                'label'           => 'System Management',
-                'description'     => 'Service supporting management of the system.',
-                'group'           => ServiceTypeGroups::SYSTEM,
-                'singleton'       => true,
-                'default_api_doc' => function ($service) {
-                    return $this->buildServiceDoc($service->id, System::getApiDocInfo($service));
-                },
-                'factory'         => function ($config) {
-                    return new System($config);
-                },
-            ],
-            [
-                'name'            => 'swagger',
-                'label'           => 'API Docs',
-                'description'     => 'API documenting and testing service using Swagger specifications.',
-                'group'           => ServiceTypeGroups::API_DOC,
-                'singleton'       => true,
-                'default_api_doc' => function ($service) {
-                    return $this->buildServiceDoc($service->id, Swagger::getApiDocInfo($service));
-                },
-                'factory'         => function ($config) {
-                    return new Swagger($config);
-                },
-            ],
-        ];
-        foreach ($types as $type) {
-            $this->addType(new ServiceType($type));
-        }
     }
 
     /**
@@ -99,13 +63,14 @@ class ServiceManager
         // If we haven't created this service, we'll create it based on the config provided.
         // todo: Caching the service is causing some strange PHP7 only memory issues.
 //        if (!isset($this->services[$name])) {
-            $service = $this->makeService($name);
+        $service = $this->makeService($name);
 
 //            if ($this->app->bound('events')) {
 //                $connection->setEventDispatcher($this->app['events']);
 //            }
 
-            $this->services[$name] = $service;
+        $this->services[$name] = $service;
+
 //        }
 
         return $this->services[$name];

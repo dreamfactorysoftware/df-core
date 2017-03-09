@@ -9,6 +9,7 @@ use DreamFactory\Core\Commands\Request;
 use DreamFactory\Core\Commands\Setup;
 use DreamFactory\Core\Commands\SetupAlias;
 use DreamFactory\Core\Components\DbSchemaExtensions;
+use DreamFactory\Core\Components\ServiceDocBuilder;
 use DreamFactory\Core\Database\Connectors\SQLiteConnector;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Facades\DbSchemaExtensions as DbSchemaExtensionsFacade;
@@ -22,6 +23,7 @@ use DreamFactory\Core\Providers\RouteServiceProvider;
 use DreamFactory\Core\Resources\System\SystemResourceManager;
 use DreamFactory\Core\Services\ServiceManager;
 use DreamFactory\Core\Services\ServiceType;
+use DreamFactory\Core\Services\System;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\SQLiteConnection;
 use Illuminate\Foundation\AliasLoader;
@@ -30,6 +32,8 @@ use Event;
 
 class LaravelServiceProvider extends ServiceProvider
 {
+    use ServiceDocBuilder;
+
     /**
      * Bootstrap the application events.
      *
@@ -129,6 +133,24 @@ class LaravelServiceProvider extends ServiceProvider
         $this->app->singleton('db.schema', function ($app) {
             return new DbSchemaExtensions($app);
         });
+
+        // Add the system service
+        $this->app->resolving('df.service', function (ServiceManager $df) {
+            $df->addType(new ServiceType([
+                    'name'            => 'system',
+                    'label'           => 'System Management',
+                    'description'     => 'Service supporting management of the system.',
+                    'group'           => ServiceTypeGroups::SYSTEM,
+                    'singleton'       => true,
+                    'default_api_doc' => function ($service) {
+                        return $this->buildServiceDoc($service->id, System::getApiDocInfo($service));
+                    },
+                    'factory'         => function ($config) {
+                        return new System($config);
+                    },
+                ]
+            ));
+        });
     }
 
     protected function registerExtensions()
@@ -170,6 +192,7 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'       => ServiceTypeGroups::LDAP,
                 ],
             ],
+            'ApiDoc'       => [],
             'Aws'          => [],
             'Azure'        => [],
             'AzureAD'      => [

@@ -3,11 +3,12 @@ namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\DsnToConnectionConfig;
 use DreamFactory\Core\Enums\ApiDocFormatTypes;
+use DreamFactory\Core\Events\ServiceDeletedEvent;
+use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Resources\System\Event;
-use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
 use Illuminate\Database\Query\Builder;
@@ -116,10 +117,7 @@ class Service extends BaseSystemModel
                 \Cache::forget('service:' . $service->name);
                 \Cache::forget('service_id:' . $service->id);
 
-                // Any changes to services needs to produce a new event list
-                Event::clearCache();
-                Swagger::flush();
-                ServiceManager::purge($service->name);
+                event(new ServiceModifiedEvent($service));
             }
         );
 
@@ -143,10 +141,7 @@ class Service extends BaseSystemModel
                 \Cache::forget('service:' . $service->name);
                 \Cache::forget('service_id:' . $service->id);
 
-                // Any changes to services needs to produce a new event list
-                Event::clearCache();
-                Swagger::flush();
-                ServiceManager::purge($service->name);
+                event(new ServiceDeletedEvent($service));
             }
         );
     }
@@ -222,8 +217,6 @@ class Service extends BaseSystemModel
     {
         $val = (array)$val;
         $this->doc = $val;
-        // take the type information and get the config_handler class
-        // set the config giving the service id and new config
         if ($this->exists) {
             /** @noinspection PhpUndefinedMethodInspection */
             $model = ServiceDoc::find($this->id);
@@ -407,6 +400,7 @@ class Service extends BaseSystemModel
     {
         $cacheKey = 'service:' . $name;
         $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name) {
+            /** @var Service $service */
             $service = static::whereName($name)->first();
             if (empty($service)) {
                 throw new NotFoundException("Could not find a service for $name");

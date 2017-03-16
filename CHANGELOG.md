@@ -6,6 +6,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - DF-811 Add support for upsert
 
+## [0.8.2] - 2017-03-16
+### Fixed
+- Upgraded the jobs and failed_jobs migrations to match Laravel 5.4
+
 ## [0.8.1] - 2017-03-08
 ### Fixed
 - Remove the false limits service type
@@ -427,7 +431,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.1...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.2...HEAD
+[0.8.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.2...0.8.0
 [0.7.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.1...0.7.2

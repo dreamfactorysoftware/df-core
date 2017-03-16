@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-811 Add support for upsert
+### Fixed
+- DF-1005 Fixed resource level RBAC for swagger docs
 
 ## [0.8.2] - 2017-03-16
 ### Fixed

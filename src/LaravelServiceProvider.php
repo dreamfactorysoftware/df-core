@@ -210,6 +210,7 @@ class LaravelServiceProvider extends ServiceProvider
             'Database'     => [],
             'Email'        => [],
             'File'         => [],
+            'Firebird'     => [],
             'IbmDb2'       => [
                 [
                     'name'        => 'ibmdb2',

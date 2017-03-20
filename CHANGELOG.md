@@ -5,6 +5,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-811 Add support for upsert
+### Changed
+- DF-1028 Ignored JWT explicitly when making login requests
 ### Fixed
 - DF-1005 Fixed resource level RBAC for swagger docs
 - DF-955 Added PUT section on api docs for system/{resource} and system/{resource}/{id}

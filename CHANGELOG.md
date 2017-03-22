@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - DF-1005 Fixed resource level RBAC for swagger docs
 - DF-955 Added PUT section on api docs for system/{resource} and system/{resource}/{id}
+- Fixed JWT token refresh and handling forever token refresh properly
 
 ## [0.8.2] - 2017-03-16
 ### Fixed

@@ -5,6 +5,8 @@ use Carbon\Carbon;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
+use Tymon\JWTAuth\Exceptions\JWTException;
+use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
 use Tymon\JWTAuth\Exceptions\TokenInvalidException;
 use Tymon\JWTAuth\Token;
@@ -61,34 +63,65 @@ class JWTUtilities
     }
 
     /**
+     * Refreshes a JWT token.
+     * Re-issues new JWT token if the original token is marked as 'forever'
+     *
+     * NOTE: No tokens (including forever tokens) can ever be
+     * refreshed after refresh TTL has passed.
+     *
      * @return string
      * @throws \DreamFactory\Core\Exceptions\UnauthorizedException
      */
     public static function refreshToken()
     {
         $token = Session::getSessionToken();
+        //-----------------------------------------------------------------
+        // This will avoid TokenExpiredException error as long as we are
+        // still in the refresh TTL window. Will still allow throwing
+        // TokenExpiredException after refresh TTL has passed.
+        //
+        // NOTE: No tokens (including forever tokens) can ever be
+        // refreshed after refresh TTL has passed.
+        JWTAuth::manager()->setRefreshFlow();
+        //-----------------------------------------------------------------
+
         try {
             JWTAuth::setToken($token);
-            $newToken = JWTAuth::refresh();
-            $payload = JWTAuth::getPayload();
-            $userId = $payload->get('user_id');
-            /** @var User $user */
-            $user = User::find($userId);
-            $userInfo = $user->toArray();
-            $userInfo['is_sys_admin'] = $user->is_sys_admin;
-            Session::setSessionToken($newToken);
-            Session::setUserInfo($userInfo);
-            static::setTokenMap($payload, $newToken);
-        } catch (TokenExpiredException $e) {
+
+            // Checks for token validity - Expired TTL, Expired Refresh TTL, Blacklisted.
+            JWTAuth::checkOrFail();
+
+            // Retrieve the 'forever' flag (remember_me flag set to true during login.)
             $payloadArray = JWTAuth::manager()->getJWTProvider()->decode($token);
             $forever = boolval(array_get($payloadArray, 'forever'));
+            // Retrieve the user associated with the token
+            $userId = array_get($payloadArray, 'user_id');
+            /** @var User $user */
+            $user = User::find($userId);
+
+            // If token is marked forever then re-issue a new token (not refresh)
+            // in order to bump up the refresh TTL for the new token.
             if ($forever) {
-                $userId = array_get($payloadArray, 'user_id');
-                $user = User::find($userId);
+                // Clear any existing claims. We will be re-issuing a new token with new claims
+                // based on the same user of the original token.
+                JWTFactory::claims([]);
+                // Re-issue new token.
                 Session::setUserInfoWithJWT($user, $forever);
             } else {
-                throw new UnauthorizedException($e->getMessage());
+                $newToken = JWTAuth::refresh(true);
+                JWTAuth::setToken($newToken);
+                $payload = JWTAuth::getPayload();
+                // Add new token to our token mapping
+                static::setTokenMap($payload, $newToken);
+                Session::setSessionToken($newToken);
+                $userInfo = $user->toArray();
+                $userInfo['is_sys_admin'] = $user->is_sys_admin;
+                Session::setUserInfo($userInfo);
             }
+            // Invalidate and remove from our token mapping
+            static::invalidate($token);
+        } catch (JWTException $e) {
+            throw new UnauthorizedException('Token refresh failed. ' . $e->getMessage());
         }
 
         return Session::getSessionToken();
@@ -113,7 +146,7 @@ class JWTUtilities
         $exp = array_get($payload, 'exp');
         static::removeTokenMap($userId, $exp);
         try {
-            JWTAuth::invalidate();
+            JWTAuth::invalidate(true);
         } catch (TokenExpiredException $e) {
             //If the token is expired already then do nothing here. The token map is already removed above.
         }
@@ -128,7 +161,7 @@ class JWTUtilities
 
     public static function invalidateTokenByUserId($userId)
     {
-        DB::table('token_map')->where('user_id', $userId)->get()->each(function($map) {
+        DB::table('token_map')->where('user_id', $userId)->get()->each(function ($map){
             try {
                 JWTAuth::setToken($map->token);
                 JWTAuth::invalidate();

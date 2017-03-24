@@ -12,6 +12,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-955 Added PUT section on api docs for system/{resource} and system/{resource}/{id}
 - Fixed JWT token refresh and handling forever token refresh properly
 
+## [0.8.3] - 2017-03-24
+### Fixed
+- Upgraded the jobs and failed_jobs migrations to match Laravel 5.4
+
 ## [0.8.2] - 2017-03-16
 ### Fixed
 - Upgraded the jobs and failed_jobs migrations to match Laravel 5.4
@@ -437,7 +441,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.2...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.3...HEAD
+[0.8.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.2...0.8.3
 [0.8.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.7.2...0.8.0

@@ -407,13 +407,13 @@ class BaseSystemResource extends BaseRestResource
                 ],
                 'put'  => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'update' .
+                    'summary'     => 'replace' .
                         $capitalized .
                         $pluralClass .
-                        '() - Update one or more ' .
+                        '() - Replace one or more ' .
                         $pluralClass .
                         '.',
-                    'operationId' => 'update' . $capitalized . $pluralClass,
+                    'operationId' => 'replace' . $capitalized . $pluralClass,
                     'consumes'    => ['application/json', 'application/xml', 'text/csv'],
                     'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
@@ -567,8 +567,8 @@ class BaseSystemResource extends BaseRestResource
                 ],
                 'put'      => [
                     'tags'        => [$serviceName],
-                    'summary'     => 'update' . $capitalized . $class . '() - Update one ' . $class . '.',
-                    'operationId' => 'update' . $capitalized . $class,
+                    'summary'     => 'replace' . $capitalized . $class . '() - Replace one ' . $class . '.',
+                    'operationId' => 'replace' . $capitalized . $class,
                     'consumes'    => ['application/json', 'application/xml', 'text/csv'],
                     'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [

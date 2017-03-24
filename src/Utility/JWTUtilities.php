@@ -146,7 +146,7 @@ class JWTUtilities
         $exp = array_get($payload, 'exp');
         static::removeTokenMap($userId, $exp);
         try {
-            JWTAuth::invalidate(true);
+            JWTAuth::invalidate();
         } catch (TokenExpiredException $e) {
             //If the token is expired already then do nothing here. The token map is already removed above.
         }

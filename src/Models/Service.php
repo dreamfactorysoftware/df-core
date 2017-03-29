@@ -8,7 +8,6 @@ use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Resources\System\Event;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
 use Illuminate\Database\Query\Builder;
@@ -65,19 +64,15 @@ class Service extends BaseSystemModel
         'last_modified_by_id'
     ];
 
-    protected $appends = ['config', 'doc'];
+    protected $appends = ['doc'];
 
     protected $casts = [
         'is_active' => 'boolean',
         'mutable'   => 'boolean',
         'deletable' => 'boolean',
-        'id'        => 'integer'
+        'id'        => 'integer',
+        'config'    => 'array',
     ];
-
-    /**
-     * @var array Extra config to pass to any config handler
-     */
-    protected $config;
 
     /**
      * @var array Live API Documentation
@@ -99,7 +94,7 @@ class Service extends BaseSystemModel
                     // take the type information and get the config_handler class
                     // set the config giving the service id and new config
                     $serviceCfg = $service->getConfigHandler();
-                    if (!empty($serviceCfg)) {
+                    if (!empty($serviceCfg) && $serviceCfg::handlesStorage()) {
                         $serviceCfg::setConfig($service->getKey(), $service->config);
                     }
                 }
@@ -126,7 +121,7 @@ class Service extends BaseSystemModel
                 // take the type information and get the config_handler class
                 // set the config giving the service id and new config
                 $serviceCfg = $service->getConfigHandler();
-                if (!empty($serviceCfg)) {
+                if (!empty($serviceCfg) && $serviceCfg::handlesStorage()) {
                     $serviceCfg::removeConfig($service->getKey());
                 }
 
@@ -151,43 +146,6 @@ class Service extends BaseSystemModel
         // if no label given, use name
         if (empty(array_get($attributes, 'label'))) {
             $attributes['label'] = array_get($attributes, 'name');
-        }
-        // if type is old sql_db or script, need to upgrade
-        switch (array_get($attributes, 'type')) {
-            case 'script':
-                $attributes['type'] = array_get($attributes, 'config.type');
-                unset($attributes['config']['type']);
-                break;
-            case 'sql_db':
-                $type = '';
-                $config = static::adaptConfig(array_get($attributes, 'config'), $type);
-                $config['options'] = array_get($attributes, 'config.options', []);
-                $config['attributes'] = array_get($attributes, 'config.attributes', []);
-                $attributes['config'] = $config;
-                $attributes['type'] = $type;
-                break;
-            case 'rws':
-                // fancy trick to grab the base url from swagger
-                if (empty(array_get($attributes, 'config.base_url')) &&
-                    !empty($content = array_get($attributes, 'doc.content'))
-                ) {
-                    if (is_string($content)) {
-                        $content =
-                            static::storedContentToArray($content,
-                                array_get($attributes, 'doc.format'));
-                    }
-                    if (is_array($content) && !empty($host = array_get($content, 'host'))) {
-                        if (!empty($protocol = array_get($content, 'schemes'))) {
-                            $protocol = (is_array($protocol) ? current($protocol) : $protocol);
-                        } else {
-                            $protocol = 'http';
-                        }
-                        $basePath = array_get($content, 'basePath', '');
-                        $baseUrl = $protocol . '://' . $host . $basePath;
-                        $attributes['config']['base_url'] = $baseUrl;
-                    }
-                }
-                break;
         }
 
         return parent::create($attributes);
@@ -265,13 +223,19 @@ class Service extends BaseSystemModel
     public function getConfigAttribute()
     {
         // take the type information and get the config_handler class
-        // set the config giving the service id and new config
-        $serviceCfg = $this->getConfigHandler();
-        if (!empty($serviceCfg)) {
-            $this->config = $serviceCfg::getConfig($this->getKey(), $this->protectedView);
+        // get and/or format the config given the service id
+        $config = null;
+        if (!empty($serviceCfg = $this->getConfigHandler())) {
+            if ($serviceCfg::handlesStorage()) {
+                $config = $serviceCfg::getConfig($this->getKey(), $this->protectedView);
+            } else {
+                $config = $this->getAttributeFromArray('config');
+                $config = json_decode($config, true);
+                $config = $serviceCfg::fromStorageFormat($config, $this->protectedView);
+            }
         }
 
-        return $this->config;
+        return $config;
     }
 
     /**
@@ -282,18 +246,27 @@ class Service extends BaseSystemModel
     public function setConfigAttribute($val)
     {
         $val = (array)$val;
-        $this->config = $val;
         // take the type information and get the config_handler class
         // set the config giving the service id and new config
         $serviceCfg = $this->getConfigHandler();
         if (!empty($serviceCfg)) {
-            if ($this->exists) {
-                if ($serviceCfg::validateConfig($this->config, false)) {
-                    $serviceCfg::setConfig($this->getKey(), $this->config);
+            if ($serviceCfg::handlesStorage()) {
+                if ($serviceCfg::validateConfig($val, !$this->exists)) {
+                    if ($this->exists) {
+                        // go ahead and save the config here, otherwise we don't have key yet
+                        $serviceCfg::setConfig($this->getKey(), $val);
+                    }
                 }
             } else {
-                $serviceCfg::validateConfig($this->config);
+                $config = $this->getAttributeFromArray('config');
+                $config = ($config ? json_decode($config, true) : []);
+                $serviceCfg::toStorageFormat($val, $config);
             }
+            if ($this->isJsonCastable('config') && !is_null($val)) {
+                $val = $this->castAttributeAsJson('config', $val);
+            }
+
+            $this->attributes['config'] = $val;
         } else {
             if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
                 if ($typeInfo->isSubscriptionRequired()) {

@@ -122,10 +122,6 @@ class ApiOptions extends FactoryEnum
      * @var string
      */
     const SEND_INVITE = 'send_invite';
-    /**
-     * @var string
-     */
-    const UPSERT = 'upsert';
 
     //*************************************************************************
     //	Common Option Values
@@ -323,12 +319,6 @@ class ApiOptions extends FactoryEnum
             'type'        => 'boolean',
             'in'          => 'query',
             'description' => 'Send email invite to user.'
-        ],
-        self::UPSERT          => [
-            'name'        => self::UPSERT,
-            'type'        => 'boolean',
-            'in'          => 'query',
-            'description' => 'Allow upsert, i.e. update or insert if the record does not exist.'
         ],
     ];
 

@@ -41,18 +41,44 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     /**
      * {@inheritdoc}
      */
+    public static function handlesStorage()
+    {
+        return true;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function fromStorageFormat($config, $protect = true)
+    {
+        $model = new static((array)$config);
+        $model->protectedView = $protect;
+
+        return $model->toArray();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function toStorageFormat(&$config, $old_config = null)
+    {
+        return true;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public static function getConfig($id, $protect = true)
     {
         /** @var BaseServiceConfigModel $model */
         /** @noinspection PhpUndefinedMethodInspection */
-        $model = static::find($id);
-
-        if (!empty($model)) {
+        if ($model = static::find($id)) {
             $model->protectedView = $protect;
+
             return $model->toArray();
-        } else {
-            return null;
         }
+
+        return null;
     }
 
     /**
@@ -70,8 +96,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     {
         /** @var BaseServiceConfigModel $model */
         /** @noinspection PhpUndefinedMethodInspection */
-        $model = static::find($id);
-        if (!empty($model)) {
+        if ($model = static::find($id)) {
             $model->update($config);
         } else {
             //Making sure service_id is the first item in the config.
@@ -90,7 +115,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
      */
     public static function removeConfig($id)
     {
-        // deleting is not necessary here due to cascading on_delete relationship in database
+        static::destroy($id);
     }
 
     /**

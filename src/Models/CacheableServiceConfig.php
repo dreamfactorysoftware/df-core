@@ -14,6 +14,7 @@ class CacheableServiceConfig extends BaseServiceConfigModel
     {
         $config = parent::getConfig($id, $protect);
 
+        /** @var ServiceCacheConfig $cacheConfig */
         $cacheConfig = ServiceCacheConfig::whereServiceId($id)->first();
         $config['cache_enabled'] = (empty($cacheConfig)) ? false : $cacheConfig->getAttribute('cache_enabled');
         $config['cache_ttl'] = (empty($cacheConfig)) ? 0 : $cacheConfig->getAttribute('cache_ttl');

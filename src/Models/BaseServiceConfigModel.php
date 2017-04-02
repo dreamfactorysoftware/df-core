@@ -49,65 +49,71 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     /**
      * {@inheritdoc}
      */
-    public static function fromStorageFormat($config, $protect = true)
+    public static function getConfig($id, $local_config = null, $protect = true)
     {
-        $model = new static((array)$config);
-        $model->protectedView = $protect;
-
-        return $model->toArray();
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function toStorageFormat(&$config, $old_config = null)
-    {
-        return true;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function getConfig($id, $protect = true)
-    {
+        $out = null;
         /** @var BaseServiceConfigModel $model */
         /** @noinspection PhpUndefinedMethodInspection */
         if ($model = static::find($id)) {
             $model->protectedView = $protect;
 
-            return $model->toArray();
+            $out = $model->toArray();
+        }
+        if ($local_config) {
+            $out = array_merge((array)$out, $local_config);
         }
 
-        return null;
+        return $out;
     }
 
     /**
      * {@inheritdoc}
      */
-    public static function validateConfig($config, $create = true)
+    public static function setConfig($id, $config, $local_config = null)
     {
-        return true;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function setConfig($id, $config)
-    {
-        /** @var BaseServiceConfigModel $model */
-        /** @noinspection PhpUndefinedMethodInspection */
-        if ($model = static::find($id)) {
-            $model->update($config);
-        } else {
+        if ($id) {
             //Making sure service_id is the first item in the config.
             //This way service_id will be set first and is available
             //for use right away. This helps setting an auto-generated
             //field that may depend on parent data. See OAuthConfig->setAttribute.
             $config = array_reverse($config, true);
-            $config['service_id'] = $id;
+            $config[static::getPrimaryKeyStatic()] = $id;
             $config = array_reverse($config, true);
-            static::create($config);
+            /** @noinspection PhpUndefinedMethodInspection */
+            $model = static::firstOrNew([static::getPrimaryKeyStatic() => $id]);
+        } else {
+            $model = new static();
         }
+        /** @var BaseServiceConfigModel $model */
+        $config = array_only($config, $model->getFillable());
+        $model->fill((array)$config);
+        $model->validate($model->attributes);
+        if ($id) { // only save if the service has been created
+            $model->save();
+        }
+
+        return $local_config; // by default, just return what the service passed us
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function storeConfig($id, $config)
+    {
+        //Making sure service_id is the first item in the config.
+        //This way service_id will be set first and is available
+        //for use right away. This helps setting an auto-generated
+        //field that may depend on parent data. See OAuthConfig->setAttribute.
+        $config = array_reverse($config, true);
+        $config[static::getPrimaryKeyStatic()] = $id;
+        $config = array_reverse($config, true);
+
+        /** @noinspection PhpUndefinedMethodInspection */
+        /** @var BaseServiceConfigModel $model */
+        $model = static::firstOrNew([static::getPrimaryKeyStatic() => $id]);
+        $config = array_only($config, $model->getFillable());
+        $model->fill((array)$config);
+        $model->save();
     }
 
     /**
@@ -163,31 +169,6 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     protected static function prepareConfigSchemaField(array &$schema)
     {
         // clear out server-specific info
-        unset($schema['php_type'], $schema['db_type'], $schema['auto_increment'], $schema['is_index']);
-    }
-
-    /**
-     * @param array     $config
-     * @param array     $rules
-     * @param bool|true $create
-     *
-     * @return \Illuminate\Validation\Validator
-     */
-    protected static function makeValidator(array $config, array $rules, $create = true)
-    {
-        if ($create && !empty($rules)) {
-            $validator = \Validator::make($config, $rules);
-        } else {
-            $newRules = [];
-            foreach ($config as $key => $value) {
-                if (array_key_exists($key, $rules)) {
-                    $newRules[$key] = $rules[$key];
-                }
-            }
-
-            $validator = \Validator::make($config, $newRules);
-        }
-
-        return $validator;
+        unset($schema['db_type'], $schema['auto_increment'], $schema['is_index']);
     }
 }

@@ -1,11 +1,9 @@
 <?php
-namespace DreamFactory\Core\Models;
+namespace DreamFactory\Core\Components;
 
-/**
- * CacheableServiceConfig
- *
- */
-class CacheableServiceConfig extends BaseServiceConfigModel
+use DreamFactory\Core\Models\ServiceCacheConfig;
+
+trait SupportsCache
 {
     /**
      * {@inheritdoc}
@@ -13,8 +11,6 @@ class CacheableServiceConfig extends BaseServiceConfigModel
     public static function getConfig($id, $local_config = null, $protect = true)
     {
         $config = parent::getConfig($id, $local_config, $protect);
-
-        /** @var ServiceCacheConfig $cacheConfig */
         $cacheConfig = ServiceCacheConfig::whereServiceId($id)->first();
 
         return array_merge($config, $cacheConfig->toArray());
@@ -38,5 +34,16 @@ class CacheableServiceConfig extends BaseServiceConfigModel
         ServiceCacheConfig::storeConfig($id, $config);
 
         return parent::storeConfig($id, $config);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function getConfigSchema()
+    {
+        $schema = parent::getConfigSchema();
+        $schema = array_merge($schema, ServiceCacheConfig::getConfigSchema());
+
+        return $schema;
     }
 }

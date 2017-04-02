@@ -31,7 +31,7 @@ class UserAppRole extends BaseModel
     public $timestamps = false;
 
     /** @inheritdoc */
-    public function validate(array $data, $throwException = true)
+    public function validate($data, $throwException = true)
     {
         if (parent::validate($data)) {
             $userId = array_get($data, 'user_id');

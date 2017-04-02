@@ -75,6 +75,11 @@ class Service extends BaseSystemModel
     ];
 
     /**
+     * @var array Extra config to pass to any config handler
+     */
+    protected $config;
+
+    /**
      * @var array Live API Documentation
      */
     protected $doc;
@@ -95,7 +100,7 @@ class Service extends BaseSystemModel
                     // set the config giving the service id and new config
                     $serviceCfg = $service->getConfigHandler();
                     if (!empty($serviceCfg) && $serviceCfg::handlesStorage()) {
-                        $serviceCfg::setConfig($service->getKey(), $service->config);
+                        $serviceCfg::storeConfig($service->getKey(), $service->config);
                     }
                 }
                 if (!empty($service->doc)) {
@@ -224,49 +229,35 @@ class Service extends BaseSystemModel
     {
         // take the type information and get the config_handler class
         // get and/or format the config given the service id
-        $config = null;
+        $config = $this->getAttributeFromArray('config');
+        $config = ($config ? json_decode($config, true) : []);
         if (!empty($serviceCfg = $this->getConfigHandler())) {
-            if ($serviceCfg::handlesStorage()) {
-                $config = $serviceCfg::getConfig($this->getKey(), $this->protectedView);
-            } else {
-                $config = $this->getAttributeFromArray('config');
-                $config = json_decode($config, true);
-                $config = $serviceCfg::fromStorageFormat($config, $this->protectedView);
-            }
+            $config = $serviceCfg::getConfig($this->getKey(), $config, $this->protectedView);
         }
 
         return $config;
     }
 
     /**
-     * @param array|null $val
+     * @param array|null $value
      *
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
-    public function setConfigAttribute($val)
+    public function setConfigAttribute($value)
     {
-        $val = (array)$val;
+        $this->config = (array)$value;
+        $localConfig = $this->getAttributeFromArray('config');
+        $localConfig = ($localConfig ? json_decode($localConfig, true) : []);
         // take the type information and get the config_handler class
         // set the config giving the service id and new config
-        $serviceCfg = $this->getConfigHandler();
-        if (!empty($serviceCfg)) {
-            if ($serviceCfg::handlesStorage()) {
-                if ($serviceCfg::validateConfig($val, !$this->exists)) {
-                    if ($this->exists) {
-                        // go ahead and save the config here, otherwise we don't have key yet
-                        $serviceCfg::setConfig($this->getKey(), $val);
-                    }
-                }
-            } else {
-                $config = $this->getAttributeFromArray('config');
-                $config = ($config ? json_decode($config, true) : []);
-                $serviceCfg::toStorageFormat($val, $config);
+        if (!empty($serviceCfg = $this->getConfigHandler())) {
+            // go ahead and save the config here, otherwise we don't have key yet
+            $localConfig = $serviceCfg::setConfig($this->getKey(), $this->config, $localConfig);
+            if ($this->isJsonCastable('config') && !is_null($localConfig)) {
+                $localConfig = $this->castAttributeAsJson('config', $localConfig);
             }
-            if ($this->isJsonCastable('config') && !is_null($val)) {
-                $val = $this->castAttributeAsJson('config', $val);
-            }
+            $this->attributes['config'] = $localConfig;
 
-            $this->attributes['config'] = $val;
         } else {
             if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
                 if ($typeInfo->isSubscriptionRequired()) {

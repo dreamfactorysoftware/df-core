@@ -33,84 +33,16 @@ class AppRoleMap extends BaseServiceConfigModel
     public $incrementing = true;
 
     /**
-     * @param int     $id
-     * @param boolean $protect
-     *
-     * @return array
-     */
-    public static function getConfig($id, $protect = true)
-    {
-        $maps = static::whereServiceId($id);
-
-        if (!empty($maps)) {
-            $maps->protectedView = $protect;
-
-            return $maps->toArray();
-        } else {
-            return [];
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function validateConfig($config, $create = true)
-    {
-        return true;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function setConfig($id, $config)
-    {
-        static::whereServiceId($id)->delete();
-        if (!empty($config)) {
-            foreach ($config as $param) {
-                //Making sure service_id is the first item in the config.
-                //This way service_id will be set first and is available
-                //for use right away. This helps setting an auto-generated
-                //field that may depend on parent data. See OAuthConfig->setAttribute.
-                $param = array_reverse($param, true);
-                $param['service_id'] = $id;
-                $param = array_reverse($param, true);
-                static::create($param);
-            }
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function getConfigSchema()
-    {
-        $schema =
-            [
-                'name'        => 'app_role_map',
-                'label'       => 'Role per App',
-                'description' => 'Select a desired Role per App for users logging in via this service.',
-                'type'        => 'array',
-                'required'    => false,
-                'allow_null'  => true
-            ];
-        $schema['items'] = parent::getConfigSchema();
-
-        return $schema;
-    }
-
-    /**
      * @param array $schema
      */
     protected static function prepareConfigSchemaField(array &$schema)
     {
         parent::prepareConfigSchemaField($schema);
 
-        $roleList = [];
-        $appList = [];
-
         switch ($schema['name']) {
             case 'app_id':
                 $apps = App::whereIsActive(1)->get();
+                $appList = [];
                 foreach ($apps as $app) {
                     $appList[] = [
                         'label' => $app->name,
@@ -124,6 +56,7 @@ class AppRoleMap extends BaseServiceConfigModel
                 break;
             case 'role_id':
                 $roles = Role::whereIsActive(1)->get();
+                $roleList = [];
                 foreach ($roles as $role) {
                     $roleList[] = [
                         'label' => $role->name,

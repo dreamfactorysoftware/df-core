@@ -1,5 +1,4 @@
 <?php
-
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -8,46 +7,97 @@ use DreamFactory\Core\Models\ServiceEventMap;
 trait ServiceEventMapper
 {
     /**
-     * @param integer $id
-     * @param boolean $protect
-     *
-     * @return mixed
+     * {@inheritdoc}
      */
-    public static function getConfig($id, $protect = true)
+    public static function getConfig($id, $local_config = null, $protect = true)
     {
-        $config = parent::getConfig($id, $protect);
+        $config = parent::getConfig($id, $local_config, $protect);
 
-        /** @var ServiceEventMap $appRoleMaps */
         $serviceEventMaps = ServiceEventMap::whereServiceId($id)->get();
-        $config['service_event_map'] = (empty($serviceEventMaps)) ? [] : $serviceEventMaps->toArray();
+        $maps = [];
+        /** @var ServiceEventMap $map */
+        foreach ($serviceEventMaps as $map) {
+            $map->protectedView = $protect;
+            $maps[] = $map->toArray();
+        }
+        $config['service_event_map'] = $maps;
 
         return $config;
     }
 
     /**
-     * @param $id
-     * @param $config
-     *
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * {@inheritdoc}
      */
-    public static function setConfig($id, $config)
+    public static function setConfig($id, $config, $local_config = null)
     {
         if (isset($config['service_event_map'])) {
             $maps = $config['service_event_map'];
             if (!is_array($maps)) {
                 throw new BadRequestException('Service to Event map must be an array.');
             }
-            ServiceEventMap::setConfig($id, $maps);
+
+            // Deleting records using model as oppose to chaining with the where clause.
+            // This way forcing model to trigger the 'deleted' event which clears necessary cache.
+            // See the boot method above.
+            ServiceEventMap::whereServiceId($id)->delete();
+            $models = ServiceEventMap::whereServiceId($id)->get()->all();
+            foreach ($models as $model) {
+                $model->delete();
+            }
+            if (!empty($maps)) {
+                foreach ($maps as $map) {
+                    ServiceEventMap::setConfig($id, $map, $local_config);
+                }
+            }
         }
 
-        parent::setConfig($id, $config);
+        return parent::setConfig($id, $config, $local_config);
     }
 
-    /** {@inheritdoc} */
+    /**
+     * {@inheritdoc}
+     */
+    public static function storeConfig($id, $config)
+    {
+        if (isset($config['service_event_map'])) {
+            $maps = $config['service_event_map'];
+            if (!is_array($maps)) {
+                throw new BadRequestException('Service to event map must be an array.');
+            }
+
+            // Deleting records using model as oppose to chaining with the where clause.
+            // This way forcing model to trigger the 'deleted' event which clears necessary cache.
+            // See the boot method above.
+            ServiceEventMap::whereServiceId($id)->delete();
+            $models = ServiceEventMap::whereServiceId($id)->get()->all();
+            foreach ($models as $model) {
+                $model->delete();
+            }
+            if (!empty($maps)) {
+                foreach ($maps as $map) {
+                    ServiceEventMap::storeConfig($id, $map);
+                }
+            }
+        }
+
+        parent::storeConfig($id, $config);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public static function getConfigSchema()
     {
         $schema = parent::getConfigSchema();
-        $schema[] = ServiceEventMap::getConfigSchema();
+        $schema[] = [
+            'name'        => 'service_event_map',
+            'label'       => 'Service Event',
+            'description' => 'Select event(s) when you would like this service to fire!',
+            'type'        => 'array',
+            'required'    => false,
+            'allow_null'  => true,
+            'items'       => ServiceEventMap::getConfigSchema(),
+        ];
 
         return $schema;
     }

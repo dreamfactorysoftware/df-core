@@ -43,7 +43,7 @@ trait Validatable
      * @return bool
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
-    public function validate(array $data, $throwException = true)
+    public function validate($data, $throwException = true)
     {
         if (empty($rules = $this->getRules())) {
             return true;

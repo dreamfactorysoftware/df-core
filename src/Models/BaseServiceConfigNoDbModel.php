@@ -22,12 +22,9 @@ class BaseServiceConfigNoDbModel extends NoDbModel implements ServiceConfigHandl
     /**
      * {@inheritdoc}
      */
-    public static function fromStorageFormat($config, $protect = true)
+    public static function getConfig($id, $local_config = null, $protect = true)
     {
-        $model = new static();
-        if ($config) {
-            $model->setRawAttributes($config, true);
-        }
+        $model = new static((array)$local_config);
         $model->protectedView = $protect;
 
         return $model->toArray();
@@ -36,40 +33,21 @@ class BaseServiceConfigNoDbModel extends NoDbModel implements ServiceConfigHandl
     /**
      * {@inheritdoc}
      */
-    public static function toStorageFormat(&$config, $old_config = null)
+    public static function setConfig($id, $config, $local_config = null)
     {
-        $model = new static();
-        if ($old_config) {
-            $model->setRawAttributes($old_config, true);
-        }
+        $model = new static((array)$local_config);
         $model->fill($config);
         if ($model->validate($model->attributes)) {
             $config = $model->attributes;
         }
 
-        return true;
+        return $config;
     }
 
     /**
      * {@inheritdoc}
      */
-    public static function getConfig($id, $protect = true)
-    {
-        return null;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function validateConfig($config, $create = true)
-    {
-        return true;
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public static function setConfig($id, $config, $create = true)
+    public static function storeConfig($id, $config)
     {
         // saving is not necessary here due to this class not handling storage
     }

@@ -32,6 +32,16 @@ class NoDbModel implements Arrayable, Jsonable, JsonSerializable
 
     protected static $schema = [];
 
+    /**
+     * Create a new NoDB model instance.
+     *
+     * @param  array  $attributes
+     */
+    public function __construct(array $attributes = [])
+    {
+        $this->setRawAttributes((array) $attributes, true);
+    }
+
     // Overriding some behaviors here
     public function getFillable()
     {
@@ -73,18 +83,6 @@ class NoDbModel implements Arrayable, Jsonable, JsonSerializable
     protected function getDateFormat()
     {
         return $this->dateFormat;
-    }
-
-    /**
-     * Create a new Eloquent model instance.
-     *
-     * @param  array $attributes
-     */
-    public function __construct(array $attributes = [])
-    {
-        $this->syncOriginal();
-
-        $this->fill($attributes);
     }
 
     /**

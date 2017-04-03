@@ -31,6 +31,11 @@ class ServiceEventMap extends BaseServiceConfigModel
      */
     public $incrementing = true;
 
+    /**
+     * @var bool
+     */
+    public static $alwaysNewOnSet = true;
+
     public static function boot()
     {
         parent::boot();

@@ -10,7 +10,7 @@ use Illuminate\Database\Query\Builder;
  * Class BaseServiceConfigModel
  *
  * @property integer $service_id
- * @method static Builder|EmailTemplate whereServiceId($value)
+ * @method static Builder whereServiceId($value)
  *
  * @package DreamFactory\Core\Models
  */
@@ -39,6 +39,16 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     public $incrementing = false;
 
     /**
+     * @var bool
+     */
+    public static $alwaysNewOnSet = false;
+
+    public static function getServiceIdField()
+    {
+        return 'service_id';
+    }
+
+    /**
      * {@inheritdoc}
      */
     public static function handlesStorage()
@@ -54,7 +64,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
         $out = null;
         /** @var BaseServiceConfigModel $model */
         /** @noinspection PhpUndefinedMethodInspection */
-        if ($model = static::find($id)) {
+        if ($model = static::whereServiceId($id)->first()) {
             $model->protectedView = $protect;
 
             $out = $model->toArray();
@@ -77,10 +87,10 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
             //for use right away. This helps setting an auto-generated
             //field that may depend on parent data. See OAuthConfig->setAttribute.
             $config = array_reverse($config, true);
-            $config[static::getPrimaryKeyStatic()] = $id;
+            $config[static::getServiceIdField()] = $id;
             $config = array_reverse($config, true);
             /** @noinspection PhpUndefinedMethodInspection */
-            $model = static::firstOrNew([static::getPrimaryKeyStatic() => $id]);
+            $model = (static::$alwaysNewOnSet ? new static() : static::firstOrNew([static::getServiceIdField() => $id]));
         } else {
             $model = new static();
         }
@@ -105,12 +115,12 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
         //for use right away. This helps setting an auto-generated
         //field that may depend on parent data. See OAuthConfig->setAttribute.
         $config = array_reverse($config, true);
-        $config[static::getPrimaryKeyStatic()] = $id;
+        $config[static::getServiceIdField()] = $id;
         $config = array_reverse($config, true);
 
         /** @noinspection PhpUndefinedMethodInspection */
         /** @var BaseServiceConfigModel $model */
-        $model = static::firstOrNew([static::getPrimaryKeyStatic() => $id]);
+        $model = (static::$alwaysNewOnSet ? new static() : static::firstOrNew([static::getServiceIdField() => $id]));
         $config = array_only($config, $model->getFillable());
         $model->fill((array)$config);
         $model->save();

@@ -131,7 +131,7 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
 
     /**
      * @param mixed $value
-     * @param       $field_info
+     * @param mixed $field_info
      *
      * @return mixed
      */
@@ -143,10 +143,10 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
     public function getTimestampForSet();
 
     /**
-     * @param mixed  $value
-     * @param string $type
+     * @param mixed $value
+     * @param mixed $field_info
      *
      * @return mixed
      */
-    public function formatValue($value, $type);
+    public function formatValue($value, $field_info);
 }

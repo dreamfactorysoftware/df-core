@@ -26,7 +26,6 @@ class DbSimpleTypes extends FactoryEnum
     const TYPE_DOUBLE = 'double';
     const TYPE_FLOAT = 'float';
     const TYPE_ID = 'id';
-    const TYPE_INT = 'int';
     const TYPE_INTEGER = 'integer';
     const TYPE_JSON = 'json';
     const TYPE_JSONB = 'jsonb';
@@ -72,7 +71,6 @@ class DbSimpleTypes extends FactoryEnum
             DbSimpleTypes::TYPE_DOUBLE            => 'double',
             DbSimpleTypes::TYPE_FLOAT             => 'double',
             DbSimpleTypes::TYPE_ID                => 'integer',
-            DbSimpleTypes::TYPE_INT               => 'integer',
             DbSimpleTypes::TYPE_INTEGER           => 'integer',
             DbSimpleTypes::TYPE_JSON              => 'string',
             DbSimpleTypes::TYPE_JSONB             => 'string',

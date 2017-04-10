@@ -16,7 +16,7 @@ class ServiceAddConfig extends Migration
         if (!Schema::hasColumn('service', 'config')) {
             Schema::table('service',
                 function (Blueprint $table) {
-                    $table->json('config')->nullable();
+                    $table->text('config')->nullable();
                 }
             );
         }

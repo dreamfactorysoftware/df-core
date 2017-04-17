@@ -302,6 +302,7 @@ class Environment extends BaseSystemResource
                 'allow_open_registration'   => $userService->allowOpenRegistration,
                 'open_reg_email_service_id' => $userService->openRegEmailServiceId,
                 'allow_forever_sessions'    => config('df.allow_forever_sessions', false),
+                'login_attribute'           => strtolower(config('df.login_attribute', 'email'))
             ];
         }
 

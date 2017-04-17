@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-811 Add support for upsert
+- DF-895 Added support for username based authentication
 ### Changed
 - DF-1028 Ignored JWT explicitly when making login requests
 - Moved database configuration to service and the new NoDbModel-based handler

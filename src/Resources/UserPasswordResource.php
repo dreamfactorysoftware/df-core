@@ -58,22 +58,100 @@ class UserPasswordResource extends BaseRestResource
 
         $login = $this->request->getParameterAsBool('login');
         $email = $this->getPayloadData('email');
+        $username = $this->getPayloadData('username');
         $code = $this->getPayloadData('code');
         $answer = $this->getPayloadData('security_answer');
+        $loginAttribute = strtolower(config('df.login_attribute', 'email'));
 
         if ($this->request->getParameterAsBool('reset')) {
+            if ($loginAttribute === 'username') {
+                return $this->passwordResetWithUsername($username);
+            }
+
             return $this->passwordReset($email);
         }
 
         if (!empty($code)) {
+            if ($loginAttribute === 'username') {
+                return static::changePasswordByCodeWithUsername($username, $code, $newPassword, $login);
+            }
+
             return static::changePasswordByCode($email, $code, $newPassword, $login);
         }
 
         if (!empty($answer)) {
+            if ($loginAttribute === 'username') {
+                return static::changePasswordBySecurityAnswerWithUsername($username, $answer, $newPassword, $login);
+            }
+
             return static::changePasswordBySecurityAnswer($email, $answer, $newPassword, $login);
         }
 
         return false;
+    }
+
+    /**
+     * @param string $username
+     *
+     * @return array
+     */
+    protected function passwordResetWithUsername($username)
+    {
+        return $this->passwordReset(static::getEmailByUsername($username));
+    }
+
+    /**
+     * @param string  $username
+     * @param string  $code
+     * @param string  $newPassword
+     * @param boolean $login
+     *
+     * @return array
+     */
+    public static function changePasswordByCodeWithUsername($username, $code, $newPassword, $login)
+    {
+        return static::changePasswordByCode(static::getEmailByUsername($username), $code, $newPassword, $login);
+    }
+
+    /**
+     * @param string  $username
+     * @param string  $answer
+     * @param string  $newPassword
+     * @param boolean $login
+     *
+     * @return array
+     */
+    protected static function changePasswordBySecurityAnswerWithUsername($username, $answer, $newPassword, $login)
+    {
+        return static::changePasswordBySecurityAnswer(
+            static::getEmailByUsername($username),
+            $answer,
+            $newPassword,
+            $login
+        );
+    }
+
+    /**
+     * @param string $username
+     *
+     * @return string
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     */
+    protected static function getEmailByUsername($username)
+    {
+        if (empty($username)) {
+            throw new BadRequestException("Missing required username.");
+        }
+
+        /** @var User $user */
+        $user = User::whereUsername($username)->get(['email'])->first();
+
+        if (empty($user)) {
+            throw new NotFoundException('The supplied username was not found in the system.');
+        }
+
+        return $user->email;
     }
 
     /**
@@ -439,7 +517,9 @@ class UserPasswordResource extends BaseRestResource
                 'confirm_code'   => $code,
                 'link'           => url(\Config::get('df.confirm_reset_url')) .
                     '?code=' . $code .
-                    '&email=' . $user->email
+                    '&email=' . $user->email .
+                    '&username=' . $user->username .
+                    '&admin=' . $user->is_sys_admin
             ],
             function ($m) use ($email){
                 $m->to($email)->subject('[DF] Password Reset');

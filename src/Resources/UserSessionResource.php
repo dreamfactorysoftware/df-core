@@ -57,6 +57,7 @@ class UserSessionResource extends BaseRestResource
         if (empty($serviceName)) {
             $credentials = [
                 'email'        => $this->getPayloadData('email'),
+                'username'     => $this->getPayloadData('username'),
                 'password'     => $this->getPayloadData('password'),
                 'is_sys_admin' => false
             ];
@@ -359,9 +360,19 @@ class UserSessionResource extends BaseRestResource
      */
     protected function handleLogin(array $credentials = [], $remember = false)
     {
-        $email = array_get($credentials, 'email');
-        if (empty($email)) {
-            throw new BadRequestException('Login request is missing required email.');
+        $loginAttribute = strtolower(config('df.login_attribute', 'email'));
+        if ($loginAttribute === 'username') {
+            $username = array_get($credentials, 'username');
+            if (empty($username)) {
+                throw new BadRequestException('Login request is missing required username.');
+            }
+            unset($credentials['email']);
+        } else {
+            $email = array_get($credentials, 'email');
+            if (empty($email)) {
+                throw new BadRequestException('Login request is missing required email.');
+            }
+            unset($credentials['username']);
         }
 
         $password = array_get($credentials, 'password');

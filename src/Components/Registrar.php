@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Contracts\EmailServiceInterface;
@@ -24,8 +25,14 @@ class Registrar
             'name'       => 'required|max:255',
             'first_name' => 'required',
             'last_name'  => 'required',
-            'email'      => 'required|email|max:255|unique:user'
+            'email'      => 'required|email|max:255|unique:user',
+            'username'   => 'min:6|unique:user,username|regex:/^\S*$/u|nullable'
         ];
+
+        $loginAttribute = strtolower(config('df.login_attribute', 'email'));
+        if ($loginAttribute === 'username') {
+            $validationRules['username'] = str_replace('|nullable', '|required', $validationRules['username']);
+        }
 
         /** @var \DreamFactory\Core\User\Services\User $userService */
         $userService = ServiceManager::getService('user');
@@ -114,7 +121,8 @@ class Registrar
                     'confirm_code'   => $user->confirm_code,
                     'link'           => url(\Config::get('df.confirm_register_url')) .
                         '?code=' . $user->confirm_code .
-                        '&email=' . $email,
+                        '&email=' . $email .
+                        '&username=' . $user->username,
                     'first_name'     => $user->first_name,
                     'last_name'      => $user->last_name,
                     'name'           => $user->name,

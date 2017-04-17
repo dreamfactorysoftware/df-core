@@ -27,6 +27,8 @@ return [
     'local_file_service_container' => trim(env('DF_LOCAL_FILE_ROOT', 'app'), '/'),
     // File chunk size for downloadable files in Byte. Default is 10MB
     'file_chunk_size'              => env('DF_FILE_CHUNK_SIZE', 10000000),
+    // User attribute to use for authentication (email or username).
+    'login_attribute'              => env('DF_LOGIN_ATTRIBUTE', 'email'),
     // DB configs
     'db'                           => [
         // The default number of records to return at once for database queries

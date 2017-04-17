@@ -32,6 +32,7 @@ class Session extends UserSessionResource
     {
         $credentials = [
             'email'        => $this->getPayloadData('email'),
+            'username'     => $this->getPayloadData('username'),
             'password'     => $this->getPayloadData('password'),
             'is_sys_admin' => true
         ];

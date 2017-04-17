@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\RegisterContact;
 use DreamFactory\Core\Database\Schema\RelationSchema;
+use DreamFactory\Core\Events\UserDeletedEvent;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -508,6 +509,9 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             function (User $user){
                 JWTUtilities::invalidateTokenByUserId($user->id);
                 \Cache::forget('user:' . $user->id);
+
+                event(new UserDeletedEvent($user));
+
             }
         );
     }

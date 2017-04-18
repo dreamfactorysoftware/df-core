@@ -2,12 +2,16 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Components\Invitable;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\AdminUser;
+use DreamFactory\Core\Components\Registrar;
+use Mail;
 
 class Admin extends BaseSystemResource
 {
+    use Invitable;
     /**
      * @var string DreamFactory\Core\Models\BaseSystemModel Model Class name.
      */
@@ -30,6 +34,53 @@ class Admin extends BaseSystemResource
             'label'      => 'Session'
         ],
     ];
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function handlePOST()
+    {
+        $response = parent::handlePOST();
+        if ($this->request->getParameterAsBool('send_invite')) {
+            $this->handleInvitation($response, true);
+        }
+
+        return $response;
+    }
+
+    protected static function sendInvite($userId, $deleteOnError = false)
+    {
+        $user = AdminUser::find($userId);
+        $user->confirm_code = Registrar::generateConfirmationCode(\Config::get('df.confirm_code_length', 32));
+        $user->save();
+        $email = $user->email;
+        $code = $user->confirm_code;
+        $name = $user->first_name;
+
+        Mail::send(
+            'emails.invite',
+            [
+                'content_header' => 'You are invited to administer DreamFactory.',
+                'first_name'     => $name,
+                'last_name'      => $user->last_name,
+                'phone'          => $user->phone,
+                'email'          => $user->email,
+                'name'           => $user->name,
+                'confirm_code'   => $code,
+                'instance_name'  => \Config::get('df.instance_name'),
+                'link'           => url(\Config::get('df.confirm_admin_invite_url')) .
+                    '?code=' . $code .
+                    '&email=' . $user->email .
+                    '&username=' . $user->username .
+                    '&admin=' . $user->is_sys_admin
+            ],
+            function ($m) use ($email){
+                $m->to($email)->subject('[DF] New Admin Invitation');
+            }
+        );
+
+        return true;
+    }
 
     /**
      * {@inheritdoc}

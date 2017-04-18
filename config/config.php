@@ -70,6 +70,7 @@ return [
     // System URLs
     'confirm_reset_url'            => env('DF_CONFIRM_RESET_URL', '/dreamfactory/dist/#/reset-password'),
     'confirm_invite_url'           => env('DF_CONFIRM_INVITE_URL', '/dreamfactory/dist/#/user-invite'),
+    'confirm_admin_invite_url'     => env('DF_CONFIRM_ADMIN_INVITE_URL', '/dreamfactory/dist/#/admin-invite'),
     'confirm_register_url'         => env('DF_CONFIRM_REGISTER_URL', '/dreamfactory/dist/#/register-confirm'),
     'confirm_code_length'          => env('DF_CONFIRM_CODE_LENGTH', 32),
     'confirm_code_ttl'             => env('DF_CONFIRM_CODE_TTL', 1440),

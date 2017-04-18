@@ -627,6 +627,11 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             $usernameRules[1] .= ',' . $this->id;
             $this->rules['username'] = implode('|', $usernameRules);
         }
+        $loginAttribute = strtolower(config('df.login_attribute', 'email'));
+        $username = array_get($this->attributes, 'username');
+        if($loginAttribute !== 'username' && empty($username)){
+            $this->attributes['username'] = $this->attributes['email'];
+        }
 
         return parent::save($options);
     }

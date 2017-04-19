@@ -7,6 +7,8 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\AdminUser;
 use DreamFactory\Core\Components\Registrar;
+use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Utility\ResponseFactory;
 use Mail;
 
 class Admin extends BaseSystemResource
@@ -43,6 +45,22 @@ class Admin extends BaseSystemResource
         $response = parent::handlePOST();
         if ($this->request->getParameterAsBool('send_invite')) {
             $this->handleInvitation($response, true);
+        }
+
+        return $response;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function handlePATCH()
+    {
+        $response = parent::handlePATCH();
+        if ($this->request->getParameterAsBool('send_invite')) {
+            if (!$response instanceof ServiceResponseInterface) {
+                $response = ResponseFactory::create($response);
+            }
+            $this->handleInvitation($response);
         }
 
         return $response;

@@ -474,6 +474,13 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         if (!empty($password)) {
             $password = bcrypt($password);
             JWTUtilities::invalidateTokenByUserId($this->id);
+            // When password is set user account must be confirmed. Confirming user
+            // account here with confirm_code = null.
+            // confirm_code = 'y' indicates cases where account is confirmed by user
+            // using confirmation email.
+            if ($this->attributes['confirm_code'] !== 'y') {
+                $this->attributes['confirm_code'] = null;
+            }
         }
 
         $this->attributes['password'] = $password;
@@ -511,7 +518,6 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 \Cache::forget('user:' . $user->id);
 
                 event(new UserDeletedEvent($user));
-
             }
         );
     }
@@ -629,7 +635,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
         $loginAttribute = strtolower(config('df.login_attribute', 'email'));
         $username = array_get($this->attributes, 'username');
-        if($loginAttribute !== 'username' && empty($username)){
+        if ($loginAttribute !== 'username' && empty($username)) {
             $this->attributes['username'] = $this->attributes['email'];
         }
 

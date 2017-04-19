@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Models\NonAdminUser;
@@ -39,6 +40,9 @@ trait Invitable
                 if (ArrayUtils::isArrayNumeric($records)) {
                     $passed = true;
                     foreach ($records as &$record) {
+                        if ($record instanceof User) {
+                            $record = $record->toArray();
+                        }
                         $id = array_get($record, 'id');
 
                         try {

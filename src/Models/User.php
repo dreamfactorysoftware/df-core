@@ -478,7 +478,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             // account here with confirm_code = null.
             // confirm_code = 'y' indicates cases where account is confirmed by user
             // using confirmation email.
-            if ($this->attributes['confirm_code'] !== 'y') {
+            if (isset($this->attributes['confirm_code']) && $this->attributes['confirm_code'] !== 'y') {
                 $this->attributes['confirm_code'] = null;
             }
         }

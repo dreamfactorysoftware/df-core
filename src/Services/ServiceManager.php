@@ -70,7 +70,6 @@ class ServiceManager
 //            }
 
         $this->services[$name] = $service;
-
 //        }
 
         return $this->services[$name];

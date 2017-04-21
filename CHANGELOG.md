@@ -4,6 +4,20 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.9.0] - 2017-04-21
+### Added
+- DF-811 Add support for upsert
+- DF-895 Added support for username based authentication
+- DF-1084 added support for Admin User email invites
+### Changed
+- DF-1028 Ignored JWT explicitly when making login requests
+- Moved database configuration to service and the new NoDbModel-based handler
+### Fixed
+- DF-1005 Fixed resource level RBAC for swagger docs
+- DF-955 Added PUT section on api docs for system/{resource} and system/{resource}/{id}
+- Fixed JWT token refresh and handling forever token refresh properly
+- DF-1033 Correct datetime config option usage
+
 ## [0.8.4] - 2017-03-24
 ### Fixed
 - JWT refresh correction, forever token behavior change
@@ -437,7 +451,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.4...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.4...0.9.0
 [0.8.4]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.3...0.8.4
 [0.8.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.2...0.8.3
 [0.8.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.1...0.8.2

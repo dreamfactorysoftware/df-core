@@ -1,8 +1,10 @@
 <?php
+
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\RegisterContact;
 use DreamFactory\Core\Database\Schema\RelationSchema;
+use DreamFactory\Core\Events\UserDeletedEvent;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -24,6 +26,7 @@ use Validator;
  *
  * @property integer $id
  * @property string  $name
+ * @property string  $username
  * @property string  $first_name
  * @property string  $last_name
  * @property string  $email
@@ -89,8 +92,9 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      * @type array
      */
     protected $rules = [
-        'name'  => 'required|max:255',
-        'email' => 'required|email|max:255'
+        'name'     => 'required|max:255',
+        'email'    => 'required|email|max:255',
+        'username' => 'min:6|unique:user,username|regex:/^\S*$/u|nullable'
     ];
 
     /**
@@ -213,6 +217,19 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public function validate($data, $throwException = true)
+    {
+        $loginAttribute = strtolower(config('df.login_attribute', 'email'));
+        if ($loginAttribute === 'username') {
+            $this->rules['username'] = str_replace('|nullable', '|required', $this->rules['username']);
+        }
+
+        return parent::validate($data, $throwException);
+    }
+
+    /**
      * @param $password
      *
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
@@ -257,7 +274,6 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
                 $record['name'] = $name;
             }
-
             $password = array_get($record, 'password');
             if (!empty($password)) {
                 static::validatePassword($password);
@@ -272,8 +288,12 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
             $model->password = $password;
             $model->save();
-        } catch (\PDOException $e) {
-            throw $e;
+        } catch (\Exception $ex) {
+            if (!$ex instanceof ForbiddenException && !$ex instanceof BadRequestException) {
+                throw new InternalServerErrorException('Failed to create resource: ' . $ex->getMessage());
+            } else {
+                throw $ex;
+            }
         }
 
         return static::buildResult($model, $params);
@@ -454,6 +474,13 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         if (!empty($password)) {
             $password = bcrypt($password);
             JWTUtilities::invalidateTokenByUserId($this->id);
+            // When password is set user account must be confirmed. Confirming user
+            // account here with confirm_code = null.
+            // confirm_code = 'y' indicates cases where account is confirmed by user
+            // using confirmation email.
+            if (isset($this->attributes['confirm_code']) && $this->attributes['confirm_code'] !== 'y') {
+                $this->attributes['confirm_code'] = null;
+            }
         }
 
         $this->attributes['password'] = $password;
@@ -489,6 +516,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             function (User $user){
                 JWTUtilities::invalidateTokenByUserId($user->id);
                 \Cache::forget('user:' . $user->id);
+
+                event(new UserDeletedEvent($user));
             }
         );
     }
@@ -557,12 +586,17 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      */
     public static function createFirstAdmin(array &$data)
     {
+        if (empty($data['username'])) {
+            $data['username'] = $data['email'];
+        }
+
         $validationRules = [
             'name'       => 'required|max:255',
             'first_name' => 'required|max:255',
             'last_name'  => 'required|max:255',
             'email'      => 'required|email|max:255|unique:user',
-            'password'   => 'required|confirmed|min:6'
+            'password'   => 'required|confirmed|min:6',
+            'username'   => 'min:6|unique:user,username|regex:/^\S*$/u|required'
         ];
 
         $validator = Validator::make($data, $validationRules);
@@ -574,7 +608,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             return false;
         } else {
             /** @type User $user */
-            $attributes = array_only($data, ['name', 'first_name', 'last_name', 'email']);
+            $attributes = array_only($data, ['name', 'first_name', 'last_name', 'email', 'username']);
             $attributes['is_active'] = 1;
             $user = static::create($attributes);
 
@@ -589,5 +623,22 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
             return $user;
         }
+    }
+
+    public function save(array $options = [])
+    {
+        if ($this->exists) {
+            // Check uniqueness of username excluding this user that is being updated.
+            $usernameRules = explode('|', $this->rules['username']);
+            $usernameRules[1] .= ',' . $this->id;
+            $this->rules['username'] = implode('|', $usernameRules);
+        }
+        $loginAttribute = strtolower(config('df.login_attribute', 'email'));
+        $username = array_get($this->attributes, 'username');
+        if ($loginAttribute !== 'username' && empty($username)) {
+            $this->attributes['username'] = $this->attributes['email'];
+        }
+
+        return parent::save($options);
     }
 }

@@ -1,8 +1,11 @@
 <?php
 namespace DreamFactory\Core\Handlers\Events;
 
+use DreamFactory\Core\Events\BaseServiceEvent;
 use DreamFactory\Core\Events\QueuedApiEvent;
+use DreamFactory\Core\Events\ServiceDeletedEvent;
 use DreamFactory\Core\Events\ServiceEvent;
+use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Models\BaseModel;
 use DreamFactory\Core\Services\BaseRestService;
 use Illuminate\Contracts\Events\Dispatcher;
@@ -11,6 +14,7 @@ use Cache;
 use Config;
 use Event;
 use Log;
+use ServiceManager;
 
 class ServiceEventHandler
 {
@@ -27,20 +31,25 @@ class ServiceEventHandler
             ],
             static::class . '@handleApiEvent'
         );
+        $events->listen(
+            [
+                ServiceModifiedEvent::class,
+                ServiceDeletedEvent::class,
+            ],
+            static::class . '@handleServiceChangeEvent'
+        );
     }
 
     /**
-     * Handle events.
+     * Handle API events.
      *
      * @param QueuedApiEvent $event
-     *
-     * @return boolean
      */
     public function handleApiEvent($event)
     {
         $eventName = str_replace('.queued', null, $event->name);
         $ckey = 'event:' . $eventName;
-        $records = Cache::remember($ckey, Config::get('df.default_cache_ttl'), function () use ($eventName){
+        $records = Cache::remember($ckey, Config::get('df.default_cache_ttl'), function () use ($eventName) {
             return ServiceEventMap::whereEvent($eventName)->get()->all();
         });
         if (empty($records)) {
@@ -48,7 +57,7 @@ class ServiceEventHandler
             $serviceName = substr($eventName, 0, strpos($eventName, '.'));
             $wildcardEvent = $serviceName . '.*';
             $ckey = 'event:' . $wildcardEvent;
-            $records = Cache::remember($ckey, Config::get('df.default_cache_ttl'), function () use ($wildcardEvent){
+            $records = Cache::remember($ckey, Config::get('df.default_cache_ttl'), function () use ($wildcardEvent) {
                 return ServiceEventMap::whereEvent($wildcardEvent)->get()->all();
             });
         }
@@ -60,5 +69,16 @@ class ServiceEventHandler
             $service = \ServiceManager::getServiceById($record->service_id);
             Event::fire(new ServiceEvent($service, $event, $record->toArray()));
         }
+    }
+
+    /**
+     * Handle service change events.
+     *
+     * @param BaseServiceEvent $event
+     */
+    public function handleServiceChangeEvent($event)
+    {
+        \DreamFactory\Core\Resources\System\Event::clearCache();
+        ServiceManager::purge($event->service->name);
     }
 }

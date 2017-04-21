@@ -15,10 +15,6 @@ class ColumnSchema extends NamedResourceSchema
      */
     public $type;
     /**
-     * @var string the PHP type of this column.
-     */
-    public $phpType;
-    /**
      * @var string the DF extra type of this column.
      */
     public $extraType;

@@ -2,9 +2,14 @@
 
 namespace DreamFactory\Core\Models;
 
+use DB;
+use DbSchemaExtensions;
 use DreamFactory\Core\Components\Builder as DfBuilder;
 use DreamFactory\Core\Components\Cacheable;
+use DreamFactory\Core\Components\Encryptable;
+use DreamFactory\Core\Components\Protectable;
 use DreamFactory\Core\Components\SchemaToOpenApiDefinition;
+use DreamFactory\Core\Components\Validatable;
 use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\SchemaInterface;
 use DreamFactory\Core\Database\Schema\RelationSchema;
@@ -16,15 +21,11 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\Session as SessionUtility;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Crypt;
-use DB;
-use DbSchemaExtensions;
 use SystemTableModelMapper;
 
 /**
@@ -34,119 +35,16 @@ use SystemTableModelMapper;
  */
 class BaseModel extends Model implements CacheInterface
 {
-    use Cacheable, SchemaToOpenApiDefinition;
-
-    /**
-     * Mask to return when visible, but masked, attributes are returned from toArray()
-     *
-     * @var string
-     */
-    const PROTECTION_MASK = '**********';
-
-    /**
-     * The attributes that should be visible, but masked for protection.
-     * Set this to false to use internally to expose passwords, etc., i.e. unprotected.
-     *
-     * @var boolean
-     */
-    public $protectedView = true;
+    use Cacheable, SchemaToOpenApiDefinition, Protectable, Encryptable, Validatable;
 
     /**
      * @var SchemaInterface
      */
     protected $schemaExtension;
 
-    /**
-     * TableSchema
-     *
-     * @var TableSchema
-     */
-    protected $tableSchema = null;
-
-    /**
-     * Array of table references from TableSchema
-     *
-     * @var array
-     */
-    protected $references = [];
-
-    /**
-     * The attributes that should be encrypted on write, decrypted on read.
-     *
-     * @var array
-     */
-    protected $encrypted = [];
-
-    /**
-     * The attributes that should be visible, but masked in arrays, if used externally.
-     *
-     * @var array
-     */
-    protected $protected = [];
-
-    /**
-     * Rules for validating model data
-     *
-     * @type array
-     */
-    protected $rules = [];
-
-    /**
-     * Validation error messages
-     *
-     * @type array
-     */
-    protected $validationMessages = [];
-
-    /**
-     * Stores validation errors.
-     *
-     * @type array
-     */
-    protected $errors = [];
-
-    /**
-     * Validates data based on $this->rules.
-     *
-     * @param array     $data
-     * @param bool|true $throwException
-     *
-     * @return bool
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
-     */
-    public function validate(array $data = [], $throwException = true)
-    {
-        if (empty($data)) {
-            $data = $this->attributes;
-        }
-
-        if (empty($this->rules) || empty($data)) {
-            return true;
-        } else {
-            $validator = \Validator::make($data, $this->rules, $this->validationMessages);
-
-            if ($validator->fails()) {
-                $this->errors = $validator->errors()->getMessages();
-                if ($throwException) {
-                    $errorString = DataFormatter::validationErrorsToString($this->errors);
-                    throw new BadRequestException('Invalid data supplied.' . $errorString, null, null, $this->errors);
-                } else {
-                    return false;
-                }
-            } else {
-                return true;
-            }
-        }
-    }
-
-    public function errors()
-    {
-        return $this->errors;
-    }
-
     public function save(array $options = [])
     {
-        if ($this->validate()) {
+        if ($this->validate($this->attributes)) {
             return parent::save($options);
         } else {
             return false;
@@ -280,7 +178,7 @@ class BaseModel extends Model implements CacheInterface
         $response,
         /** @noinspection PhpUnusedParameterInspection */
         $fields
-    ){
+    ) {
         return $response;
     }
 
@@ -1045,7 +943,7 @@ class BaseModel extends Model implements CacheInterface
         $foreign,
         /** @noinspection PhpUnusedParameterInspection */
         $data
-    ){
+    ) {
         return null;
     }
 
@@ -1258,10 +1156,7 @@ class BaseModel extends Model implements CacheInterface
     public function getAttributeValue($key)
     {
         $value = parent::getAttributeValue($key);
-        // if protected, no need to do anything else, mask it.
-        if ($this->protectedView && in_array($key, $this->protected) && !is_null($value)) {
-            return static::PROTECTION_MASK;
-        }
+        $this->protectAttribute($key, $value);
 
         return $value;
     }
@@ -1272,9 +1167,7 @@ class BaseModel extends Model implements CacheInterface
     protected function getAttributeFromArray($key)
     {
         $value = parent::getAttributeFromArray($key);
-        if (array_key_exists($key, $this->attributes) && in_array($key, $this->encrypted) && !empty($value)) {
-            $value = Crypt::decrypt($value);
-        }
+        $this->decryptAttribute($key, $value);
 
         return $value;
     }
@@ -1285,26 +1178,16 @@ class BaseModel extends Model implements CacheInterface
     public function setAttribute($key, $value)
     {
         // if protected, and trying to set the mask, throw it away
-        if (in_array($key, $this->protected) && ($value === static::PROTECTION_MASK)) {
-            // If this is an update throw it away and don't change existing data.
-            // If this is for creating new record then only throw it away
-            // if the field is not required. Otherwise, services imported from packages
-            // with protected field produces error -> no default value for non-nullable field.
-            if ($this->exists) {
-                return $this;
-            }
-            $column = $this->getSchema()->getTable($this->table)->getColumn($key);
-            if (!empty($column)) {
-                if ($column->getRequired() === false) {
-                    return $this;
-                }
-            }
+        if ($this->isProtectedAttribute($key, $value)) {
+            return $this;
         }
 
         $return = parent::setAttribute($key, $value);
 
-        if (array_key_exists($key, $this->attributes) && in_array($key, $this->encrypted)) {
-            $this->attributes[$key] = Crypt::encrypt($this->attributes[$key]);
+        if (array_key_exists($key, $this->attributes)) {
+            $value = $this->attributes[$key];
+            $this->encryptAttribute($key, $value);
+            $this->attributes[$key] = $value;
         }
 
         return $return;
@@ -1317,15 +1200,9 @@ class BaseModel extends Model implements CacheInterface
     {
         $attributes = parent::attributesToArray();
 
-        foreach ($attributes as $key => $value) {
-            if (!is_null($attributes[$key])) {
-                if ($this->protectedView && in_array($key, $this->protected)) {
-                    $attributes[$key] = static::PROTECTION_MASK;
-                } elseif (in_array($key, $this->encrypted)) {
-                    $attributes[$key] = Crypt::decrypt($value);
-                }
-            }
-        }
+        $attributes = $this->addDecryptedAttributesToArray($attributes);
+
+        $attributes = $this->addProtectedAttributesToArray($attributes);
 
         return $attributes;
     }

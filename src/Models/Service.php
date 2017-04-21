@@ -3,11 +3,11 @@ namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\DsnToConnectionConfig;
 use DreamFactory\Core\Enums\ApiDocFormatTypes;
+use DreamFactory\Core\Events\ServiceDeletedEvent;
+use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Resources\System\Event;
-use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Library\Utility\Inflector;
 use Illuminate\Database\Query\Builder;
@@ -64,13 +64,14 @@ class Service extends BaseSystemModel
         'last_modified_by_id'
     ];
 
-    protected $appends = ['config', 'doc'];
+    protected $appends = ['doc'];
 
     protected $casts = [
         'is_active' => 'boolean',
         'mutable'   => 'boolean',
         'deletable' => 'boolean',
-        'id'        => 'integer'
+        'id'        => 'integer',
+        'config'    => 'array',
     ];
 
     /**
@@ -98,8 +99,8 @@ class Service extends BaseSystemModel
                     // take the type information and get the config_handler class
                     // set the config giving the service id and new config
                     $serviceCfg = $service->getConfigHandler();
-                    if (!empty($serviceCfg)) {
-                        $serviceCfg::setConfig($service->getKey(), $service->config);
+                    if (!empty($serviceCfg) && $serviceCfg::handlesStorage()) {
+                        $serviceCfg::storeConfig($service->getKey(), $service->config);
                     }
                 }
                 if (!empty($service->doc)) {
@@ -116,10 +117,7 @@ class Service extends BaseSystemModel
                 \Cache::forget('service:' . $service->name);
                 \Cache::forget('service_id:' . $service->id);
 
-                // Any changes to services needs to produce a new event list
-                Event::clearCache();
-                Swagger::flush();
-                ServiceManager::purge($service->name);
+                event(new ServiceModifiedEvent($service));
             }
         );
 
@@ -128,7 +126,7 @@ class Service extends BaseSystemModel
                 // take the type information and get the config_handler class
                 // set the config giving the service id and new config
                 $serviceCfg = $service->getConfigHandler();
-                if (!empty($serviceCfg)) {
+                if (!empty($serviceCfg) && $serviceCfg::handlesStorage()) {
                     $serviceCfg::removeConfig($service->getKey());
                 }
 
@@ -143,10 +141,7 @@ class Service extends BaseSystemModel
                 \Cache::forget('service:' . $service->name);
                 \Cache::forget('service_id:' . $service->id);
 
-                // Any changes to services needs to produce a new event list
-                Event::clearCache();
-                Swagger::flush();
-                ServiceManager::purge($service->name);
+                event(new ServiceDeletedEvent($service));
             }
         );
     }
@@ -156,43 +151,6 @@ class Service extends BaseSystemModel
         // if no label given, use name
         if (empty(array_get($attributes, 'label'))) {
             $attributes['label'] = array_get($attributes, 'name');
-        }
-        // if type is old sql_db or script, need to upgrade
-        switch (array_get($attributes, 'type')) {
-            case 'script':
-                $attributes['type'] = array_get($attributes, 'config.type');
-                unset($attributes['config']['type']);
-                break;
-            case 'sql_db':
-                $type = '';
-                $config = static::adaptConfig(array_get($attributes, 'config'), $type);
-                $config['options'] = array_get($attributes, 'config.options', []);
-                $config['attributes'] = array_get($attributes, 'config.attributes', []);
-                $attributes['config'] = $config;
-                $attributes['type'] = $type;
-                break;
-            case 'rws':
-                // fancy trick to grab the base url from swagger
-                if (empty(array_get($attributes, 'config.base_url')) &&
-                    !empty($content = array_get($attributes, 'doc.content'))
-                ) {
-                    if (is_string($content)) {
-                        $content =
-                            static::storedContentToArray($content,
-                                array_get($attributes, 'doc.format'));
-                    }
-                    if (is_array($content) && !empty($host = array_get($content, 'host'))) {
-                        if (!empty($protocol = array_get($content, 'schemes'))) {
-                            $protocol = (is_array($protocol) ? current($protocol) : $protocol);
-                        } else {
-                            $protocol = 'http';
-                        }
-                        $basePath = array_get($content, 'basePath', '');
-                        $baseUrl = $protocol . '://' . $host . $basePath;
-                        $attributes['config']['base_url'] = $baseUrl;
-                    }
-                }
-                break;
         }
 
         return parent::create($attributes);
@@ -222,8 +180,6 @@ class Service extends BaseSystemModel
     {
         $val = (array)$val;
         $this->doc = $val;
-        // take the type information and get the config_handler class
-        // set the config giving the service id and new config
         if ($this->exists) {
             /** @noinspection PhpUndefinedMethodInspection */
             $model = ServiceDoc::find($this->id);
@@ -272,35 +228,36 @@ class Service extends BaseSystemModel
     public function getConfigAttribute()
     {
         // take the type information and get the config_handler class
-        // set the config giving the service id and new config
-        $serviceCfg = $this->getConfigHandler();
-        if (!empty($serviceCfg)) {
-            $this->config = $serviceCfg::getConfig($this->getKey(), $this->protectedView);
+        // get and/or format the config given the service id
+        $config = $this->getAttributeFromArray('config');
+        $config = ($config ? json_decode($config, true) : []);
+        if (!empty($serviceCfg = $this->getConfigHandler())) {
+            $config = $serviceCfg::getConfig($this->getKey(), $config, $this->protectedView);
         }
 
-        return $this->config;
+        return $config;
     }
 
     /**
-     * @param array|null $val
+     * @param array|null $value
      *
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
-    public function setConfigAttribute($val)
+    public function setConfigAttribute($value)
     {
-        $val = (array)$val;
-        $this->config = $val;
+        $this->config = (array)$value;
+        $localConfig = $this->getAttributeFromArray('config');
+        $localConfig = ($localConfig ? json_decode($localConfig, true) : []);
         // take the type information and get the config_handler class
         // set the config giving the service id and new config
-        $serviceCfg = $this->getConfigHandler();
-        if (!empty($serviceCfg)) {
-            if ($this->exists) {
-                if ($serviceCfg::validateConfig($this->config, false)) {
-                    $serviceCfg::setConfig($this->getKey(), $this->config);
-                }
-            } else {
-                $serviceCfg::validateConfig($this->config);
+        if (!empty($serviceCfg = $this->getConfigHandler())) {
+            // go ahead and save the config here, otherwise we don't have key yet
+            $localConfig = $serviceCfg::setConfig($this->getKey(), $this->config, $localConfig);
+            if ($this->isJsonCastable('config') && !is_null($localConfig)) {
+                $localConfig = $this->castAttributeAsJson('config', $localConfig);
             }
+            $this->attributes['config'] = $localConfig;
+
         } else {
             if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
                 if ($typeInfo->isSubscriptionRequired()) {
@@ -407,6 +364,7 @@ class Service extends BaseSystemModel
     {
         $cacheKey = 'service:' . $name;
         $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name) {
+            /** @var Service $service */
             $service = static::whereName($name)->first();
             if (empty($service)) {
                 throw new NotFoundException("Could not find a service for $name");

@@ -12,7 +12,7 @@ use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Core\Services\BaseFileService;
+use DreamFactory\Core\Contracts\FileServiceInterface;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Arr;
 use ServiceManager;
@@ -301,7 +301,7 @@ class Exporter
                 $resources = explode(',', $resources);
             }
             foreach ($resources as $resource) {
-                /** @type BaseFileService $storage */
+                /** @type FileServiceInterface $storage */
                 $storage = ServiceManager::getService($service);
                 if (!$storage) {
                     throw new InternalServerErrorException("Can not find storage service $service.");
@@ -327,7 +327,7 @@ class Exporter
      * Returns the path of the zip file containing
      * app files or other storage files.
      *
-     * @param BaseFileService $storage
+     * @param FileServiceInterface $storage
      * @param                 $resource
      *
      * @return bool|string

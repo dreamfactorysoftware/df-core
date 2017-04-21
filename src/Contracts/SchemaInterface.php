@@ -131,22 +131,24 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
 
     /**
      * @param mixed $value
-     * @param       $field_info
+     * @param mixed $field_info
+     * @param boolean $allow_null
      *
      * @return mixed
      */
-    public function parseValueForSet($value, $field_info);
+    public function typecastToNative($value, $field_info, $allow_null = true);
+
+    /**
+     * @param mixed   $value
+     * @param mixed   $field_info
+     * @param boolean $allow_null
+     *
+     * @return mixed
+     */
+    public function typecastToClient($value, $field_info, $allow_null = true);
 
     /**
      * @return string
      */
     public function getTimestampForSet();
-
-    /**
-     * @param mixed  $value
-     * @param string $type
-     *
-     * @return mixed
-     */
-    public function formatValue($value, $type);
 }

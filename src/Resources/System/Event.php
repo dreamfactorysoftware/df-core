@@ -6,7 +6,7 @@ use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Resources\BaseRestResource;
-use DreamFactory\Core\Services\BaseFileService;
+use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ServiceResponse;
@@ -70,7 +70,7 @@ class Event extends BaseRestResource
                     throw new \Exception('No service found.');
                 }
 
-                if ($service instanceof BaseFileService) {
+                if ($service instanceof FileServiceInterface) {
                     // don't want the full folder list here
                     $accessList = (empty($service->getPermissions()) ? [] : ['', '*']);
                 } else {

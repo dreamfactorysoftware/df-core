@@ -42,6 +42,7 @@ class UserProfileResource extends BaseRestResource
         }
 
         $data = [
+            'username'          => $user->username,
             'first_name'        => $user->first_name,
             'last_name'         => $user->last_name,
             'name'              => $user->name,
@@ -68,6 +69,7 @@ class UserProfileResource extends BaseRestResource
         $payload = $this->getPayloadData();
 
         $data = [
+            'username'          => array_get($payload, 'username'),
             'first_name'        => array_get($payload, 'first_name'),
             'last_name'         => array_get($payload, 'last_name'),
             'name'              => array_get($payload, 'name'),

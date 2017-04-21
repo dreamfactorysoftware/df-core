@@ -1,9 +1,9 @@
 <?php
 namespace DreamFactory\Core\Models;
 
-use \Cache;
+use DreamFactory\Core\Events\RoleDeletedEvent;
+use DreamFactory\Core\Events\RoleModifiedEvent;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Services\Swagger;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Library\Utility\ArrayUtils;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -46,19 +46,19 @@ class Role extends BaseSystemModel
 
         static::saved(
             function (Role $role){
+                event(new RoleModifiedEvent($role));
                 if (!$role->is_active) {
                     JWTUtilities::invalidateTokenByRoleId($role->id);
                 }
                 \Cache::forget('role:' . $role->id);
-                Swagger::clearCache($role->id);
             }
         );
 
         static::deleted(
             function (Role $role){
+                event(new RoleDeletedEvent($role));
                 JWTUtilities::invalidateTokenByRoleId($role->id);
                 \Cache::forget('role:' . $role->id);
-                Swagger::clearCache($role->id);
             }
         );
     }

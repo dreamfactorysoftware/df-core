@@ -207,7 +207,7 @@ class Session
                         $exactAllowed |= $tempVerbs;
                         $exactFound = true;
                     } elseif ($tempCompStarPos &&
-                        (0 == strcasecmp(substr($component, 0, $tempCompStarPos) . '*', $tempComponent))
+                        (0 == strcasecmp(substr($component . '/', 0, $tempCompStarPos) . '*', $tempComponent))
                     ) {
                         $componentAllowed |= $tempVerbs;
                         $componentFound = true;

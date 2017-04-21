@@ -10,7 +10,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\BaseModel;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Services\BaseFileService;
+use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Library\Utility\Inflector;
 use ServiceManager;
@@ -472,7 +472,7 @@ class Packager
             $storageServiceId = array_get($appInfo, 'storage_service_id', $this->getDefaultStorageServiceId());
             $storageFolder = array_get($appInfo, 'storage_container', $appName);
 
-            /** @var $service BaseFileService */
+            /** @var $service FileServiceInterface */
             $service = ServiceManager::getServiceById($storageServiceId);
             if (empty($service)) {
                 throw new InternalServerErrorException(
@@ -602,7 +602,7 @@ class Packager
             throw new InternalServerErrorException("Can not find storage service identifier.");
         }
 
-        /** @type BaseFileService $storage */
+        /** @type FileServiceInterface $storage */
         $storage = ServiceManager::getServiceById($storageServiceId);
         if (!$storage) {
             throw new InternalServerErrorException("Can not find storage service by identifier '$storageServiceId''.");

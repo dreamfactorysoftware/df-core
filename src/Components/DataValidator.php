@@ -22,7 +22,7 @@ trait DataValidator
      */
     public static function validateAsArray($data, $str_delimiter = null, $check_single = false, $on_fail = null)
     {
-        if (!empty($data) && !is_array($data) && (is_string($str_delimiter) && !empty($str_delimiter))) {
+        if (is_string($data) && ('' !== $data) && (is_string($str_delimiter) && !empty($str_delimiter))) {
             $data = array_map('trim', explode($str_delimiter, trim($data, $str_delimiter)));
         }
 

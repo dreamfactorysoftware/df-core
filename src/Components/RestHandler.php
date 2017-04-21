@@ -488,10 +488,12 @@ abstract class RestHandler implements RequestHandlerInterface
         $this->resourceArray = (!empty($this->resourcePath)) ? explode('/', $this->resourcePath) : [];
 
         if (!empty($this->resourceArray)) {
-            if (null !== ($resource = array_get($this->resourceArray, 0))) {
+            $resource = array_get($this->resourceArray, 0);
+            if (!is_null($resource) && ('' !== $resource)) {
                 $this->resource = $resource;
             }
-            if (null !== ($id = array_get($this->resourceArray, 1))) {
+            $id = array_get($this->resourceArray, 1);
+            if (!is_null($id) && ('' !== $id)) {
                 $this->resourceId = $id;
             }
         }

@@ -26,7 +26,6 @@ class DbSimpleTypes extends FactoryEnum
     const TYPE_DOUBLE = 'double';
     const TYPE_FLOAT = 'float';
     const TYPE_ID = 'id';
-    const TYPE_INT = 'int';
     const TYPE_INTEGER = 'integer';
     const TYPE_JSON = 'json';
     const TYPE_JSONB = 'jsonb';
@@ -58,4 +57,47 @@ class DbSimpleTypes extends FactoryEnum
 
     // Cassandra specific Types
     const TYPE_TIME_UUID = 'timeuuid';
+
+    public static function toPhpType($simple_type)
+    {
+        // supposedly map is faster than switch
+        static $map = [
+            DbSimpleTypes::TYPE_ARRAY             => 'array',
+            DbSimpleTypes::TYPE_BIG_ID            => 'string', // due to php support issues
+            DbSimpleTypes::TYPE_BIG_INT           => 'string', // due to php support issues
+            DbSimpleTypes::TYPE_BINARY            => 'string',
+            DbSimpleTypes::TYPE_BOOLEAN           => 'boolean',
+            DbSimpleTypes::TYPE_DECIMAL           => 'double',
+            DbSimpleTypes::TYPE_DOUBLE            => 'double',
+            DbSimpleTypes::TYPE_FLOAT             => 'double',
+            DbSimpleTypes::TYPE_ID                => 'integer',
+            DbSimpleTypes::TYPE_INTEGER           => 'integer',
+            DbSimpleTypes::TYPE_JSON              => 'string',
+            DbSimpleTypes::TYPE_JSONB             => 'string',
+            DbSimpleTypes::TYPE_LONG_TEXT         => 'string',
+            DbSimpleTypes::TYPE_MEDIUM_ID         => 'integer',
+            DbSimpleTypes::TYPE_MEDIUM_INTEGER    => 'integer',
+            DbSimpleTypes::TYPE_MEDIUM_TEXT       => 'string',
+            DbSimpleTypes::TYPE_MONEY             => 'double',
+            DbSimpleTypes::TYPE_OBJECT            => 'object',
+            DbSimpleTypes::TYPE_REF               => 'integer',
+            DbSimpleTypes::TYPE_SMALL_ID          => 'integer',
+            DbSimpleTypes::TYPE_SMALL_INT         => 'integer',
+            DbSimpleTypes::TYPE_STRING            => 'string',
+            DbSimpleTypes::TYPE_TEXT              => 'string',
+            DbSimpleTypes::TYPE_TINY_INT          => 'integer',
+            DbSimpleTypes::TYPE_USER_ID           => 'integer',
+            DbSimpleTypes::TYPE_USER_ID_ON_CREATE => 'integer',
+            DbSimpleTypes::TYPE_USER_ID_ON_UPDATE => 'integer',
+            DbSimpleTypes::TYPE_UUID              => 'string',
+//            DbSimpleTypes::TYPE_TABLE             => 'object',
+//            DbSimpleTypes::TYPE_COLUMN            => 'object',
+//            DbSimpleTypes::TYPE_ROW               => 'object',
+//            DbSimpleTypes::TYPE_REF_CURSOR        => 'resource',
+        ];
+
+        $simple_type = strtolower(strval($simple_type));
+
+        return isset($map[$simple_type]) ? $map[$simple_type] : null;
+    }
 }

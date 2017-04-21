@@ -405,6 +405,49 @@ class BaseSystemResource extends BaseRestResource
                         'By default, only the id property of the record is returned on success, ' .
                         'use \'fields\' and \'related\' to return more info.',
                 ],
+                'put'  => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'replace' .
+                        $capitalized .
+                        $pluralClass .
+                        '() - Replace one or more ' .
+                        $pluralClass .
+                        '.',
+                    'operationId' => 'replace' . $capitalized . $pluralClass,
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of records to update.',
+                            'in'          => 'body',
+                            'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Request'],
+                            'required'    => true,
+                        ],
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::IDS),
+                        ApiOptions::documentOption(ApiOptions::FILTER),
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => [
+                                '$ref' => '#/definitions/' .
+                                    $pluralClass .
+                                    'Response'
+                            ]
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' =>
+                        'Post data should be a single record or an array of records (shown). ' .
+                        'By default, only the id property of the record is returned on success, ' .
+                        'use \'fields\' and \'related\' to return more info.',
+                ],
                 'delete' => [
                     'tags'        => [$serviceName],
                     'summary'     => 'delete' .
@@ -491,6 +534,41 @@ class BaseSystemResource extends BaseRestResource
                     'tags'        => [$serviceName],
                     'summary'     => 'update' . $capitalized . $class . '() - Update one ' . $class . '.',
                     'operationId' => 'update' . $capitalized . $class,
+                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
+                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
+                    'parameters'  => [
+                        [
+                            'name'        => 'body',
+                            'description' => 'Data containing name-value pairs of fields to update.',
+                            'in'          => 'body',
+                            'schema'      => ['$ref' => '#/definitions/' . $class . 'Request'],
+                            'required'    => true,
+                        ],
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Success',
+                            'schema'      => [
+                                '$ref' => '#/definitions/' .
+                                    $class .
+                                    'Response'
+                            ]
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' =>
+                        'Post data should be an array of fields to update for a single record. <br>' .
+                        'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
+                ],
+                'put'      => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'replace' . $capitalized . $class . '() - Replace one ' . $class . '.',
+                    'operationId' => 'replace' . $capitalized . $class,
                     'consumes'    => ['application/json', 'application/xml', 'text/csv'],
                     'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [

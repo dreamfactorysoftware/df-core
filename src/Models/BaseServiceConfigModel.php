@@ -10,7 +10,7 @@ use Illuminate\Database\Query\Builder;
  * Class BaseServiceConfigModel
  *
  * @property integer $service_id
- * @method static Builder|EmailTemplate whereServiceId($value)
+ * @method static Builder whereServiceId($value)
  *
  * @package DreamFactory\Core\Models
  */
@@ -39,26 +39,19 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     public $incrementing = false;
 
     /**
-     * {@inheritdoc}
+     * @var bool
      */
-    public static function getConfig($id, $protect = true)
-    {
-        /** @var BaseServiceConfigModel $model */
-        /** @noinspection PhpUndefinedMethodInspection */
-        $model = static::find($id);
+    public static $alwaysNewOnSet = false;
 
-        if (!empty($model)) {
-            $model->protectedView = $protect;
-            return $model->toArray();
-        } else {
-            return null;
-        }
+    public static function getServiceIdField()
+    {
+        return 'service_id';
     }
 
     /**
      * {@inheritdoc}
      */
-    public static function validateConfig($config, $create = true)
+    public static function handlesStorage()
     {
         return true;
     }
@@ -66,23 +59,71 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     /**
      * {@inheritdoc}
      */
-    public static function setConfig($id, $config)
+    public static function getConfig($id, $local_config = null, $protect = true)
     {
+        $out = null;
         /** @var BaseServiceConfigModel $model */
         /** @noinspection PhpUndefinedMethodInspection */
-        $model = static::find($id);
-        if (!empty($model)) {
-            $model->update($config);
-        } else {
+        if ($model = static::whereServiceId($id)->first()) {
+            $model->protectedView = $protect;
+
+            $out = $model->toArray();
+        }
+        if ($local_config) {
+            $out = array_merge((array)$out, $local_config);
+        }
+
+        return $out;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function setConfig($id, $config, $local_config = null)
+    {
+        if ($id) {
             //Making sure service_id is the first item in the config.
             //This way service_id will be set first and is available
             //for use right away. This helps setting an auto-generated
             //field that may depend on parent data. See OAuthConfig->setAttribute.
             $config = array_reverse($config, true);
-            $config['service_id'] = $id;
+            $config[static::getServiceIdField()] = $id;
             $config = array_reverse($config, true);
-            static::create($config);
+            /** @noinspection PhpUndefinedMethodInspection */
+            $model = (static::$alwaysNewOnSet ? new static() : static::firstOrNew([static::getServiceIdField() => $id]));
+        } else {
+            $model = new static();
         }
+        /** @var BaseServiceConfigModel $model */
+        $config = array_only($config, $model->getFillable());
+        $model->fill((array)$config);
+        $model->validate($model->attributes);
+        if ($id) { // only save if the service has been created
+            $model->save();
+        }
+
+        return $local_config; // by default, just return what the service passed us
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public static function storeConfig($id, $config)
+    {
+        //Making sure service_id is the first item in the config.
+        //This way service_id will be set first and is available
+        //for use right away. This helps setting an auto-generated
+        //field that may depend on parent data. See OAuthConfig->setAttribute.
+        $config = array_reverse($config, true);
+        $config[static::getServiceIdField()] = $id;
+        $config = array_reverse($config, true);
+
+        /** @noinspection PhpUndefinedMethodInspection */
+        /** @var BaseServiceConfigModel $model */
+        $model = (static::$alwaysNewOnSet ? new static() : static::firstOrNew([static::getServiceIdField() => $id]));
+        $config = array_only($config, $model->getFillable());
+        $model->fill((array)$config);
+        $model->save();
     }
 
     /**
@@ -90,7 +131,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
      */
     public static function removeConfig($id)
     {
-        // deleting is not necessary here due to cascading on_delete relationship in database
+        static::destroy($id);
     }
 
     /**
@@ -138,31 +179,6 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
     protected static function prepareConfigSchemaField(array &$schema)
     {
         // clear out server-specific info
-        unset($schema['php_type'], $schema['db_type'], $schema['auto_increment'], $schema['is_index']);
-    }
-
-    /**
-     * @param array     $config
-     * @param array     $rules
-     * @param bool|true $create
-     *
-     * @return \Illuminate\Validation\Validator
-     */
-    protected static function makeValidator(array $config, array $rules, $create = true)
-    {
-        if ($create && !empty($rules)) {
-            $validator = \Validator::make($config, $rules);
-        } else {
-            $newRules = [];
-            foreach ($config as $key => $value) {
-                if (array_key_exists($key, $rules)) {
-                    $newRules[$key] = $rules[$key];
-                }
-            }
-
-            $validator = \Validator::make($config, $newRules);
-        }
-
-        return $validator;
+        unset($schema['db_type'], $schema['auto_increment'], $schema['is_index']);
     }
 }

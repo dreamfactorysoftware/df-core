@@ -10,6 +10,7 @@ use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
+use DreamFactory\Library\Utility\Enums\Verbs;
 use Illuminate\Http\Request;
 use JWTAuth;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;
@@ -19,6 +20,15 @@ use Tymon\JWTAuth\Payload;
 
 class AuthCheck
 {
+    /**
+     * APIs used for authentication
+     * @var array
+     */
+    protected static $authApis = [
+        'api/v2/user/session',
+        'api/v2/system/admin/session'
+    ];
+
     /**
      * @param Request $request
      *
@@ -144,6 +154,10 @@ class AuthCheck
 
                 // Get the session token (JWT)
                 $token = static::getJwt($request);
+                if(in_array(trim($route, '/'), static::$authApis) && $request->getMethod() === Verbs::POST){
+                    // If this is a request for login ignore any token provided.
+                    $token = null;
+                }
                 Session::setSessionToken($token);
 
                 // Get the script token

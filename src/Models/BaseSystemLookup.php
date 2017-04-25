@@ -32,6 +32,24 @@ class BaseSystemLookup extends BaseSystemModel
     protected $encrypted = ['value'];
 
     /**
+     * Removes unwanted fields from field list if supplied.
+     *
+     * @param mixed $fields
+     *
+     * @return array
+     */
+    public static function cleanFields($fields)
+    {
+        $fields = parent::cleanFields($fields);
+        if (('*' !== array_get($fields, 0)) && !in_array('private', $fields)) {
+            $fields[] = 'private';
+        }
+
+        return $fields;
+    }
+
+
+    /**
      * {@inheritdoc}
      */
     public function attributesToArray()
@@ -39,25 +57,10 @@ class BaseSystemLookup extends BaseSystemModel
         $attributes = parent::attributesToArray();
 
         if (Scalar::boolval(array_get($attributes, 'private')) && !is_null(array_get($attributes, 'value'))) {
-            $attributes['value'] = static::PROTECTION_MASK;
+            $attributes['value'] = $this->protectionMask;
         }
 
         return $attributes;
-    }
-
-    // Don't use mutators here as it disrupts the flow of encryption
-    /**
-     * {@inheritdoc}
-     */
-    public function getAttribute($key)
-    {
-        $value = parent::getAttribute($key);
-        // if protected, no need to do anything else, mask it.
-        if (('private' === $key) && Scalar::boolval(array_get($this->attributes, 'private')) && !is_null($value)) {
-            return static::PROTECTION_MASK;
-        }
-
-        return $value;
     }
 
     /**
@@ -66,7 +69,7 @@ class BaseSystemLookup extends BaseSystemModel
     public function setAttribute($key, $value)
     {
         // if mask, no need to do anything else.
-        if (('private' === $key) && ($value === static::PROTECTION_MASK)) {
+        if (('value' === $key) && ($value === $this->protectionMask)) {
             return $this;
         }
 

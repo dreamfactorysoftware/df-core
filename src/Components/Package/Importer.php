@@ -19,7 +19,7 @@ use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Contracts\Encryption\DecryptException;
 use ServiceManager;
 

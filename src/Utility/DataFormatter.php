@@ -2,9 +2,9 @@
 
 namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Core\Utility\ArrayUtils;
 use DreamFactory\Core\Enums\DataFormats;
-use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Core\Utility\Scalar;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\MessageBag;
 

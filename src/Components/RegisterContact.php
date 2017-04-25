@@ -2,7 +2,7 @@
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Models\User;
-use DreamFactory\Library\Utility\Curl;
+use DreamFactory\Core\Utility\Curl;
 
 class RegisterContact
 {

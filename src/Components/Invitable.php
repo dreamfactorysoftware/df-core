@@ -6,7 +6,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Core\Utility\ArrayUtils;
 use DreamFactory\Core\Models\NonAdminUser;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\BadRequestException;

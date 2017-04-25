@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Enums;
 
-use DreamFactory\Library\Utility\Enums\Verbs;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 
 /**

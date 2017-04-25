@@ -1,7 +1,6 @@
 <?php
-namespace DreamFactory\Core\Events\Enums;
+namespace DreamFactory\Core\Enums;
 
-use DreamFactory\Library\Utility\Enums\FactoryEnum;
 
 /**
  * These events are thrown by service handlers before and after resource has been processed

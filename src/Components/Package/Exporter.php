@@ -11,7 +11,7 @@ use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ResponseFactory;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Contracts\FileServiceInterface;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Arr;

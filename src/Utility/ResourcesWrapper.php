@@ -3,7 +3,7 @@ namespace DreamFactory\Core\Utility;
 
 use Config;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Core\Utility\ArrayUtils;
 use Illuminate\Database\Eloquent\Collection;
 
 class ResourcesWrapper

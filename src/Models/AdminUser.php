@@ -2,7 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Core\Utility\ArrayUtils;
 
 class AdminUser extends User
 {

@@ -5,7 +5,7 @@ use DreamFactory\Core\Events\RoleDeletedEvent;
 use DreamFactory\Core\Events\RoleModifiedEvent;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
-use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Core\Utility\ArrayUtils;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**

@@ -1,6 +1,6 @@
 <?php
 
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Support\Arr;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Models\User;

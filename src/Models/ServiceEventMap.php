@@ -3,7 +3,7 @@ namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ServiceResponse;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use ServiceManager;
 use Cache;
 

@@ -10,8 +10,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Models\EventSubscriber;
 use DreamFactory\Core\Utility\ResponseFactory;
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Inflector;
+use DreamFactory\Core\Utility\ArrayUtils;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -274,7 +273,7 @@ class Event extends BaseRestService
     {
         $wrapper = ResourcesWrapper::getWrapper();
         $name = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $capitalized = camel_case($service->name);
 
         $apis = [
             '/' . $name           => [

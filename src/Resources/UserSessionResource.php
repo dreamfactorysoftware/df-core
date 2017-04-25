@@ -11,7 +11,6 @@ use DreamFactory\Core\Models\App;
 use DreamFactory\Core\OAuth\Services\BaseOAuthService;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\Inflector;
 use ServiceManager;
 
 class UserSessionResource extends BaseRestResource
@@ -148,7 +147,7 @@ class UserSessionResource extends BaseRestResource
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = Inflector::camelize($service);
+        $capitalized = camel_case($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;

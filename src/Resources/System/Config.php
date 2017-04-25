@@ -4,8 +4,7 @@ namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\Inflector;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 
 class Config extends BaseSystemResource
@@ -26,7 +25,7 @@ class Config extends BaseSystemResource
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = Inflector::camelize($service);
+        $capitalized = camel_case($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;

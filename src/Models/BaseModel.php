@@ -22,8 +22,7 @@ use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\Session as SessionUtility;
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Core\Utility\ArrayUtils;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use SystemTableModelMapper;
@@ -198,8 +197,8 @@ class BaseModel extends Model implements CacheInterface
 
         $response = [];
         $errors = false;
-        $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
-        $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
+        $rollback = array_get_bool($params, ApiOptions::ROLLBACK);
+        $continue = array_get_bool($params, ApiOptions::CONTINUES);
 
         if ($rollback) {
             //	Start a transaction
@@ -413,8 +412,8 @@ class BaseModel extends Model implements CacheInterface
 
         $response = [];
         $errors = false;
-        $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
-        $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
+        $rollback = array_get_bool($params, ApiOptions::ROLLBACK);
+        $continue = array_get_bool($params, ApiOptions::CONTINUES);
 
         if ($rollback) {
             //	Start a transaction
@@ -564,8 +563,8 @@ class BaseModel extends Model implements CacheInterface
 
         $response = [];
         $errors = false;
-        $rollback = Scalar::boolval(array_get($params, ApiOptions::ROLLBACK));
-        $continue = Scalar::boolval(array_get($params, ApiOptions::CONTINUES));
+        $rollback = array_get_bool($params, ApiOptions::ROLLBACK);
+        $continue = array_get_bool($params, ApiOptions::CONTINUES);
 
         if ($rollback) {
             //	Start a transaction
@@ -769,7 +768,7 @@ class BaseModel extends Model implements CacheInterface
         }
         if (count($data) != count($ids)) {
             $out = [];
-            $continue = Scalar::boolval(array_get($options, ApiOptions::CONTINUES));
+            $continue = array_get_bool($options, ApiOptions::CONTINUES);
             foreach ($ids as $index => $id) {
                 $found = false;
                 foreach ($data as $record) {

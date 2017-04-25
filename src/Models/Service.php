@@ -8,8 +8,7 @@ use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Inflector;
+use DreamFactory\Core\Utility\ArrayUtils;
 use Illuminate\Database\Query\Builder;
 use ServiceManager;
 use Symfony\Component\Yaml\Yaml;
@@ -272,9 +271,9 @@ class Service extends BaseSystemModel
         // replace service placeholders with value for this service instance
         if (!empty($name = data_get($service_info, 'name'))) {
             $lcName = strtolower($name);
-            $ucwName = Inflector::camelize($name);
-            $pluralName = Inflector::pluralize($name);
-            $pluralUcwName = Inflector::pluralize($ucwName);
+            $ucwName = camel_case($name);
+            $pluralName = str_plural($name);
+            $pluralUcwName = str_plural($ucwName);
 
             $content = str_replace(
                 ['{service.name}', '{service.names}', '{service.Name}', '{service.Names}'],

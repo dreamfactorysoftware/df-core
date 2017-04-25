@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Enums;
 
-use DreamFactory\Library\Utility\Enums\FactoryEnum;
 
 /**
  * ResponseFormats

@@ -15,8 +15,8 @@ use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\UserLookup;
-use DreamFactory\Library\Utility\Curl;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Utility\Curl;
+use DreamFactory\Core\Enums\Verbs;
 use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
 
 class Session

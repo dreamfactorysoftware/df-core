@@ -10,7 +10,7 @@ use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
 use ServiceManager;

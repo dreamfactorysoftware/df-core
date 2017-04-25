@@ -10,7 +10,7 @@ use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Http\Request;
 use JWTAuth;
 use Tymon\JWTAuth\Exceptions\TokenExpiredException;

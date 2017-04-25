@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use DreamFactory\Library\Utility\Scalar;
 
 trait DsnToConnectionConfig
 {
@@ -89,7 +88,7 @@ trait DsnToConnectionConfig
         }
         $config['username'] = array_get($entry, 'username');
         $config['password'] = array_get($entry, 'password');
-        if (Scalar::boolval(array_get($entry, 'default_schema_only', false))) {
+        if (array_get_bool($entry, 'default_schema_only')) {
             $config['default_schema_only'] = true;
         }
 

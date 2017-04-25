@@ -11,8 +11,7 @@ use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\BaseModel;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Contracts\FileServiceInterface;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\Inflector;
+use DreamFactory\Core\Enums\Verbs;
 use ServiceManager;
 
 class Packager
@@ -273,7 +272,7 @@ class Packager
             if (!empty(array_get($record, 'storage_container'))) {
                 $record['storage_container'] = trim($record['storage_container'], '/');
             } else {
-                $record['storage_container'] = Inflector::camelize($record['name']);
+                $record['storage_container'] = camel_case($record['name']);
             }
         } else {
             $record['storage_service_id'] = null;
@@ -468,7 +467,7 @@ class Packager
     private function storeApplicationFiles($appInfo)
     {
         if (array_get($appInfo, 'type', AppTypes::NONE) === AppTypes::STORAGE_SERVICE) {
-            $appName = Inflector::camelize(array_get($appInfo, 'name'));
+            $appName = camel_case(array_get($appInfo, 'name'));
             $storageServiceId = array_get($appInfo, 'storage_service_id', $this->getDefaultStorageServiceId());
             $storageFolder = array_get($appInfo, 'storage_container', $appName);
 

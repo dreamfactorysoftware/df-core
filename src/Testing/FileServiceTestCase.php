@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Testing;
 
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Enums\HttpStatusCodes;
 
 abstract class FileServiceTestCase extends TestCase

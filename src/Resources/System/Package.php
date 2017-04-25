@@ -7,7 +7,6 @@ use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Utility\Packager;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Library\Utility\Inflector;
 use DreamFactory\Core\Enums\ApiOptions;
 
 class Package extends BaseSystemResource
@@ -74,7 +73,7 @@ class Package extends BaseSystemResource
         $serviceName = strtolower($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
-        $pluralClass = Inflector::pluralize($class);
+        $pluralClass = str_plural($class);
         $path = '/' . $serviceName . '/' . $resourceName;
         $wrapper = ResourcesWrapper::getWrapper();
 

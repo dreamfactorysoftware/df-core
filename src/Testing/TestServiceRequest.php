@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Testing;
 
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Components\InternalServiceRequest;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;

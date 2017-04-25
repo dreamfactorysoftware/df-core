@@ -7,7 +7,7 @@ use DreamFactory\Core\Components\InternalServiceRequest;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
-use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Core\Utility\Scalar;
 use Illuminate\Support\Str;
 use Request;
 

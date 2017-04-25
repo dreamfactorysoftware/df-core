@@ -7,7 +7,7 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\App as AppModel;
 use DreamFactory\Core\Utility\Packager;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Library\Utility\ArrayUtils;
+use DreamFactory\Core\Utility\ArrayUtils;
 use DreamFactory\Core\Contracts\FileServiceInterface;
 use ServiceManager;
 

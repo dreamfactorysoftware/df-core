@@ -4,7 +4,7 @@ namespace DreamFactory\Core\Commands;
 
 use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Utility\FileUtilities;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Console\Command;
 use ServiceManager;
 

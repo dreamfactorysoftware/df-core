@@ -2,7 +2,6 @@
 
 namespace DreamFactory\Core\Enums;
 
-use DreamFactory\Library\Utility\Enums\FactoryEnum;
 
 class ServiceTypeGroups extends FactoryEnum
 {

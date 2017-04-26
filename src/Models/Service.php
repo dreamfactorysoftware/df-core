@@ -8,8 +8,8 @@ use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Utility\ArrayUtils;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Arr;
 use ServiceManager;
 use Symfony\Component\Yaml\Yaml;
 
@@ -520,7 +520,7 @@ class Service extends BaseSystemModel
         if (array_get($fields, 0) !== '*' && (!in_array('type', $fields) || !in_array('id', $fields))) {
             $result = [];
 
-            if (ArrayUtils::isArrayNumeric($response)) {
+            if (!Arr::isAssoc($response)) {
                 foreach ($response as $r) {
                     if (isset($r['config'])) {
                         unset($r['config']);

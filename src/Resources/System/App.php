@@ -2,13 +2,13 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\App as AppModel;
 use DreamFactory\Core\Utility\Packager;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\ArrayUtils;
-use DreamFactory\Core\Contracts\FileServiceInterface;
+use Illuminate\Support\Arr;
 use ServiceManager;
 
 class App extends BaseSystemResource
@@ -143,7 +143,7 @@ class App extends BaseSystemResource
                 $temp = ResourcesWrapper::unwrapResources($temp);
             }
 
-            if (ArrayUtils::isArrayNumeric($temp)) {
+            if (!Arr::isAssoc($temp)) {
                 foreach ($temp as $app) {
                     static::deleteHostedAppStorage(
                         $app['id'],

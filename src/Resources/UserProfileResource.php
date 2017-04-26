@@ -1,12 +1,11 @@
 <?php
 namespace DreamFactory\Core\Resources;
 
-use DreamFactory\Core\Utility\JWTUtilities;
-use DreamFactory\Core\Exceptions\UnauthorizedException;
-use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Utility\ArrayUtils;
 use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Exceptions\UnauthorizedException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Utility\JWTUtilities;
+use DreamFactory\Core\Utility\Session;
 
 class UserProfileResource extends BaseRestResource
 {
@@ -79,7 +78,7 @@ class UserProfileResource extends BaseRestResource
             'default_app_id'    => array_get($payload, 'default_app_id')
         ];
 
-        ArrayUtils::removeNull($data);
+        $data = array_filter($data, function ($value) { return !is_null($value);});
 
         $user = Session::user();
 

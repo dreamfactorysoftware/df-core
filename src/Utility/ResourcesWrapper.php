@@ -3,8 +3,8 @@ namespace DreamFactory\Core\Utility;
 
 use Config;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Utility\ArrayUtils;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Arr;
 
 class ResourcesWrapper
 {
@@ -37,7 +37,7 @@ class ResourcesWrapper
             $resources = $resources->toArray();
         }
 
-        if (ArrayUtils::isArrayNumeric($resources)) {
+        if (!Arr::isAssoc($resources)) {
             // may already be a simple list
             if (is_array(array_get($resources, 0))) {
                 if (is_string($identifier)) {

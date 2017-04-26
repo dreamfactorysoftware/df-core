@@ -2,17 +2,17 @@
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Components\DbRequestCriteria;
-use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Models\EventSubscriber;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
-use DreamFactory\Core\Utility\ArrayUtils;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Arr;
 
 /**
  * Event Service
@@ -67,7 +67,7 @@ class Event extends BaseRestService
         if (!empty($this->resource) && !empty($payload)) {
             // single records passed in which don't use the record wrapper, so wrap it
             $payload = [$wrapper => [$payload]];
-        } elseif (ArrayUtils::isArrayNumeric($payload)) {
+        } elseif (!Arr::isAssoc($payload)) {
             // import from csv, etc doesn't include a wrapper, so wrap it
             $payload = [$wrapper => $payload];
         }

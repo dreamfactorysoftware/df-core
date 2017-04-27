@@ -83,7 +83,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         'adldap',
         'oauth_provider',
         'last_login_date',
-        'default_app_id'
+        'default_app_id',
+        'saml'
     ];
 
     /**

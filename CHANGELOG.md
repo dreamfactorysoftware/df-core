@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- DF-797 Added support for OpenID Connect
 
 ## [0.9.1] - 2017-04-25
 ### Fixed

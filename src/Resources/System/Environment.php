@@ -10,7 +10,6 @@ use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Core\Enums\Verbs;
-use DreamFactory\Core\Utility\Scalar;
 use ServiceManager;
 
 class Environment extends BaseSystemResource
@@ -530,8 +529,8 @@ class Environment extends BaseSystemResource
                     $v1 = null;
                 }
 
-                if (Scalar::in(strtolower($v1), 'on', 'off', '0', '1')) {
-                    $v1 = Scalar::boolval(array_get($value, 0));
+                if (in_array(strtolower($v1), ['on', 'off', '0', '1'])) {
+                    $v1 = array_get_bool($value, 0);
                 }
 
                 $value = $v1;
@@ -550,7 +549,7 @@ class Environment extends BaseSystemResource
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = camel_case($service);
+        $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;

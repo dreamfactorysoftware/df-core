@@ -8,7 +8,6 @@ use DreamFactory\Core\Events\PreProcessApiEvent;
 use DreamFactory\Core\Events\QueuedApiEvent;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
-use DreamFactory\Core\Utility\ArrayUtils;
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Contracts\RequestHandlerInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -223,7 +222,7 @@ abstract class RestHandler implements RequestHandlerInterface
      */
     protected function handleResource(array $resources)
     {
-        $found = ArrayUtils::findByKeyValue($resources, 'name', $this->resource);
+        $found = array_by_key_value($resources, 'name', $this->resource);
         if (!isset($found, $found['class_name'])) {
             throw new NotFoundException("Resource '{$this->resource}' not found for service '{$this->name}'.");
         }

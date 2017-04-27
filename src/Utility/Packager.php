@@ -272,7 +272,7 @@ class Packager
             if (!empty(array_get($record, 'storage_container'))) {
                 $record['storage_container'] = trim($record['storage_container'], '/');
             } else {
-                $record['storage_container'] = camel_case($record['name']);
+                $record['storage_container'] = camelize($record['name']);
             }
         } else {
             $record['storage_service_id'] = null;
@@ -467,7 +467,7 @@ class Packager
     private function storeApplicationFiles($appInfo)
     {
         if (array_get($appInfo, 'type', AppTypes::NONE) === AppTypes::STORAGE_SERVICE) {
-            $appName = camel_case(array_get($appInfo, 'name'));
+            $appName = camelize(array_get($appInfo, 'name'));
             $storageServiceId = array_get($appInfo, 'storage_service_id', $this->getDefaultStorageServiceId());
             $storageFolder = array_get($appInfo, 'storage_container', $appName);
 

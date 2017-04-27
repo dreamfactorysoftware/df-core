@@ -279,7 +279,7 @@ class Curl extends Verbs
         $_result = curl_exec($_curl);
 
         static::$_info = curl_getinfo($_curl);
-        static::$_lastHttpCode = ArrayUtils::get(static::$_info, 'http_code');
+        static::$_lastHttpCode = array_get(static::$_info, 'http_code');
         static::$_responseHeaders = curl_getinfo($_curl, CURLINFO_HEADER_OUT);
         static::$_responseHeadersSize = curl_getinfo($_curl, CURLINFO_HEADER_SIZE);
 
@@ -330,7 +330,7 @@ class Curl extends Verbs
             }
 
             //	Attempt to auto-decode inbound JSON
-            if (!empty($_result) && false !== stripos(ArrayUtils::get(static::$_info, 'content_type'),
+            if (!empty($_result) && false !== stripos(array_get(static::$_info, 'content_type'),
                     'application/json',
                     0)
             ) {
@@ -425,7 +425,7 @@ class Curl extends Verbs
      */
     public static function getInfo($key = null, $defaultValue = null)
     {
-        return null === $key ? static::$_info : ArrayUtils::get(static::$_info, $key, $defaultValue);
+        return null === $key ? static::$_info : array_get(static::$_info, $key, $defaultValue);
     }
 
     /**
@@ -566,19 +566,19 @@ class Curl extends Verbs
     {
         //	Are we SSL? Check for load balancer protocol as well...
         $_port =
-            intval(ArrayUtils::get($_SERVER, 'HTTP_X_FORWARDED_PORT', ArrayUtils::get($_SERVER, 'SERVER_PORT', 80)));
-        $_protocol = ArrayUtils::get($_SERVER,
+            intval(array_get($_SERVER, 'HTTP_X_FORWARDED_PORT', array_get($_SERVER, 'SERVER_PORT', 80)));
+        $_protocol = array_get($_SERVER,
                 'HTTP_X_FORWARDED_PROTO',
-                'http' . (ArrayUtils::getBool($_SERVER, 'HTTPS') ? 's' : null)) . '://';
+                'http' . (array_get_bool($_SERVER, 'HTTPS') ? 's' : null)) . '://';
         $_host =
-            ArrayUtils::get($_SERVER, 'HTTP_X_FORWARDED_HOST', ArrayUtils::get($_SERVER, 'HTTP_HOST', gethostname()));
-        $_parts = parse_url($_protocol . $_host . ArrayUtils::get($_SERVER, 'REQUEST_URI'));
+            array_get($_SERVER, 'HTTP_X_FORWARDED_HOST', array_get($_SERVER, 'HTTP_HOST', gethostname()));
+        $_parts = parse_url($_protocol . $_host . array_get($_SERVER, 'REQUEST_URI'));
 
-        if ((empty($_port) || !is_numeric($_port)) && null !== ($_parsePort = ArrayUtils::get($_parts, 'port'))) {
+        if ((empty($_port) || !is_numeric($_port)) && null !== ($_parsePort = array_get($_parts, 'port'))) {
             $_port = @intval($_parsePort);
         }
 
-        if (null !== ($_query = ArrayUtils::get($_parts, 'query'))) {
+        if (null !== ($_query = array_get($_parts, 'query'))) {
             $_query = static::urlSeparator($_query) . http_build_query(explode('&', $_query));
         }
 
@@ -595,7 +595,7 @@ class Curl extends Verbs
         }
 
         $_currentUrl =
-            $_protocol . $_host . $_port . (true === $includePath ? ArrayUtils::get($_parts, 'path')
+            $_protocol . $_host . $_port . (true === $includePath ? array_get($_parts, 'path')
                 : null) . (true === $includeQuery ? $_query : null);
 
         return $_currentUrl;

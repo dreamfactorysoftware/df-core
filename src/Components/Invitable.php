@@ -6,12 +6,12 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\ArrayUtils;
 use DreamFactory\Core\Models\NonAdminUser;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\EmailTemplate;
 use DreamFactory\Core\Contracts\EmailServiceInterface;
+use Illuminate\Support\Arr;
 use ServiceManager;
 use Log;
 
@@ -37,7 +37,7 @@ trait Invitable
                     $wrapped = true;
                     $records = array_get($records, ResourcesWrapper::DEFAULT_WRAPPER);
                 }
-                if (ArrayUtils::isArrayNumeric($records)) {
+                if (!Arr::isAssoc($records)) {
                     $passed = true;
                     foreach ($records as &$record) {
                         if ($record instanceof User) {

@@ -12,8 +12,6 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Utility\ArrayUtils;
-use DreamFactory\Core\Utility\Scalar;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
@@ -281,9 +279,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             }
             $model = static::create($record);
 
-            if (Scalar::boolval(array_get($params, 'admin')) &&
-                Scalar::boolval(array_get($record, 'is_sys_admin'))
-            ) {
+            if (array_get_bool($params, 'admin') && array_get_bool($record, 'is_sys_admin')) {
                 $model->is_sys_admin = 1;
             }
 
@@ -324,12 +320,12 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
         $pk = $model->primaryKey;
         //	Remove the PK from the record since this is an update
-        ArrayUtils::remove($record, $pk);
+        unset($record[$pk]);
 
         try {
-            if ($model->is_sys_admin && !Scalar::boolval(array_get($params, 'admin'))) {
+            if ($model->is_sys_admin && !array_get_bool($params, 'admin')) {
                 throw new ForbiddenException('Not allowed to change an admin user.');
-            } elseif (Scalar::boolval(array_get($params, 'admin')) && !$model->is_sys_admin) {
+            } elseif (array_get_bool($params, 'admin') && !$model->is_sys_admin) {
                 throw new BadRequestException('Cannot update a non-admin user.');
             }
 
@@ -392,9 +388,9 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
 
         try {
-            if ($model->is_sys_admin && !Scalar::boolval(array_get($params, 'admin'))) {
+            if ($model->is_sys_admin && !array_get_bool($params, 'admin')) {
                 throw new ForbiddenException('Not allowed to delete an admin user.');
-            } elseif (Scalar::boolval(array_get($params, 'admin')) && !$model->is_sys_admin) {
+            } elseif (array_get_bool($params, 'admin') && !$model->is_sys_admin) {
                 throw new BadRequestException('Cannot delete a non-admin user.');
             } elseif (Session::getCurrentUserId() === $model->id) {
                 throw new ForbiddenException('Cannot delete your account.');

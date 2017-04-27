@@ -2,7 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Utility\ArrayUtils;
+use Illuminate\Support\Arr;
 
 class AdminUser extends User
 {
@@ -111,7 +111,7 @@ class AdminUser extends User
      */
     protected static function fixRecords(array $records)
     {
-        if (ArrayUtils::isArrayNumeric($records)) {
+        if (!Arr::isAssoc($records)) {
             foreach ($records as $key => $record) {
                 $record['is_sys_admin'] = 1;
                 $records[$key] = $record;

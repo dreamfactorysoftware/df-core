@@ -22,7 +22,6 @@ use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\Session as SessionUtility;
-use DreamFactory\Core\Utility\ArrayUtils;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use SystemTableModelMapper;
@@ -178,6 +177,11 @@ class BaseModel extends Model implements CacheInterface
         /** @noinspection PhpUnusedParameterInspection */
         $fields
     ) {
+        // for collections and models
+        if (is_object($response) && method_exists($response, 'toArray')) {
+            return $response->toArray();
+        }
+
         return $response;
     }
 
@@ -483,7 +487,7 @@ class BaseModel extends Model implements CacheInterface
 
         $pk = $model->primaryKey;
         //	Remove the PK from the record since this is an update
-        ArrayUtils::remove($record, $pk);
+        unset($record[$pk]);
 
         try {
             $model->update($record);

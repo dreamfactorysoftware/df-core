@@ -8,8 +8,8 @@ use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Utility\ArrayUtils;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Arr;
 use ServiceManager;
 use Symfony\Component\Yaml\Yaml;
 
@@ -271,7 +271,7 @@ class Service extends BaseSystemModel
         // replace service placeholders with value for this service instance
         if (!empty($name = data_get($service_info, 'name'))) {
             $lcName = strtolower($name);
-            $ucwName = camel_case($name);
+            $ucwName = camelize($name);
             $pluralName = str_plural($name);
             $pluralUcwName = str_plural($ucwName);
 
@@ -512,6 +512,7 @@ class Service extends BaseSystemModel
      */
     protected static function cleanResult($response, $fields)
     {
+        $response = parent::cleanResult($response, $fields);
         if (!is_array($fields)) {
             $fields = explode(',', $fields);
         }
@@ -520,7 +521,7 @@ class Service extends BaseSystemModel
         if (array_get($fields, 0) !== '*' && (!in_array('type', $fields) || !in_array('id', $fields))) {
             $result = [];
 
-            if (ArrayUtils::isArrayNumeric($response)) {
+            if (!Arr::isAssoc($response)) {
                 foreach ($response as $r) {
                     if (isset($r['config'])) {
                         unset($r['config']);

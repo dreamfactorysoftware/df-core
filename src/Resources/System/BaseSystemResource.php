@@ -12,7 +12,6 @@ use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Enums\Verbs;
-use DreamFactory\Core\Utility\Scalar;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -222,7 +221,7 @@ class BaseSystemResource extends BaseRestResource
                     $params = array_get($options, ApiOptions::PARAMS, []);
                     $result = $modelClass::deleteByFilter($filter, $params, $options);
                 } else {
-                    if (!Scalar::boolval(array_get($options, ApiOptions::FORCE))) {
+                    if (!array_get_bool($options, ApiOptions::FORCE)) {
                         throw new BadRequestException('No filter or records given for delete request.');
                     }
 
@@ -256,7 +255,7 @@ class BaseSystemResource extends BaseRestResource
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = camel_case($service);
+        $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $pluralClass = str_plural($class);

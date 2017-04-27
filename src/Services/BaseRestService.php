@@ -139,7 +139,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
     public static function getApiDocInfo($service)
     {
         $name = strtolower($service->name);
-        $capitalized = camel_case($service->name);
+        $capitalized = camelize($service->name);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $pluralClass = str_plural($class);
         $wrapper = ResourcesWrapper::getWrapper();

@@ -273,7 +273,7 @@ class Event extends BaseRestService
     {
         $wrapper = ResourcesWrapper::getWrapper();
         $name = strtolower($service->name);
-        $capitalized = camel_case($service->name);
+        $capitalized = camelize($service->name);
 
         $apis = [
             '/' . $name           => [

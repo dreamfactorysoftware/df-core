@@ -131,7 +131,7 @@ class ReadOnlySystemResource extends BaseRestResource
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = camel_case($service);
+        $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $pluralClass = str_plural($class);

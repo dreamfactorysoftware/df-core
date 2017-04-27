@@ -271,7 +271,7 @@ class Service extends BaseSystemModel
         // replace service placeholders with value for this service instance
         if (!empty($name = data_get($service_info, 'name'))) {
             $lcName = strtolower($name);
-            $ucwName = camel_case($name);
+            $ucwName = camelize($name);
             $pluralName = str_plural($name);
             $pluralUcwName = str_plural($ucwName);
 
@@ -512,6 +512,7 @@ class Service extends BaseSystemModel
      */
     protected static function cleanResult($response, $fields)
     {
+        $response = parent::cleanResult($response, $fields);
         if (!is_array($fields)) {
             $fields = explode(',', $fields);
         }

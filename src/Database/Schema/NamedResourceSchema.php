@@ -157,7 +157,7 @@ class NamedResourceSchema
 
     public function getLabel($use_alias = false)
     {
-        return (empty($this->label)) ? camel_case($this->getName($use_alias), '_', true) : $this->label;
+        return (empty($this->label)) ? camelize($this->getName($use_alias), '_', true) : $this->label;
     }
 
     public function toArray($use_alias = false)

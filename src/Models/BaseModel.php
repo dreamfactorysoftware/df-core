@@ -177,6 +177,11 @@ class BaseModel extends Model implements CacheInterface
         /** @noinspection PhpUnusedParameterInspection */
         $fields
     ) {
+        // for collections and models
+        if (is_object($response) && method_exists($response, 'toArray')) {
+            return $response->toArray();
+        }
+
         return $response;
     }
 

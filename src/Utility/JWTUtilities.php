@@ -31,7 +31,7 @@ class JWTUtilities
 
         /** @type Payload $payload */
         /** @noinspection PhpUndefinedMethodInspection */
-        $payload = JWTFactory::sub($userId)->user_id($userId)->email($email)->forever($forever)->make();
+        $payload = JWTFactory::sub($userId)->user_id($userId)->user_key(md5($email))->forever($forever)->make();
         /** @type Token $token */
         $token = JWTAuth::manager()->encode($payload);
         $tokenValue = $token->get();
@@ -51,10 +51,10 @@ class JWTUtilities
     public static function verifyUser($payload)
     {
         $userId = $payload->get('user_id');
-        $email = $payload->get('email');
+        $userKey = $payload->get('user_key');
         $userInfo = ($userId) ? User::getCachedInfo($userId) : null;
 
-        if (!empty($userInfo) && $email === $userInfo['email']) {
+        if (!empty($userInfo) && $userKey === md5($userInfo['email'])) {
             return true;
         } else {
             throw new TokenInvalidException('User verification failed.');

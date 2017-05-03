@@ -155,7 +155,8 @@ class Exporter
         $this->data['system']['service'] = $this->getAllResources('system', 'service', ['fields' => 'id,name']);
         $this->data['system']['app'] = $this->getAllResources('system', 'app', ['fields' => 'id,name']);
         $this->data['system']['app_group'] = $this->getAllResources('system', 'app_group', ['fields' => 'id,name']);
-        $this->data['system']['user'] = $this->getAllResources('system', 'user', ['fields' => 'id,email']);
+        $this->data['system']['user'] =
+            $this->getAllResources('system', 'user', ['fields' => 'id,email,username,first_name,last_name']);
         $this->data['system']['admin'] = $this->getAllResources('system', 'admin', ['fields' => 'id,email']);
         $this->data['system']['custom'] = $this->getAllResources('system', 'custom');
         $this->data['system']['cors'] = $this->getAllResources('system', 'cors', ['fields' => 'id,path']);
@@ -177,7 +178,12 @@ class Exporter
                     switch ($api) {
                         case 'system/user':
                         case 'system/admin':
-                            $manifest['service'][$serviceName][$resourceName][] = array_get($record, 'email');
+                            $manifest['service'][$serviceName][$resourceName][] = [
+                                'username'   => array_get($record, 'username'),
+                                'email'      => array_get($record, 'email'),
+                                'first_name' => array_get($record, 'first_name'),
+                                'last_name'  => array_get($record, 'last_name')
+                            ];
                             break;
                         case 'system/cors':
                             $manifest['service'][$serviceName][$resourceName][] = array_get($record, 'id');
@@ -328,7 +334,7 @@ class Exporter
      * app files or other storage files.
      *
      * @param FileServiceInterface $storage
-     * @param                 $resource
+     * @param                      $resource
      *
      * @return bool|string
      * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
@@ -527,6 +533,14 @@ class Exporter
                         array_set($params, 'filter', 'email="' . $id . '"');
                     } else {
                         array_set($params, 'filter', 'name="' . $id . '"');
+                    }
+                } elseif (is_array($id)) {
+                    if (isset($id['id']) && is_numeric($id['id'])) {
+                        $resource .= '/' . $id['id'];
+                    } elseif (isset($id['email'])) {
+                        array_set($params, 'filter', 'email="' . $id['email'] . '"');
+                    } elseif (isset($id['name'])) {
+                        array_set($params, 'filter', 'name="' . $id['name'] . '"');
                     }
                 }
         }

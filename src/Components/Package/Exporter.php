@@ -157,7 +157,8 @@ class Exporter
         $this->data['system']['app_group'] = $this->getAllResources('system', 'app_group', ['fields' => 'id,name']);
         $this->data['system']['user'] =
             $this->getAllResources('system', 'user', ['fields' => 'id,email,username,first_name,last_name']);
-        $this->data['system']['admin'] = $this->getAllResources('system', 'admin', ['fields' => 'id,email']);
+        $this->data['system']['admin'] =
+            $this->getAllResources('system', 'admin', ['fields' => 'id,email,username,first_name,last_name']);
         $this->data['system']['custom'] = $this->getAllResources('system', 'custom');
         $this->data['system']['cors'] = $this->getAllResources('system', 'cors', ['fields' => 'id,path']);
         $this->data['system']['email_template'] = $this->getAllResources('system', 'email_template',

@@ -4,7 +4,7 @@ namespace DreamFactory\Core\Enums;
 
 /**
  * ResponseFormats
- * Supported DSP response formats
+ * Supported DreamFactory response formats
  */
 class ResponseFormats extends FactoryEnum
 {

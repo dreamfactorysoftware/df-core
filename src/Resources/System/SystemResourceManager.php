@@ -100,6 +100,12 @@ class SystemResourceManager
                 'class_name'  => Event::class,
             ],
             [
+                'name'        => 'import',
+                'label'       => 'Import',
+                'description' => 'Allows importing resources.',
+                'class_name'  => Import::class,
+            ],
+            [
                 'name'        => 'lookup',
                 'label'       => 'Lookup Keys',
                 'description' => 'Allows configuration of lookup keys.',

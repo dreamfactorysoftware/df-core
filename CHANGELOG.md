@@ -8,6 +8,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Used user_key in JWT claim from improved security
 - DF-776 Added support for CSV as a data source
 
+### Fixed
+- DF-996 Fixed API Docs to show token refresh endpoints
+
 ## [0.9.1] - 2017-04-25
 ### Fixed
 - Correct a lookup privacy issue

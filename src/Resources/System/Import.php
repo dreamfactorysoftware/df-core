@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Components\ResourceImport\Manager;
 use DreamFactory\Core\Components\ResourceImporter;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Http\Controllers\StatusController;
@@ -18,6 +19,7 @@ class Import extends BaseSystemResource
     {
         // Get uploaded file
         $file = $this->request->getFile('file', $this->request->getFile('files'));
+        // Get the service name. Defaults to 'db' service
         $service = $this->request->input('service', 'db');
         $resource = $this->request->input('resource');
 
@@ -26,9 +28,9 @@ class Import extends BaseSystemResource
         }
 
         if(!empty($file)){
-            $importer = new ResourceImporter($file, $service, $resource);
+            $importer = new Manager($file, $service, $resource);
             if($importer->import()){
-                $importedResource = $importer->getResourceName();
+                $importedResource = $importer->getResource();
                 return [
                     'resource' => StatusController::getURI($_SERVER) .
                         '/api/v2/' .

@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Jobs\DBInsert;
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use Log;
 
 class CSV implements Importable
@@ -277,7 +278,7 @@ class CSV implements Importable
             '_schema',
             [],
             [],
-            ['resource' => [$schema]]
+            ResourcesWrapper::wrapResources($schema)
         );
 
         if (in_array($rs->getStatusCode(), [HttpStatusCodes::HTTP_OK, HttpStatusCodes::HTTP_CREATED])) {

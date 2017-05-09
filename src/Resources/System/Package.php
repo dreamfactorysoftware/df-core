@@ -154,7 +154,7 @@ class Package extends BaseSystemResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description' => 'Get package manifest only'
+                    'description' => 'Export/Import package file'
                 ]
             ]
         ];

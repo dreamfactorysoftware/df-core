@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Jobs;
 
+use DreamFactory\Core\Utility\ResourcesWrapper;
 use Illuminate\Bus\Queueable;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Queue\InteractsWithQueue;
@@ -52,7 +53,7 @@ class DBInsert implements ShouldQueue
             Verbs::POST, '_table/' . $this->table,
             [],
             [],
-            ['resource' => $this->records]
+            ResourcesWrapper::wrapResources($this->records)
         );
         if (in_array($rs->getStatusCode(), [HttpStatusCodes::HTTP_OK, HttpStatusCodes::HTTP_CREATED])) {
             //$data = [];

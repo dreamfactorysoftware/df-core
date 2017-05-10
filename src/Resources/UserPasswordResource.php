@@ -48,14 +48,14 @@ class UserPasswordResource extends BaseRestResource
     {
         $oldPassword = $this->getPayloadData('old_password');
         $newPassword = $this->getPayloadData('new_password');
+        $login = $this->request->getParameterAsBool('login');
 
         if (!empty($oldPassword) && Session::isAuthenticated()) {
             $user = Session::user();
 
-            return static::changePassword($user, $oldPassword, $newPassword);
+            return static::changePassword($user, $oldPassword, $newPassword, $login);
         }
 
-        $login = $this->request->getParameterAsBool('login');
         $email = $this->getPayloadData('email');
         $username = $this->getPayloadData('username');
         $code = $this->getPayloadData('code');
@@ -266,7 +266,7 @@ class UserPasswordResource extends BaseRestResource
      * @throws InternalServerErrorException
      * @throws NotFoundException
      */
-    protected static function changePassword(User $user, $old, $new)
+    protected static function changePassword(User $user, $old, $new, $login = true)
     {
         static::isAllowed($user);
 
@@ -295,6 +295,12 @@ class UserPasswordResource extends BaseRestResource
         try {
             $user->password = $new;
             $user->save();
+
+            if ($login) {
+                static::userLogin($user->email, $new);
+
+                return ['success' => true, 'session_token' => Session::getSessionToken()];
+            }
 
             return array('success' => true);
         } catch (\Exception $ex) {

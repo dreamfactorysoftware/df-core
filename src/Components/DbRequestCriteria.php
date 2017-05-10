@@ -13,6 +13,8 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\Session as SessionUtility;
 use Config;
+use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Utility\Session;
 
 /**
  * Class DbRequestCriteria
@@ -39,6 +41,11 @@ trait DbRequestCriteria
      */
     protected function getSelectionCriteria()
     {
+        $options = $this->request->getParameters();
+        $payload = $this->getPayloadData();
+        $options = array_merge($options, $payload);
+        $this->request->setParameters($options);
+
         $criteria = [
             'params' => []
         ];

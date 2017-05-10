@@ -260,6 +260,7 @@ class UserPasswordResource extends BaseRestResource
      * @param User   $user
      * @param string $old
      * @param string $new
+     * @param bool   $login
      *
      * @return array
      * @throws BadRequestException

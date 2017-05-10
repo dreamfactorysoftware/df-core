@@ -86,7 +86,7 @@ class UserPasswordResource extends BaseRestResource
             return static::changePasswordBySecurityAnswer($email, $answer, $newPassword, $login);
         }
 
-        return false;
+        throw new BadRequestException('Not enough information provided to change password.');
     }
 
     /**

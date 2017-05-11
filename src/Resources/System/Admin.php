@@ -85,7 +85,7 @@ class Admin extends BaseSystemResource
                 'email'          => $user->email,
                 'name'           => $user->name,
                 'confirm_code'   => $code,
-                'instance_name'  => \Config::get('df.instance_name'),
+                'app_name'       => \Config::get('app.name'),
                 'link'           => url(\Config::get('df.confirm_admin_invite_url')) .
                     '?code=' . $code .
                     '&email=' . $user->email .

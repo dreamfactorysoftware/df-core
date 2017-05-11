@@ -159,7 +159,7 @@ trait Invitable
                     'phone'          => $user->phone,
                     'content_header' => array_get($templateData, 'subject',
                         'You are invited to try DreamFactory.'),
-                    'instance_name'  => \Config::get('df.instance_name')
+                    'app_name'       => \Config::get('app.name')
                 ]);
             } catch (\Exception $e) {
                 throw new InternalServerErrorException("Error creating user invite. {$e->getMessage()}",

@@ -9,10 +9,6 @@ return [
     'status_route_prefix'          => env('DF_STATUS_ROUTE_PREFIX'),
     // By default, API calls take the form of http://<server_name>/[<storage_route_prefix>/]<storage_service_name>/<file_path>
     'storage_route_prefix'         => env('DF_STORAGE_ROUTE_PREFIX'),
-    // Name of this DreamFactory instance. Defaults to server name.
-    'instance_name'                => env('DF_INSTANCE_NAME', gethostname()),
-    // Log level
-    'log_level'                    => env('DF_LOG_LEVEL', 'WARNING'),
     // XML root tag for http responses.
     'xml_root'                     => env('DF_XML_ROOT', 'dfapi'),
     // Most API calls return a resource array or a single resource, if array, do we wrap it?

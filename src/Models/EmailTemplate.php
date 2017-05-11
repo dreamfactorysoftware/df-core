@@ -61,6 +61,7 @@ class EmailTemplate extends BaseSystemModel
     protected static function getJSONIfArray($value)
     {
         if (is_array($value)) {
+            $value = array_map("trim", $value);
             return json_encode($value);
         }
 

@@ -11,6 +11,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - DF-996 Fixed API Docs to show token refresh endpoints
 - DF-982 Fixed GET over POST on system resources ignoring some parameters in payload
+- DF-620 Allowed email template to enter multiple addresses in to, bcc, cc fields
 
 ## [0.9.1] - 2017-04-25
 ### Fixed

@@ -14,6 +14,30 @@ use ServiceManager;
 
 class Environment extends BaseSystemResource
 {
+    const GOLD_LICENSE = 'GOLD';
+
+    const SILVER_LICENSE = 'SILVER';
+
+    const OPENSRC_LICENSE = 'OPEN SOURCE';
+
+    const GOLD_PACKAGES = [
+        'df-limits',
+        'df-logger'
+    ];
+
+    const SILVER_PACKAGES = [
+        'df-adldap',
+        'df-azure-ad',
+        'df-ibmdb2',
+        'df-notification',
+        'df-oracledb',
+        'df-salesforce',
+        'df-saml',
+        'df-soap',
+        'df-sqlanywhere',
+        'df-sqlsrv'
+    ];
+
     /**
      * @return array
      */
@@ -82,6 +106,7 @@ class Environment extends BaseSystemResource
 
             $packages = static::getInstalledPackagesInfo();
             if (!empty($packages)) {
+                $result['platform']['license'] = static::getLicenseLevel($packages);
                 $result['platform']['packages'] = $packages;
             }
 
@@ -108,6 +133,27 @@ class Environment extends BaseSystemResource
         exec('zip -h', $output, $ret);
 
         return ($ret === 0) ? true : false;
+    }
+
+    /**
+     * @param $packages
+     *
+     * @return string
+     */
+    public static function getLicenseLevel($packages)
+    {
+        foreach (static::GOLD_PACKAGES as $gp) {
+            if (!is_null(array_by_key_value($packages, 'name', 'dreamfactory/' . $gp, 'version'))) {
+                return static::GOLD_LICENSE;
+            }
+        }
+        foreach (static::SILVER_PACKAGES as $sp) {
+            if (!is_null(array_by_key_value($packages, 'name', 'dreamfactory/' . $sp, 'version'))) {
+                return static::SILVER_LICENSE;
+            }
+        }
+
+        return static::OPENSRC_LICENSE;
     }
 
     public static function getInstalledPackagesInfo()
@@ -348,11 +394,11 @@ class Environment extends BaseSystemResource
         foreach ($samls as $saml) {
             $config = ($saml->getConfigAttribute()) ?: [];
             $services[] = [
-                'path'  => $saml->name . '/sso',
-                'name'  => $saml->name,
-                'label' => $saml->label,
-                'verb'  => Verbs::GET,
-                'type'  => 'saml',
+                'path'       => $saml->name . '/sso',
+                'name'       => $saml->name,
+                'label'      => $saml->label,
+                'verb'       => Verbs::GET,
+                'type'       => 'saml',
                 'icon_class' => array_get($config, 'icon_class'),
             ];
         }

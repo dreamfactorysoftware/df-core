@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-797 Added support for OpenID Connect
 - Used user_key in JWT claim from improved security
 - DF-776 Added support for CSV as a data source
+- DF-1075 Added license level in Config - System Info page
 
 ### Fixed
 - DF-996 Fixed API Docs to show token refresh endpoints

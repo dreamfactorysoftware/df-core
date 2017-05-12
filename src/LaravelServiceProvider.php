@@ -250,7 +250,7 @@ class LaravelServiceProvider extends ServiceProvider
                     'name'        => 'oidc',
                     'label'       => 'OpenID Connect',
                     'description' => 'OpenID Connect service supporting SSO.',
-                    'group'       => ServiceTypeGroups::SSO,
+                    'group'       => ServiceTypeGroups::OAUTH,
                 ]
             ],
             'Oracle'       => [

@@ -116,6 +116,7 @@ class Environment extends BaseSystemResource
                 'version'   => php_uname('v'),
                 'host'      => php_uname('n'),
                 'machine'   => php_uname('m'),
+                'ip'        => static::getServerIP()
             ];
             $result['php'] = static::getPhpInfo();
         }
@@ -133,6 +134,20 @@ class Environment extends BaseSystemResource
         exec('zip -h', $output, $ret);
 
         return ($ret === 0) ? true : false;
+    }
+
+    /**
+     * Returns server IP address.
+     * Returns null if not running under
+     * web server context.
+     *
+     * @return mixed
+     */
+    public static function getServerIP()
+    {
+        $server = ($_SERVER) ? $_SERVER : [];
+
+        return array_get($server, 'SERVER_ADDR', array_get($server, 'LOCAL_ADDR'));
     }
 
     /**

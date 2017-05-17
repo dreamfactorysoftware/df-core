@@ -11,7 +11,10 @@ use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Utility\Curl;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Core\Enums\Verbs;
+use Illuminate\Validation\ValidationException;
 use ServiceManager;
+use Cache;
+use Validator;
 
 class Environment extends BaseSystemResource
 {
@@ -138,18 +141,23 @@ class Environment extends BaseSystemResource
     }
 
     /**
-     * Returns server IP address.
-     * Returns null if not running under
-     * web server context.
+     * Returns instance's external IP address.
      *
      * @return mixed
      */
     public static function getExternalIP()
     {
-        $ip = \Cache::rememberForever('external-ip-address', function (){
+        $ip = Cache::rememberForever('external-ip-address', function (){
             $response = Curl::get('http://ipinfo.io/ip');
+            $ip = trim($response, "\t\r\n");
+            try {
+                $validator = Validator::make(['ip' => $ip], ['ip' => 'ip']);
+                $validator->validate();
+            } catch (ValidationException $e) {
+                $ip = null;
+            }
 
-            return trim($response, "\t\r\n");
+            return $ip;
         });
 
         return $ip;

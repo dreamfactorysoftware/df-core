@@ -8,6 +8,7 @@ use DreamFactory\Core\Models\AppGroup as AppGroupModel;
 use DreamFactory\Core\Models\Config as SystemConfig;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
+use DreamFactory\Core\Utility\Curl;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Core\Enums\Verbs;
 use ServiceManager;
@@ -116,7 +117,7 @@ class Environment extends BaseSystemResource
                 'version'   => php_uname('v'),
                 'host'      => php_uname('n'),
                 'machine'   => php_uname('m'),
-                'ip'        => static::getServerIP()
+                'ip'        => static::getExternalIP()
             ];
             $result['php'] = static::getPhpInfo();
         }
@@ -143,11 +144,15 @@ class Environment extends BaseSystemResource
      *
      * @return mixed
      */
-    public static function getServerIP()
+    public static function getExternalIP()
     {
-        $server = ($_SERVER) ? $_SERVER : [];
+        $ip = \Cache::rememberForever('external-ip-address', function (){
+            $response = Curl::get('http://ipinfo.io/ip');
 
-        return array_get($server, 'SERVER_ADDR', array_get($server, 'LOCAL_ADDR'));
+            return trim($response, "\t\r\n");
+        });
+
+        return $ip;
     }
 
     /**

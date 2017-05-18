@@ -195,7 +195,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $updatedRole = $this->getRole(static::$roleIds[1]);
 
-        $this->assertEquals(3, count($updatedRole['role_lookup_by_role_id']));
+        $this->assertEquals(2, count($updatedRole['role_lookup_by_role_id']));
     }
 
     public function testPATCHDeleteRelation()
@@ -211,7 +211,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $updatedRole = $this->getRole(static::$roleIds[1]);
 
-        $this->assertEquals(2, count($updatedRole['role_lookup_by_role_id']));
+        $this->assertEquals(1, count($updatedRole['role_lookup_by_role_id']));
     }
 
     public function testPATCHAdoptRelation()

@@ -152,7 +152,7 @@ class TestCase extends LaravelTestCase
     /**
      * @param $name
      *
-     * @return BaseRestService
+     * @return mixed
      */
     public static function getService($name)
     {

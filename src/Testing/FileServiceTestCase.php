@@ -114,7 +114,7 @@ abstract class FileServiceTestCase extends TestCase
             static::FOLDER_1 .
             '/f2","path":"' .
             static::FOLDER_1 .
-            '/f2/"}',
+            '/f2/","type":"file"}',
             $content);
     }
 

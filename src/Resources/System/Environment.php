@@ -8,12 +8,40 @@ use DreamFactory\Core\Models\AppGroup as AppGroupModel;
 use DreamFactory\Core\Models\Config as SystemConfig;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
+use DreamFactory\Core\Utility\Curl;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Core\Enums\Verbs;
+use Illuminate\Validation\ValidationException;
 use ServiceManager;
+use Cache;
+use Validator;
 
 class Environment extends BaseSystemResource
 {
+    const GOLD_LICENSE = 'GOLD';
+
+    const SILVER_LICENSE = 'SILVER';
+
+    const OPENSRC_LICENSE = 'OPEN SOURCE';
+
+    const GOLD_PACKAGES = [
+        'df-limits',
+        'df-logger'
+    ];
+
+    const SILVER_PACKAGES = [
+        'df-adldap',
+        'df-azure-ad',
+        'df-ibmdb2',
+        'df-notification',
+        'df-oracledb',
+        'df-salesforce',
+        'df-saml',
+        'df-soap',
+        'df-sqlanywhere',
+        'df-sqlsrv'
+    ];
+
     /**
      * @return array
      */
@@ -82,6 +110,7 @@ class Environment extends BaseSystemResource
 
             $packages = static::getInstalledPackagesInfo();
             if (!empty($packages)) {
+                $result['platform']['license'] = static::getLicenseLevel($packages);
                 $result['platform']['packages'] = $packages;
             }
 
@@ -91,6 +120,7 @@ class Environment extends BaseSystemResource
                 'version'   => php_uname('v'),
                 'host'      => php_uname('n'),
                 'machine'   => php_uname('m'),
+                'ip'        => static::getExternalIP()
             ];
             $result['php'] = static::getPhpInfo();
         }
@@ -108,6 +138,50 @@ class Environment extends BaseSystemResource
         exec('zip -h', $output, $ret);
 
         return ($ret === 0) ? true : false;
+    }
+
+    /**
+     * Returns instance's external IP address.
+     *
+     * @return mixed
+     */
+    public static function getExternalIP()
+    {
+        $ip = Cache::rememberForever('external-ip-address', function (){
+            $response = Curl::get('http://ipinfo.io/ip');
+            $ip = trim($response, "\t\r\n");
+            try {
+                $validator = Validator::make(['ip' => $ip], ['ip' => 'ip']);
+                $validator->validate();
+            } catch (ValidationException $e) {
+                $ip = null;
+            }
+
+            return $ip;
+        });
+
+        return $ip;
+    }
+
+    /**
+     * @param $packages
+     *
+     * @return string
+     */
+    public static function getLicenseLevel($packages)
+    {
+        foreach (static::GOLD_PACKAGES as $gp) {
+            if (!is_null(array_by_key_value($packages, 'name', 'dreamfactory/' . $gp, 'version'))) {
+                return static::GOLD_LICENSE;
+            }
+        }
+        foreach (static::SILVER_PACKAGES as $sp) {
+            if (!is_null(array_by_key_value($packages, 'name', 'dreamfactory/' . $sp, 'version'))) {
+                return static::SILVER_LICENSE;
+            }
+        }
+
+        return static::OPENSRC_LICENSE;
     }
 
     public static function getInstalledPackagesInfo()
@@ -348,11 +422,11 @@ class Environment extends BaseSystemResource
         foreach ($samls as $saml) {
             $config = ($saml->getConfigAttribute()) ?: [];
             $services[] = [
-                'path'  => $saml->name . '/sso',
-                'name'  => $saml->name,
-                'label' => $saml->label,
-                'verb'  => Verbs::GET,
-                'type'  => 'saml',
+                'path'       => $saml->name . '/sso',
+                'name'       => $saml->name,
+                'label'      => $saml->label,
+                'verb'       => Verbs::GET,
+                'type'       => 'saml',
                 'icon_class' => array_get($config, 'icon_class'),
             ];
         }

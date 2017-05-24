@@ -196,6 +196,36 @@ class UserSessionResource extends BaseRestResource
                     ],
                     'description' => 'Calling this creates a new session and logs in the user.',
                 ],
+                'put'   => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'refresh' . $capitalized . '() - Refresh user session token.',
+                    'operationId' => 'refresh' . $capitalized,
+                    'parameters'  => [
+                        [
+                            'name'        => 'session_token',
+                            'description' => 'Session token that needs to be refreshed.',
+                            'type'        => 'string',
+                            'in'          => 'query'
+                        ],
+                        [
+                            'name'        => 'X-DreamFactory-Session-Token',
+                            'description' => 'Session token that needs to be refreshed.',
+                            'type'        => 'string',
+                            'in'          => 'header'
+                        ]
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Session',
+                            'schema'      => ['$ref' => '#/definitions/Session']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Calling this refreshes user session token.',
+                ],
                 'delete' => [
                     'tags'        => [$serviceName],
                     'summary'     => 'logout' .

@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Utility;
 
 use Carbon\Carbon;
@@ -28,10 +29,9 @@ class JWTUtilities
         if (\Config::get('df.allow_forever_sessions') === false) {
             $forever = false;
         }
-
         /** @type Payload $payload */
         /** @noinspection PhpUndefinedMethodInspection */
-        $payload = JWTFactory::sub($userId)->user_id($userId)->email($email)->forever($forever)->make();
+        $payload = JWTFactory::sub(md5($email))->customClaims(['user_id' => $userId, 'forever' => $forever])->make();
         /** @type Token $token */
         $token = JWTAuth::manager()->encode($payload);
         $tokenValue = $token->get();
@@ -51,10 +51,10 @@ class JWTUtilities
     public static function verifyUser($payload)
     {
         $userId = $payload->get('user_id');
-        $email = $payload->get('email');
+        $userKey = $payload->get('sub');
         $userInfo = ($userId) ? User::getCachedInfo($userId) : null;
 
-        if (!empty($userInfo) && $email === $userInfo['email']) {
+        if (!empty($userInfo) && $userKey === md5($userInfo['email'])) {
             return true;
         } else {
             throw new TokenInvalidException('User verification failed.');

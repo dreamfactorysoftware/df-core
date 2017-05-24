@@ -3,6 +3,17 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- DF-797 Added support for OpenID Connect
+- Used user_key in JWT claim from improved security
+- DF-776 Added support for CSV as a data source
+- DF-1075 Added license level in Config - System Info page
+- DF-1106 Added server IP address on system/environment
+
+### Fixed
+- DF-996 Fixed API Docs to show token refresh endpoints
+- DF-982 Fixed GET over POST on system resources ignoring some parameters in payload
+- DF-620 Allowed email template to enter multiple addresses in to, bcc, cc fields
 
 ## [0.9.1] - 2017-04-25
 ### Fixed

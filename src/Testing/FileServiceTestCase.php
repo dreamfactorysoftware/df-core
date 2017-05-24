@@ -10,7 +10,7 @@ abstract class FileServiceTestCase extends TestCase
     const FOLDER_2 = 'df-test-folder-2';
     const FOLDER_3 = 'df-test-folder-3';
     const FOLDER_4 = 'df-test-folder-4';
-    const LOCAL_HOST = '192.168.10.10';
+    const LOCAL_HOST = '192.168.10.11';
 
     /************************************************
      * Testing POST

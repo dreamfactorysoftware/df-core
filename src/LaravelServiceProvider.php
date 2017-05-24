@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core;
 
 use DreamFactory\Core\Commands\ClearAllFileCache;
@@ -117,30 +118,30 @@ class LaravelServiceProvider extends ServiceProvider
     {
         // The service manager is used to resolve various services and service types.
         // It also implements the resolver interface which may be used by other components adding service types.
-        $this->app->singleton('df.service', function ($app) {
+        $this->app->singleton('df.service', function ($app){
             return new ServiceManager($app);
         });
 
         // The system resource manager is used to resolve various system resource types.
         // It also implements the resolver interface which may be used by other components adding system resource types.
-        $this->app->singleton('df.system.resource', function ($app) {
+        $this->app->singleton('df.system.resource', function ($app){
             return new SystemResourceManager($app);
         });
 
         // The system table-model mapper is used to resolve various system tables to models.
         // It also implements the resolver interface which may be used by other components adding system table mappings.
-        $this->app->singleton('df.system.table_model_map', function ($app) {
+        $this->app->singleton('df.system.table_model_map', function ($app){
             return new SystemTableModelMapper($app);
         });
 
         // The database schema extension manager is used to resolve various database schema extensions.
         // It also implements the resolver interface which may be used by other components adding schema extensions.
-        $this->app->singleton('db.schema', function ($app) {
+        $this->app->singleton('db.schema', function ($app){
             return new DbSchemaExtensions($app);
         });
 
         // Add the system service
-        $this->app->resolving('df.service', function (ServiceManager $df) {
+        $this->app->resolving('df.service', function (ServiceManager $df){
             $df->addType(new ServiceType([
                     'name'            => 'system',
                     'label'           => 'System Management',
@@ -151,7 +152,7 @@ class LaravelServiceProvider extends ServiceProvider
                     'default_api_doc' => function ($service) {
                         return $this->buildServiceDoc($service->id, System::getApiDocInfo($service));
                     },
-                    'factory'         => function ($config) {
+                    'factory'         => function ($config){
                         return new System($config);
                     },
                 ]
@@ -162,8 +163,8 @@ class LaravelServiceProvider extends ServiceProvider
     protected function registerExtensions()
     {
         // Add our database drivers.
-        $this->app->resolving('db', function (DatabaseManager $db) {
-            $db->extend('sqlite', function ($config) {
+        $this->app->resolving('db', function (DatabaseManager $db){
+            $db->extend('sqlite', function ($config){
                 $connector = new SQLiteConnector();
                 $connection = $connector->connect($config);
 

@@ -236,22 +236,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // System Configuration
-        Schema::create(
-            'system_config',
-            function (Blueprint $t) use ($userOnDelete){
-                $t->string('db_version', 32)->primary();
-                $t->boolean('login_with_user_name')->default(0);
-                $t->integer('default_app_id')->unsigned()->nullable();
-                $t->timestamp('created_date')->nullable();
-                $t->timestamp('last_modified_date')->useCurrent();
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($userOnDelete);
-            }
-        );
-
         //Cors config table
         Schema::create(
             'cors_config',
@@ -395,6 +379,26 @@ class CreateSystemTables extends Migration
             }
         );
 
+        // System Configuration
+        Schema::create(
+            'system_config',
+            function (Blueprint $t) use ($userOnDelete){
+                $t->integer('service_id')->unsigned()->primary();
+                $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
+                $t->boolean('login_with_user_name')->default(0);
+                $t->integer('default_app_id')->unsigned()->nullable();
+                $t->foreign('default_app_id')->references('id')->on('app')->onDelete('set null');
+                $t->integer('invite_email_service_id')->unsigned()->nullable();
+                $t->foreign('invite_email_service_id')->references('id')->on('service')->onDelete('set null');
+                $t->integer('invite_email_template_id')->unsigned()->nullable();
+                $t->foreign('invite_email_template_id')->references('id')->on('email_template')->onDelete('set null');
+                $t->integer('password_email_service_id')->unsigned()->nullable();
+                $t->foreign('password_email_service_id')->references('id')->on('service')->onDelete('set null');
+                $t->integer('password_email_template_id')->unsigned()->nullable();
+                $t->foreign('password_email_template_id')->references('id')->on('email_template')->onDelete('set null');
+            }
+        );
+
         // create system customizations
         Schema::create(
             'system_custom',
@@ -422,6 +426,8 @@ class CreateSystemTables extends Migration
 
         // system customizations
         Schema::dropIfExists('system_custom');
+        // System Configuration
+        Schema::dropIfExists('system_config');
         // File storage, public path designation
         Schema::dropIfExists('file_service_config');
         // Cache-able service configuration
@@ -434,8 +440,6 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('service_doc');
         // Event Subscribers
         Schema::dropIfExists('event_subscriber');
-        // System Configuration
-        Schema::dropIfExists('system_config');
         // Role Lookup Keys
         Schema::dropIfExists('role_lookup');
         // Role Service Accesses

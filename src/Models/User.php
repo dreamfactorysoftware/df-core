@@ -531,7 +531,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     public static function getCachedInfo($id, $key = null, $default = null)
     {
         $cacheKey = 'user:' . $id;
-        $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
+        $result = \Cache::remember($cacheKey, \Config::get('cache.default_ttl'), function () use ($id){
             $user = static::with('user_lookup_by_user_id')->whereId($id)->first();
             if (empty($user)) {
                 throw new NotFoundException("User not found.");
@@ -599,7 +599,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
         if ($validator->fails()) {
             $errors = $validator->getMessageBag()->all();
-            $data = array_merge($data, ['errors' => $errors, 'version' => \Config::get('df.version')]);
+            $data = array_merge($data, ['errors' => $errors, 'version' => \Config::get('app.version')]);
 
             return false;
         } else {

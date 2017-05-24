@@ -29,7 +29,7 @@ trait DbRequestCriteria
         // some classes define their own default
         $default = defined('static::MAX_RECORDS_RETURNED') ? static::MAX_RECORDS_RETURNED : 1000;
 
-        return intval(\Config::get('df.db.max_records_returned', $default));
+        return intval(\Config::get('database.max_records_returned', $default));
     }
 
     /**

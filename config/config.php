@@ -20,15 +20,12 @@ return [
     'storage_path'                 => env('DF_MANAGED_STORAGE_PATH', storage_path()),
     // Path to package file/folder/url to import during instance launch.
     'package_path'                 => env('DF_PACKAGE_PATH'),
-    'local_file_service_container' => trim(env('DF_LOCAL_FILE_ROOT', 'app'), '/'),
     // File chunk size for downloadable files in Byte. Default is 10MB
     'file_chunk_size'              => env('DF_FILE_CHUNK_SIZE', 10000000),
     // User attribute to use for authentication (email or username).
     'login_attribute'              => env('DF_LOGIN_ATTRIBUTE', 'email'),
     // DB configs
     'db'                           => [
-        // The default number of records to return at once for database queries
-        'max_records_returned' => env('DF_DB_MAX_RECORDS_RETURNED', 1000),
         //-------------------------------------------------------------------------
         //	Date and Time Format Options
         //  The default date and time formats used for in and out requests for
@@ -59,8 +56,6 @@ return [
             'dumpconfig'  => env('DF_FREETDS_DUMPCONFIG'),
         ],
     ],
-    // Cache config, in minutes
-    'default_cache_ttl'            => env('DF_CACHE_TTL', 300),
     // Session config
     'allow_forever_sessions'       => env('DF_ALLOW_FOREVER_SESSIONS', false),
     // System URLs
@@ -69,8 +64,7 @@ return [
     'confirm_admin_invite_url'     => env('DF_CONFIRM_ADMIN_INVITE_URL', '/dreamfactory/dist/#/admin-invite'),
     'confirm_register_url'         => env('DF_CONFIRM_REGISTER_URL', '/dreamfactory/dist/#/register-confirm'),
     'confirm_code_length'          => env('DF_CONFIRM_CODE_LENGTH', 32),
-    'confirm_code_ttl'             => env('DF_CONFIRM_CODE_TTL', 1440),
-    // 1440 minutes (24 hours).
+    'confirm_code_ttl'             => env('DF_CONFIRM_CODE_TTL', 1440), // 1440 minutes (24 hours).
     'landing_page'                 => env('DF_LANDING_PAGE', '/dreamfactory/dist/index.html'),
     // Enable/disable detailed CORS logging
     'log_cors_info'                => false,

@@ -17,6 +17,7 @@ use DreamFactory\Core\Facades\ServiceManager as ServiceManagerFacade;
 use DreamFactory\Core\Facades\SystemResourceManager as SystemResourceManagerFacade;
 use DreamFactory\Core\Facades\SystemTableModelMapper as SystemTableModelMapperFacade;
 use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
+use DreamFactory\Core\Models\Config;
 use DreamFactory\Core\Models\SystemTableModelMapper;
 use DreamFactory\Core\Providers\CorsServiceProvider;
 use DreamFactory\Core\Providers\RouteServiceProvider;
@@ -29,6 +30,8 @@ use Illuminate\Database\SQLiteConnection;
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Support\ServiceProvider;
 use Event;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Facades\JWTFactory;
 
 class LaravelServiceProvider extends ServiceProvider
 {
@@ -89,6 +92,8 @@ class LaravelServiceProvider extends ServiceProvider
 
         // DreamFactory Specific Facades...
         $loader = AliasLoader::getInstance();
+        $loader->alias('JWTAuth', JWTAuth::class);
+        $loader->alias('JWTFactory', JWTFactory::class);
         $loader->alias('ServiceManager', ServiceManagerFacade::class);
         $loader->alias('SystemResourceManager', SystemResourceManagerFacade::class);
         $loader->alias('SystemTableModelMapper', SystemTableModelMapperFacade::class);
@@ -142,6 +147,7 @@ class LaravelServiceProvider extends ServiceProvider
                     'description'     => 'Service supporting management of the system.',
                     'group'           => ServiceTypeGroups::SYSTEM,
                     'singleton'       => true,
+                    'config_handler'  => Config::class,
                     'default_api_doc' => function ($service) {
                         return $this->buildServiceDoc($service->id, System::getApiDocInfo($service));
                     },

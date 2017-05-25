@@ -42,6 +42,10 @@ class Admin extends BaseSystemResource
      */
     protected function handlePOST()
     {
+        $records = $this->request->getPayloadData();
+        $records = static::removeEmptyAttributes($records);
+        $this->request->setPayloadData($records);
+
         $response = parent::handlePOST();
         if ($this->request->getParameterAsBool('send_invite')) {
             $this->handleInvitation($response, true);

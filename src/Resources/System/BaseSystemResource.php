@@ -252,6 +252,46 @@ class BaseSystemResource extends BaseRestResource
         return new static::$model;
     }
 
+    /**
+     * @param $data
+     *
+     * @return array
+     */
+    protected static function removeEmptyAttributes($data)
+    {
+        $records = $data;
+        $unwrapped = false;
+        if (isset($data[ResourcesWrapper::getWrapper()])) {
+            $records = $data[ResourcesWrapper::getWrapper()];
+            $unwrapped = true;
+        }
+
+        foreach ($records as $i => $record) {
+            if (is_numeric($i) && array($record)) {
+                foreach ($record as $key => $value) {
+                    if (empty($value)) {
+                        unset($records[$i][$key]);
+                    } elseif (is_string($value)) {
+                        if (strtolower($value) === "true") {
+                            $records[$i][$key] = true;
+                        } elseif (strtolower($value) === "false") {
+                            $records[$i][$key] = false;
+                        } elseif (strtolower($value) === "null") {
+                            $records[$i][$key] = null;
+                        }
+                    }
+                }
+            }
+        }
+
+        $data = $records;
+        if ($unwrapped) {
+            $data = ResourcesWrapper::wrapResources($data);
+        }
+
+        return $data;
+    }
+
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
@@ -403,7 +443,7 @@ class BaseSystemResource extends BaseRestResource
                         'By default, only the id property of the record is returned on success, ' .
                         'use \'fields\' and \'related\' to return more info.',
                 ],
-                'put'  => [
+                'put'    => [
                     'tags'        => [$serviceName],
                     'summary'     => 'replace' .
                         $capitalized .
@@ -563,7 +603,7 @@ class BaseSystemResource extends BaseRestResource
                         'Post data should be an array of fields to update for a single record. <br>' .
                         'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
                 ],
-                'put'      => [
+                'put'        => [
                     'tags'        => [$serviceName],
                     'summary'     => 'replace' . $capitalized . $class . '() - Replace one ' . $class . '.',
                     'operationId' => 'replace' . $capitalized . $class,

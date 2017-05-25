@@ -45,7 +45,7 @@ class LaravelServiceProvider extends ServiceProvider
     public function boot()
     {
         // add our df config
-        $configPath = __DIR__ . '/../config/config.php';
+        $configPath = __DIR__ . '/../config/df.php';
         if (function_exists('config_path')) {
             $publishPath = config_path('df.php');
         } else {
@@ -76,8 +76,7 @@ class LaravelServiceProvider extends ServiceProvider
     public function register()
     {
         // merge in df config, https://laravel.com/docs/5.4/packages#resources
-        $configPath = __DIR__ . '/../config/config.php';
-        $this->mergeConfigFrom($configPath, 'df');
+        $this->mergeConfigFrom( __DIR__ . '/../config/df.php', 'df');
 
         $this->registerServices();
         $this->registerExtensions();

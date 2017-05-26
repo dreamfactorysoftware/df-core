@@ -182,7 +182,7 @@ class App extends BaseSystemModel
     {
         $cacheKey = 'app:' . $id;
         try {
-            $result = \Cache::remember($cacheKey, \Config::get('cache.default_ttl'), function () use ($id){
+            $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
                 $app = App::with('app_lookup_by_app_id')->whereId($id)->first();
 
                 if (empty($app)) {
@@ -219,7 +219,7 @@ class App extends BaseSystemModel
     public static function setApiKeyToAppId($api_key, $app_id)
     {
         $cacheKey = 'apikey2appid:' . $api_key;
-        \Cache::put($cacheKey, $app_id, \Config::get('cache.default_ttl'));
+        \Cache::put($cacheKey, $app_id, \Config::get('df.default_cache_ttl'));
     }
 
     /**
@@ -233,7 +233,7 @@ class App extends BaseSystemModel
     {
         $cacheKey = 'apikey2appid:' . $api_key;
         try {
-            return \Cache::remember($cacheKey, \Config::get('cache.default_ttl'), function () use ($api_key){
+            return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($api_key){
                 return App::whereApiKey($api_key)->firstOrFail()->id;
             });
         } catch (ModelNotFoundException $ex) {

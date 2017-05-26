@@ -40,7 +40,7 @@ class Lookup extends BaseSystemLookup
     {
         $cacheKey = 'system_lookups';
         try {
-            $result = \Cache::remember($cacheKey, \Config::get('cache.default_ttl'), function (){
+            $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function (){
                 return Lookup::all()->toArray();
             });
 

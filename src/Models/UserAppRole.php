@@ -80,7 +80,7 @@ class UserAppRole extends BaseModel
     public static function getRoleIdByAppIdAndUserId($app_id, $user_id)
     {
         $cacheKey = static::makeRoleIdCacheKey($app_id, $user_id);
-        $result = \Cache::remember($cacheKey, \Config::get('cache.default_ttl'),
+        $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'),
             function () use ($app_id, $user_id) {
                 try {
                     return static::whereAppId($app_id)->whereUserId($user_id)->value('role_id');
@@ -100,7 +100,7 @@ class UserAppRole extends BaseModel
     public static function setRoleIdByAppIdAndUserId($app_id, $user_id, $role_id)
     {
         $cacheKey = static::makeRoleIdCacheKey($app_id, $user_id);
-        \Cache::put($cacheKey, $role_id, \Config::get('cache.default_ttl'));
+        \Cache::put($cacheKey, $role_id, \Config::get('df.default_cache_ttl'));
     }
 
     /**

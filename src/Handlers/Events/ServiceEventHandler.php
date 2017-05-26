@@ -49,7 +49,7 @@ class ServiceEventHandler
     {
         $eventName = str_replace('.queued', null, $event->name);
         $ckey = 'event:' . $eventName;
-        $records = Cache::remember($ckey, Config::get('cache.default_ttl'), function () use ($eventName) {
+        $records = Cache::remember($ckey, Config::get('df.default_cache_ttl'), function () use ($eventName) {
             return ServiceEventMap::whereEvent($eventName)->get()->all();
         });
         if (empty($records)) {
@@ -57,7 +57,7 @@ class ServiceEventHandler
             $serviceName = substr($eventName, 0, strpos($eventName, '.'));
             $wildcardEvent = $serviceName . '.*';
             $ckey = 'event:' . $wildcardEvent;
-            $records = Cache::remember($ckey, Config::get('cache.default_ttl'), function () use ($wildcardEvent) {
+            $records = Cache::remember($ckey, Config::get('df.default_cache_ttl'), function () use ($wildcardEvent) {
                 return ServiceEventMap::whereEvent($wildcardEvent)->get()->all();
             });
         }

@@ -109,7 +109,7 @@ class Role extends BaseSystemModel
     {
         $cacheKey = 'role:' . $id;
         try {
-            $result = \Cache::remember($cacheKey, \Config::get('cache.default_ttl'), function () use ($id){
+            $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
                 $role = Role::with(
                     [
                         'role_lookup_by_role_id',

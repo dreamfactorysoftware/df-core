@@ -362,7 +362,7 @@ class Service extends BaseSystemModel
     public static function getCachedByName($name, $key = null, $default = null)
     {
         $cacheKey = 'service:' . $name;
-        $result = \Cache::remember($cacheKey, \Config::get('cache.default_ttl'), function () use ($name) {
+        $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name) {
             /** @var Service $service */
             $service = static::whereName($name)->first();
             if (empty($service)) {
@@ -427,7 +427,7 @@ class Service extends BaseSystemModel
     {
         $cacheKey = 'service_id:' . $id;
 
-        return \Cache::remember($cacheKey, \Config::get('cache.default_ttl'), function () use ($id) {
+        return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id) {
             $name = static::whereId($id)->value('name');
 
             if (empty($name)) {
@@ -449,7 +449,7 @@ class Service extends BaseSystemModel
     {
         $cacheKey = 'service_name:' . $name;
 
-        return \Cache::remember($cacheKey, \Config::get('cache.default_ttl'), function () use ($name) {
+        return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($name) {
             $id = static::whereName($name)->value('id');
 
             if (empty($id)) {

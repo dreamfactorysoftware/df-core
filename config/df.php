@@ -56,6 +56,8 @@ return [
             'dumpconfig'  => env('DF_FREETDS_DUMPCONFIG'),
         ],
     ],
+    // Cache config, in minutes
+    'default_cache_ttl'            => env('CACHE_DEFAULT_TTL', env('DF_CACHE_TTL', 300)),
     // Session config
     'allow_forever_sessions'       => env('DF_ALLOW_FOREVER_SESSIONS', false),
     // System URLs

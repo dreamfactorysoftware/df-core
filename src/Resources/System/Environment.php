@@ -13,7 +13,6 @@ use DreamFactory\Core\Utility\Session as SessionUtilities;
 use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Validation\ValidationException;
 use ServiceManager;
-use Cache;
 use Validator;
 
 class Environment extends BaseSystemResource
@@ -147,7 +146,7 @@ class Environment extends BaseSystemResource
      */
     public static function getExternalIP()
     {
-        $ip = Cache::rememberForever('external-ip-address', function (){
+        $ip = \Cache::rememberForever('external-ip-address', function (){
             $response = Curl::get('http://ipinfo.io/ip');
             $ip = trim($response, "\t\r\n");
             try {

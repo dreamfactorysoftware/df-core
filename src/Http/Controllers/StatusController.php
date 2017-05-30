@@ -49,7 +49,7 @@ class StatusController extends Controller
             "managed"   => env('DF_MANAGED', false),
             "dist"      => $dist,
             "demo"      => Environment::isDemoApplication(),
-            "version"   => \Config::get('df.version'),
+            "version"   => \Config::get('app.version'),
             "host_os"   => PHP_OS,
             "resources" => [
                 "app"     => $appCount,

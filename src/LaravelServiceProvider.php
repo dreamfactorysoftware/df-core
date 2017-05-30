@@ -18,6 +18,7 @@ use DreamFactory\Core\Facades\ServiceManager as ServiceManagerFacade;
 use DreamFactory\Core\Facades\SystemResourceManager as SystemResourceManagerFacade;
 use DreamFactory\Core\Facades\SystemTableModelMapper as SystemTableModelMapperFacade;
 use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
+use DreamFactory\Core\Models\Config;
 use DreamFactory\Core\Models\SystemTableModelMapper;
 use DreamFactory\Core\Providers\CorsServiceProvider;
 use DreamFactory\Core\Providers\RouteServiceProvider;
@@ -30,6 +31,8 @@ use Illuminate\Database\SQLiteConnection;
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Support\ServiceProvider;
 use Event;
+use Tymon\JWTAuth\Facades\JWTAuth;
+use Tymon\JWTAuth\Facades\JWTFactory;
 
 class LaravelServiceProvider extends ServiceProvider
 {
@@ -42,7 +45,7 @@ class LaravelServiceProvider extends ServiceProvider
     public function boot()
     {
         // add our df config
-        $configPath = __DIR__ . '/../config/config.php';
+        $configPath = __DIR__ . '/../config/df.php';
         if (function_exists('config_path')) {
             $publishPath = config_path('df.php');
         } else {
@@ -73,8 +76,7 @@ class LaravelServiceProvider extends ServiceProvider
     public function register()
     {
         // merge in df config, https://laravel.com/docs/5.4/packages#resources
-        $configPath = __DIR__ . '/../config/config.php';
-        $this->mergeConfigFrom($configPath, 'df');
+        $this->mergeConfigFrom( __DIR__ . '/../config/df.php', 'df');
 
         $this->registerServices();
         $this->registerExtensions();
@@ -90,6 +92,8 @@ class LaravelServiceProvider extends ServiceProvider
 
         // DreamFactory Specific Facades...
         $loader = AliasLoader::getInstance();
+        $loader->alias('JWTAuth', JWTAuth::class);
+        $loader->alias('JWTFactory', JWTFactory::class);
         $loader->alias('ServiceManager', ServiceManagerFacade::class);
         $loader->alias('SystemResourceManager', SystemResourceManagerFacade::class);
         $loader->alias('SystemTableModelMapper', SystemTableModelMapperFacade::class);
@@ -143,7 +147,8 @@ class LaravelServiceProvider extends ServiceProvider
                     'description'     => 'Service supporting management of the system.',
                     'group'           => ServiceTypeGroups::SYSTEM,
                     'singleton'       => true,
-                    'default_api_doc' => function ($service){
+                    'config_handler'  => Config::class,
+                    'default_api_doc' => function ($service) {
                         return $this->buildServiceDoc($service->id, System::getApiDocInfo($service));
                     },
                     'factory'         => function ($config){
@@ -175,150 +180,5 @@ class LaravelServiceProvider extends ServiceProvider
         $this->app->register(CorsServiceProvider::class);
         // use JWT instead of sessions
         $this->app->register(\Tymon\JWTAuth\Providers\LaravelServiceProvider::class);
-
-        // Add conditional service providers here or
-        // Add DreamFactory subscription-based service types for advertising
-        $packages = [
-            'ADLdap'       => [
-                [
-                    'name'        => 'adldap',
-                    'label'       => 'Active Directory',
-                    'description' => 'A service for supporting Active Directory integration',
-                    'group'       => ServiceTypeGroups::LDAP,
-                ],
-                [
-                    'name'        => 'ldap',
-                    'label'       => 'Standard LDAP',
-                    'description' => 'A service for supporting Open LDAP integration',
-                    'group'       => ServiceTypeGroups::LDAP,
-                ],
-            ],
-            'ApiDoc'       => [],
-            'Aws'          => [],
-            'Azure'        => [],
-            'AzureAD'      => [
-                [
-                    'name'        => 'oauth_azure_ad',
-                    'label'       => 'Azure Active Directory OAuth',
-                    'description' => 'OAuth service for supporting Azure Active Directory authentication and API access.',
-                    'group'       => ServiceTypeGroups::OAUTH,
-                ],
-            ],
-            'Cache'        => [],
-            'Cassandra'    => [],
-            'Couchbase'    => [],
-            'CouchDb'      => [],
-            'Database'     => [],
-            'Email'        => [],
-            'File'         => [],
-            'Firebird'     => [],
-            'IbmDb2'       => [
-                [
-                    'name'        => 'ibmdb2',
-                    'label'       => 'IBM DB2',
-                    'description' => 'Database service supporting IBM DB2 SQL connections.',
-                    'group'       => ServiceTypeGroups::DATABASE,
-                ],
-            ],
-            'Limit'        => [],
-            'Logger'       => [
-                [
-                    'name'        => 'logstash',
-                    'label'       => 'Logstash',
-                    'description' => 'Log service supporting Logstash.',
-                    'group'       => ServiceTypeGroups::LOG,
-                ],
-            ],
-            'MongoDb'      => [],
-            'Notification' => [
-                [
-                    'name'        => 'apns',
-                    'label'       => 'Apple Push Notification',
-                    'description' => 'Apple Push Notification Service Provider.',
-                    'group'       => ServiceTypeGroups::NOTIFICATION,
-                ],
-                [
-                    'name'        => 'gcm',
-                    'label'       => 'GCM Push Notification',
-                    'description' => 'GCM Push Notification Service Provider.',
-                    'group'       => ServiceTypeGroups::NOTIFICATION,
-                ]
-            ],
-            'OAuth'        => [],
-            'Oidc'         => [
-                [
-                    'name'        => 'oidc',
-                    'label'       => 'OpenID Connect',
-                    'description' => 'OpenID Connect service supporting SSO.',
-                    'group'       => ServiceTypeGroups::OAUTH,
-                ]
-            ],
-            'Oracle'       => [
-                [
-                    'name'        => 'oracle',
-                    'label'       => 'Oracle',
-                    'description' => 'Database service supporting SQL connections.',
-                    'group'       => ServiceTypeGroups::DATABASE,
-                ],
-            ],
-            'Rackspace'    => [],
-            'Rws'          => [],
-            'Salesforce'   => [
-                [
-                    'name'        => 'salesforce_db',
-                    'label'       => 'Salesforce',
-                    'description' => 'Database service for Salesforce connections.',
-                    'group'       => ServiceTypeGroups::DATABASE,
-                ],
-            ],
-            'Saml'         => [
-                [
-                    'name'        => 'saml',
-                    'label'       => 'SAML 2.0',
-                    'description' => 'SAML 2.0 service supporting SSO.',
-                    'group'       => ServiceTypeGroups::SSO,
-                ]
-            ],
-            'Script'       => [],
-            'Soap'         => [
-                [
-                    'name'        => 'soap',
-                    'label'       => 'SOAP Service',
-                    'description' => 'A service to handle SOAP Services',
-                    'group'       => ServiceTypeGroups::REMOTE,
-                ],
-            ],
-            'SqlAnywhere'  => [
-                [
-                    'name'        => 'sqlanywhere',
-                    'label'       => 'SAP SQL Anywhere',
-                    'description' => 'Database service supporting SAP SQL Anywhere connections.',
-                    'group'       => ServiceTypeGroups::DATABASE,
-                ],
-            ],
-            'SqlDb'        => [],
-            'SqlSrv'       => [
-                [
-                    'name'        => 'sqlsrv',
-                    'label'       => 'SQL Server',
-                    'description' => 'Database service supporting SQL Server connections.',
-                    'group'       => ServiceTypeGroups::DATABASE,
-                ],
-            ],
-            'User'         => [],
-        ];
-        foreach ($packages as $name => $serviceTypes) {
-            $space = "DreamFactory\\Core\\$name\\ServiceProvider";
-            if (class_exists($space)) {
-                $this->app->register($space);
-            } else {
-                $this->app->resolving('df.service', function (ServiceManager $df) use ($serviceTypes){
-                    foreach ($serviceTypes as $config) {
-                        $config['subscription_required'] = true;
-                        $df->addType(new ServiceType($config));
-                    }
-                });
-            }
-        }
     }
 }

@@ -142,7 +142,7 @@ class Package
     {
         return [
             'version'      => static::VERSION,
-            'df_version'   => config('df.version'),
+            'df_version'   => config('app.version'),
             'secured'      => $this->isSecured(),
             'description'  => '',
             'created_date' => date('Y-m-d H:i:s', time())

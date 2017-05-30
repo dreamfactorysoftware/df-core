@@ -50,8 +50,8 @@ class Environment extends BaseSystemResource
         $result = [];
 
         $result['platform'] = [
-            'version_current'   => \Config::get('df.version'),
-            'version_latest'    => \Config::get('df.version'),
+            'version_current'   => \Config::get('app.version'),
+            'version_latest'    => \Config::get('app.version'),
             'upgrade_available' => false,
             'bitnami_demo'      => static::isDemoApplication(),
             'is_hosted'         => env('DF_MANAGED', false),
@@ -82,7 +82,7 @@ class Environment extends BaseSystemResource
             'resources_wrapper'     => \Config::get('df.resources_wrapper'),
             'db'                    => [
                 /** The default number of records to return at once for database queries */
-                'max_records_returned' => \Config::get('df.db.max_records_returned'),
+                'max_records_returned' => \Config::get('database.max_records_returned'),
                 'time_format'          => \Config::get('df.db.time_format'),
                 'date_format'          => \Config::get('df.db.date_format'),
                 'datetime_format'      => \Config::get('df.db.datetime_format'),
@@ -100,7 +100,7 @@ class Environment extends BaseSystemResource
             $result['platform']['install_path'] = base_path() . DIRECTORY_SEPARATOR;
             $result['platform']['log_path'] = env('DF_MANAGED_LOG_PATH', storage_path('logs')) . DIRECTORY_SEPARATOR;
             $result['platform']['log_mode'] = \Config::get('app.log');
-            $result['platform']['log_level'] = \Config::get('df.log_level');
+            $result['platform']['log_level'] = \Config::get('app.log_level');
             $result['platform']['cache_driver'] = \Config::get('cache.default');
             $result['platform']['secured_package_export'] = static::isZipInstalled();
 

@@ -11,6 +11,27 @@ use SystemResourceManager;
 class System extends BaseRestService
 {
     /**
+     * @var integer|null Default application Id used for UI
+     */
+    public $defaultAppId;
+    /**
+     * @var integer|null Email service Id used for user invite
+     */
+    public $inviteEmailServiceId;
+    /**
+     * @var integer|null Email template Id used for user invite
+     */
+    public $inviteEmailTemplateId;
+    /**
+     * @var integer|null Email service Id used for password reset
+     */
+    public $passwordEmailServiceId;
+    /**
+     * @var integer|null Email template Id used for password reset
+     */
+    public $passwordEmailTemplateId;
+
+    /**
      * {@inheritdoc}
      */
     public function getResources($only_handlers = false)

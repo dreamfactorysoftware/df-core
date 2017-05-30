@@ -20,10 +20,9 @@ class SystemServiceTest extends \DreamFactory\Core\Testing\TestCase
         $content = $rs->getContent();
         $services = Arr::get($content, static::$wrapper);
 
-        $first2 = Arr::get($services, '0.name');
-        $first2 .= ',' . Arr::get($services, '1.name');
+        $first = Arr::get($services, '0.name');
 
-        $this->assertEquals('system,api_docs', $first2);
+        $this->assertEquals('system', $first);
     }
 
     public function testGETServiceById()

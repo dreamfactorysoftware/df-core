@@ -1,22 +1,76 @@
 <?php
 
-namespace DreamFactory\Core\Components;
+namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Components\Registrar;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Contracts\EmailServiceInterface;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Models\EmailTemplate;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Models\NonAdminUser;
-use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Models\EmailTemplate;
-use DreamFactory\Core\Contracts\EmailServiceInterface;
+use DreamFactory\Core\Utility\ResponseFactory;
 use Illuminate\Support\Arr;
-use ServiceManager;
 use Log;
+use ServiceManager;
 
-trait Invitable
+class BaseUserResource extends BaseSystemResource
 {
+    /**
+     * @var string DreamFactory\Core\Models\User Model Class name.
+     */
+    protected static $model = User::class;
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function handlePOST()
+    {
+        $response = parent::handlePOST();
+        if ($this->request->getParameterAsBool('send_invite')) {
+            if (!$response instanceof ServiceResponseInterface) {
+                $response = ResponseFactory::create($response);
+            }
+            $this->handleInvitation($response, true);
+        }
+
+        return $response;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function handlePUT()
+    {
+        $response = parent::handlePUT();
+        if ($this->request->getParameterAsBool('send_invite')) {
+            if (!$response instanceof ServiceResponseInterface) {
+                $response = ResponseFactory::create($response);
+            }
+            $this->handleInvitation($response);
+        }
+
+        return $response;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function handlePATCH()
+    {
+        $response = parent::handlePATCH();
+        if ($this->request->getParameterAsBool('send_invite')) {
+            if (!$response instanceof ServiceResponseInterface) {
+                $response = ResponseFactory::create($response);
+            }
+            $this->handleInvitation($response);
+        }
+
+        return $response;
+    }
+
     /**
      * @param      $response
      * @param bool $delete_on_error
@@ -24,7 +78,7 @@ trait Invitable
      * @throws InternalServerErrorException
      * @throws \Exception
      */
-    protected static function handleInvitation(&$response, $delete_on_error = false)
+    protected function handleInvitation(&$response, $delete_on_error = false)
     {
         if ($response instanceof ServiceResponseInterface) {
             if ($response->getStatusCode() >= 300) {
@@ -46,7 +100,7 @@ trait Invitable
                         $id = array_get($record, 'id');
 
                         try {
-                            $code = static::sendInvite($id, $delete_on_error);
+                            $code = $this->sendInvite($id, $delete_on_error);
                             if (array_key_exists('confirm_code', $record)) {
                                 array_set($record, 'confirm_code', $code);
                             }
@@ -73,7 +127,7 @@ trait Invitable
                     if (empty($id)) {
                         throw new InternalServerErrorException('Invalid user id in response.');
                     }
-                    $code = static::sendInvite($id, $delete_on_error);
+                    $code = $this->sendInvite($id, $delete_on_error);
                     if (array_key_exists('confirm_code', $records)) {
                         array_set($records, 'confirm_code', $code);
                     }
@@ -99,13 +153,12 @@ trait Invitable
      * @throws \Exception
      * @return string
      */
-    protected static function sendInvite($userId, $deleteOnError = false)
+    protected function sendInvite($userId, $deleteOnError = false)
     {
-        /** @type NonAdminUser $user */
+        $modelClass = $this->getModel();
+        /** @type User $user */
         /** @noinspection PhpUndefinedMethodInspection */
-        $user = NonAdminUser::find($userId);
-
-        if (empty($user)) {
+        if (empty($user = $modelClass::find($userId))) {
             throw new NotFoundException('User not found with id ' . $userId . '.');
         }
 
@@ -115,11 +168,7 @@ trait Invitable
 
         try {
             /** @var \DreamFactory\Core\User\Services\User $userService */
-            $userService = ServiceManager::getService('user');
-            if (empty($userService)) {
-                throw new InternalServerErrorException('Unable to load user service.');
-            }
-
+            $userService = $this->getParent();
             if (empty($userService->inviteEmailServiceId)) {
                 throw new InternalServerErrorException('No email service configured for user invite.');
             }

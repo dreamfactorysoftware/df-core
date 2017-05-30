@@ -44,6 +44,28 @@ class BaseRestService extends RestHandler implements ServiceInterface
     //*************************************************************************
 
     /**
+     * @param array $settings
+     */
+    public function __construct($settings = [])
+    {
+        parent::__construct($settings);
+
+        $config = (array)array_get($settings, 'config', []);
+        foreach ($config as $key => $value) {
+            if (!property_exists($this, $key)) {
+                // try camel cased
+                $camel = camel_case($key);
+                if (property_exists($this, $camel)) {
+                    $this->{$camel} = $value;
+                    continue;
+                }
+            } else {
+                $this->{$key} = $value;
+            }
+        }
+    }
+
+    /**
      * @return int
      */
     public function getServiceId()

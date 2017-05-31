@@ -179,7 +179,7 @@ class BaseUserResource extends BaseSystemResource
                     throw new InternalServerErrorException('Unable to load user service.');
                 }
             } else {
-                $service = $this->getParent();
+                $service = $this->getService();
             }
             if (empty($service->inviteEmailServiceId)) {
                 throw new InternalServerErrorException('No email service configured for user invite.');

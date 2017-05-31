@@ -513,7 +513,7 @@ class UserPasswordResource extends BaseRestResource
         $email = $user->email;
 
         /** @var \DreamFactory\Core\User\Services\User $parent */
-        $parent = $this->getParent();
+        $parent = $this->getService();
 
         if (!empty($parent->passwordEmailServiceId)) {
             try {
@@ -549,7 +549,8 @@ class UserPasswordResource extends BaseRestResource
                 $data['link'] = url(\Config::get('df.confirm_reset_url')) .
                     '?code=' . $user->confirm_code .
                     '&email=' . $email .
-                    '&username=' . $user->username;
+                    '&username=' . $user->username .
+                    '&admin=' . $user->is_sys_admin;
                 $data['confirm_code'] = $user->confirm_code;
 
                 $bodyHtml = array_get($data, 'body_html');

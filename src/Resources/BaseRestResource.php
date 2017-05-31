@@ -57,6 +57,17 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         }
     }
 
+    public function getService()
+    {
+        if ($this->parent instanceof BaseRestService) {
+            return $this->parent;
+        } elseif ($this->parent instanceof BaseRestResource) {
+            return $this->parent->getService();
+        }
+
+        return '';
+    }
+
     public function getServiceName()
     {
         if ($this->parent instanceof BaseRestService) {

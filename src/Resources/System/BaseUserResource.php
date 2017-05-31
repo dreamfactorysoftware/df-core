@@ -9,6 +9,7 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\EmailTemplate;
+use DreamFactory\Core\Models\NonAdminUser;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
@@ -159,7 +160,7 @@ class BaseUserResource extends BaseSystemResource
      */
     protected function sendInvite($userId, $deleteOnError = false)
     {
-        $modelClass = $this->getModel();
+        $modelClass = static::$model;
         /** @type User $user */
         /** @noinspection PhpUndefinedMethodInspection */
         if (empty($user = $modelClass::find($userId))) {
@@ -171,21 +172,28 @@ class BaseUserResource extends BaseSystemResource
         }
 
         try {
-            /** @var \DreamFactory\Core\User\Services\User $userService */
-            $userService = $this->getParent();
-            if (empty($userService->inviteEmailServiceId)) {
+            /** @var \DreamFactory\Core\Services\System $service */
+            if (NonAdminUser::class === $modelClass) {
+                $service = ServiceManager::getService('user');
+                if (empty($service)) {
+                    throw new InternalServerErrorException('Unable to load user service.');
+                }
+            } else {
+                $service = $this->getParent();
+            }
+            if (empty($service->inviteEmailServiceId)) {
                 throw new InternalServerErrorException('No email service configured for user invite.');
             }
 
-            if (empty($userService->inviteEmailTemplateId)) {
+            if (empty($service->inviteEmailTemplateId)) {
                 throw new InternalServerErrorException("No default email template for user invite.");
             }
 
             /** @var EmailServiceInterface $emailService */
-            $emailService = ServiceManager::getServiceById($userService->inviteEmailServiceId);
+            $emailService = ServiceManager::getServiceById($service->inviteEmailServiceId);
             /** @var EmailTemplate $emailTemplate */
             /** @noinspection PhpUndefinedMethodInspection */
-            $emailTemplate = EmailTemplate::find($userService->inviteEmailTemplateId);
+            $emailTemplate = EmailTemplate::find($service->inviteEmailTemplateId);
 
             if (empty($emailTemplate)) {
                 throw new InternalServerErrorException("No data found in default email template for user invite.");
@@ -213,7 +221,8 @@ class BaseUserResource extends BaseSystemResource
                     'phone'          => $user->phone,
                     'content_header' => array_get($templateData, 'subject',
                         'You are invited to try DreamFactory.'),
-                    'app_name'       => \Config::get('app.name')
+                    'app_name'       => \Config::get('app.name'),
+                    'instance_name'  => \Config::get('app.name'), // older templates
                 ]);
             } catch (\Exception $e) {
                 throw new InternalServerErrorException("Error creating user invite. {$e->getMessage()}",

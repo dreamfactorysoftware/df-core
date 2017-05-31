@@ -203,7 +203,7 @@ class BaseUserResource extends BaseSystemResource
                     'link'           => url(\Config::get('df.confirm_invite_url')) .
                         '?code=' . $user->confirm_code .
                         '&email=' . $email .
-                        '&username=' . $user->username,
+                        '&username=' . $user->username .
                         '&admin=' . $user->is_sys_admin,
                     'first_name'     => $user->first_name,
                     'last_name'      => $user->last_name,

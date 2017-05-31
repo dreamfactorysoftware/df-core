@@ -204,6 +204,7 @@ class BaseUserResource extends BaseSystemResource
                         '?code=' . $user->confirm_code .
                         '&email=' . $email .
                         '&username=' . $user->username,
+                        '&admin=' . $user->is_sys_admin,
                     'first_name'     => $user->first_name,
                     'last_name'      => $user->last_name,
                     'name'           => $user->name,

@@ -27,7 +27,6 @@
     "php":                    ">=5.6.4",
     "barryvdh/laravel-cors":  "0.8.x",
     "doctrine/dbal":          "2.5.*",
-    "dreamfactory/php-utils": "1.1.*",
     "guzzlehttp/guzzle":      "~6.0",
     "symfony/yaml":           "~2.8|~3.0",
     "tymon/jwt-auth":         "~1.0.0"

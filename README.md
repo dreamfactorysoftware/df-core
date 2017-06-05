@@ -24,7 +24,7 @@ For more information, see the [full platform repository](https://github.com/drea
 Edit your project’s composer.json to require the following package.
 
 	“require”:{
-		"dreamfactory/df-core": "~0.9.0"
+		"dreamfactory/df-core": "~0.10.0"
 	}
 
 Save your composer.json and do a "composer update" to install the package.
@@ -40,7 +40,7 @@ Next run "php artisan vendor:publish" to publish the config file df.php to confi
 
 If you have setup your database connection right in your .env file then run the following migration.
 	
-	php artisan migrate --path=vendor/dreamfactory/df-core/database/migrations/
+	php artisan migrate
 
 Now if you have setup the phpunit config right in phpunit.xml (Use the supplied phpunit.xml-dist file in the package to use the right params) file then you should be able to run the unit tests.
 

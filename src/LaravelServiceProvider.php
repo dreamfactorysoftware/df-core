@@ -3,6 +3,7 @@
 namespace DreamFactory\Core;
 
 use DreamFactory\Core\Commands\ClearAllFileCache;
+use DreamFactory\Core\Commands\Env;
 use DreamFactory\Core\Commands\HomesteadConfig;
 use DreamFactory\Core\Commands\Import;
 use DreamFactory\Core\Commands\ImportPackage;
@@ -104,6 +105,7 @@ class LaravelServiceProvider extends ServiceProvider
     {
         $this->commands([
             ClearAllFileCache::class,
+            Env::class,
             HomesteadConfig::class,
             Import::class,
             ImportPackage::class,

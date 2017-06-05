@@ -4,16 +4,32 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
-- DF-797 Added support for OpenID Connect
+- DF-797 Support for OpenID Connect
 - Used user_key in JWT claim from improved security
-- DF-776 Added support for CSV as a data source
+- DF-776 Support for CSV as a data source
 - DF-1075 Added license level in Config - System Info page
-- DF-1106 Added server IP address on system/environment
+- DF-1106 Added server external IP address on system/environment
+- Moved JWT require from application to df-core
+- Extra user and admin info on package manifest
+- Support default email service and templates on system config for admins
+
+### Changed
+- Remove use of php-utils library, opt for laravel helper methods already included
+- Cleanup based on environment changes from application
+- Remove pulling event list for service event map, taken care of by df-admin-app
 
 ### Fixed
 - DF-996 Fixed API Docs to show token refresh endpoints
 - DF-982 Fixed GET over POST on system resources ignoring some parameters in payload
 - DF-620 Allowed email template to enter multiple addresses in to, bcc, cc fields
+- Fix lookup privacy issue
+- Fixed package import with overwrite for currently logged in user
+- Fixed user authentication after changing user email and password from profile page
+- Added better error message for password change failure
+- Fixed grouping for OpenID Connect
+- Fixed CSV and XML user import feature
+- DF-1105 Fix migration for MS SQL Server possible cascading issue
+- Split df:setup command into df:env and df:setup
 
 ## [0.9.1] - 2017-04-25
 ### Fixed

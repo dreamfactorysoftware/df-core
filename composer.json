@@ -4,6 +4,7 @@
   "homepage":    "https://www.dreamfactory.com/",
   "keywords":    [
     "dreamfactory",
+    "laravel",
     "rest",
     "api",
     "mbaas",
@@ -17,6 +18,10 @@
     {
       "name":  "Arif Islam",
       "email": "arifislam@dreamfactory.com"
+    },
+    {
+      "name": "Charles Harmon",
+      "email": "charlesharmon@dreamfactory.com"
     },
     {
       "name":  "Lee Hicks",
@@ -44,7 +49,7 @@
   },
   "extra":       {
     "branch-alias": {
-      "dev-develop": "0.9.x-dev"
+      "dev-develop": "0.10.x-dev"
     }
   }
 }

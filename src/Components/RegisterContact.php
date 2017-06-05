@@ -2,7 +2,7 @@
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Models\User;
-use DreamFactory\Library\Utility\Curl;
+use DreamFactory\Core\Utility\Curl;
 
 class RegisterContact
 {
@@ -42,7 +42,7 @@ class RegisterContact
                 'lead_source' => $source,
                 'partner'     => $partner,
                 'product'     => 'DreamFactory',
-                'version'     => config('df.version', 'unknown'),
+                'version'     => config('app.version', 'unknown'),
                 'host_os'     => PHP_OS,
             ],
             $payload

@@ -1,11 +1,10 @@
 <?php
 namespace DreamFactory\Core\Enums;
 
-use DreamFactory\Library\Utility\Enums\FactoryEnum;
 
 /**
  * ResponseFormats
- * Supported DSP response formats
+ * Supported DreamFactory response formats
  */
 class ResponseFormats extends FactoryEnum
 {

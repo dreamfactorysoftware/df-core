@@ -11,7 +11,6 @@ use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\Inflector;
 use ServiceManager as ServiceMgr;
 
 /**
@@ -43,6 +42,28 @@ class BaseRestService extends RestHandler implements ServiceInterface
     //*************************************************************************
     //	Methods
     //*************************************************************************
+
+    /**
+     * @param array $settings
+     */
+    public function __construct($settings = [])
+    {
+        parent::__construct($settings);
+
+        $config = (array)array_get($settings, 'config', []);
+        foreach ($config as $key => $value) {
+            if (!property_exists($this, $key)) {
+                // try camel cased
+                $camel = camel_case($key);
+                if (property_exists($this, $camel)) {
+                    $this->{$camel} = $value;
+                    continue;
+                }
+            } else {
+                $this->{$key} = $value;
+            }
+        }
+    }
 
     /**
      * @return int
@@ -140,9 +161,9 @@ class BaseRestService extends RestHandler implements ServiceInterface
     public static function getApiDocInfo($service)
     {
         $name = strtolower($service->name);
-        $capitalized = Inflector::camelize($service->name);
+        $capitalized = camelize($service->name);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $pluralClass = Inflector::pluralize($class);
+        $pluralClass = str_plural($class);
         $wrapper = ResourcesWrapper::getWrapper();
 
         return [

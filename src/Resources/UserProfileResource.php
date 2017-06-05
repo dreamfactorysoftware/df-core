@@ -1,13 +1,11 @@
 <?php
 namespace DreamFactory\Core\Resources;
 
-use DreamFactory\Core\Utility\JWTUtilities;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
-use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\Inflector;
+use DreamFactory\Core\Utility\JWTUtilities;
+use DreamFactory\Core\Utility\Session;
 
 class UserProfileResource extends BaseRestResource
 {
@@ -80,7 +78,7 @@ class UserProfileResource extends BaseRestResource
             'default_app_id'    => array_get($payload, 'default_app_id')
         ];
 
-        ArrayUtils::removeNull($data);
+        $data = array_filter($data, function ($value) { return !is_null($value);});
 
         $user = Session::user();
 
@@ -107,7 +105,7 @@ class UserProfileResource extends BaseRestResource
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = Inflector::camelize($service);
+        $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;

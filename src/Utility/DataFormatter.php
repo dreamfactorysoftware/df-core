@@ -2,10 +2,9 @@
 
 namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Library\Utility\ArrayUtils;
 use DreamFactory\Core\Enums\DataFormats;
-use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Contracts\Support\Arrayable;
+use Illuminate\Support\Arr;
 use Illuminate\Support\MessageBag;
 
 /**
@@ -537,12 +536,12 @@ class DataFormatter
     {
         $xml = null;
         if (is_array($data)) {
-            if (ArrayUtils::isArrayNumeric($data)) {
+            if (!Arr::isAssoc($data)) {
                 foreach ($data as $value) {
                     $xml .= self::arrayToXmlInternal($value, $root, $level, $format);
                 }
             } else {
-                if (ArrayUtils::isArrayAssociative($data)) {
+                if (Arr::isAssoc($data)) {
                     if (!empty($root)) {
                         if ($format) {
                             $xml .= str_repeat("\t", $level - 1);
@@ -903,7 +902,7 @@ class DataFormatter
 
             case 'boolean':
             case 'bool':
-                return Scalar::boolval($value);
+                return to_bool($value);
 
             case 'string':
                 return strval($value);

@@ -8,8 +8,7 @@ use DreamFactory\Core\Events\PreProcessApiEvent;
 use DreamFactory\Core\Events\QueuedApiEvent;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
-use DreamFactory\Library\Utility\ArrayUtils;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Contracts\RequestHandlerInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
@@ -139,6 +138,11 @@ abstract class RestHandler implements RequestHandlerInterface
         }
     }
 
+    public function getName()
+    {
+        return $this->name;
+    }
+
     /**
      * @param ServiceRequestInterface $request
      * @param string|null             $resource
@@ -223,7 +227,7 @@ abstract class RestHandler implements RequestHandlerInterface
      */
     protected function handleResource(array $resources)
     {
-        $found = ArrayUtils::findByKeyValue($resources, 'name', $this->resource);
+        $found = array_by_key_value($resources, 'name', $this->resource);
         if (!isset($found, $found['class_name'])) {
             throw new NotFoundException("Resource '{$this->resource}' not found for service '{$this->name}'.");
         }

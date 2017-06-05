@@ -19,7 +19,7 @@ use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Contracts\Encryption\DecryptException;
 use ServiceManager;
 
@@ -1034,6 +1034,7 @@ class Importer
      * @param $resource
      *
      * @return array
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
      */
     protected function cleanDuplicates($data, $service, $resource)
     {
@@ -1165,13 +1166,17 @@ class Importer
                 $existingId = array_get($existing, BaseModel::getPrimaryKeyStatic());
                 if (!empty($existingId)) {
                     unset($record[BaseModel::getPrimaryKeyStatic()]);
+                    $payload = $record;
+                    if (in_array($api, ['system/admin', 'system/user'])) {
+                        unset($payload['password']);
+                    }
                     $result = ServiceManager::handleRequest(
                         $service,
                         Verbs::PATCH,
                         $resource . '/' . $existingId,
                         [],
                         [],
-                        $record
+                        $payload
                     );
                     if ($result->getStatusCode() === 404) {
                         throw new InternalServerErrorException(

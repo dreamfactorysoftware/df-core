@@ -129,7 +129,8 @@ class Registrar
                     'email'          => $user->email,
                     'phone'          => $user->phone,
                     'content_header' => array_get($templateData, 'subject', 'Confirm your DreamFactory account.'),
-                    'instance_name'  => \Config::get('df.instance_name')
+                    'app_name'       => \Config::get('app.name'),
+                    'instance_name'  => \Config::get('app.name'), // older templates
                 ]);
             } catch (\Exception $e) {
                 throw new InternalServerErrorException("Error creating user confirmation.\n{$e->getMessage()}",

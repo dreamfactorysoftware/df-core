@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Library\Utility\Inflector;
 
 class Constant extends ReadOnlySystemResource
 {
@@ -26,7 +25,7 @@ class Constant extends ReadOnlySystemResource
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = Inflector::camelize($service);
+        $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;

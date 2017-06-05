@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Enums;
 
-use DreamFactory\Library\Utility\Enums\FactoryEnum;
 
 /**
  * ErrorCodes, > 1000 for clearance of HTTP status codes

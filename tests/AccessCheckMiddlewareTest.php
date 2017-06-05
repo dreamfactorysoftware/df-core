@@ -1,7 +1,7 @@
 <?php
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\App;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Models\Role;

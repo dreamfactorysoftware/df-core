@@ -61,7 +61,7 @@ abstract class BaseServiceConfigModel extends BaseModel implements ServiceConfig
      */
     public static function getConfig($id, $local_config = null, $protect = true)
     {
-        $out = null;
+        $out = [];
         /** @var BaseServiceConfigModel $model */
         /** @noinspection PhpUndefinedMethodInspection */
         if ($model = static::whereServiceId($id)->first()) {

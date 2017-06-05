@@ -11,7 +11,6 @@ use DreamFactory\Core\Models\App;
 use DreamFactory\Core\OAuth\Services\BaseOAuthService;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\Inflector;
 use ServiceManager;
 
 class UserSessionResource extends BaseRestResource
@@ -148,7 +147,7 @@ class UserSessionResource extends BaseRestResource
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = Inflector::camelize($service);
+        $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;
@@ -196,6 +195,36 @@ class UserSessionResource extends BaseRestResource
                         ]
                     ],
                     'description' => 'Calling this creates a new session and logs in the user.',
+                ],
+                'put'   => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'refresh' . $capitalized . '() - Refresh user session token.',
+                    'operationId' => 'refresh' . $capitalized,
+                    'parameters'  => [
+                        [
+                            'name'        => 'session_token',
+                            'description' => 'Session token that needs to be refreshed.',
+                            'type'        => 'string',
+                            'in'          => 'query'
+                        ],
+                        [
+                            'name'        => 'X-DreamFactory-Session-Token',
+                            'description' => 'Session token that needs to be refreshed.',
+                            'type'        => 'string',
+                            'in'          => 'header'
+                        ]
+                    ],
+                    'responses'   => [
+                        '200'     => [
+                            'description' => 'Session',
+                            'schema'      => ['$ref' => '#/definitions/Session']
+                        ],
+                        'default' => [
+                            'description' => 'Error',
+                            'schema'      => ['$ref' => '#/definitions/Error']
+                        ]
+                    ],
+                    'description' => 'Calling this refreshes user session token.',
                 ],
                 'delete' => [
                     'tags'        => [$serviceName],

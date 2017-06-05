@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
-use DreamFactory\Library\Utility\Inflector;
 
 /**
  * TableSchema is the base class for representing the metadata of a database table.
@@ -103,7 +102,7 @@ class TableSchema extends NamedResourceSchema
 
     public function getPlural($use_alias = false)
     {
-        return (empty($this->plural)) ? Inflector::pluralize($this->getLabel($use_alias)) : $this->plural;
+        return (empty($this->plural)) ? str_plural($this->getLabel($use_alias)) : $this->plural;
     }
 
     /**

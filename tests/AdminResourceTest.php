@@ -1,6 +1,6 @@
 <?php
 
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Support\Arr;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Models\User;
@@ -47,8 +47,9 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
 
     public function testSessionNotFound()
     {
-        $this->setExpectedException('\DreamFactory\Core\Exceptions\NotFoundException');
-        $this->makeRequest(Verbs::GET, static::RESOURCE . '/session');
+        /** @var \DreamFactory\Core\Contracts\ServiceResponseInterface $rs */
+        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE . '/session');
+        $this->assertEquals('404', $rs->getStatusCode(), 'Testing session not found');
     }
 
     public function testUnauthorizedSessionRequest()
@@ -61,8 +62,8 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         //Using a new instance here. Prev instance is set for user resource.
         $this->service = ServiceManager::getService('system');
 
-        $this->setExpectedException('\DreamFactory\Core\Exceptions\UnauthorizedException');
-        $this->makeRequest(Verbs::GET, static::RESOURCE . '/session');
+        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE . '/session');
+        $this->assertEquals('401', $rs->getStatusCode(), 'Testing unauthorized session request');
     }
 
     public function testLogin()
@@ -87,7 +88,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $payload = ['name' => 'foo'];
 
         $rs = $this->makeRequest(Verbs::PATCH, static::RESOURCE . '/session/' . $user['id'], [], $payload);
-        $this->assertFalse($rs->getContent());
+        $this->assertEquals('400', $rs->getStatusCode(), 'Testing bad session patch request.');
     }
 
     public function testLogout()
@@ -107,8 +108,8 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         $this->assertTrue($content['success']);
         $this->assertTrue(empty($tokenMap));
 
-        $this->setExpectedException('\DreamFactory\Core\Exceptions\NotFoundException');
-        $this->makeRequest(Verbs::GET, static::RESOURCE . '/session');
+        $rs = $this->makeRequest(Verbs::GET, static::RESOURCE . '/session');
+        $this->assertEquals('404', $rs->getStatusCode(), 'Testing logout');
     }
 
     /************************************************
@@ -118,13 +119,13 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
     public function testGET()
     {
         $rs = $this->makeRequest(Verbs::GET, static::RESOURCE . '/password');
-        $this->assertFalse($rs->getContent());
+        $this->assertEquals('400', $rs->getStatusCode(), 'Testing GET admin/password');
     }
 
     public function testDELETE()
     {
         $rs = $this->makeRequest(Verbs::DELETE, static::RESOURCE . '/password');
-        $this->assertFalse($rs->getContent());
+        $this->assertEquals('400', $rs->getStatusCode(), 'Testing DELETE admin/password');
     }
 
     public function testPasswordChange()
@@ -199,7 +200,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
         Arr::set($this->user2, 'email', 'arif@dreamfactory.com');
         $user = $this->createUser(2);
 
-        Config::set('mail.pretend', true);
+        Config::set('mail.driver', 'array');
         $rs =
             $this->makeRequest(Verbs::POST, static::RESOURCE . '/password', ['reset' => 'true'],
                 ['email' => $user['email']]);

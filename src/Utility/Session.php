@@ -15,8 +15,7 @@ use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\UserLookup;
-use DreamFactory\Library\Utility\Curl;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
 
 class Session
@@ -457,11 +456,11 @@ class Session
 
                                 return true;
                             case 'name':
-                                $value = \Config::get('df.instance_name', gethostname());
+                                $value = \Config::get('app.name');
 
                                 return true;
                             case 'version':
-                                $value = \Config::get('df.version');
+                                $value = \Config::get('app.version');
 
                                 return true;
                             case 'api_version':

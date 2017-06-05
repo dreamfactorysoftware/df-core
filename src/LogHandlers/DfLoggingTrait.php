@@ -7,7 +7,7 @@ trait DfLoggingTrait
 {
     protected function write(array $record)
     {
-        $allowedLogLevel = Logger::toMonologLevel(config('df.log_level'));
+        $allowedLogLevel = Logger::toMonologLevel(config('app.log_level'));
         $level = $record['level'];
 
         if ($level >= $allowedLogLevel) {

@@ -7,7 +7,6 @@ use DreamFactory\Core\Components\InternalServiceRequest;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
-use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Support\Str;
 use Request;
 
@@ -70,7 +69,7 @@ class ServiceRequest implements ServiceRequestInterface
 
     public function getParameterAsBool($key, $default = false)
     {
-        return Scalar::boolval($this->getParameter($key, $default));
+        return to_bool($this->getParameter($key, $default));
     }
 
     /**

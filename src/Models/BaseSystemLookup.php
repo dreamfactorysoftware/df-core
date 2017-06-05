@@ -2,7 +2,6 @@
 
 namespace DreamFactory\Core\Models;
 
-use DreamFactory\Library\Utility\Scalar;
 use Illuminate\Database\Query\Builder;
 
 /**
@@ -56,7 +55,7 @@ class BaseSystemLookup extends BaseSystemModel
     {
         $attributes = parent::attributesToArray();
 
-        if (Scalar::boolval(array_get($attributes, 'private')) && !is_null(array_get($attributes, 'value'))) {
+        if (array_get_bool($attributes, 'private') && !is_null(array_get($attributes, 'value'))) {
             $attributes['value'] = $this->protectionMask;
         }
 

@@ -10,7 +10,6 @@ use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ServiceResponse;
-use DreamFactory\Library\Utility\Inflector;
 use ServiceManager;
 
 /**
@@ -267,7 +266,7 @@ class Event extends BaseRestResource
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = Inflector::camelize($service);
+        $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;

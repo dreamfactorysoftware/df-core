@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Enums;
 
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
-use DreamFactory\Library\Utility\Enums\FactoryEnum;
 
 /**
  * API Options

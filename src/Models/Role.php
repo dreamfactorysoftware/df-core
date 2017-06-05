@@ -5,7 +5,6 @@ use DreamFactory\Core\Events\RoleDeletedEvent;
 use DreamFactory\Core\Events\RoleModifiedEvent;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
-use DreamFactory\Library\Utility\ArrayUtils;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -89,7 +88,7 @@ class Role extends BaseSystemModel
         $services = $this->getRelation('service_by_role_service_access')->toArray();
 
         foreach ($rsa as $key => $s) {
-            $serviceName = ArrayUtils::findByKeyValue($services, 'id', array_get($s, 'service_id'), 'name');
+            $serviceName = array_by_key_value($services, 'id', array_get($s, 'service_id'), 'name');
             $rsa[$key]['service'] = $serviceName;
         }
 
@@ -128,7 +127,7 @@ class Role extends BaseSystemModel
                 unset($roleInfo['service_by_role_service_access']);
 
                 foreach ($roleInfo['role_service_access_by_role_id'] as $key => $value) {
-                    $serviceName = ArrayUtils::findByKeyValue(
+                    $serviceName = array_by_key_value(
                         $services,
                         'id',
                         array_get($value, 'service_id'), 'name'

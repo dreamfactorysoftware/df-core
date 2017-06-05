@@ -11,9 +11,7 @@ use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Models\BaseSystemModel;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 
 /**
@@ -223,7 +221,7 @@ class BaseSystemResource extends BaseRestResource
                     $params = array_get($options, ApiOptions::PARAMS, []);
                     $result = $modelClass::deleteByFilter($filter, $params, $options);
                 } else {
-                    if (!Scalar::boolval(array_get($options, ApiOptions::FORCE))) {
+                    if (!array_get_bool($options, ApiOptions::FORCE)) {
                         throw new BadRequestException('No filter or records given for delete request.');
                     }
 
@@ -254,13 +252,53 @@ class BaseSystemResource extends BaseRestResource
         return new static::$model;
     }
 
+    /**
+     * @param $data
+     *
+     * @return array
+     */
+    protected static function removeEmptyAttributes($data)
+    {
+        $records = $data;
+        $unwrapped = false;
+        if (isset($data[ResourcesWrapper::getWrapper()])) {
+            $records = $data[ResourcesWrapper::getWrapper()];
+            $unwrapped = true;
+        }
+
+        foreach ($records as $i => $record) {
+            if (is_numeric($i) && array($record)) {
+                foreach ($record as $key => $value) {
+                    if (empty($value)) {
+                        unset($records[$i][$key]);
+                    } elseif (is_string($value)) {
+                        if (strtolower($value) === "true") {
+                            $records[$i][$key] = true;
+                        } elseif (strtolower($value) === "false") {
+                            $records[$i][$key] = false;
+                        } elseif (strtolower($value) === "null") {
+                            $records[$i][$key] = null;
+                        }
+                    }
+                }
+            }
+        }
+
+        $data = $records;
+        if ($unwrapped) {
+            $data = ResourcesWrapper::wrapResources($data);
+        }
+
+        return $data;
+    }
+
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = Inflector::camelize($service);
+        $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
-        $pluralClass = Inflector::pluralize($class);
+        $pluralClass = str_plural($class);
         if ($pluralClass === $class) {
             // method names can't be the same
             $pluralClass = $class . 'Entries';
@@ -405,7 +443,7 @@ class BaseSystemResource extends BaseRestResource
                         'By default, only the id property of the record is returned on success, ' .
                         'use \'fields\' and \'related\' to return more info.',
                 ],
-                'put'  => [
+                'put'    => [
                     'tags'        => [$serviceName],
                     'summary'     => 'replace' .
                         $capitalized .
@@ -565,7 +603,7 @@ class BaseSystemResource extends BaseRestResource
                         'Post data should be an array of fields to update for a single record. <br>' .
                         'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
                 ],
-                'put'      => [
+                'put'        => [
                     'tags'        => [$serviceName],
                     'summary'     => 'replace' . $capitalized . $class . '() - Replace one ' . $class . '.',
                     'operationId' => 'replace' . $capitalized . $class,

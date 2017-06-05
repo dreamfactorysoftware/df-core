@@ -10,7 +10,6 @@ use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Library\Utility\Inflector;
 
 /**
  * Class BaseRestResource
@@ -58,6 +57,17 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         }
     }
 
+    public function getService()
+    {
+        if ($this->parent instanceof BaseRestService) {
+            return $this->parent;
+        } elseif ($this->parent instanceof BaseRestResource) {
+            return $this->parent->getService();
+        }
+
+        return '';
+    }
+
     public function getServiceName()
     {
         if ($this->parent instanceof BaseRestService) {
@@ -101,6 +111,8 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         $requestType = ($this->request) ? $this->request->getRequestorType() : ServiceRequestorTypes::API;
 
         Session::checkServicePermission($operation, $this->getServiceName(), $path, $requestType);
+
+        return true;
     }
 
     /**
@@ -123,10 +135,10 @@ class BaseRestResource extends RestHandler implements ResourceInterface
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = Inflector::camelize($service);
+        $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
-        $pluralClass = Inflector::pluralize($class);
+        $pluralClass = str_plural($class);
         $path = '/' . $serviceName . '/' . $resourceName;
         $wrapper = ResourcesWrapper::getWrapper();
 

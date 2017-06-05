@@ -8,7 +8,7 @@ use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ServiceRequest;
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use InvalidArgumentException;
 
 class ServiceManager

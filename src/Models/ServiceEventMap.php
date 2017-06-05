@@ -1,10 +1,6 @@
 <?php
 namespace DreamFactory\Core\Models;
 
-use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\ServiceResponse;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use ServiceManager;
 use Cache;
 
 class ServiceEventMap extends BaseServiceConfigModel
@@ -62,35 +58,10 @@ class ServiceEventMap extends BaseServiceConfigModel
     {
         parent::prepareConfigSchemaField($schema);
 
-        $eventList = [];
-
         switch ($schema['name']) {
             case 'event':
-                /** @var ServiceResponse $response */
-                $response = ServiceManager::handleRequest('system', Verbs::GET, 'event', ['as_list' => 1]);
-                $events = ResourcesWrapper::unwrapResources($response->getContent());
-                $temp = [];
-                foreach ($events as $event) {
-                    $service = substr($event, 0, strpos($event, '.'));
-                    if(!isset($temp[$service])) {
-                        $temp[$service] = [];
-                    }
-                    $temp[$service][] = [
-                        'label' => $event,
-                        'name'  => $event
-                    ];
-                }
-                foreach ($temp as $service => $items){
-                    array_unshift($items, ['label' => 'All ' . $service . ' events', 'name' => $service . '.*']);
-                    $eventList[] = [
-                        'label' => $service,
-                        'name'  => $service,
-                        'items' => $items
-                    ];
-                }
                 $schema['label'] = 'Event';
                 $schema['type'] = 'event_picklist';
-                $schema['values'] = $eventList;
                 $schema['description'] = 'Select an Event.';
                 $schema['allow_null'] = false;
                 break;

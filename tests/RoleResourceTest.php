@@ -1,5 +1,5 @@
 <?php
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\HttpStatusCodes;
@@ -195,7 +195,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $updatedRole = $this->getRole(static::$roleIds[1]);
 
-        $this->assertEquals(3, count($updatedRole['role_lookup_by_role_id']));
+        $this->assertEquals(2, count($updatedRole['role_lookup_by_role_id']));
     }
 
     public function testPATCHDeleteRelation()
@@ -211,7 +211,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $updatedRole = $this->getRole(static::$roleIds[1]);
 
-        $this->assertEquals(2, count($updatedRole['role_lookup_by_role_id']));
+        $this->assertEquals(1, count($updatedRole['role_lookup_by_role_id']));
     }
 
     public function testPATCHAdoptRelation()
@@ -229,7 +229,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $updatedRole = $this->getRole(static::$roleIds[1]);
         $otherRole = $this->getRole(static::$roleIds[0]);
 
-        $this->assertEquals(1, count($updatedRole['role_lookup_by_role_id']));
+        $this->assertEquals(0, count($updatedRole['role_lookup_by_role_id']));
         $this->assertEquals(3, count($otherRole['role_lookup_by_role_id']));
     }
 
@@ -245,7 +245,9 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $role2['name'] = 'test-multiple-update_2';
         $role2['role_service_access_by_role_id'][0]['component'] = 'updated2';
-        $role2['role_lookup_by_role_id'][1]['name'] = 'test-updated-2';
+        $role2['role_lookup_by_role_id'][0] = $role1['role_lookup_by_role_id'][1];
+        $role2['role_lookup_by_role_id'][0]['role_id']  = static::$roleIds[1];
+        $role2['role_lookup_by_role_id'][0]['name'] = 'test-updated-2';
 
         $role3['name'] = 'test-multiple-update_3';
         $role3['role_service_access_by_role_id'][0]['component'] = 'updated3';
@@ -277,8 +279,8 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
             Arr::get($role2, 'role_service_access_by_role_id.0.component'),
             Arr::get($records, '1.role_service_access_by_role_id.0.component')
         );
-        $this->assertEquals(Arr::get($role2, 'role_lookup_by_role_id.1.name'),
-            Arr::get($records, '1.role_lookup_by_role_id.1.name'));
+        $this->assertEquals(Arr::get($role2, 'role_lookup_by_role_id.0.name'),
+            Arr::get($records, '1.role_lookup_by_role_id.0.name'));
 
         $this->assertEquals(Arr::get($role3, 'name'), Arr::get($records, '2.name'));
         $this->assertEquals(

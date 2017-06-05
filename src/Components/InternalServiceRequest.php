@@ -1,9 +1,8 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use DreamFactory\Library\Utility\Enums\Verbs;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Enums\DataFormats;
-use DreamFactory\Library\Utility\Scalar;
 
 /**
  * Trait InternalServiceRequest
@@ -119,7 +118,7 @@ trait InternalServiceRequest
             return $default;
         }
 
-        return Scalar::boolval(array_get($this->parameters, $key, $default));
+        return array_get_bool($this->parameters, $key, $default);
     }
 
     /**

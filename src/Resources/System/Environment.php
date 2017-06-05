@@ -8,15 +8,39 @@ use DreamFactory\Core\Models\AppGroup as AppGroupModel;
 use DreamFactory\Core\Models\Config as SystemConfig;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
-use DreamFactory\Core\User\Services\User;
+use DreamFactory\Core\Utility\Curl;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
-use DreamFactory\Library\Utility\Enums\Verbs;
-use DreamFactory\Library\Utility\Inflector;
-use DreamFactory\Library\Utility\Scalar;
+use DreamFactory\Core\Enums\Verbs;
+use Illuminate\Validation\ValidationException;
 use ServiceManager;
+use Validator;
 
 class Environment extends BaseSystemResource
 {
+    const GOLD_LICENSE = 'GOLD';
+
+    const SILVER_LICENSE = 'SILVER';
+
+    const OPENSRC_LICENSE = 'OPEN SOURCE';
+
+    const GOLD_PACKAGES = [
+        'df-limits',
+        'df-logger'
+    ];
+
+    const SILVER_PACKAGES = [
+        'df-adldap',
+        'df-azure-ad',
+        'df-ibmdb2',
+        'df-notification',
+        'df-oracledb',
+        'df-salesforce',
+        'df-saml',
+        'df-soap',
+        'df-sqlanywhere',
+        'df-sqlsrv'
+    ];
+
     /**
      * @return array
      */
@@ -25,8 +49,8 @@ class Environment extends BaseSystemResource
         $result = [];
 
         $result['platform'] = [
-            'version_current'   => \Config::get('df.version'),
-            'version_latest'    => \Config::get('df.version'),
+            'version_current'   => \Config::get('app.version'),
+            'version_latest'    => \Config::get('app.version'),
             'upgrade_available' => false,
             'bitnami_demo'      => static::isDemoApplication(),
             'is_hosted'         => env('DF_MANAGED', false),
@@ -57,7 +81,7 @@ class Environment extends BaseSystemResource
             'resources_wrapper'     => \Config::get('df.resources_wrapper'),
             'db'                    => [
                 /** The default number of records to return at once for database queries */
-                'max_records_returned' => \Config::get('df.db.max_records_returned'),
+                'max_records_returned' => \Config::get('database.max_records_returned'),
                 'time_format'          => \Config::get('df.db.time_format'),
                 'date_format'          => \Config::get('df.db.date_format'),
                 'datetime_format'      => \Config::get('df.db.datetime_format'),
@@ -75,7 +99,7 @@ class Environment extends BaseSystemResource
             $result['platform']['install_path'] = base_path() . DIRECTORY_SEPARATOR;
             $result['platform']['log_path'] = env('DF_MANAGED_LOG_PATH', storage_path('logs')) . DIRECTORY_SEPARATOR;
             $result['platform']['log_mode'] = \Config::get('app.log');
-            $result['platform']['log_level'] = \Config::get('df.log_level');
+            $result['platform']['log_level'] = \Config::get('app.log_level');
             $result['platform']['cache_driver'] = \Config::get('cache.default');
             $result['platform']['secured_package_export'] = static::isZipInstalled();
 
@@ -85,6 +109,7 @@ class Environment extends BaseSystemResource
 
             $packages = static::getInstalledPackagesInfo();
             if (!empty($packages)) {
+                $result['platform']['license'] = static::getLicenseLevel($packages);
                 $result['platform']['packages'] = $packages;
             }
 
@@ -94,6 +119,7 @@ class Environment extends BaseSystemResource
                 'version'   => php_uname('v'),
                 'host'      => php_uname('n'),
                 'machine'   => php_uname('m'),
+                'ip'        => static::getExternalIP()
             ];
             $result['php'] = static::getPhpInfo();
         }
@@ -111,6 +137,50 @@ class Environment extends BaseSystemResource
         exec('zip -h', $output, $ret);
 
         return ($ret === 0) ? true : false;
+    }
+
+    /**
+     * Returns instance's external IP address.
+     *
+     * @return mixed
+     */
+    public static function getExternalIP()
+    {
+        $ip = \Cache::rememberForever('external-ip-address', function (){
+            $response = Curl::get('http://ipinfo.io/ip');
+            $ip = trim($response, "\t\r\n");
+            try {
+                $validator = Validator::make(['ip' => $ip], ['ip' => 'ip']);
+                $validator->validate();
+            } catch (ValidationException $e) {
+                $ip = null;
+            }
+
+            return $ip;
+        });
+
+        return $ip;
+    }
+
+    /**
+     * @param $packages
+     *
+     * @return string
+     */
+    public static function getLicenseLevel($packages)
+    {
+        foreach (static::GOLD_PACKAGES as $gp) {
+            if (!is_null(array_by_key_value($packages, 'name', 'dreamfactory/' . $gp, 'version'))) {
+                return static::GOLD_LICENSE;
+            }
+        }
+        foreach (static::SILVER_PACKAGES as $sp) {
+            if (!is_null(array_by_key_value($packages, 'name', 'dreamfactory/' . $sp, 'version'))) {
+                return static::SILVER_LICENSE;
+            }
+        }
+
+        return static::OPENSRC_LICENSE;
     }
 
     public static function getInstalledPackagesInfo()
@@ -351,11 +421,11 @@ class Environment extends BaseSystemResource
         foreach ($samls as $saml) {
             $config = ($saml->getConfigAttribute()) ?: [];
             $services[] = [
-                'path'  => $saml->name . '/sso',
-                'name'  => $saml->name,
-                'label' => $saml->label,
-                'verb'  => Verbs::GET,
-                'type'  => 'saml',
+                'path'       => $saml->name . '/sso',
+                'name'       => $saml->name,
+                'label'      => $saml->label,
+                'verb'       => Verbs::GET,
+                'type'       => 'saml',
                 'icon_class' => array_get($config, 'icon_class'),
             ];
         }
@@ -532,8 +602,8 @@ class Environment extends BaseSystemResource
                     $v1 = null;
                 }
 
-                if (Scalar::in(strtolower($v1), 'on', 'off', '0', '1')) {
-                    $v1 = Scalar::boolval(array_get($value, 0));
+                if (in_array(strtolower($v1), ['on', 'off', '0', '1'])) {
+                    $v1 = array_get_bool($value, 0);
                 }
 
                 $value = $v1;
@@ -552,7 +622,7 @@ class Environment extends BaseSystemResource
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);
-        $capitalized = Inflector::camelize($service);
+        $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower(array_get($resource, 'name', $class));
         $path = '/' . $serviceName . '/' . $resourceName;

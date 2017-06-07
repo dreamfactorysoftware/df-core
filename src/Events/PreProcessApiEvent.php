@@ -22,7 +22,7 @@ class PreProcessApiEvent extends InterProcessApiEvent
     {
         $this->request = $request;
         $this->response = $response;
-        $name = strtolower($path . '.' . $request->getMethod()) . '.pre_process';
+        $name = strtolower($path . '.' . str_replace('/', '.', $resource) . '.' . $request->getMethod()) . '.pre_process';
         parent::__construct($name, $resource);
     }
 

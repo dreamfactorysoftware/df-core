@@ -24,7 +24,7 @@ class PostProcessApiEvent extends InterProcessApiEvent
     {
         $this->request = $request;
         $this->response = $response;
-        $name = strtolower($path . '.' . $request->getMethod()) . '.post_process';
+        $name = strtolower($path . '.' . str_replace('/', '.', $resource) . '.' . $request->getMethod()) . '.post_process';
         parent::__construct($name, $resource);
     }
 

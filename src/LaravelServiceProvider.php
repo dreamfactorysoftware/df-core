@@ -9,7 +9,6 @@ use DreamFactory\Core\Commands\Import;
 use DreamFactory\Core\Commands\ImportPackage;
 use DreamFactory\Core\Commands\Request;
 use DreamFactory\Core\Commands\Setup;
-use DreamFactory\Core\Commands\SetupAlias;
 use DreamFactory\Core\Components\DbSchemaExtensions;
 use DreamFactory\Core\Components\ServiceDocBuilder;
 use DreamFactory\Core\Database\Connectors\SQLiteConnector;
@@ -111,7 +110,6 @@ class LaravelServiceProvider extends ServiceProvider
             ImportPackage::class,
             Request::class,
             Setup::class,
-            SetupAlias::class,
         ]);
     }
 

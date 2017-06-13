@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Events;
 
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
@@ -27,7 +28,7 @@ class QueuedApiEvent extends ApiEvent
     public function __construct($path, $request, $response, $resource = null)
     {
         $name = strtolower($path . '.' . $request->getMethod()) . '.queued';
-        parent::__construct($name);
+        parent::__construct($name, $resource);
 
         if ($response instanceof RedirectResponse || $response instanceof StreamedResponse) {
             $response = [];

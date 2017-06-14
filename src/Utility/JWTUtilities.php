@@ -29,9 +29,25 @@ class JWTUtilities
         if (\Config::get('df.allow_forever_sessions') === false) {
             $forever = false;
         }
+        $customClaims = ['user_id' => $userId, 'forever' => $forever];
+        $customClaimFields = config('jwt.custom_claims');
+        if (!empty($customClaimFields)) {
+            /** @var User $user */
+            $user = User::find($userId);
+            if (!empty($user)) {
+                $user = $user->toArray();
+                foreach ($customClaimFields as $ccf) {
+                    $value = array_get($user, $ccf);
+                    if (!empty($value)) {
+                        $customClaims[$ccf] = $value;
+                    }
+                }
+            }
+        }
+
         /** @type Payload $payload */
         /** @noinspection PhpUndefinedMethodInspection */
-        $payload = JWTFactory::sub(md5($email))->customClaims(['user_id' => $userId, 'forever' => $forever])->make();
+        $payload = JWTFactory::sub(md5($email))->customClaims($customClaims)->make();
         /** @type Token $token */
         $token = JWTAuth::manager()->encode($payload);
         $tokenValue = $token->get();

@@ -71,6 +71,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     protected $fillable = [
         'name',
         'username',
+        'ldap_username',
         'first_name',
         'last_name',
         'email',

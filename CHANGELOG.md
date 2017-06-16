@@ -7,6 +7,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-1127 Added service/resource info on logstash logging
 - DF-1142 Added ldap_username field to user table. Added DF_JWT_USER_CLAIM env option to include user attribute in JWT
 
+### Fixed
+- DF-1144 Made DELETE behavior consistent across local and all remote file services
+
 ## [0.10.0] - 2017-06-05
 ### Added
 - DF-797 Support for OpenID Connect

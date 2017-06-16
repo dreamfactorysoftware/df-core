@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Contracts;
 
 interface FileSystemInterface
@@ -255,11 +256,12 @@ interface FileSystemInterface
 
     /**
      * @param string $container
-     * @param string $path File path relative to the service root directory
+     * @param string $path    File path relative to the service root directory
+     * @param bool   $noCheck Set true to avoid checking file existence
      *
      * @return void
      */
-    public function deleteFile($container, $path);
+    public function deleteFile($container, $path, $noCheck = false);
 
     /**
      * @param string $container

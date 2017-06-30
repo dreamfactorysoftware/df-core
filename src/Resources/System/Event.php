@@ -2,12 +2,10 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Resources\BaseRestResource;
-use DreamFactory\Core\Contracts\FileServiceInterface;
-use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ServiceResponse;
 use ServiceManager;
@@ -56,44 +54,14 @@ class Event extends BaseRestResource
         //	Initialize the event map
         $eventMap = [];
 
-        //  Pull any custom swagger docs
-        $result = ServiceModel::whereIsActive(true)->get();
-
         //	Spin through services and pull the events
-        /** @var ServiceModel $model */
-        foreach ($result as $model) {
-            $apiName = $model->name;
-            try {
-                /** @var BaseRestService $service */
-                if (empty($service = ServiceManager::getService($apiName))) {
-                    throw new \Exception('No service found.');
-                }
+        /** @var ServiceInterface[] $services */
+        if (empty($services = ServiceManager::getServices())) {
+            throw new \Exception('No services found.');
+        }
 
-                if ($service instanceof FileServiceInterface) {
-                    // don't want the full folder list here
-                    $accessList = (empty($service->getPermissions()) ? [] : ['', '*']);
-                } else {
-                    $accessList = $service->getAccessList();
-                }
-
-                if (!empty($accessList)) {
-                    if (!empty($doc = $model->getDocAttribute())) {
-                        if (is_array($doc) && !empty($content = array_get($doc, 'content'))) {
-                            if (is_string($content)) {
-                                $content = ServiceModel::storedContentToArray($content, array_get($doc, 'format'),
-                                    $model);
-                                if (!empty($content)) {
-                                    $eventMap[$apiName] = static::parseSwaggerEvents($content, $accessList);
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (\Exception $ex) {
-                \Log::error("  * System error building event map for service '$apiName'.\n{$ex->getMessage()}");
-            }
-
-            unset($content, $service, $serviceEvents);
+        foreach ($services as $apiName => $service) {
+            $eventMap[$apiName] = $service->getEventMap();
         }
 
         static::$eventMap = $eventMap;

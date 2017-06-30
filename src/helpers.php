@@ -22,6 +22,11 @@ if (!function_exists('to_bool')) {
             $_value = 'yes';
         } elseif ('n' == $_value) {
             $_value = 'no';
+            //	FILTER_VALIDATE_BOOLEAN doesn't catch 'T' or 'F', so convert to full words...
+        } elseif ('t' == $_value) {
+            $_value = 'true';
+        } elseif ('f' == $_value) {
+            $_value = 'false';
         }
 
         return filter_var($_value, FILTER_VALIDATE_BOOLEAN);

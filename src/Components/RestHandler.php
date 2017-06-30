@@ -143,6 +143,16 @@ abstract class RestHandler implements RequestHandlerInterface
         return $this->name;
     }
 
+    public function getLabel()
+    {
+        return $this->label;
+    }
+
+    public function getDescription()
+    {
+        return $this->description;
+    }
+
     /**
      * @param ServiceRequestInterface $request
      * @param string|null             $resource

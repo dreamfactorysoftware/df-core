@@ -16,6 +16,11 @@ namespace DreamFactory\Core\Database\Schema;
 class NamedResourceSchema
 {
     /**
+     * @var mixed Identifier of this resource (vendor specific).
+     * Defaults to null, meaning no id given, must use schema and resource name to identify.
+     */
+    public $id;
+    /**
      * @var string Name of the catalog (database) that this resource belongs to (SQL Server specific).
      * Defaults to null, meaning no catalog (or the current database).
      */

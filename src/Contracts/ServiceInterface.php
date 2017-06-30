@@ -12,6 +12,26 @@ namespace DreamFactory\Core\Contracts;
 interface ServiceInterface extends RequestHandlerInterface
 {
     /**
+     * @return string
+     */
+    public function getName();
+
+    /**
+     * @return string
+     */
+    public function getLabel();
+
+    /**
+     * @return string
+     */
+    public function getDescription();
+
+    /**
+     * @return string
+     */
+    public function getType();
+
+    /**
      * @return boolean
      */
     public function isActive();
@@ -34,8 +54,12 @@ interface ServiceInterface extends RequestHandlerInterface
     public function getAccessList();
 
     /**
-     * @param null|string $service
      * @return array|null
      */
-    public static function getApiDocInfo($service);
+    public function getEventMap();
+
+    /**
+     * @return array|null
+     */
+    public function getApiDoc();
 }

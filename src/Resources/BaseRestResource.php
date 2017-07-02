@@ -132,6 +132,13 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         return Session::getServicePermissions($this->getServiceName(), $path, $requestType);
     }
 
+    public function getEventMap()
+    {
+        // By default, event map for resources are derived from the ApiDocInfo from the service level
+        // Override this to add extra events not included in the ApiDocInfo.
+        return [];
+    }
+
     public static function getApiDocInfo($service, array $resource = [])
     {
         $serviceName = strtolower($service);

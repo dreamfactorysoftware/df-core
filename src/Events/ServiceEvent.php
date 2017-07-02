@@ -1,45 +1,27 @@
 <?php
 namespace DreamFactory\Core\Events;
 
-use DreamFactory\Core\Services\BaseRestService;
-
-class ServiceEvent extends ApiEvent
+abstract class ServiceEvent extends Event
 {
-    /** @var array  */
-    protected $data;
+    public $resource;
+    public $data;
 
-    /** @var ApiEvent */
-    protected $event;
-
-    /** @var BaseRestService */
-    protected $service;
-
-    public function __construct(BaseRestService $service, ApiEvent $parentEvent, array $data)
+    /**
+     * Create a new event instance.
+     *
+     * @param string $name
+     * @param mixed  $resource
+     * @param array  $data
+     */
+    public function __construct($name, $resource = null, $data = null)
     {
-        $name = str_replace('.queued', null, $parentEvent->name);
         parent::__construct($name);
-        $this->service = $service;
-        $this->event = $parentEvent;
+        $this->resource = $resource;
         $this->data = $data;
-    }
-
-    public function getParent()
-    {
-        return $this->event;
-    }
-
-    public function getData()
-    {
-        return $this->data;
-    }
-
-    public function getService()
-    {
-        return $this->service;
     }
 
     public function makeData()
     {
-        return $this->event->makeData();
+        return array_merge(['resource' => $this->resource], (array)$this->data);
     }
 }

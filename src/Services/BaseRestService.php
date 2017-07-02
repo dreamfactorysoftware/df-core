@@ -158,6 +158,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
 
     public function getEventMap()
     {
+        $map = [];
         if (isset($this->doc) && is_array($this->doc)) {
             if (!empty($content = array_get($this->doc, 'content'))) {
                 if (is_string($content)) {
@@ -175,17 +176,17 @@ class BaseRestService extends RestHandler implements ServiceInterface
             if (is_array($content)) {
                 $accessList = [];
                 try {
-                    $accessList = $this->getAccessList();
+//                    $accessList = $this->getAccessList();
                 } catch (\Exception $ex) {
                     // possibly misconfigured service, don't propagate
                     \Log::warning("Service {$this->name} failed to get access list. " . $ex->getMessage());
                 }
 
-                return static::parseSwaggerEvents($content, $accessList);
+                $map = static::parseSwaggerEvents($content, $accessList);
             }
         }
 
-        return [];
+        return $map;
     }
 
     public static function storedContentToArray($content, $format, $service_info = [])

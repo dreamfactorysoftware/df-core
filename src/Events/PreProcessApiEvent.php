@@ -6,10 +6,6 @@ use DreamFactory\Core\Contracts\ServiceResponseInterface;
 
 class PreProcessApiEvent extends InterProcessApiEvent
 {
-    public $request;
-
-    public $response;
-
     /**
      * Create a new event instance.
      *
@@ -20,17 +16,12 @@ class PreProcessApiEvent extends InterProcessApiEvent
      */
     public function __construct($path, &$request, &$response, $resource = null)
     {
-        $this->request = $request;
-        $this->response = $response;
-        $name = strtolower($path . '.' . $request->getMethod()) . '.pre_process';
-        parent::__construct($name, $resource);
+        parent::__construct($path, $request, $response, $resource);
+        $this->name = $this->name . '.pre_process';
     }
 
     public function makeData()
     {
-        return [
-            'request'  => $this->request->toArray(),
-            'resource' => $this->resource,
-        ];
+        return array_except(parent::makeData(), ['response']);
     }
 }

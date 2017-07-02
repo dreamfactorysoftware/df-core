@@ -1,15 +1,15 @@
 <?php
 namespace DreamFactory\Core\Handlers\Events;
 
+use DreamFactory\Core\Events\ApiEvent;
 use DreamFactory\Core\Events\BaseServiceEvent;
-use DreamFactory\Core\Events\QueuedApiEvent;
 use DreamFactory\Core\Events\ServiceDeletedEvent;
-use DreamFactory\Core\Events\ServiceEvent;
+use DreamFactory\Core\Events\ServiceAssignedEvent;
 use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Models\BaseModel;
 use DreamFactory\Core\Services\BaseRestService;
-use Illuminate\Contracts\Events\Dispatcher;
 use DreamFactory\Core\Models\ServiceEventMap;
+use Illuminate\Contracts\Events\Dispatcher;
 use Cache;
 use Config;
 use Event;
@@ -27,7 +27,7 @@ class ServiceEventHandler
     {
         $events->listen(
             [
-                QueuedApiEvent::class,
+                ApiEvent::class,
             ],
             static::class . '@handleApiEvent'
         );
@@ -43,7 +43,7 @@ class ServiceEventHandler
     /**
      * Handle API events.
      *
-     * @param QueuedApiEvent $event
+     * @param ApiEvent $event
      */
     public function handleApiEvent($event)
     {
@@ -67,7 +67,7 @@ class ServiceEventHandler
             Log::debug('Service event handled: ' . $eventName);
             /** @var BaseRestService $service */
             $service = \ServiceManager::getServiceById($record->service_id);
-            Event::fire(new ServiceEvent($service, $event, $record->toArray()));
+            Event::fire(new ServiceAssignedEvent($service, $event, $record->toArray()));
         }
     }
 

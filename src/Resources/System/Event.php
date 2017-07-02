@@ -156,7 +156,7 @@ class Event extends BaseRestResource
      *
      * @return array
      */
-    public static function getEventMap($refresh = false)
+    public static function getAllEventMaps($refresh = false)
     {
         if (!empty(static::$eventMap)) {
             return static::$eventMap;
@@ -198,26 +198,38 @@ class Event extends BaseRestResource
         $refresh = $this->request->getParameterAsBool('refresh');
         $scriptable = $this->request->getParameterAsBool('scriptable');
         $service = $this->request->getParameter('service');
-        $results = $this->getEventMap($refresh);
+        $results = $this->getAllEventMaps($refresh);
         $allEvents = [];
         foreach ($results as $serviceKey => $paths) {
             if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
                 unset($results[$serviceKey]);
             } else {
                 foreach ($paths as $path => $operations) {
-                    foreach ($operations['verb'] as $method => $events) {
-                        if ($scriptable) {
-                            foreach ($events as $ndx => $event) {
-                                $temp = [
-                                    $event . '.pre_process',
-                                    $event . '.post_process',
-                                    $event . '.queued',
-                                ];
-                                $results[$serviceKey][$path]['verb'][$method] = $temp;
-                                $allEvents = array_merge($allEvents, $temp);
+                    if (isset($operations['verb'])) {
+                        foreach ($operations['verb'] as $method => $events) {
+                            if ($scriptable) {
+                                foreach ($events as $ndx => $event) {
+                                    $temp = [
+                                        $event,
+                                        $event . '.pre_process',
+                                        $event . '.post_process',
+                                        $event . '.queued',
+                                    ];
+                                    $results[$serviceKey][$path]['verb'][$method] = $temp;
+                                    $allEvents = array_merge($allEvents, $temp);
+                                }
+                            } else {
+                                $allEvents = array_merge($allEvents, $events);
                             }
+                        }
+                    } else {
+                        if ($scriptable) {
+                            $results[$serviceKey][$path] = $operations;
+                            $allEvents = array_merge($allEvents, [$path]);
+                            $results[$serviceKey][$path.'.queued'] = $operations;
+                            $allEvents = array_merge($allEvents, [$path.'.queued']);
                         } else {
-                            $allEvents = array_merge($allEvents, $events);
+                            $allEvents = array_merge($allEvents, [$path]);
                         }
                     }
                 }

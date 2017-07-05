@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Events;
 
-abstract class ServiceEvent extends Event
+class ServiceEvent extends Event
 {
     public $resource;
     public $data;

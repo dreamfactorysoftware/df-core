@@ -176,7 +176,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
             if (is_array($content)) {
                 $accessList = [];
                 try {
-//                    $accessList = $this->getAccessList();
+                    $accessList = $this->getAccessList();
                 } catch (\Exception $ex) {
                     // possibly misconfigured service, don't propagate
                     \Log::warning("Service {$this->name} failed to get access list. " . $ex->getMessage());

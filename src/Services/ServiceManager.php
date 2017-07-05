@@ -241,6 +241,19 @@ class ServiceManager
     }
 
     /**
+     * Return all of the created service names.
+     *
+     * @param bool $only_active
+     * @return array
+     */
+    public function getServiceNames($only_active = false)
+    {
+        $results = ($only_active ? Service::whereIsActive(true)->pluck('name') : Service::pluck('name'));
+
+        return $results->all();
+    }
+
+    /**
      * @param string      $service
      * @param string      $verb
      * @param string|null $resource

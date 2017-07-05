@@ -33,6 +33,27 @@ class System extends BaseRestService
     public $passwordEmailTemplateId;
 
     /**
+     * @param array $settings
+     */
+    public function __construct($settings = [])
+    {
+        parent::__construct($settings);
+
+        foreach ($this->config as $key => $value) {
+            if (!property_exists($this, $key)) {
+                // try camel cased
+                $camel = camel_case($key);
+                if (property_exists($this, $camel)) {
+                    $this->{$camel} = $value;
+                    continue;
+                }
+            } else {
+                $this->{$key} = $value;
+            }
+        }
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function getResources($only_handlers = false)

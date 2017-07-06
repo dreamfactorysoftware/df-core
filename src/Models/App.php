@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Enums\AppTypes;
@@ -231,6 +232,9 @@ class App extends BaseSystemModel
      */
     public static function getAppIdByApiKey($api_key)
     {
+        if (empty($api_key)) {
+            return null;
+        }
         $cacheKey = 'apikey2appid:' . $api_key;
         try {
             return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($api_key){

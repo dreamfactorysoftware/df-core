@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Providers;
 
 use Barryvdh\Cors\HandleCors;
@@ -11,9 +12,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Route;
+use Cache;
 
 class CorsServiceProvider extends ServiceProvider
 {
+    const CACHE_KEY = 'df-cors-config';
+
     /**
      * Indicates if loading of the provider is deferred.
      *
@@ -27,13 +31,14 @@ class CorsServiceProvider extends ServiceProvider
 
     /**
      * Add the Cors middleware to the router.
+     *
      * @param Request $request
      * @param Kernel  $kernel
      */
     public function boot(Request $request, Kernel $kernel)
     {
         $config = $this->getOptions($request);
-        $this->app->singleton(CorsService::class, function () use ($config) {
+        $this->app->singleton(CorsService::class, function () use ($config){
             return new CorsService($config);
         });
 
@@ -104,7 +109,9 @@ class CorsServiceProvider extends ServiceProvider
     protected function getCorsConfigs()
     {
         try {
-            $cors = CorsConfig::whereEnabled(true)->get();
+            $cors = Cache::remember(static::CACHE_KEY, \Config::get('df.default_cache_ttl'), function (){
+                return CorsConfig::whereEnabled(true)->get();
+            });
 
             return $cors;
         } catch (\Exception $e) {

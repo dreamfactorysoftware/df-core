@@ -16,8 +16,6 @@ use Cache;
 
 class CorsServiceProvider extends ServiceProvider
 {
-    const CACHE_KEY = 'df-cors-config';
-
     /**
      * Indicates if loading of the provider is deferred.
      *
@@ -109,7 +107,7 @@ class CorsServiceProvider extends ServiceProvider
     protected function getCorsConfigs()
     {
         try {
-            $cors = Cache::remember(static::CACHE_KEY, \Config::get('df.default_cache_ttl'), function (){
+            $cors = Cache::remember(CorsConfig::CACHE_KEY, \Config::get('df.default_cache_ttl'), function (){
                 return CorsConfig::whereEnabled(true)->get();
             });
 

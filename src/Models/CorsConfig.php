@@ -25,6 +25,9 @@ use Illuminate\Database\Query\Builder;
  */
 class CorsConfig extends BaseSystemModel
 {
+    /** Cache Key Constant */
+    const CACHE_KEY = 'df-cors-config';
+
     /**
      * @var string
      */

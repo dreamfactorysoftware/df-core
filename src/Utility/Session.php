@@ -3,19 +3,16 @@
 namespace DreamFactory\Core\Utility;
 
 use Carbon\Carbon;
-use DreamFactory\Core\Models\App;
-use DreamFactory\Core\Models\AppLookup;
-use DreamFactory\Core\Models\Lookup;
-use DreamFactory\Core\Models\Role;
-use DreamFactory\Core\Models\RoleLookup;
-use DreamFactory\Core\Models\User;
-use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
-use DreamFactory\Core\Models\UserLookup;
-use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Models\App;
+use DreamFactory\Core\Models\BaseSystemLookup;
+use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\User;
+use DreamFactory\Core\Models\UserAppRole;
 use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
 
 class Session
@@ -343,30 +340,6 @@ class Session
         }
 
         return null;
-    }
-
-    /**
-     * @param array $systemLookup
-     * @param array $appLookup
-     * @param array $roleLookup
-     * @param array $userLookup
-     *
-     * @return array
-     */
-    public static function combineLookups($systemLookup = [], $appLookup = [], $roleLookup = [], $userLookup = [])
-    {
-        $lookup = [];
-        $secretLookup = [];
-
-        static::addLookupsToMap(Lookup::class, $systemLookup, $lookup, $secretLookup);
-        static::addLookupsToMap(RoleLookup::class, $roleLookup, $lookup, $secretLookup);
-        static::addLookupsToMap(AppLookup::class, $appLookup, $lookup, $secretLookup);
-        static::addLookupsToMap(UserLookup::class, $userLookup, $lookup, $secretLookup);
-
-        return [
-            'lookup'        => $lookup,
-            'lookup_secret' => $secretLookup //Actual values of the secret keys. For internal use only.
-        ];
     }
 
     /**
@@ -732,17 +705,66 @@ class Session
             Session::put('role.services', $roleInfo['role_service_access_by_role_id']);
         }
 
-        $systemLookup = Lookup::getCachedLookups();
-        $systemLookup = (!empty($systemLookup)) ? $systemLookup : [];
-        $appLookup = (!empty($appInfo['app_lookup_by_app_id'])) ? $appInfo['app_lookup_by_app_id'] : [];
-        $roleLookup = (!empty($roleInfo['role_lookup_by_role_id'])) ? $roleInfo['role_lookup_by_role_id'] : [];
-        $userLookup = (!empty($userInfo['user_lookup_by_user_id'])) ? $userInfo['user_lookup_by_user_id'] : [];
+        static::setSessionLookups();
+    }
 
-        $combinedLookup = static::combineLookups($systemLookup, $appLookup, $roleLookup, $userLookup);
+    public static function setSessionLookups()
+    {
+        $lookups = BaseSystemLookup::get();
 
-        Session::put('lookup', array_get($combinedLookup, 'lookup'));
-        //Actual values of the secret keys. For internal use only.
-        Session::put('lookup_secret', array_get($combinedLookup, 'lookup_secret'));
+        $map = [];
+        $mapSecret = [];
+        // Loop through and add the system lookups
+        foreach ($lookups as $lookup) {
+            if ($lookup->private) {
+                $mapSecret[$lookup->name] = $lookup->value;
+            } else {
+                $map[$lookup->name] = $lookup->value;
+            }
+        }
+
+        // Loop through and add the applicable role lookups
+        if ($roleId = Session::get('role.id')) {
+            foreach ($lookups as $lookup) {
+                if ($lookup->role_id === $roleId) {
+                    if ($lookup->private) {
+                        $mapSecret[$lookup->name] = $lookup->value;
+                    } else {
+                        $map[$lookup->name] = $lookup->value;
+                    }
+                }
+            }
+        }
+
+        // Loop through and add the applicable app lookups
+        if ($appId = Session::get('app.id')) {
+            foreach ($lookups as $lookup) {
+                if ($lookup->app_id === $appId) {
+                    if ($lookup->private) {
+                        $mapSecret[$lookup->name] = $lookup->value;
+                    } else {
+                        $map[$lookup->name] = $lookup->value;
+                    }
+                }
+            }
+        }
+
+        // Loop through and add the applicable user lookups
+        if ($userId = Session::get('user.id')) {
+            foreach ($lookups as $lookup) {
+                if ($lookup->user_id === $userId) {
+                    if ($lookup->private) {
+                        $mapSecret[$lookup->name] = $lookup->value;
+                    } else {
+                        $map[$lookup->name] = $lookup->value;
+                    }
+                }
+            }
+        }
+
+        Session::put('lookup', $map);
+        // Actual values of the secret keys. For internal use only.
+        Session::put('lookup_secret', $mapSecret);
     }
 
     /**

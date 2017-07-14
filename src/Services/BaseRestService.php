@@ -299,8 +299,8 @@ class BaseRestService extends RestHandler implements ServiceInterface
                 }
 
                 $method = strtolower($ixOps);
-                if (!isset($apiEvents[$method])) {
-                    $apiEvents[$method][] = "$eventPath.$method";
+                if (!array_search("$eventPath.$method", $apiEvents)) {
+                    $apiEvents[] = "$eventPath.$method";
                     $parameters = array_get($operation, 'parameters', []);
                     if (!empty($pathParameters)) {
                         $parameters = array_merge($pathParameters, $parameters);
@@ -340,9 +340,9 @@ class BaseRestService extends RestHandler implements ServiceInterface
                 unset($operation);
             }
 
-            $events[$eventPath]['verb'] = $apiEvents;
-            $apiParameters = (empty($apiParameters)) ? null : $apiParameters;
-            $events[$eventPath]['parameter'] = $apiParameters;
+            $events[$eventPath]['type'] = 'api';
+            $events[$eventPath]['endpoints'] = $apiEvents;
+            $events[$eventPath]['parameter'] = (empty($apiParameters)) ? null : $apiParameters;
 
             unset($apiEvents, $apiParameters, $api);
         }

@@ -7,6 +7,7 @@ use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Query\Builder;
 
 /**
  * App
@@ -24,14 +25,14 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
  * @property string  $url
  * @property string  $created_date
  * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|App whereId($value)
- * @method static \Illuminate\Database\Query\Builder|App whereName($value)
- * @method static \Illuminate\Database\Query\Builder|App whereApiKey($value)
- * @method static \Illuminate\Database\Query\Builder|App whereIsActive($value)
- * @method static \Illuminate\Database\Query\Builder|App whereRoleId($value)
- * @method static \Illuminate\Database\Query\Builder|App whereStorageServiceId($value)
- * @method static \Illuminate\Database\Query\Builder|App whereCreatedDate($value)
- * @method static \Illuminate\Database\Query\Builder|App whereLastModifiedDate($value)
+ * @method static Builder|App whereId($value)
+ * @method static Builder|App whereName($value)
+ * @method static Builder|App whereApiKey($value)
+ * @method static Builder|App whereIsActive($value)
+ * @method static Builder|App whereRoleId($value)
+ * @method static Builder|App whereStorageServiceId($value)
+ * @method static Builder|App whereCreatedDate($value)
+ * @method static Builder|App whereLastModifiedDate($value)
  */
 class App extends BaseSystemModel
 {
@@ -184,7 +185,7 @@ class App extends BaseSystemModel
         $cacheKey = 'app:' . $id;
         try {
             $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
-                $app = App::with('app_lookup_by_app_id')->whereId($id)->first();
+                $app = App::whereId($id)->first();
 
                 if (empty($app)) {
                     throw new NotFoundException("App not found.");
@@ -265,5 +266,14 @@ class App extends BaseSystemModel
         }
 
         return null;
+    }
+
+    protected static function getModelFromTable($table)
+    {
+        if ('lookup' === $table) {
+            return AppLookup::class;
+        }
+
+        return parent::getModelFromTable($table);
     }
 }

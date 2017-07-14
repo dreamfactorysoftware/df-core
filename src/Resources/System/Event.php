@@ -56,12 +56,10 @@ class Event extends BaseRestResource
 
         //	Spin through services and pull the events
         /** @var ServiceInterface[] $services */
-        if (empty($services = ServiceManager::getServices())) {
-            throw new \Exception('No services found.');
-        }
-
-        foreach ($services as $apiName => $service) {
-            $eventMap[$apiName] = $service->getEventMap();
+        if (!empty($services = ServiceManager::getServices())) {
+            foreach ($services as $apiName => $service) {
+                $eventMap[$apiName] = $service->getEventMap();
+            }
         }
 
         static::$eventMap = $eventMap;
@@ -205,32 +203,31 @@ class Event extends BaseRestResource
                 unset($results[$serviceKey]);
             } else {
                 foreach ($paths as $path => $operations) {
-                    if (isset($operations['verb'])) {
-                        foreach ($operations['verb'] as $method => $events) {
-                            if ($scriptable) {
-                                foreach ($events as $ndx => $event) {
-                                    $temp = [
-                                        $event,
-                                        $event . '.pre_process',
-                                        $event . '.post_process',
-                                        $event . '.queued',
-                                    ];
-                                    $results[$serviceKey][$path]['verb'][$method] = $temp;
-                                    $allEvents = array_merge($allEvents, $temp);
-                                }
-                            } else {
-                                $allEvents = array_merge($allEvents, $events);
-                            }
-                        }
-                    } else {
+                    if (empty($type = array_get($operations, 'type'))) {
+                        $type = 'service';
+                        $results[$serviceKey][$path]['type'] = $type;
+                    }
+                    if (!empty($endpoints = (array)array_get($operations, 'endpoints', $path))) {
                         if ($scriptable) {
-                            $results[$serviceKey][$path] = $operations;
-                            $allEvents = array_merge($allEvents, [$path]);
-                            $results[$serviceKey][$path.'.queued'] = $operations;
-                            $allEvents = array_merge($allEvents, [$path.'.queued']);
-                        } else {
-                            $allEvents = array_merge($allEvents, [$path]);
+                            $temp = [];
+                            foreach ($endpoints as $endpoint) {
+                                $temp[] = $endpoint;
+                                switch ($type) {
+                                    case 'api':
+                                        // add pre_process, post_process
+                                        $temp[] = "$endpoint.pre_process";
+                                        $temp[] = "$endpoint.post_process";
+                                        break;
+                                    case 'service':
+                                        break;
+                                }
+                                // add queued
+                                $temp[] = "$endpoint.queued";
+                            }
+                            $endpoints = $temp;
+                            $results[$serviceKey][$path]['endpoints'] = $temp;
                         }
+                        $allEvents = array_merge($allEvents, $endpoints);
                     }
                 }
             }

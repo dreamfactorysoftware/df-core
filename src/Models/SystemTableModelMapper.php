@@ -27,21 +27,18 @@ class SystemTableModelMapper
     {
         $this->app = $app;
         $this->map = [
-            'user'                => User::class,
-            'user_lookup'         => UserLookup::class,
-            'user_to_app_to_role' => UserAppRole::class,
-            'service'             => Service::class,
-            'role'                => Role::class,
-            'role_service_access' => RoleServiceAccess::class,
-            'role_lookup'         => RoleLookup::class,
             'app'                 => App::class,
-            'app_lookup'          => AppLookup::class,
             'app_group'           => AppGroup::class,
             'app_to_app_group'    => AppToAppGroup::class,
-            'event_subscriber'    => EventSubscriber::class,
             'email_template'      => EmailTemplate::class,
+            'event_subscriber'    => EventSubscriber::class,
+            'lookup'              => BaseSystemLookup::class,
+            'role'                => Role::class,
+            'role_service_access' => RoleServiceAccess::class,
+            'service'             => Service::class,
             'system_custom'       => SystemCustom::class,
-            'system_lookup'       => Lookup::class,
+            'user'                => User::class,
+            'user_to_app_to_role' => UserAppRole::class,
         ];
     }
 

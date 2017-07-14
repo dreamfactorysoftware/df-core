@@ -379,7 +379,7 @@ class Environment extends BaseSystemResource
         return [
             'admin'                     => $adminApi,
             'allow_open_registration'   => false,
-            'open_reg_email_service_id' => false,
+            'open_reg_email_service_id' => null,
         ];
     }
 

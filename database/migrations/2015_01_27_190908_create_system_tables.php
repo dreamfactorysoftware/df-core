@@ -227,26 +227,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // App Lookup Keys
-        Schema::create(
-            'app_lookup',
-            function (Blueprint $t) use ($onDelete){
-                $t->increments('id');
-                $t->integer('app_id')->unsigned();
-                $t->foreign('app_id')->references('id')->on('app')->onDelete('cascade');
-                $t->string('name')->index();
-                $t->text('value')->nullable();
-                $t->boolean('private')->default(0);
-                $t->text('description')->nullable();
-                $t->timestamp('created_date')->nullable();
-                $t->timestamp('last_modified_date')->useCurrent();
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($onDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($onDelete);
-            }
-        );
-
         // Application Groups - visual aid for Launchpad only
         Schema::create(
             'app_group',

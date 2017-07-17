@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Models\CorsConfig;
-use Cache;
 
 /**
  * Class Cors
@@ -21,28 +20,28 @@ class Cors extends BaseSystemResource
 
     protected function handlePOST()
     {
-        Cache::forget(CorsConfig::CACHE_KEY);
+        \Cache::forget(CorsConfig::CACHE_KEY);
 
         return parent::handlePOST();
     }
 
     protected function handleDELETE()
     {
-        Cache::forget(CorsConfig::CACHE_KEY);
+        \Cache::forget(CorsConfig::CACHE_KEY);
 
         return parent::handleDELETE();
     }
 
     protected function handlePUT()
     {
-        Cache::forget(CorsConfig::CACHE_KEY);
+        \Cache::forget(CorsConfig::CACHE_KEY);
 
         return parent::handlePUT();
     }
 
     protected function handlePATCH()
     {
-        Cache::forget(CorsConfig::CACHE_KEY);
+        \Cache::forget(CorsConfig::CACHE_KEY);
 
         return parent::handlePATCH();
     }

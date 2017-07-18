@@ -91,35 +91,6 @@ class System extends BaseRestService
         return $list;
     }
 
-    public function getEventMap()
-    {
-        $events = parent::getEventMap();
-
-        foreach ($this->getResources(true) as $resourceInfo) {
-            $className = $resourceInfo['class_name'];
-
-            if (!class_exists($className)) {
-                throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
-                    $this->resourcePath);
-            }
-
-            $resourceName = $resourceInfo['name'];
-            if (Session::checkForAnyServicePermissions($this->name, $resourceName)) {
-                /** @var BaseSystemResource $resource */
-                $resource = $this->instantiateResource($className, $resourceInfo);
-                try {
-                    $results = $resource->getEventMap();
-                    $events = array_merge($events, $results);
-                } catch (NotImplementedException $ex) {
-                    // carry on
-                }
-            }
-        }
-        ksort($events, SORT_NATURAL);
-
-        return $events;
-    }
-
     public static function getApiDocInfo($service)
     {
         $base = parent::getApiDocInfo($service);

@@ -11,6 +11,8 @@ use DreamFactory\Core\Components\RestHandler;
 use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
 use ServiceManager as ServiceMgr;
@@ -185,6 +187,29 @@ class BaseRestService extends RestHandler implements ServiceInterface
                 $map = static::parseSwaggerEvents($content, $accessList);
             }
         }
+
+        // check children for any extras
+        try {
+            foreach ($this->getResources(true) as $resourceInfo) {
+                $className = $resourceInfo['class_name'];
+
+                if (!class_exists($className)) {
+                    throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
+                        $this->resourcePath);
+                }
+
+                $resourceName = $resourceInfo['name'];
+                if (Session::checkForAnyServicePermissions($this->name, $resourceName)) {
+                    /** @var BaseRestResource $resource */
+                    $resource = $this->instantiateResource($className, $resourceInfo);
+                    $results = $resource->getEventMap();
+                    $map = array_merge($map, $results);
+                }
+            }
+        } catch (\Exception $ex) {
+            // carry on
+        }
+        ksort($map, SORT_NATURAL);
 
         return $map;
     }

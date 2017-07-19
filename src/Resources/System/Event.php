@@ -58,7 +58,9 @@ class Event extends BaseRestResource
         /** @var ServiceInterface[] $services */
         if (!empty($services = ServiceManager::getServices())) {
             foreach ($services as $apiName => $service) {
-                $eventMap[$apiName] = $service->getEventMap();
+                if (!empty($map = $service->getEventMap())) {
+                    $eventMap[$apiName] = $map;
+                }
             }
         }
 

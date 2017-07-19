@@ -64,6 +64,36 @@ class AccessCheck
             'service_type' => 'saml',
             'resource'     => 'metadata',
         ],
+        [
+            'verb_mask'    => 2,
+            'service_type' => 'oidc',
+            'resource'     => 'sso',
+        ],
+        [
+            'verb_mask'    => 2,
+            'service_type' => 'oauth_facebook',
+            'resource'     => 'sso',
+        ],
+        [
+            'verb_mask'    => 2,
+            'service_type' => 'oauth_github',
+            'resource'     => 'sso',
+        ],
+        [
+            'verb_mask'    => 2,
+            'service_type' => 'oauth_google',
+            'resource'     => 'sso',
+        ],
+        [
+            'verb_mask'    => 2,
+            'service_type' => 'oauth_linkedin',
+            'resource'     => 'sso',
+        ],
+        [
+            'verb_mask'    => 2,
+            'service_type' => 'oauth_microsoft-live',
+            'resource'     => 'sso',
+        ],
     ];
 
     /**

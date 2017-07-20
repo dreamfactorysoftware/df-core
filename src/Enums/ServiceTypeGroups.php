@@ -21,6 +21,8 @@ class ServiceTypeGroups extends FactoryEnum
 
     const FILE = 'File';
 
+    const IOT = 'IoT';
+
     const LDAP = 'LDAP';
 
     const LIMIT = 'Limit';

@@ -460,7 +460,7 @@ class Session
 
         if ($use_private) {
             $lookups = static::get('lookup_secret');
-            if (isset($lookups, $lookups[$lookup])) {
+            if (array_key_exists($lookup, (array)$lookups)) {
                 $value = $lookups[$lookup];
 
                 return true;
@@ -468,7 +468,7 @@ class Session
         }
         // non-private
         $lookups = static::get('lookup');
-        if (isset($lookups, $lookups[$lookup])) {
+        if (array_key_exists($lookup, (array)$lookups)) {
             $value = $lookups[$lookup];
 
             return true;

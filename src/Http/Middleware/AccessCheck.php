@@ -209,7 +209,7 @@ class AccessCheck
     public static function isAccessAllowed()
     {
         if (!in_array($method = \Request::getMethod(), Verbs::getDefinedConstants())) {
-            throw new MethodNotAllowedHttpException("Invalid verb tunneling with " . $method);
+            throw new MethodNotAllowedHttpException(Verbs::getDefinedConstants(), "Invalid verb tunneling with $method");
         }
 
         /** @var Router $router */

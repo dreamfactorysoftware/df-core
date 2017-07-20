@@ -30,6 +30,9 @@ class BaseRestService extends RestHandler implements ServiceInterface
     //	Members
     //*************************************************************************
 
+    /** @type array Service Resources */
+    protected static $resources = [];
+
     /**
      * @var integer|null Database Id of the services entry
      */
@@ -100,6 +103,9 @@ class BaseRestService extends RestHandler implements ServiceInterface
         return $this->isActive;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function handleRequest(ServiceRequestInterface $request, $resource = null)
     {
         if (!$this->isActive) {
@@ -107,6 +113,14 @@ class BaseRestService extends RestHandler implements ServiceInterface
         }
 
         return parent::handleRequest($request, $resource);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getResources($onlyHandlers = false)
+    {
+        return ($onlyHandlers) ? static::$resources : array_values(static::$resources);
     }
 
     /**
@@ -412,7 +426,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
         $pluralClass = str_plural($class);
         $wrapper = ResourcesWrapper::getWrapper();
 
-        return [
+        $base = [
             'paths'       => [
                 '/' . $name => [
                     'get' => [
@@ -466,5 +480,30 @@ class BaseRestService extends RestHandler implements ServiceInterface
                 ],
             ]
         ];
+
+        $apis = [];
+        $models = [];
+        foreach (static::$resources as $resourceInfo) {
+            $resourceClass = array_get($resourceInfo, 'class_name');
+
+            if (!class_exists($resourceClass)) {
+                throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
+                    $resourceClass);
+            }
+
+            $results = $resourceClass::getApiDocInfo($service->name, $resourceInfo);
+            if (isset($results, $results['paths'])) {
+                $apis = array_merge($apis, $results['paths']);
+            }
+            if (isset($results, $results['definitions'])) {
+                $models = array_merge($models, $results['definitions']);
+            }
+        }
+
+        $base['paths'] = array_merge($base['paths'], $apis);
+        $base['definitions'] = array_merge($base['definitions'], $models);
+        unset($base['paths']['/' . $service->name]['get']['parameters']);
+
+        return $base;
     }
 }

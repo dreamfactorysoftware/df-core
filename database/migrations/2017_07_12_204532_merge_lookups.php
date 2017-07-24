@@ -42,22 +42,18 @@ class MergeLookups extends Migration
 
             $lookups = [];
             if (Schema::hasTable('app_lookup')) {
-                // Insert old virtual belongs_to relationships
                 $lookups = array_merge($lookups, DB::table('app_lookup')->get()->toArray());
             }
 
             if (Schema::hasTable('role_lookup')) {
-                // Insert old virtual belongs_to relationships
                 $lookups = array_merge($lookups, DB::table('role_lookup')->get()->toArray());
             }
 
             if (Schema::hasTable('user_lookup')) {
-                // Insert old virtual belongs_to relationships
                 $lookups = array_merge($lookups, DB::table('user_lookup')->get()->toArray());
             }
 
             if (Schema::hasTable('system_lookup')) {
-                // Insert old virtual belongs_to relationships
                 $lookups = array_merge($lookups, DB::table('system_lookup')->get()->toArray());
             }
 

@@ -307,7 +307,6 @@ class CreateSystemTables extends Migration
             function (Blueprint $t) use ($onDelete){
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->boolean('login_with_user_name')->default(0);
                 $t->integer('default_app_id')->unsigned()->nullable();
                 $t->foreign('default_app_id')->references('id')->on('app')->onDelete('set null');
                 $t->integer('invite_email_service_id')->unsigned()->nullable();

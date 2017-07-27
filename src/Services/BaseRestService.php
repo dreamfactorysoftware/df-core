@@ -197,7 +197,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                     \Log::warning("Service {$this->name} failed to get access list. " . $ex->getMessage());
                 }
 
-                $map = static::parseSwaggerEvents($content, $accessList);
+                $map = $this->parseSwaggerEvents($content, $accessList);
             }
         }
 
@@ -316,7 +316,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
      *
      * @return array
      */
-    protected static function parseSwaggerEvents(array $content, array $access = [])
+    protected function parseSwaggerEvents(array $content, array $access = [])
     {
         $events = [];
         $eventCount = 0;
@@ -339,6 +339,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
                 $method = strtolower($ixOps);
                 if (!array_search("$eventPath.$method", $apiEvents)) {
                     $apiEvents[] = "$eventPath.$method";
+                    $eventCount++;
                     $parameters = array_get($operation, 'parameters', []);
                     if (!empty($pathParameters)) {
                         $parameters = array_merge($pathParameters, $parameters);
@@ -385,7 +386,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
             unset($apiEvents, $apiParameters, $api);
         }
 
-        \Log::debug('  * Discovered ' . $eventCount . ' event(s).');
+        \Log::debug("  * Discovered $eventCount event(s) for service {$this->name}.");
 
         return $events;
     }

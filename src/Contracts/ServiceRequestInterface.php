@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Contracts;
 
 use DreamFactory\Core\Enums\DataFormats;
@@ -15,6 +16,38 @@ interface ServiceRequestInterface
      * @param string $method HTTP Verb
      */
     public function setMethod($method);
+
+    /**
+     * @return string
+     */
+    public function getRequestUri();
+
+    /**
+     * @param string $service
+     */
+    public function setService($service);
+
+    /**
+     * @return string
+     */
+    public function getService();
+
+    /**
+     * @param string $resource
+     */
+    public function setResource($resource);
+
+    /**
+     * @return string
+     */
+    public function getResource();
+
+    /**
+     * @param string $uri
+     *
+     * @return mixed
+     */
+    public function setRequestUri($uri);
 
     /**
      * @return array

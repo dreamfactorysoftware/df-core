@@ -3,21 +3,11 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Exceptions\BadRequestException;
-use Illuminate\Database\Query\Builder;
 
-/**
- * UserLookup
- *
- * @property integer $user_id
- * @method static Builder|RoleLookup whereUserId($value)
- */
 class UserLookup extends BaseSystemLookup
 {
-    protected $table = 'user_lookup';
-
     protected $fillable = ['user_id', 'name', 'value', 'private', 'description'];
-
-    protected $casts = ['id' => 'integer', 'user_id' => 'integer', 'private' => 'boolean'];
+    protected $hidden = ['app_id', 'role_id'];
 
     protected static function findCompositeForeignKeyModel($foreign, $data)
     {

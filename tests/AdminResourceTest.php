@@ -29,7 +29,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
     public function testNonAdmin()
     {
         $user = $this->user1;
-        $this->makeRequest(Verbs::POST, 'user', [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'], [$user]);
+        $this->makeRequest(Verbs::POST, 'user', [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'lookup_by_user_id'], [$user]);
 
         //Using a new instance here. Prev instance is set for user resource.
         $this->service = ServiceManager::getService('system');
@@ -55,7 +55,7 @@ class AdminResourceTest extends \DreamFactory\Core\Testing\UserResourceTestCase
     public function testUnauthorizedSessionRequest()
     {
         $user = $this->user1;
-        $this->makeRequest(Verbs::POST, 'user', [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'], [$user]);
+        $this->makeRequest(Verbs::POST, 'user', [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'lookup_by_user_id'], [$user]);
 
         Session::authenticate(['email' => $user['email'], 'password' => $user['password']]);
 

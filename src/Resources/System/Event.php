@@ -2,12 +2,10 @@
 
 namespace DreamFactory\Core\Resources\System;
 
+use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Exceptions\NotFoundException;
-use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Resources\BaseRestResource;
-use DreamFactory\Core\Contracts\FileServiceInterface;
-use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ServiceResponse;
 use ServiceManager;
@@ -56,129 +54,19 @@ class Event extends BaseRestResource
         //	Initialize the event map
         $eventMap = [];
 
-        //  Pull any custom swagger docs
-        $result = ServiceModel::whereIsActive(true)->get();
-
         //	Spin through services and pull the events
-        /** @var ServiceModel $model */
-        foreach ($result as $model) {
-            $apiName = $model->name;
-            try {
-                /** @var BaseRestService $service */
-                if (empty($service = ServiceManager::getService($apiName))) {
-                    throw new \Exception('No service found.');
+        /** @var ServiceInterface[] $services */
+        if (!empty($services = ServiceManager::getServices())) {
+            foreach ($services as $apiName => $service) {
+                if (!empty($map = $service->getEventMap())) {
+                    $eventMap[$apiName] = $map;
                 }
-
-                if ($service instanceof FileServiceInterface) {
-                    // don't want the full folder list here
-                    $accessList = (empty($service->getPermissions()) ? [] : ['', '*']);
-                } else {
-                    $accessList = $service->getAccessList();
-                }
-
-                if (!empty($accessList)) {
-                    if (!empty($doc = $model->getDocAttribute())) {
-                        if (is_array($doc) && !empty($content = array_get($doc, 'content'))) {
-                            if (is_string($content)) {
-                                $content = ServiceModel::storedContentToArray($content, array_get($doc, 'format'),
-                                    $model);
-                                if (!empty($content)) {
-                                    $eventMap[$apiName] = static::parseSwaggerEvents($content, $accessList);
-                                }
-                            }
-                        }
-                    }
-                }
-            } catch (\Exception $ex) {
-                \Log::error("  * System error building event map for service '$apiName'.\n{$ex->getMessage()}");
             }
-
-            unset($content, $service, $serviceEvents);
         }
 
         static::$eventMap = $eventMap;
 
         \Log::info('Event cache build process complete');
-    }
-
-    /**
-     * @param array $content
-     * @param array $access
-     *
-     * @return array
-     */
-    protected static function parseSwaggerEvents(array $content, array $access = [])
-    {
-        $events = [];
-        $eventCount = 0;
-
-        foreach (array_get($content, 'paths', []) as $path => $api) {
-            $apiEvents = [];
-            $apiParameters = [];
-            $pathParameters = [];
-
-            $eventPath = str_replace('/', '.', trim($path, '/'));
-            $resourcePath = ltrim(strstr(trim($path, '/'), '/'), '/');
-            $replacePos = strpos($resourcePath, '{');
-
-            foreach ($api as $ixOps => $operation) {
-                if ('parameters' === $ixOps) {
-                    $pathParameters = $operation;
-                    continue;
-                }
-
-                $method = strtolower($ixOps);
-                if (!isset($apiEvents[$method])) {
-                    $apiEvents[$method][] = "$eventPath.$method";
-                    $parameters = array_get($operation, 'parameters', []);
-                    if (!empty($pathParameters)) {
-                        $parameters = array_merge($pathParameters, $parameters);
-                    }
-                    foreach ($parameters as $parameter) {
-                        $type = array_get($parameter, 'in', '');
-                        if ('path' === $type) {
-                            $name = array_get($parameter, 'name', '');
-                            $options = array_get($parameter, 'enum', array_get($parameter, 'options'));
-                            if (empty($options) && !empty($access) && (false !== $replacePos)) {
-                                $checkFirstOption = strstr(substr($resourcePath, $replacePos + 1), '}', true);
-                                if ($name !== $checkFirstOption) {
-                                    continue;
-                                }
-                                $options = [];
-                                // try to match any access path
-                                foreach ($access as $accessPath) {
-                                    $accessPath = rtrim($accessPath, '/*');
-                                    if (!empty($accessPath) && (strlen($accessPath) > $replacePos)) {
-                                        if (0 === substr_compare($accessPath, $resourcePath, 0, $replacePos)) {
-                                            $option = substr($accessPath, $replacePos);
-                                            if (false !== strpos($option, '/')) {
-                                                $option = strstr($option, '/', true);
-                                            }
-                                            $options[] = $option;
-                                        }
-                                    }
-                                }
-                            }
-                            if (!empty($options)) {
-                                $apiParameters[$name] = array_values(array_unique($options));
-                            }
-                        }
-                    }
-                }
-
-                unset($operation);
-            }
-
-            $events[$eventPath]['verb'] = $apiEvents;
-            $apiParameters = (empty($apiParameters)) ? null : $apiParameters;
-            $events[$eventPath]['parameter'] = $apiParameters;
-
-            unset($apiEvents, $apiParameters, $api);
-        }
-
-        \Log::debug('  * Discovered ' . $eventCount . ' event(s).');
-
-        return $events;
     }
 
     /**
@@ -188,7 +76,7 @@ class Event extends BaseRestResource
      *
      * @return array
      */
-    public static function getEventMap($refresh = false)
+    public static function getAllEventMaps($refresh = false)
     {
         if (!empty(static::$eventMap)) {
             return static::$eventMap;
@@ -230,27 +118,38 @@ class Event extends BaseRestResource
         $refresh = $this->request->getParameterAsBool('refresh');
         $scriptable = $this->request->getParameterAsBool('scriptable');
         $service = $this->request->getParameter('service');
-        $results = $this->getEventMap($refresh);
+        $results = $this->getAllEventMaps($refresh);
         $allEvents = [];
         foreach ($results as $serviceKey => $paths) {
             if (!empty($service) && (0 !== strcasecmp($service, $serviceKey))) {
                 unset($results[$serviceKey]);
             } else {
                 foreach ($paths as $path => $operations) {
-                    foreach ($operations['verb'] as $method => $events) {
+                    if (empty($type = array_get($operations, 'type'))) {
+                        $type = 'service';
+                        $results[$serviceKey][$path]['type'] = $type;
+                    }
+                    if (!empty($endpoints = (array)array_get($operations, 'endpoints', $path))) {
                         if ($scriptable) {
-                            foreach ($events as $ndx => $event) {
-                                $temp = [
-                                    $event . '.pre_process',
-                                    $event . '.post_process',
-                                    $event . '.queued',
-                                ];
-                                $results[$serviceKey][$path]['verb'][$method] = $temp;
-                                $allEvents = array_merge($allEvents, $temp);
+                            $temp = [];
+                            foreach ($endpoints as $endpoint) {
+                                $temp[] = $endpoint;
+                                switch ($type) {
+                                    case 'api':
+                                        // add pre_process, post_process
+                                        $temp[] = "$endpoint.pre_process";
+                                        $temp[] = "$endpoint.post_process";
+                                        break;
+                                    case 'service':
+                                        break;
+                                }
+                                // add queued
+                                $temp[] = "$endpoint.queued";
                             }
-                        } else {
-                            $allEvents = array_merge($allEvents, $events);
+                            $endpoints = $temp;
+                            $results[$serviceKey][$path]['endpoints'] = $temp;
                         }
+                        $allEvents = array_merge($allEvents, $endpoints);
                     }
                 }
             }

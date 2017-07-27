@@ -21,7 +21,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
                 'requestor_mask' => 3
             ]
         ],
-        'role_lookup_by_role_id'         => [
+        'lookup_by_role_id'         => [
             [
                 'name'    => 'test1_1',
                 'value'   => '1231',
@@ -48,7 +48,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
                 'requestor_mask' => 3
             ]
         ],
-        'role_lookup_by_role_id'         => [
+        'lookup_by_role_id'         => [
             [
                 'name'    => 'test1_2',
                 'value'   => '1232',
@@ -74,7 +74,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
                 'requestor_mask' => 3
             ]
         ],
-        'role_lookup_by_role_id'         => [
+        'lookup_by_role_id'         => [
             [
                 'name'    => 'test1_3',
                 'value'   => '1233',
@@ -117,7 +117,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $response = $this->makeRequest(
             Verbs::POST,
             self::RESOURCE,
-            [ApiOptions::FIELDS => 'name,id', ApiOptions::RELATED => 'role_lookup_by_role_id'],
+            [ApiOptions::FIELDS => 'name,id', ApiOptions::RELATED => 'lookup_by_role_id'],
             [$this->role3]
         );
         $content = $response->getContent();
@@ -126,8 +126,8 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $this->assertEquals(array_get($this->role3, 'name'), Arr::get($content, static::$wrapper . '.0.name'));
         $this->assertEquals(
-            Arr::get($this->role3, 'role_lookup_by_role_id.0.name'),
-            Arr::get($content, static::$wrapper . '.0.role_lookup_by_role_id.0.name')
+            Arr::get($this->role3, 'lookup_by_role_id.0.name'),
+            Arr::get($content, static::$wrapper . '.0.lookup_by_role_id.0.name')
         );
     }
 
@@ -137,8 +137,8 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $role1['name'] = 'Patched Test Role 1';
         $role1['role_service_access_by_role_id'][0]['component'] = 'test';
-        $role1['role_lookup_by_role_id'][0]['name'] = 'patched-test1_1';
-        $role1['role_lookup_by_role_id'][0]['value'] = '897';
+        $role1['lookup_by_role_id'][0]['name'] = 'patched-test1_1';
+        $role1['lookup_by_role_id'][0]['value'] = '897';
 
         $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role1]);
         $c = $rs->getContent();
@@ -149,8 +149,8 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $this->assertEquals('Patched Test Role 1', $updatedRole['name']);
         $this->assertEquals('test', $updatedRole['role_service_access_by_role_id'][0]['component']);
-        $this->assertEquals('patched-test1_1', $updatedRole['role_lookup_by_role_id'][0]['name']);
-        $this->assertEquals('897', $updatedRole['role_lookup_by_role_id'][0]['value']);
+        $this->assertEquals('patched-test1_1', $updatedRole['lookup_by_role_id'][0]['name']);
+        $this->assertEquals('897', $updatedRole['lookup_by_role_id'][0]['value']);
     }
 
     public function testPATCHRoleWithFieldsAndRelated()
@@ -159,13 +159,13 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $role1['name'] = 'Patched Test Role 1_2';
         $role1['role_service_access_by_role_id'][0]['component'] = 'test_2';
-        $role1['role_lookup_by_role_id'][0]['name'] = 'patched-test1_1_2';
-        $role1['role_lookup_by_role_id'][0]['value'] = '900';
+        $role1['lookup_by_role_id'][0]['name'] = 'patched-test1_1_2';
+        $role1['lookup_by_role_id'][0]['value'] = '900';
 
         $rs = $this->makeRequest(
             Verbs::PATCH,
             self::RESOURCE,
-            [ApiOptions::FIELDS => 'id,name,is_active', ApiOptions::RELATED => 'role_service_access_by_role_id,role_lookup_by_role_id'],
+            [ApiOptions::FIELDS => 'id,name,is_active', ApiOptions::RELATED => 'role_service_access_by_role_id,lookup_by_role_id'],
             [$role1]
         );
 
@@ -178,15 +178,15 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $this->assertEquals('Patched Test Role 1_2', $updatedRole['name']);
         $this->assertEquals('test_2', $updatedRole['role_service_access_by_role_id'][0]['component']);
-        $this->assertEquals('patched-test1_1_2', $updatedRole['role_lookup_by_role_id'][0]['name']);
-        $this->assertEquals('900', $updatedRole['role_lookup_by_role_id'][0]['value']);
+        $this->assertEquals('patched-test1_1_2', $updatedRole['lookup_by_role_id'][0]['name']);
+        $this->assertEquals('900', $updatedRole['lookup_by_role_id'][0]['value']);
     }
 
     public function testPATCHCreateRelation()
     {
         $role2 = $this->getRole(static::$roleIds[1]);
 
-        unset($role2['role_lookup_by_role_id'][0]['id']);
+        unset($role2['lookup_by_role_id'][0]['id']);
 
         $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role2]);
         $c = $rs->getContent();
@@ -195,14 +195,14 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $updatedRole = $this->getRole(static::$roleIds[1]);
 
-        $this->assertEquals(2, count($updatedRole['role_lookup_by_role_id']));
+        $this->assertEquals(2, count($updatedRole['lookup_by_role_id']));
     }
 
     public function testPATCHDeleteRelation()
     {
         $role2 = $this->getRole(static::$roleIds[1]);
 
-        $role2['role_lookup_by_role_id'][0]['role_id'] = null;
+        $role2['lookup_by_role_id'][0]['role_id'] = null;
 
         $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role2]);
         $c = $rs->getContent();
@@ -211,7 +211,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $updatedRole = $this->getRole(static::$roleIds[1]);
 
-        $this->assertEquals(1, count($updatedRole['role_lookup_by_role_id']));
+        $this->assertEquals(1, count($updatedRole['lookup_by_role_id']));
     }
 
     public function testPATCHAdoptRelation()
@@ -219,7 +219,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $role1 = $this->getRole(static::$roleIds[0]);
         $role2 = $this->getRole(static::$roleIds[1]);
 
-        $role2['role_lookup_by_role_id'][0]['role_id'] = $role1['role_lookup_by_role_id'][0]['role_id'];
+        $role2['lookup_by_role_id'][0]['role_id'] = $role1['lookup_by_role_id'][0]['role_id'];
 
         $rs = $this->makeRequest(Verbs::PATCH, self::RESOURCE, [], [$role2]);
         $c = $rs->getContent();
@@ -229,8 +229,8 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
         $updatedRole = $this->getRole(static::$roleIds[1]);
         $otherRole = $this->getRole(static::$roleIds[0]);
 
-        $this->assertEquals(0, count($updatedRole['role_lookup_by_role_id']));
-        $this->assertEquals(3, count($otherRole['role_lookup_by_role_id']));
+        $this->assertEquals(0, count($updatedRole['lookup_by_role_id']));
+        $this->assertEquals(3, count($otherRole['lookup_by_role_id']));
     }
 
     public function testPATCHMultipleRoles()
@@ -241,22 +241,22 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $role1['name'] = 'test-multiple-update_1';
         $role1['role_service_access_by_role_id'][0]['component'] = 'updated1';
-        $role1['role_lookup_by_role_id'][1]['name'] = 'test-updated-1';
+        $role1['lookup_by_role_id'][1]['name'] = 'test-updated-1';
 
         $role2['name'] = 'test-multiple-update_2';
         $role2['role_service_access_by_role_id'][0]['component'] = 'updated2';
-        $role2['role_lookup_by_role_id'][0] = $role1['role_lookup_by_role_id'][1];
-        $role2['role_lookup_by_role_id'][0]['role_id']  = static::$roleIds[1];
-        $role2['role_lookup_by_role_id'][0]['name'] = 'test-updated-2';
+        $role2['lookup_by_role_id'][0] = $role1['lookup_by_role_id'][1];
+        $role2['lookup_by_role_id'][0]['role_id']  = static::$roleIds[1];
+        $role2['lookup_by_role_id'][0]['name'] = 'test-updated-2';
 
         $role3['name'] = 'test-multiple-update_3';
         $role3['role_service_access_by_role_id'][0]['component'] = 'updated3';
-        $role3['role_lookup_by_role_id'][1]['name'] = 'test-updated-3';
+        $role3['lookup_by_role_id'][1]['name'] = 'test-updated-3';
 
         $rs = $this->makeRequest(
             Verbs::PATCH,
             self::RESOURCE,
-            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'role_service_access_by_role_id,role_lookup_by_role_id'],
+            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'role_service_access_by_role_id,lookup_by_role_id'],
             [$role1, $role2, $role3]
         );
         $c = $rs->getContent();
@@ -271,24 +271,24 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
             Arr::get($role1, 'role_service_access_by_role_id.0.component'),
             Arr::get($records, '0.role_service_access_by_role_id.0.component')
         );
-        $this->assertEquals(Arr::get($role1, 'role_lookup_by_role_id.1.name'),
-            Arr::get($records, '0.role_lookup_by_role_id.1.name'));
+        $this->assertEquals(Arr::get($role1, 'lookup_by_role_id.1.name'),
+            Arr::get($records, '0.lookup_by_role_id.1.name'));
 
         $this->assertEquals(Arr::get($role2, 'name'), Arr::get($records, '1.name'));
         $this->assertEquals(
             Arr::get($role2, 'role_service_access_by_role_id.0.component'),
             Arr::get($records, '1.role_service_access_by_role_id.0.component')
         );
-        $this->assertEquals(Arr::get($role2, 'role_lookup_by_role_id.0.name'),
-            Arr::get($records, '1.role_lookup_by_role_id.0.name'));
+        $this->assertEquals(Arr::get($role2, 'lookup_by_role_id.0.name'),
+            Arr::get($records, '1.lookup_by_role_id.0.name'));
 
         $this->assertEquals(Arr::get($role3, 'name'), Arr::get($records, '2.name'));
         $this->assertEquals(
             Arr::get($role3, 'role_service_access_by_role_id.0.component'),
             Arr::get($records, '2.role_service_access_by_role_id.0.component')
         );
-        $this->assertEquals(Arr::get($role3, 'role_lookup_by_role_id.1.name'),
-            Arr::get($records, '2.role_lookup_by_role_id.1.name'));
+        $this->assertEquals(Arr::get($role3, 'lookup_by_role_id.1.name'),
+            Arr::get($records, '2.lookup_by_role_id.1.name'));
     }
 
     public function testDELETERoles()
@@ -316,7 +316,7 @@ class RoleResourceTest extends \DreamFactory\Core\Testing\TestCase
 
         $getResponse =
             $this->makeRequest(Verbs::GET, $resource,
-                [ApiOptions::RELATED => 'role_lookup_by_role_id,role_service_access_by_role_id']);
+                [ApiOptions::RELATED => 'lookup_by_role_id,role_service_access_by_role_id']);
         $role = $getResponse->getContent();
 
         return $role;

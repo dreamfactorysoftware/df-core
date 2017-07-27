@@ -4,6 +4,28 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.11.0] - 2017-07-27
+### Added
+- DF-1127 Added service/resource info on logstash logging
+- DF-1142 Added ldap_username field to user table. Added DF_JWT_USER_CLAIM env option to include user attribute in JWT
+- DF-1117 Added SAML and OpenID Connect SSO support
+- Adding ServiceTypeGroup IoT
+
+### Changed
+- DF-1145 Cleaned up old "Login with Username" option from system config
+- Cleanup to allow easier pulling of event map and API docs from services
+- Rework Event structure to allow for non-API driven service events
+- Make ServiceEvent newable, no abstractions there
+- Cached cors config
+- DF-1130 Rework lookup storage and modelling to ease session usage
+- Remove dreamfactory:setup, opt for df:env and df:setup
+- Do not include service in event list if no events generated.
+- Add potential resource handling at the base service level
+- Allow empty lookup values
+
+### Fixed
+- DF-1144 Made DELETE behavior consistent across local and all remote file services
+
 ## [0.10.0] - 2017-06-05
 ### Added
 - DF-797 Support for OpenID Connect
@@ -482,7 +504,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.10.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.11.0...HEAD
+[0.11.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.10.0...0.11.0
 [0.10.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.9.1...0.10.0
 [0.9.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.8.4...0.9.0

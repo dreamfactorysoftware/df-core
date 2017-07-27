@@ -5,7 +5,6 @@ namespace DreamFactory\Core\Services;
 use DreamFactory\Core\Contracts\SystemResourceTypeInterface;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Resources\System\BaseSystemResource;
-use DreamFactory\Core\Utility\Session;
 use SystemResourceManager;
 
 class System extends BaseRestService
@@ -30,6 +29,27 @@ class System extends BaseRestService
      * @var integer|null Email template Id used for password reset
      */
     public $passwordEmailTemplateId;
+
+    /**
+     * @param array $settings
+     */
+    public function __construct($settings = [])
+    {
+        parent::__construct($settings);
+
+        foreach ($this->config as $key => $value) {
+            if (!property_exists($this, $key)) {
+                // try camel cased
+                $camel = camel_case($key);
+                if (property_exists($this, $camel)) {
+                    $this->{$camel} = $value;
+                    continue;
+                }
+            } else {
+                $this->{$key} = $value;
+            }
+        }
+    }
 
     /**
      * {@inheritdoc}
@@ -84,16 +104,13 @@ class System extends BaseRestService
                     $resourceClass);
             }
 
-            $resourceName = $resourceInfo->getName();
-            if (Session::checkForAnyServicePermissions($service->name, $resourceName)) {
-                /** @type BaseSystemResource $resourceClass */
-                $results = $resourceClass::getApiDocInfo($service->name, $resourceInfo->toArray());
-                if (isset($results, $results['paths'])) {
-                    $apis = array_merge($apis, $results['paths']);
-                }
-                if (isset($results, $results['definitions'])) {
-                    $models = array_merge($models, $results['definitions']);
-                }
+            /** @type BaseSystemResource $resourceClass */
+            $results = $resourceClass::getApiDocInfo($service->name, $resourceInfo->toArray());
+            if (isset($results, $results['paths'])) {
+                $apis = array_merge($apis, $results['paths']);
+            }
+            if (isset($results, $results['definitions'])) {
+                $models = array_merge($models, $results['definitions']);
             }
         }
 

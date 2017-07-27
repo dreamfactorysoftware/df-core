@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Enums\Verbs;
@@ -38,6 +39,21 @@ trait InternalServiceRequest
     protected $contentAsArray = [];
 
     /**
+     * @var null|string
+     */
+    protected $requestUri = null;
+
+    /**
+     * @var null|string
+     */
+    protected $service = null;
+
+    /**
+     * @var null|string
+     */
+    protected $resource = null;
+
+    /**
      * @param $verb
      *
      * @return $this
@@ -60,6 +76,54 @@ trait InternalServiceRequest
     public function getMethod()
     {
         return $this->method;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setRequestUri($uri)
+    {
+        $this->requestUri = $uri;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getRequestUri()
+    {
+        return $this->requestUri;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setService($service)
+    {
+        $this->service = $service;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getService()
+    {
+        return $this->service;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setResource($resource)
+    {
+        $this->resource = $resource;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getResource()
+    {
+        return $this->resource;
     }
 
     /**
@@ -258,6 +322,9 @@ trait InternalServiceRequest
             'payload'      => $payload,
             'content'      => $this->getContent(),
             'content_type' => $this->getContentType(),
+            'uri'          => $this->getRequestUri(),
+            'service'      => $this->getService(),
+            'resource'     => $this->getResource()
         ];
     }
 

@@ -951,19 +951,13 @@ class BaseModel extends Model implements CacheInterface
     }
 
     /**
-     * Gets the HasMany model of the referencing table.
+     * @param $table
      *
-     * @param string $table
-     * @param string $relationName
-     *
-     * @return HasMany
+     * @return string|null
      */
-    protected function getHasMany($table, $relationName)
+    protected static function getModelFromTable($table)
     {
-        $model = SystemTableModelMapper::getModel($table);
-        $refField = $this->getReferencingField($table, $relationName);
-
-        return $this->hasMany($model, $refField);
+        return SystemTableModelMapper::getModel($table);
     }
 
     /**
@@ -973,19 +967,21 @@ class BaseModel extends Model implements CacheInterface
      */
     public function getHasManyByRelationName($name)
     {
-        $table = $this->getReferencingTable($name);
+        if ($table = $this->getReferencingTable($name)) {
+            if ($model = static::getModelFromTable($table)) {
+                $refField = $this->getReferencingField($table, $name);
 
-        if (!empty($table) && !is_null(SystemTableModelMapper::getModel($table))) {
-            return $this->getHasMany($table, $name);
-        } else {
-            return null;
+                return $this->hasMany($model, $refField);
+            }
         }
+
+        return null;
     }
 
     public function getBelongsToManyByRelationName($name)
     {
         $table = $this->getReferencingTable($name);
-        $model = SystemTableModelMapper::getModel($table);
+        $model = static::getModelFromTable($table);
 
         list($pivotTable, $fk, $rk) = $this->getReferencingJoin($name);
 
@@ -995,7 +991,7 @@ class BaseModel extends Model implements CacheInterface
     public function getBelongsToByRelationName($name)
     {
         $table = $this->getReferencingTable($name);
-        $model = SystemTableModelMapper::getModel($table);
+        $model = static::getModelFromTable($table);
 
         $references = $this->getReferences();
         $lf = null;
@@ -1090,7 +1086,7 @@ class BaseModel extends Model implements CacheInterface
         }
 
         $table = $this->getReferencingTable($name);
-        $model = SystemTableModelMapper::getModel($table);
+        $model = static::getModelFromTable($table);
 
         return $model;
     }
@@ -1107,7 +1103,7 @@ class BaseModel extends Model implements CacheInterface
     {
         $table = $this->getReferencingTable($name);
 
-        return !is_null(SystemTableModelMapper::getModel($table));
+        return !is_null(static::getModelFromTable($table));
     }
 
     /**

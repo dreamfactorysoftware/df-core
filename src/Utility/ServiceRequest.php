@@ -42,6 +42,63 @@ class ServiceRequest implements ServiceRequestInterface
     /**
      * {@inheritdoc}
      */
+    public function getRequestUri()
+    {
+        if (!empty($this->requestUri)) {
+            return $this->requestUri;
+        }
+
+        return Request::getRequestUri();
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getService()
+    {
+        if (!empty($this->service)) {
+            return $this->service;
+        }
+
+        $service = '';
+        $uri = trim($this->getRequestUri(), '/');
+        if (!empty($uri)) {
+            $uriParts = explode('/', $uri);
+            // Need to get the 3rd element of the array as
+            // a URI looks like api/v2/<service>/...
+            $service = array_get($uriParts, 2);
+        }
+
+        return $service;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getResource()
+    {
+        if (!empty($this->service)) {
+            return $this->service;
+        }
+
+        $resource = '';
+        $uri = trim($this->getRequestUri(), '/');
+        if (!empty($uri)) {
+            $uriParts = explode('/', $uri);
+            // Need to get all elements after the 3rd of the array as
+            // a URI looks like api/v2/<service>/<resource>/<resource>...
+            array_shift($uriParts);
+            array_shift($uriParts);
+            array_shift($uriParts);
+            $resource = implode('/', $uriParts);
+        }
+
+        return $resource;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
     public function getParameter($key = null, $default = null)
     {
         if ($this->parameters) {
@@ -272,7 +329,7 @@ class ServiceRequest implements ServiceRequestInterface
         }
 
         return array_map(
-            function ($value) {
+            function ($value){
                 return (is_array($value)) ? implode(',', $value) : $value;
             },
             Request::header()

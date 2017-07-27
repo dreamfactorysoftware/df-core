@@ -33,7 +33,7 @@ class UserResourceTestCase extends TestCase
         'email'                  => 'jadoe@dreamfactory.com',
         'password'               => 'test1234',
         'is_active'              => true,
-        'user_lookup_by_user_id' => [
+        'lookup_by_user_id' => [
             [
                 'name'    => 'test',
                 'value'   => '1234',
@@ -54,7 +54,7 @@ class UserResourceTestCase extends TestCase
         'email'                  => 'ddoe@dreamfactory.com',
         'password'               => 'test1234',
         'is_active'              => true,
-        'user_lookup_by_user_id' => [
+        'lookup_by_user_id' => [
             [
                 'name'    => 'test',
                 'value'   => '1234',
@@ -91,15 +91,15 @@ class UserResourceTestCase extends TestCase
 
         $rs =
             $this->makeRequest(Verbs::POST, static::RESOURCE,
-                [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
+                [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'lookup_by_user_id'],
                 $payload);
         $content = $rs->getContent();
         $data = Arr::get($content, static::$wrapper);
 
         $this->assertEquals(Arr::get($this->user1, 'email'), Arr::get($data, '0.email'));
         $this->assertEquals(Arr::get($this->user2, 'email'), Arr::get($data, '1.email'));
-        $this->assertEquals(0, count(Arr::get($data, '0.user_lookup_by_user_id')));
-        $this->assertEquals(2, count(Arr::get($data, '1.user_lookup_by_user_id')));
+        $this->assertEquals(0, count(Arr::get($data, '0.lookup_by_user_id')));
+        $this->assertEquals(2, count(Arr::get($data, '1.lookup_by_user_id')));
         $this->assertTrue($this->adminCheck($data));
     }
 
@@ -110,15 +110,15 @@ class UserResourceTestCase extends TestCase
         $rs = $this->makeRequest(
             Verbs::POST,
             static::RESOURCE,
-            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
+            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'lookup_by_user_id'],
             $payload
         );
         $data = $rs->getContent();
 
         $this->assertEquals(Arr::get($this->user3, 'email'), Arr::get($data, static::$wrapper . '.0.email'));
-        $this->assertEquals(3, count(Arr::get($data, static::$wrapper . '.0.user_lookup_by_user_id')));
-        $this->assertEquals('**********', Arr::get($data, static::$wrapper . '.0.user_lookup_by_user_id.1.value'));
-        $this->assertEquals('**********', Arr::get($data, static::$wrapper . '.0.user_lookup_by_user_id.2.value'));
+        $this->assertEquals(3, count(Arr::get($data, static::$wrapper . '.0.lookup_by_user_id')));
+        $this->assertEquals('**********', Arr::get($data, static::$wrapper . '.0.lookup_by_user_id.1.value'));
+        $this->assertEquals('**********', Arr::get($data, static::$wrapper . '.0.lookup_by_user_id.2.value'));
         $this->assertTrue($this->adminCheck($data));
     }
 
@@ -133,7 +133,7 @@ class UserResourceTestCase extends TestCase
         $data = [
             'name'                   => 'Julie Doe',
             'first_name'             => 'Julie',
-            'user_lookup_by_user_id' => [
+            'lookup_by_user_id' => [
                 [
                     'name'  => 'param1',
                     'value' => '1234'
@@ -145,29 +145,29 @@ class UserResourceTestCase extends TestCase
 
         $rs =
             $this->makeRequest(Verbs::PATCH, static::RESOURCE . '/' . $user['id'],
-                [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'], $payload);
+                [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'lookup_by_user_id'], $payload);
         $content = $rs->getContent();
 
         $this->assertEquals('Julie Doe', $content['name']);
         $this->assertEquals('Julie', $content['first_name']);
-        $this->assertEquals('param1', Arr::get($content, 'user_lookup_by_user_id.0.name'));
-        $this->assertEquals('1234', Arr::get($content, 'user_lookup_by_user_id.0.value'));
+        $this->assertEquals('param1', Arr::get($content, 'lookup_by_user_id.0.name'));
+        $this->assertEquals('1234', Arr::get($content, 'lookup_by_user_id.0.value'));
 
-        Arr::set($content, 'user_lookup_by_user_id.0.name', 'my_param');
-        Arr::set($content, 'user_lookup_by_user_id.1', ['name' => 'param2', 'value' => 'secret', 'private' => true]);
+        Arr::set($content, 'lookup_by_user_id.0.name', 'my_param');
+        Arr::set($content, 'lookup_by_user_id.1', ['name' => 'param2', 'value' => 'secret', 'private' => true]);
 
         $rs = $this->makeRequest(
             Verbs::PATCH,
             static::RESOURCE . '/' . $user['id'],
-            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
+            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'lookup_by_user_id'],
             json_encode($content, JSON_UNESCAPED_SLASHES)
         );
 
         $content = $rs->getContent();
 
-        $this->assertEquals('my_param', Arr::get($content, 'user_lookup_by_user_id.0.name'));
-        $this->assertEquals('**********', Arr::get($content, 'user_lookup_by_user_id.1.value'));
-        $this->assertEquals(1, Arr::get($content, 'user_lookup_by_user_id.1.private'));
+        $this->assertEquals('my_param', Arr::get($content, 'lookup_by_user_id.0.name'));
+        $this->assertEquals('**********', Arr::get($content, 'lookup_by_user_id.1.value'));
+        $this->assertEquals(1, Arr::get($content, 'lookup_by_user_id.1.private'));
         $this->assertTrue($this->adminCheck([$content]));
     }
 
@@ -181,7 +181,7 @@ class UserResourceTestCase extends TestCase
             [
                 [
                     'is_active'              => false,
-                    'user_lookup_by_user_id' => [
+                    'lookup_by_user_id' => [
                         [
                             'name'  => 'common',
                             'value' => 'common name'
@@ -195,7 +195,7 @@ class UserResourceTestCase extends TestCase
         $ids = implode(',', array_column([$user1, $user2, $user3], 'id'));
         $rs =
             $this->makeRequest(Verbs::PATCH, static::RESOURCE,
-                [ApiOptions::IDS => $ids, ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
+                [ApiOptions::IDS => $ids, ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'lookup_by_user_id'],
                 $payload);
         $content = $rs->getContent();
         $data = $content[static::$wrapper];
@@ -204,9 +204,9 @@ class UserResourceTestCase extends TestCase
             $this->assertEquals(0, $user['is_active']);
         }
 
-        $this->assertEquals('common name', Arr::get($data, '0.user_lookup_by_user_id.0.value'));
-        $this->assertEquals('common name', Arr::get($data, '1.user_lookup_by_user_id.2.value'));
-        $this->assertEquals('common name', Arr::get($data, '2.user_lookup_by_user_id.3.value'));
+        $this->assertEquals('common name', Arr::get($data, '0.lookup_by_user_id.0.value'));
+        $this->assertEquals('common name', Arr::get($data, '1.lookup_by_user_id.2.value'));
+        $this->assertEquals('common name', Arr::get($data, '2.lookup_by_user_id.3.value'));
         $this->assertTrue($this->adminCheck($data));
     }
 
@@ -224,7 +224,7 @@ class UserResourceTestCase extends TestCase
 
         $rs =
             $this->makeRequest(Verbs::PATCH, static::RESOURCE,
-                [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
+                [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'lookup_by_user_id'],
                 $payload);
         $content = $rs->getContent();
 
@@ -293,7 +293,7 @@ class UserResourceTestCase extends TestCase
         $rs = $this->makeRequest(
             Verbs::GET,
             static::RESOURCE . '/' . $user['id'],
-            [ApiOptions::RELATED => 'user_lookup_by_user_id']
+            [ApiOptions::RELATED => 'lookup_by_user_id']
         );
         $data = $rs->getContent();
 
@@ -301,7 +301,7 @@ class UserResourceTestCase extends TestCase
         $this->assertTrue($this->adminCheck([$data]));
 
         $this->assertTrue($this->adminCheck([$data]));
-        $this->assertEquals(count($user['user_lookup_by_user_id']), count($data['user_lookup_by_user_id']));
+        $this->assertEquals(count($user['lookup_by_user_id']), count($data['lookup_by_user_id']));
     }
 
     public function testGETByIds()
@@ -447,7 +447,7 @@ class UserResourceTestCase extends TestCase
         $rs = $this->makeRequest(
             Verbs::POST,
             static::RESOURCE,
-            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'user_lookup_by_user_id'],
+            [ApiOptions::FIELDS => '*', ApiOptions::RELATED => 'lookup_by_user_id'],
             $payload
         );
 

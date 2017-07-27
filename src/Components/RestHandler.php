@@ -1,21 +1,21 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Events\PostProcessApiEvent;
-use DreamFactory\Core\Events\PreProcessApiEvent;
-use DreamFactory\Core\Events\QueuedApiEvent;
-use DreamFactory\Core\Utility\ResourcesWrapper;
-use DreamFactory\Core\Utility\ResponseFactory;
-use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Contracts\RequestHandlerInterface;
-use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
-use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Contracts\ResourceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Enums\ApiOptions;
+use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Events\ApiEvent;
+use DreamFactory\Core\Events\PostProcessApiEvent;
+use DreamFactory\Core\Events\PreProcessApiEvent;
+use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\NotFoundException;
+use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Core\Utility\ResponseFactory;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -141,6 +141,16 @@ abstract class RestHandler implements RequestHandlerInterface
     public function getName()
     {
         return $this->name;
+    }
+
+    public function getLabel()
+    {
+        return $this->label;
+    }
+
+    public function getDescription()
+    {
+        return $this->description;
     }
 
     /**
@@ -383,7 +393,7 @@ abstract class RestHandler implements RequestHandlerInterface
             $resource = $this->getEventResource();
         }
         /** @noinspection PhpUnusedLocalVariableInspection */
-        $results = \Event::fire(new QueuedApiEvent($name, $this->request, $this->response, $resource));
+        $results = \Event::fire(new ApiEvent($name, $this->request, $this->response, $resource));
     }
 
     /**

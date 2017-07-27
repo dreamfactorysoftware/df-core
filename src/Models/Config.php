@@ -10,7 +10,6 @@ class Config extends BaseServiceConfigModel
 
     protected $fillable = [
         'service_id',
-        'login_with_user_name',
         'invite_email_service_id',
         'invite_email_template_id',
         'password_email_service_id',
@@ -19,7 +18,6 @@ class Config extends BaseServiceConfigModel
     ];
 
     protected $casts = [
-        'login_with_user_name'       => 'boolean',
         'service_id'                 => 'integer',
         'invite_email_service_id'    => 'integer',
         'invite_email_template_id'   => 'integer',
@@ -38,9 +36,6 @@ class Config extends BaseServiceConfigModel
         parent::prepareConfigSchemaField($schema);
 
         switch ($schema['name']) {
-            case 'login_with_user_name':
-                $schema['label'] = 'Login with Username';
-                break;
             case 'default_app_id':
                 $schema['label'] = 'Default Application';
                 $apps = App::get();

@@ -218,11 +218,39 @@ class ServiceManager
     /**
      * Return all of the created services.
      *
+     * @param bool $only_active
      * @return array
      */
-    public function getServices()
+    public function getServices($only_active = false)
     {
+        $result = ($only_active ? Service::whereIsActive(true)->pluck('name') : Service::pluck('name'));
+
+        //	Spin through services and pull the events
+        foreach ($result as $apiName) {
+            try {
+                // make sure it is there, if not already
+                if (empty($service = $this->getService($apiName))) {
+                    \Log::error("System error building list of services: No configuration found for service '$apiName'.");
+                }
+            } catch (\Exception $ex) {
+                \Log::error("System error building list of services: '$apiName'.\n{$ex->getMessage()}");
+            }
+        }
+
         return $this->services;
+    }
+
+    /**
+     * Return all of the created service names.
+     *
+     * @param bool $only_active
+     * @return array
+     */
+    public function getServiceNames($only_active = false)
+    {
+        $results = ($only_active ? Service::whereIsActive(true)->pluck('name') : Service::pluck('name'));
+
+        return $results->all();
     }
 
     /**

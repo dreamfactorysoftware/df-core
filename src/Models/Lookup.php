@@ -2,60 +2,42 @@
 
 namespace DreamFactory\Core\Models;
 
-use Illuminate\Database\Eloquent\ModelNotFoundException;
+use DreamFactory\Core\Exceptions\BadRequestException;
 
 class Lookup extends BaseSystemLookup
 {
-    protected $table = 'system_lookup';
+    protected $fillable = ['name', 'value', 'private', 'description'];
+    protected $hidden = ['app_id', 'role_id', 'user_id'];
 
-    public static function boot()
+    protected static function findCompositeForeignKeyModel($foreign, $data)
     {
-        parent::boot();
-
-        /** @noinspection PhpUnusedParameterInspection */
-        static::saved(
-            function (Lookup $lookup){
-                \Cache::forget('system_lookups');
-            }
-        );
-
-        /** @noinspection PhpUnusedParameterInspection */
-        static::deleted(
-            function (Lookup $lookup){
-                \Cache::forget('system_lookups');
-            }
-        );
-    }
-
-    /**
-     * Returns system lookups cached, or reads from db if not present.
-     * Pass in a key to return a portion/index of the cached data.
-     *
-     * @param null|string $key
-     * @param null        $default
-     *
-     * @return mixed|null
-     */
-    public static function getCachedLookups($key = null, $default = null)
-    {
-        $cacheKey = 'system_lookups';
-        try {
-            $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function (){
-                return Lookup::all()->toArray();
-            });
-
-            if (is_null($result)) {
-                return $default;
-            }
-        } catch (ModelNotFoundException $ex) {
-            return $default;
+        if (!empty($name = array_get($data, 'name'))) {
+            return static::whereAppId(null)->whereRoleId(null)->whereUserId(null)->whereName($name)->first();
         }
 
-        if (is_null($key)) {
-            return $result;
-        }
-
-        return (isset($result[$key]) ? $result[$key] : $default);
+        return null;
     }
 
+    public function fill(array $attributes)
+    {
+        if (array_key_exists('name', $attributes)) {
+            $newName = array_get($attributes, 'name');
+            if (0!==strcasecmp($this->name, $newName)) {
+                // check if lookup by that name already exists
+                if (static::whereAppId(null)->whereRoleId(null)->whereUserId(null)->whereName($newName)->exists()) {
+                    throw new BadRequestException('Lookup name can not be modified to one that already exists.');
+                }
+            }
+        }
+
+        return parent::fill($attributes);
+    }
+
+    public static function selectByRequest(array $criteria = [], array $options = [])
+    {
+        $reducer = '(app_id IS NULL) AND (role_id IS NULL) AND (user_id IS NULL)';
+        $criteria['condition'] = (empty($condition = array_get($criteria, 'condition')) ? $reducer :
+            "($condition) AND $reducer");
+        return parent::selectByRequest($criteria, $options);
+    }
 }

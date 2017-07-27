@@ -18,4 +18,31 @@ class Cors extends BaseSystemResource
      */
     protected static $model = CorsConfig::class;
 
+    protected function handlePOST()
+    {
+        \Cache::forget(CorsConfig::CACHE_KEY);
+
+        return parent::handlePOST();
+    }
+
+    protected function handleDELETE()
+    {
+        \Cache::forget(CorsConfig::CACHE_KEY);
+
+        return parent::handleDELETE();
+    }
+
+    protected function handlePUT()
+    {
+        \Cache::forget(CorsConfig::CACHE_KEY);
+
+        return parent::handlePUT();
+    }
+
+    protected function handlePATCH()
+    {
+        \Cache::forget(CorsConfig::CACHE_KEY);
+
+        return parent::handlePATCH();
+    }
 }

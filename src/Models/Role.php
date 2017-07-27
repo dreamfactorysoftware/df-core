@@ -6,6 +6,7 @@ use DreamFactory\Core\Events\RoleModifiedEvent;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
+use Illuminate\Database\Query\Builder;
 
 /**
  * Role
@@ -16,12 +17,12 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
  * @property boolean $is_active
  * @property string  $created_date
  * @property string  $last_modified_date
- * @method static \Illuminate\Database\Query\Builder|Role whereId($value)
- * @method static \Illuminate\Database\Query\Builder|Role whereName($value)
- * @method static \Illuminate\Database\Query\Builder|Role whereDescription($value)
- * @method static \Illuminate\Database\Query\Builder|Role whereIsActive($value)
- * @method static \Illuminate\Database\Query\Builder|Role whereCreatedDate($value)
- * @method static \Illuminate\Database\Query\Builder|Role whereLastModifiedDate($value)
+ * @method static Builder|Role whereId($value)
+ * @method static Builder|Role whereName($value)
+ * @method static Builder|Role whereDescription($value)
+ * @method static Builder|Role whereIsActive($value)
+ * @method static Builder|Role whereCreatedDate($value)
+ * @method static Builder|Role whereLastModifiedDate($value)
  */
 class Role extends BaseSystemModel
 {
@@ -66,8 +67,6 @@ class Role extends BaseSystemModel
      * Making sure description is no longer than 255 characters.
      *
      * @param $value
-     *
-     * @return string
      */
     public function setDescriptionAttribute($value)
     {
@@ -112,7 +111,6 @@ class Role extends BaseSystemModel
             $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
                 $role = Role::with(
                     [
-                        'role_lookup_by_role_id',
                         'role_service_access_by_role_id',
                         'service_by_role_service_access'
                     ]
@@ -152,5 +150,14 @@ class Role extends BaseSystemModel
         }
 
         return (isset($result[$key]) ? $result[$key] : $default);
+    }
+
+    protected static function getModelFromTable($table)
+    {
+        if ('lookup' === $table) {
+            return RoleLookup::class;
+        }
+
+        return parent::getModelFromTable($table);
     }
 }

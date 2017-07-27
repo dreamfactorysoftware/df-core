@@ -2,12 +2,16 @@
 
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Utility\Session;
 use Illuminate\Database\Query\Builder;
 
 /**
  * BaseSystemLookup - an abstract base class for system lookups
  *
  * @property integer $id
+ * @property integer $app_id
+ * @property integer $role_id
+ * @property integer $user_id
  * @property string  $name
  * @property string  $value
  * @property string  $description
@@ -15,6 +19,9 @@ use Illuminate\Database\Query\Builder;
  * @property string  $created_date
  * @property string  $last_modified_date
  * @method static Builder|Lookup whereId($value)
+ * @method static Builder|Lookup whereAppId($value)
+ * @method static Builder|Lookup whereRoleId($value)
+ * @method static Builder|Lookup whereUserId($value)
  * @method static Builder|Lookup whereName($value)
  * @method static Builder|Lookup whereValue($value)
  * @method static Builder|Lookup whereDescription($value)
@@ -24,11 +31,38 @@ use Illuminate\Database\Query\Builder;
  */
 class BaseSystemLookup extends BaseSystemModel
 {
-    protected $fillable = ['name', 'value', 'private', 'description'];
+    protected $table = 'lookup';
 
-    protected $casts = ['private' => 'boolean', 'id' => 'integer'];
+    protected $fillable = ['app_id', 'role_id', 'user_id', 'name', 'value', 'private', 'description'];
+
+    protected $casts = [
+        'private' => 'boolean',
+        'id'      => 'integer',
+        'app_id'  => 'integer',
+        'role_id' => 'integer',
+        'user_id' => 'integer'
+    ];
 
     protected $encrypted = ['value'];
+
+    public static function boot()
+    {
+        parent::boot();
+
+        /** @noinspection PhpUnusedParameterInspection */
+        static::saved(
+            function (BaseSystemLookup $lookup) {
+                Session::setSessionLookups();
+            }
+        );
+
+        /** @noinspection PhpUnusedParameterInspection */
+        static::deleted(
+            function (BaseSystemLookup $lookup) {
+                Session::setSessionLookups();
+            }
+        );
+    }
 
     /**
      * Removes unwanted fields from field list if supplied.

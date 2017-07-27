@@ -53,7 +53,6 @@ use Validator;
  */
 class User extends BaseSystemModel implements AuthenticatableContract, CanResetPasswordContract
 {
-
     use Authenticatable, CanResetPassword;
 
     /**
@@ -71,6 +70,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     protected $fillable = [
         'name',
         'username',
+        'ldap_username',
         'first_name',
         'last_name',
         'email',
@@ -533,7 +533,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     {
         $cacheKey = 'user:' . $id;
         $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
-            $user = static::with('user_lookup_by_user_id')->whereId($id)->first();
+            $user = static::whereId($id)->first();
             if (empty($user)) {
                 throw new NotFoundException("User not found.");
             }
@@ -637,5 +637,14 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
 
         return parent::save($options);
+    }
+
+    protected static function getModelFromTable($table)
+    {
+        if ('lookup' === $table) {
+            return UserLookup::class;
+        }
+
+        return parent::getModelFromTable($table);
     }
 }

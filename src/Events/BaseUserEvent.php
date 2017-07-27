@@ -13,7 +13,7 @@ abstract class BaseUserEvent
     /**
      * Create a new event instance.
      *
-     * @param Service $service
+     * @param User $user
      */
     public function __construct(User $user)
     {

@@ -50,26 +50,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // User Lookup Keys
-        Schema::create(
-            'user_lookup',
-            function (Blueprint $t) use ($onDelete){
-                $t->increments('id');
-                $t->integer('user_id')->unsigned();
-                $t->foreign('user_id')->references('id')->on('user')->onDelete('cascade');
-                $t->string('name')->index();
-                $t->text('value')->nullable();
-                $t->boolean('private')->default(0);
-                $t->text('description')->nullable();
-                $t->timestamp('created_date')->nullable();
-                $t->timestamp('last_modified_date')->useCurrent();
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($onDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($onDelete);
-            }
-        );
-
         // Password reset table
         Schema::create(
             'password_resets',
@@ -171,44 +151,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // Role Lookup Keys
-        Schema::create(
-            'role_lookup',
-            function (Blueprint $t) use ($onDelete){
-                $t->increments('id');
-                $t->integer('role_id')->unsigned();
-                $t->foreign('role_id')->references('id')->on('role')->onDelete('cascade');
-                $t->string('name')->index();
-                $t->text('value')->nullable();
-                $t->boolean('private')->default(0);
-                $t->text('description')->nullable();
-                $t->timestamp('created_date')->nullable();
-                $t->timestamp('last_modified_date')->useCurrent();
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($onDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($onDelete);
-            }
-        );
-
-        // System Lookups
-        Schema::create(
-            'system_lookup',
-            function (Blueprint $t) use ($onDelete){
-                $t->increments('id');
-                $t->string('name')->unique();
-                $t->text('value')->nullable();
-                $t->boolean('private')->default(0);
-                $t->text('description')->nullable();
-                $t->timestamp('created_date')->nullable();
-                $t->timestamp('last_modified_date')->useCurrent();
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($onDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($onDelete);
-            }
-        );
-
         // Email Templates
         Schema::create(
             'email_template',
@@ -276,26 +218,6 @@ class CreateSystemTables extends Migration
                 $t->string('toggle_location', 64)->default('top');
                 $t->integer('role_id')->unsigned()->nullable();
                 $t->foreign('role_id')->references('id')->on('role')->onDelete('set null');
-                $t->timestamp('created_date')->nullable();
-                $t->timestamp('last_modified_date')->useCurrent();
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($onDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($onDelete);
-            }
-        );
-
-        // App Lookup Keys
-        Schema::create(
-            'app_lookup',
-            function (Blueprint $t) use ($onDelete){
-                $t->increments('id');
-                $t->integer('app_id')->unsigned();
-                $t->foreign('app_id')->references('id')->on('app')->onDelete('cascade');
-                $t->string('name')->index();
-                $t->text('value')->nullable();
-                $t->boolean('private')->default(0);
-                $t->text('description')->nullable();
                 $t->timestamp('created_date')->nullable();
                 $t->timestamp('last_modified_date')->useCurrent();
                 $t->integer('created_by_id')->unsigned()->nullable();
@@ -385,7 +307,6 @@ class CreateSystemTables extends Migration
             function (Blueprint $t) use ($onDelete){
                 $t->integer('service_id')->unsigned()->primary();
                 $t->foreign('service_id')->references('id')->on('service')->onDelete('cascade');
-                $t->boolean('login_with_user_name')->default(0);
                 $t->integer('default_app_id')->unsigned()->nullable();
                 $t->foreign('default_app_id')->references('id')->on('app')->onDelete('set null');
                 $t->integer('invite_email_service_id')->unsigned()->nullable();
@@ -413,6 +334,30 @@ class CreateSystemTables extends Migration
                 $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($onDelete);
             }
         );
+
+        // Lookups
+        Schema::create(
+            'lookup',
+            function (Blueprint $t) use ($onDelete){
+                $t->increments('id');
+                $t->integer('app_id')->unsigned()->nullable();
+                $t->foreign('app_id')->references('id')->on('app')->onDelete('cascade');
+                $t->integer('role_id')->unsigned()->nullable();
+                $t->foreign('role_id')->references('id')->on('role')->onDelete('cascade');
+                $t->integer('user_id')->unsigned()->nullable();
+                $t->foreign('user_id')->references('id')->on('user')->onDelete('cascade');
+                $t->string('name');
+                $t->text('value')->nullable();
+                $t->boolean('private')->default(0);
+                $t->text('description')->nullable();
+                $t->timestamp('created_date')->nullable();
+                $t->timestamp('last_modified_date')->useCurrent();
+                $t->integer('created_by_id')->unsigned()->nullable();
+                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($onDelete);
+                $t->integer('last_modified_by_id')->unsigned()->nullable();
+                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($onDelete);
+            }
+        );
     }
 
     /**
@@ -424,7 +369,9 @@ class CreateSystemTables extends Migration
     {
         // Drop created tables in reverse order
 
-        // system customizations
+        // Lookup Keys
+        Schema::dropIfExists('lookup');
+        // System customizations
         Schema::dropIfExists('system_custom');
         // System Configuration
         Schema::dropIfExists('system_config');
@@ -440,24 +387,18 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('service_doc');
         // Event Subscribers
         Schema::dropIfExists('event_subscriber');
-        // Role Lookup Keys
-        Schema::dropIfExists('role_lookup');
         // Role Service Accesses
         Schema::dropIfExists('role_service_access');
         // Roles
         Schema::dropIfExists('role');
         // Email Templates
         Schema::dropIfExists('email_template');
-        // System Lookup Keys
-        Schema::dropIfExists('system_lookup');
         // Services
         Schema::dropIfExists('service');
         //Cors config table
         Schema::dropIfExists('cors_config');
         // App relationship for user
         Schema::dropIfExists('user_to_app_role');
-        // App Lookup Keys
-        Schema::dropIfExists('app_lookup');
         //Apps to App Groups Relationships
         Schema::dropIfExists('app_to_app_group');
         // Application Groups

@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Resources;
 
 use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
@@ -64,7 +65,9 @@ class UserProfileResource extends BaseRestResource
      */
     protected function handlePOST()
     {
-        $payload = $this->getPayloadData();
+        if (empty($payload = $this->getPayloadData())){
+            throw new BadRequestException('No data supplied for operation.');
+        }
 
         $data = [
             'username'          => array_get($payload, 'username'),

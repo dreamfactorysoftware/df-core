@@ -132,4 +132,18 @@ class EmailTemplate extends BaseSystemModel
     {
         return static::getArrayIfJSON($bcc);
     }
+
+    public function getErrors()
+    {
+        if (is_array($this->errors)) {
+            foreach ($this->errors as $key => $value) {
+                if ($key === 'name' && strpos(array_get($value, 0), 'is required') !== false) {
+                    $value[0] = 'The Template Name field is required';
+                    $this->errors[$key] = $value;
+                }
+            }
+        }
+
+        return $this->errors;
+    }
 }

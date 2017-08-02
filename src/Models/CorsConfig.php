@@ -50,7 +50,8 @@ class CorsConfig extends BaseSystemModel
     ];
 
     protected $rules = [
-        'path' => 'required',
+        'path'   => 'required',
+        'origin' => 'required'
     ];
 
     protected $validationMessages = [

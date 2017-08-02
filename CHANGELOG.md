@@ -4,6 +4,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Changed
+- DF-1074 Moving API docs perms check for swagger control
 - DF-819 Added clear validation messages
 
 ## [0.11.1] - 2017-07-28

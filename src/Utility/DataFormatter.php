@@ -29,6 +29,9 @@ class DataFormatter
 
         switch ($sourceFormat) {
             case DataFormats::JSON:
+                if (is_array($data)) {
+                    $data = self::jsonEncode($data);
+                }
                 switch ($targetFormat) {
                     case DataFormats::XML:
                         return static::jsonToXml($data);

@@ -2,8 +2,6 @@
 
 namespace DreamFactory\Core\Services;
 
-use DreamFactory\Core\Contracts\ServiceInterface;
-use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Models\Service;
@@ -37,7 +35,7 @@ class ServiceManager
     /**
      * The custom service type information.
      *
-     * @var ServiceTypeInterface[]
+     * @var \DreamFactory\Core\Contracts\ServiceTypeInterface[]
      */
     protected $types = [];
 
@@ -56,7 +54,7 @@ class ServiceManager
      *
      * @param  string $name
      *
-     * @return ServiceInterface
+     * @return \DreamFactory\Core\Contracts\ServiceInterface
      */
     public function getService($name)
     {
@@ -70,11 +68,19 @@ class ServiceManager
 //            }
 
         $this->services[$name] = $service;
+
 //        }
 
         return $this->services[$name];
     }
 
+    /**
+     * Get a service instance by its identifier.
+     *
+     * @param  int $id
+     *
+     * @return \DreamFactory\Core\Contracts\ServiceInterface
+     */
     public function getServiceById($id)
     {
         $name = Service::getCachedNameById($id);
@@ -99,7 +105,7 @@ class ServiceManager
      *
      * @param  string $name
      *
-     * @return ServiceInterface
+     * @return \DreamFactory\Core\Contracts\ServiceInterface
      */
     protected function makeService($name)
     {
@@ -168,7 +174,7 @@ class ServiceManager
     /**
      * Register a service type extension resolver.
      *
-     * @param  ServiceTypeInterface|null $type
+     * @param  \DreamFactory\Core\Contracts\ServiceTypeInterface|null $type
      *
      * @return void
      */
@@ -182,7 +188,7 @@ class ServiceManager
      *
      * @param string $name
      *
-     * @return ServiceTypeInterface
+     * @return \DreamFactory\Core\Contracts\ServiceTypeInterface
      */
     public function getServiceType($name)
     {
@@ -197,7 +203,7 @@ class ServiceManager
      * Return all of the known service types.
      * @param string $group
      *
-     * @return ServiceTypeInterface[]
+     * @return \DreamFactory\Core\Contracts\ServiceTypeInterface[]
      */
     public function getServiceTypes($group = null)
     {
@@ -262,8 +268,8 @@ class ServiceManager
      * @param null        $payload
      * @param string|null $format
      *
-     * @return ServiceResponseInterface
-     * @throws BadRequestException
+     * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \Exception
      */
     public function handleRequest(

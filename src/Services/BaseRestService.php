@@ -393,10 +393,6 @@ class BaseRestService extends RestHandler implements ServiceInterface
 
     public function getApiDoc()
     {
-        if (!Session::checkForAnyServicePermissions($this->name)) {
-            return [];
-        }
-
         if (isset($this->doc) && is_array($this->doc)) {
             if (!empty($content = array_get($this->doc, 'content'))) {
                 if (is_string($content)) {

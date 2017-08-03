@@ -260,6 +260,40 @@ class ServiceManager
     }
 
     /**
+     * Return all of the created service info.
+     *
+     * @param array|string $fields
+     * @param bool         $only_active
+     * @return array
+     */
+    public function getServiceList($fields = null, $only_active = false)
+    {
+        if (empty($fields)) {
+            $fields = ['*'];
+        }
+        $fields = (is_string($fields) ? array_map('trim', explode(',', trim($fields, ','))) : $fields);
+        $requireGroup = false;
+        if (false !== $key = array_search('group', $fields)) {
+            $requireGroup = true;
+            unset($fields[$key]);
+        }
+
+        $results = ($only_active ? Service::whereIsActive(true)->get($fields)->toArray() : Service::get($fields)->toArray());
+        if ($requireGroup) {
+            foreach ($results as &$result) {
+                unset($result['doc']);
+                if (null !== $typeInfo = static::getServiceType(array_get($result, 'type'))) {
+                    $result['group'] = $typeInfo->getGroup();
+                }
+
+            }
+
+        }
+
+        return $results;
+    }
+
+    /**
      * @param string      $service
      * @param string      $verb
      * @param string|null $resource

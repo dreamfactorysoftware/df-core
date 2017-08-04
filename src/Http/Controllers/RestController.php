@@ -2,7 +2,6 @@
 namespace DreamFactory\Core\Http\Controllers;
 
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
-use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ServiceRequest;
@@ -31,7 +30,7 @@ class RestController extends Controller
         $version = null
     ) {
         try {
-            $services = ResourcesWrapper::wrapResources(Service::available());
+            $services = ResourcesWrapper::wrapResources(ServiceManager::getServiceNames(true));
             $response = ResponseFactory::create($services);
 
             return ResponseFactory::sendResponse($response);

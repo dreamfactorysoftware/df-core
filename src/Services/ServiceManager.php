@@ -430,7 +430,7 @@ class ServiceManager
                         case 'delete':
                         case 'options':
                         case 'head':
-//                            $verbDef['tags'] = [$name];
+                            $verbDef['tags'] = [$name];
                             break;
                     }
                 }

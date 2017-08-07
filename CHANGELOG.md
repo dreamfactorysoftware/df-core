@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - DF-1074 Moving API docs perms check for swagger control
 - DF-819 Added clear validation messages
+- DF-1188 Only return debug trace when app.debug is true, previously used APP_ENV
 
 ## [0.11.1] - 2017-07-28
 ### Fixed

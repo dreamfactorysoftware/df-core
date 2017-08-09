@@ -1212,7 +1212,7 @@ class BaseModel extends Model implements CacheInterface
         if ($schema) {
             $definition = static::fromTableSchema($schema);
             $requestFields = (isset($definition['properties']) ? $definition['properties'] : []);
-            $returnable = array_flip($this->getArrayableItems(array_keys($schema->getColumnNames())));
+            $returnable = array_flip($this->getArrayableItems($schema->getColumnNames()));
             $responseFields = [];
             $required = (isset($definition['required']) ? $definition['required'] : []);
             foreach ($requestFields as $field => $value) {

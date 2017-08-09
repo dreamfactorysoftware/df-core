@@ -8,6 +8,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-819 Added clear validation messages
 - DF-1188 Only return debug trace when app.debug is true, previously used APP_ENV
 
+### Fixed
+- Fix swagger def to pass validation
+
 ## [0.11.1] - 2017-07-28
 ### Fixed
 - Require payload for POST

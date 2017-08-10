@@ -49,6 +49,10 @@ class BaseRestService extends RestHandler implements ServiceInterface
      * @var array Holder for various configuration options
      */
     protected $config = [];
+    /**
+     * @var array Holder for various API doc options
+     */
+    protected $doc = [];
 
     //*************************************************************************
     //	Methods
@@ -63,6 +67,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
 
         //  Most services have a config section that may include lookups
         $this->config = (array)array_get($settings, 'config', []);
+        $this->doc = (array)array_get($settings, 'service_doc_by_service_id');
         //  Replace any private lookups
         Session::replaceLookups($this->config, true);
     }
@@ -173,33 +178,16 @@ class BaseRestService extends RestHandler implements ServiceInterface
 
     public function getEventMap()
     {
-        $map = [];
-        if (isset($this->doc) && is_array($this->doc)) {
-            if (!empty($content = array_get($this->doc, 'content'))) {
-                if (is_string($content)) {
-                    // need to convert to array format for handling
-                    $info = [
-                        'name'        => $this->name,
-                        'label'       => $this->label,
-                        'description' => $this->description,
-                    ];
-                    $content = $this->storedContentToArray($content, array_get($this->doc, 'format'), $info);
-                }
-            } else {
-                $content = $this->doc;
-            }
-            if (is_array($content)) {
-                $accessList = [];
-                try {
-                    $accessList = $this->getAccessList();
-                } catch (\Exception $ex) {
-                    // possibly misconfigured service, don't propagate
-                    \Log::warning("Service {$this->name} failed to get access list. " . $ex->getMessage());
-                }
-
-                $map = $this->parseSwaggerEvents($content, $accessList);
-            }
+        $content = $this->getApiDoc();
+        $accessList = [];
+        try {
+            $accessList = $this->getAccessList();
+        } catch (\Exception $ex) {
+            // possibly misconfigured service, don't propagate
+            \Log::warning("Service {$this->name} failed to get access list. " . $ex->getMessage());
         }
+
+        $map = $this->parseSwaggerEvents($content, $accessList);
 
         // check children for any extras
         try {
@@ -211,13 +199,10 @@ class BaseRestService extends RestHandler implements ServiceInterface
                         $this->resourcePath);
                 }
 
-                $resourceName = $resourceInfo['name'];
-                if (Session::checkForAnyServicePermissions($this->name, $resourceName)) {
-                    /** @var BaseRestResource $resource */
-                    $resource = $this->instantiateResource($className, $resourceInfo);
-                    $results = $resource->getEventMap();
-                    $map = array_merge($map, $results);
-                }
+                /** @var BaseRestResource $resource */
+                $resource = $this->instantiateResource($className, $resourceInfo);
+                $results = $resource->getEventMap();
+                $map = array_merge($map, $results);
             }
         } catch (\Exception $ex) {
             // carry on
@@ -393,7 +378,7 @@ class BaseRestService extends RestHandler implements ServiceInterface
 
     public function getApiDoc()
     {
-        if (isset($this->doc) && is_array($this->doc)) {
+        if (!empty($this->doc)) {
             if (!empty($content = array_get($this->doc, 'content'))) {
                 if (is_string($content)) {
                     // need to convert to array format for handling
@@ -402,17 +387,18 @@ class BaseRestService extends RestHandler implements ServiceInterface
                         'label'       => $this->label,
                         'description' => $this->description,
                     ];
-                    $content = $this->storedContentToArray($content, array_get($this->doc, 'format'), $info);
+                    return $this->storedContentToArray($content, array_get($this->doc, 'format'), $info);
+                } elseif (is_array($content)) {
+                    return $content;
                 }
             } else {
-                $content = $this->doc;
+                return [];
             }
             if (is_array($content)) {
                 return $content;
             }
         }
-
-        return [];
+        return $this->getApiDocInfo($this);
     }
 
     public static function getApiDocInfo($service)
@@ -475,11 +461,13 @@ class BaseRestService extends RestHandler implements ServiceInterface
                         ],
                     ],
                 ],
-            ]
+            ],
+            'parameters' => [],
         ];
 
         $apis = [];
-        $models = [];
+        $models = static::getDefaultModels();
+        $parameters = ApiOptions::getSwaggerGlobalParameters();
         foreach (static::$resources as $resourceInfo) {
             $resourceClass = array_get($resourceInfo, 'class_name');
 
@@ -499,8 +487,52 @@ class BaseRestService extends RestHandler implements ServiceInterface
 
         $base['paths'] = array_merge($base['paths'], $apis);
         $base['definitions'] = array_merge($base['definitions'], $models);
+        $base['parameters'] = array_merge($base['parameters'], $parameters);
         unset($base['paths']['/' . $service->name]['get']['parameters']);
 
         return $base;
+    }
+
+    public static function getDefaultModels()
+    {
+        $wrapper = ResourcesWrapper::getWrapper();
+
+        return [
+            'ResourceList' => [
+                'type'       => 'object',
+                'properties' => [
+                    $wrapper => [
+                        'type'        => 'array',
+                        'description' => 'Array of accessible resources available to this service.',
+                        'items'       => [
+                            'type' => 'string',
+                        ],
+                    ],
+                ],
+            ],
+            'Success'      => [
+                'type'       => 'object',
+                'properties' => [
+                    'success' => [
+                        'type'        => 'boolean',
+                        'description' => 'True when API call was successful, false or error otherwise.',
+                    ],
+                ],
+            ],
+            'Error'        => [
+                'type'       => 'object',
+                'properties' => [
+                    'code'    => [
+                        'type'        => 'integer',
+                        'format'      => 'int32',
+                        'description' => 'Error code.',
+                    ],
+                    'message' => [
+                        'type'        => 'string',
+                        'description' => 'String description of the error.',
+                    ],
+                ],
+            ],
+        ];
     }
 }

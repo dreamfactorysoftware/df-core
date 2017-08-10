@@ -1,9 +1,11 @@
 <?php
+
 namespace DreamFactory\Core\Http\Controllers;
 
+use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
-use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Components\DfResponse;
+use DreamFactory\Core\Contracts\FileServiceInterface;
 use ServiceManager;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -22,12 +24,15 @@ class StorageController extends Controller
 
             /** @type FileServiceInterface $service */
             $service = ServiceManager::getService($storage);
+            if (!($service instanceof FileServiceInterface)) {
+                throw new BadRequestException('Service requested is not a file storage service.');
+            }
 
             //Check for private paths here.
             $publicPaths = $service->getPublicPaths();
 
             //Clean trailing slashes from paths
-            array_walk($publicPaths, function (&$value){
+            array_walk($publicPaths, function (&$value) {
                 $value = rtrim($value, '/');
             });
 
@@ -53,7 +58,7 @@ class StorageController extends Controller
                 \Log::info('[RESPONSE] File stream');
 
                 $response = new StreamedResponse();
-                $response->setCallback(function () use ($service, $path){
+                $response->setCallback(function () use ($service, $path) {
                     $service->streamFile($service->getContainerId(), $path);
                 });
 

@@ -137,8 +137,10 @@ class UserProfileResource extends BaseRestResource
                 ],
                 'post' => [
                     'tags'              => [$serviceName],
-                    'summary'           => 'updateProfile() - Update the current user\'s profile information.',
-                    'operationId'       => 'updateProfile',
+                    'summary'           => 'update' .
+                        $capitalized .
+                        'Profile() - Update the current user\'s profile information.',
+                    'operationId'       => 'update' . $capitalized . 'Profile',
                     'parameters'        => [
                         [
                             'name'        => 'body',

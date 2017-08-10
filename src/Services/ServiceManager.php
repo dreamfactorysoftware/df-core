@@ -3,14 +3,12 @@
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
-use DreamFactory\Core\Enums\ApiDocFormatTypes;
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ServiceRequest;
 use InvalidArgumentException;
-use Symfony\Component\Yaml\Yaml;
 
 class ServiceManager
 {
@@ -77,6 +75,22 @@ class ServiceManager
         return $this->services[$name];
     }
 
+    public function getServiceIdNameMap($only_active = false)
+    {
+        if ($only_active) {
+            $cacheKey = 'service_manager:id_name_map_active';
+
+            return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () {
+                return Service::whereIsActive(true)->pluck('name', 'id');
+            });
+        }
+        $cacheKey = 'service_manager:id_name_map';
+
+        return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () {
+            return Service::pluck('name', 'id');
+        });
+    }
+
     /**
      * Get a service name by its identifier.
      *
@@ -118,6 +132,7 @@ class ServiceManager
     public function purge($name)
     {
         unset($this->services[$name]);
+        \Cache::forget('service_manager:id_name_map');
     }
 
     /**
@@ -192,21 +207,7 @@ class ServiceManager
 
         $service->protectedView = false;
 
-        $content = null;
-        if (!empty($doc = $service->getDocAttribute())) {
-            if (is_array($doc) && !empty($content = array_get($doc, 'content'))) {
-                if (is_string($content)) {
-                    $content = static::storedContentToArray($content, array_get($doc, 'format'), $service);
-                }
-            }
-        }
-
-        $config = $service->toArray();
-        if (isset($content)) {
-            $config['doc'] = $content;
-        }
-
-        return $config;
+        return $service->toArray();
     }
 
     /**
@@ -306,13 +307,29 @@ class ServiceManager
      */
     public function getServiceList($fields = null, $only_active = false)
     {
+        $allowed = ['id','name','label','description','is_active','type'];
         if (empty($fields)) {
-            $fields = ['*'];
+            $fields = $allowed;
         }
         $fields = (is_string($fields) ? array_map('trim', explode(',', trim($fields, ','))) : $fields);
+        $includeGroup = in_array('group', $fields);
+        $includeTypeLabel = in_array('type_label', $fields);
+        if (($includeGroup || $includeTypeLabel) && !in_array('type', $fields)) {
+            $fields[] = 'type';
+        }
+        $fields = array_intersect($fields, $allowed);
         $results = ($only_active ? Service::whereIsActive(true)->get($fields)->toArray() : Service::get($fields)->toArray());
         foreach ($results as &$result) {
-            unset($result['doc']);
+            if ($includeGroup || $includeTypeLabel) {
+                if ($typeInfo = $this->getServiceType(array_get($result, 'type'))) {
+                    if ($includeGroup) {
+                        $result['group'] = $typeInfo->getGroup();
+                    }
+                    if ($includeTypeLabel) {
+                        $result['type_label'] = $typeInfo->getLabel();
+                    }
+                }
+            }
         }
 
         return $results;
@@ -356,88 +373,5 @@ class ServiceManager
         }
 
         return $this->getService($service)->handleRequest($request, $resource);
-    }
-
-    public static function storedContentToArray($content, $format, $service_info = [])
-    {
-        // replace service placeholders with value for this service instance
-        if (!empty($name = data_get($service_info, 'name'))) {
-            $lcName = strtolower($name);
-            $ucwName = camelize($name);
-            $pluralName = str_plural($name);
-            $pluralUcwName = str_plural($ucwName);
-
-            $content = str_replace(
-                ['{service.name}', '{service.names}', '{service.Name}', '{service.Names}'],
-                [$lcName, $pluralName, $ucwName, $pluralUcwName],
-                $content);
-        }
-        if (!empty($label = data_get($service_info, 'label'))) {
-            $content = str_replace('{service.label}', $label, $content);
-        }
-        if (!empty($description = data_get($service_info, 'description'))) {
-            $content = str_replace('{service.description}', $description, $content);
-        }
-
-        switch ($format) {
-            case ApiDocFormatTypes::SWAGGER_JSON:
-                $content = json_decode($content, true);
-                break;
-            case ApiDocFormatTypes::SWAGGER_YAML:
-                $content = Yaml::parse($content);
-                break;
-            default:
-                throw new InternalServerErrorException("Invalid API Doc Format '$format'.");
-        }
-
-        if (!empty($name)) {
-            $paths = array_get($content, 'paths', []);
-            // tricky here, loop through all indexes to check if all start with service name,
-            // otherwise need to prepend service name to all.
-            if (!empty(array_filter(array_keys($paths), function ($k) use ($name) {
-                $k = ltrim($k, '/');
-                if (false !== strpos($k, '/')) {
-                    $k = strstr($k, '/', true);
-                }
-
-                return (0 !== strcasecmp($name, $k));
-            }))
-            ) {
-                $newPaths = [];
-                foreach ($paths as $path => $pathDef) {
-                    $newPath = '/' . $name . $path;
-                    $newPaths[$newPath] = $pathDef;
-                }
-                $paths = $newPaths;
-            }
-            // make sure each path is tagged
-            foreach ($paths as $path => &$pathDef) {
-                foreach ($pathDef as $verb => &$verbDef) {
-                    // If we leave the incoming tags, they get bubbled up to our service-level
-                    // and possibly confuse the whole interface. Replace with our service name tag.
-//                    if (!is_array($tag = array_get($verbDef, 'tags', []))) {
-//                        $tag = [];
-//                    }
-//                    if (false === array_search($name, $tag)) {
-//                        $tag[] = $name;
-//                        $verbDef['tags'] = $tag;
-//                    }
-                    switch (strtolower($verb)) {
-                        case 'get':
-                        case 'post':
-                        case 'put':
-                        case 'patch':
-                        case 'delete':
-                        case 'options':
-                        case 'head':
-                            $verbDef['tags'] = [$name];
-                            break;
-                    }
-                }
-            }
-            $content['paths'] = $paths; // write any changes back
-        }
-
-        return $content;
     }
 }

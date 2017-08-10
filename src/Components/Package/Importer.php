@@ -337,11 +337,9 @@ class Importer
                             unset($service['config']);
                         }
                     }
-                    if (!empty($oldDoc = array_get($service, 'service_doc_by_service_id'))) {
-                        if (!empty($newDoc = current($oldDoc))) {
-                            $service['doc'] = $newDoc;
-                            unset($service['service_doc_by_service_id']);
-                        }
+                    if (!empty($oldDoc = array_get($service, 'doc'))) {
+                        $service['service_doc_by_service_id'] = [$oldDoc];
+                        unset($service['doc']);
                     }
                     $services[$i] = $service;
                 }

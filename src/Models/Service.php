@@ -39,7 +39,7 @@ class Service extends BaseSystemModel
 
     protected $table = 'service';
 
-    protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config', 'doc'];
+    protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config'];
 
     protected $rules = [
         'name' => 'regex:/(^[A-Za-z0-9_\-]+$)+/'
@@ -59,8 +59,6 @@ class Service extends BaseSystemModel
         'last_modified_by_id'
     ];
 
-    protected $appends = ['doc'];
-
     protected $casts = [
         'is_active' => 'boolean',
         'mutable'   => 'boolean',
@@ -73,11 +71,6 @@ class Service extends BaseSystemModel
      * @var array Extra config to pass to any config handler
      */
     protected $config;
-
-    /**
-     * @var array Live API Documentation
-     */
-    protected $doc;
 
     public function disableRelated()
     {
@@ -143,49 +136,6 @@ class Service extends BaseSystemModel
         }
 
         return parent::create($attributes);
-    }
-
-    public function getDocAttribute()
-    {
-        /** @noinspection PhpUndefinedMethodInspection */
-        if (!empty($doc = ServiceDoc::find($this->id))) {
-            /** @noinspection PhpUndefinedMethodInspection */
-            $this->doc = $doc->toArray();
-        } else {
-            if (!empty($serviceType = ServiceManager::getServiceType($this->type))) {
-                $this->doc = $serviceType->getDefaultApiDoc($this);
-            }
-        }
-
-        return $this->doc;
-    }
-
-    /**
-     * @param array $val
-     *
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
-     */
-    public function setDocAttribute($val)
-    {
-        $val = (array)$val;
-        $this->doc = $val;
-        if ($this->exists) {
-            /** @noinspection PhpUndefinedMethodInspection */
-            $model = ServiceDoc::find($this->id);
-            if (!empty($val)) {
-                if (!empty($model)) {
-                    /** @noinspection PhpUndefinedMethodInspection */
-                    $model->update($val);
-                } else {
-                    $val['service_id'] = $this->id;
-                    ServiceDoc::create($val);
-                }
-            } elseif (!empty($model)) {
-                // delete it
-                /** @noinspection PhpUndefinedMethodInspection */
-                $model->delete();
-            }
-        }
     }
 
     /**

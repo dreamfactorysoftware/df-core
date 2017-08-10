@@ -174,7 +174,9 @@ class AccessCheck
     {
         /** @var Router $router */
         $router = app('router');
-        $service = strtolower($router->input('service'));
+        if (empty($service = strtolower($router->input('service')))) {
+            return true; // root of api gives available service listing
+        }
         $resource = strtolower($router->input('resource'));
         $action = VerbsMask::toNumeric($request->getMethod());
 

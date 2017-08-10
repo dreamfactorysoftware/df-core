@@ -78,7 +78,6 @@ class ServiceEventHandler
      */
     public function handleServiceChangeEvent($event)
     {
-        \DreamFactory\Core\Resources\System\Event::clearCache();
         ServiceManager::purge($event->service->name);
     }
 }

@@ -51,7 +51,8 @@ class RestController extends Controller
 
             $services = [];
             $fields = ['name', 'label', 'description', 'type', 'type_label', 'group'];
-            foreach (ServiceManager::getServiceList($fields, true) as $info) {
+            $group = \Request::query(ApiOptions::GROUP);
+            foreach (ServiceManager::getServiceList($fields, true, $group) as $info) {
                 $name = array_get($info, 'name');
                 // only allowed services by role here
                 if (Session::checkForAnyServicePermissions($name)) {
@@ -64,7 +65,7 @@ class RestController extends Controller
             $output = ResourcesWrapper::cleanResources($services, $asList, 'name', ApiOptions::FIELDS_ALL, $includeTypes);
             if ($includeTypes) {
                 $types = [];
-                foreach (ServiceManager::getServiceTypes() as $typeInfo) {
+                foreach (ServiceManager::getServiceTypes($group) as $typeInfo) {
                     $types[] = array_only($typeInfo->toArray(), ['name', 'label', 'group', 'description']);
                 }
                 $output['service_types'] = $types;

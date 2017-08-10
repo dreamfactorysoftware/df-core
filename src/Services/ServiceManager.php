@@ -288,10 +288,11 @@ class ServiceManager
     /**
      * Return all of the created service names.
      *
-     * @param bool $only_active
+     * @param bool        $only_active
+     * @param string|null $group
      * @return array
      */
-    public function getServiceNames($only_active = false)
+    public function getServiceNames($only_active = false, $group = null)
     {
         $results = ($only_active ? Service::whereIsActive(true)->pluck('name') : Service::pluck('name'));
 
@@ -303,33 +304,40 @@ class ServiceManager
      *
      * @param array|string $fields
      * @param bool         $only_active
+     * @param string|null  $group
      * @return array
      */
-    public function getServiceList($fields = null, $only_active = false)
+    public function getServiceList($fields = null, $only_active = false, $group = null)
     {
-        $allowed = ['id','name','label','description','is_active','type'];
+        $allowed = ['id', 'name', 'label', 'description', 'is_active', 'type'];
         if (empty($fields)) {
             $fields = $allowed;
         }
         $fields = (is_string($fields) ? array_map('trim', explode(',', trim($fields, ','))) : $fields);
         $includeGroup = in_array('group', $fields);
         $includeTypeLabel = in_array('type_label', $fields);
-        if (($includeGroup || $includeTypeLabel) && !in_array('type', $fields)) {
+        if (($includeGroup || $includeTypeLabel || !empty($group)) && !in_array('type', $fields)) {
             $fields[] = 'type';
         }
         $fields = array_intersect($fields, $allowed);
         $results = ($only_active ? Service::whereIsActive(true)->get($fields)->toArray() : Service::get($fields)->toArray());
-        foreach ($results as &$result) {
-            if ($includeGroup || $includeTypeLabel) {
+        if ($includeGroup || $includeTypeLabel || !empty($group)) {
+            $services = [];
+            foreach ($results as $result) {
                 if ($typeInfo = $this->getServiceType(array_get($result, 'type'))) {
+                    if (!empty($group) && (0 !== strcasecmp($group, $typeInfo->getGroup()))) {
+                        continue;
+                    }
                     if ($includeGroup) {
                         $result['group'] = $typeInfo->getGroup();
                     }
                     if ($includeTypeLabel) {
                         $result['type_label'] = $typeInfo->getLabel();
                     }
+                    $services[] = $result;
                 }
             }
+            return $services;
         }
 
         return $results;

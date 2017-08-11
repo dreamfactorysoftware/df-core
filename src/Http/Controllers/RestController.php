@@ -61,15 +61,12 @@ class RestController extends Controller
             }
 
             $asList = to_bool(\Request::query(ApiOptions::AS_LIST, false));
-            $includeTypes = to_bool(\Request::query('include_all_service_types', false));
-            $output = ResourcesWrapper::cleanResources($services, $asList, 'name', ApiOptions::FIELDS_ALL, $includeTypes);
-            if ($includeTypes) {
-                $types = [];
-                foreach (ServiceManager::getServiceTypes($group) as $typeInfo) {
-                    $types[] = array_only($typeInfo->toArray(), ['name', 'label', 'group', 'description']);
-                }
-                $output['service_types'] = $types;
+            $output = ResourcesWrapper::cleanResources($services, $asList, 'name', ApiOptions::FIELDS_ALL, true);
+            $types = [];
+            foreach (ServiceManager::getServiceTypes($group) as $typeInfo) {
+                $types[] = array_only($typeInfo->toArray(), ['name', 'label', 'group', 'description']);
             }
+            $output['service_types'] = $types;
             $response = ResponseFactory::create($output);
 
             return ResponseFactory::sendResponse($response);

@@ -4,7 +4,6 @@ namespace DreamFactory\Core\Http\Controllers;
 
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\ApiOptions;
-use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ServiceRequest;
 use DreamFactory\Core\Utility\Session;
@@ -50,7 +49,7 @@ class RestController extends Controller
             ]);
 
             $services = [];
-            $fields = ['name', 'label', 'description', 'type', 'type_label', 'group'];
+            $fields = ['name', 'label', 'description', 'type'];
             $group = \Request::query(ApiOptions::GROUP);
             foreach (ServiceManager::getServiceList($fields, true, $group) as $info) {
                 $name = array_get($info, 'name');
@@ -60,14 +59,11 @@ class RestController extends Controller
                 }
             }
 
-            $asList = to_bool(\Request::query(ApiOptions::AS_LIST, false));
-            $output = ResourcesWrapper::cleanResources($services, $asList, 'name', ApiOptions::FIELDS_ALL, true);
             $types = [];
             foreach (ServiceManager::getServiceTypes($group) as $typeInfo) {
                 $types[] = array_only($typeInfo->toArray(), ['name', 'label', 'group', 'description']);
             }
-            $output['service_types'] = $types;
-            $response = ResponseFactory::create($output);
+            $response = ResponseFactory::create(['services' => $services, 'service_types' => $types]);
 
             return ResponseFactory::sendResponse($response);
         } catch (\Exception $e) {

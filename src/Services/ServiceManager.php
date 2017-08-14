@@ -78,17 +78,31 @@ class ServiceManager
     public function getServiceIdNameMap($only_active = false)
     {
         if ($only_active) {
-            $cacheKey = 'service_manager:id_name_map_active';
-
-            return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () {
-                return Service::whereIsActive(true)->pluck('name', 'id');
+            return \Cache::rememberForever('service_mgr:id_name_map_active', function () {
+                return Service::whereIsActive(true)->pluck('name', 'id')->toArray();
             });
         }
-        $cacheKey = 'service_manager:id_name_map';
 
-        return \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () {
-            return Service::pluck('name', 'id');
+        return \Cache::rememberForever('service_mgr:id_name_map', function () {
+            return Service::pluck('name', 'id')->toArray();
         });
+    }
+
+    /**
+     * Get a service identifier by its name.
+     *
+     * @param  string $name
+     * @return int|null
+     * @throws NotFoundException
+     */
+    public function getServiceIdByName($name)
+    {
+        $map = array_flip($this->getServiceIdNameMap());
+        if (!array_key_exists($name, $map)) {
+            throw new NotFoundException("Could not find a service for name $name");
+        }
+
+        return $map[$name];
     }
 
     /**
@@ -100,12 +114,12 @@ class ServiceManager
      */
     public function getServiceNameById($id)
     {
-        $name = Service::whereId($id)->value('name');
-        if (empty($name)) {
+        $map = $this->getServiceIdNameMap();
+        if (!array_key_exists($id, $map)) {
             throw new NotFoundException("Could not find a service for id $id");
         }
 
-        return $name;
+        return $map[$id];
     }
 
     /**
@@ -132,7 +146,9 @@ class ServiceManager
     public function purge($name)
     {
         unset($this->services[$name]);
-        \Cache::forget('service_manager:id_name_map');
+        \Cache::forget('service_mgr:' . $name);
+        \Cache::forget('service_mgr:id_name_map_active');
+        \Cache::forget('service_mgr:id_name_map');
     }
 
     /**
@@ -199,15 +215,17 @@ class ServiceManager
             throw new InvalidArgumentException("Service 'name' can not be empty.");
         }
 
-        /** @var Service $service */
-        $service = Service::whereName($name)->first();
-        if (empty($service)) {
-            throw new NotFoundException("Could not find a service for $name");
-        }
+        return \Cache::rememberForever('service_mgr:' . $name, function () use ($name) {
+            /** @var Service $service */
+            $service = Service::whereName($name)->first();
+            if (empty($service)) {
+                throw new NotFoundException("Could not find a service for $name");
+            }
 
-        $service->protectedView = false;
+            $service->protectedView = false;
 
-        return $service->toArray();
+            return $service->toArray();
+        });
     }
 
     /**
@@ -258,31 +276,6 @@ class ServiceManager
         }
 
         return $this->types;
-    }
-
-    /**
-     * Return all of the created services.
-     *
-     * @param bool $only_active
-     * @return array
-     */
-    public function getServices($only_active = false)
-    {
-        $result = ($only_active ? Service::whereIsActive(true)->pluck('name') : Service::pluck('name'));
-
-        //	Spin through services and pull the events
-        foreach ($result as $apiName) {
-            try {
-                // make sure it is there, if not already
-                if (empty($service = $this->getService($apiName))) {
-                    \Log::error("System error building list of services: No configuration found for service '$apiName'.");
-                }
-            } catch (\Exception $ex) {
-                \Log::error("System error building list of services: '$apiName'.\n{$ex->getMessage()}");
-            }
-        }
-
-        return $this->services;
     }
 
     /**
@@ -337,6 +330,7 @@ class ServiceManager
                     $services[] = $result;
                 }
             }
+
             return $services;
         }
 

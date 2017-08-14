@@ -60,8 +60,13 @@ class RestController extends Controller
             }
 
             $types = [];
-            foreach (ServiceManager::getServiceTypes($group) as $typeInfo) {
-                $types[] = array_only($typeInfo->toArray(), ['name', 'label', 'group', 'description']);
+            foreach (ServiceManager::getServiceTypes($group) as $type) {
+                $types[] = [
+                    'name'        => $type->getName(),
+                    'label'       => $type->getLabel(),
+                    'group'       => $type->getGroup(),
+                    'description' => $type->getDescription()
+                ];
             }
             $response = ResponseFactory::create(['services' => $services, 'service_types' => $types]);
 

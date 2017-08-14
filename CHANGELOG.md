@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-1074 Moving API docs perms check for swagger control
 - DF-819 Added clear validation messages
 - DF-1188 Only return debug trace when app.debug is true, previously used APP_ENV
+- Rework schema interface for database services in order to better control caching
 
 ### Fixed
 - Fix swagger def to pass validation

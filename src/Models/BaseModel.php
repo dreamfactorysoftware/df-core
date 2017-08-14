@@ -87,6 +87,9 @@ class BaseModel extends Model implements CacheInterface
             $model->save();
 
             foreach ($relations as $name => $value) {
+                if (empty($value)) {
+                    continue;
+                }
                 $relatedModel = $model->getReferencingModel($name);
                 $newModels = [];
 
@@ -697,7 +700,6 @@ class BaseModel extends Model implements CacheInterface
             $driver = $conn->getDriverName();
             if ($this->schemaExtension = DbSchemaExtensions::getSchemaExtension($driver, $conn)) {
                 $this->cachePrefix = 'model_' . $this->getTable() . ':';
-                $this->schemaExtension->setCache($this);
             }
         }
 
@@ -898,7 +900,7 @@ class BaseModel extends Model implements CacheInterface
             $pk = $hasMany->getRelated()->primaryKey;
             $fk = $hasMany->getForeignKeyName();
 
-            foreach ($data as $d) {
+            foreach ((array)$data as $d) {
                 /** @var Model $model */
                 if (empty($pkValue = array_get($d, $pk))) {
                     $model = $relatedModel::findCompositeForeignKeyModel($this->{$this->primaryKey}, $d);

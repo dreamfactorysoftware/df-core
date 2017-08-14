@@ -899,6 +899,11 @@ class Session
         return \Session::get($key, $default);
     }
 
+    public static function getBool($key, $default = false)
+    {
+        return to_bool(\Session::get($key, $default));
+    }
+
     public static function put($key, $value = null)
     {
         \Session::put($key, $value);

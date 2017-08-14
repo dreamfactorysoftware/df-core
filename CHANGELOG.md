@@ -8,6 +8,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-819 Added clear validation messages
 - DF-1188 Only return debug trace when app.debug is true, previously used APP_ENV
 - Rework schema interface for database services in order to better control caching
+- Rework access check to always return JWT errors if a token is given
 
 ### Fixed
 - Fix swagger def to pass validation

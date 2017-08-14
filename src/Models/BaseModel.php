@@ -691,11 +691,15 @@ class BaseModel extends Model implements CacheInterface
     public function getTableSchema()
     {
         if (empty($result = $this->getFromCache('table:'.$this->table))) {
-            $schemaName = $this->getSchema()->getDefaultSchema();
             $resourceName = $this->table;
-            $internalName = $schemaName . '.' . $resourceName;
             $name = $resourceName;
-            $quotedName = $this->getSchema()->quoteIdentifier($schemaName) . '.' . $this->getSchema()->quoteIdentifier($resourceName);;
+            if (empty($schemaName = $this->getSchema()->getDefaultSchema())) {
+                $internalName = $resourceName;
+                $quotedName = $this->getSchema()->quoteIdentifier($resourceName);;
+            } else {
+                $internalName = $schemaName . '.' . $resourceName;
+                $quotedName = $this->getSchema()->quoteIdentifier($schemaName) . '.' . $this->getSchema()->quoteIdentifier($resourceName);;
+            }
             $settings = compact('schemaName', 'resourceName', 'name', 'internalName', 'quotedName');
             $result = new TableSchema($settings);
             $result = $this->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $result);

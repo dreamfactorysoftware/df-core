@@ -93,16 +93,15 @@ class ServiceManager
      *
      * @param  string $name
      * @return int|null
-     * @throws NotFoundException
      */
     public function getServiceIdByName($name)
     {
         $map = array_flip($this->getServiceIdNameMap());
-        if (!array_key_exists($name, $map)) {
-            throw new NotFoundException("Could not find a service for name $name");
+        if (array_key_exists($name, $map)) {
+            return $map[$name];
         }
 
-        return $map[$name];
+        return null;
     }
 
     /**
@@ -110,16 +109,15 @@ class ServiceManager
      *
      * @param  int $id
      * @return string
-     * @throws NotFoundException
      */
     public function getServiceNameById($id)
     {
         $map = $this->getServiceIdNameMap();
-        if (!array_key_exists($id, $map)) {
-            throw new NotFoundException("Could not find a service for id $id");
+        if (array_key_exists($id, $map)) {
+            return $map[$id];
         }
 
-        return $map[$id];
+        return null;
     }
 
     /**

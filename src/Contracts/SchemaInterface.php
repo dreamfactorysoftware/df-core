@@ -3,8 +3,19 @@ namespace DreamFactory\Core\Contracts;
 
 use DreamFactory\Core\Database\Schema\TableSchema;
 
-interface SchemaInterface extends DbExtrasInterface
+interface SchemaInterface
 {
+    /**
+     * @return null|integer
+     */
+    public function getServiceId();
+
+    /**
+     * @param integer $id
+     * @return $this
+     */
+    public function setServiceId($id);
+
     /**
      * Return an array of supported schema resource types.
      *
@@ -72,6 +83,11 @@ interface SchemaInterface extends DbExtrasInterface
     public function setUserSchema($schema);
 
     /**
+     * @return mixed
+     */
+    public function getNamingSchema();
+
+    /**
      * @param $defaultSchemaOnly
      */
     public function setDefaultSchemaOnly($defaultSchemaOnly);
@@ -132,9 +148,11 @@ interface SchemaInterface extends DbExtrasInterface
      */
     public function dropRelationship($table, $relationship);
 
+    /**
+     * @param $type
+     * @return mixed
+     */
     public static function isUndiscoverableType($type);
-
-    public function getNamingSchema();
 
     /**
      * @param bool $unique
@@ -165,13 +183,6 @@ interface SchemaInterface extends DbExtrasInterface
      * @return string
      */
     public function makeConstraintName($prefix, $table, $column = null);
-
-    /**
-     * Set the DB Extras interface.
-     *
-     * @param  DbExtrasInterface $storage
-     */
-    public function setExtraStore($storage);
 
     /**
      * @param string $name
@@ -219,5 +230,11 @@ interface SchemaInterface extends DbExtrasInterface
      * @param string $name
      * @return string
      */
-    public function quoteIdentifier($name);
+    public function quoteTableName($name);
+
+    /**
+     * @param string $name
+     * @return string
+     */
+    public function quoteColumnName($name);
 }

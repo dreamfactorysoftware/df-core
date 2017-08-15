@@ -95,6 +95,16 @@ class AccessCheck
             'service_type' => 'oauth_microsoft-live',
             'resource'     => 'sso',
         ],
+        [
+            'verb_mask'    => 1,
+            'service_type' => 'swagger',
+            'resource'     => '',
+        ],
+        [
+            'verb_mask'    => 1,
+            'service_type' => 'swagger',
+            'resource'     => '*',
+        ],
     ];
 
     /**
@@ -197,13 +207,15 @@ class AccessCheck
                 if (!empty($expServiceType)) {
                     if (($action & array_get($exception, 'verb_mask')) &&
                         $serviceType === $expServiceType &&
-                        $component === array_get($exception, 'resource')
+                        (('*' === array_get($exception, 'resource')) ||
+                            ($component === array_get($exception, 'resource')))
                     ) {
                         return true;
                     }
                 } elseif (($action & array_get($exception, 'verb_mask')) &&
                     $service === array_get($exception, 'service') &&
-                    $component === array_get($exception, 'resource')
+                    (('*' === array_get($exception, 'resource')) ||
+                        ($component === array_get($exception, 'resource')))
                 ) {
                     return true;
                 }

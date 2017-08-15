@@ -5,12 +5,10 @@ namespace DreamFactory\Core\Models;
 use DB;
 use DbSchemaExtensions;
 use DreamFactory\Core\Components\Builder as DfBuilder;
-use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Components\Encryptable;
 use DreamFactory\Core\Components\Protectable;
 use DreamFactory\Core\Components\SchemaToOpenApiDefinition;
 use DreamFactory\Core\Components\Validatable;
-use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\SchemaInterface;
 use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
@@ -31,9 +29,9 @@ use SystemTableModelMapper;
  *
  * @package DreamFactory\Core\Models
  */
-class BaseModel extends Model implements CacheInterface
+class BaseModel extends Model
 {
-    use Cacheable, SchemaToOpenApiDefinition, Protectable, Encryptable, Validatable;
+    use SchemaToOpenApiDefinition, Protectable, Encryptable, Validatable;
 
     /**
      * @var SchemaInterface
@@ -690,22 +688,22 @@ class BaseModel extends Model implements CacheInterface
      */
     public function getTableSchema()
     {
-        if (empty($result = $this->getFromCache('table:'.$this->table))) {
+        return \Cache::rememberForever('model:' . $this->table, function () {
             $resourceName = $this->table;
             $name = $resourceName;
             if (empty($schemaName = $this->getSchema()->getDefaultSchema())) {
                 $internalName = $resourceName;
-                $quotedName = $this->getSchema()->quoteIdentifier($resourceName);;
+                $quotedName = $this->getSchema()->quoteTableName($resourceName);;
             } else {
                 $internalName = $schemaName . '.' . $resourceName;
-                $quotedName = $this->getSchema()->quoteIdentifier($schemaName) . '.' . $this->getSchema()->quoteIdentifier($resourceName);;
+                $quotedName = $this->getSchema()->quoteTableName($schemaName) . '.' . $this->getSchema()->quoteTableName($resourceName);;
             }
             $settings = compact('schemaName', 'resourceName', 'name', 'internalName', 'quotedName');
             $result = new TableSchema($settings);
             $result = $this->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $result);
-            $this->addToCache('table:'.$this->table, $result, true);
-        }
-        return $result;
+
+            return $result;
+        });
     }
 
     public function getSchema()
@@ -713,9 +711,7 @@ class BaseModel extends Model implements CacheInterface
         if ($this->schemaExtension === null) {
             $conn = $this->getConnection();
             $driver = $conn->getDriverName();
-            if ($this->schemaExtension = DbSchemaExtensions::getSchemaExtension($driver, $conn)) {
-                $this->cachePrefix = 'model_' . $this->getTable() . ':';
-            }
+            $this->schemaExtension = DbSchemaExtensions::getSchemaExtension($driver, $conn);
         }
 
         return $this->schemaExtension;

@@ -23,6 +23,7 @@ use DreamFactory\Core\Utility\Session as SessionUtility;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use SystemTableModelMapper;
+use ServiceManager;
 
 /**
  * Class BaseModel
@@ -712,6 +713,7 @@ class BaseModel extends Model
             $conn = $this->getConnection();
             $driver = $conn->getDriverName();
             $this->schemaExtension = DbSchemaExtensions::getSchemaExtension($driver, $conn);
+            $this->schemaExtension->setServiceId(ServiceManager::getServiceIdByName('system'));
         }
 
         return $this->schemaExtension;

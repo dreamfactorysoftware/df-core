@@ -2,6 +2,8 @@
 
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Components\Cacheable;
+use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Enums\ApiDocFormatTypes;
@@ -22,8 +24,10 @@ use Symfony\Component\Yaml\Yaml;
  *
  * @package DreamFactory\Core\Services
  */
-class BaseRestService extends RestHandler implements ServiceInterface
+class BaseRestService extends RestHandler implements ServiceInterface, CacheInterface
 {
+    use Cacheable;
+
     const RESOURCE_IDENTIFIER = 'name';
 
     //*************************************************************************
@@ -162,6 +166,21 @@ class BaseRestService extends RestHandler implements ServiceInterface
         }
 
         return [];
+    }
+
+    protected function getCachePrefix()
+    {
+        return 'service_' . $this->id . ':';
+    }
+
+    public function getConfigBasedCachePrefix()
+    {
+        return '';
+    }
+
+    protected function makeCacheKey($name)
+    {
+        return $this->getCachePrefix() . $this->getConfigBasedCachePrefix() . $name;
     }
 
     /**

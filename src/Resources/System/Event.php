@@ -9,6 +9,7 @@ use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ServiceResponse;
 use DreamFactory\Core\Utility\Session;
 use ServiceManager;
+use Log;
 
 /**
  * Class Event
@@ -32,19 +33,27 @@ class Event extends BaseRestResource
         $eventMap = [];
         if (!empty($serviceName = $this->request->getParameter('service'))) {
             if (Session::checkForAnyServicePermissions($serviceName)) {
-                if (!empty($service = ServiceManager::getService($serviceName))) {
-                    if (!empty($map = $service->getEventMap())) {
-                        $eventMap[$serviceName] = $map;
+                try {
+                    if (!empty($service = ServiceManager::getService($serviceName))) {
+                        if (!empty($map = $service->getEventMap())) {
+                            $eventMap[$serviceName] = $map;
+                        }
                     }
+                } catch (\Exception $ex) {
+                    Log::info("Failed to build event map for service $serviceName. {$ex->getMessage()}");
                 }
             }
         } else {
             foreach (ServiceManager::getServiceNames() as $serviceName) {
                 if (Session::checkForAnyServicePermissions($serviceName)) {
-                    if (!empty($service = ServiceManager::getService($serviceName))) {
-                        if (!empty($map = $service->getEventMap())) {
-                            $eventMap[$serviceName] = $map;
+                    try {
+                        if (!empty($service = ServiceManager::getService($serviceName))) {
+                            if (!empty($map = $service->getEventMap())) {
+                                $eventMap[$serviceName] = $map;
+                            }
                         }
+                    } catch (\Exception $ex) {
+                        Log::info("Failed to build event map for service $serviceName. {$ex->getMessage()}");
                     }
                 }
             }

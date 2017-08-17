@@ -55,6 +55,7 @@ return [
             // Location of connection dump file, defaults to disabled
             'dumpconfig'  => env('DF_FREETDS_DUMPCONFIG'),
         ],
+        'query_log_enabled' => env('DB_QUERY_LOG_ENABLED', false),
     ],
     // Cache config, in minutes
     'default_cache_ttl'            => env('CACHE_DEFAULT_TTL', env('DF_CACHE_TTL', 300)),

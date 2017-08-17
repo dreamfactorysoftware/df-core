@@ -13,6 +13,7 @@ use Illuminate\Contracts\Events\Dispatcher;
 use Cache;
 use Config;
 use Event;
+use Illuminate\Database\Events\QueryExecuted;
 use Log;
 use ServiceManager;
 
@@ -38,6 +39,14 @@ class ServiceEventHandler
             ],
             static::class . '@handleServiceChangeEvent'
         );
+        if (config('df.db.query_log_enabled')) {
+            $events->listen(
+                [
+                    QueryExecuted::class,
+                ],
+                static::class . '@handleQueryExecutedEvent'
+            );
+        }
     }
 
     /**
@@ -79,5 +88,10 @@ class ServiceEventHandler
     public function handleServiceChangeEvent($event)
     {
         ServiceManager::purge($event->service->name);
+    }
+
+    public function handleQueryExecutedEvent($event)
+    {
+        Log::debug($event->connectionName .': '. $event->sql . ': '. $event->time);
     }
 }

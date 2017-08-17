@@ -26,9 +26,10 @@ class AppLookup extends BaseSystemLookup
     {
         if (array_key_exists('name', $attributes)) {
             $newName = array_get($attributes, 'name');
-            if (0!==strcasecmp($this->name, $newName)) {
+            $appId = array_get($attributes, 'app_id', $this->app_id);
+            if (!empty($appId) && (0!==strcasecmp($this->name, $newName))) {
                 // check if lookup by that name already exists
-                if (static::whereAppId($this->app_id)->whereName($newName)->exists()) {
+                if (static::whereAppId($appId)->whereName($newName)->exists()) {
                     throw new BadRequestException('Lookup name can not be modified to one that already exists.');
                 }
             }

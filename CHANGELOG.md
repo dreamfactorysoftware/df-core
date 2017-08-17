@@ -3,15 +3,28 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- DF-819 Added clear validation messages
+- Service list retrieval in ServiceManager
+- Better service handling in ServiceManager
+- Add caching to base service, fixing lookup hierarchy
+- Add service caching trait
+- Add ability to log database queries, enable via .env
+
 ### Changed
 - DF-1074 Moving API docs perms check for swagger control
-- DF-819 Added clear validation messages
 - DF-1188 Only return debug trace when app.debug is true, previously used APP_ENV
 - Rework schema interface for database services in order to better control caching
 - Rework access check to always return JWT errors if a token is given
+- Reworking API doc usage and generation
+- Allowing optional filter service list by group
+- Cleanup Package model use
+- Catch and log service exceptions
 
 ### Fixed
 - Fix swagger def to pass validation
+- Make sure we have a status code on exception handling
+- Fix lookup creation and validation against existing lookups
 
 ## [0.11.1] - 2017-07-28
 ### Fixed

@@ -2,14 +2,14 @@
 
 namespace DreamFactory\Core\Components\Package;
 
+use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Utility\DataFormatter;
-use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Utility\FileUtilities;
-use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Resources\System\Environment;
+use DreamFactory\Core\Utility\DataFormatter;
+use DreamFactory\Core\Utility\FileUtilities;
 use ServiceManager;
 
 /**
@@ -164,9 +164,7 @@ class Package
         if (is_array($storage)) {
             $name = array_get($storage, 'name', array_get($storage, 'id', $default));
             if (is_numeric($name)) {
-                $service = Service::find($name);
-
-                return $service->name;
+                return ServiceManager::getServiceNameById($name);
             }
 
             return $name;

@@ -2,7 +2,9 @@
 
 namespace DreamFactory\Core\Components\Package;
 
+use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Exceptions\DfException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -15,11 +17,9 @@ use DreamFactory\Core\Models\RoleServiceAccess;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
-use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\Session;
-use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Contracts\Encryption\DecryptException;
 use ServiceManager;
 
@@ -490,15 +490,13 @@ class Importer
             $componentPhrase = "component = '$component'";
         }
 
-        $rsaRecord = RoleServiceAccess::whereRaw(
+        return RoleServiceAccess::whereRaw(
             "role_id = '$roleId' AND 
             $servicePhrase AND 
             $componentPhrase AND 
             verb_mask = '$verbMask' AND 
             requestor_mask = '$requestorMask'"
-        )->first(['id']);
-
-        return (empty($rsaRecord)) ? false : true;
+        )->exists();
     }
 
     /**
@@ -514,13 +512,11 @@ class Importer
         $appId = $uar['app_id'];
         $roleId = $uar['role_id'];
 
-        $uarRecord = UserAppRole::whereRaw(
+        return UserAppRole::whereRaw(
             "user_id = '$userId' AND 
             role_id = '$roleId' AND 
             app_id = '$appId'"
-        )->first(['id']);
-
-        return (empty($uarRecord)) ? false : true;
+        )->exists();
     }
 
     /**
@@ -949,15 +945,11 @@ class Importer
         }
 
         if (!empty($serviceName)) {
-            $newService = Service::whereName($serviceName)->first(['id']);
-            if (!empty($newService)) {
-                return $newService->id;
+            if (!empty($id = ServiceManager::getServiceIdByName($serviceName))) {
+                return $id;
             }
         } else {
-            $existingService = Service::find($oldServiceId);
-            if (!empty($existingService)) {
-                $serviceName = $existingService->name;
-
+            if (!empty($serviceName = ServiceManager::getServiceNameById($oldServiceId))) {
                 if (in_array($serviceName, ['system', 'api_docs', 'files', 'db', 'email', 'user'])) {
                     // If service is one of the pre-defined system services
                     // then new id is most likely the same as the old id.
@@ -1218,17 +1210,11 @@ class Importer
         $api = $service . '/' . $resource;
         switch ($api) {
             case 'system/role':
-                $role = Role::where($key, $value)->first();
-
-                return (!empty($role)) ? true : false;
+                return Role::where($key, $value)->exists();
             case 'system/service':
-                $service = Service::where($key, $value)->first();
-
-                return (!empty($service)) ? true : false;
+                return Service::where($key, $value)->exists();
             case 'system/app':
-                $app = App::where($key, $value)->first();
-
-                return (!empty($app)) ? true : false;
+                return App::where($key, $value)->exists();
             case 'system/event_script':
             case 'system/custom':
             case 'user/custom':

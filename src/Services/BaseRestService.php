@@ -2,7 +2,7 @@
 
 namespace DreamFactory\Core\Services;
 
-use DreamFactory\Core\Components\Cacheable;
+use DreamFactory\Core\Components\ServiceCacheable;
 use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
@@ -26,7 +26,7 @@ use Symfony\Component\Yaml\Yaml;
  */
 class BaseRestService extends RestHandler implements ServiceInterface, CacheInterface
 {
-    use Cacheable;
+    use ServiceCacheable;
 
     const RESOURCE_IDENTIFIER = 'name';
 
@@ -36,7 +36,6 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
     /** @type array Service Resources */
     protected static $resources = [];
-
     /**
      * @var integer|null Database Id of the services entry
      */
@@ -57,6 +56,10 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
      * @var array Holder for various API doc options
      */
     protected $doc = [];
+    /**
+     * @type string
+     */
+    protected $configCachePrefix = '';
 
     //*************************************************************************
     //	Methods
@@ -72,8 +75,11 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
         //  Most services have a config section that may include lookups
         $this->config = (array)array_get($settings, 'config', []);
         $this->doc = (array)array_get($settings, 'service_doc_by_service_id');
+        $this->doc = current($this->doc); // should only be one
         //  Replace any private lookups
         Session::replaceLookups($this->config, true);
+
+        $this->setCachePrefix('service_' . $this->id . ':');
     }
 
     /**
@@ -166,21 +172,6 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
         }
 
         return [];
-    }
-
-    protected function getCachePrefix()
-    {
-        return 'service_' . $this->id . ':';
-    }
-
-    public function getConfigBasedCachePrefix()
-    {
-        return '';
-    }
-
-    protected function makeCacheKey($name)
-    {
-        return $this->getCachePrefix() . $this->getConfigBasedCachePrefix() . $name;
     }
 
     /**
@@ -406,6 +397,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                         'label'       => $this->label,
                         'description' => $this->description,
                     ];
+
                     return $this->storedContentToArray($content, array_get($this->doc, 'format'), $info);
                 } elseif (is_array($content)) {
                     return $content;
@@ -417,6 +409,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                 return $content;
             }
         }
+
         return $this->getApiDocInfo($this);
     }
 
@@ -481,7 +474,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                     ],
                 ],
             ],
-            'parameters' => [],
+            'parameters'  => [],
         ];
 
         $apis = [];

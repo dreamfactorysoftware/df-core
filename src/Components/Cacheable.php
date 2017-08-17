@@ -16,6 +16,11 @@ trait Cacheable
     protected $cacheTTL = 0;
 
     /**
+     * @type string
+     */
+    protected $cachePrefix = '';
+
+    /**
      * List of cache keys used to flush service cache.
      * This should be pulled from cache when available.
      * i.e. $cacheKeysMap = ['a','b','c']
@@ -24,9 +29,14 @@ trait Cacheable
      */
     protected $cacheKeys = [];
 
+    protected function setCachePrefix($prefix)
+    {
+        $this->cachePrefix = $prefix;
+    }
+
     protected function getCachePrefix()
     {
-        return ''; // no prefix by default
+        return $this->cachePrefix;
     }
 
     /**

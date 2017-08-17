@@ -68,7 +68,10 @@ class StorageController extends Controller
             }
         } catch (\Exception $e) {
             $content = $e->getMessage();
-            $status = $e->getCode();
+            if (empty($status = $e->getCode())) {
+                $status = 500;
+            }
+
             $contentType = 'text/html';
             \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
 

@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Http\Middleware;
 
 use Closure;
@@ -94,6 +95,16 @@ class AccessCheck
             'service_type' => 'oauth_microsoft-live',
             'resource'     => 'sso',
         ],
+        [
+            'verb_mask'    => 1,
+            'service_type' => 'swagger',
+            'resource'     => '',
+        ],
+        [
+            'verb_mask'    => 1,
+            'service_type' => 'swagger',
+            'resource'     => '*',
+        ],
     ];
 
     /**
@@ -112,10 +123,15 @@ class AccessCheck
         try {
             static::setExceptions();
 
+            if (Session::getBool('token_expired')) {
+                throw new UnauthorizedException(Session::get('token_expired_msg'));
+            } elseif (Session::getBool('token_blacklisted')) {
+                throw new ForbiddenException(Session::get('token_blacklisted_msg'));
+            } elseif (Session::getBool('token_invalid')) {
+                throw new BadRequestException(Session::get('token_invalid_msg'), 401);
+            }
+
             if (static::isAccessAllowed()) {
-                return $next($request);
-            } elseif (static::isException($request)) {
-                //  API key and/or (non-admin) user logged in, but if access is still not allowed then check for exception case.
                 return $next($request);
             } else {
                 // No access allowed, figure out the best error response
@@ -129,12 +145,6 @@ class AccessCheck
                         'Please send in X-DreamFactory-Session-Token and/or X-Dreamfactory-API-Key request header. ' .
                         'You can also use URL query parameters session_token and/or api_key.';
                     throw new BadRequestException($msg);
-                } elseif (true === Session::get('token_expired')) {
-                    throw new UnauthorizedException(Session::get('token_expired_msg'));
-                } elseif (true === Session::get('token_blacklisted')) {
-                    throw new ForbiddenException(Session::get('token_blacklisted_msg'));
-                } elseif (true === Session::get('token_invalid')) {
-                    throw new BadRequestException(Session::get('token_invalid_msg'), 401);
                 } elseif (empty($roleId)) {
                     if (empty($apiKey)) {
                         throw new BadRequestException(
@@ -163,44 +173,6 @@ class AccessCheck
     }
 
     /**
-     * Checks to see if it is an admin user login call.
-     *
-     * @param  \Illuminate\Http\Request $request
-     *
-     * @return bool
-     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
-     */
-    protected static function isException($request)
-    {
-        /** @var Router $router */
-        $router = app('router');
-        $service = strtolower($router->input('service'));
-        $resource = strtolower($router->input('resource'));
-        $action = VerbsMask::toNumeric($request->getMethod());
-
-        foreach (static::$exceptions as $exception) {
-            $expServiceType = array_get($exception, 'service_type');
-            if (!empty($expServiceType)) {
-                $serviceObj = ServiceManager::getService($service);
-                $serviceType = $serviceObj->getType();
-                if (($action & array_get($exception, 'verb_mask')) &&
-                    $serviceType === $expServiceType &&
-                    $resource === array_get($exception, 'resource')
-                ) {
-                    return true;
-                }
-            } elseif (($action & array_get($exception, 'verb_mask')) &&
-                $service === array_get($exception, 'service') &&
-                $resource === array_get($exception, 'resource')
-            ) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
      * Checks to see if Access is Allowed based on Role-Service-Access.
      *
      * @return bool
@@ -209,7 +181,8 @@ class AccessCheck
     public static function isAccessAllowed()
     {
         if (!in_array($method = \Request::getMethod(), Verbs::getDefinedConstants())) {
-            throw new MethodNotAllowedHttpException(Verbs::getDefinedConstants(), "Invalid verb tunneling with $method");
+            throw new MethodNotAllowedHttpException(Verbs::getDefinedConstants(),
+                "Invalid verb tunneling with $method");
         }
 
         /** @var Router $router */
@@ -220,7 +193,36 @@ class AccessCheck
         $allowed = Session::getServicePermissions($service, $component, $requestor);
         $action = VerbsMask::toNumeric($method);
 
-        return ($action & $allowed) ? true : false;
+        if ($action & $allowed) {
+            return true;
+        } else {
+            if (empty($service)) {
+                return true; // root of api gives available service listing
+            }
+
+            $serviceObj = ServiceManager::getService($service);
+            $serviceType = $serviceObj->getType();
+            foreach (static::$exceptions as $exception) {
+                $expServiceType = array_get($exception, 'service_type');
+                if (!empty($expServiceType)) {
+                    if (($action & array_get($exception, 'verb_mask')) &&
+                        $serviceType === $expServiceType &&
+                        (('*' === array_get($exception, 'resource')) ||
+                            ($component === array_get($exception, 'resource')))
+                    ) {
+                        return true;
+                    }
+                } elseif (($action & array_get($exception, 'verb_mask')) &&
+                    $service === array_get($exception, 'service') &&
+                    (('*' === array_get($exception, 'resource')) ||
+                        ($component === array_get($exception, 'resource')))
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     protected static function setExceptions()

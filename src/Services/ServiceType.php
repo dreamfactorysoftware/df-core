@@ -1,8 +1,8 @@
 <?php
+
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
-use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
 
 /**
@@ -43,13 +43,14 @@ class ServiceType implements ServiceTypeInterface
      */
     protected $subscriptionRequired = false;
     /**
-     * @var ServiceConfigHandlerInterface Designated configuration handler for this service type, typically ties to database storage
+     * @var boolean True if this service allows editing the service definition, i.e. swagger def.
+     */
+    protected $serviceDefinitionEditable = false;
+    /**
+     * @var ServiceConfigHandlerInterface Designated configuration handler for this service type, typically ties to
+     *      database storage
      */
     protected $configHandler = null;
-    /**
-     * @var callable Designated callback for retrieving the default API Doc for this service type
-     */
-    protected $defaultApiDoc = null;
     /**
      * @var callable Designated callback for creating a service of this type
      */
@@ -76,116 +77,56 @@ class ServiceType implements ServiceTypeInterface
         }
     }
 
-    /**
-     * Service type - matching registered service types
-     *
-     * @return string
-     */
     public function getName()
     {
         return $this->name;
     }
 
-    /**
-     * Displayable service type label
-     *
-     * @return string
-     */
     public function getLabel()
     {
         return $this->label;
     }
 
-    /**
-     * Service type description
-     *
-     * @return string
-     */
     public function getDescription()
     {
         return $this->description;
     }
 
-    /**
-     * Displayable service type group label
-     *
-     * @return string
-     */
     public function getGroup()
     {
         return $this->group;
     }
 
-    /**
-     * Is this service type only to be created once?
-     *
-     * @return boolean
-     */
     public function isSingleton()
     {
         return $this->singleton;
     }
 
-    /**
-     * The configuration handler interface for this service type
-     *
-     * @return ServiceConfigHandlerInterface | null
-     */
     public function getConfigHandler()
     {
         return $this->configHandler;
     }
 
-    /**
-     * Is a DreamFactory subscription required to use this service type
-     *
-     * @return boolean
-     */
     public function isSubscriptionRequired()
     {
         return $this->subscriptionRequired;
     }
 
-    /**
-     * Are there any dependencies (i.e. drivers, other service types, etc.) that are not met to use this service type.
-     *
-     * @return null | string
-     */
+    public function isServiceDefinitionEditable()
+    {
+        return $this->serviceDefinitionEditable;
+    }
+
     public function getDependenciesRequired()
     {
         return $this->dependenciesRequired;
     }
 
-    /**
-     * The default API Document generator for this service type
-     *
-     * @param mixed $service
-     *
-     * @return array|null
-     */
-    public function getDefaultApiDoc($service)
-    {
-        return call_user_func($this->defaultApiDoc, $service);
-    }
-
-    /**
-     * The configuration handler interface for this service type
-     *
-     * @param string $name
-     * @param array  $config
-     *
-     * @return ServiceInterface|null
-     */
     public function make($name, array $config = [])
     {
         return call_user_func($this->factory, $config, $name);
     }
 
-    /**
-     * The configuration handler interface for this service type
-     *
-     * @return array | null
-     */
     public function toArray()
     {
         $configSchema = null;
@@ -195,14 +136,15 @@ class ServiceType implements ServiceTypeInterface
         }
 
         return [
-            'name'                  => $this->name,
-            'label'                 => $this->label,
-            'description'           => $this->description,
-            'group'                 => $this->group,
-            'singleton'             => $this->singleton,
-            'dependencies_required' => $this->dependenciesRequired,
-            'subscription_required' => $this->subscriptionRequired,
-            'config_schema'         => $configSchema
+            'name'                        => $this->name,
+            'label'                       => $this->label,
+            'description'                 => $this->description,
+            'group'                       => $this->group,
+            'singleton'                   => $this->singleton,
+            'dependencies_required'       => $this->dependenciesRequired,
+            'subscription_required'       => $this->subscriptionRequired,
+            'service_definition_editable' => $this->serviceDefinitionEditable,
+            'config_schema'               => $configSchema
         ];
     }
 }

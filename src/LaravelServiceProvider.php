@@ -10,7 +10,6 @@ use DreamFactory\Core\Commands\ImportPackage;
 use DreamFactory\Core\Commands\Request;
 use DreamFactory\Core\Commands\Setup;
 use DreamFactory\Core\Components\DbSchemaExtensions;
-use DreamFactory\Core\Components\ServiceDocBuilder;
 use DreamFactory\Core\Database\Connectors\SQLiteConnector;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Facades\DbSchemaExtensions as DbSchemaExtensionsFacade;
@@ -36,8 +35,6 @@ use Tymon\JWTAuth\Facades\JWTFactory;
 
 class LaravelServiceProvider extends ServiceProvider
 {
-    use ServiceDocBuilder;
-
     /**
      * Bootstrap the application events.
      *
@@ -148,9 +145,6 @@ class LaravelServiceProvider extends ServiceProvider
                     'group'           => ServiceTypeGroups::SYSTEM,
                     'singleton'       => true,
                     'config_handler'  => Config::class,
-                    'default_api_doc' => function ($service) {
-                        return $this->buildServiceDoc($service->id, System::getApiDocInfo($service));
-                    },
                     'factory'         => function ($config){
                         return new System($config);
                     },

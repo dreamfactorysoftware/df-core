@@ -11,9 +11,11 @@ trait SupportsCache
     public static function getConfig($id, $local_config = null, $protect = true)
     {
         $config = parent::getConfig($id, $local_config, $protect);
-        $cacheConfig = ServiceCacheConfig::whereServiceId($id)->first();
+        if ($cacheConfig = ServiceCacheConfig::whereServiceId($id)->first()) {
+            $config = array_merge($config, $cacheConfig->toArray());
+        }
 
-        return array_merge($config, $cacheConfig->toArray());
+        return $config;
     }
 
     /**

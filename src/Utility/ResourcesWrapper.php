@@ -41,7 +41,7 @@ class ResourcesWrapper
             // may already be a simple list
             if (is_array(array_get($resources, 0))) {
                 if (is_string($identifier)) {
-                    $identifier = explode(',', $identifier);
+                    $identifier = array_map('trim', explode(',', trim($identifier, ',')));
                 } elseif (!is_array($identifier)) {
                     $identifier = [];
                 }
@@ -71,7 +71,7 @@ class ResourcesWrapper
                     }
                 } elseif (ApiOptions::FIELDS_ALL !== $fields) {
                     if (is_string($fields)) {
-                        $fields = explode(',', $fields);
+                        $fields = array_map('trim', explode(',', trim($fields, ',')));
                     } elseif (!is_array($fields)) {
                         $fields = [];
                     }

@@ -278,7 +278,7 @@ class ResponseFactory
         $errorInfo['code'] = ($exception->getCode()) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
         $errorInfo['message'] = htmlentities($exception->getMessage());
 
-        if ("local" === env("APP_ENV")) {
+        if (config('app.debug', false)) {
             $trace = $exception->getTraceAsString();
             $trace = str_replace(["\n", "#"], ["", "<br>"], $trace);
             $traceArray = explode("<br>", $trace);

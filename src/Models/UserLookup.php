@@ -26,9 +26,10 @@ class UserLookup extends BaseSystemLookup
     {
         if (array_key_exists('name', $attributes)) {
             $newName = array_get($attributes, 'name');
-            if (0!==strcasecmp($this->name, $newName)) {
+            $userId = array_get($attributes, 'user_id', $this->user_id);
+            if (!empty($userId) && (0!==strcasecmp($this->name, $newName))) {
                 // check if lookup by that name already exists
-                if (static::whereUserId($this->user_id)->whereName($newName)->exists()) {
+                if (static::whereUserId($userId)->whereName($newName)->exists()) {
                     throw new BadRequestException('Lookup name can not be modified to one that already exists.');
                 }
             }

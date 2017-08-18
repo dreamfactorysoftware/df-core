@@ -1,8 +1,21 @@
 <?php
 namespace DreamFactory\Core\Contracts;
 
-interface SchemaInterface extends CacheInterface, DbExtrasInterface
+use DreamFactory\Core\Database\Schema\TableSchema;
+
+interface SchemaInterface
 {
+    /**
+     * @return null|integer
+     */
+    public function getServiceId();
+
+    /**
+     * @param integer $id
+     * @return $this
+     */
+    public function setServiceId($id);
+
     /**
      * Return an array of supported schema resource types.
      *
@@ -31,22 +44,20 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
      *
      * @param string $type    Resource type
      * @param string $schema  Schema name if any specific requested
-     * @param bool   $refresh Clear cache and retrieve anew?
      *
      * @return array
      */
-    public function getResourceNames($type, $schema = '', $refresh = false);
+    public function getResourceNames($type, $schema = '');
 
     /**
      * Return the metadata about a particular schema resource.
      *
      * @param string $type    Resource type
      * @param string $name    Resource name
-     * @param bool   $refresh Clear cache and retrieve anew?
      *
      * @return mixed
      */
-    public function getResource($type, $name, $refresh = false);
+    public function getResource($type, &$name);
 
     /**
      * @param string $type Resource type
@@ -59,12 +70,22 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
     /**
      * @return string|null
      */
+    public function getDefaultSchema();
+
+    /**
+     * @return string|null
+     */
     public function getUserSchema();
 
     /**
      * @param string|null $schema
      */
     public function setUserSchema($schema);
+
+    /**
+     * @return mixed
+     */
+    public function getNamingSchema();
 
     /**
      * @param $defaultSchemaOnly
@@ -77,38 +98,91 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
     public function isDefaultSchemaOnly();
 
     /**
-     * @param      $tables
-     * @param bool $allow_merge
-     * @param bool $allow_delete
-     * @param bool $rollback
+     * @param      $table
+     * @param array $options
      *
      * @return mixed
      */
-    public function updateSchema($tables, $allow_merge = false, $allow_delete = false, $rollback = false);
+    public function createTable($table, $options);
 
     /**
-     * Set the Caching interface.
+     * @param TableSchema $tableSchema
+     * @param array       $changes
      *
-     * @param  CacheInterface $cache
+     * @throws \Exception
      */
-    public function setCache($cache);
+    public function updateTable($tableSchema, $changes);
 
     /**
+     * @param      $table
+     *
      * @return mixed
      */
-    public function flushCache();
+    public function dropTable($table);
 
     /**
-     * Set the DB Extras interface.
+     * @param string       $table
+     * @param string|array $columns
      *
-     * @param  DbExtrasInterface $storage
+     * @return bool|int
      */
-    public function setExtraStore($storage);
+    public function dropColumns($table, $columns);
 
     /**
+     * @param array $indexes
+     *
+     */
+    public function createFieldIndexes($indexes);
+
+    /**
+     * @param array $references
+     *
+     */
+    public function createFieldReferences($references);
+
+    /**
+     * @param string $table
+     * @param        $relationship
+     *
+     * @return bool|int
+     */
+    public function dropRelationship($table, $relationship);
+
+    /**
+     * @param $type
      * @return mixed
      */
-    public function refresh();
+    public static function isUndiscoverableType($type);
+
+    /**
+     * @param bool $unique
+     * @param bool $on_create_table
+     *
+     * @return bool
+     */
+    public function requiresCreateIndex($unique = false, $on_create_table = false);
+
+    /**
+     * @return bool
+     */
+    public function allowsSeparateForeignConstraint();
+
+    /**
+     * @param $table
+     * @param $column
+     *
+     * @return array
+     */
+    public function getPrimaryKeyCommands($table, $column);
+
+    /**
+     * @param string      $prefix
+     * @param string      $table
+     * @param string|null $column
+     *
+     * @return string
+     */
+    public function makeConstraintName($prefix, $table, $column = null);
 
     /**
      * @param string $name
@@ -151,4 +225,16 @@ interface SchemaInterface extends CacheInterface, DbExtrasInterface
      * @return string
      */
     public function getTimestampForSet();
+
+    /**
+     * @param string $name
+     * @return string
+     */
+    public function quoteTableName($name);
+
+    /**
+     * @param string $name
+     * @return string
+     */
+    public function quoteColumnName($name);
 }

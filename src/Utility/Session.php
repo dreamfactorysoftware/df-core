@@ -710,12 +710,14 @@ class Session
 
     public static function setSessionLookups()
     {
-        $lookups = BaseSystemLookup::get();
-
         $map = [];
         $mapSecret = [];
         // Loop through and add the system lookups
+        $lookups = BaseSystemLookup::get();
         foreach ($lookups as $lookup) {
+            if (!is_null($lookup->app_id) || !is_null($lookup->role_id) || !is_null($lookup->user_id)) {
+                continue;
+            }
             if ($lookup->private) {
                 $mapSecret[$lookup->name] = $lookup->value;
             } else {
@@ -723,10 +725,10 @@ class Session
             }
         }
 
-        // Loop through and add the applicable role lookups
-        if ($roleId = Session::get('role.id')) {
+        // Loop through and add the applicable app lookups
+        if ($appId = Session::get('app.id')) {
             foreach ($lookups as $lookup) {
-                if ($lookup->role_id === $roleId) {
+                if ($lookup->app_id === $appId) {
                     if ($lookup->private) {
                         $mapSecret[$lookup->name] = $lookup->value;
                     } else {
@@ -736,10 +738,10 @@ class Session
             }
         }
 
-        // Loop through and add the applicable app lookups
-        if ($appId = Session::get('app.id')) {
+        // Loop through and add the applicable role lookups
+        if ($roleId = Session::get('role.id')) {
             foreach ($lookups as $lookup) {
-                if ($lookup->app_id === $appId) {
+                if ($lookup->role_id === $roleId) {
                     if ($lookup->private) {
                         $mapSecret[$lookup->name] = $lookup->value;
                     } else {
@@ -897,6 +899,11 @@ class Session
     public static function get($key, $default = null)
     {
         return \Session::get($key, $default);
+    }
+
+    public static function getBool($key, $default = false)
+    {
+        return to_bool(\Session::get($key, $default));
     }
 
     public static function put($key, $value = null)

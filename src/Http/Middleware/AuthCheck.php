@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Http\Middleware;
 
 use Auth;
@@ -154,7 +155,7 @@ class AuthCheck
 
                 // Get the session token (JWT)
                 $token = static::getJwt($request);
-                if(in_array(trim($route, '/'), static::$authApis) && $request->getMethod() === Verbs::POST){
+                if (in_array(trim($route, '/'), static::$authApis) && $request->getMethod() === Verbs::POST) {
                     // If this is a request for login ignore any token provided.
                     $token = null;
                 }
@@ -165,26 +166,11 @@ class AuthCheck
                     Session::setRequestor(ServiceRequestorTypes::SCRIPT);
                 }
 
-                // Check for basic auth attempt
-                $basicAuthUser = $request->getUser();
-                $basicAuthPassword = $request->getPassword();
+                // Check for basic auth attempt and valid JWT
 
-                if (!empty($basicAuthUser) && !empty($basicAuthPassword)) {
-                    // Attempting to login using basic auth.
-                    Auth::onceBasic();
-                    /** @var User $authenticatedUser */
-                    $authenticatedUser = Auth::user();
-                    if (!empty($authenticatedUser)) {
-                        $userId = $authenticatedUser->id;
-                        Session::setSessionData($appId, $userId);
-                    } else {
-                        throw new UnauthorizedException('Unauthorized. User credentials did not match.');
-                    }
-                } elseif (!empty($token)) {
-                    // JWT supplied meaning an authenticated user session/token.
-
+                if (!empty($token)) {
                     /**
-                     * Note: All caught exception from JWT are stored in session variables.
+                     * Note: All caught exceptions from JWT are stored in session variables.
                      * These are later checked and handled appropriately in the AccessCheck middleware.
                      *
                      * This is to allow processing API calls that do not require any valid
@@ -192,7 +178,7 @@ class AuthCheck
                      * PUT user/session to refresh old JWT, GET system/environment etc.
                      *
                      * This also allows for auditing API calls that are called by not permitted/processed.
-                     * It also allows counting unauthorized API calls against Enterprise Console limits.
+                     * It also allows counting unauthorized API calls against API limits.
                      */
                     try {
                         JWTAuth::setToken($token);
@@ -218,12 +204,24 @@ class AuthCheck
                         Session::put('token_invalid', true);
                         Session::put('token_invalid_msg', 'Invalid token: ' . $e->getMessage());
                     }
+                } elseif (!empty($basicAuthUser = $request->getUser()) ||
+                    !empty($basicAuthPassword = $request->getPassword())) {
+                    // Attempting to login using basic auth.
+                    Auth::onceBasic();
+                    /** @var User $authenticatedUser */
+                    $authenticatedUser = Auth::user();
+                    if (!empty($authenticatedUser)) {
+                        $userId = $authenticatedUser->id;
+                        Session::setSessionData($appId, $userId);
+                    } else {
+                        throw new UnauthorizedException('Unauthorized. User credentials did not match.');
+                    }
                 } elseif (!empty($scriptToken)) {
                     // keep this separate from basic auth and jwt handling,
                     // as this is the fall back when those are not provided from scripting (see node.js and python)
-                    if ($temp = Cache::get('script-token:'.$scriptToken)) {
-                        \Log::debug('script token: '.$scriptToken);
-                        \Log::debug('script token cache: '.print_r($temp, true));
+                    if ($temp = Cache::get('script-token:' . $scriptToken)) {
+                        \Log::debug('script token: ' . $scriptToken);
+                        \Log::debug('script token cache: ' . print_r($temp, true));
                         Session::setSessionData(array_get($temp, 'app_id'), array_get($temp, 'user_id'));
                     }
                 } elseif (!empty($appId)) {

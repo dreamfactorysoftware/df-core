@@ -26,9 +26,10 @@ class RoleLookup extends BaseSystemLookup
     {
         if (array_key_exists('name', $attributes)) {
             $newName = array_get($attributes, 'name');
-            if (0!==strcasecmp($this->name, $newName)) {
+            $roleId = array_get($attributes, 'role_id', $this->role_id);
+            if (!empty($roleId) && (0!==strcasecmp($this->name, $newName))) {
                 // check if lookup by that name already exists
-                if (static::whereRoleId($this->role_id)->whereName($newName)->exists()) {
+                if (static::whereRoleId($roleId)->whereName($newName)->exists()) {
                     throw new BadRequestException('Lookup name can not be modified to one that already exists.');
                 }
             }

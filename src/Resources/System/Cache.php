@@ -2,9 +2,8 @@
 
 namespace DreamFactory\Core\Resources\System;
 
-use DreamFactory\Core\Contracts\CachedInterface;
+use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Exceptions\NotImplementedException;
-use DreamFactory\Core\Models\ServiceCacheConfig;
 use DreamFactory\Core\Resources\BaseRestResource;
 use ServiceManager;
 
@@ -33,14 +32,17 @@ class Cache extends BaseRestResource
     public function getResources($only_handlers = false)
     {
         if (!$only_handlers) {
-            $resources = [];
-            $cacheables = ServiceCacheConfig::with('service')->whereCacheEnabled(true)->get();
-            /** @type ServiceCacheConfig $cacheable */
-            foreach ($cacheables as $cacheable) {
-                $resources[] = ['name' => $cacheable->service->name, 'label' => $cacheable->service->label];
+            $services = [];
+            $fields = ['name', 'label', 'description', 'type'];
+            foreach (ServiceManager::getServiceList($fields) as $info) {
+                $name = array_get($info, 'name');
+                // only allowed services by role here
+                if (\DreamFactory\Core\Utility\Session::checkForAnyServicePermissions($name)) {
+                    $services[] = $info;
+                }
             }
 
-            return $resources;
+            return $services;
         }
 
         return [];
@@ -64,7 +66,7 @@ class Cache extends BaseRestResource
             }
         } else {
             $service = ServiceManager::getService($this->resource);
-            if ($service instanceof CachedInterface) {
+            if ($service instanceof CacheInterface) {
                 $service->flush();
             } else {
                 throw new NotImplementedException('Service does not implement API controlled cache.');

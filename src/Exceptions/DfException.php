@@ -66,7 +66,7 @@ class DfException extends \Exception implements Arrayable
         $errorInfo['context'] = $this->getContext();
         $errorInfo['message'] = htmlentities($this->getMessage());
 
-        if ("local" === env("APP_ENV")) {
+        if (config('app.debug', false)) {
             $trace = $this->getTraceAsString();
             $trace = str_replace(["\n", "#"], ["", "<br>"], $trace);
             $traceArray = explode("<br>", $trace);

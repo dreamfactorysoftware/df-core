@@ -29,6 +29,16 @@ trait Cacheable
      */
     protected $cacheKeys = [];
 
+    protected function setCachePrefix($prefix)
+    {
+        $this->cachePrefix = $prefix;
+    }
+
+    protected function getCachePrefix()
+    {
+        return $this->cachePrefix;
+    }
+
     /**
      * @param string|array $keys
      */
@@ -38,7 +48,7 @@ trait Cacheable
             array_unique(array_merge((array)$this->getCacheKeys(), (array)$keys));
 
         // Save the keys to cache
-        Cache::forever($this->cachePrefix . 'cache_keys', $this->cacheKeys);
+        Cache::forever($this->getCachePrefix() . 'cache_keys', $this->cacheKeys);
     }
 
     /**
@@ -49,7 +59,7 @@ trait Cacheable
         $this->cacheKeys = array_diff((array)$this->getCacheKeys(), (array)$keys);
 
         // Save the map to cache
-        Cache::forever($this->cachePrefix . 'cache_keys', $this->cacheKeys);
+        Cache::forever($this->getCachePrefix() . 'cache_keys', $this->cacheKeys);
     }
 
     /**
@@ -59,7 +69,7 @@ trait Cacheable
     protected function getCacheKeys()
     {
         if (empty($this->cacheKeys)) {
-            $this->cacheKeys = Cache::get($this->cachePrefix . 'cache_keys', []);
+            $this->cacheKeys = Cache::get($this->getCachePrefix() . 'cache_keys', []);
         }
 
         return (array)$this->cacheKeys;
@@ -68,11 +78,11 @@ trait Cacheable
     /**
      * @param string $name
      *
-     * @return array The cache key generated for this service
+     * @return string The cache key generated for this service
      */
     protected function makeCacheKey($name)
     {
-        return $this->cachePrefix . $name;
+        return $this->getCachePrefix() . $name;
     }
 
     /**

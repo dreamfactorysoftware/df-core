@@ -5,12 +5,10 @@ namespace DreamFactory\Core\Models;
 use DB;
 use DbSchemaExtensions;
 use DreamFactory\Core\Components\Builder as DfBuilder;
-use DreamFactory\Core\Components\Cacheable;
 use DreamFactory\Core\Components\Encryptable;
 use DreamFactory\Core\Components\Protectable;
 use DreamFactory\Core\Components\SchemaToOpenApiDefinition;
 use DreamFactory\Core\Components\Validatable;
-use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\SchemaInterface;
 use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
@@ -25,15 +23,16 @@ use DreamFactory\Core\Utility\Session as SessionUtility;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use SystemTableModelMapper;
+use ServiceManager;
 
 /**
  * Class BaseModel
  *
  * @package DreamFactory\Core\Models
  */
-class BaseModel extends Model implements CacheInterface
+class BaseModel extends Model
 {
-    use Cacheable, SchemaToOpenApiDefinition, Protectable, Encryptable, Validatable;
+    use SchemaToOpenApiDefinition, Protectable, Encryptable, Validatable;
 
     /**
      * @var SchemaInterface
@@ -87,6 +86,9 @@ class BaseModel extends Model implements CacheInterface
             $model->save();
 
             foreach ($relations as $name => $value) {
+                if (empty($value)) {
+                    continue;
+                }
                 $relatedModel = $model->getReferencingModel($name);
                 $newModels = [];
 
@@ -687,7 +689,22 @@ class BaseModel extends Model implements CacheInterface
      */
     public function getTableSchema()
     {
-        return $this->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $this->table);
+        return \Cache::rememberForever('model:' . $this->table, function () {
+            $resourceName = $this->table;
+            $name = $resourceName;
+            if (empty($schemaName = $this->getSchema()->getDefaultSchema())) {
+                $internalName = $resourceName;
+                $quotedName = $this->getSchema()->quoteTableName($resourceName);;
+            } else {
+                $internalName = $schemaName . '.' . $resourceName;
+                $quotedName = $this->getSchema()->quoteTableName($schemaName) . '.' . $this->getSchema()->quoteTableName($resourceName);;
+            }
+            $settings = compact('schemaName', 'resourceName', 'name', 'internalName', 'quotedName');
+            $result = new TableSchema($settings);
+            $result = $this->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $result);
+
+            return $result;
+        });
     }
 
     public function getSchema()
@@ -695,10 +712,8 @@ class BaseModel extends Model implements CacheInterface
         if ($this->schemaExtension === null) {
             $conn = $this->getConnection();
             $driver = $conn->getDriverName();
-            if ($this->schemaExtension = DbSchemaExtensions::getSchemaExtension($driver, $conn)) {
-                $this->cachePrefix = 'model_' . $this->getTable() . ':';
-                $this->schemaExtension->setCache($this);
-            }
+            $this->schemaExtension = DbSchemaExtensions::getSchemaExtension($driver, $conn);
+            $this->schemaExtension->setServiceId(ServiceManager::getServiceIdByName('system'));
         }
 
         return $this->schemaExtension;
@@ -898,7 +913,7 @@ class BaseModel extends Model implements CacheInterface
             $pk = $hasMany->getRelated()->primaryKey;
             $fk = $hasMany->getForeignKeyName();
 
-            foreach ($data as $d) {
+            foreach ((array)$data as $d) {
                 /** @var Model $model */
                 if (empty($pkValue = array_get($d, $pk))) {
                     $model = $relatedModel::findCompositeForeignKeyModel($this->{$this->primaryKey}, $d);
@@ -1212,7 +1227,7 @@ class BaseModel extends Model implements CacheInterface
         if ($schema) {
             $definition = static::fromTableSchema($schema);
             $requestFields = (isset($definition['properties']) ? $definition['properties'] : []);
-            $returnable = array_flip($this->getArrayableItems(array_keys($schema->getColumnNames())));
+            $returnable = array_flip($this->getArrayableItems($schema->getColumnNames()));
             $responseFields = [];
             $required = (isset($definition['required']) ? $definition['required'] : []);
             foreach ($requestFields as $field => $value) {

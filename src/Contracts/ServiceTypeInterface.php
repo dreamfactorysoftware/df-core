@@ -53,6 +53,13 @@ interface ServiceTypeInterface
     public function isSubscriptionRequired();
 
     /**
+     * Is the service definition (OpenAPI document) editable. False if auto-generated.
+     *
+     * @return boolean
+     */
+    public function isServiceDefinitionEditable();
+
+    /**
      * Are there any dependencies (i.e. drivers, other service types, etc.) that are not met to use this service type.
      *
      * @return null | string
@@ -65,15 +72,6 @@ interface ServiceTypeInterface
      * @return ServiceConfigHandlerInterface | null
      */
     public function getConfigHandler();
-
-    /**
-     * The default API Document generator for this service type
-     *
-     * @param mixed $service
-     *
-     * @return array|null
-     */
-    public function getDefaultApiDoc($service);
 
     /**
      * The factory interface for this service type

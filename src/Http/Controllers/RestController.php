@@ -1,11 +1,12 @@
 <?php
+
 namespace DreamFactory\Core\Http\Controllers;
 
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
-use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Utility\ResourcesWrapper;
+use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Utility\ResponseFactory;
 use DreamFactory\Core\Utility\ServiceRequest;
+use DreamFactory\Core\Utility\Session;
 use Log;
 use ServiceManager;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -31,8 +32,43 @@ class RestController extends Controller
         $version = null
     ) {
         try {
-            $services = ResourcesWrapper::wrapResources(Service::available());
-            $response = ResponseFactory::create($services);
+            $request = new ServiceRequest();
+            $request->setApiVersion($version);
+
+            Log::info('[REQUEST]', [
+                'API Version' => $request->getApiVersion(),
+                'Method'      => $request->getMethod(),
+                'Service'     => null,
+                'Resource'    => null
+            ]);
+
+            Log::debug('[REQUEST]', [
+                'Parameters' => json_encode($request->getParameters(), JSON_UNESCAPED_SLASHES),
+                'API Key'    => $request->getHeader('X_DREAMFACTORY_API_KEY'),
+                'JWT'        => $request->getHeader('X_DREAMFACTORY_SESSION_TOKEN')
+            ]);
+
+            $services = [];
+            $fields = ['name', 'label', 'description', 'type'];
+            $group = \Request::query(ApiOptions::GROUP);
+            foreach (ServiceManager::getServiceList($fields, true, $group) as $info) {
+                $name = array_get($info, 'name');
+                // only allowed services by role here
+                if (Session::checkForAnyServicePermissions($name)) {
+                    $services[] = $info;
+                }
+            }
+
+            $types = [];
+            foreach (ServiceManager::getServiceTypes($group) as $type) {
+                $types[] = [
+                    'name'        => $type->getName(),
+                    'label'       => $type->getLabel(),
+                    'group'       => $type->getGroup(),
+                    'description' => $type->getDescription()
+                ];
+            }
+            $response = ResponseFactory::create(['services' => $services, 'service_types' => $types]);
 
             return ResponseFactory::sendResponse($response);
         } catch (\Exception $e) {

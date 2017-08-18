@@ -36,6 +36,7 @@ class SystemTableModelMapper
             'role'                => Role::class,
             'role_service_access' => RoleServiceAccess::class,
             'service'             => Service::class,
+            'service_doc'         => ServiceDoc::class,
             'system_custom'       => SystemCustom::class,
             'user'                => User::class,
             'user_to_app_to_role' => UserAppRole::class,

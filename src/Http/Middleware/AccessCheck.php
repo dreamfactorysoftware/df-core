@@ -128,7 +128,7 @@ class AccessCheck
             } elseif (Session::getBool('token_blacklisted')) {
                 throw new ForbiddenException(Session::get('token_blacklisted_msg'));
             } elseif (Session::getBool('token_invalid')) {
-                throw new BadRequestException(Session::get('token_invalid_msg'), 401);
+                throw new UnauthorizedException(Session::get('token_invalid_msg'));
             }
 
             if (static::isAccessAllowed()) {

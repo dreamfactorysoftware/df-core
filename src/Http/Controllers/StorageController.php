@@ -28,10 +28,10 @@ class StorageController extends Controller
                 throw new BadRequestException('Service requested is not a file storage service.');
             }
 
-            //Check for private paths here.
+            // Check for private paths here.
             $publicPaths = $service->getPublicPaths();
 
-            //Clean trailing slashes from paths
+            // Clean trailing slashes from paths
             array_walk($publicPaths, function (&$value) {
                 $value = rtrim($value, '/');
             });

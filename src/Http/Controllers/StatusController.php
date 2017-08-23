@@ -26,7 +26,7 @@ class StatusController extends Controller
 
     public function index()
     {
-        \Log::info("[REQUEST] Instance status");
+        \Log::info('[REQUEST] Instance status');
 
         $uri = static::getURI($_SERVER);
 
@@ -39,24 +39,27 @@ class StatusController extends Controller
         $appCount = App::count();
         $adminCount = User::whereIsSysAdmin(1)->count();
         $userCount = User::whereIsSysAdmin(0)->count();
+        $lastAdminLogin = User::whereIsSysAdmin(1)->orderBy('last_login_date', 'desc')->value('last_login_date');
         /** @noinspection PhpUndefinedMethodInspection */
         $serviceCount = Service::count();
         /** @noinspection PhpUndefinedMethodInspection */
         $roleCount = Role::count();
 
         $status = [
-            "uri"       => $uri,
-            "managed"   => env('DF_MANAGED', false),
-            "dist"      => $dist,
-            "demo"      => Environment::isDemoApplication(),
-            "version"   => \Config::get('app.version'),
-            "host_os"   => PHP_OS,
-            "resources" => [
-                "app"     => $appCount,
-                "admin"   => $adminCount,
-                "user"    => $userCount,
-                "service" => $serviceCount,
-                "role"    => $roleCount
+            'uri'              => $uri,
+            'managed'          => env('DF_MANAGED', false),
+            'dist'             => $dist,
+            'demo'             => Environment::isDemoApplication(),
+            'version'          => \Config::get('app.version'),
+            'license'          => Environment::getLicenseLevel(Environment::getInstalledPackagesInfo()),
+            'host_os'          => PHP_OS,
+            'last_admin_login' => $lastAdminLogin,
+            'resources'        => [
+                'app'     => $appCount,
+                'admin'   => $adminCount,
+                'user'    => $userCount,
+                'service' => $serviceCount,
+                'role'    => $roleCount
             ]
         ];
 

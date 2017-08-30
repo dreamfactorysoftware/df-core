@@ -258,7 +258,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
             $paths = array_get($content, 'paths', []);
             // tricky here, loop through all indexes to check if all start with service name,
             // otherwise need to prepend service name to all.
-            if (!empty(array_filter(array_keys($paths), function ($k) use ($name) {
+            if (!empty(array_filter(array_keys($paths), function ($k) use ($name){
                 $k = ltrim($k, '/');
                 if (false !== strpos($k, '/')) {
                     $k = strstr($k, '/', true);
@@ -384,6 +384,25 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
         \Log::debug("  * Discovered $eventCount event(s) for service {$this->name}.");
 
         return $events;
+    }
+
+    /**
+     * @param null|string|int      $key
+     * @param null|string|bool|int $default
+     *
+     * @return array
+     */
+    public function getConfig($key = null, $default = null)
+    {
+        if (!is_array($this->config) || empty($this->config)) {
+            return [];
+        }
+
+        if (empty($key)) {
+            return $this->config;
+        }
+
+        return array_get($this->config, $key, $default);
     }
 
     public function getApiDoc()

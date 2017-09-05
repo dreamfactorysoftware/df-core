@@ -74,8 +74,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
         //  Most services have a config section that may include lookups
         $this->config = (array)array_get($settings, 'config', []);
-        $this->doc = (array)array_get($settings, 'service_doc_by_service_id');
-        $this->doc = current($this->doc); // should only be one
+        $this->doc = array_get($settings, 'service_doc_by_service_id');
         //  Replace any private lookups
         Session::replaceLookups($this->config, true);
 

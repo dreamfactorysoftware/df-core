@@ -26,7 +26,9 @@ class Builder extends EloquentBuilder
                 $model = $this->getModel();
                 $relationType = $model->getReferencingType($relation);
 
-                if (RelationSchema::HAS_MANY === $relationType) {
+                if (RelationSchema::HAS_ONE === $relationType) {
+                    return $model->getHasOneByRelationName($relation);
+                } elseif (RelationSchema::HAS_MANY === $relationType) {
                     return $model->getHasManyByRelationName($relation);
                 } elseif (RelationSchema::MANY_MANY === $relationType) {
                     return $model->getBelongsToManyByRelationName($relation);

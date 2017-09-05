@@ -91,10 +91,6 @@ class Service extends BaseSystemModel
                         $serviceCfg::storeConfig($service->getKey(), $service->config);
                     }
                 }
-                if (!empty($service->doc)) {
-                    $service->doc['service_id'] = $service->id;
-                    ServiceDoc::create($service->doc);
-                }
 
                 return true;
             }

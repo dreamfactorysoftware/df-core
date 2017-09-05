@@ -22,6 +22,7 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\Session as SessionUtility;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use SystemTableModelMapper;
 use ServiceManager;
 
@@ -86,24 +87,31 @@ class BaseModel extends Model
             $model->save();
 
             foreach ($relations as $name => $value) {
-                if (empty($value)) {
-                    continue;
-                }
                 $relatedModel = $model->getReferencingModel($name);
-                $newModels = [];
-
-                if (!is_array($value)) {
-                    throw new BadRequestException('Bad data supplied for ' .
-                        $name .
-                        '. Related data must be supplied as array.');
-                }
-
-                foreach ($value as $record) {
-                    $newModels[] = new $relatedModel($record);
-                }
-
                 $relationType = $model->getReferencingType($name);
-                if (RelationSchema::HAS_MANY === $relationType) {
+                if (RelationSchema::HAS_ONE === $relationType) {
+                    if (empty($value)) {
+                        $model->getHasOneByRelationName($name)->delete();
+                    } else {
+                        $newModel = new $relatedModel($value);
+                        $model->getHasOneByRelationName($name)->save($newModel);
+                    }
+                } elseif (RelationSchema::HAS_MANY === $relationType) {
+                    if (empty($value)) {
+                        continue;
+                    }
+                    $newModels = [];
+
+                    if (!is_array($value)) {
+                        throw new BadRequestException('Bad data supplied for ' .
+                            $name .
+                            '. Related data must be supplied as array.');
+                    }
+
+                    foreach ($value as $record) {
+                        $newModels[] = new $relatedModel($record);
+                    }
+
                     $model->getHasManyByRelationName($name)->saveMany($newModels);
                 } else {
                     throw new NotImplementedException('Creating related record of relation type "' .
@@ -323,7 +331,10 @@ class BaseModel extends Model
                 foreach ($relations as $name => $value) {
                     $relatedModel = $this->getReferencingModel($name);
 
-                    if (RelationSchema::HAS_MANY === $this->getReferencingType($name)) {
+                    if (RelationSchema::HAS_ONE === $this->getReferencingType($name)) {
+                        $hasOne = $this->getHasOneByRelationName($name);
+                        $this->saveHasOneData($relatedModel, $hasOne, $value, $name);
+                    } elseif (RelationSchema::HAS_MANY === $this->getReferencingType($name)) {
                         $hasMany = $this->getHasManyByRelationName($name);
                         $this->saveHasManyData($relatedModel, $hasMany, $value, $name);
                     }
@@ -900,6 +911,61 @@ class BaseModel extends Model
      * create the record.
      *
      * @param BaseModel $relatedModel Model class
+     * @param HasOne    $hasOne
+     * @param           $data
+     * @param           $relationName
+     *
+     * @throws \Exception
+     */
+    protected function saveHasOneData($relatedModel, HasOne $hasOne, $data, $relationName)
+    {
+        if ($this->exists) {
+            $pk = $hasOne->getRelated()->primaryKey;
+            $fk = $hasOne->getForeignKeyName();
+
+            if (empty($data)) {
+                // delete a related if it exists
+                $hasOne->delete();
+            } else {
+                /** @var Model $model */
+                if (empty($pkValue = array_get($data, $pk))) {
+                    $model = $relatedModel::findCompositeForeignKeyModel($this->{$this->primaryKey}, $data);
+                } else {
+                    $model = $relatedModel::find($pkValue);
+                }
+                if (!empty($model)) {
+                    /** @var Model $parent */
+                    $fkId = array_get($data, $fk);
+                    if (array_key_exists($fk, $data) && is_null($fkId)) {
+                        //Foreign key field is set to null therefore delete the child record.
+                        $model->delete();
+                    } elseif (!empty($fkId) &&
+                        $fkId !== $this->{$this->primaryKey} &&
+                        (null !== $parent = static::find($fkId))
+                    ) {
+                        //Foreign key field is set but the id belongs to a different parent than this parent.
+                        //There the child is adopted by the supplied parent id (foreign key).
+                        $relatedData = [$relationName => $data];
+                        $parent->update($relatedData);
+                    } else {
+                        $model->fill($data);
+                        $hasOne->save($model);
+                    }
+                } else {
+                    // not found, create a new one
+                    $model = new $relatedModel($data);
+                    $hasOne->save($model);
+                }
+            }
+        }
+    }
+
+    /**
+     * Saves the HasMany relational data. If id exists
+     * then it updates the record otherwise it will
+     * create the record.
+     *
+     * @param BaseModel $relatedModel Model class
      * @param HasMany   $hasMany
      * @param           $data
      * @param           $relationName
@@ -973,6 +1039,24 @@ class BaseModel extends Model
     protected static function getModelFromTable($table)
     {
         return SystemTableModelMapper::getModel($table);
+    }
+
+    /**
+     * @param $name
+     *
+     * @return HasOne|null
+     */
+    public function getHasOneByRelationName($name)
+    {
+        if ($table = $this->getReferencingTable($name)) {
+            if ($model = static::getModelFromTable($table)) {
+                $refField = $this->getReferencingField($table, $name);
+
+                return $this->hasOne($model, $refField);
+            }
+        }
+
+        return null;
     }
 
     /**

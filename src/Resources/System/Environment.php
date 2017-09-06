@@ -38,7 +38,9 @@ class Environment extends BaseSystemResource
         'df-saml',
         'df-soap',
         'df-sqlanywhere',
-        'df-sqlsrv'
+        'df-sqlsrv',
+        'df-mqtt',
+        'df-git'
     ];
 
     /**

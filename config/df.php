@@ -84,13 +84,6 @@ return [
             'hosts'               => [],
         ],
     ],
-    'scripting'                    => [
-        // 'all' to disable all scripting, or comma-delimited list of v8js, nodejs, python, and/or php
-        'disable'     => env('DF_SCRIPTING_DISABLE'),
-        // path to the installed nodejs executable
-        'nodejs_path' => env('DF_NODEJS_PATH'),
-        'python_path' => env('DF_PYTHON_PATH'),
-    ],
     'lookup'                       => [
         // list of allowed lookup modifying functions like urlencode, trim, etc.
         'allowed_modifiers' => explode(',', env('DF_LOOKUP_MODIFIERS',

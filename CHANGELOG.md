@@ -3,8 +3,10 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
-- DF-1131 Added support for AD SSO and SQLServer windows authentication
-- DF-1177 & DF-1161 Added services for GitHub and GitLab with linking to server side scripting.
+### Added
+- DF-1131 Support for AD SSO and SQLServer windows authentication
+- DF-1177, DF-1161 Services for GitHub and GitLab with linking to server side scripting
+- Support for comma-delimited groups on service listing, i.e. /api/v2?group=a,b
 
 ## [0.12.1] - 2017-08-31
 - Make commands available for runtime, not just console

@@ -215,8 +215,7 @@ class ServiceManager
 
         return \Cache::rememberForever('service_mgr:' . $name, function () use ($name) {
             /** @var Service $service */
-            $service = Service::with('service_doc_by_service_id')->whereName($name)->first();
-            if (empty($service)) {
+            if (empty($service = Service::whereName($name)->first())) {
                 throw new NotFoundException("Could not find a service for $name");
             }
 

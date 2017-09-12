@@ -13,6 +13,7 @@ use DreamFactory\Core\Components\RestHandler;
 use DreamFactory\Core\Contracts\ServiceInterface;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Models\ServiceDoc;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
@@ -74,7 +75,6 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
         //  Most services have a config section that may include lookups
         $this->config = (array)array_get($settings, 'config', []);
-        $this->doc = array_get($settings, 'service_doc_by_service_id');
         //  Replace any private lookups
         Session::replaceLookups($this->config, true);
 
@@ -257,7 +257,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
             $paths = array_get($content, 'paths', []);
             // tricky here, loop through all indexes to check if all start with service name,
             // otherwise need to prepend service name to all.
-            if (!empty(array_filter(array_keys($paths), function ($k) use ($name){
+            if (!empty(array_filter(array_keys($paths), function ($k) use ($name) {
                 $k = ltrim($k, '/');
                 if (false !== strpos($k, '/')) {
                     $k = strstr($k, '/', true);
@@ -406,26 +406,36 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
     public function getApiDoc()
     {
-        if (!empty($this->doc)) {
-            if (!empty($content = array_get($this->doc, 'content'))) {
-                if (is_string($content)) {
-                    // need to convert to array format for handling
-                    $info = [
-                        'name'        => $this->name,
-                        'label'       => $this->label,
-                        'description' => $this->description,
-                    ];
+        $cacheKey = 'service_doc';
+        $id = $this->id;
+        $doc = $this->rememberCacheForever($cacheKey, function () use ($id) {
+            if ($doc = ServiceDoc::whereServiceId($id)->first()) {
+                if (!empty($content = array_get($doc, 'content'))) {
+                    if (is_string($content)) {
+                        // need to convert to array format for handling
+                        $info = [
+                            'name'        => $this->name,
+                            'label'       => $this->label,
+                            'description' => $this->description,
+                        ];
 
-                    return $this->storedContentToArray($content, array_get($this->doc, 'format'), $info);
-                } elseif (is_array($content)) {
+                        return $this->storedContentToArray($content, array_get($doc, 'format'), $info);
+                    } elseif (is_array($content)) {
+                        return $content;
+                    }
+                } else {
+                    return [];
+                }
+                if (is_array($content)) {
                     return $content;
                 }
-            } else {
-                return [];
             }
-            if (is_array($content)) {
-                return $content;
-            }
+
+            return ''; // so that we don't hit the database even after we know it isn't there
+        });
+
+        if (!empty($doc)) { // see '' returned above
+            return $doc;
         }
 
         return $this->getApiDocInfo($this);

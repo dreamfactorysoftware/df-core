@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Components;
 
 use Cache;
@@ -113,6 +114,36 @@ trait Cacheable
             Cache::put($fullKey, $value, $this->cacheTTL);
         }
         $this->addKeys($key);
+    }
+
+    /**
+     * @param string $key
+     * @param mixed  $callback
+     * @return mixed The value of cache associated with the given type, id and key
+     */
+    public function rememberCache($key, $callback)
+    {
+        $fullKey = $this->makeCacheKey($key);
+
+        $result = Cache::remember($fullKey, $this->cacheTTL, $callback);
+        $this->addKeys($key);
+
+        return $result;
+    }
+
+    /**
+     * @param string $key
+     * @param mixed  $callback
+     * @return mixed The value of cache associated with the given type, id and key
+     */
+    public function rememberCacheForever($key, $callback)
+    {
+        $fullKey = $this->makeCacheKey($key);
+
+        $result = Cache::rememberForever($fullKey, $callback);
+        $this->addKeys($key);
+
+        return $result;
     }
 
     /**

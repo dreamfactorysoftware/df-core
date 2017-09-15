@@ -9,6 +9,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Support for comma-delimited groups on service listing, i.e. /api/v2?group=a,b
 - Support for comma-delimited fields on service listing, i.e. /api/v2?fields=a,b
 
+### Fixed
+- Make server-side filters in RSA adhere to requestor type API or Script
+
 ## [0.12.1] - 2017-08-31
 - Make commands available for runtime, not just console
 

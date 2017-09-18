@@ -14,6 +14,8 @@ use ServiceManager;
  */
 class Cache extends BaseRestResource
 {
+    const EVENT_SCRIPT_CACHE_PREFIX = 'event_script:';
+
     /**
      * {@inheritdoc}
      */
@@ -64,6 +66,10 @@ class Cache extends BaseRestResource
                     array_map('unlink', glob("$path/wsdl-*"));
                 }
             }
+        } elseif ($this->resource === '_event') {
+            $eventName = $this->resourceId;
+            $cacheKey = static::EVENT_SCRIPT_CACHE_PREFIX . $eventName;
+            \Cache::forget($cacheKey);
         } else {
             $service = ServiceManager::getService($this->resource);
             if ($service instanceof CacheInterface) {
@@ -86,11 +92,11 @@ class Cache extends BaseRestResource
         $apis = [
             $path                => [
                 'delete' => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'deleteAllCache() - Delete all cache.',
-                    'operationId'       => 'deleteAllCache',
-                    'parameters'        => [],
-                    'responses'         => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'deleteAllCache() - Delete all cache.',
+                    'operationId' => 'deleteAllCache',
+                    'parameters'  => [],
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -100,19 +106,19 @@ class Cache extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'consumes'          => ['application/json', 'application/xml'],
-                    'produces'          => ['application/json', 'application/xml'],
-                    'description'       => 'This clears all cached information in the system. Doing so may impact the performance of the system.',
+                    'consumes'    => ['application/json', 'application/xml'],
+                    'produces'    => ['application/json', 'application/xml'],
+                    'description' => 'This clears all cached information in the system. Doing so may impact the performance of the system.',
                 ],
             ],
             $path . '/{service}' => [
                 'delete' => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'deleteServiceCache() - Delete cache for one service.',
-                    'operationId'       => 'deleteServiceCache',
-                    'consumes'          => ['application/json', 'application/xml'],
-                    'produces'          => ['application/json', 'application/xml'],
-                    'parameters'        => [
+                    'tags'        => [$serviceName],
+                    'summary'     => 'deleteServiceCache() - Delete cache for one service.',
+                    'operationId' => 'deleteServiceCache',
+                    'consumes'    => ['application/json', 'application/xml'],
+                    'produces'    => ['application/json', 'application/xml'],
+                    'parameters'  => [
                         [
                             'name'        => 'service',
                             'description' => 'Identifier of the service whose cache we are to delete.',
@@ -121,7 +127,7 @@ class Cache extends BaseRestResource
                             'required'    => true,
                         ],
                     ],
-                    'responses'         => [
+                    'responses'   => [
                         '200'     => [
                             'description' => 'Success',
                             'schema'      => ['$ref' => '#/definitions/Success']
@@ -131,7 +137,7 @@ class Cache extends BaseRestResource
                             'schema'      => ['$ref' => '#/definitions/Error']
                         ]
                     ],
-                    'description'       => 'This clears all cached information related to a particular service. Doing so may impact the performance of the service.',
+                    'description' => 'This clears all cached information related to a particular service. Doing so may impact the performance of the service.',
                 ],
             ],
         ];

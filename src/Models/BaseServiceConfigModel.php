@@ -10,7 +10,7 @@ use Illuminate\Database\Query\Builder;
  * Class BaseServiceConfigModel
  *
  * @property integer $service_id
- * @method static Builder whereServiceId($value)
+ * @method static Builder|BaseServiceConfigModel whereServiceId($value)
  *
  * @package DreamFactory\Core\Models
  */

@@ -33,6 +33,8 @@ class ServiceTypeGroups extends FactoryEnum
 
     const REMOTE = 'Remote Service';
 
+    const SCM = 'Source Control';
+
     const SCRIPT = 'Script';
 
     const SYSTEM = 'System';

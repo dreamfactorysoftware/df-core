@@ -215,8 +215,7 @@ class ServiceManager
 
         return \Cache::rememberForever('service_mgr:' . $name, function () use ($name) {
             /** @var Service $service */
-            $service = Service::with('service_doc_by_service_id')->whereName($name)->first();
-            if (empty($service)) {
+            if (empty($service = Service::whereName($name)->first())) {
                 throw new NotFoundException("Could not find a service for $name");
             }
 
@@ -263,9 +262,13 @@ class ServiceManager
     public function getServiceTypes($group = null)
     {
         if (!empty($group)) {
+            if (!empty($group) && !is_array($group)) {
+                $group = array_map('trim', explode(',', trim($group, ',')));
+            }
+            $group = array_map('strtolower', (array)$group);
             $types = [];
             foreach ($this->types as $type) {
-                if (0 === strcasecmp($group, $type->getGroup())) {
+                if (in_array(strtolower($type->getGroup()), $group)) {
                     $types[] = $type;
                 }
             }
@@ -313,10 +316,14 @@ class ServiceManager
         $fields = array_intersect($fields, $allowed);
         $results = ($only_active ? Service::whereIsActive(true)->get($fields)->toArray() : Service::get($fields)->toArray());
         if ($includeGroup || $includeTypeLabel || !empty($group)) {
+            if (!empty($group) && !is_array($group)) {
+                $group = array_map('trim', explode(',', trim($group, ',')));
+            }
+            $group = array_map('strtolower', (array)$group);
             $services = [];
             foreach ($results as $result) {
                 if ($typeInfo = $this->getServiceType(array_get($result, 'type'))) {
-                    if (!empty($group) && (0 !== strcasecmp($group, $typeInfo->getGroup()))) {
+                    if (!empty($group) && !in_array(strtolower($typeInfo->getGroup()), $group)) {
                         continue;
                     }
                     if ($includeGroup) {

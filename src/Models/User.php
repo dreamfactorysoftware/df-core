@@ -403,7 +403,23 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 $references = $model->getReferences();
                 /** @type RelationSchema $reference */
                 foreach ($references as $reference) {
-                    if ((RelationSchema::HAS_MANY === $reference->type) &&
+                    if ((RelationSchema::HAS_ONE === $reference->type) &&
+                        (('created_by_id' === $reference->refField) ||
+                            ('last_modified_by_id' === $reference->refField))
+                    ) {
+                        $stmt =
+                            'update [' .
+                            $reference->refTable .
+                            '] set [' .
+                            $reference->refField .
+                            '] = null where [' .
+                            $reference->refField .
+                            '] = ' .
+                            $id;
+                        if (0 !== $rows = \DB::update($stmt)) {
+                            \Log::debug('found rows: ' . $rows);
+                        }
+                    } elseif ((RelationSchema::HAS_MANY === $reference->type) &&
                         (('created_by_id' === $reference->refField) ||
                             ('last_modified_by_id' === $reference->refField))
                     ) {

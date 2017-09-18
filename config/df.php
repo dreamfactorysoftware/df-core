@@ -24,6 +24,8 @@ return [
     'file_chunk_size'              => env('DF_FILE_CHUNK_SIZE', 10000000),
     // User attribute to use for authentication (email or username).
     'login_attribute'              => env('DF_LOGIN_ATTRIBUTE', 'email'),
+    // Set true to enable windows authentication.
+    'enable_windows_auth'          => env('DF_ENABLE_WINDOWS_AUTH', false),
     // DB configs
     'db'                           => [
         //-------------------------------------------------------------------------
@@ -81,13 +83,6 @@ return [
             'maxAge'              => 0,
             'hosts'               => [],
         ],
-    ],
-    'scripting'                    => [
-        // 'all' to disable all scripting, or comma-delimited list of v8js, nodejs, python, and/or php
-        'disable'     => env('DF_SCRIPTING_DISABLE'),
-        // path to the installed nodejs executable
-        'nodejs_path' => env('DF_NODEJS_PATH'),
-        'python_path' => env('DF_PYTHON_PATH'),
     ],
     'lookup'                       => [
         // list of allowed lookup modifying functions like urlencode, trim, etc.

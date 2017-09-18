@@ -13,6 +13,8 @@ trait ServiceCacheable
         Cacheable::getFromCache as getFromCacheOld;
         Cacheable::addToCache as addToCacheOld;
         Cacheable::removeFromCache as removeFromCacheOld;
+        Cacheable::rememberCache as rememberCacheOld;
+        Cacheable::rememberCacheForever as rememberCacheForeverOld;
     }
 
     /**
@@ -64,5 +66,31 @@ trait ServiceCacheable
         $key = $this->getConfigBasedCachePrefix() . $key;
 
         return $this->removeFromCacheOld($key);
+    }
+
+    /**
+     * @param string $key
+     * @param mixed $callback
+     *
+     * @return mixed
+     */
+    public function rememberCache($key, $callback)
+    {
+        $key = $this->getConfigBasedCachePrefix() . $key;
+
+        return $this->rememberCacheOld($key, $callback);
+    }
+
+    /**
+     * @param string $key
+     * @param mixed $callback
+     *
+     * @return mixed
+     */
+    public function rememberCacheForever($key, $callback)
+    {
+        $key = $this->getConfigBasedCachePrefix() . $key;
+
+        return $this->rememberCacheForeverOld($key, $callback);
     }
 }

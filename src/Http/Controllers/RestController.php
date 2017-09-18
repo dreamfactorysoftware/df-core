@@ -49,8 +49,16 @@ class RestController extends Controller
             ]);
 
             $services = [];
-            $fields = ['name', 'label', 'description', 'type'];
+            $limitedFields = ['id', 'name', 'label', 'description', 'type'];
             $group = \Request::query(ApiOptions::GROUP);
+            $fields = \Request::query(ApiOptions::FIELDS);
+            if (!empty($fields) && !is_array($fields)) {
+                $fields = array_map('trim', explode(',', trim($fields, ',')));
+            } elseif (empty($fields)) {
+                $fields = $limitedFields;
+            }
+
+            $fields = array_intersect($fields, $limitedFields);
             foreach (ServiceManager::getServiceList($fields, true, $group) as $info) {
                 $name = array_get($info, 'name');
                 // only allowed services by role here

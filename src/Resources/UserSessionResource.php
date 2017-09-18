@@ -64,17 +64,28 @@ class UserSessionResource extends BaseRestResource
             return $this->handleLogin($credentials, boolval($this->getPayloadData('remember_me')));
         }
 
+        /** @type ADLdap $service */
         $service = ServiceManager::getService($serviceName);
         $serviceGroup = $service->getServiceTypeInfo()->getGroup();
 
         switch ($serviceGroup) {
             case ServiceTypeGroups::LDAP:
+                if (
+                    config('df.enable_windows_auth', false) === true &&
+                    $service->getServiceTypeInfo()->getName() === 'adldap'
+                ) {
+                    // get windows authenticated user
+                    $username = array_get($_SERVER, 'LOGON_USER', array_get($_SERVER, 'REMOTE_USER'));
+                    if (!empty($username)) {
+                        return $service->handleWindowsAuth($username);
+                    }
+                }
+
                 $credentials = [
                     'username' => $this->getPayloadData('username'),
                     'password' => $this->getPayloadData('password')
                 ];
 
-                /** @type ADLdap $service */
                 return $service->handleLogin($credentials, $this->getPayloadData('remember_me'));
             case ServiceTypeGroups::OAUTH:
                 $oauthCallback = $this->request->getParameterAsBool('oauth_callback');
@@ -196,7 +207,7 @@ class UserSessionResource extends BaseRestResource
                     ],
                     'description' => 'Calling this creates a new session and logs in the user.',
                 ],
-                'put'   => [
+                'put'    => [
                     'tags'        => [$serviceName],
                     'summary'     => 'refresh' . $capitalized . '() - Refresh user session token.',
                     'operationId' => 'refresh' . $capitalized,

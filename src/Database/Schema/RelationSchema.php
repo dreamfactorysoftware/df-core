@@ -11,9 +11,14 @@ class RelationSchema extends NamedResourceSchema
      */
     /**
      * @var string Represents that this table is related to another by a local reference/foreign key field, reverse of
-     *      has_many
+     *      has_one or has_many
      */
     const BELONGS_TO = 'belongs_to';
+    /**
+     * @var string Represents that another table has a reference/foreign key field linked to this table,
+     *      also acting as a unique key or primary key so that there is only one record allowed, reverse of belongs_to
+     */
+    const HAS_ONE = 'has_one';
     /**
      * @var string Represents that another table has a reference/foreign key field linked to this table, reverse of
      *      belongs_to
@@ -107,6 +112,7 @@ class RelationSchema extends NamedResourceSchema
         switch ($type) {
             case static::BELONGS_TO:
                 return $table . '_by_' . $field;
+            case static::HAS_ONE:
             case static::HAS_MANY:
                 return $table . '_by_' . $refField;
             case static::MANY_MANY:

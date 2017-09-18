@@ -43,7 +43,7 @@ trait SupportsCache
      */
     public static function getConfigSchema()
     {
-        $schema = parent::getConfigSchema();
+        $schema = (array)parent::getConfigSchema();
         $schema = array_merge($schema, ServiceCacheConfig::getConfigSchema());
 
         return $schema;

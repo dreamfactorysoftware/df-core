@@ -3,14 +3,22 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [0.12.2] - 2017-09-15
 ### Added
 - DF-1131 Support for AD SSO and SQLServer windows authentication
 - DF-1177, DF-1161 Services for GitHub and GitLab with linking to server side scripting
 - Support for comma-delimited groups on service listing, i.e. /api/v2?group=a,b
 - Support for comma-delimited fields on service listing, i.e. /api/v2?fields=a,b
+- Add new support for HAS_ONE relationship to schema management, used by service doc as well
+- Add remember functions to cacheable components
+
+### Changed
+- Moved scripting config to df-script
 
 ### Fixed
 - Make server-side filters in RSA adhere to requestor type API or Script
+- Fix race condition where service config is cached before service doc related model is saved
 
 ## [0.12.1] - 2017-08-31
 - Make commands available for runtime, not just console
@@ -542,7 +550,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.1...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.2...HEAD
+[0.12.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.11.1...0.12.0
 [0.11.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.11.0...0.11.1

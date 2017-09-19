@@ -4,6 +4,10 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## [0.12.3] - 2017-09-19
+### Fixed
+- Fix package listing
+
 ## [0.12.2] - 2017-09-15
 ### Added
 - DF-1131 Support for AD SSO and SQLServer windows authentication
@@ -550,7 +554,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.2...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.3...HEAD
+[0.12.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.2...0.12.3
 [0.12.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.11.1...0.12.0

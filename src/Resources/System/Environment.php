@@ -32,15 +32,16 @@ class Environment extends BaseSystemResource
         'df-adldap',
         'df-azure-ad',
         'df-ibmdb2',
+        'df-informix',
+        'df-mqtt',
         'df-notification',
+        'df-oidc',
         'df-oracledb',
         'df-salesforce',
         'df-saml',
         'df-soap',
         'df-sqlanywhere',
         'df-sqlsrv',
-        'df-mqtt',
-        'df-git'
     ];
 
     /**

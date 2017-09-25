@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -129,9 +130,11 @@ class ServiceManager
      */
     public function getServiceById($id)
     {
-        $name = $this->getServiceNameById($id);
+        if ($name = $this->getServiceNameById($id)) {
+            return $this->getService($name);
+        }
 
-        return $this->getService($name);
+        return null;
     }
 
     /**
@@ -143,6 +146,11 @@ class ServiceManager
      */
     public function purge($name)
     {
+        if ($service = $this->getService($name)) {
+            if ($service instanceof CacheInterface) {
+                $service->flush();
+            }
+        }
         unset($this->services[$name]);
         \Cache::forget('service_mgr:' . $name);
         \Cache::forget('service_mgr:id_name_map_active');

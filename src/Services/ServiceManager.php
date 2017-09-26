@@ -146,10 +146,14 @@ class ServiceManager
      */
     public function purge($name)
     {
-        if ($service = $this->getService($name)) {
-            if ($service instanceof CacheInterface) {
-                $service->flush();
+        try {
+            if ($service = $this->getService($name)) {
+                if ($service instanceof CacheInterface) {
+                    $service->flush();
+                }
             }
+        } catch (\Exception $ex) {
+            // could be due to purge triggered by ServiceDeleted event
         }
         unset($this->services[$name]);
         \Cache::forget('service_mgr:' . $name);

@@ -703,6 +703,7 @@ class Session
             \Session::put('user.email', array_get($user, 'email'));
             \Session::put('user.is_sys_admin', array_get($user, 'is_sys_admin'));
             \Session::put('user.last_login_date', array_get($user, 'last_login_date'));
+            \Session::put('user.ldap_username', array_get($user, 'ldap_username'));
 
             return true;
         }

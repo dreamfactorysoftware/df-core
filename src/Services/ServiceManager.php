@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Services;
 use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
@@ -352,6 +353,30 @@ class ServiceManager
         }
 
         return $results;
+    }
+
+    /**
+     * Check for a service access exception.
+     *
+     * @param  string     $service
+     * @param  string     $component
+     * @param  int|string $action
+     *
+     * @return boolean True if this is a routing access exception, false otherwise
+     */
+    public function isAccessException($service, $component, $action)
+    {
+        if (is_string($action)) {
+            $action = VerbsMask::toNumeric($action);
+        }
+        $serviceObj = $this->getService($service);
+        $serviceType = $serviceObj->getType();
+        $typeObj = $this->getServiceType($serviceType);
+        if ($typeObj->isAccessException($action, $component)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**

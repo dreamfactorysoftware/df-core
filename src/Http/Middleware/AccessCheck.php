@@ -19,94 +19,6 @@ use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
 class AccessCheck
 {
-    protected static $exceptions = [
-        [
-            'verb_mask' => 31, //Allow all verbs
-            'service'   => 'system',
-            'resource'  => 'admin/session',
-        ],
-        [
-            'verb_mask' => 31, //Allow all verbs
-            'service'   => 'user',
-            'resource'  => 'session',
-        ],
-        [
-            'verb_mask' => 2, //Allow POST only
-            'service'   => 'user',
-            'resource'  => 'password',
-        ],
-        [
-            'verb_mask' => 2, //Allow POST only
-            'service'   => 'system',
-            'resource'  => 'admin/password',
-        ],
-        [
-            'verb_mask' => 1,
-            'service'   => 'system',
-            'resource'  => 'environment',
-        ],
-        [
-            'verb_mask' => 15,
-            'service'   => 'user',
-            'resource'  => 'profile',
-        ],
-        [
-            'verb_mask'    => 1,
-            'service_type' => 'saml',
-            'resource'     => 'sso',
-        ],
-        [
-            'verb_mask'    => 2,
-            'service_type' => 'saml',
-            'resource'     => 'acs',
-        ],
-        [
-            'verb_mask'    => 1,
-            'service_type' => 'saml',
-            'resource'     => 'metadata',
-        ],
-        [
-            'verb_mask'    => 2,
-            'service_type' => 'oidc',
-            'resource'     => 'sso',
-        ],
-        [
-            'verb_mask'    => 2,
-            'service_type' => 'oauth_facebook',
-            'resource'     => 'sso',
-        ],
-        [
-            'verb_mask'    => 2,
-            'service_type' => 'oauth_github',
-            'resource'     => 'sso',
-        ],
-        [
-            'verb_mask'    => 2,
-            'service_type' => 'oauth_google',
-            'resource'     => 'sso',
-        ],
-        [
-            'verb_mask'    => 2,
-            'service_type' => 'oauth_linkedin',
-            'resource'     => 'sso',
-        ],
-        [
-            'verb_mask'    => 2,
-            'service_type' => 'oauth_microsoft-live',
-            'resource'     => 'sso',
-        ],
-        [
-            'verb_mask'    => 1,
-            'service_type' => 'swagger',
-            'resource'     => '',
-        ],
-        [
-            'verb_mask'    => 1,
-            'service_type' => 'swagger',
-            'resource'     => '*',
-        ],
-    ];
-
     /**
      * @param Request $request
      * @param Closure $next
@@ -121,8 +33,6 @@ class AccessCheck
         }
 
         try {
-            static::setExceptions();
-
             if (Session::getBool('token_expired')) {
                 throw new UnauthorizedException(Session::get('token_expired_msg'));
             } elseif (Session::getBool('token_blacklisted')) {
@@ -200,44 +110,11 @@ class AccessCheck
                 return true; // root of api gives available service listing
             }
 
-            $serviceObj = ServiceManager::getService($service);
-            $serviceType = $serviceObj->getType();
-            foreach (static::$exceptions as $exception) {
-                $expServiceType = array_get($exception, 'service_type');
-                if (!empty($expServiceType)) {
-                    if (($action & array_get($exception, 'verb_mask')) &&
-                        $serviceType === $expServiceType &&
-                        (('*' === array_get($exception, 'resource')) ||
-                            ($component === array_get($exception, 'resource')))
-                    ) {
-                        return true;
-                    }
-                } elseif (($action & array_get($exception, 'verb_mask')) &&
-                    $service === array_get($exception, 'service') &&
-                    (('*' === array_get($exception, 'resource')) ||
-                        ($component === array_get($exception, 'resource')))
-                ) {
-                    return true;
-                }
+            if (ServiceManager::isAccessException($service, $component, $action)) {
+                return true;
             }
         }
 
         return false;
-    }
-
-    protected static function setExceptions()
-    {
-        if (class_exists('\DreamFactory\Core\User\Services\User')) {
-            /** @var \DreamFactory\Core\User\Services\User $userService */
-            $userService = ServiceManager::getService('user');
-
-            if ($userService->allowOpenRegistration) {
-                static::$exceptions[] = [
-                    'verb_mask' => 2, //Allow POST only
-                    'service'   => 'user',
-                    'resource'  => 'register',
-                ];
-            }
-        }
     }
 }

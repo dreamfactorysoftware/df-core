@@ -250,6 +250,60 @@ class Session
     }
 
     /**
+     * @param string $service   - API name of the service
+     * @param int    $requestor - Entity type requesting the service
+     *
+     * @returns boolean
+     */
+    public static function allowsServiceAccess($service, $requestor = ServiceRequestorTypes::API)
+    {
+        if (static::isSysAdmin()) {
+            return true;
+        }
+
+        $roleId = Session::getRoleId();
+        if ($roleId && !Role::getCachedInfo($roleId, 'is_active')) {
+            return false;
+        }
+
+        $services = (array)static::get('role.services');
+        $service = strval($service);
+
+        //  If exact match found take it, otherwise follow up the chain as necessary
+        //  All - Service - Component - Sub-component
+        $allAllowed = VerbsMask::NONE_MASK;
+        $allFound = false;
+        $serviceAllowed = VerbsMask::NONE_MASK;
+        $serviceFound = false;
+        foreach ($services as $svcInfo) {
+            $tempRequestors = array_get($svcInfo, 'requestor_mask', ServiceRequestorTypes::API);
+            if (!($requestor & $tempRequestors)) {
+                //  Requestor type not found in allowed requestors, skip access setting
+                continue;
+            }
+
+            $tempService = strval(array_get($svcInfo, 'service'));
+            $tempVerbs = array_get($svcInfo, 'verb_mask');
+
+            if (0 == strcasecmp($service, $tempService)) {
+                $serviceAllowed |= $tempVerbs;
+                $serviceFound = true;
+            } elseif (empty($tempService)) {
+                $allAllowed |= $tempVerbs;
+                $allFound = true;
+            }
+        }
+
+        if ($serviceFound) {
+            return (VerbsMask::NONE_MASK !== $serviceAllowed);
+        } elseif ($allFound) {
+            return (VerbsMask::NONE_MASK !== $allAllowed);
+        }
+
+        return false;
+    }
+
+    /**
      * @param string $action - requested REST action
      *
      * @return string

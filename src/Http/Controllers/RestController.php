@@ -62,7 +62,7 @@ class RestController extends Controller
             foreach (ServiceManager::getServiceList($fields, true, $group) as $info) {
                 $name = array_get($info, 'name');
                 // only allowed services by role here
-                if (Session::checkForAnyServicePermissions($name)) {
+                if (Session::allowsServiceAccess($name)) {
                     $services[] = $info;
                 }
             }

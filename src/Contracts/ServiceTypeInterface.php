@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Contracts;
 
 /**
@@ -82,6 +83,16 @@ interface ServiceTypeInterface
      * @return \DreamFactory\Core\Contracts\ServiceInterface|null
      */
     public function make($name, array $config = []);
+
+    /**
+     * Is the path a role access exception for this service type
+     *
+     * @param string|int  $action
+     * @param string|null $path
+     *
+     * @return boolean
+     */
+    public function isAccessException($action, $path = null);
 
     /**
      * Return the service type information as an array.

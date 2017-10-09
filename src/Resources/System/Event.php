@@ -32,7 +32,7 @@ class Event extends BaseRestResource
 
         $eventMap = [];
         if (!empty($serviceName = $this->request->getParameter('service'))) {
-            if (Session::checkForAnyServicePermissions($serviceName)) {
+            if (Session::allowsServiceAccess($serviceName)) {
                 try {
                     if (!empty($service = ServiceManager::getService($serviceName))) {
                         if (!empty($map = $service->getEventMap())) {
@@ -45,7 +45,7 @@ class Event extends BaseRestResource
             }
         } else {
             foreach (ServiceManager::getServiceNames() as $serviceName) {
-                if (Session::checkForAnyServicePermissions($serviceName)) {
+                if (Session::allowsServiceAccess($serviceName)) {
                     try {
                         if (!empty($service = ServiceManager::getService($serviceName))) {
                             if (!empty($map = $service->getEventMap())) {
@@ -128,14 +128,14 @@ class Event extends BaseRestResource
                         ],
                     ],
                     'responses'   => [
-                        '200'     => [
+                        '200' => [
                             'description' => 'Resource List',
                             'schema'      => ['$ref' => '#/definitions/ResourceList']
                         ],
                         'default' => [
                             'description' => 'Error',
                             'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                                ]
                     ],
                 ],
             ],

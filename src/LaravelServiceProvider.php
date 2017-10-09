@@ -133,18 +133,32 @@ class LaravelServiceProvider extends ServiceProvider
             return new DbSchemaExtensions($app);
         });
 
-        // Add the system service
         $this->app->resolving('df.service', function (ServiceManager $df) {
+            // Add the system service
             $df->addType(new ServiceType([
-                    'name'           => 'system',
-                    'label'          => 'System Management',
-                    'description'    => 'Service supporting management of the system.',
-                    'group'          => ServiceTypeGroups::SYSTEM,
-                    'singleton'      => true,
-                    'config_handler' => Config::class,
-                    'factory'        => function ($config) {
+                    'name'              => 'system',
+                    'label'             => 'System Management',
+                    'description'       => 'Service supporting management of the system.',
+                    'group'             => ServiceTypeGroups::SYSTEM,
+                    'singleton'         => true,
+                    'config_handler'    => Config::class,
+                    'factory'           => function ($config) {
                         return new System($config);
                     },
+                    'access_exceptions' => [
+                        [
+                            'verb_mask' => 31, //Allow all verbs
+                            'resource'  => 'admin/session',
+                        ],
+                        [
+                            'verb_mask' => 2, //Allow POST only
+                            'resource'  => 'admin/password',
+                        ],
+                        [
+                            'verb_mask' => 1,
+                            'resource'  => 'environment',
+                        ],
+                    ],
                 ]
             ));
         });

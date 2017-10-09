@@ -5,8 +5,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Changed
 - DF-1222 Moving automatic cache flush for service to the ServiceManager
+- Moving access check exceptions to the actual services domain
 ### Added
 - DF-1225 Add ldap_username to lookup availability
+### Fixed
+- Correcting role access view of api/v2 service listing
 
 ## [0.12.3] - 2017-09-19
 ### Fixed

@@ -53,7 +53,9 @@ class DBInsert implements ShouldQueue
             Verbs::POST, '_table/' . $this->table,
             [],
             [],
-            ResourcesWrapper::wrapResources($this->records)
+            ResourcesWrapper::wrapResources($this->records),
+            null,
+            false
         );
         if (in_array($rs->getStatusCode(), [HttpStatusCodes::HTTP_OK, HttpStatusCodes::HTTP_CREATED])) {
             //$data = [];

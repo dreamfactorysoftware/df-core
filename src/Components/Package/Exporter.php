@@ -322,43 +322,44 @@ class Exporter
             );
         } else {
             $roleId = Session::getRoleId();
-            $verbMask = VerbsMask::GET_MASK;
             $requestorMask = Session::getRequestor();
             $manifest['service'][$serviceName] = [];
 
             $accesses = RoleServiceAccess::whereRoleId($roleId)
                 ->whereServiceId($serviceId)
-                ->whereVerbMask($verbMask)
                 ->whereRequestorMask($requestorMask)
-                ->get(['component']);
+                ->get(['component', 'verb_mask']);
 
             foreach ($accesses as $access) {
-                $allowedPath = $access->component;
-                if ($allowedPath === '*') {
-                    $manifest['service'][$serviceName] = $this->getAllResources(
-                        $serviceName, '', ['as_list' => true, 'full_tree' => $fullTree]
-                    );
-                    // Safe to break out from the loop here.
-                    // Access === '*' mean everything is allowed anyway.
-                    // No need to check further accesses.
-                    break;
-                } else {
-                    // Only consider paths ending with * like my/path/*
-                    // A path without * at the end (my/path/) only allows
-                    // for directory listing which is not useful for exports.
-                    if (substr($allowedPath, strlen($allowedPath) - 1) === '*') {
-                        if ($fullTree) {
-                            $allPaths = $this->getAllResources(
-                                $serviceName,
-                                substr($allowedPath, 0, strlen($allowedPath) - 1),
-                                ['as_list' => true, 'full_tree' => $fullTree]
-                            );
-                            $manifest['service'][$serviceName] = array_merge(
-                                $manifest['service'][$serviceName],
-                                $allPaths
-                            );
-                        } else {
-                            $manifest['service'][$serviceName][] = substr($allowedPath, 0, strlen($allowedPath) - 1);
+                if ($access->verb_mask & VerbsMask::toNumeric(Verbs::GET)) {
+                    $allowedPath = $access->component;
+                    if ($allowedPath === '*') {
+                        $manifest['service'][$serviceName] = $this->getAllResources(
+                            $serviceName, '', ['as_list' => true, 'full_tree' => $fullTree]
+                        );
+                        // Safe to break out from the loop here.
+                        // Access === '*' mean everything is allowed anyway.
+                        // No need to check further accesses.
+                        break;
+                    } else {
+                        // Only consider paths ending with * like my/path/*
+                        // A path without * at the end (my/path/) only allows
+                        // for directory listing which is not useful for exports.
+                        if (substr($allowedPath, strlen($allowedPath) - 1) === '*') {
+                            if ($fullTree) {
+                                $allPaths = $this->getAllResources(
+                                    $serviceName,
+                                    substr($allowedPath, 0, strlen($allowedPath) - 1),
+                                    ['as_list' => true, 'full_tree' => $fullTree]
+                                );
+                                $manifest['service'][$serviceName] = array_merge(
+                                    $manifest['service'][$serviceName],
+                                    $allPaths
+                                );
+                            } else {
+                                $manifest['service'][$serviceName][] =
+                                    substr($allowedPath, 0, strlen($allowedPath) - 1);
+                            }
                         }
                     }
                 }

@@ -131,7 +131,9 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($roles);
-                $result = ServiceManager::handleRequest('system', Verbs::POST, 'role', [], [], $payload);
+                $result = ServiceManager::handleRequest(
+                    'system', Verbs::POST, 'role', [], [], $payload, null, true, true
+                );
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
@@ -166,7 +168,9 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($users);
-                $result = ServiceManager::handleRequest('system', Verbs::POST, 'user', [], [], $payload);
+                $result = ServiceManager::handleRequest(
+                    'system', Verbs::POST, 'user', [], [], $payload, null, true, true
+                );
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
@@ -272,8 +276,9 @@ class Importer
                         if (!empty($cleanedUar)) {
                             $userUpdate = ['user_to_app_to_role_by_user_id' => $cleanedUar];
                             $result =
-                                ServiceManager::handleRequest('system', Verbs::PATCH, 'user/' . $newUserId, [], [],
-                                    $userUpdate);
+                                ServiceManager::handleRequest(
+                                    'system', Verbs::PATCH, 'user/' . $newUserId, [], [], $userUpdate, null, true, true
+                                );
                             if ($result->getStatusCode() >= 300) {
                                 throw ResponseFactory::createExceptionFromResponse($result);
                             }
@@ -345,7 +350,9 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($services);
-                $result = ServiceManager::handleRequest('system', Verbs::POST, 'service', [], [], $payload);
+                $result = ServiceManager::handleRequest(
+                    'system', Verbs::POST, 'service', [], [], $payload, null, true, true
+                );
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
@@ -413,8 +420,9 @@ class Importer
                         if (!empty($cleanedRsa)) {
                             $roleUpdate = ['role_service_access_by_role_id' => $cleanedRsa];
                             $result =
-                                ServiceManager::handleRequest('system', Verbs::PATCH, 'role/' . $newRoleId, [], [],
-                                    $roleUpdate);
+                                ServiceManager::handleRequest(
+                                    'system', Verbs::PATCH, 'role/' . $newRoleId, [], [], $roleUpdate, null, true, true
+                                );
                             if ($result->getStatusCode() >= 300) {
                                 throw ResponseFactory::createExceptionFromResponse($result);
                             }
@@ -572,7 +580,9 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($apps);
-                $result = ServiceManager::handleRequest('system', Verbs::POST, 'app', [], [], $payload);
+                $result = ServiceManager::handleRequest(
+                    'system', Verbs::POST, 'app', [], [], $payload, null, true, true
+                );
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
@@ -665,7 +675,10 @@ class Importer
                             $resource,
                             ['continue' => true],
                             [],
-                            $payload
+                            $payload,
+                            null,
+                            true,
+                            true
                         );
                         if ($result->getStatusCode() >= 300) {
                             throw ResponseFactory::createExceptionFromResponse($result);
@@ -708,7 +721,9 @@ class Importer
                     $name = array_get($script, 'name');
                     $this->fixCommonFields($script);
                     $result =
-                        ServiceManager::handleRequest('system', Verbs::POST, 'event_script/' . $name, [], [], $script);
+                        ServiceManager::handleRequest(
+                            'system', Verbs::POST, 'event_script/' . $name, [], [], $script, null, true, true
+                        );
                     if ($result->getStatusCode() >= 300) {
                         throw ResponseFactory::createExceptionFromResponse($result);
                     }
@@ -747,8 +762,9 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($records);
-                $result =
-                    ServiceManager::handleRequest($service, Verbs::POST, $resource, ['continue' => true], [], $payload);
+                $result = ServiceManager::handleRequest(
+                    $service, Verbs::POST, $resource, ['continue' => true], [], $payload, null, true, true
+                );
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
@@ -813,6 +829,10 @@ class Importer
                 $storage = ServiceManager::getService($service);
                 foreach ($resources as $resource) {
                     try {
+                        // checkServicePermission throws exception below if active not allowed for the user.
+                        Session::checkServicePermission(Verbs::POST, $service, trim($resource, '/'),
+                            Session::getRequestor());
+
                         $resourcePath = $service . '/' . ltrim($resource, '/');
                         $file = $this->package->getFileFromZip($resourcePath);
                         if (!empty($file)) {

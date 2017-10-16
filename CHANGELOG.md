@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-1191 Added attachment support for email services
+- Added RBAC support for package export/import
 
 ### Changed
 - DF-1222 Moving automatic cache flush for service to the ServiceManager

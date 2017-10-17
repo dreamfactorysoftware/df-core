@@ -49,10 +49,10 @@ class Exporter
     protected $data = [];
 
     /**
-     * Storage service id or name. This storage
+     * Storage name. This storage
      * service is used to store the extracted zip file.
      *
-     * @type int|string
+     * @type string
      */
     protected $storageService;
 
@@ -115,6 +115,7 @@ class Exporter
      */
     public function export()
     {
+        $this->checkStoragePermission();
         $this->gatherData();
         $this->package->initZipFile();
         $this->addManifestFile();
@@ -123,6 +124,20 @@ class Exporter
         $url = $this->package->saveZipFile($this->storageService, $this->storageFolder);
 
         return $url;
+    }
+
+    /**
+     * Checks to see if the user exporting the package
+     * has permission to storage the package in the target
+     * storage service.
+     *
+     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
+     */
+    protected function checkStoragePermission()
+    {
+        Session::checkServicePermission(
+            Verbs::POST, $this->storageService, trim($this->storageFolder, '/'), Session::getRequestor()
+        );
     }
 
     /**

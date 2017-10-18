@@ -178,7 +178,6 @@ class Exporter
         // Keeping a separate copy of all services to fetch exportable resources for each services.
         $allServices = $this->data['system']['service'];
         $this->data['system']['app'] = $this->getAllResources('system', 'app', ['fields' => 'id,name']);
-        $this->data['system']['app_group'] = $this->getAllResources('system', 'app_group', ['fields' => 'id,name']);
         $this->data['system']['user'] =
             $this->getAllResources('system', 'user', ['fields' => 'id,email,username,first_name,last_name']);
         $this->data['system']['admin'] =

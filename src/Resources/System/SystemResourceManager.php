@@ -60,13 +60,6 @@ class SystemResourceManager
                 'class_name'  => Cache::class
             ],
             [
-                'name'        => 'config',
-                'label'       => 'Configuration',
-                'description' => 'Global system configuration.',
-                'class_name'  => Config::class,
-                'singleton'   => true,
-            ],
-            [
                 'name'        => 'constant',
                 'label'       => 'Constants',
                 'description' => 'Read-only listing of constants available for client use.',
@@ -135,12 +128,6 @@ class SystemResourceManager
                 'label'       => 'Apps',
                 'description' => 'Allows management of user application(s)',
                 'class_name'  => App::class,
-            ],
-            [
-                'name'        => 'app_group',
-                'label'       => 'App Groups',
-                'description' => 'Allows grouping of user application(s)',
-                'class_name'  => AppGroup::class,
             ],
             [
                 'name'        => 'custom',

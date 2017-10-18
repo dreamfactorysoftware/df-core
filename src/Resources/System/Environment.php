@@ -4,7 +4,6 @@ namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Enums\AppTypes;
 use DreamFactory\Core\Models\App as AppModel;
-use DreamFactory\Core\Models\AppGroup as AppGroupModel;
 use DreamFactory\Core\Models\Config as SystemConfig;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
@@ -51,13 +50,13 @@ class Environment extends BaseSystemResource
     {
         $result = [];
 
+        $packages = static::getInstalledPackagesInfo();
         $result['platform'] = [
-            'version_current'   => \Config::get('app.version'),
-            'version_latest'    => \Config::get('app.version'),
-            'upgrade_available' => false,
-            'bitnami_demo'      => static::isDemoApplication(),
-            'is_hosted'         => env('DF_MANAGED', false),
-            'host'              => php_uname('n')
+            'version'      => \Config::get('app.version'),
+            'bitnami_demo' => static::isDemoApplication(),
+            'is_hosted'    => to_bool(env('DF_MANAGED', false)),
+            'host'         => php_uname('n'),
+            'license'      => static::getLicenseLevel($packages)
         ];
 
         $result['client'] = [
@@ -66,14 +65,8 @@ class Environment extends BaseSystemResource
             "locale"     => \Request::getLocale()
         ];
 
-        $login = static::getLoginApi();
-        $apps = static::getApps();
-        $groupedApps = array_get($apps, 0);
-        $noGroupApps = array_get($apps, 1);
-
-        $result['authentication'] = $login;
-        $result['app_group'] = (count($groupedApps) > 0) ? $groupedApps : [];
-        $result['no_group_app'] = (count($noGroupApps) > 0) ? $noGroupApps : [];
+        $result['authentication'] = static::getLoginApi();
+        $result['apps'] = (array)static::getApps();
 
         /*
          * Most API calls return a resource array or a single resource,
@@ -93,7 +86,7 @@ class Environment extends BaseSystemResource
         ];
         $result['config'] = $config;
 
-        if (SessionUtilities::isSysAdmin()) {
+        if ($this->checkPermission(Verbs::GET)) {
             $dbDriver = \Config::get('database.default');
             $result['config']['db']['driver'] = $dbDriver;
             if ($result['config']['db']['driver'] === 'sqlite') {
@@ -110,9 +103,7 @@ class Environment extends BaseSystemResource
                 $result['platform']['cache_path'] = \Config::get('cache.stores.file.path') . DIRECTORY_SEPARATOR;
             }
 
-            $packages = static::getInstalledPackagesInfo();
             if (!empty($packages)) {
-                $result['platform']['license'] = static::getLicenseLevel($packages);
                 $result['platform']['packages'] = $packages;
             }
 
@@ -149,7 +140,7 @@ class Environment extends BaseSystemResource
      */
     public static function getExternalIP()
     {
-        $ip = \Cache::rememberForever('external-ip-address', function (){
+        $ip = \Cache::rememberForever('external-ip-address', function () {
             $response = Curl::get('http://ipinfo.io/ip');
             $ip = trim($response, "\t\r\n");
             try {
@@ -166,11 +157,11 @@ class Environment extends BaseSystemResource
     }
 
     /**
-     * @param $packages
+     * @param array $packages
      *
      * @return string
      */
-    public static function getLicenseLevel($packages)
+    public static function getLicenseLevel(array $packages)
     {
         foreach (static::GOLD_PACKAGES as $gp) {
             if (!is_null(array_by_key_value($packages, 'name', 'dreamfactory/' . $gp, 'version'))) {
@@ -236,13 +227,6 @@ class Environment extends BaseSystemResource
             $defaultAppId = $user->default_app_id;
 
             if (SessionUtilities::isSysAdmin()) {
-                $appGroups = AppGroupModel::with(
-                    [
-                        'app_by_app_to_app_group' => function ($q){
-                            $q->whereIsActive(1)->whereNotIn('type', [AppTypes::NONE]);
-                        },
-                    ]
-                )->get();
                 $apps = AppModel::whereIsActive(1)->whereNotIn('type', [AppTypes::NONE])->get();
             } else {
                 $userId = $user->id;
@@ -256,27 +240,11 @@ class Environment extends BaseSystemResource
                 $typeString = implode(',', [AppTypes::NONE]);
                 $typeString = (empty($typeString)) ? '-1' : $typeString;
 
-                $appGroups = AppGroupModel::with(
-                    [
-                        'app_by_app_to_app_group' => function ($q) use ($appIdsString, $typeString){
-                            $q->whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type NOT IN ($typeString)");
-                        },
-                    ]
-                )->get();
                 $apps =
                     AppModel::whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type NOT IN ($typeString)")
                         ->get();
             }
         } else {
-            $appGroups = AppGroupModel::with(
-                [
-                    'app_by_app_to_app_group' => function ($q){
-                        $q->where('role_id', '>', 0)
-                            ->whereIsActive(1)
-                            ->whereNotIn('type', [AppTypes::NONE]);
-                    },
-                ]
-            )->get();
             $apps = AppModel::whereIsActive(1)
                 ->where('role_id', '>', 0)
                 ->whereNotIn('type', [AppTypes::NONE])
@@ -288,36 +256,13 @@ class Environment extends BaseSystemResource
             $defaultAppId = (!empty($systemConfig)) ? $systemConfig->default_app_id : null;
         }
 
-        $inGroups = [];
-        $groupedApps = [];
-        $noGroupedApps = [];
-
-        foreach ($appGroups as $appGroup) {
-            $appArray = $appGroup->getRelation('app_by_app_to_app_group')->toArray();
-            if (!empty($appArray)) {
-                $appInfo = [];
-                foreach ($appArray as $app) {
-                    $inGroups[] = $app['id'];
-                    $appInfo[] = static::makeAppInfo($app, $defaultAppId);
-                }
-
-                $groupedApps[] = [
-                    'id'          => $appGroup->id,
-                    'name'        => $appGroup->name,
-                    'description' => $appGroup->description,
-                    'app'         => $appInfo,
-                ];
-            }
-        }
-
+        $out = [];
         /** @type AppModel $app */
         foreach ($apps as $app) {
-            if (!in_array($app->id, $inGroups)) {
-                $noGroupedApps[] = static::makeAppInfo($app->toArray(), $defaultAppId);
-            }
+            $out[] = static::makeAppInfo($app->toArray(), $defaultAppId);
         }
 
-        return [$groupedApps, $noGroupedApps];
+        return $out;
     }
 
     protected static function makeAppInfo(array $app, $defaultAppId)
@@ -622,27 +567,19 @@ class Environment extends BaseSystemResource
         return $clean;
     }
 
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocPaths()
     {
-        $serviceName = strtolower($service);
+        $service = $this->getServiceName();
         $capitalized = camelize($service);
-        $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
-        $path = '/' . $serviceName . '/' . $resourceName;
+        $resourceName = strtolower($this->name);
 
-        $apis = [
-            $path => [
+        return [
+            '/' . $resourceName => [
                 'get' => [
-                    'tags'        => [$serviceName],
                     'summary'     => 'get' . $capitalized . 'Environment() - Retrieve system environment.',
                     'operationId' => 'get' . $capitalized . 'Environment',
-                    'consumes'    => ['application/json', 'application/xml'],
-                    'produces'    => ['application/json', 'application/xml'],
                     'responses'   => [
-                        '200' => [
-                            'description' => 'Environment',
-                            'schema'      => ['$ref' => '#/definitions/EnvironmentResponse']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/EnvironmentResponse']
                     ],
                     'description' =>
                         'Minimum environment information given without a valid user session.' .
@@ -650,7 +587,34 @@ class Environment extends BaseSystemResource
                 ],
             ],
         ];
+    }
 
+    protected function getApiDocRequests()
+    {
+        return [];
+    }
+
+    protected function getApiDocResponses()
+    {
+        $class = trim(strrchr(static::class, '\\'), '\\');
+
+        return [
+            $class . 'Response' => [
+                'description' => 'Response',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Response']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Response']
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    protected function getApiDocSchemas()
+    {
         $models = [
             'EnvironmentResponse' => [
                 'type'       => 'object',
@@ -659,21 +623,10 @@ class Environment extends BaseSystemResource
                         'type'        => 'object',
                         'description' => 'System platform properties.',
                         'properties'  => [
-                            'version_current'   => [
-                                'type' => 'string',
-                            ],
-                            'version_latest'    => [
-                                'type' => 'string',
-                            ],
-                            'upgrade_available' => [
-                                'type' => 'boolean',
-                            ],
-                            'is_hosted'         => [
-                                'type' => 'boolean',
-                            ],
-                            'host'              => [
-                                'type' => 'string',
-                            ],
+                            'version'   => ['type' => 'string',],
+                            'is_hosted' => ['type' => 'boolean',],
+                            'host'      => ['type' => 'string',],
+                            'license'   => ['type' => 'string',],
                         ],
                     ],
                     'authentication' => [
@@ -697,18 +650,11 @@ class Environment extends BaseSystemResource
                             ],
                         ],
                     ],
-                    'app_group'      => [
+                    'apps'           => [
                         'type'        => 'array',
-                        'description' => 'Array of groups apps by group name.',
+                        'description' => 'Array of apps.',
                         'items'       => [
-                            '$ref' => '#/definitions/AppsResponse',
-                        ],
-                    ],
-                    'no_app_group'   => [
-                        'type'        => 'array',
-                        'description' => 'Array of ungrouped apps.',
-                        'items'       => [
-                            '$ref' => '#/definitions/AppsResponse',
+                            '$ref' => '#/components/schemas/AppsResponse',
                         ],
                     ],
                     'config'         => [
@@ -748,6 +694,6 @@ class Environment extends BaseSystemResource
             ],
         ];
 
-        return ['paths' => $apis, 'definitions' => $models];
+        return $models;
     }
 }

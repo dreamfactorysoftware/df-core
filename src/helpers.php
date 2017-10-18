@@ -63,12 +63,14 @@ if (!function_exists('array_by_key_value')) {
      */
     function array_by_key_value($array, $key, $value, $returnKey = null)
     {
-        foreach ($array as $item) {
-            if ($item[$key] === $value) {
-                if ($returnKey) {
-                    return $item[$returnKey];
-                } else {
-                    return $item;
+        if (is_array($array)) {
+            foreach ($array as $item) {
+                if ($value === array_get($item, $key)) {
+                    if ($returnKey) {
+                        return array_get($item, $returnKey);
+                    } else {
+                        return $item;
+                    }
                 }
             }
         }

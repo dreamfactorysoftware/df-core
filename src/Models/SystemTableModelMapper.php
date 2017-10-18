@@ -28,10 +28,7 @@ class SystemTableModelMapper
         $this->app = $app;
         $this->map = [
             'app'                 => App::class,
-            'app_group'           => AppGroup::class,
-            'app_to_app_group'    => AppToAppGroup::class,
             'email_template'      => EmailTemplate::class,
-            'event_subscriber'    => EventSubscriber::class,
             'lookup'              => BaseSystemLookup::class,
             'role'                => Role::class,
             'role_service_access' => RoleServiceAccess::class,

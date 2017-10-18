@@ -94,23 +94,6 @@ class CreateSystemTables extends Migration
             }
         );
 
-        // Event Subscriber
-        Schema::create(
-            'event_subscriber',
-            function (Blueprint $t) use ($onDelete){
-                $t->increments('id');
-                $t->string('name', 80)->unique();
-                $t->string('type');
-                $t->text('config')->nullable();
-                $t->timestamp('created_date')->nullable();
-                $t->timestamp('last_modified_date')->useCurrent();
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($onDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($onDelete);
-            }
-        );
-
         // Roles
         Schema::create(
             'role',
@@ -224,34 +207,6 @@ class CreateSystemTables extends Migration
                 $t->foreign('created_by_id')->references('id')->on('user')->onDelete($onDelete);
                 $t->integer('last_modified_by_id')->unsigned()->nullable();
                 $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($onDelete);
-            }
-        );
-
-        // Application Groups - visual aid for Launchpad only
-        Schema::create(
-            'app_group',
-            function (Blueprint $t) use ($onDelete){
-                $t->increments('id');
-                $t->string('name', 64)->unique();
-                $t->string('description')->nullable();
-                $t->timestamp('created_date')->nullable();
-                $t->timestamp('last_modified_date')->useCurrent();
-                $t->integer('created_by_id')->unsigned()->nullable();
-                $t->foreign('created_by_id')->references('id')->on('user')->onDelete($onDelete);
-                $t->integer('last_modified_by_id')->unsigned()->nullable();
-                $t->foreign('last_modified_by_id')->references('id')->on('user')->onDelete($onDelete);
-            }
-        );
-
-        // Apps to App Groups Relationships - visual aid for Launchpad only
-        Schema::create(
-            'app_to_app_group',
-            function (Blueprint $t){
-                $t->increments('id');
-                $t->integer('app_id')->unsigned();
-                $t->foreign('app_id')->references('id')->on('app')->onDelete('cascade');
-                $t->integer('group_id')->unsigned();
-                $t->foreign('group_id')->references('id')->on('app_group')->onDelete('cascade');
             }
         );
 
@@ -385,8 +340,6 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('user_to_app_to_role');
         // Service Docs
         Schema::dropIfExists('service_doc');
-        // Event Subscribers
-        Schema::dropIfExists('event_subscriber');
         // Role Service Accesses
         Schema::dropIfExists('role_service_access');
         // Roles
@@ -399,10 +352,6 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('cors_config');
         // App relationship for user
         Schema::dropIfExists('user_to_app_role');
-        //Apps to App Groups Relationships
-        Schema::dropIfExists('app_to_app_group');
-        // Application Groups
-        Schema::dropIfExists('app_group');
         // Applications
         Schema::dropIfExists('app');
         //Password reset

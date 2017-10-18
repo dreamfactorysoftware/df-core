@@ -5,12 +5,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-1191 Added attachment support for email services
-
+- DF-1225 Add ldap_username to lookup availability
 ### Changed
 - DF-1222 Moving automatic cache flush for service to the ServiceManager
 - Moving access check exceptions to the actual services domain
-### Added
-- DF-1225 Add ldap_username to lookup availability
+- Removing app_group system resource and supporting classes, no longer used
 ### Fixed
 - Correcting role access view of api/v2 service listing
 

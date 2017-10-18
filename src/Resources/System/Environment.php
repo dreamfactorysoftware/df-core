@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Enums\AppTypes;
+use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Models\App as AppModel;
 use DreamFactory\Core\Models\Config as SystemConfig;
 use DreamFactory\Core\Models\Service as ServiceModel;
@@ -86,7 +87,8 @@ class Environment extends BaseSystemResource
         ];
         $result['config'] = $config;
 
-        if ($this->checkPermission(Verbs::GET)) {
+        $perms = $this->getPermissions();
+        if (VerbsMask::toNumeric(Verbs::GET) & $perms) {
             $dbDriver = \Config::get('database.default');
             $result['config']['db']['driver'] = $dbDriver;
             if ($result['config']['db']['driver'] === 'sqlite') {

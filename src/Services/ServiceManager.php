@@ -10,6 +10,8 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Utility\ServiceRequest;
+use DreamFactory\Core\Utility\ServiceResponse;
+use DreamFactory\Core\Utility\Session;
 use InvalidArgumentException;
 
 class ServiceManager
@@ -80,12 +82,12 @@ class ServiceManager
     public function getServiceIdNameMap($only_active = false)
     {
         if ($only_active) {
-            return \Cache::rememberForever('service_mgr:id_name_map_active', function () {
+            return \Cache::rememberForever('service_mgr:id_name_map_active', function (){
                 return Service::whereIsActive(true)->pluck('name', 'id')->toArray();
             });
         }
 
-        return \Cache::rememberForever('service_mgr:id_name_map', function () {
+        return \Cache::rememberForever('service_mgr:id_name_map', function (){
             return Service::pluck('name', 'id')->toArray();
         });
     }
@@ -94,6 +96,7 @@ class ServiceManager
      * Get a service identifier by its name.
      *
      * @param  string $name
+     *
      * @return int|null
      */
     public function getServiceIdByName($name)
@@ -110,6 +113,7 @@ class ServiceManager
      * Get a service name by its identifier.
      *
      * @param  int $id
+     *
      * @return string
      */
     public function getServiceNameById($id)
@@ -217,6 +221,7 @@ class ServiceManager
      * Get the configuration for a service.
      *
      * @param  string $name
+     *
      * @return array
      * @throws NotFoundException
      */
@@ -226,7 +231,7 @@ class ServiceManager
             throw new InvalidArgumentException("Service 'name' can not be empty.");
         }
 
-        return \Cache::rememberForever('service_mgr:' . $name, function () use ($name) {
+        return \Cache::rememberForever('service_mgr:' . $name, function () use ($name){
             /** @var Service $service */
             if (empty($service = Service::whereName($name)->first())) {
                 throw new NotFoundException("Could not find a service for $name");
@@ -268,6 +273,7 @@ class ServiceManager
 
     /**
      * Return all of the known service types.
+     *
      * @param string $group
      *
      * @return \DreamFactory\Core\Contracts\ServiceTypeInterface[]
@@ -297,6 +303,7 @@ class ServiceManager
      *
      * @param bool        $only_active
      * @param string|null $group
+     *
      * @return array
      */
     public function getServiceNames($only_active = false, $group = null)
@@ -312,6 +319,7 @@ class ServiceManager
      * @param array|string $fields
      * @param bool         $only_active
      * @param string|null  $group
+     *
      * @return array
      */
     public function getServiceList($fields = null, $only_active = false, $group = null)
@@ -327,7 +335,8 @@ class ServiceManager
             $fields[] = 'type';
         }
         $fields = array_intersect($fields, $allowed);
-        $results = ($only_active ? Service::whereIsActive(true)->get($fields)->toArray() : Service::get($fields)->toArray());
+        $results =
+            ($only_active ? Service::whereIsActive(true)->get($fields)->toArray() : Service::get($fields)->toArray());
         if ($includeGroup || $includeTypeLabel || !empty($group)) {
             if (!empty($group) && !is_array($group)) {
                 $group = array_map('trim', explode(',', trim($group, ',')));
@@ -387,6 +396,8 @@ class ServiceManager
      * @param array       $header
      * @param null        $payload
      * @param string|null $format
+     * @param bool        $checkPermission
+     * @param bool        $expOnPermission
      *
      * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
@@ -399,8 +410,24 @@ class ServiceManager
         $query = [],
         $header = [],
         $payload = null,
-        $format = null
-    ) {
+        $format = null,
+        $checkPermission = true,
+        $expOnPermission = false
+    ){
+        if ($checkPermission === true) {
+            $permission = Session::checkServicePermission(
+                $verb,
+                $service,
+                $resource,
+                Session::getRequestor(),
+                $expOnPermission
+            );
+
+            if(false === $permission){
+                return new ServiceResponse([]);
+            }
+        }
+
         $_FILES = []; // reset so that internal calls can handle other files.
         $request = new ServiceRequest();
         $request->setMethod($verb);

@@ -56,7 +56,7 @@ class Request extends Command
             $verb = strtoupper($this->option('verb'));
             $service = $this->option('service');
             $resource = $this->option('resource');
-            $result = ServiceManager::handleRequest($service, $verb, $resource, [], [], $data, $format);
+            $result = ServiceManager::handleRequest($service, $verb, $resource, [], [], $data, $format, false);
             if ($result->getStatusCode() >= 300) {
                 $this->error(print_r($result, true));
             } else {

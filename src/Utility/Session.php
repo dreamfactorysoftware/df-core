@@ -22,20 +22,26 @@ class Session
      * @param string $service   - API name of the service
      * @param string $component - API component/resource name
      * @param int    $requestor - Entity type requesting the service
+     * @param bool   $exception - Set false to return false
      *
      * @throws ForbiddenException
+     * @returns boolean
      */
     public static function checkServicePermission(
         $action,
         $service,
         $component = null,
-        $requestor = ServiceRequestorTypes::API
+        $requestor = ServiceRequestorTypes::API,
+        $exception = true
     ) {
         $verb = VerbsMask::toNumeric(static::cleanAction($action));
 
         $mask = static::getServicePermissions($service, $component, $requestor);
 
         if (!($verb & $mask)) {
+            if(false === $exception){
+                return false;
+            }
             $msg = ucfirst($action) . " access to ";
             if (!empty($component)) {
                 $msg .= "component '$component' of ";
@@ -45,6 +51,8 @@ class Session
 
             throw new ForbiddenException($msg);
         }
+
+        return true;
     }
 
     /**

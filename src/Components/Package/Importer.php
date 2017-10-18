@@ -4,8 +4,10 @@ namespace DreamFactory\Core\Components\Package;
 
 use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
+use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Exceptions\DfException;
+use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\RestException;
@@ -131,14 +133,21 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($roles);
-                $result = ServiceManager::handleRequest('system', Verbs::POST, 'role', [], [], $payload);
+                $result = ServiceManager::handleRequest(
+                    'system', Verbs::POST, 'role', [], [], $payload, null, true, true
+                );
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert roles. ' . $this->getErrorDetails($e));
+//                if ($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN) {
+//                    $this->log('error', 'Failed to insert roles. ' . $this->getErrorDetails($e));
+//                } else {
+//                    throw new InternalServerErrorException('Failed to insert roles. ' . $this->getErrorDetails($e));
+//                }
+                $this->throwExceptions($e, 'Failed to insert roles');
             }
         }
 
@@ -166,7 +175,9 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($users);
-                $result = ServiceManager::handleRequest('system', Verbs::POST, 'user', [], [], $payload);
+                $result = ServiceManager::handleRequest(
+                    'system', Verbs::POST, 'user', [], [], $payload, null, true, true
+                );
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
@@ -176,7 +187,12 @@ class Importer
             } catch (DecryptException $e) {
                 throw new UnauthorizedException('Invalid password.');
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert users. ' . $this->getErrorDetails($e));
+//                if ($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN) {
+//                    $this->log('error', 'Failed to insert users. ' . $this->getErrorDetails($e));
+//                } else {
+//                    throw new InternalServerErrorException('Failed to insert users. ' . $this->getErrorDetails($e));
+//                }
+                $this->throwExceptions($e, 'Failed to insert users');
             }
         }
 
@@ -219,8 +235,8 @@ class Importer
                 foreach ($usersInZip as $uiz) {
                     $uar = $uiz['user_to_app_to_role_by_user_id'];
                     $user = User::whereEmail($uiz['email'])->first();
-                    $newUserId = $user->id;
                     if (!empty($user) && !empty($uar)) {
+                        $newUserId = $user->id;
                         $cleanedUar = [];
                         foreach ($uar as $r) {
                             $originId = $r['id'];
@@ -272,8 +288,9 @@ class Importer
                         if (!empty($cleanedUar)) {
                             $userUpdate = ['user_to_app_to_role_by_user_id' => $cleanedUar];
                             $result =
-                                ServiceManager::handleRequest('system', Verbs::PATCH, 'user/' . $newUserId, [], [],
-                                    $userUpdate);
+                                ServiceManager::handleRequest(
+                                    'system', Verbs::PATCH, 'user/' . $newUserId, [], [], $userUpdate, null, true, true
+                                );
                             if ($result->getStatusCode() >= 300) {
                                 throw ResponseFactory::createExceptionFromResponse($result);
                             }
@@ -293,10 +310,19 @@ class Importer
                     }
                 }
             } catch (\Exception $e) {
-                throw new InternalServerErrorException(
-                    'Failed to insert user_to_app_to_role_by_user_id relation for users. ' .
-                    $this->getErrorDetails($e)
-                );
+//                if ($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN) {
+//                    $this->log(
+//                        'error',
+//                        'Failed to insert user_to_app_to_role_by_user_id relation for users. ' .
+//                        $this->getErrorDetails($e)
+//                    );
+//                } else {
+//                    throw new InternalServerErrorException(
+//                        'Failed to insert user_to_app_to_role_by_user_id relation for users. ' .
+//                        $this->getErrorDetails($e)
+//                    );
+//                }
+                $this->throwExceptions($e, 'Failed to insert user_to_app_to_role_by_user_id relation for users');
             }
         }
 
@@ -345,14 +371,21 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($services);
-                $result = ServiceManager::handleRequest('system', Verbs::POST, 'service', [], [], $payload);
+                $result = ServiceManager::handleRequest(
+                    'system', Verbs::POST, 'service', [], [], $payload, null, true, true
+                );
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException("Failed to insert services. " . $this->getErrorDetails($e));
+//                if ($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN) {
+//                    $this->log('error', "Failed to insert services. " . $this->getErrorDetails($e));
+//                } else {
+//                    throw new InternalServerErrorException("Failed to insert services. " . $this->getErrorDetails($e));
+//                }
+                $this->throwExceptions($e, 'Failed to insert services');
             }
         }
 
@@ -375,8 +408,8 @@ class Importer
                 foreach ($rolesInZip as $riz) {
                     $rsa = $riz['role_service_access_by_role_id'];
                     $role = Role::whereName($riz['name'])->first();
-                    $newRoleId = $role->id;
                     if (!empty($role) && !empty($rsa)) {
+                        $newRoleId = $role->id;
                         $cleanedRsa = [];
                         foreach ($rsa as $r) {
                             $originId = $r['id'];
@@ -413,8 +446,9 @@ class Importer
                         if (!empty($cleanedRsa)) {
                             $roleUpdate = ['role_service_access_by_role_id' => $cleanedRsa];
                             $result =
-                                ServiceManager::handleRequest('system', Verbs::PATCH, 'role/' . $newRoleId, [], [],
-                                    $roleUpdate);
+                                ServiceManager::handleRequest(
+                                    'system', Verbs::PATCH, 'role/' . $newRoleId, [], [], $roleUpdate, null, true, true
+                                );
                             if ($result->getStatusCode() >= 300) {
                                 throw ResponseFactory::createExceptionFromResponse($result);
                             }
@@ -431,10 +465,18 @@ class Importer
                     }
                 }
             } catch (\Exception $e) {
-                throw new InternalServerErrorException(
-                    'Failed to insert role service access records for roles. ' .
-                    $this->getErrorDetails($e)
-                );
+//                if ($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN) {
+//                    $this->log(
+//                        'error',
+//                        'Failed to insert role service access records for roles. ' .
+//                        $this->getErrorDetails($e)
+//                    );
+//                }
+//                throw new InternalServerErrorException(
+//                    'Failed to insert role service access records for roles. ' .
+//                    $this->getErrorDetails($e)
+//                );
+                $this->throwExceptions($e, 'Failed to insert role service access records for roles');
             }
         }
 
@@ -445,10 +487,11 @@ class Importer
      * Returns details from exception.
      *
      * @param \Exception $e
+     * @param bool       $trace
      *
      * @return string
      */
-    protected function getErrorDetails(\Exception $e)
+    protected function getErrorDetails(\Exception $e, $trace = false)
     {
         $msg = $e->getMessage();
         if ($e instanceof DfException) {
@@ -456,9 +499,14 @@ class Importer
             if (is_array($context)) {
                 $context = print_r($context, true);
             }
-            $msg .= "\nContext: " . $context;
+            if (!empty($context)) {
+                $msg .= "\nContext: " . $context;
+            }
         }
-        $msg .= "\nTrace:\n" . $e->getTraceAsString();
+
+        if ($trace === true) {
+            $msg .= "\nTrace:\n" . $e->getTraceAsString();
+        }
 
         return $msg;
     }
@@ -572,14 +620,21 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($apps);
-                $result = ServiceManager::handleRequest('system', Verbs::POST, 'app', [], [], $payload);
+                $result = ServiceManager::handleRequest(
+                    'system', Verbs::POST, 'app', [], [], $payload, null, true, true
+                );
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert apps. ' . $this->getErrorDetails($e));
+//                if ($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN) {
+//                    $this->log('error', 'Failed to insert apps. ' . $this->getErrorDetails($e));
+//                } else {
+//                    throw new InternalServerErrorException('Failed to insert apps. ' . $this->getErrorDetails($e));
+//                }
+                $this->throwExceptions($e, 'Failed to insert apps');
             }
         }
 
@@ -665,19 +720,35 @@ class Importer
                             $resource,
                             ['continue' => true],
                             [],
-                            $payload
+                            $payload,
+                            null,
+                            true,
+                            true
                         );
                         if ($result->getStatusCode() >= 300) {
                             throw ResponseFactory::createExceptionFromResponse($result);
                         }
                     } catch (\Exception $e) {
-                        throw new InternalServerErrorException('Failed to insert ' .
-                            $service .
-                            '/' .
-                            $resource .
-                            '. ' .
-                            $this->getErrorDetails($e)
-                        );
+//                        if ($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN) {
+//                            $this->log(
+//                                'error',
+//                                'Failed to insert ' .
+//                                $service .
+//                                '/' .
+//                                $resource .
+//                                '. ' .
+//                                $this->getErrorDetails($e)
+//                            );
+//                        } else {
+//                            throw new InternalServerErrorException('Failed to insert ' .
+//                                $service .
+//                                '/' .
+//                                $resource .
+//                                '. ' .
+//                                $this->getErrorDetails($e)
+//                            );
+//                        }
+                        $this->throwExceptions($e, 'Failed to insert ' . $service . '/' . $resource);
                     }
                 }
             }
@@ -708,7 +779,9 @@ class Importer
                     $name = array_get($script, 'name');
                     $this->fixCommonFields($script);
                     $result =
-                        ServiceManager::handleRequest('system', Verbs::POST, 'event_script/' . $name, [], [], $script);
+                        ServiceManager::handleRequest(
+                            'system', Verbs::POST, 'event_script/' . $name, [], [], $script, null, true, true
+                        );
                     if ($result->getStatusCode() >= 300) {
                         throw ResponseFactory::createExceptionFromResponse($result);
                     }
@@ -716,7 +789,15 @@ class Importer
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert event_script. ' . $this->getErrorDetails($e));
+//                if ($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN) {
+//                    $this->log('error', 'Failed to insert event_script. ' . $this->getErrorDetails($e));
+//                } else {
+//                    throw new InternalServerErrorException(
+//                        'Failed to insert event_script. ' .
+//                        $this->getErrorDetails($e)
+//                    );
+//                }
+                $this->throwExceptions($e, 'Failed to insert event_script');
             }
         }
 
@@ -747,8 +828,9 @@ class Importer
                 }
 
                 $payload = ResourcesWrapper::wrapResources($records);
-                $result =
-                    ServiceManager::handleRequest($service, Verbs::POST, $resource, ['continue' => true], [], $payload);
+                $result = ServiceManager::handleRequest(
+                    $service, Verbs::POST, $resource, ['continue' => true], [], $payload, null, true, true
+                );
                 if ($result->getStatusCode() >= 300) {
                     throw ResponseFactory::createExceptionFromResponse($result);
                 }
@@ -758,13 +840,26 @@ class Importer
 
                 return true;
             } catch (\Exception $e) {
-                throw new InternalServerErrorException('Failed to insert ' .
-                    $service .
-                    '/' .
-                    $resource .
-                    '. ' .
-                    $this->getErrorDetails($e)
-                );
+//                if ($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN) {
+//                    $this->log(
+//                        'error',
+//                        'Failed to insert ' .
+//                        $service .
+//                        '/' .
+//                        $resource .
+//                        '. ' .
+//                        $this->getErrorDetails($e)
+//                    );
+//                } else {
+//                    throw new InternalServerErrorException('Failed to insert ' .
+//                        $service .
+//                        '/' .
+//                        $resource .
+//                        '. ' .
+//                        $this->getErrorDetails($e)
+//                    );
+//                }
+                $this->throwExceptions($e, 'Failed to insert ' . $service . '/' . $resource);
             }
         }
 
@@ -813,6 +908,12 @@ class Importer
                 $storage = ServiceManager::getService($service);
                 foreach ($resources as $resource) {
                     try {
+                        // checkServicePermission throws exception below if action not allowed for the user.
+                        Session::checkServicePermission(
+                            Verbs::POST, $service, trim($resource, '/'),
+                            Session::getRequestor()
+                        );
+
                         $resourcePath = $service . '/' . ltrim($resource, '/');
                         $file = $this->package->getFileFromZip($resourcePath);
                         if (!empty($file)) {
@@ -833,8 +934,16 @@ class Importer
                         }
                         $stored = true;
                     } catch (\Exception $e) {
+                        // Not throwing exceptions here. File storage process is not
+                        // transactional. There is no way to rollback if exception
+                        // is thrown in the middle of import process. Instead, log
+                        // the error and finish the process.
+                        $logLevel = 'warning';
+                        if ($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN) {
+                            $logLevel = 'error';
+                        }
                         $this->log(
-                            'warning',
+                            $logLevel,
                             'Skipping storage resource ' . $service . '/' . $resource . '. ' . $e->getMessage()
                         );
                     }
@@ -1063,11 +1172,28 @@ class Importer
                                 );
                             }
                         } catch (RestException $e) {
-                            throw new InternalServerErrorException(
+//                            if($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN){
+//                                $this->log(
+//                                    'error',
+//                                    'An unexpected error occurred. ' .
+//                                    'Could not overwrite an existing ' .
+//                                    $api . ' resource with ' . $key . ' ' .
+//                                    $value . '. ' . $e->getMessage()
+//                                );
+//                            } else {
+//                                throw new InternalServerErrorException(
+//                                    'An unexpected error occurred. ' .
+//                                    'Could not overwrite an existing ' .
+//                                    $api . ' resource with ' . $key . ' ' .
+//                                    $value . '. ' . $e->getMessage()
+//                                );
+//                            }
+                            $this->throwExceptions(
+                                $e,
                                 'An unexpected error occurred. ' .
                                 'Could not overwrite an existing ' .
                                 $api . ' resource with ' . $key . ' ' .
-                                $value . '. ' . $e->getMessage()
+                                $value
                             );
                         }
                     } else {
@@ -1096,6 +1222,29 @@ class Importer
     }
 
     /**
+     * @param \Exception $e
+     * @param null       $genericMsg
+     * @param bool       $trace
+     *
+     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
+     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     */
+    protected function throwExceptions(\Exception $e, $genericMsg = null, $trace = false)
+    {
+        $msg = 'An error occurred. ';
+        if(!empty($genericMsg)){
+            $msg = rtrim(trim($genericMsg), '.') . '. ';
+        }
+        $errorMessage = $this->getErrorDetails($e, $trace);
+        $msg .= $errorMessage;
+        if($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN){
+            throw new ForbiddenException($msg);
+        } else {
+            throw new InternalServerErrorException($msg);
+        }
+    }
+
+    /**
      * @param $service
      * @param $resource
      * @param $record
@@ -1120,7 +1269,10 @@ class Importer
                     $resource . '/' . $value,
                     [],
                     [],
-                    $record
+                    $record,
+                    null,
+                    true,
+                    true
                 );
                 if ($result->getStatusCode() === 404) {
                     throw new InternalServerErrorException(
@@ -1139,7 +1291,12 @@ class Importer
                     $service,
                     Verbs::GET,
                     $resource,
-                    ['filter' => "$key='$value'"]
+                    ['filter' => "$key='$value'"],
+                    [],
+                    null,
+                    null,
+                    true,
+                    true
                 );
                 if ($result->getStatusCode() === 404) {
                     throw new InternalServerErrorException(
@@ -1166,7 +1323,10 @@ class Importer
                         $resource . '/' . $existingId,
                         [],
                         [],
-                        $payload
+                        $payload,
+                        null,
+                        true,
+                        true
                     );
                     if ($result->getStatusCode() === 404) {
                         throw new InternalServerErrorException(

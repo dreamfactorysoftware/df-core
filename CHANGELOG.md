@@ -6,6 +6,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - DF-1191 Added attachment support for email services
 - DF-1225 Add ldap_username to lookup availability
+- RBAC support for package export/import
 ### Changed
 - DF-1222 Moving automatic cache flush for service to the ServiceManager
 - Moving access check exceptions to the actual services domain

@@ -12,6 +12,8 @@ use DreamFactory\Core\Commands\Setup;
 use DreamFactory\Core\Components\DbSchemaExtensions;
 use DreamFactory\Core\Database\Connectors\SQLiteConnector;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
+use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Facades\DbSchemaExtensions as DbSchemaExtensionsFacade;
 use DreamFactory\Core\Facades\ServiceManager as ServiceManagerFacade;
 use DreamFactory\Core\Facades\SystemResourceManager as SystemResourceManagerFacade;
@@ -158,6 +160,10 @@ class LaravelServiceProvider extends ServiceProvider
                             'verb_mask' => 1,
                             'resource'  => 'environment',
                         ],
+                        [
+                            'verb_mask' => VerbsMask::arrayToMask([Verbs::GET, Verbs::POST]),
+                            'resource'  => 'package'
+                        ]
                     ],
                 ]
             ));

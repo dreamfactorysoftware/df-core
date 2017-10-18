@@ -159,10 +159,6 @@ class LaravelServiceProvider extends ServiceProvider
                         [
                             'verb_mask' => 1,
                             'resource'  => 'environment',
-                        ],
-                        [
-                            'verb_mask' => VerbsMask::arrayToMask([Verbs::GET, Verbs::POST]),
-                            'resource'  => 'package'
                         ]
                     ],
                 ]

@@ -200,6 +200,9 @@ class Exporter
         // If system/service is not allowed for the user then remove it from output array.
         if (!Session::checkServicePermission(Verbs::GET, 'system', 'service', Session::getRequestor(), false)) {
             unset($manifest['service']['system']['service']);
+            if(empty($manifest['service']['system'])){
+                unset($manifest['service']['system']);
+            }
         }
 
         if (false === $systemOnly) {

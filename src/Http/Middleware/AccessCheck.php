@@ -74,7 +74,20 @@ class AccessCheck
                 } elseif (!Session::isAuthenticated()) {
                     throw new UnauthorizedException('Unauthorized. User is not authenticated.');
                 } else {
-                    throw new ForbiddenException('Access Forbidden. You do not have enough privileges to access this resource.');
+                    $msg = 'Access Forbidden. You do not have enough privileges to access this resource. ';
+                    try {
+                        // Try to get a detail error message if possible.
+                        $router = app('router');
+                        $service = strtolower($router->input('service'));
+                        $component = trim(strtolower($router->input('resource')), '/');
+                        $requestor = Session::getRequestor();
+                        Session::checkServicePermission(\Request::getMethod(), $service, $component, $requestor);
+                    } catch (ForbiddenException $e) {
+                        $msg = 'Access Forbidden. ' . $e->getMessage();
+                        $e->setMessage($msg);
+                        throw $e;
+                    }
+                    throw new ForbiddenException($msg);
                 }
             }
         } catch (\Exception $e) {

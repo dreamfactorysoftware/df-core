@@ -45,10 +45,12 @@ class HomesteadConfig extends Command
             $this->info('Memory: ' . $memory);
             $this->info('CPUs: ' . $cpus);
             $this->info('Box Version: ' . $version);
+            $this->info('Edit Homestead.yaml file if you like to change any of these settings.');
 
             exec("php vendor/bin/homestead make", $out);
             $output = implode('\n', $out);
             $this->info($output);
+            $this->info('You can now run "vagrant up" to provision your homestead vagrant box.');
 
             if (file_exists('Homestead.yaml')) {
                 file_put_contents('Homestead.yaml',
@@ -61,6 +63,11 @@ class HomesteadConfig extends Command
                             file_get_contents('Homestead.yaml')));
                 }
             }
+
+            // Remove after.sh and aliases files create by Homestead configurator
+            // as we supply our own in server/config/homestead/ diretory.
+            @unlink('after.sh');
+            @unlink('aliases');
         }
     }
 }

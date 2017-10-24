@@ -66,6 +66,23 @@ class EmailTemplate extends BaseSystemResource
             'reply_to'    => [
                 '$ref' => '#/definitions/EmailAddress',
             ],
+            'attachment'  => [
+                'type'        => 'array',
+                'description' => 'File(s) to import from storage service or URL for attachment',
+                'items'       => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'service' => [
+                            'type'        => 'string',
+                            'description' => 'Name of the storage service to use.'
+                        ],
+                        'path'    => [
+                            'type'        => 'string',
+                            'description' => 'File path relative to the service.'
+                        ]
+                    ]
+                ]
+            ],
             'defaults'    => [
                 'type'        => 'array',
                 'description' => 'Array of default name value pairs for template replacement.',

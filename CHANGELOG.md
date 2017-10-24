@@ -4,7 +4,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
-- DF-1191 Added attachment support for email services
+- DF-1191 Added attachment support for email services and email templates
 - DF-1225 Add ldap_username to lookup availability
 - RBAC support for package export/import
 ### Changed

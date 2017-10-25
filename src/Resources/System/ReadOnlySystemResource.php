@@ -38,7 +38,7 @@ class ReadOnlySystemResource extends BaseRestResource
     {
         $settings = (array)$settings;
         $settings['verbAliases'] = [
-            Verbs::PUT   => Verbs::PATCH,
+            Verbs::PUT => Verbs::PATCH,
         ];
 
         parent::__construct($settings);
@@ -128,35 +128,25 @@ class ReadOnlySystemResource extends BaseRestResource
         return new static::$model;
     }
 
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocPaths()
     {
-        $serviceName = strtolower($service);
+        $service = $this->getServiceName();
         $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
+        $resourceName = strtolower($this->name);
         $pluralClass = str_plural($class);
-        $path = '/' . $serviceName . '/' . $resourceName;
-//        $base = parent::getApiDocInfo($service, $resource);
-        $wrapper = ResourcesWrapper::getWrapper();
+        $path = '/' . $resourceName;
 
-        $apis = [
+        return [
             $path           => [
                 'parameters' => [
                     ApiOptions::documentOption(ApiOptions::FIELDS),
                     ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
                 'get'        => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'get' .
-                        $capitalized .
-                        $pluralClass .
-                        '() - Retrieve one or more ' .
-                        $pluralClass .
-                        '.',
-                    'operationId'       => 'get' . $capitalized . $pluralClass,
-                    'consumes'          => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'          => ['application/json', 'application/xml', 'text/csv'],
-                    'parameters'        => [
+                    'summary'     => 'get' . $capitalized . $pluralClass . '() - Retrieve one or more ' . $pluralClass . '.',
+                    'operationId' => 'get' . $capitalized . $pluralClass,
+                    'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                         ApiOptions::documentOption(ApiOptions::LIMIT),
@@ -168,21 +158,14 @@ class ReadOnlySystemResource extends BaseRestResource
                         ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
                         ApiOptions::documentOption(ApiOptions::FILE),
                     ],
-                    'responses'         => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
-                    'description'       =>
+                    'description' =>
                         'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
-                        'By default, all records up to the maximum are returned. <br>' .
+                        'By default, all records up to the maximum are returned. ' .
                         'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
-                        'By default, all fields and no relations are returned for each record. <br>' .
+                        'By default, all fields and no relations are returned for each record. ' .
                         'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
                         'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                 ],
@@ -192,7 +175,7 @@ class ReadOnlySystemResource extends BaseRestResource
                     [
                         'name'        => 'id',
                         'description' => 'Identifier of the record to retrieve.',
-                        'type'        => 'string',
+                        'schema'      => ['type' => 'string'],
                         'in'          => 'path',
                         'required'    => true,
                     ],
@@ -200,25 +183,59 @@ class ReadOnlySystemResource extends BaseRestResource
                     ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
                 'get'        => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
-                    'operationId'       => 'get' . $capitalized . $class,
-                    'parameters'        => [],
-                    'responses'         => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/' . $class . 'Response']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                    'summary'     => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
+                    'operationId' => 'get' . $capitalized . $class,
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
-                    'description'       => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
+                    'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
+                ],
+            ],
+        ];
+    }
+
+    protected function getApiDocResponses()
+    {
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $pluralClass = str_plural($class);
+        if ($pluralClass === $class) {
+            // method names can't be the same
+            $pluralClass = $class . 'Entries';
+        }
+
+        $models = [
+            $class . 'Response'       => [
+                'description' => 'Response',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Response']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Response']
+                    ],
+                ],
+            ],
+            $pluralClass . 'Response' => [
+                'description' => 'Response',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $pluralClass . 'Response']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $pluralClass . 'Response']
+                    ],
                 ],
             ],
         ];
 
+        return array_merge(parent::getApiDocResponses(), $models);
+    }
+
+    protected function getApiDocSchemas()
+    {
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $pluralClass = str_plural($class);
+        $wrapper = ResourcesWrapper::getWrapper();
         $models = [
             $pluralClass . 'Response' => [
                 'type'       => 'object',
@@ -227,11 +244,11 @@ class ReadOnlySystemResource extends BaseRestResource
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => '#/definitions/' . $class . 'Response',
+                            '$ref' => '#/components/schemas/' . $class . 'Response',
                         ],
                     ],
                     'meta'   => [
-                        '$ref' => '#/definitions/Metadata',
+                        '$ref' => '#/components/schemas/Metadata',
                     ],
                 ],
             ],
@@ -265,6 +282,6 @@ class ReadOnlySystemResource extends BaseRestResource
             }
         }
 
-        return ['paths' => $apis, 'definitions' => $models];
+        return $models;
     }
 }

@@ -26,7 +26,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 abstract class RestHandler implements RequestHandlerInterface
 {
-    use ExceptionResponse;
+    use ExceptionResponse, HasApiDocs;
 
     //*************************************************************************
     //	Constants

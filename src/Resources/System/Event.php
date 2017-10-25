@@ -100,47 +100,32 @@ class Event extends BaseRestResource
         return ResourcesWrapper::cleanResources(array_values(array_unique($allEvents)));
     }
 
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocPaths()
     {
-        $serviceName = strtolower($service);
+        $service = $this->getServiceName();
         $capitalized = camelize($service);
-        $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
-        $path = '/' . $serviceName . '/' . $resourceName;
+        $resourceName = strtolower($this->name);
 
-        $paths = [
-            $path => [
+        return [
+            '/' . $resourceName => [
                 'get' => [
-                    'tags'        => [$serviceName],
                     'summary'     => 'get' . $capitalized . 'EventList() - Retrieve list of events.',
                     'operationId' => 'get' . $capitalized . 'EventList',
                     'description' => 'A list of event names are returned. The list can be limited by service.',
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::AS_LIST),
                         [
                             'name'        => 'service',
                             'description' => 'Get the events for only this service.',
-                            'type'        => 'string',
+                            'schema'      => ['type' => 'string'],
                             'in'          => 'query',
-                            'required'    => false,
                         ],
                     ],
                     'responses'   => [
-                        '200' => [
-                            'description' => 'Resource List',
-                            'schema'      => ['$ref' => '#/definitions/ResourceList']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                                ]
+                        '200' => ['$ref' => '#/components/responses/ResourceList']
                     ],
                 ],
             ],
         ];
-
-        return ['paths' => $paths, 'definitions' => []];
     }
 }

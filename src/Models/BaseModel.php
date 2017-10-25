@@ -24,7 +24,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use SystemTableModelMapper;
-use ServiceManager;
 
 /**
  * Class BaseModel
@@ -724,7 +723,6 @@ class BaseModel extends Model
             $conn = $this->getConnection();
             $driver = $conn->getDriverName();
             $this->schemaExtension = DbSchemaExtensions::getSchemaExtension($driver, $conn);
-            $this->schemaExtension->setServiceId(ServiceManager::getServiceIdByName('system'));
         }
 
         return $this->schemaExtension;
@@ -1340,13 +1338,13 @@ class BaseModel extends Model
                         case RelationSchema::BELONGS_TO:
                             if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
-                                    '$ref' => '#/definitions/Related' . $refModel . 'Request',
+                                    '$ref' => '#/components/schemas/Related' . $refModel . 'Request',
                                 ];
                             }
 
                             if (array_key_exists($relation->name, $returnableRelatives)) {
                                 $responseRelatives[$relation->name] = [
-                                    '$ref' => '#/definitions/Related' . $refModel . 'Response',
+                                    '$ref' => '#/components/schemas/Related' . $refModel . 'Response',
                                 ];
                             }
                             break;
@@ -1354,7 +1352,7 @@ class BaseModel extends Model
                             if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
+                                    'items'       => ['$ref' => '#/components/schemas/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record directly",
                                 ];
                             }
@@ -1362,7 +1360,7 @@ class BaseModel extends Model
                             if (array_key_exists($relation->name, $returnableRelatives)) {
                                 $responseRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
+                                    'items'       => ['$ref' => '#/components/schemas/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record directly",
                                 ];
                             }
@@ -1375,7 +1373,7 @@ class BaseModel extends Model
                             if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Request'],
+                                    'items'       => ['$ref' => '#/components/schemas/Related' . $refModel . 'Request'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
                                 ];
                             }
@@ -1383,7 +1381,7 @@ class BaseModel extends Model
                             if (array_key_exists($relation->name, $returnableRelatives)) {
                                 $responseRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
+                                    'items'       => ['$ref' => '#/components/schemas/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
                                 ];
                             }
@@ -1404,21 +1402,21 @@ class BaseModel extends Model
                     'required'   => $required,
                     'properties' => $requestFields + $requestRelatives
                 ];
-                $definitions['Related' . $name . 'Request'] = [
-                    'type'       => 'object',
-                    'required'   => $required,
-                    'properties' => $requestFields
-                ];
+//                $definitions['Related' . $name . 'Request'] = [
+//                    'type'       => 'object',
+//                    'required'   => $required,
+//                    'properties' => $requestFields
+//                ];
             }
             if (!empty($responseFields)) {
                 $definitions[$name . 'Response'] = [
                     'type'       => 'object',
                     'properties' => $responseFields + $responseRelatives
                 ];
-                $definitions['Related' . $name . 'Response'] = [
-                    'type'       => 'object',
-                    'properties' => $responseFields
-                ];
+//                $definitions['Related' . $name . 'Response'] = [
+//                    'type'       => 'object',
+//                    'properties' => $responseFields
+//                ];
             }
 
             return $definitions;

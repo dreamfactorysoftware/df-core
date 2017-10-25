@@ -201,8 +201,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
         // check children for any extras
         try {
             foreach ($this->getResources(true) as $resourceInfo) {
-                $className = $resourceInfo['class_name'];
-
+                $className = array_get($resourceInfo, 'class_name');
                 if (!class_exists($className)) {
                     throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
                         $this->resourcePath);
@@ -251,54 +250,6 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                 break;
             default:
                 throw new InternalServerErrorException("Invalid API Doc Format '$format'.");
-        }
-
-        if (!empty($name)) {
-            $paths = array_get($content, 'paths', []);
-            // tricky here, loop through all indexes to check if all start with service name,
-            // otherwise need to prepend service name to all.
-            if (!empty(array_filter(array_keys($paths), function ($k) use ($name) {
-                $k = ltrim($k, '/');
-                if (false !== strpos($k, '/')) {
-                    $k = strstr($k, '/', true);
-                }
-
-                return (0 !== strcasecmp($name, $k));
-            }))
-            ) {
-                $newPaths = [];
-                foreach ($paths as $path => $pathDef) {
-                    $newPath = '/' . $name . $path;
-                    $newPaths[$newPath] = $pathDef;
-                }
-                $paths = $newPaths;
-            }
-            // make sure each path is tagged
-            foreach ($paths as $path => &$pathDef) {
-                foreach ($pathDef as $verb => &$verbDef) {
-                    // If we leave the incoming tags, they get bubbled up to our service-level
-                    // and possibly confuse the whole interface. Replace with our service name tag.
-//                    if (!is_array($tag = array_get($verbDef, 'tags', []))) {
-//                        $tag = [];
-//                    }
-//                    if (false === array_search($name, $tag)) {
-//                        $tag[] = $name;
-//                        $verbDef['tags'] = $tag;
-//                    }
-                    switch (strtolower($verb)) {
-                        case 'get':
-                        case 'post':
-                        case 'put':
-                        case 'patch':
-                        case 'delete':
-                        case 'options':
-                        case 'head':
-                            $verbDef['tags'] = [$name];
-                            break;
-                    }
-                }
-            }
-            $content['paths'] = $paths; // write any changes back
         }
 
         return $content;
@@ -404,11 +355,15 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
         return array_get($this->config, $key, $default);
     }
 
-    public function getApiDoc()
+    public function getApiDoc($refresh = false)
     {
         $cacheKey = 'service_doc';
         $id = $this->id;
-        $doc = $this->rememberCacheForever($cacheKey, function () use ($id) {
+        if ($refresh) {
+            $this->removeFromCache($cacheKey);
+        }
+
+        return $this->rememberCacheForever($cacheKey, function () use ($id) {
             if ($doc = ServiceDoc::whereServiceId($id)->first()) {
                 if (!empty($content = array_get($doc, 'content'))) {
                     if (is_string($content)) {
@@ -419,157 +374,143 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                             'description' => $this->description,
                         ];
 
-                        return $this->storedContentToArray($content, array_get($doc, 'format'), $info);
-                    } elseif (is_array($content)) {
-                        return $content;
+                        $content = $this->storedContentToArray($content, array_get($doc, 'format'), $info);
                     }
-                } else {
-                    return [];
-                }
-                if (is_array($content)) {
-                    return $content;
                 }
             }
 
-            return ''; // so that we don't hit the database even after we know it isn't there
+            if (empty($content)) {
+                $content = $this->getApiDocInfo();
+            }
+
+            return (array)$content;
         });
-
-        if (!empty($doc)) { // see '' returned above
-            return $doc;
-        }
-
-        return $this->getApiDocInfo($this);
     }
 
-    public static function getApiDocInfo($service)
+    public function getApiDocInfo()
     {
-        $name = strtolower($service->name);
-        $capitalized = camelize($service->name);
-        $class = trim(strrchr(static::class, '\\'), '\\');
-        $pluralClass = str_plural($class);
-        $wrapper = ResourcesWrapper::getWrapper();
-
-        $base = [
-            'paths'       => [
-                '/' . $name => [
-                    'get' => [
-                        'tags'        => [$name],
-                        'summary'     => 'get' . $capitalized . 'Resources() - Get resources for this service.',
-                        'operationId' => 'get' . $capitalized . 'Resources',
-                        'description' => 'Return an array of the resources available.',
-                        'parameters'  => [
-                            ApiOptions::documentOption(ApiOptions::AS_LIST),
-                            ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
-                            ApiOptions::documentOption(ApiOptions::INCLUDE_ACCESS),
-                            ApiOptions::documentOption(ApiOptions::FIELDS),
-                            ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                            ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                            ApiOptions::documentOption(ApiOptions::REFRESH),
-                        ],
-                        'responses'   => [
-                            '200'     => [
-                                'description' => 'Success',
-                                'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
-                            ],
-                            'default' => [
-                                'description' => 'Error',
-                                'schema'      => ['$ref' => '#/definitions/Error']
-                            ]
-                        ],
-                    ],
-                ],
-            ],
-            'definitions' => [
-                $class . 'Response'       => [
-                    'type'       => 'object',
-                    'properties' => [
-                        static::getResourceIdentifier() => [
-                            'type'        => 'string',
-                            'description' => 'Identifier of the resource.',
-                        ],
-                    ],
-                ],
-                $pluralClass . 'Response' => [
-                    'type'       => 'object',
-                    'properties' => [
-                        $wrapper => [
-                            'type'        => 'array',
-                            'description' => 'Array of resources available to this service.',
-                            'items'       => [
-                                '$ref' => '#/definitions/' . $class . 'Response',
-                            ],
-                        ],
-                    ],
-                ],
-            ],
-            'parameters'  => [],
-        ];
-
-        $apis = [];
-        $models = static::getDefaultModels();
-        $parameters = ApiOptions::getSwaggerGlobalParameters();
-        foreach (static::$resources as $resourceInfo) {
-            $resourceClass = array_get($resourceInfo, 'class_name');
-
-            if (!class_exists($resourceClass)) {
+        $base = parent::getApiDocInfo();
+        foreach ($this->getResources(true) as $resourceInfo) {
+            $className = array_get($resourceInfo, 'class_name');
+            if (!class_exists($className)) {
                 throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
-                    $resourceClass);
+                    $className);
             }
 
-            $results = $resourceClass::getApiDocInfo($service->name, $resourceInfo);
-            if (isset($results, $results['paths'])) {
-                $apis = array_merge($apis, $results['paths']);
+            /** @var BaseRestResource $resource */
+            $resource = $this->instantiateResource($className, $resourceInfo);
+            $content = $resource->getApiDocInfo();
+            if (isset($content['paths'])) {
+                $base['paths'] = array_merge((array)array_get($base, 'paths'), (array)$content['paths']);
             }
-            if (isset($results, $results['definitions'])) {
-                $models = array_merge($models, $results['definitions']);
+            if (isset($content['components'])) {
+                if (isset($content['components']['requestBodies'])) {
+                    $base['components']['requestBodies'] = array_merge((array)array_get($base, 'components.requestBodies'),
+                        (array)$content['components']['requestBodies']);
+                }
+                if (isset($content['components']['responses'])) {
+                    $base['components']['responses'] = array_merge((array)array_get($base, 'components.responses'),
+                        (array)$content['components']['responses']);
+                }
+                if (isset($content['components']['schemas'])) {
+                    $base['components']['schemas'] = array_merge((array)array_get($base, 'components.schemas'),
+                        (array)$content['components']['schemas']);
+                }
             }
         }
-
-        $base['paths'] = array_merge($base['paths'], $apis);
-        $base['definitions'] = array_merge($base['definitions'], $models);
-        $base['parameters'] = array_merge($base['parameters'], $parameters);
-        unset($base['paths']['/' . $service->name]['get']['parameters']);
 
         return $base;
     }
 
-    public static function getDefaultModels()
+    protected function getApiDocPaths()
     {
-        $wrapper = ResourcesWrapper::getWrapper();
+        $capitalized = camelize($this->name);
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $pluralClass = str_plural($class);
+
+        $paths = [
+            '/' => [
+//                    'summary'     => '',
+//                    'description' => '',
+                'get' => [
+                    'summary'     => 'get' . $capitalized . 'Resources() - Get resources for this service.',
+                    'operationId' => 'get' . $capitalized . 'Resources',
+                    'description' => 'Return an array of the resources available.',
+                    'parameters'  => [
+                        ApiOptions::documentOption(ApiOptions::AS_LIST),
+                        ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),
+                        ApiOptions::documentOption(ApiOptions::INCLUDE_ACCESS),
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::ID_FIELD),
+                        ApiOptions::documentOption(ApiOptions::ID_TYPE),
+                        ApiOptions::documentOption(ApiOptions::REFRESH),
+                    ],
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
+                    ],
+                ],
+            ],
+        ];
+
+        return $paths;
+    }
+
+    protected function getApiDocResponses()
+    {
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $pluralClass = str_plural($class);
 
         return [
-            'ResourceList' => [
+            $class . 'Response'       => [
+                'description' => 'Resource List',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class]
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class]
+                    ],
+                ],
+            ],
+            $pluralClass . 'Response' => [
+                'description' => 'Resource List',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $pluralClass]
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $pluralClass]
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    protected function getApiDocSchemas()
+    {
+        $wrapper = ResourcesWrapper::getWrapper();
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $pluralClass = str_plural($class);
+
+        return [
+            $class       => [
+                'type'       => 'object',
+                'properties' => [
+                    static::getResourceIdentifier() => [
+                        'type'        => 'string',
+                        'description' => 'Identifier of the resource.',
+                    ],
+                ],
+            ],
+            $pluralClass => [
                 'type'       => 'object',
                 'properties' => [
                     $wrapper => [
                         'type'        => 'array',
-                        'description' => 'Array of accessible resources available to this service.',
+                        'description' => 'Array of resources available to this service.',
                         'items'       => [
-                            'type' => 'string',
+                            '$ref' => '#/components/schemas/' . $class,
                         ],
-                    ],
-                ],
-            ],
-            'Success'      => [
-                'type'       => 'object',
-                'properties' => [
-                    'success' => [
-                        'type'        => 'boolean',
-                        'description' => 'True when API call was successful, false or error otherwise.',
-                    ],
-                ],
-            ],
-            'Error'        => [
-                'type'       => 'object',
-                'properties' => [
-                    'code'    => [
-                        'type'        => 'integer',
-                        'format'      => 'int32',
-                        'description' => 'Error code.',
-                    ],
-                    'message' => [
-                        'type'        => 'string',
-                        'description' => 'String description of the error.',
                     ],
                 ],
             ],

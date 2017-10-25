@@ -22,6 +22,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 class BaseSystemResource extends BaseRestResource
 {
     use DbRequestCriteria;
+
     /**
      * Default maximum records returned on filter request
      */
@@ -267,7 +268,7 @@ class BaseSystemResource extends BaseRestResource
         }
 
         foreach ($records as $i => $record) {
-            if (is_numeric($i) && array($record)) {
+            if (is_numeric($i) && [$record]) {
                 foreach ($record as $key => $value) {
                     if (empty($value)) {
                         unset($records[$i][$key]);
@@ -292,33 +293,24 @@ class BaseSystemResource extends BaseRestResource
         return $data;
     }
 
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocPaths()
     {
-        $serviceName = strtolower($service);
+        $service = $this->getServiceName();
         $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
+        $resourceName = strtolower($this->name);
         $pluralClass = str_plural($class);
         if ($pluralClass === $class) {
             // method names can't be the same
             $pluralClass = $class . 'Entries';
         }
-        $path = '/' . $serviceName . '/' . $resourceName;
-        $wrapper = ResourcesWrapper::getWrapper();
+        $path = '/' . $resourceName;
 
-        $apis = [
+        $paths = [
             $path           => [
                 'get'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'get' .
-                        $capitalized .
-                        $pluralClass .
-                        '() - Retrieve one or more ' .
-                        $pluralClass .
-                        '.',
+                    'summary'     => 'get' . $capitalized . $pluralClass . '() - Retrieve one or more ' . $pluralClass . '.',
                     'operationId' => 'get' . $capitalized . $pluralClass,
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
@@ -334,66 +326,34 @@ class BaseSystemResource extends BaseRestResource
                         ApiOptions::documentOption(ApiOptions::FILE),
                     ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
                     'description' =>
                         'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
-                        'By default, all records up to the maximum are returned. <br>' .
+                        'By default, all records up to the maximum are returned. ' .
                         'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
-                        'By default, all fields and no relations are returned for each record. <br>' .
+                        'By default, all fields and no relations are returned for each record. ' .
                         'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
                         'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                 ],
                 'post'   => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'create' .
-                        $capitalized .
-                        $pluralClass .
-                        '() - Create one or more ' .
-                        $pluralClass .
-                        '.',
+                    'summary'     => 'create' . $capitalized . $pluralClass . '() - Create one or more ' . $pluralClass . '.',
                     'operationId' => 'create' . $capitalized . $pluralClass,
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
-                        [
-                            'name'        => 'body',
-                            'description' => 'Data containing name-value pairs of records to create.',
-                            'in'          => 'body',
-                            'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Request'],
-                            'required'    => true,
-                        ],
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                         [
                             'name'        => 'X-HTTP-METHOD',
                             'description' => 'Override request using POST to tunnel other http request, such as DELETE.',
-                            'enum'        => ['GET', 'PUT', 'PATCH', 'DELETE'],
-                            'type'        => 'string',
+                            'schema'      => ['type' => 'string', 'enum' => ['GET', 'PUT', 'PATCH', 'DELETE']],
                             'in'          => 'header',
-                            'required'    => false,
                         ],
                     ],
+                    'requestBody' => [
+                        '$ref' => '#/components/requestBodies/' . $pluralClass . 'Request'
+                    ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => [
-                                '$ref' => '#/definitions/' .
-                                    $pluralClass .
-                                    'Response'
-                            ]
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
                     'description' =>
                         'Post data should be a single record or an array of records (shown). ' .
@@ -401,42 +361,19 @@ class BaseSystemResource extends BaseRestResource
                         'use \'fields\' and \'related\' to return more info.',
                 ],
                 'patch'  => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'update' .
-                        $capitalized .
-                        $pluralClass .
-                        '() - Update one or more ' .
-                        $pluralClass .
-                        '.',
+                    'summary'     => 'update' . $capitalized . $pluralClass . '() - Update one or more ' . $pluralClass . '.',
                     'operationId' => 'update' . $capitalized . $pluralClass,
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
-                        [
-                            'name'        => 'body',
-                            'description' => 'Data containing name-value pairs of records to update.',
-                            'in'          => 'body',
-                            'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Request'],
-                            'required'    => true,
-                        ],
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                     ],
+                    'requestBody' => [
+                        '$ref' => '#/components/requestBodies/' . $pluralClass . 'Request'
+                    ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => [
-                                '$ref' => '#/definitions/' .
-                                    $pluralClass .
-                                    'Response'
-                            ]
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
                     'description' =>
                         'Post data should be a single record or an array of records (shown). ' .
@@ -444,42 +381,19 @@ class BaseSystemResource extends BaseRestResource
                         'use \'fields\' and \'related\' to return more info.',
                 ],
                 'put'    => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'replace' .
-                        $capitalized .
-                        $pluralClass .
-                        '() - Replace one or more ' .
-                        $pluralClass .
-                        '.',
+                    'summary'     => 'replace' . $capitalized . $pluralClass . '() - Replace one or more ' . $pluralClass . '.',
                     'operationId' => 'replace' . $capitalized . $pluralClass,
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
-                        [
-                            'name'        => 'body',
-                            'description' => 'Data containing name-value pairs of records to update.',
-                            'in'          => 'body',
-                            'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Request'],
-                            'required'    => true,
-                        ],
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                         ApiOptions::documentOption(ApiOptions::IDS),
                         ApiOptions::documentOption(ApiOptions::FILTER),
                     ],
+                    'requestBody' => [
+                        '$ref' => '#/components/requestBodies/' . $pluralClass . 'Request'
+                    ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => [
-                                '$ref' => '#/definitions/' .
-                                    $pluralClass .
-                                    'Response'
-                            ]
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
                     'description' =>
                         'Post data should be a single record or an array of records (shown). ' .
@@ -487,24 +401,14 @@ class BaseSystemResource extends BaseRestResource
                         'use \'fields\' and \'related\' to return more info.',
                 ],
                 'delete' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'delete' .
-                        $capitalized .
-                        $pluralClass .
-                        '() - Delete one or more ' .
-                        $pluralClass .
-                        '.',
+                    'summary'     => 'delete' . $capitalized . $pluralClass . '() - Delete one or more ' . $pluralClass . '.',
                     'operationId' => 'delete' . $capitalized . $pluralClass,
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
                         [
                             'name'        => 'force',
                             'description' => 'Set force to true to delete all records in this table, otherwise \'ids\' parameter is required.',
-                            'type'        => 'boolean',
+                            'schema'      => ['type' => 'boolean'],
                             'in'          => 'query',
-                            'required'    => false,
-                            'default'     => false,
                         ],
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
@@ -512,22 +416,11 @@ class BaseSystemResource extends BaseRestResource
                         ApiOptions::documentOption(ApiOptions::FILTER),
                     ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => [
-                                '$ref' => '#/definitions/' .
-                                    $pluralClass .
-                                    'Response'
-                            ]
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
                     'description' =>
                         'By default, only the id property of the record deleted is returned on success. ' .
-                        'Use \'fields\' and \'related\' to return more properties of the deleted records. <br>' .
+                        'Use \'fields\' and \'related\' to return more properties of the deleted records. ' .
                         'Alternatively, to delete by record or a large list of ids, ' .
                         'use the POST request with X-HTTP-METHOD = DELETE header and post records or ids.',
                 ],
@@ -537,153 +430,94 @@ class BaseSystemResource extends BaseRestResource
                     [
                         'name'        => 'id',
                         'description' => 'Identifier of the record to retrieve.',
-                        'type'        => 'string',
+                        'schema'      => ['type' => 'string'],
                         'in'          => 'path',
                         'required'    => true,
                     ],
                 ],
                 'get'        => [
-                    'tags'        => [$serviceName],
                     'summary'     => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
                     'operationId' => 'get' . $capitalized . $class,
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => [
-                                '$ref' => '#/definitions/' .
-                                    $class .
-                                    'Response'
-                            ]
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
                     'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                 ],
                 'patch'      => [
-                    'tags'        => [$serviceName],
                     'summary'     => 'update' . $capitalized . $class . '() - Update one ' . $class . '.',
                     'operationId' => 'update' . $capitalized . $class,
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
-                        [
-                            'name'        => 'body',
-                            'description' => 'Data containing name-value pairs of fields to update.',
-                            'in'          => 'body',
-                            'schema'      => ['$ref' => '#/definitions/' . $class . 'Request'],
-                            'required'    => true,
-                        ],
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
+                    'requestBody' => [
+                        '$ref' => '#/components/requestBodies/' . $class . 'Request'
+                    ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => [
-                                '$ref' => '#/definitions/' .
-                                    $class .
-                                    'Response'
-                            ]
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
                     'description' =>
-                        'Post data should be an array of fields to update for a single record. <br>' .
+                        'Post data should be an array of fields to update for a single record. ' .
                         'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
                 ],
                 'put'        => [
-                    'tags'        => [$serviceName],
                     'summary'     => 'replace' . $capitalized . $class . '() - Replace one ' . $class . '.',
                     'operationId' => 'replace' . $capitalized . $class,
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
-                        [
-                            'name'        => 'body',
-                            'description' => 'Data containing name-value pairs of fields to update.',
-                            'in'          => 'body',
-                            'schema'      => ['$ref' => '#/definitions/' . $class . 'Request'],
-                            'required'    => true,
-                        ],
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
+                    'requestBody' => [
+                        '$ref' => '#/components/requestBodies/' . $class . 'Request'
+                    ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => [
-                                '$ref' => '#/definitions/' .
-                                    $class .
-                                    'Response'
-                            ]
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
                     'description' =>
-                        'Post data should be an array of fields to update for a single record. <br>' .
+                        'Post data should be an array of fields to update for a single record. ' .
                         'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
                 ],
                 'delete'     => [
-                    'tags'        => [$serviceName],
                     'summary'     => 'delete' . $capitalized . $class . '() - Delete one ' . $class . '.',
                     'operationId' => 'delete' . $capitalized . $class,
-                    'consumes'    => ['application/json', 'application/xml', 'text/csv'],
-                    'produces'    => ['application/json', 'application/xml', 'text/csv'],
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
                         ApiOptions::documentOption(ApiOptions::RELATED),
                     ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => [
-                                '$ref' => '#/definitions/' .
-                                    $class .
-                                    'Response'
-                            ]
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
                     'description' => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
                 ],
             ],
         ];
 
+        return $paths;
+    }
+
+    protected function getApiDocSchemas()
+    {
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $pluralClass = str_plural($class);
+        if ($pluralClass === $class) {
+            // method names can't be the same
+            $pluralClass = $class . 'Entries';
+        }
+        $wrapper = ResourcesWrapper::getWrapper();
+
         $models = [
             $pluralClass . 'Request'  => [
                 'type'       => 'object',
                 'properties' => [
-                    $wrapper        => [
+                    $wrapper => [
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => '#/definitions/' . $class . 'Request',
-                        ],
-                    ],
-                    ApiOptions::IDS => [
-                        'type'        => 'array',
-                        'description' => 'Array of system record identifiers, used for batch GET, PUT, PATCH, and DELETE.',
-                        'items'       => [
-                            'type'   => 'integer',
-                            'format' => 'int32',
+                            '$ref' => '#/components/schemas/' . $class . 'Request',
                         ],
                     ],
                 ],
@@ -695,28 +529,8 @@ class BaseSystemResource extends BaseRestResource
                         'type'        => 'array',
                         'description' => 'Array of system records.',
                         'items'       => [
-                            '$ref' => '#/definitions/' . $class . 'Response',
+                            '$ref' => '#/components/schemas/' . $class . 'Response',
                         ],
-                    ],
-                    'meta'   => [
-                        '$ref' => '#/definitions/Metadata',
-                    ],
-                ],
-            ],
-            'Metadata'                => [
-                'type'       => 'object',
-                'properties' => [
-                    'schema' => [
-                        'type'        => 'array',
-                        'description' => 'Array of table schema.',
-                        'items'       => [
-                            'type' => 'string',
-                        ],
-                    ],
-                    'count'  => [
-                        'type'        => 'integer',
-                        'format'      => 'int32',
-                        'description' => 'Record count returned for GET requests.',
                     ],
                 ],
             ],
@@ -733,6 +547,80 @@ class BaseSystemResource extends BaseRestResource
             }
         }
 
-        return ['paths' => $apis, 'definitions' => $models];
+        return array_merge(parent::getApiDocSchemas(), $models);
+    }
+
+    protected function getApiDocRequests()
+    {
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $pluralClass = str_plural($class);
+        if ($pluralClass === $class) {
+            // method names can't be the same
+            $pluralClass = $class . 'Entries';
+        }
+
+        $models = [
+            $class . 'Request'       => [
+                'description' => 'Request',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Request']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Request']
+                    ],
+                ],
+            ],
+            $pluralClass . 'Request' => [
+                'description' => 'Request',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $pluralClass . 'Request']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $pluralClass . 'Request']
+                    ],
+                ],
+            ],
+        ];
+
+        return array_merge(parent::getApiDocRequests(), $models);
+    }
+
+    protected function getApiDocResponses()
+    {
+        $class = trim(strrchr(static::class, '\\'), '\\');
+        $pluralClass = str_plural($class);
+        if ($pluralClass === $class) {
+            // method names can't be the same
+            $pluralClass = $class . 'Entries';
+        }
+
+        $models = [
+            $class . 'Response'       => [
+                'description' => 'Response',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Response']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Response']
+                    ],
+                ],
+            ],
+            $pluralClass . 'Response' => [
+                'description' => 'Response',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $pluralClass . 'Response']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $pluralClass . 'Response']
+                    ],
+                ],
+            ],
+        ];
+
+        return array_merge(parent::getApiDocResponses(), $models);
     }
 }

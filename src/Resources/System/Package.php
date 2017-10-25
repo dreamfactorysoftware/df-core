@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Components\Package\Exporter;
@@ -6,7 +7,6 @@ use DreamFactory\Core\Components\Package\Importer;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Utility\Packager;
 use DreamFactory\Core\Utility\ResponseFactory;
-use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Enums\ApiOptions;
 
 class Package extends BaseSystemResource
@@ -68,99 +68,137 @@ class Package extends BaseSystemResource
         }
     }
 
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocPaths()
     {
-        $serviceName = strtolower($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
-        $pluralClass = str_plural($class);
-        $path = '/' . $serviceName . '/' . $resourceName;
-        $wrapper = ResourcesWrapper::getWrapper();
+        $resourceName = strtolower($this->name);
 
-        $apis = [
-            $path => [
+        $paths = [
+            '/' . $resourceName => [
                 'get'  => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'getManifestOnly() - Retrieves package manifest for all resources.',
+                    'summary'     => 'getManifestOnly() - Retrieves package manifest for all available resources.',
                     'operationId' => 'getManifestOnly',
                     'parameters'  => [
                         [
                             'name'        => 'system_only',
-                            'type'        => 'boolean',
+                            'schema'      => ['type' => 'boolean'],
                             'in'          => 'query',
                             'description' => 'Set true to only include system resources in manifest'
                         ],
                         [
                             'name'        => 'full_tree',
-                            'type'        => 'boolean',
+                            'schema'      => ['type' => 'boolean'],
                             'in'          => 'query',
                             'description' => 'Set true to include full tree of file service resources'
                         ],
                         ApiOptions::documentOption(ApiOptions::FILE)
                     ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Response',
-                            'schema'      => ['$ref' => '#/definitions/' . $pluralClass . 'Response']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
                     'description' => 'Get package manifest only'
                 ],
                 'post' => [
-                    'tags'        => [$serviceName],
                     'summary'     => 'importExport' . $class . '() - Exports or Imports package file.',
                     'operationId' => 'importExport' . $class,
                     'parameters'  => [
                         [
-                            'name'        => 'body',
-                            'in'          => 'body',
-                            'schema'      => ['$ref' => '#/definitions/' . $class . 'Response'],
-                            'description' => 'Valid package manifest detailing service/resources to export'
-                        ],
-                        [
                             'name'        => 'import_url',
                             'in'          => 'query',
-                            'type'        => 'string',
+                            'schema'      => ['type' => 'string'],
                             'description' => 'URL of the package file to import'
                         ],
                         [
                             'name'        => 'overwrite',
                             'in'          => 'query',
-                            'type'        => 'boolean',
+                            'schema'      => ['type' => 'boolean'],
                             'description' => 'Set true to overwrite (PATCH) existing resource during import'
                         ],
                         [
                             'name'        => 'password',
                             'in'          => 'query',
-                            'type'        => 'string',
+                            'schema'      => ['type' => 'string'],
                             'description' => 'Provide password here if package file is encrypted.'
                         ]
                     ],
+                    'requestBody' => [
+                        '$ref' => '#/components/requestBodies/' . $class . 'Request'
+                    ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Response',
-                            'schema'      => ['$ref' => '#/definitions/' . $class . 'ExportResponse']
-                        ],
-                        '201'     => [
-                            'description' => 'Response',
-                            'schema'      => ['$ref' => '#/definitions/' . $class . 'ImportResponse']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/' . $class . 'ExportResponse'],
+                        '201' => ['$ref' => '#/components/responses/' . $class . 'ImportResponse'],
                     ],
                     'description' => 'Export/Import package file'
                 ]
             ]
         ];
 
-        $models = [
+        return $paths;
+    }
+
+    protected function getApiDocRequests()
+    {
+        $class = trim(strrchr(static::class, '\\'), '\\');
+
+        return [
+            $class . 'Request' => [
+                'description' => 'Package Import Request',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Manifest']
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    protected function getApiDocResponses()
+    {
+        $class = trim(strrchr(static::class, '\\'), '\\');
+
+        return [
             $class . 'Response'       => [
+                'description' => 'Package Response',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Manifest']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Manifest']
+                    ],
+                ],
+            ],
+            $class . 'ImportResponse' => [
+                'description' => 'Import Response',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'ImportResponse']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'ImportResponse']
+                    ],
+                ],
+            ],
+            $class . 'ExportResponse' => [
+                'description' => 'Export Response',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'ExportResponse']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'ExportResponse']
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    protected function getApiDocSchemas()
+    {
+        $class = trim(strrchr(static::class, '\\'), '\\');
+
+        $models = [
+            $class . 'Manifest'       => [
                 'type'       => 'object',
                 'properties' => [
                     'version'      => [
@@ -171,7 +209,7 @@ class Package extends BaseSystemResource
                         'type'        => 'string',
                         'description' => 'DreamFactory version'
                     ],
-                    'secure'       => [
+                    'secured'      => [
                         'type'        => 'boolean',
                         'description' => 'Flag to indicate whether sensitive data in package is encrypted (true) or not (false) '
                     ],
@@ -226,20 +264,8 @@ class Package extends BaseSystemResource
                     ]
                 ]
             ],
-            $pluralClass . 'Response' => [
-                'type'       => 'object',
-                'properties' => [
-                    $wrapper => [
-                        'type'        => 'array',
-                        'description' => 'Array of records.',
-                        'items'       => [
-                            '$ref' => '#/definitions/' . $class . 'Response',
-                        ],
-                    ]
-                ],
-            ],
         ];
 
-        return ['paths' => $apis, 'definitions' => $models];
+        return $models;
     }
 }

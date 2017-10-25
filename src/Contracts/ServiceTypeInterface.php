@@ -47,11 +47,11 @@ interface ServiceTypeInterface
     public function isSingleton();
 
     /**
-     * Is a DreamFactory subscription required to use this service type
+     * DreamFactory subscription required to use this service type, null if none required
      *
-     * @return boolean
+     * @return null|string
      */
-    public function isSubscriptionRequired();
+    public function subscriptionRequired();
 
     /**
      * Is the service definition (OpenAPI document) editable. False if auto-generated.

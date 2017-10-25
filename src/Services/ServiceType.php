@@ -40,9 +40,9 @@ class ServiceType implements ServiceTypeInterface
      */
     protected $dependenciesRequired = null;
     /**
-     * @var boolean True if this service type requires a paid subscription, that has not been designated
+     * @var string If this service type requires a paid subscription, which one
      */
-    protected $subscriptionRequired = false;
+    protected $subscriptionRequired = null;
     /**
      * @var boolean True if this service allows editing the service definition, i.e. swagger def.
      */
@@ -112,7 +112,7 @@ class ServiceType implements ServiceTypeInterface
         return $this->configHandler;
     }
 
-    public function isSubscriptionRequired()
+    public function subscriptionRequired()
     {
         return $this->subscriptionRequired;
     }

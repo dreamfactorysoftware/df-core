@@ -92,7 +92,9 @@ if (!function_exists('camelize')) {
      */
     function camelize($string, $separator = null, $preserveWhiteSpace = false, $isKey = false)
     {
-        empty($separator) && $separator = ['_', '-'];
+        if (empty($separator)) {
+            $separator = ['_', '-'];
+        }
 
         $_newString = ucwords(str_replace($separator, ' ', $string));
 

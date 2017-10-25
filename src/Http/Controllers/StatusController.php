@@ -51,7 +51,7 @@ class StatusController extends Controller
             'dist'             => $dist,
             'demo'             => Environment::isDemoApplication(),
             'version'          => \Config::get('app.version'),
-            'license'          => Environment::getLicenseLevel(Environment::getInstalledPackagesInfo()),
+            'license'          => Environment::getLicenseLevel(),
             'host_os'          => PHP_OS,
             'last_admin_login' => $lastAdminLogin,
             'resources'        => [

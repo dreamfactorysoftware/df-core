@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Contracts\SystemResourceInterface;
@@ -26,6 +27,10 @@ class SystemResourceType implements SystemResourceTypeInterface
      */
     protected $description = '';
     /**
+     * @var string If this resource requires a paid subscription, which one
+     */
+    protected $subscriptionRequired = null;
+    /**
      * @var boolean True if this system resource type should only be created once per instance
      */
     protected $singleton = false;
@@ -38,7 +43,7 @@ class SystemResourceType implements SystemResourceTypeInterface
      */
     protected $className = null;
     /**
-     * @var callable Designated callback for creating a service of this type
+     * @var callable Designated callback for creating a resource of this type
      */
     protected $factory = null;
 
@@ -63,61 +68,36 @@ class SystemResourceType implements SystemResourceTypeInterface
         }
     }
 
-    /**
-     * system resource type - matching registered system resource types
-     *
-     * @return string
-     */
     public function getName()
     {
         return $this->name;
     }
 
-    /**
-     * Displayable system resource type label
-     *
-     * @return string
-     */
     public function getLabel()
     {
         return $this->label;
     }
 
-    /**
-     * system resource type description
-     *
-     * @return string
-     */
     public function getDescription()
     {
         return $this->description;
     }
 
-    /**
-     * system resource type class name
-     *
-     * @return string
-     */
     public function getClassName()
     {
         return $this->className;
     }
 
-    /**
-     * Is this system resource type only to be created once?
-     *
-     * @return boolean
-     */
+    public function subscriptionRequired()
+    {
+        return $this->subscriptionRequired;
+    }
+
     public function isSingleton()
     {
         return $this->singleton;
     }
 
-    /**
-     * Is this system resource type read only?
-     *
-     * @return boolean
-     */
     public function isReadOnly()
     {
         return $this->readOnly;
@@ -144,12 +124,13 @@ class SystemResourceType implements SystemResourceTypeInterface
     public function toArray()
     {
         return [
-            'name'        => $this->name,
-            'label'       => $this->label,
-            'description' => $this->description,
-            'class_name'  => $this->className,
-            'singleton'   => $this->singleton,
-            'read_only'   => $this->readOnly,
+            'name'                  => $this->name,
+            'label'                 => $this->label,
+            'description'           => $this->description,
+            'class_name'            => $this->className,
+            'singleton'             => $this->singleton,
+            'read_only'             => $this->readOnly,
+            'subscription_required' => $this->subscriptionRequired,
         ];
     }
 }

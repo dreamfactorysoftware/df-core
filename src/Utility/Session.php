@@ -39,7 +39,7 @@ class Session
         $mask = static::getServicePermissions($service, $component, $requestor);
 
         if (!($verb & $mask)) {
-            if(false === $exception){
+            if (false === $exception) {
                 return false;
             }
             $msg = ucfirst($action) . " access to ";

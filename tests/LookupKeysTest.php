@@ -29,7 +29,7 @@ class LookupKeysTest extends \DreamFactory\Core\Testing\TestCase
 
         $this->call(Verbs::GET, '/api/v2/system/environment');
 
-        $this->assertEquals(null, Session::get('lookup.host'));
+        $this->assertEquals(Arr::get($this->systemLookup, '0.value'), Session::get('lookup.host'));
     }
 
     public function testSystemLookupWithApiKey()

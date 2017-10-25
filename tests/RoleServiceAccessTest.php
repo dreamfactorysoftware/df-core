@@ -152,7 +152,7 @@ class RoleServiceAccessTest extends \DreamFactory\Core\Testing\TestCase
     {
         $this->setRsa('system', 'app/*', ['GET']);
 
-        $this->assertEquals(VerbsMask::NONE_MASK, $this->check('system', 'app'), 'check(system, app)');
+        $this->assertEquals(VerbsMask::GET_MASK, $this->check('system', 'app'), 'check(system, app)');
         $this->assertEquals(VerbsMask::GET_MASK, $this->check('system', 'app/1'), 'check(system app/1)');
         $this->assertEquals(VerbsMask::NONE_MASK, $this->check('system', ''), 'check(system, "")');
         $this->assertEquals(VerbsMask::NONE_MASK, $this->check('system'), 'check(system)');

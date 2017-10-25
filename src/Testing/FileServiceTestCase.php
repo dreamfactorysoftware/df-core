@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Testing;
 
 use DreamFactory\Core\Enums\Verbs;
@@ -6,10 +7,10 @@ use DreamFactory\Core\Enums\HttpStatusCodes;
 
 abstract class FileServiceTestCase extends TestCase
 {
-    const FOLDER_1 = 'df-test-folder-1';
-    const FOLDER_2 = 'df-test-folder-2';
-    const FOLDER_3 = 'df-test-folder-3';
-    const FOLDER_4 = 'df-test-folder-4';
+    const FOLDER_1   = 'df-test-folder-1';
+    const FOLDER_2   = 'df-test-folder-2';
+    const FOLDER_3   = 'df-test-folder-3';
+    const FOLDER_4   = 'df-test-folder-4';
     const LOCAL_HOST = '192.168.10.11';
 
     /************************************************
@@ -92,7 +93,9 @@ abstract class FileServiceTestCase extends TestCase
 
     public function testPOSTZipFileFromUrl()
     {
-        $rs = $this->makeRequest(Verbs::POST, static::FOLDER_1 . '/f1/', ['url' => 'http://' .  static::LOCAL_HOST .  '/testfiles.zip']);
+        $rs =
+            $this->makeRequest(Verbs::POST, static::FOLDER_1 . '/f1/',
+                ['url' => 'http://' . static::LOCAL_HOST . '/testfiles.zip']);
         $content = json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES);
 
         $this->assertEquals('{"name":"testfiles.zip","path":"' .
@@ -106,7 +109,7 @@ abstract class FileServiceTestCase extends TestCase
         $rs = $this->makeRequest(
             Verbs::POST,
             static::FOLDER_1 . '/f2/',
-            ['url' => 'http://' .  static::LOCAL_HOST .  '/testfiles.zip', 'extract' => 'true', 'clean' => 'true']
+            ['url' => 'http://' . static::LOCAL_HOST . '/testfiles.zip', 'extract' => 'true', 'clean' => 'true']
         );
         $content = json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES);
 
@@ -216,18 +219,26 @@ abstract class FileServiceTestCase extends TestCase
         $payload =
             '{"resource":[{"name":"' .
             static::FOLDER_1 .
-            '/","type":"folder"},{"name":"' .
+            '", "path":"' .
+            static::FOLDER_1 .
+            '/", "type":"folder"},{"name":"' .
             static::FOLDER_2 .
-            '/","type":"folder"}]}';
+            '", "path":"' .
+            static::FOLDER_2 .
+            '/", "type":"folder"}]}';
 
         $rs = $this->makeRequest(Verbs::DELETE, null, ['force' => true], $payload);
 
-        $expected =
+        $expected = $payload =
             '{"resource":[{"name":"' .
             static::FOLDER_1 .
-            '/","path":null,"type":"folder"},{"name":"' .
+            '","path":"' .
+            static::FOLDER_1 .
+            '/","type":"folder"},{"name":"' .
             static::FOLDER_2 .
-            '/","path":null,"type":"folder"}]}';
+            '","path":"' .
+            static::FOLDER_2 .
+            '/","type":"folder"}]}';
 
         $this->assertEquals($expected, json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES));
     }
@@ -246,11 +257,11 @@ abstract class FileServiceTestCase extends TestCase
     {
         $this->addFolder(["resource" => [["name" => static::FOLDER_4, "type" => "folder"]]]);
 
-        $payload = '{"resource":[{"name":"' . static::FOLDER_4 . '", "type": "folder"}]}';
+        $payload = '{"resource":[{"name":"' . static::FOLDER_4 . '", "path":"' . static::FOLDER_4 . '/", "type": "folder"}]}';
 
         $rs = $this->makeRequest(Verbs::DELETE, null, ['force' => true], $payload);
 
-        $this->assertEquals('{"resource":[{"name":"' . static::FOLDER_4 . '","path":null,"type":"folder"}]}',
+        $this->assertEquals('{"resource":[{"name":"' . static::FOLDER_4 . '","path":"' . static::FOLDER_4 . '/","type":"folder"}]}',
             json_encode($rs->getContent(), JSON_UNESCAPED_SLASHES));
     }
 

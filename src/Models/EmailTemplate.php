@@ -37,6 +37,7 @@ class EmailTemplate extends BaseSystemModel
         'cc',
         'bcc',
         'subject',
+        'attachment',
         'body_text',
         'body_html',
         'from_name',
@@ -107,6 +108,18 @@ class EmailTemplate extends BaseSystemModel
     public function getToAttribute($to)
     {
         return static::getArrayIfJSON($to);
+    }
+
+    /** @inheritdoc */
+    public function setAttachmentAttribute($attachment)
+    {
+        $this->attributes['attachment'] = static::getJSONIfArray($attachment);
+    }
+
+    /** @inheritdoc */
+    public function getAttachmentAttribute($attachment)
+    {
+        return static::getArrayIfJSON($attachment);
     }
 
     /** @inheritdoc */

@@ -10,7 +10,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Changed
 - DF-1222 Moving automatic cache flush for service to the ServiceManager
 - Moving access check exceptions to the actual services domain
+- Moving license and subscription requirement handling to the actual services domain
 - Removing app_group system resource and supporting classes, no longer used
+- Upgrading Swagger to OpenAPI 3.0 specification
 ### Fixed
 - Correcting role access view of api/v2 service listing
 

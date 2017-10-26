@@ -271,7 +271,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
             $apiParameters = [];
             $pathParameters = [];
 
-            $eventPath = str_replace('/', '.', trim($path, '/'));
+            $eventPath = $this->name . '.' . str_replace('/', '.', trim($path, '/'));
             $resourcePath = ltrim(strstr(trim($path, '/'), '/'), '/');
             $replacePos = strpos($resourcePath, '{');
 

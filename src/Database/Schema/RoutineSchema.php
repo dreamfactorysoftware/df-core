@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Database\Schema;
 
 /**
@@ -105,18 +106,23 @@ class RoutineSchema extends NamedResourceSchema
 
     public function toArray($use_alias = false)
     {
-        $parameters = [];
-        /** @var ParameterSchema $parameter */
-        foreach ($this->getParameters() as $parameter) {
-            $parameters[] = $parameter->toArray();
+        $out = parent::toArray($use_alias);
+        if ($this->discoveryCompleted) {
+            $parameters = [];
+            /** @var ParameterSchema $parameter */
+            foreach ($this->getParameters() as $parameter) {
+                $parameters[] = $parameter->toArray();
+            }
+
+            $out = array_merge($out,
+                [
+                    'return_type'   => $this->returnType,
+                    'return_schema' => $this->returnSchema,
+                    'params'        => $parameters,
+                ]
+            );
         }
 
-        $out = [
-            'return_type'   => $this->returnType,
-            'return_schema' => $this->returnSchema,
-            'params'        => $parameters,
-        ];
-
-        return array_merge(parent::toArray($use_alias), $out);
+        return $out;
     }
 }

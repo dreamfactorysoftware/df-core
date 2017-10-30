@@ -848,6 +848,8 @@ class BaseModel extends Model
                 $this->buildTableRelations($tableSchema, $references);
             }
 
+            $tableSchema->discoveryCompleted = true;
+
             return $tableSchema;
         });
     }

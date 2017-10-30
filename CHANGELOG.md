@@ -16,6 +16,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Tailor system/environment call for various authentication levels
 ### Fixed
 - Correcting role access view of api/v2 service listing
+- Limit schema object displayed fields when discovery is not complete
 
 ## [0.12.3] - 2017-09-19
 ### Fixed

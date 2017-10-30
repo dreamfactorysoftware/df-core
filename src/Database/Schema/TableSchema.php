@@ -253,25 +253,27 @@ class TableSchema extends NamedResourceSchema
     public function toArray($use_alias = false)
     {
         $out = parent::toArray($use_alias);
-
         $out['plural'] = $this->getPlural();
         $out['is_view'] = $this->isView;
-        $out['primary_key'] = $this->primaryKey;
-        $out['name_field'] = $this->nameField;
 
-        $fields = [];
-        /** @var ColumnSchema $column */
-        foreach ($this->columns as $column) {
-            $fields[] = $column->toArray($use_alias);
-        }
-        $out['field'] = $fields;
+        if ($this->discoveryCompleted) {
+            $out['primary_key'] = $this->primaryKey;
+            $out['name_field'] = $this->nameField;
 
-        $relations = [];
-        /** @var RelationSchema $relation */
-        foreach ($this->relations as $relation) {
-            $relations[] = $relation->toArray($use_alias);
+            $fields = [];
+            /** @var ColumnSchema $column */
+            foreach ($this->columns as $column) {
+                $fields[] = $column->toArray($use_alias);
+            }
+            $out['field'] = $fields;
+
+            $relations = [];
+            /** @var RelationSchema $relation */
+            foreach ($this->relations as $relation) {
+                $relations[] = $relation->toArray($use_alias);
+            }
+            $out['related'] = $relations;
         }
-        $out['related'] = $relations;
 
         return $out;
     }

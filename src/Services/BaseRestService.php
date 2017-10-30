@@ -271,8 +271,12 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
             $apiParameters = [];
             $pathParameters = [];
 
-            $eventPath = $this->name . '.' . str_replace('/', '.', trim($path, '/'));
-            $resourcePath = ltrim(strstr(trim($path, '/'), '/'), '/');
+            $path = trim($path, '/');
+            $eventPath = $this->name;
+            if (!empty($path)) {
+                $eventPath .= '.' . str_replace('/', '.', $path);
+            }
+            $resourcePath = ltrim(strstr($path, '/'), '/');
             $replacePos = strpos($resourcePath, '{');
 
             foreach ($api as $ixOps => $operation) {
@@ -405,7 +409,8 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
             }
             if (isset($content['components'])) {
                 if (isset($content['components']['requestBodies'])) {
-                    $base['components']['requestBodies'] = array_merge((array)array_get($base, 'components.requestBodies'),
+                    $base['components']['requestBodies'] = array_merge((array)array_get($base,
+                        'components.requestBodies'),
                         (array)$content['components']['requestBodies']);
                 }
                 if (isset($content['components']['responses'])) {

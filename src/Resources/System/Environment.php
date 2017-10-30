@@ -28,7 +28,8 @@ class Environment extends BaseSystemResource
         $result['authentication'] = static::getLoginApi(); // auth options
         $result['apps'] = (array)static::getApps(); // app options
 
-        if (SessionUtilities::isAuthenticated()) {
+        // authenticated in some way or default app role, show the following
+        if (SessionUtilities::isAuthenticated() || SessionUtilities::getRoleId()) {
             $result['platform'] = [
                 'version'                => \Config::get('app.version'),
                 'bitnami_demo'           => static::isDemoApplication(),

@@ -13,6 +13,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Moving license and subscription requirement handling to the actual services domain
 - Removing app_group system resource and supporting classes, no longer used
 - Upgrading Swagger to OpenAPI 3.0 specification
+- Tailor system/environment call for various authentication levels
 ### Fixed
 - Correcting role access view of api/v2 service listing
 

@@ -309,7 +309,13 @@ class BaseSystemResource extends BaseRestResource
         $paths = [
             $path           => [
                 'get'    => [
-                    'summary'     => 'get' . $capitalized . $pluralClass . '() - Retrieve one or more ' . $pluralClass . '.',
+                    'summary'     => 'Retrieve one or more ' . $pluralClass . '.',
+                    'description' => 'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
+                        'By default, all records up to the maximum are returned. ' .
+                        'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
+                        'By default, all fields and no relations are returned for each record. ' .
+                        'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
+                        'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                     'operationId' => 'get' . $capitalized . $pluralClass,
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
@@ -328,16 +334,12 @@ class BaseSystemResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
-                    'description' =>
-                        'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
-                        'By default, all records up to the maximum are returned. ' .
-                        'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
-                        'By default, all fields and no relations are returned for each record. ' .
-                        'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
-                        'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                 ],
                 'post'   => [
-                    'summary'     => 'create' . $capitalized . $pluralClass . '() - Create one or more ' . $pluralClass . '.',
+                    'summary'     => 'Create one or more ' . $pluralClass . '.',
+                    'description' => 'Post data should be a single record or an array of records (shown). ' .
+                        'By default, only the id property of the record affected is returned on success, ' .
+                        'use \'fields\' and \'related\' to return more info.',
                     'operationId' => 'create' . $capitalized . $pluralClass,
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
@@ -355,13 +357,12 @@ class BaseSystemResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
-                    'description' =>
-                        'Post data should be a single record or an array of records (shown). ' .
-                        'By default, only the id property of the record affected is returned on success, ' .
-                        'use \'fields\' and \'related\' to return more info.',
                 ],
                 'patch'  => [
-                    'summary'     => 'update' . $capitalized . $pluralClass . '() - Update one or more ' . $pluralClass . '.',
+                    'summary'     => 'Update one or more ' . $pluralClass . '.',
+                    'description' => 'Post data should be a single record or an array of records (shown). ' .
+                        'By default, only the id property of the record is returned on success, ' .
+                        'use \'fields\' and \'related\' to return more info.',
                     'operationId' => 'update' . $capitalized . $pluralClass,
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
@@ -375,13 +376,12 @@ class BaseSystemResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
-                    'description' =>
-                        'Post data should be a single record or an array of records (shown). ' .
-                        'By default, only the id property of the record is returned on success, ' .
-                        'use \'fields\' and \'related\' to return more info.',
                 ],
                 'put'    => [
-                    'summary'     => 'replace' . $capitalized . $pluralClass . '() - Replace one or more ' . $pluralClass . '.',
+                    'summary'     => 'Replace one or more ' . $pluralClass . '.',
+                    'description' => 'Post data should be a single record or an array of records (shown). ' .
+                        'By default, only the id property of the record is returned on success, ' .
+                        'use \'fields\' and \'related\' to return more info.',
                     'operationId' => 'replace' . $capitalized . $pluralClass,
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
@@ -395,13 +395,13 @@ class BaseSystemResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
-                    'description' =>
-                        'Post data should be a single record or an array of records (shown). ' .
-                        'By default, only the id property of the record is returned on success, ' .
-                        'use \'fields\' and \'related\' to return more info.',
                 ],
                 'delete' => [
-                    'summary'     => 'delete' . $capitalized . $pluralClass . '() - Delete one or more ' . $pluralClass . '.',
+                    'summary'     => 'Delete one or more ' . $pluralClass . '.',
+                    'description' => 'By default, only the id property of the record deleted is returned on success. ' .
+                        'Use \'fields\' and \'related\' to return more properties of the deleted records. ' .
+                        'Alternatively, to delete by record or a large list of ids, ' .
+                        'use the POST request with X-HTTP-METHOD = DELETE header and post records or ids.',
                     'operationId' => 'delete' . $capitalized . $pluralClass,
                     'parameters'  => [
                         [
@@ -418,11 +418,6 @@ class BaseSystemResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
-                    'description' =>
-                        'By default, only the id property of the record deleted is returned on success. ' .
-                        'Use \'fields\' and \'related\' to return more properties of the deleted records. ' .
-                        'Alternatively, to delete by record or a large list of ids, ' .
-                        'use the POST request with X-HTTP-METHOD = DELETE header and post records or ids.',
                 ],
             ],
             $path . '/{id}' => [
@@ -436,7 +431,8 @@ class BaseSystemResource extends BaseRestResource
                     ],
                 ],
                 'get'        => [
-                    'summary'     => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
+                    'summary'     => 'Retrieve one ' . $class . '.',
+                    'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                     'operationId' => 'get' . $capitalized . $class,
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
@@ -445,10 +441,11 @@ class BaseSystemResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
-                    'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                 ],
                 'patch'      => [
-                    'summary'     => 'update' . $capitalized . $class . '() - Update one ' . $class . '.',
+                    'summary'     => 'Update one ' . $class . '.',
+                    'description' => 'Post data should be an array of fields to update for a single record. ' .
+                        'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
                     'operationId' => 'update' . $capitalized . $class,
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
@@ -460,12 +457,12 @@ class BaseSystemResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
+                ],
+                'put'        => [
+                    'summary'     => 'Replace one ' . $class . '.',
                     'description' =>
                         'Post data should be an array of fields to update for a single record. ' .
                         'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
-                ],
-                'put'        => [
-                    'summary'     => 'replace' . $capitalized . $class . '() - Replace one ' . $class . '.',
                     'operationId' => 'replace' . $capitalized . $class,
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
@@ -477,12 +474,10 @@ class BaseSystemResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
-                    'description' =>
-                        'Post data should be an array of fields to update for a single record. ' .
-                        'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return more properties.',
                 ],
                 'delete'     => [
-                    'summary'     => 'delete' . $capitalized . $class . '() - Delete one ' . $class . '.',
+                    'summary'     => 'Delete one ' . $class . '.',
+                    'description' => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
                     'operationId' => 'delete' . $capitalized . $class,
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
@@ -491,7 +486,6 @@ class BaseSystemResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
-                    'description' => 'By default, only the id is returned. Use the \'fields\' and/or \'related\' parameter to return deleted properties.',
                 ],
             ],
         ];

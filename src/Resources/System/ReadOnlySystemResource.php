@@ -144,7 +144,14 @@ class ReadOnlySystemResource extends BaseRestResource
                     ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
                 'get'        => [
-                    'summary'     => 'get' . $capitalized . $pluralClass . '() - Retrieve one or more ' . $pluralClass . '.',
+                    'summary'     => 'Retrieve one or more ' . $pluralClass . '.',
+                    'description' =>
+                        'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
+                        'By default, all records up to the maximum are returned. ' .
+                        'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
+                        'By default, all fields and no relations are returned for each record. ' .
+                        'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
+                        'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                     'operationId' => 'get' . $capitalized . $pluralClass,
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::IDS),
@@ -161,13 +168,6 @@ class ReadOnlySystemResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
-                    'description' =>
-                        'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
-                        'By default, all records up to the maximum are returned. ' .
-                        'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
-                        'By default, all fields and no relations are returned for each record. ' .
-                        'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
-                        'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                 ],
             ],
             $path . '/{id}' => [
@@ -183,12 +183,12 @@ class ReadOnlySystemResource extends BaseRestResource
                     ApiOptions::documentOption(ApiOptions::RELATED),
                 ],
                 'get'        => [
-                    'summary'     => 'get' . $capitalized . $class . '() - Retrieve one ' . $class . '.',
+                    'summary'     => 'Retrieve one ' . $class . '.',
+                    'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                     'operationId' => 'get' . $capitalized . $class,
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
-                    'description' => 'Use the \'fields\' and/or \'related\' parameter to limit properties that are returned. By default, all fields and no relations are returned.',
                 ],
             ],
         ];

@@ -517,14 +517,14 @@ class Environment extends BaseSystemResource
         return [
             '/' . $resourceName => [
                 'get' => [
-                    'summary'     => 'get' . $capitalized . 'Environment() - Retrieve system environment.',
+                    'summary'     => 'Retrieve system environment.',
+                    'description' =>
+                        'Minimum environment information given without a valid user session.' .
+                        ' More information given based on user privileges.',
                     'operationId' => 'get' . $capitalized . 'Environment',
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/EnvironmentResponse']
                     ],
-                    'description' =>
-                        'Minimum environment information given without a valid user session.' .
-                        ' More information given based on user privileges.',
                 ],
             ],
         ];

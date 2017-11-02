@@ -153,7 +153,14 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         $paths = [
             '/' . $resourceName => [
                 'get' => [
-                    'summary'     => 'get' . $capitalized . $pluralClass . '() - Retrieve one or more ' . $pluralClass . '.',
+                    'summary'     => 'Retrieve one or more ' . $pluralClass . '.',
+                    'description' =>
+                        'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
+                        'By default, all records up to the maximum are returned. ' .
+                        'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
+                        'By default, all fields and no relations are returned for each record. ' .
+                        'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
+                        'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                     'operationId' => 'get' . $capitalized . $pluralClass,
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::FIELDS),
@@ -172,13 +179,6 @@ class BaseRestResource extends RestHandler implements ResourceInterface
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
-                    'description' =>
-                        'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
-                        'By default, all records up to the maximum are returned. ' .
-                        'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
-                        'By default, all fields and no relations are returned for each record. ' .
-                        'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
-                        'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
                 ],
             ],
         ];

@@ -40,6 +40,10 @@ class BaseModel extends Model
      * @var SchemaInterface
      */
     protected $schemaExtension;
+    /**
+     * @var string
+     */
+    protected $defaultSchema;
 
     public function save(array $options = [])
     {
@@ -709,10 +713,21 @@ class BaseModel extends Model
         return $result;
     }
 
+    protected function getDefaultSchema()
+    {
+        if (!$this->defaultSchema) {
+            $this->defaultSchema = \Cache::rememberForever('default_schema', function () {
+                return $this->getSchema()->getDefaultSchema();
+            });
+        }
+
+        return $this->defaultSchema;
+    }
+
     protected function buildTableRelations(TableSchema $table, $constraints)
     {
         $serviceId = ServiceManager::getServiceIdByName('system');
-        $defaultSchema = $this->getSchema()->getDefaultSchema();
+        $defaultSchema = $this->getDefaultSchema();
         $constraints2 = $constraints;
 
         foreach ($constraints as $key => $constraint) {
@@ -833,7 +848,7 @@ class BaseModel extends Model
         return \Cache::rememberForever('model:' . $this->table, function () {
             $resourceName = $this->table;
             $name = $resourceName;
-            if (empty($schemaName = $this->getSchema()->getDefaultSchema())) {
+            if (empty($schemaName = $this->getDefaultSchema())) {
                 $internalName = $resourceName;
                 $quotedName = $this->getSchema()->quoteTableName($resourceName);;
             } else {

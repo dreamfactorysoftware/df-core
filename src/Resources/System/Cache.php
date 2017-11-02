@@ -84,24 +84,27 @@ class Cache extends BaseRestResource
 
     protected function getApiDocPaths()
     {
+        $service = $this->getServiceName();
+        $capitalized = camelize($service);
         $resourceName = strtolower($this->name);
         $path = '/' . $resourceName;
 
         return [
             $path                => [
                 'delete' => [
-                    'summary'     => 'deleteAllCache() - Delete all cache.',
-                    'operationId' => 'deleteAllCache',
+                    'summary'     => 'Delete all cache.',
+                    'description' => 'This clears all cached information in the system. Doing so may impact the performance of the system.',
+                    'operationId' => 'deleteAllCacheFrom' . $capitalized,
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/Success']
                     ],
-                    'description' => 'This clears all cached information in the system. Doing so may impact the performance of the system.',
                 ],
             ],
             $path . '/{service}' => [
                 'delete' => [
-                    'summary'     => 'deleteServiceCache() - Delete cache for one service.',
-                    'operationId' => 'deleteServiceCache',
+                    'summary'     => 'Delete cache for one service.',
+                    'description' => 'This clears all cached information related to a particular service. Doing so may impact the performance of the service.',
+                    'operationId' => 'deleteServiceCacheFrom' . $capitalized,
                     'parameters'  => [
                         [
                             'name'        => 'service',
@@ -114,7 +117,6 @@ class Cache extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/Success']
                     ],
-                    'description' => 'This clears all cached information related to a particular service. Doing so may impact the performance of the service.',
                 ],
             ],
         ];

@@ -438,9 +438,9 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 //                    'summary'     => '',
 //                    'description' => '',
                 'get' => [
-                    'summary'     => 'get' . $capitalized . 'Resources() - Get resources for this service.',
-                    'operationId' => 'get' . $capitalized . 'Resources',
+                    'summary'     => 'Get resources for this service.',
                     'description' => 'Return an array of the resources available.',
+                    'operationId' => 'get' . $capitalized . 'Resources',
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::AS_LIST),
                         ApiOptions::documentOption(ApiOptions::AS_ACCESS_LIST),

@@ -109,9 +109,9 @@ class Event extends BaseRestResource
         return [
             '/' . $resourceName => [
                 'get' => [
-                    'summary'     => 'get' . $capitalized . 'EventList() - Retrieve list of events.',
-                    'operationId' => 'get' . $capitalized . 'EventList',
+                    'summary'     => 'Retrieve list of events.',
                     'description' => 'A list of event names are returned. The list can be limited by service.',
+                    'operationId' => 'get' . $capitalized . 'EventList',
                     'parameters'  => [
                         ApiOptions::documentOption(ApiOptions::AS_LIST),
                         [

@@ -117,16 +117,17 @@ class UserProfileResource extends BaseRestResource
         $paths = [
             '/' . $resourceName => [
                 'get'  => [
-                    'summary'     => 'get' . $capitalized . 'Profile() - Retrieve the current user\'s profile information.',
+                    'summary'     => 'Retrieve the current user\'s profile information.',
+                    'description' => 'A valid current session is required to use this API. ' .
+                        'This profile, along with password, is the only things that the user can directly change.',
                     'operationId' => 'get' . $capitalized . 'Profile',
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/ProfileResponse']
                     ],
-                    'description' => 'A valid current session is required to use this API. ' .
-                        'This profile, along with password, is the only things that the user can directly change.',
                 ],
                 'post' => [
-                    'summary'     => 'update' . $capitalized . 'Profile() - Update the current user\'s profile information.',
+                    'summary'     => 'Update the current user\'s profile information.',
+                    'description' => 'Update the display name, phone, etc., as well as, security question and answer.',
                     'operationId' => 'update' . $capitalized . 'Profile',
                     'requestBody' => [
                         '$ref' => '#/components/requestBodies/ProfileRequest'
@@ -134,7 +135,6 @@ class UserProfileResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/Success']
                     ],
-                    'description' => 'Update the display name, phone, etc., as well as, security question and answer.',
                 ],
             ],
         ];

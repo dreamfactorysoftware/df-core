@@ -227,15 +227,16 @@ class UserSessionResource extends BaseRestResource
         return [
             '/' . $resourceName => [
                 'get'    => [
-                    'summary'     => 'get' . $capitalized . 'Session() - Retrieve the current user session information.',
+                    'summary'     => 'Retrieve the current user session information.',
+                    'description' => 'Calling this refreshes the current session, or returns an error for timed-out or invalid sessions.',
                     'operationId' => 'get' . $capitalized . 'Session',
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/SessionResponse']
                     ],
-                    'description' => 'Calling this refreshes the current session, or returns an error for timed-out or invalid sessions.',
                 ],
                 'post'   => [
-                    'summary'     => 'create' . $capitalized . 'Session() - Login and create a new user session.',
+                    'summary'     => 'Login and create a new user session.',
+                    'description' => 'Calling this creates a new session and logs in the user.',
                     'operationId' => 'create' . $capitalized . 'Session',
                     'requestBody' => [
                         '$ref' => '#/components/requestBodies/SessionRequest'
@@ -243,10 +244,10 @@ class UserSessionResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/SessionResponse']
                     ],
-                    'description' => 'Calling this creates a new session and logs in the user.',
                 ],
                 'put'    => [
-                    'summary'     => 'refresh' . $capitalized . 'Session() - Refresh user session token.',
+                    'summary'     => 'Refresh user session token.',
+                    'description' => 'Calling this refreshes user session token.',
                     'operationId' => 'refresh' . $capitalized . 'Session',
                     'parameters'  => [
                         [
@@ -265,15 +266,14 @@ class UserSessionResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/SessionResponse']
                     ],
-                    'description' => 'Calling this refreshes user session token.',
                 ],
                 'delete' => [
-                    'summary'     => 'delete' . $capitalized . 'Session() - Logout and destroy the current user session.',
+                    'summary'     => 'Logout and destroy the current user session.',
+                    'description' => 'Calling this deletes the current session and logs out the user.',
                     'operationId' => 'delete' . $capitalized . 'Session',
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/Success']
                     ],
-                    'description' => 'Calling this deletes the current session and logs out the user.',
                 ],
             ],
         ];

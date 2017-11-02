@@ -70,14 +70,17 @@ class Package extends BaseSystemResource
 
     protected function getApiDocPaths()
     {
+        $service = $this->getServiceName();
+        $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
         $resourceName = strtolower($this->name);
 
         $paths = [
             '/' . $resourceName => [
                 'get'  => [
-                    'summary'     => 'getManifestOnly() - Retrieves package manifest for all available resources.',
-                    'operationId' => 'getManifestOnly',
+                    'summary'     => 'Retrieves package manifest for all available resources.',
+                    'description' => 'Get package manifest only',
+                    'operationId' => 'get' . $capitalized . 'ManifestOnly',
                     'parameters'  => [
                         [
                             'name'        => 'system_only',
@@ -96,11 +99,11 @@ class Package extends BaseSystemResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/' . $class . 'Response']
                     ],
-                    'description' => 'Get package manifest only'
                 ],
                 'post' => [
-                    'summary'     => 'importExport' . $class . '() - Exports or Imports package file.',
-                    'operationId' => 'importExport' . $class,
+                    'summary'     => 'Exports or Imports package file.',
+                    'description' => 'Export/Import package file',
+                    'operationId' => 'importExport' . $capitalized . $class,
                     'parameters'  => [
                         [
                             'name'        => 'import_url',
@@ -128,7 +131,6 @@ class Package extends BaseSystemResource
                         '200' => ['$ref' => '#/components/responses/' . $class . 'ExportResponse'],
                         '201' => ['$ref' => '#/components/responses/' . $class . 'ImportResponse'],
                     ],
-                    'description' => 'Export/Import package file'
                 ]
             ]
         ];

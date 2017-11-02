@@ -53,13 +53,16 @@ class Import extends BaseSystemResource
      */
     protected function getApiDocPaths()
     {
+        $service = $this->getServiceName();
+        $capitalized = camelize($service);
         $resourceName = strtolower($this->name);
 
         return [
             '/' . $resourceName => [
                 'post' => [
-                    'summary'     => 'importData() - Imports resource data.',
-                    'operationId' => 'importData',
+                    'summary'     => 'Imports resource data.',
+                    'description' => 'Imports various resource data.',
+                    'operationId' => 'importDataTo' . $capitalized,
 //                    'consumes'    => ['multipart/form-data'],
                     'parameters'  => [
                         [
@@ -85,7 +88,6 @@ class Import extends BaseSystemResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/ImportResponse']
                     ],
-                    'description' => 'Imports various resource data.'
                 ]
             ]
         ];

@@ -499,7 +499,13 @@ class UserPasswordResource extends BaseRestResource
         $paths = [
             '/' . $resourceName => [
                 'post' => [
-                    'summary'     => 'change' . $capitalized . 'Password() - Change or reset the current user\'s password.',
+                    'summary'     => 'Change or reset the current user\'s password.',
+                    'description' =>
+                        'A valid current session along with old and new password are required to change ' .
+                        'the password directly posting \'old_password\' and \'new_password\'. ' .
+                        'To request password reset, post \'email\' and set \'reset\' to true. ' .
+                        'To reset the password from an email confirmation, post \'email\', \'code\', and \'new_password\'. ' .
+                        'To reset the password from a security question, post \'email\', \'security_answer\', and \'new_password\'.',
                     'operationId' => 'change' . $capitalized . 'Password',
                     'parameters'  => [
                         [
@@ -521,12 +527,6 @@ class UserPasswordResource extends BaseRestResource
                     'responses'   => [
                         '200' => ['$ref' => '#/components/responses/PasswordResponse']
                     ],
-                    'description' =>
-                        'A valid current session along with old and new password are required to change ' .
-                        'the password directly posting \'old_password\' and \'new_password\'. ' .
-                        'To request password reset, post \'email\' and set \'reset\' to true. ' .
-                        'To reset the password from an email confirmation, post \'email\', \'code\', and \'new_password\'. ' .
-                        'To reset the password from a security question, post \'email\', \'security_answer\', and \'new_password\'.',
                 ],
             ],
         ];

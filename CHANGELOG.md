@@ -17,6 +17,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ### Fixed
 - Correcting role access view of api/v2 service listing
 - Limit schema object displayed fields when discovery is not complete
+- Fixed NodJS (and Python) scripting error due to big data set in scripts
 
 ## [0.12.3] - 2017-09-19
 ### Fixed

@@ -280,6 +280,7 @@ class ServiceManager
      */
     public function getServiceTypes($group = null)
     {
+        ksort($this->types, SORT_NATURAL); // sort by name for display
         if (!empty($group)) {
             if (!empty($group) && !is_array($group)) {
                 $group = array_map('trim', explode(',', trim($group, ',')));
@@ -288,7 +289,7 @@ class ServiceManager
             $types = [];
             foreach ($this->types as $type) {
                 if (in_array(strtolower($type->getGroup()), $group)) {
-                    $types[] = $type;
+                    $types[$type->getName()] = $type;
                 }
             }
 

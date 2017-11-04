@@ -3,21 +3,28 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [0.13.0] - 2017-11-03
 ### Added
 - DF-1191 Added attachment support for email services and email templates
 - DF-1225 Add ldap_username to lookup availability
-- RBAC support for package export/import
+- RBAC support for system/package endpoint for export or import
+- More detailed error message for Access Forbidden (403)
 ### Changed
 - DF-1222 Moving automatic cache flush for service to the ServiceManager
 - Moving access check exceptions to the actual services domain
 - Moving license and subscription requirement handling to the actual services domain
-- Removing app_group system resource and supporting classes, no longer used
-- Upgrading Swagger to OpenAPI 3.0 specification
-- Tailor system/environment call for various authentication levels
+- Removed app_group system resource and supporting classes, no longer used
+- Upgraded Swagger to OpenAPI 3.0 specification
+- DF-1233, DF-1246 Tailor system/environment call for various authentication levels
+- Updated homestead configuration
+- Updated unit testcases
+- Sort system/service_type by name
 ### Fixed
 - Correcting role access view of api/v2 service listing
-- Limit schema object displayed fields when discovery is not complete
-- Fixed NodJS (and Python) scripting error due to big data set in scripts
+- DF-1184 Limit schema object displayed fields when discovery is not complete
+- Fixed Node.js (and Python) scripting error due to big data set in scripts
+- Catch NotFoundException when purge is triggered by ServiceDeleted event
 
 ## [0.12.3] - 2017-09-19
 ### Fixed
@@ -569,7 +576,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.3...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.13.0...HEAD
+[0.13.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.3...0.13.0
 [0.12.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.2...0.12.3
 [0.12.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.0...0.12.1

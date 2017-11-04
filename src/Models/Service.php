@@ -185,8 +185,8 @@ class Service extends BaseSystemModel
 
         } else {
             if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
-                if ($typeInfo->isSubscriptionRequired()) {
-                    throw new BadRequestException("Provisioning Failed. Subscription required for this service type.");
+                if ($subscription = $typeInfo->subscriptionRequired()) {
+                    throw new BadRequestException("Provisioning Failed. '$subscription' subscription required for this service type.");
                 }
             }
         }

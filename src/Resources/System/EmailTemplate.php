@@ -9,10 +9,8 @@ class EmailTemplate extends BaseSystemResource
      */
     protected static $model = \DreamFactory\Core\Models\EmailTemplate::class;
 
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocSchemas()
     {
-        $base = parent::getApiDocInfo($service, $resource);
-
         $commonProperties = [
             'id'          => [
                 'type'        => 'integer',
@@ -31,21 +29,21 @@ class EmailTemplate extends BaseSystemResource
                 'type'        => 'array',
                 'description' => 'Single or multiple receiver addresses.',
                 'items'       => [
-                    '$ref' => '#/definitions/EmailAddress',
+                    '$ref' => '#/components/schemas/EmailAddress',
                 ],
             ],
             'cc'          => [
                 'type'        => 'array',
                 'description' => 'Optional CC receiver addresses.',
                 'items'       => [
-                    '$ref' => '#/definitions/EmailAddress',
+                    '$ref' => '#/components/schemas/EmailAddress',
                 ],
             ],
             'bcc'         => [
                 'type'        => 'array',
                 'description' => 'Optional BCC receiver addresses.',
                 'items'       => [
-                    '$ref' => '#/definitions/EmailAddress',
+                    '$ref' => '#/components/schemas/EmailAddress',
                 ],
             ],
             'subject'     => [
@@ -61,10 +59,27 @@ class EmailTemplate extends BaseSystemResource
                 'description' => 'Escaped HTML version of the body.',
             ],
             'from'        => [
-                '$ref' => '#/definitions/EmailAddress',
+                '$ref' => '#/components/schemas/EmailAddress',
             ],
             'reply_to'    => [
-                '$ref' => '#/definitions/EmailAddress',
+                '$ref' => '#/components/schemas/EmailAddress',
+            ],
+            'attachment'  => [
+                'type'        => 'array',
+                'description' => 'File(s) to import from storage service or URL for attachment',
+                'items'       => [
+                    'type'       => 'object',
+                    'properties' => [
+                        'service' => [
+                            'type'        => 'string',
+                            'description' => 'Name of the storage service to use.'
+                        ],
+                        'path'    => [
+                            'type'        => 'string',
+                            'description' => 'File path relative to the service.'
+                        ]
+                    ]
+                ]
             ],
             'defaults'    => [
                 'type'        => 'array',
@@ -115,8 +130,6 @@ class EmailTemplate extends BaseSystemResource
             ],
         ];
 
-        $base['definitions'] = array_merge($base['definitions'], $models);
-
-        return $base;
+        return array_merge(parent::getApiDocSchemas(), $models);
     }
 }

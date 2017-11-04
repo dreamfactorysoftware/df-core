@@ -31,7 +31,6 @@ class SystemServiceTest extends \DreamFactory\Core\Testing\TestCase
         $content = $rs->getContent();
 
         $this->assertEquals('system', Arr::get($content, 'name'));
-        $this->assertEquals(14, count($content));
     }
 
     public function testGETServiceByIdWithFields()
@@ -42,6 +41,6 @@ class SystemServiceTest extends \DreamFactory\Core\Testing\TestCase
         $this->assertEquals('system', Arr::get($content, 'name'));
         $this->assertEquals('System Management', Arr::get($content, 'label'));
         $this->assertEquals(1, Arr::get($content, 'id'));
-        $this->assertEquals(4, count($content));
+        $this->assertEquals(3, count($content));
     }
 }

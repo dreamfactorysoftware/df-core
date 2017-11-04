@@ -8,7 +8,6 @@ use DreamFactory\Core\Contracts\ResourceInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Services\BaseRestService;
-use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
 
 /**
@@ -139,87 +138,51 @@ class BaseRestResource extends RestHandler implements ResourceInterface
         return [];
     }
 
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocPaths()
     {
-        $serviceName = strtolower($service);
+        $service = $this->getServiceName();
         $capitalized = camelize($service);
         $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
+        $resourceName = strtolower($this->name);
         $pluralClass = str_plural($class);
-        $path = '/' . $serviceName . '/' . $resourceName;
-        $wrapper = ResourcesWrapper::getWrapper();
+        if ($pluralClass === $class) {
+            // method names can't be the same
+            $pluralClass = $class . 'Entries';
+        }
 
-        return [
-            'paths'       => [
-                $path => [
-                    'get' =>
-                        [
-                            'tags'              => [$serviceName],
-                            'summary'           => 'get' .
-                                $capitalized .
-                                $pluralClass .
-                                '() - List all ' .
-                                $pluralClass,
-                            'operationId'       => 'get' . $capitalized . $pluralClass,
-                            'description'       => 'Return a list of the resource identifiers.',
-                            'parameters'        => [
-                                ApiOptions::documentOption(ApiOptions::AS_LIST),
-                                ApiOptions::documentOption(ApiOptions::ID_FIELD),
-                                ApiOptions::documentOption(ApiOptions::ID_TYPE),
-                                ApiOptions::documentOption(ApiOptions::REFRESH),
-                            ],
-                            'responses'         => [
-                                '200'     => [
-                                    'description' => 'Success',
-                                    'schema'      => [
-                                        '$ref' => '#/definitions/' .
-                                            $pluralClass .
-                                            'Response'
-                                    ]
-                                ],
-                                'default' => [
-                                    'description' => 'Error',
-                                    'schema'      => ['$ref' => '#/definitions/Error']
-                                ]
-                            ],
-                        ],
-                ],
-            ],
-            'definitions' => [
-                $pluralClass . 'List'     => [
-                    'type'       => 'object',
-                    'properties' => [
-                        $wrapper => [
-                            'type'        => 'array',
-                            'description' => 'Array of accessible resources available to this path.',
-                            'items'       => [
-                                'type' => 'string',
-                            ],
-                        ],
+        $paths = [
+            '/' . $resourceName => [
+                'get' => [
+                    'summary'     => 'Retrieve one or more ' . $pluralClass . '.',
+                    'description' =>
+                        'Use the \'ids\' or \'filter\' parameter to limit records that are returned. ' .
+                        'By default, all records up to the maximum are returned. ' .
+                        'Use the \'fields\' and \'related\' parameters to limit properties returned for each record. ' .
+                        'By default, all fields and no relations are returned for each record. ' .
+                        'Alternatively, to retrieve by record, a large list of ids, or a complicated filter, ' .
+                        'use the POST request with X-HTTP-METHOD = GET header and post records or ids.',
+                    'operationId' => 'get' . $capitalized . $pluralClass,
+                    'parameters'  => [
+                        ApiOptions::documentOption(ApiOptions::FIELDS),
+                        ApiOptions::documentOption(ApiOptions::RELATED),
+                        ApiOptions::documentOption(ApiOptions::IDS),
+                        ApiOptions::documentOption(ApiOptions::FILTER),
+                        ApiOptions::documentOption(ApiOptions::LIMIT),
+                        ApiOptions::documentOption(ApiOptions::ORDER),
+                        ApiOptions::documentOption(ApiOptions::GROUP),
+                        ApiOptions::documentOption(ApiOptions::OFFSET),
+                        ApiOptions::documentOption(ApiOptions::COUNT_ONLY),
+                        ApiOptions::documentOption(ApiOptions::INCLUDE_COUNT),
+                        ApiOptions::documentOption(ApiOptions::INCLUDE_SCHEMA),
+                        ApiOptions::documentOption(ApiOptions::FILE),
                     ],
-                ],
-                $class . 'Response'       => [
-                    'type'       => 'object',
-                    'properties' => [
-                        static::getResourceIdentifier() => [
-                            'type'        => 'string',
-                            'description' => 'Identifier of the resource.',
-                        ],
-                    ],
-                ],
-                $pluralClass . 'Response' => [
-                    'type'       => 'object',
-                    'properties' => [
-                        $wrapper => [
-                            'type'        => 'array',
-                            'description' => 'Array of resources available to this path.',
-                            'items'       => [
-                                '$ref' => '#/definitions/' . $class . 'Response',
-                            ],
-                        ],
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/' . $pluralClass . 'Response']
                     ],
                 ],
             ],
         ];
+
+        return $paths;
     }
 }

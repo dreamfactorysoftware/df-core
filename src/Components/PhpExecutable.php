@@ -110,7 +110,10 @@ trait PhpExecutable
 
         // Windows behavior is unpredictable at best with escaped shell commands,
         // workable solution is to save to file and execute from file
-        if (!$this->supportsInlineExecution || (substr(PHP_OS, 0, 3) == 'WIN')) {
+        //
+        // Also, when script is too big (huge data set in script) it won't run
+        // on command line. Solution is to write the script to a file and execute the script file.
+        if (!$this->supportsInlineExecution || (substr(PHP_OS, 0, 3) == 'WIN') || (strlen($payload) > 10000)) {
             if (!empty($payload)) {
                 if (empty($storage_location)) {
                     $storage_location = storage_path() . DIRECTORY_SEPARATOR . $this->commandName;

@@ -42,14 +42,6 @@ class RoleServiceAccess extends BaseSystemModel
     {
         parent::boot();
 
-        static::saving(
-            function (RoleServiceAccess $rsa){
-                if (1 === $rsa->service_id && ('*' === $rsa->component || 'admin' === $rsa->component)) {
-                    throw new BadRequestException('* and/or admin is not allowed on system service.');
-                }
-            }
-        );
-
         static::saved(
             function (RoleServiceAccess $rsa){
                 \Cache::forget('role:'.$rsa->role_id);

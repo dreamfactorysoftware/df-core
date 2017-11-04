@@ -57,7 +57,7 @@ class Import extends Command
 
             $service = $this->option('service');
             $resource = $this->option('resource');
-            $result = ServiceManager::handleRequest($service, Verbs::POST, $resource, [], [], $data, $format);
+            $result = ServiceManager::handleRequest($service, Verbs::POST, $resource, [], [], $data, $format, false);
             if ($result->getStatusCode() >= 300) {
                 $this->error(print_r($result->getContent(), true));
             } else {

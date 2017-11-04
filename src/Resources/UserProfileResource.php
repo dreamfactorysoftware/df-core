@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Resources;
 
 use DreamFactory\Core\Enums\Verbs;
@@ -49,8 +50,8 @@ class UserProfileResource extends BaseRestResource
             'phone'             => $user->phone,
             'security_question' => $user->security_question,
             'default_app_id'    => $user->default_app_id,
-            'oauth_provider'    => (!empty($user->oauth_provider))? $user->oauth_provider : '',
-            'adldap'            => (!empty($user->adldap))? $user->adldap : ''
+            'oauth_provider'    => (!empty($user->oauth_provider)) ? $user->oauth_provider : '',
+            'adldap'            => (!empty($user->adldap)) ? $user->adldap : ''
         ];
 
         return $data;
@@ -65,7 +66,7 @@ class UserProfileResource extends BaseRestResource
      */
     protected function handlePOST()
     {
-        if (empty($payload = $this->getPayloadData())){
+        if (empty($payload = $this->getPayloadData())) {
             throw new BadRequestException('No data supplied for operation.');
         }
 
@@ -81,7 +82,9 @@ class UserProfileResource extends BaseRestResource
             'default_app_id'    => array_get($payload, 'default_app_id')
         ];
 
-        $data = array_filter($data, function ($value) { return !is_null($value);});
+        $data = array_filter($data, function ($value) {
+            return !is_null($value);
+        });
 
         $user = Session::user();
 
@@ -105,66 +108,83 @@ class UserProfileResource extends BaseRestResource
         return ['success' => true];
     }
 
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocPaths()
     {
-        $serviceName = strtolower($service);
+        $service = $this->getServiceName();
         $capitalized = camelize($service);
-        $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
-        $path = '/' . $serviceName . '/' . $resourceName;
+        $resourceName = strtolower($this->name);
 
-        $apis = [
-            $path => [
+        $paths = [
+            '/' . $resourceName => [
                 'get'  => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'get' .
-                        $capitalized .
-                        'Profile() - Retrieve the current user\'s profile information.',
-                    'operationId'       => 'get' . $capitalized . 'Profile',
-                    'responses'         => [
-                        '200'     => [
-                            'description' => 'Profile',
-                            'schema'      => ['$ref' => '#/definitions/ProfileResponse']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description'       =>
-                        'A valid current session is required to use this API. ' .
+                    'summary'     => 'Retrieve the current user\'s profile information.',
+                    'description' => 'A valid current session is required to use this API. ' .
                         'This profile, along with password, is the only things that the user can directly change.',
+                    'operationId' => 'get' . $capitalized . 'Profile',
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/ProfileResponse']
+                    ],
                 ],
                 'post' => [
-                    'tags'              => [$serviceName],
-                    'summary'           => 'update' .
-                        $capitalized .
-                        'Profile() - Update the current user\'s profile information.',
-                    'operationId'       => 'update' . $capitalized . 'Profile',
-                    'parameters'        => [
-                        [
-                            'name'        => 'body',
-                            'description' => 'Data containing name-value pairs for the user profile.',
-                            'schema'      => ['$ref' => '#/definitions/ProfileRequest'],
-                            'in'          => 'body',
-                            'required'    => true,
-                        ],
+                    'summary'     => 'Update the current user\'s profile information.',
+                    'description' => 'Update the display name, phone, etc., as well as, security question and answer.',
+                    'operationId' => 'update' . $capitalized . 'Profile',
+                    'requestBody' => [
+                        '$ref' => '#/components/requestBodies/ProfileRequest'
                     ],
-                    'responses'         => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/Success']
                     ],
-                    'description'       => 'Update the display name, phone, etc., as well as, security question and answer.',
                 ],
             ],
         ];
 
+        return $paths;
+    }
+
+    protected function getApiDocRequests()
+    {
+        $requests = [
+            'ProfileRequest' => [
+                'description' => 'Request',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/ProfileRequest']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/ProfileRequest']
+                    ],
+                ],
+            ]
+        ];
+
+        return $requests;
+    }
+
+    protected function getApiDocResponses()
+    {
+        $requests = [
+            'ProfileResponse' => [
+                'description' => 'Response',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/ProfileResponse']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/ProfileResponse']
+                    ],
+                ],
+            ]
+        ];
+
+        return $requests;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getApiDocSchemas()
+    {
         $commonProfile = [
             'email'             => [
                 'type'        => 'string',
@@ -216,6 +236,6 @@ class UserProfileResource extends BaseRestResource
             ],
         ];
 
-        return ['paths' => $apis, 'definitions' => $models];
+        return $models;
     }
 }

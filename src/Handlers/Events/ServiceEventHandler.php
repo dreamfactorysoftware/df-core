@@ -2,20 +2,18 @@
 
 namespace DreamFactory\Core\Handlers\Events;
 
-use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Events\ApiEvent;
 use DreamFactory\Core\Events\BaseServiceEvent;
 use DreamFactory\Core\Events\ServiceDeletedEvent;
 use DreamFactory\Core\Events\ServiceAssignedEvent;
 use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Models\BaseModel;
-use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Services\BaseRestService;
 use DreamFactory\Core\Models\ServiceEventMap;
-use Illuminate\Contracts\Events\Dispatcher;
+use DreamFactory\Core\Services\BaseRestService;
 use Cache;
 use Config;
 use Event;
+use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Database\Events\QueryExecuted;
 use Log;
 use ServiceManager;
@@ -61,7 +59,7 @@ class ServiceEventHandler
     {
         $eventName = str_replace('.queued', null, $event->name);
         $ckey = 'event:' . $eventName;
-        $records = Cache::remember($ckey, Config::get('df.default_cache_ttl'), function () use ($eventName){
+        $records = Cache::remember($ckey, Config::get('df.default_cache_ttl'), function () use ($eventName) {
             return ServiceEventMap::whereEvent($eventName)->get()->all();
         });
         if (empty($records)) {
@@ -69,7 +67,7 @@ class ServiceEventHandler
             $serviceName = substr($eventName, 0, strpos($eventName, '.'));
             $wildcardEvent = $serviceName . '.*';
             $ckey = 'event:' . $wildcardEvent;
-            $records = Cache::remember($ckey, Config::get('df.default_cache_ttl'), function () use ($wildcardEvent){
+            $records = Cache::remember($ckey, Config::get('df.default_cache_ttl'), function () use ($wildcardEvent) {
                 return ServiceEventMap::whereEvent($wildcardEvent)->get()->all();
             });
         }
@@ -90,19 +88,7 @@ class ServiceEventHandler
      */
     public function handleServiceChangeEvent($event)
     {
-        ServiceManager::purge($event->service->name);
-        $serviceId = $event->service->id;
-        if ($serviceId) {
-            // Need to make sure service exits before clearing
-            // service cache as this event handler is also
-            // invoked when service is deleted.
-            if (Service::whereId($serviceId)->exists()) {
-                $service = ServiceManager::getServiceById($serviceId);
-                if ($service instanceof CacheInterface) {
-                    $service->flush();
-                }
-            }
-        }
+        ServiceManager::purge($event->service->name); // clear out any old config
     }
 
     public function handleQueryExecutedEvent($event)

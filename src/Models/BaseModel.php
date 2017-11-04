@@ -14,6 +14,7 @@ use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\DbResourceTypes;
+use DreamFactory\Core\Enums\DbSimpleTypes;
 use DreamFactory\Core\Exceptions\BatchException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
@@ -23,8 +24,8 @@ use DreamFactory\Core\Utility\Session as SessionUtility;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use SystemTableModelMapper;
 use ServiceManager;
+use SystemTableModelMapper;
 
 /**
  * Class BaseModel
@@ -39,6 +40,10 @@ class BaseModel extends Model
      * @var SchemaInterface
      */
     protected $schemaExtension;
+    /**
+     * @var string
+     */
+    protected $defaultSchema;
 
     public function save(array $options = [])
     {
@@ -693,6 +698,146 @@ class BaseModel extends Model
         return $this->getTableSchema()->relations;
     }
 
+    protected function getTableReferences($refresh = false)
+    {
+        $result = null;
+        $cacheKey = 'system_table_refs';
+        if ($refresh || (is_null($result = \Cache::get($cacheKey)))) {
+            $schema = $this->getSchema();
+            if ($schema->supportsResourceType(DbResourceTypes::TYPE_TABLE_RELATIONSHIP)) {
+                $result = $schema->getResourceNames(DbResourceTypes::TYPE_TABLE_RELATIONSHIP);
+                \Cache::forever($cacheKey, $result);
+            }
+        }
+
+        return $result;
+    }
+
+    protected function getDefaultSchema()
+    {
+        if (!$this->defaultSchema) {
+            $this->defaultSchema = \Cache::rememberForever('default_schema', function () {
+                return $this->getSchema()->getDefaultSchema();
+            });
+        }
+
+        return $this->defaultSchema;
+    }
+
+    protected function buildTableRelations(TableSchema $table, $constraints)
+    {
+        $serviceId = ServiceManager::getServiceIdByName('system');
+        $defaultSchema = $this->getDefaultSchema();
+        $constraints2 = $constraints;
+
+        foreach ($constraints as $key => $constraint) {
+            $constraint = array_change_key_case((array)$constraint, CASE_LOWER);
+            $ts = $constraint['table_schema'];
+            $tn = $constraint['table_name'];
+            $cn = $constraint['column_name'];
+            $rts = $constraint['referenced_table_schema'];
+            $rtn = $constraint['referenced_table_name'];
+            $rcn = $constraint['referenced_column_name'];
+            if ((0 == strcasecmp($tn, $table->resourceName)) && (0 == strcasecmp($ts, $table->schemaName))) {
+                $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
+                $column = $table->getColumn($cn);
+                $table->foreignKeys[strtolower($cn)] = [$name, $rcn];
+                if (isset($column)) {
+                    $column->isForeignKey = true;
+                    $column->refTable = $name;
+                    $column->refField = $rcn;
+                    if (DbSimpleTypes::TYPE_INTEGER === $column->type) {
+                        $column->type = DbSimpleTypes::TYPE_REF;
+                    }
+                    $table->addColumn($column);
+                }
+
+                // Add it to our foreign references as well
+                $relation =
+                    new RelationSchema([
+                        'type'           => RelationSchema::BELONGS_TO,
+                        'field'          => $cn,
+                        'ref_service_id' => $serviceId,
+                        'ref_table'      => $name,
+                        'ref_field'      => $rcn,
+                    ]);
+
+                $table->addRelation($relation);
+            } elseif ((0 == strcasecmp($rtn, $table->resourceName)) && (0 == strcasecmp($rts, $table->schemaName))) {
+                $name = ($ts == $defaultSchema) ? $tn : $ts . '.' . $tn;
+                switch (strtolower((string)array_get($constraint, 'constraint_type'))) {
+                    case 'primary key':
+                    case 'unique':
+                    case 'p':
+                    case 'u':
+                        $relation = new RelationSchema([
+                            'type'           => RelationSchema::HAS_ONE,
+                            'field'          => $rcn,
+                            'ref_service_id' => $serviceId,
+                            'ref_table'      => $name,
+                            'ref_field'      => $cn,
+                        ]);
+                        break;
+                    default:
+                        $relation = new RelationSchema([
+                            'type'           => RelationSchema::HAS_MANY,
+                            'field'          => $rcn,
+                            'ref_service_id' => $serviceId,
+                            'ref_table'      => $name,
+                            'ref_field'      => $cn,
+                        ]);
+                        break;
+                }
+
+                if ($oldRelation = $table->getRelation($relation->name)) {
+                    if (RelationSchema::HAS_ONE !== $oldRelation->type) {
+                        $table->addRelation($relation); // overrides HAS_MANY
+                    }
+                } else {
+                    $table->addRelation($relation);
+                }
+
+                // if other has foreign keys to other tables, we can say these are related as well
+                foreach ($constraints2 as $key2 => $constraint2) {
+                    if (0 != strcasecmp($key, $key2)) // not same key
+                    {
+                        $constraint2 = array_change_key_case((array)$constraint2, CASE_LOWER);
+                        $ts2 = $constraint2['table_schema'];
+                        $tn2 = $constraint2['table_name'];
+                        $cn2 = $constraint2['column_name'];
+                        if ((0 == strcasecmp($ts2, $ts)) && (0 == strcasecmp($tn2, $tn))
+                        ) {
+                            $rts2 = $constraint2['referenced_table_schema'];
+                            $rtn2 = $constraint2['referenced_table_name'];
+                            $rcn2 = $constraint2['referenced_column_name'];
+                            if ((0 != strcasecmp($rts2, $table->schemaName)) ||
+                                (0 != strcasecmp($rtn2, $table->resourceName))
+                            ) {
+                                $name2 = ($rts2 == $table->schemaName) ? $rtn2 : $rts2 . '.' . $rtn2;
+                                // not same as parent, i.e. via reference back to self
+                                // not the same key
+                                $relation =
+                                    new RelationSchema([
+                                        'type'                => RelationSchema::MANY_MANY,
+                                        'field'               => $rcn,
+                                        'ref_service_id'      => $serviceId,
+                                        'ref_table'           => $name2,
+                                        'ref_field'           => $rcn2,
+                                        'junction_service_id' => $serviceId,
+                                        'junction_table'      => $name,
+                                        'junction_field'      => $cn,
+                                        'junction_ref_field'  => $cn2
+                                    ]);
+
+                                $table->addRelation($relation);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * Gets the TableSchema for this model.
      *
@@ -703,7 +848,7 @@ class BaseModel extends Model
         return \Cache::rememberForever('model:' . $this->table, function () {
             $resourceName = $this->table;
             $name = $resourceName;
-            if (empty($schemaName = $this->getSchema()->getDefaultSchema())) {
+            if (empty($schemaName = $this->getDefaultSchema())) {
                 $internalName = $resourceName;
                 $quotedName = $this->getSchema()->quoteTableName($resourceName);;
             } else {
@@ -711,10 +856,16 @@ class BaseModel extends Model
                 $quotedName = $this->getSchema()->quoteTableName($schemaName) . '.' . $this->getSchema()->quoteTableName($resourceName);;
             }
             $settings = compact('schemaName', 'resourceName', 'name', 'internalName', 'quotedName');
-            $result = new TableSchema($settings);
-            $result = $this->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $result);
+            $tableSchema = new TableSchema($settings);
+            $tableSchema = $this->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $tableSchema);
+            // merge db relationships
+            if (!empty($references = $this->getTableReferences())) {
+                $this->buildTableRelations($tableSchema, $references);
+            }
 
-            return $result;
+            $tableSchema->discoveryCompleted = true;
+
+            return $tableSchema;
         });
     }
 
@@ -724,7 +875,6 @@ class BaseModel extends Model
             $conn = $this->getConnection();
             $driver = $conn->getDriverName();
             $this->schemaExtension = DbSchemaExtensions::getSchemaExtension($driver, $conn);
-            $this->schemaExtension->setServiceId(ServiceManager::getServiceIdByName('system'));
         }
 
         return $this->schemaExtension;
@@ -1340,13 +1490,13 @@ class BaseModel extends Model
                         case RelationSchema::BELONGS_TO:
                             if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
-                                    '$ref' => '#/definitions/Related' . $refModel . 'Request',
+                                    '$ref' => '#/components/schemas/Related' . $refModel . 'Request',
                                 ];
                             }
 
                             if (array_key_exists($relation->name, $returnableRelatives)) {
                                 $responseRelatives[$relation->name] = [
-                                    '$ref' => '#/definitions/Related' . $refModel . 'Response',
+                                    '$ref' => '#/components/schemas/Related' . $refModel . 'Response',
                                 ];
                             }
                             break;
@@ -1354,7 +1504,7 @@ class BaseModel extends Model
                             if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
+                                    'items'       => ['$ref' => '#/components/schemas/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record directly",
                                 ];
                             }
@@ -1362,7 +1512,7 @@ class BaseModel extends Model
                             if (array_key_exists($relation->name, $returnableRelatives)) {
                                 $responseRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
+                                    'items'       => ['$ref' => '#/components/schemas/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record directly",
                                 ];
                             }
@@ -1375,7 +1525,7 @@ class BaseModel extends Model
                             if ($this->isFillable($relation->name)) {
                                 $requestRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Request'],
+                                    'items'       => ['$ref' => '#/components/schemas/Related' . $refModel . 'Request'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
                                 ];
                             }
@@ -1383,7 +1533,7 @@ class BaseModel extends Model
                             if (array_key_exists($relation->name, $returnableRelatives)) {
                                 $responseRelatives[$relation->name] = [
                                     'type'        => 'array',
-                                    'items'       => ['$ref' => '#/definitions/Related' . $refModel . 'Response'],
+                                    'items'       => ['$ref' => '#/components/schemas/Related' . $refModel . 'Response'],
                                     'description' => "Zero or more $refModel records that are potentially linked to this record via the $pivotModel table.",
                                 ];
                             }
@@ -1404,21 +1554,21 @@ class BaseModel extends Model
                     'required'   => $required,
                     'properties' => $requestFields + $requestRelatives
                 ];
-                $definitions['Related' . $name . 'Request'] = [
-                    'type'       => 'object',
-                    'required'   => $required,
-                    'properties' => $requestFields
-                ];
+//                $definitions['Related' . $name . 'Request'] = [
+//                    'type'       => 'object',
+//                    'required'   => $required,
+//                    'properties' => $requestFields
+//                ];
             }
             if (!empty($responseFields)) {
                 $definitions[$name . 'Response'] = [
                     'type'       => 'object',
                     'properties' => $responseFields + $responseRelatives
                 ];
-                $definitions['Related' . $name . 'Response'] = [
-                    'type'       => 'object',
-                    'properties' => $responseFields
-                ];
+//                $definitions['Related' . $name . 'Response'] = [
+//                    'type'       => 'object',
+//                    'properties' => $responseFields
+//                ];
             }
 
             return $definitions;

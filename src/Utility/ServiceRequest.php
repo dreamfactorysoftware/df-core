@@ -337,16 +337,51 @@ class ServiceRequest implements ServiceRequestInterface
     }
 
     /**
-     * {@inheritdoc}
+     * @param null $key
+     * @param null $default
+     *
+     * @return array|mixed
      */
     public function getFile($key = null, $default = null)
     {
-        //Todo:Experiment Request::file()...
         if (null === $key) {
-            return $_FILES;
+            $files = [];
+            foreach ($_FILES as $key => $FILE){
+                $files[$key] = $this->formatFileInfo($FILE);
+            }
+            return $files;
         } else {
-            return array_get($_FILES, $key, $default);
+            $file = array_get($_FILES, $key, $default);
+            $file = $this->formatFileInfo($file);
+            return $file;
         }
+    }
+
+    /**
+     * Format file data for ease of use
+     *
+     * @param array|null $fileInfo
+     *
+     * @return array
+     */
+    protected function formatFileInfo($fileInfo)
+    {
+        if(empty($fileInfo) || !is_array($fileInfo) || isset($fileInfo[0])){
+            return $fileInfo;
+        }
+
+        $file = [];
+        foreach ($fileInfo as $key => $value){
+            if(is_array($value)){
+                foreach ($value as $k => $v){
+                    $file[$k][$key] = $v;
+                }
+            } else {
+                $file[$key] = $value;
+            }
+        }
+
+        return $file;
     }
 
     /**

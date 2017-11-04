@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Contracts;
 
 /**
@@ -46,11 +47,11 @@ interface ServiceTypeInterface
     public function isSingleton();
 
     /**
-     * Is a DreamFactory subscription required to use this service type
+     * DreamFactory subscription required to use this service type, null if none required
      *
-     * @return boolean
+     * @return null|string
      */
-    public function isSubscriptionRequired();
+    public function subscriptionRequired();
 
     /**
      * Is the service definition (OpenAPI document) editable. False if auto-generated.
@@ -82,6 +83,16 @@ interface ServiceTypeInterface
      * @return \DreamFactory\Core\Contracts\ServiceInterface|null
      */
     public function make($name, array $config = []);
+
+    /**
+     * Is the path a role access exception for this service type
+     *
+     * @param string|int  $action
+     * @param string|null $path
+     *
+     * @return boolean
+     */
+    public function isAccessException($action, $path = null);
 
     /**
      * Return the service type information as an array.

@@ -59,7 +59,8 @@ interface ServiceInterface extends RequestHandlerInterface
     public function getEventMap();
 
     /**
+     * @param bool $refresh
      * @return array|null
      */
-    public function getApiDoc();
+    public function getApiDoc($refresh = false);
 }

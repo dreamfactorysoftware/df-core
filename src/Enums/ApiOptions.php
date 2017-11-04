@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Enums;
 
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
@@ -139,199 +140,150 @@ class ApiOptions extends FactoryEnum
         self::GROUP  => ['group_by'],
     ];
 
-    protected static $swaggerMap = [
+    protected static $optionMap = [
         self::IDS                  => [
-            'name'             => self::IDS,
-            'type'             => 'array',
-            'collectionFormat' => 'csv',
-            'items'            => [
-                'type'   => 'integer',
-                'format' => 'int32'
-            ],
-            'in'               => 'query',
-            'description'      => 'Comma-delimited list of the identifiers of the records to retrieve.',
+            'type'        => 'int[]',
+            'description' => 'Comma-delimited list of the identifiers of the records to retrieve.',
         ],
         self::ID_FIELD             => [
-            'name'             => self::ID_FIELD,
-            'type'             => 'array',
-            'collectionFormat' => 'csv',
-            'items'            => [
-                'type' => 'string',
-            ],
-            'in'               => 'query',
-            'description'      => 'Comma-delimited list of the fields used as identifiers, used to override defaults or provide identifiers when none are provisioned.'
+            'type'        => 'string[]',
+            'description' => 'Comma-delimited list of the fields used as identifiers, used to override defaults or provide identifiers when none are provisioned.'
         ],
         self::ID_TYPE              => [
-            'name'             => self::ID_TYPE,
-            'type'             => 'array',
-            'collectionFormat' => 'csv',
-            'items'            => [
-                'type' => 'string',
-            ],
-            'in'               => 'query',
-            'description'      => 'Comma-delimited list of the field types used as identifiers for the table, used to override defaults or provide identifiers when none are provisioned.'
+            'type'        => 'string[]',
+            'description' => 'Comma-delimited list of the field types used as identifiers for the table, used to override defaults or provide identifiers when none are provisioned.'
         ],
         self::FILTER               => [
-            'name'        => self::FILTER,
             'type'        => 'string',
-            'in'          => 'query',
             'description' => 'SQL-like filter to limit the records to retrieve.'
         ],
         self::LIMIT                => [
-            'name'        => self::LIMIT,
-            'type'        => 'integer',
-            'format'      => 'int32',
-            'in'          => 'query',
+            'type'        => 'int',
             'description' => 'Set to limit the filter results.'
         ],
         self::ORDER                => [
-            'name'        => self::ORDER,
             'type'        => 'string',
-            'in'          => 'query',
             'description' => 'SQL-like order containing field and direction for filter results.'
         ],
         self::GROUP                => [
-            'name'        => self::GROUP,
             'type'        => 'string',
-            'in'          => 'query',
             'description' => 'Comma-delimited list of the fields used for grouping of filter results.'
         ],
         self::HAVING               => [
-            'name'        => self::HAVING,
             'type'        => 'string',
-            'in'          => 'query',
             'description' => 'SQL-like filter to limit the results after the grouping of filter results.'
         ],
         self::OFFSET               => [
-            'name'        => self::OFFSET,
-            'type'        => 'integer',
-            'format'      => 'int32',
-            'in'          => 'query',
+            'type'        => 'int',
             'description' => 'Set to offset the filter results to a particular record count.'
         ],
         self::FIELDS               => [
-            'name'             => self::FIELDS,
-            'type'             => 'array',
-            'collectionFormat' => 'csv',
-            'items'            => [
-                'type' => 'string',
-            ],
-            'in'               => 'query',
-            'description'      => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier.'
+            'type'        => 'string[]',
+            'description' => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier.'
         ],
         self::CONTINUES            => [
-            'name'        => self::CONTINUES,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'In batch scenarios where supported, continue processing even after one action fails. Default behavior is to halt and return results up to the first point of failure.'
         ],
         self::ROLLBACK             => [
-            'name'        => self::ROLLBACK,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'In batch scenarios where supported, rollback all actions if one action fails. Default behavior is to halt and return results up to the first point of failure.'
         ],
         self::RELATED              => [
-            'name'             => self::RELATED,
-            'type'             => 'array',
-            'collectionFormat' => 'csv',
-            'items'            => [
-                'type' => 'string',
-            ],
-            'in'               => 'query',
-            'description'      => 'Comma-delimited list of related names to retrieve for each resource.'
+            'type'        => 'string[]',
+            'description' => 'Comma-delimited list of related names to retrieve for each resource.'
         ],
         self::ALLOW_RELATED_DELETE => [
-            'name'        => self::ALLOW_RELATED_DELETE,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'Set to true to allow related records to be deleted on parent update.'
         ],
         self::INCLUDE_ACCESS       => [
-            'name'        => self::INCLUDE_ACCESS,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'Include the access permissions for the returned resource.'
         ],
         self::COUNT_ONLY           => [
-            'name'        => self::COUNT_ONLY,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'Return only the total number of filter results.'
         ],
         self::INCLUDE_COUNT        => [
-            'name'        => self::INCLUDE_COUNT,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'Include the total number of filter results in returned metadata.'
         ],
         self::INCLUDE_SCHEMA       => [
-            'name'        => self::INCLUDE_SCHEMA,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'Include the schema of the table queried in returned metadata.'
         ],
         self::AS_LIST              => [
-            'name'        => self::AS_LIST,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'Return only a list of the resource identifiers.'
         ],
         self::AS_ACCESS_LIST       => [
-            'name'        => self::AS_ACCESS_LIST,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'Returns a list of the resources for role access designation.'
         ],
         self::REFRESH              => [
-            'name'        => self::REFRESH,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'Refresh any cached resource list on the server.'
         ],
         self::REGENERATE           => [
-            'name'        => self::SCHEMA,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'Generate a new API key for this application.'
         ],
         self::FORCE                => [
-            'name'        => self::FORCE,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'Set to true to delete all resources in the given table, folder, etc.'
         ],
         self::FILE                 => [
-            'name'        => self::FILE,
             'type'        => 'string',
-            'in'          => 'query',
-            'description' => 'Download the results of the request as a file. <b>This is here for documentation purpose only. File will not download using API Docs.</b> '
+            'description' => 'Download the results of the request as a file. **This is here for documentation purpose only. File will not download using API Docs.**'
         ],
         self::SCHEMA               => [
-            'name'        => self::SCHEMA,
             'type'        => 'string',
-            'in'          => 'query',
             'description' => 'Select only a single schema of a database. Not applicable on all database services.'
         ],
         self::SEND_INVITE          => [
-            'name'        => self::SEND_INVITE,
             'type'        => 'boolean',
-            'in'          => 'query',
             'description' => 'Send email invite to user.'
         ],
     ];
 
-    public static function documentOption($option, $required = false, $default = null)
+    public static function documentOption($option, $required = false)
     {
-        if (isset(static::$swaggerMap[$option])) {
-            $found = static::$swaggerMap[$option];
-//            if ($required || isset($default)) {
+        if (isset(static::$optionMap[$option])) {
+            $found = static::$optionMap[$option];
+            $found['name'] = $option;
+            $found['in'] = 'query';
+            $type = array_get($found, 'type', 'string');
+            unset($found['type']);
+            switch ($type) {
+                case 'int[]':
+                    $found['schema'] = [
+                        'type'  => 'array',
+                        'items' => [
+                            'type'   => 'integer',
+                            'format' => 'int32'
+                        ],
+                    ];
+                    break;
+                case 'string[]':
+                    $found['schema'] = [
+                        'type'  => 'array',
+                        'items' => [
+                            'type' => 'string',
+                        ],
+                    ];
+                    break;
+                case 'int':
+                    $found['schema'] = ['type' => 'integer', 'format' => 'int32'];
+                    break;
+                default:
+                    $found['schema'] = ['type' => $type];
+                    break;
+            }
+
             // override, do not reference
             if ($required) {
                 $found['required'] = true;
-            }
-            if (isset($default)) {
-                $found['default'] = $default;
             }
 
             return $found;
@@ -366,7 +318,7 @@ class ApiOptions extends FactoryEnum
         ServiceRequestInterface $request,
         $default = null,
         $checkPayload = false
-    ){
+    ) {
         $checkBool = ('boolean' === static::getType($option));
         $value = ($checkBool) ? $request->getParameterAsBool($option) : $request->getParameter($option);
         if (!is_null($value)) {
@@ -394,15 +346,10 @@ class ApiOptions extends FactoryEnum
 
     public static function getType($option)
     {
-        if (isset(static::$swaggerMap[$option], static::$swaggerMap[$option]['type'])) {
-            return static::$swaggerMap[$option]['type'];
+        if (isset(static::$optionMap[$option], static::$optionMap[$option]['type'])) {
+            return static::$optionMap[$option]['type'];
         }
 
         return 'string';
-    }
-
-    public static function getSwaggerGlobalParameters()
-    {
-        return static::$swaggerMap;
     }
 }

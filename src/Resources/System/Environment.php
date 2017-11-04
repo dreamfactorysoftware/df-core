@@ -3,47 +3,20 @@
 namespace DreamFactory\Core\Resources\System;
 
 use DreamFactory\Core\Enums\AppTypes;
+use DreamFactory\Core\Enums\LicenseLevel;
+use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Models\App as AppModel;
-use DreamFactory\Core\Models\AppGroup as AppGroupModel;
 use DreamFactory\Core\Models\Config as SystemConfig;
 use DreamFactory\Core\Models\Service as ServiceModel;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Utility\Curl;
 use DreamFactory\Core\Utility\Session as SessionUtilities;
-use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Validation\ValidationException;
 use ServiceManager;
 use Validator;
 
 class Environment extends BaseSystemResource
 {
-    const GOLD_LICENSE = 'GOLD';
-
-    const SILVER_LICENSE = 'SILVER';
-
-    const OPENSRC_LICENSE = 'OPEN SOURCE';
-
-    const GOLD_PACKAGES = [
-        'df-limits',
-        'df-logger'
-    ];
-
-    const SILVER_PACKAGES = [
-        'df-adldap',
-        'df-azure-ad',
-        'df-ibmdb2',
-        'df-informix',
-        'df-mqtt',
-        'df-notification',
-        'df-oidc',
-        'df-oracledb',
-        'df-salesforce',
-        'df-saml',
-        'df-soap',
-        'df-sqlanywhere',
-        'df-sqlsrv',
-    ];
-
     /**
      * @return array
      */
@@ -51,71 +24,21 @@ class Environment extends BaseSystemResource
     {
         $result = [];
 
-        $result['platform'] = [
-            'version_current'   => \Config::get('app.version'),
-            'version_latest'    => \Config::get('app.version'),
-            'upgrade_available' => false,
-            'bitnami_demo'      => static::isDemoApplication(),
-            'is_hosted'         => env('DF_MANAGED', false),
-            'host'              => php_uname('n')
-        ];
+        // Required when no authentication is provided
+        $result['authentication'] = static::getLoginApi(); // auth options
+        $result['apps'] = (array)static::getApps(); // app options
 
-        $result['client'] = [
-            "user_agent" => \Request::header('User-Agent'),
-            "ip_address" => \Request::getClientIp(),
-            "locale"     => \Request::getLocale()
-        ];
+        // authenticated in some way or default app role, show the following
+        if (SessionUtilities::isAuthenticated() || SessionUtilities::getRoleId()) {
+            $result['platform'] = [
+                'version'                => \Config::get('app.version'),
+                'bitnami_demo'           => static::isDemoApplication(),
+                'is_hosted'              => to_bool(env('DF_MANAGED', false)),
+                'license'                => static::getLicenseLevel(),
+                'secured_package_export' => static::isZipInstalled(),
+            ];
 
-        $login = static::getLoginApi();
-        $apps = static::getApps();
-        $groupedApps = array_get($apps, 0);
-        $noGroupApps = array_get($apps, 1);
-
-        $result['authentication'] = $login;
-        $result['app_group'] = (count($groupedApps) > 0) ? $groupedApps : [];
-        $result['no_group_app'] = (count($noGroupApps) > 0) ? $noGroupApps : [];
-
-        /*
-         * Most API calls return a resource array or a single resource,
-         * If an array, shall we wrap it?, With what shall we wrap it?
-         */
-        $config = [
-            'always_wrap_resources' => \Config::get('df.always_wrap_resources'),
-            'resources_wrapper'     => \Config::get('df.resources_wrapper'),
-            'db'                    => [
-                /** The default number of records to return at once for database queries */
-                'max_records_returned' => \Config::get('database.max_records_returned'),
-                'time_format'          => \Config::get('df.db.time_format'),
-                'date_format'          => \Config::get('df.db.date_format'),
-                'datetime_format'      => \Config::get('df.db.datetime_format'),
-                'timestamp_format'     => \Config::get('df.db.timestamp_format'),
-            ],
-        ];
-        $result['config'] = $config;
-
-        if (SessionUtilities::isSysAdmin()) {
-            $dbDriver = \Config::get('database.default');
-            $result['config']['db']['driver'] = $dbDriver;
-            if ($result['config']['db']['driver'] === 'sqlite') {
-                $result['config']['db']['sqlite_storage'] = \Config::get('df.db.sqlite_storage');
-            }
-            $result['platform']['install_path'] = base_path() . DIRECTORY_SEPARATOR;
-            $result['platform']['log_path'] = env('DF_MANAGED_LOG_PATH', storage_path('logs')) . DIRECTORY_SEPARATOR;
-            $result['platform']['log_mode'] = \Config::get('app.log');
-            $result['platform']['log_level'] = \Config::get('app.log_level');
-            $result['platform']['cache_driver'] = \Config::get('cache.default');
-            $result['platform']['secured_package_export'] = static::isZipInstalled();
-
-            if ($result['platform']['cache_driver'] === 'file') {
-                $result['platform']['cache_path'] = \Config::get('cache.stores.file.path') . DIRECTORY_SEPARATOR;
-            }
-
-            $packages = static::getInstalledPackagesInfo();
-            if (!empty($packages)) {
-                $result['platform']['license'] = static::getLicenseLevel($packages);
-                $result['platform']['packages'] = $packages;
-            }
-
+            // including information that helps users use the API or debug
             $result['server'] = [
                 'server_os' => strtolower(php_uname('s')),
                 'release'   => php_uname('r'),
@@ -124,7 +47,53 @@ class Environment extends BaseSystemResource
                 'machine'   => php_uname('m'),
                 'ip'        => static::getExternalIP()
             ];
-            $result['php'] = static::getPhpInfo();
+
+            $result['client'] = [
+                "user_agent" => \Request::header('User-Agent'),
+                "ip_address" => \Request::getClientIp(),
+                "locale"     => \Request::getLocale()
+            ];
+
+            /*
+             * Most API calls return a resource array or a single resource,
+             * If an array, shall we wrap it?, With what shall we wrap it?
+             */
+            $result['config'] = [
+                'always_wrap_resources' => \Config::get('df.always_wrap_resources'),
+                'resources_wrapper'     => \Config::get('df.resources_wrapper'),
+                'db'                    => [
+                    /** The default number of records to return at once for database queries */
+                    'max_records_returned' => \Config::get('database.max_records_returned'),
+                    'time_format'          => \Config::get('df.db.time_format'),
+                    'date_format'          => \Config::get('df.db.date_format'),
+                    'datetime_format'      => \Config::get('df.db.datetime_format'),
+                    'timestamp_format'     => \Config::get('df.db.timestamp_format'),
+                ],
+            ];
+
+            if (SessionUtilities::isSysAdmin()) {
+                // administrator-only information
+                $dbDriver = \Config::get('database.default');
+                $result['platform']['db_driver'] = $dbDriver;
+                if ($dbDriver === 'sqlite') {
+                    $result['platform']['sqlite_storage'] = \Config::get('df.db.sqlite_storage');
+                }
+                $result['platform']['install_path'] = base_path() . DIRECTORY_SEPARATOR;
+                $result['platform']['log_path'] = env('DF_MANAGED_LOG_PATH',
+                        storage_path('logs')) . DIRECTORY_SEPARATOR;
+                $result['platform']['log_mode'] = \Config::get('app.log');
+                $result['platform']['log_level'] = \Config::get('app.log_level');
+                $result['platform']['cache_driver'] = \Config::get('cache.default');
+
+                if ($result['platform']['cache_driver'] === 'file') {
+                    $result['platform']['cache_path'] = \Config::get('cache.stores.file.path') . DIRECTORY_SEPARATOR;
+                }
+
+                $packages = static::getInstalledPackagesInfo();
+                $result['platform']['packages'] = $packages;
+
+                $result['php'] = static::getPhpInfo();
+            }
         }
 
         return $result;
@@ -149,7 +118,7 @@ class Environment extends BaseSystemResource
      */
     public static function getExternalIP()
     {
-        $ip = \Cache::rememberForever('external-ip-address', function (){
+        $ip = \Cache::rememberForever('external-ip-address', function () {
             $response = Curl::get('http://ipinfo.io/ip');
             $ip = trim($response, "\t\r\n");
             try {
@@ -166,24 +135,26 @@ class Environment extends BaseSystemResource
     }
 
     /**
-     * @param $packages
-     *
      * @return string
      */
-    public static function getLicenseLevel($packages)
+    public static function getLicenseLevel()
     {
-        foreach (static::GOLD_PACKAGES as $gp) {
-            if (!is_null(array_by_key_value($packages, 'name', 'dreamfactory/' . $gp, 'version'))) {
-                return static::GOLD_LICENSE;
-            }
-        }
-        foreach (static::SILVER_PACKAGES as $sp) {
-            if (!is_null(array_by_key_value($packages, 'name', 'dreamfactory/' . $sp, 'version'))) {
-                return static::SILVER_LICENSE;
+        $silver = false;
+        foreach (ServiceManager::getServiceTypes() as $typeInfo) {
+            switch ($typeInfo->subscriptionRequired()) {
+                case LicenseLevel::GOLD:
+                    return LicenseLevel::GOLD; // highest level, bail here
+                case LicenseLevel::SILVER:
+                    $silver = true; // finish loop to make sure there is no gold
+                    break;
             }
         }
 
-        return static::OPENSRC_LICENSE;
+        if ($silver) {
+            return LicenseLevel::SILVER;
+        }
+
+        return LicenseLevel::OPEN_SOURCE;
     }
 
     public static function getInstalledPackagesInfo()
@@ -236,13 +207,6 @@ class Environment extends BaseSystemResource
             $defaultAppId = $user->default_app_id;
 
             if (SessionUtilities::isSysAdmin()) {
-                $appGroups = AppGroupModel::with(
-                    [
-                        'app_by_app_to_app_group' => function ($q){
-                            $q->whereIsActive(1)->whereNotIn('type', [AppTypes::NONE]);
-                        },
-                    ]
-                )->get();
                 $apps = AppModel::whereIsActive(1)->whereNotIn('type', [AppTypes::NONE])->get();
             } else {
                 $userId = $user->id;
@@ -256,27 +220,11 @@ class Environment extends BaseSystemResource
                 $typeString = implode(',', [AppTypes::NONE]);
                 $typeString = (empty($typeString)) ? '-1' : $typeString;
 
-                $appGroups = AppGroupModel::with(
-                    [
-                        'app_by_app_to_app_group' => function ($q) use ($appIdsString, $typeString){
-                            $q->whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type NOT IN ($typeString)");
-                        },
-                    ]
-                )->get();
                 $apps =
                     AppModel::whereRaw("(app.id IN ($appIdsString) OR role_id > 0) AND is_active = 1 AND type NOT IN ($typeString)")
                         ->get();
             }
         } else {
-            $appGroups = AppGroupModel::with(
-                [
-                    'app_by_app_to_app_group' => function ($q){
-                        $q->where('role_id', '>', 0)
-                            ->whereIsActive(1)
-                            ->whereNotIn('type', [AppTypes::NONE]);
-                    },
-                ]
-            )->get();
             $apps = AppModel::whereIsActive(1)
                 ->where('role_id', '>', 0)
                 ->whereNotIn('type', [AppTypes::NONE])
@@ -288,36 +236,13 @@ class Environment extends BaseSystemResource
             $defaultAppId = (!empty($systemConfig)) ? $systemConfig->default_app_id : null;
         }
 
-        $inGroups = [];
-        $groupedApps = [];
-        $noGroupedApps = [];
-
-        foreach ($appGroups as $appGroup) {
-            $appArray = $appGroup->getRelation('app_by_app_to_app_group')->toArray();
-            if (!empty($appArray)) {
-                $appInfo = [];
-                foreach ($appArray as $app) {
-                    $inGroups[] = $app['id'];
-                    $appInfo[] = static::makeAppInfo($app, $defaultAppId);
-                }
-
-                $groupedApps[] = [
-                    'id'          => $appGroup->id,
-                    'name'        => $appGroup->name,
-                    'description' => $appGroup->description,
-                    'app'         => $appInfo,
-                ];
-            }
-        }
-
+        $out = [];
         /** @type AppModel $app */
         foreach ($apps as $app) {
-            if (!in_array($app->id, $inGroups)) {
-                $noGroupedApps[] = static::makeAppInfo($app->toArray(), $defaultAppId);
-            }
+            $out[] = static::makeAppInfo($app->toArray(), $defaultAppId);
         }
 
-        return [$groupedApps, $noGroupedApps];
+        return $out;
     }
 
     protected static function makeAppInfo(array $app, $defaultAppId)
@@ -486,45 +411,6 @@ class Environment extends BaseSystemResource
         return $protocol . '://' . $host;
     }
 
-    //Following codes are directly copied over from 1.x and is not functional.
-
-//    protected function handleGET()
-//    {
-//        $release = null;
-//        $phpInfo = $this->getPhpInfo();
-//
-//        if ( false !== ( $raw = file( static::LSB_RELEASE ) ) && !empty( $raw ) )
-//        {
-//            $release = array();
-//
-//            foreach ( $raw as $line )
-//            {
-//                $fields = explode( '=', $line );
-//                $release[str_replace( 'distrib_', null, strtolower( $fields[0] ) )] = trim( $fields[1], PHP_EOL . '"' );
-//            }
-//        }
-//
-//        $response = array(
-//            'php_info' => $phpInfo,
-//            'platform' => Config::getCurrentConfig(),
-//            'release'  => $release,
-//            'server'   => array(
-//                'server_os' => strtolower( php_uname( 's' ) ),
-//                'uname'     => php_uname( 'a' ),
-//            ),
-//        );
-//
-//        array_multisort( $response );
-//
-//        //	Cache configuration
-//        Platform::storeSet( static::CACHE_KEY, $response, static::CONFIG_CACHE_TTL );
-//
-//        $this->response = $this->response ? array_merge( $this->response, $response ) : $response;
-//        unset( $response );
-//
-//        return $this->response;
-//    }
-
     /**
      * Parses the data coming back from phpinfo() call and returns in an array
      *
@@ -622,35 +508,54 @@ class Environment extends BaseSystemResource
         return $clean;
     }
 
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocPaths()
     {
-        $serviceName = strtolower($service);
+        $service = $this->getServiceName();
         $capitalized = camelize($service);
-        $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
-        $path = '/' . $serviceName . '/' . $resourceName;
+        $resourceName = strtolower($this->name);
 
-        $apis = [
-            $path => [
+        return [
+            '/' . $resourceName => [
                 'get' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'get' . $capitalized . 'Environment() - Retrieve system environment.',
-                    'operationId' => 'get' . $capitalized . 'Environment',
-                    'consumes'    => ['application/json', 'application/xml'],
-                    'produces'    => ['application/json', 'application/xml'],
-                    'responses'   => [
-                        '200' => [
-                            'description' => 'Environment',
-                            'schema'      => ['$ref' => '#/definitions/EnvironmentResponse']
-                        ]
-                    ],
+                    'summary'     => 'Retrieve system environment.',
                     'description' =>
                         'Minimum environment information given without a valid user session.' .
                         ' More information given based on user privileges.',
+                    'operationId' => 'get' . $capitalized . 'Environment',
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/EnvironmentResponse']
+                    ],
                 ],
             ],
         ];
+    }
 
+    protected function getApiDocRequests()
+    {
+        return [];
+    }
+
+    protected function getApiDocResponses()
+    {
+        $class = trim(strrchr(static::class, '\\'), '\\');
+
+        return [
+            $class . 'Response' => [
+                'description' => 'Response',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Response']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/' . $class . 'Response']
+                    ],
+                ],
+            ],
+        ];
+    }
+
+    protected function getApiDocSchemas()
+    {
         $models = [
             'EnvironmentResponse' => [
                 'type'       => 'object',
@@ -659,95 +564,120 @@ class Environment extends BaseSystemResource
                         'type'        => 'object',
                         'description' => 'System platform properties.',
                         'properties'  => [
-                            'version_current'   => [
-                                'type' => 'string',
-                            ],
-                            'version_latest'    => [
-                                'type' => 'string',
-                            ],
-                            'upgrade_available' => [
-                                'type' => 'boolean',
-                            ],
-                            'is_hosted'         => [
-                                'type' => 'boolean',
-                            ],
-                            'host'              => [
-                                'type' => 'string',
-                            ],
+                            'version'   => ['type' => 'string'],
+                            'is_hosted' => ['type' => 'boolean'],
+                            'host'      => ['type' => 'string'],
+                            'license'   => ['type' => 'string'],
                         ],
                     ],
                     'authentication' => [
                         'type'        => 'object',
                         'description' => 'Authentication options for this server.',
                         'properties'  => [
-                            'version_current'   => [
-                                'type' => 'string',
+                            'admin'                     => [
+                                'type'        => 'object',
+                                'description' => 'Admin Authentication.',
+                                'properties'  => [
+                                    'path'    => ['type' => 'string'],
+                                    'verb'    => ['type' => 'boolean'],
+                                    'payload' => ['type' => 'string'],
+                                ],
                             ],
-                            'version_latest'    => [
-                                'type' => 'string',
+                            'user'                      => [
+                                'type'        => 'object',
+                                'description' => 'Admin Authentication.',
+                                'properties'  => [
+                                    'path'    => ['type' => 'string'],
+                                    'verb'    => ['type' => 'boolean'],
+                                    'payload' => ['type' => 'string'],
+                                ],
                             ],
-                            'upgrade_available' => [
-                                'type' => 'boolean',
+                            'oauth'                     => [
+                                'type'        => 'object',
+                                'description' => 'System platform properties.',
+                                'properties'  => [
+                                    'version'   => ['type' => 'string'],
+                                    'is_hosted' => ['type' => 'boolean'],
+                                    'host'      => ['type' => 'string'],
+                                    'license'   => ['type' => 'string'],
+                                ],
                             ],
-                            'is_hosted'         => [
-                                'type' => 'boolean',
+                            'adldap'                    => [
+                                'type'        => 'object',
+                                'description' => 'System platform properties.',
+                                'properties'  => [
+                                    'version'   => ['type' => 'string'],
+                                    'is_hosted' => ['type' => 'boolean'],
+                                    'host'      => ['type' => 'string'],
+                                    'license'   => ['type' => 'string'],
+                                ],
                             ],
-                            'host'              => [
-                                'type' => 'string',
+                            'saml'                      => [
+                                'type'        => 'object',
+                                'description' => 'System platform properties.',
+                                'properties'  => [
+                                    'version'   => ['type' => 'string'],
+                                    'is_hosted' => ['type' => 'boolean'],
+                                    'host'      => ['type' => 'string'],
+                                    'license'   => ['type' => 'string'],
+                                ],
                             ],
+                            'allow_open_registration'   => ['type' => 'boolean'],
+                            'open_reg_email_service_id' => ['type' => 'integer', 'format' => 'int32'],
+                            'allow_forever_sessions'    => ['type' => 'boolean'],
+                            'login_attribute'           => ['type' => 'string'],
                         ],
                     ],
-                    'app_group'      => [
+                    'apps'           => [
                         'type'        => 'array',
-                        'description' => 'Array of groups apps by group name.',
+                        'description' => 'Array of apps.',
                         'items'       => [
-                            '$ref' => '#/definitions/AppsResponse',
-                        ],
-                    ],
-                    'no_app_group'   => [
-                        'type'        => 'array',
-                        'description' => 'Array of ungrouped apps.',
-                        'items'       => [
-                            '$ref' => '#/definitions/AppsResponse',
+                            '$ref' => '#/components/schemas/AppsResponse',
                         ],
                     ],
                     'config'         => [
                         'type'        => 'object',
                         'description' => 'System config properties.',
                         'properties'  => [
-                            'resources_wrapper'     => [
-                                'type' => 'string',
+                            'resources_wrapper'     => ['type' => 'string'],
+                            'always_wrap_resources' => ['type' => 'boolean'],
+                            'db'                    => [
+                                'type'        => 'object',
+                                'description' => 'Database services options.',
+                                'properties'  => [
+                                    'max_records_returned' => ['type' => 'string'],
+                                    'time_format'          => ['type' => 'boolean'],
+                                    'date_format'          => ['type' => 'string'],
+                                    'timedate_format'      => ['type' => 'string'],
+                                    'timestamp_format'     => ['type' => 'string'],
+                                ],
                             ],
-                            'always_wrap_resources' => [
-                                'type' => 'boolean',
-                            ],
+                        ],
+                    ],
+                    'client'         => [
+                        'type'        => 'object',
+                        'description' => 'Calling client properties.',
+                        'properties'  => [
+                            'user_agent' => ['type' => 'string'],
+                            'ip_address' => ['type' => 'string'],
+                            'locale'     => ['type' => 'string'],
                         ],
                     ],
                     'server'         => [
                         'type'        => 'object',
                         'description' => 'System server properties.',
                         'properties'  => [
-                            'server_os' => [
-                                'type' => 'string',
-                            ],
-                            'release'   => [
-                                'type' => 'string',
-                            ],
-                            'version'   => [
-                                'type' => 'string',
-                            ],
-                            'machine'   => [
-                                'type' => 'string',
-                            ],
-                            'host'      => [
-                                'type' => 'string',
-                            ],
+                            'server_os' => ['type' => 'string'],
+                            'release'   => ['type' => 'string'],
+                            'version'   => ['type' => 'string'],
+                            'machine'   => ['type' => 'string'],
+                            'host'      => ['type' => 'string'],
                         ],
                     ],
                 ],
             ],
         ];
 
-        return ['paths' => $apis, 'definitions' => $models];
+        return $models;
     }
 }

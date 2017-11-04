@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
+use DreamFactory\Core\Enums\VerbsMask;
 
 /**
  * Interface ServiceType
@@ -39,9 +40,9 @@ class ServiceType implements ServiceTypeInterface
      */
     protected $dependenciesRequired = null;
     /**
-     * @var boolean True if this service type requires a paid subscription, that has not been designated
+     * @var string If this service type requires a paid subscription, which one
      */
-    protected $subscriptionRequired = false;
+    protected $subscriptionRequired = null;
     /**
      * @var boolean True if this service allows editing the service definition, i.e. swagger def.
      */
@@ -55,6 +56,10 @@ class ServiceType implements ServiceTypeInterface
      * @var callable Designated callback for creating a service of this type
      */
     protected $factory = null;
+    /**
+     * @var callable Designated role access exceptions for handling service of this type
+     */
+    protected $accessExceptions = null;
 
     /**
      * Create a new service type instance.
@@ -107,7 +112,7 @@ class ServiceType implements ServiceTypeInterface
         return $this->configHandler;
     }
 
-    public function isSubscriptionRequired()
+    public function subscriptionRequired()
     {
         return $this->subscriptionRequired;
     }
@@ -125,6 +130,25 @@ class ServiceType implements ServiceTypeInterface
     public function make($name, array $config = [])
     {
         return call_user_func($this->factory, $config, $name);
+    }
+
+    public function isAccessException($action, $path = null)
+    {
+        if (is_string($action)) {
+            $action = VerbsMask::toNumeric($action);
+        }
+        if (isset($this->accessExceptions)) {
+            foreach ($this->accessExceptions as $exception) {
+                if (($action & array_get($exception, 'verb_mask')) &&
+                    (('*' === array_get($exception, 'resource')) ||
+                        ($path === array_get($exception, 'resource')))
+                ) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     public function toArray()

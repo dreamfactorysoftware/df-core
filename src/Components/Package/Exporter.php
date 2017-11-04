@@ -6,13 +6,16 @@ use DreamFactory\Core\ADLdap\Services\LDAP;
 use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
+use DreamFactory\Core\Models\RoleServiceAccess;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\ResponseFactory;
+use DreamFactory\Core\Utility\Session;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Support\Arr;
 use ServiceManager;
@@ -32,6 +35,9 @@ class Exporter
     /** Default storage folder for extracted package file. */
     const DEFAULT_STORAGE_FOLDER = '__EXPORTS';
 
+    /** Flag used for indicating whether a service is reachable or not. */
+    const REACHABLE_FLAG = 'reachable';
+
     /** @type \DreamFactory\Core\Components\Package\Package */
     private $package;
 
@@ -43,10 +49,10 @@ class Exporter
     protected $data = [];
 
     /**
-     * Storage service id or name. This storage
+     * Storage name. This storage
      * service is used to store the extracted zip file.
      *
-     * @type int|string
+     * @type string
      */
     protected $storageService;
 
@@ -109,6 +115,7 @@ class Exporter
      */
     public function export()
     {
+        $this->checkStoragePermission();
         $this->gatherData();
         $this->package->initZipFile();
         $this->addManifestFile();
@@ -117,6 +124,20 @@ class Exporter
         $url = $this->package->saveZipFile($this->storageService, $this->storageFolder);
 
         return $url;
+    }
+
+    /**
+     * Checks to see if the user exporting the package
+     * has permission to storage the package in the target
+     * storage service.
+     *
+     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
+     */
+    protected function checkStoragePermission()
+    {
+        Session::checkServicePermission(
+            Verbs::POST, $this->storageService, trim($this->storageFolder, '/'), Session::getRequestor()
+        );
     }
 
     /**
@@ -152,9 +173,11 @@ class Exporter
     public function getManifestOnly($systemOnly = false, $fullTree = false)
     {
         $this->data['system']['role'] = $this->getAllResources('system', 'role', ['fields' => 'id,name']);
-        $this->data['system']['service'] = $this->getAllResources('system', 'service', ['fields' => 'id,name']);
+        $this->data['system']['service'] =
+            $this->getAllResources('system', 'service', ['fields' => 'id,name'], null, false);
+        // Keeping a separate copy of all services to fetch exportable resources for each services.
+        $allServices = $this->data['system']['service'];
         $this->data['system']['app'] = $this->getAllResources('system', 'app', ['fields' => 'id,name']);
-        $this->data['system']['app_group'] = $this->getAllResources('system', 'app_group', ['fields' => 'id,name']);
         $this->data['system']['user'] =
             $this->getAllResources('system', 'user', ['fields' => 'id,email,username,first_name,last_name']);
         $this->data['system']['admin'] =
@@ -172,6 +195,73 @@ class Exporter
         }
 
         $manifest = $this->package->getManifestHeader();
+        $this->getAllowedSystemResources($manifest);
+
+        // If system/service is not allowed for the user then remove it from output array.
+        if (!Session::checkServicePermission(Verbs::GET, 'system', 'service', Session::getRequestor(), false)) {
+            unset($manifest['service']['system']['service']);
+            if(empty($manifest['service']['system'])){
+                unset($manifest['service']['system']);
+            }
+        }
+
+        if (false === $systemOnly) {
+            $this->getAllowedServiceResources($manifest, $allServices, $fullTree);
+        }
+
+        return $manifest;
+    }
+
+    /**
+     * Gets all service resources (storage and databases) based on RBAC
+     *
+     * @param array $manifest
+     * @param array $allServices
+     * @param bool  $fullTree
+     */
+    private function getAllowedServiceResources(&$manifest, $allServices, $fullTree)
+    {
+        if (!empty($allServices)) {
+            // Get list of active services with type for group lookup
+            foreach ($allServices as $service) {
+                $serviceName = array_get($service, 'name');
+                $serviceId = array_get($service, 'id');
+                if (Session::allowsServiceAccess($serviceName, Session::getRequestor())) {
+                    try {
+                        $service = ServiceManager::getService($serviceName);
+                        if ($service->isActive()) {
+                            $typeInfo = $service->getServiceTypeInfo();
+                            switch ($typeInfo->getGroup()) {
+                                case ServiceTypeGroups::FILE:
+                                    $this->getAllowedStoragePaths($manifest, $serviceName, $serviceId, $fullTree);
+                                    break;
+                                case ServiceTypeGroups::DATABASE:
+                                    $this->getAllowedDatabaseResources($manifest, $serviceName);
+                                    break;
+                            }
+                        } else {
+                            \Log::warning('Excluding inactive service:' . $serviceName . ' from manifest.');
+                        }
+                    } catch (\Exception $e) {
+                        // Error occurred. Flag it, Log and let go.
+                        $manifest['service'][$serviceName][static::REACHABLE_FLAG] = false;
+                        \Log::alert('Failed to include service:' .
+                            $serviceName .
+                            ' in manifest due to error:' .
+                            $e->getMessage());
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Gets all system resources based on RBAC
+     *
+     * @param array $manifest
+     */
+    private function getAllowedSystemResources(&$manifest)
+    {
         foreach ($this->data as $serviceName => $resource) {
             foreach ($resource as $resourceName => $records) {
                 foreach ($records as $record) {
@@ -196,56 +286,102 @@ class Exporter
                 }
             }
         }
+    }
 
-        if (false === $systemOnly) {
-            // get list of active services with type for group lookup
-            foreach ($manifest['service']['system']['service'] as $serviceName) {
-                try {
-                    $service = ServiceManager::getService($serviceName);
-                    if ($service->isActive()) {
-                        $typeInfo = $service->getServiceTypeInfo();
-                        switch ($typeInfo->getGroup()) {
-                            case ServiceTypeGroups::FILE:
-                                $manifest['service'][$serviceName] = $this->getAllResources(
+    /**
+     * Gets all DB service resources based on RBAC
+     *
+     * @param array  $manifest
+     * @param string $serviceName
+     */
+    private function getAllowedDatabaseResources(&$manifest, $serviceName)
+    {
+        $manifest['service'][$serviceName][static::REACHABLE_FLAG] = true;
+        // Get all schema. This honors RBAC at the service level.
+        $result = $this->getAllResources($serviceName, '_schema', ['as_list' => true], null, false);
+
+        if (Session::isSysAdmin()) {
+            // For admins we have all schemas which apply to tables to
+            $manifest['service'][$serviceName]['_schema'] = $result;
+            $manifest['service'][$serviceName]['_table'] = $result;
+        } else {
+            if (!empty($result)) {
+                $manifest['service'][$serviceName]['_schema'] = $result;
+            } else {
+                $manifest['service'][$serviceName]['_schema'] = [];
+            }
+
+            // Get all allowed tables for non-admins
+            $result = $this->getAllResources($serviceName, '_table', ['as_list' => true], null, false);
+
+            if (!empty($result)) {
+                $manifest['service'][$serviceName]['_table'] = $result;
+            } else {
+                $manifest['service'][$serviceName]['_table'] = [];
+            }
+        }
+    }
+
+    /**
+     * Gets all allowed storage paths based on RBAC
+     *
+     * @param array   $manifest
+     * @param string  $serviceName
+     * @param integer $serviceId
+     * @param bool    $fullTree
+     */
+    private function getAllowedStoragePaths(&$manifest, $serviceName, $serviceId, $fullTree)
+    {
+        if (Session::isSysAdmin()) {
+            // Get all paths bypassing RBAC
+            $manifest['service'][$serviceName] = $this->getAllResources(
+                $serviceName, '', ['as_list' => true, 'full_tree' => $fullTree], null, false
+            );
+        } else {
+            $roleId = Session::getRoleId();
+            $requestorMask = Session::getRequestor();
+            $manifest['service'][$serviceName] = [];
+
+            $accesses = RoleServiceAccess::whereRoleId($roleId)
+                ->whereServiceId($serviceId)
+                ->whereRequestorMask($requestorMask)
+                ->get(['component', 'verb_mask']);
+
+            foreach ($accesses as $access) {
+                if ($access->verb_mask & VerbsMask::toNumeric(Verbs::GET)) {
+                    $allowedPath = $access->component;
+                    if ($allowedPath === '*') {
+                        $manifest['service'][$serviceName] = $this->getAllResources(
+                            $serviceName, '', ['as_list' => true, 'full_tree' => $fullTree]
+                        );
+                        // Safe to break out from the loop here.
+                        // Access === '*' mean everything is allowed anyway.
+                        // No need to check further accesses.
+                        break;
+                    } else {
+                        // Only consider paths ending with * like my/path/*
+                        // A path without * at the end (my/path/) only allows
+                        // for directory listing which is not useful for exports.
+                        if (substr($allowedPath, strlen($allowedPath) - 1) === '*') {
+                            if ($fullTree) {
+                                $allPaths = $this->getAllResources(
                                     $serviceName,
-                                    '',
+                                    substr($allowedPath, 0, strlen($allowedPath) - 1),
                                     ['as_list' => true, 'full_tree' => $fullTree]
                                 );
-                                break;
-                            case ServiceTypeGroups::DATABASE:
-                                $manifest['service'][$serviceName]['reachable'] = true;
-                                $manifest['service'][$serviceName]['_schema'] = $this->getAllResources(
-                                    $serviceName,
-                                    '_schema',
-                                    ['as_list' => true]
+                                $manifest['service'][$serviceName] = array_merge(
+                                    $manifest['service'][$serviceName],
+                                    $allPaths
                                 );
-                                /**
-                                 * API for exporting table data is implemented and works. However,
-                                 * This is disabled on manifest for now as this can easily lead to accidental
-                                 * exporting of a large set of data (potentially sensitive in nature).
-                                 *
-                                 * $manifest['service'][$service]['_table'] = $this->getAllResources(
-                                 * $service,
-                                 * '_table',
-                                 * ['as_list' => true]
-                                 * );*/
-                                break;
+                            } else {
+                                $manifest['service'][$serviceName][] =
+                                    substr($allowedPath, 0, strlen($allowedPath) - 1);
+                            }
                         }
-                    } else {
-                        \Log::warning('Excluding inactive service:' . $serviceName . ' from manifest.');
                     }
-                } catch (\Exception $e) {
-                    // Error occurred. Flag it, Log and let go.
-                    $manifest['service'][$serviceName]['reachable'] = false;
-                    \Log::alert('Failed to include service:' .
-                        $serviceName .
-                        ' in manifest due to error:' .
-                        $e->getMessage());
                 }
             }
         }
-
-        return $manifest;
     }
 
     /**
@@ -255,14 +391,15 @@ class Exporter
      * @param       $resource
      * @param array $params
      * @param null  $payload
+     * @param bool  $checkPermission
      *
      * @return array|\DreamFactory\Core\Contracts\ServiceResponseInterface|mixed
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
      * @throws \Exception
      */
-    protected function getAllResources($service, $resource, $params = [], $payload = null)
+    protected function getAllResources($service, $resource, $params = [], $payload = null, $checkPermission = true)
     {
-        $resources = $this->getResource($service, $resource, $params, $payload);
+        $resources = $this->getResource($service, $resource, $params, $payload, $checkPermission);
 
         if (Arr::isAssoc($resources)) {
             $resources = [$resources];
@@ -307,24 +444,33 @@ class Exporter
             if (is_string($resources)) {
                 $resources = explode(',', $resources);
             }
-            foreach ($resources as $resource) {
-                /** @type FileServiceInterface $storage */
-                $storage = ServiceManager::getService($service);
-                if (!$storage) {
-                    throw new InternalServerErrorException("Can not find storage service $service.");
+            foreach ($resources as $resourceName => $resource) {
+                // If reachable flag is present and service is not reachable then skip it.
+                if ($resourceName === static::REACHABLE_FLAG && $resource === false) {
+                    continue;
                 }
 
-                $container = $storage->getContainerId();
-                if ($storage->driver()->folderExists($container, $resource)) {
-                    $zippedResource = $this->getStorageFolderZip($storage, $resource);
-                    if ($zippedResource !== false) {
-                        $newFileName = $service . '/' . rtrim($resource, '/') . '/' . md5($resource) . '.zip';
-                        $this->package->zipFile($zippedResource, $newFileName);
-                        $this->destructible[] = $zippedResource;
+                if (Session::checkServicePermission(
+                    Verbs::GET, $service, $resource, Session::getRequestor(), false
+                )) {
+                    /** @type FileServiceInterface $storage */
+                    $storage = ServiceManager::getService($service);
+                    if (!$storage) {
+                        throw new InternalServerErrorException("Can not find storage service $service.");
                     }
-                } elseif ($storage->driver()->fileExists($container, $resource)) {
-                    $content = $storage->driver()->getFileContent($container, $resource, null, false);
-                    $this->package->zipContent($service . '/' . $resource, $content);
+
+                    $container = $storage->getContainerId();
+                    if ($storage->driver()->folderExists($container, $resource)) {
+                        $zippedResource = $this->getStorageFolderZip($storage, $resource);
+                        if ($zippedResource !== false) {
+                            $newFileName = $service . '/' . rtrim($resource, '/') . '/' . md5($resource) . '.zip';
+                            $this->package->zipFile($zippedResource, $newFileName);
+                            $this->destructible[] = $zippedResource;
+                        }
+                    } elseif ($storage->driver()->fileExists($container, $resource)) {
+                        $content = $storage->driver()->getFileContent($container, $resource, null, false);
+                        $this->package->zipContent($service . '/' . $resource, $content);
+                    }
                 }
             }
         }
@@ -415,6 +561,10 @@ class Exporter
             $items = $this->package->getNonStorageServices();
             foreach ($items as $service => $resources) {
                 foreach ($resources as $resourceName => $details) {
+                    // If present, skip the reachable flag from manifest output.
+                    if ($resourceName === static::REACHABLE_FLAG) {
+                        continue;
+                    }
                     $this->data[$service][$resourceName] = $this->gatherResource($service, $resourceName, $details);
                 }
             }
@@ -595,15 +745,18 @@ class Exporter
      * @param string $resource
      * @param array  $params
      * @param null   $payload
+     * @param bool   $checkPermission
      *
      * @return array|\DreamFactory\Core\Contracts\ServiceResponseInterface|mixed
      * @throws \DreamFactory\Core\Exceptions\NotFoundException
      * @throws \Exception
      */
-    protected function getResource($service, $resource, $params = [], $payload = null)
+    protected function getResource($service, $resource, $params = [], $payload = null, $checkPermission = true)
     {
         try {
-            $result = ServiceManager::handleRequest($service, Verbs::GET, $resource, $params, [], $payload);
+            $result = ServiceManager::handleRequest(
+                $service, Verbs::GET, $resource, $params, [], $payload, null, $checkPermission
+            );
             if ($result->getStatusCode() >= 300) {
                 throw ResponseFactory::createExceptionFromResponse($result);
             }

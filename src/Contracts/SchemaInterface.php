@@ -6,17 +6,6 @@ use DreamFactory\Core\Database\Schema\TableSchema;
 interface SchemaInterface
 {
     /**
-     * @return null|integer
-     */
-    public function getServiceId();
-
-    /**
-     * @param integer $id
-     * @return $this
-     */
-    public function setServiceId($id);
-
-    /**
      * Return an array of supported schema resource types.
      *
      * @return array
@@ -71,31 +60,6 @@ interface SchemaInterface
      * @return string|null
      */
     public function getDefaultSchema();
-
-    /**
-     * @return string|null
-     */
-    public function getUserSchema();
-
-    /**
-     * @param string|null $schema
-     */
-    public function setUserSchema($schema);
-
-    /**
-     * @return mixed
-     */
-    public function getNamingSchema();
-
-    /**
-     * @param $defaultSchemaOnly
-     */
-    public function setDefaultSchemaOnly($defaultSchemaOnly);
-
-    /**
-     * @return mixed
-     */
-    public function isDefaultSchemaOnly();
 
     /**
      * @param      $table

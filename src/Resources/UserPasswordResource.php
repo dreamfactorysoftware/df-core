@@ -157,107 +157,6 @@ class UserPasswordResource extends BaseRestResource
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public static function getApiDocInfo($service, array $resource = [])
-    {
-        $serviceName = strtolower($service);
-        $capitalized = camelize($service);
-        $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
-        $path = '/' . $serviceName . '/' . $resourceName;
-        $apis = [
-            $path => [
-                'post' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'change' .
-                        $capitalized .
-                        'Password() - Change or reset the current user\'s password.',
-                    'operationId' => 'change' . $capitalized . 'Password',
-                    'parameters'  => [
-                        [
-                            'name'        => 'body',
-                            'description' => 'Data containing name-value pairs for password change.',
-                            'schema'      => ['$ref' => '#/definitions/PasswordRequest'],
-                            'in'          => 'body',
-                            'required'    => true,
-                        ],
-                        [
-                            'name'        => 'reset',
-                            'description' => 'Set to true to perform password reset.',
-                            'type'        => 'boolean',
-                            'in'          => 'query',
-                            'required'    => false,
-                        ],
-                        [
-                            'name'        => 'login',
-                            'description' => 'Login and create a session upon successful password reset.',
-                            'type'        => 'boolean',
-                            'in'          => 'query',
-                            'required'    => false,
-                        ],
-                    ],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/PasswordResponse']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'description' =>
-                        'A valid current session along with old and new password are required to change ' .
-                        'the password directly posting \'old_password\' and \'new_password\'. <br/>' .
-                        'To request password reset, post \'email\' and set \'reset\' to true. <br/>' .
-                        'To reset the password from an email confirmation, post \'email\', \'code\', and \'new_password\'. <br/>' .
-                        'To reset the password from a security question, post \'email\', \'security_answer\', and \'new_password\'.',
-                ],
-            ],
-        ];
-
-        $models = [
-            'PasswordRequest'  => [
-                'type'       => 'object',
-                'properties' => [
-                    'old_password' => [
-                        'type'        => 'string',
-                        'description' => 'Old password to validate change during a session.',
-                    ],
-                    'new_password' => [
-                        'type'        => 'string',
-                        'description' => 'New password to be set.',
-                    ],
-                    'email'        => [
-                        'type'        => 'string',
-                        'description' => 'User\'s email to be used with code to validate email confirmation.',
-                    ],
-                    'code'         => [
-                        'type'        => 'string',
-                        'description' => 'Code required with new_password when using email confirmation.',
-                    ],
-                ],
-            ],
-            'PasswordResponse' => [
-                'type'       => 'object',
-                'properties' => [
-                    'security_question' => [
-                        'type'        => 'string',
-                        'description' => 'User\'s security question, returned on reset request when no email confirmation required.',
-                    ],
-                    'success'           => [
-                        'type'        => 'boolean',
-                        'description' => 'True if password updated or reset request granted via email confirmation.',
-                    ],
-                ],
-            ],
-        ];
-
-        return ['paths' => $apis, 'definitions' => $models];
-    }
-
-    /**
      * Changes password.
      *
      * @param User   $user
@@ -306,7 +205,7 @@ class UserPasswordResource extends BaseRestResource
                 return ['success' => true, 'session_token' => Session::getSessionToken()];
             }
 
-            return array('success' => true);
+            return ['success' => true];
         } catch (\Exception $ex) {
             throw new InternalServerErrorException("Error processing password change.\n{$ex->getMessage()}");
         }
@@ -341,7 +240,7 @@ class UserPasswordResource extends BaseRestResource
         // if security question and answer provisioned, start with that
         $question = $user->security_question;
         if (!empty($question)) {
-            return array('security_question' => $question);
+            return ['security_question' => $question];
         }
 
         // otherwise, is email confirmation required?
@@ -351,7 +250,7 @@ class UserPasswordResource extends BaseRestResource
         $sent = $this->sendPasswordResetEmail($user);
 
         if (true === $sent) {
-            return array('success' => true);
+            return ['success' => true];
         } else {
             throw new InternalServerErrorException(
                 'No security question found or email confirmation available for this user. Please contact your administrator.'
@@ -572,7 +471,6 @@ class UserPasswordResource extends BaseRestResource
         return false;
     }
 
-
     /**
      * Checks to see if the user is allowed to reset/change password.
      *
@@ -588,5 +486,134 @@ class UserPasswordResource extends BaseRestResource
         }
 
         return true;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getApiDocPaths()
+    {
+        $service = $this->getServiceName();
+        $capitalized = camelize($service);
+        $resourceName = strtolower($this->name);
+        $paths = [
+            '/' . $resourceName => [
+                'post' => [
+                    'summary'     => 'Change or reset the current user\'s password.',
+                    'description' =>
+                        'A valid current session along with old and new password are required to change ' .
+                        'the password directly posting \'old_password\' and \'new_password\'. ' .
+                        'To request password reset, post \'email\' and set \'reset\' to true. ' .
+                        'To reset the password from an email confirmation, post \'email\', \'code\', and \'new_password\'. ' .
+                        'To reset the password from a security question, post \'email\', \'security_answer\', and \'new_password\'.',
+                    'operationId' => 'change' . $capitalized . 'Password',
+                    'parameters'  => [
+                        [
+                            'name'        => 'reset',
+                            'description' => 'Set to true to perform password reset.',
+                            'schema'      => ['type' => 'boolean'],
+                            'in'          => 'query',
+                        ],
+                        [
+                            'name'        => 'login',
+                            'description' => 'Login and create a session upon successful password reset.',
+                            'schema'      => ['type' => 'boolean'],
+                            'in'          => 'query',
+                        ],
+                    ],
+                    'requestBody' => [
+                        '$ref' => '#/components/requestBodies/PasswordRequest'
+                    ],
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/PasswordResponse']
+                    ],
+                ],
+            ],
+        ];
+
+        return $paths;
+    }
+
+    protected function getApiDocRequests()
+    {
+        $requests = [
+            'PasswordRequest' => [
+                'description' => 'Request',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/PasswordRequest']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/PasswordRequest']
+                    ],
+                ],
+            ]
+        ];
+
+        return $requests;
+    }
+
+    protected function getApiDocResponses()
+    {
+        $requests = [
+            'PasswordResponse' => [
+                'description' => 'Response',
+                'content'     => [
+                    'application/json' => [
+                        'schema' => ['$ref' => '#/components/schemas/PasswordResponse']
+                    ],
+                    'application/xml'  => [
+                        'schema' => ['$ref' => '#/components/schemas/PasswordResponse']
+                    ],
+                ],
+            ]
+        ];
+
+        return $requests;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    protected function getApiDocSchemas()
+    {
+        $models = [
+            'PasswordRequest'  => [
+                'type'       => 'object',
+                'properties' => [
+                    'old_password' => [
+                        'type'        => 'string',
+                        'description' => 'Old password to validate change during a session.',
+                    ],
+                    'new_password' => [
+                        'type'        => 'string',
+                        'description' => 'New password to be set.',
+                    ],
+                    'email'        => [
+                        'type'        => 'string',
+                        'description' => 'User\'s email to be used with code to validate email confirmation.',
+                    ],
+                    'code'         => [
+                        'type'        => 'string',
+                        'description' => 'Code required with new_password when using email confirmation.',
+                    ],
+                ],
+            ],
+            'PasswordResponse' => [
+                'type'       => 'object',
+                'properties' => [
+                    'security_question' => [
+                        'type'        => 'string',
+                        'description' => 'User\'s security question, returned on reset request when no email confirmation required.',
+                    ],
+                    'success'           => [
+                        'type'        => 'boolean',
+                        'description' => 'True if password updated or reset request granted via email confirmation.',
+                    ],
+                ],
+            ],
+        ];
+
+        return $models;
     }
 }

@@ -82,66 +82,43 @@ class Cache extends BaseRestResource
         return ['success' => true];
     }
 
-    public static function getApiDocInfo($service, array $resource = [])
+    protected function getApiDocPaths()
     {
-        $serviceName = strtolower($service);
-        $class = trim(strrchr(static::class, '\\'), '\\');
-        $resourceName = strtolower(array_get($resource, 'name', $class));
-        $path = '/' . $serviceName . '/' . $resourceName;
+        $service = $this->getServiceName();
+        $capitalized = camelize($service);
+        $resourceName = strtolower($this->name);
+        $path = '/' . $resourceName;
 
-        $apis = [
+        return [
             $path                => [
                 'delete' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'deleteAllCache() - Delete all cache.',
-                    'operationId' => 'deleteAllCache',
-                    'parameters'  => [],
-                    'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
-                    ],
-                    'consumes'    => ['application/json', 'application/xml'],
-                    'produces'    => ['application/json', 'application/xml'],
+                    'summary'     => 'Delete all cache.',
                     'description' => 'This clears all cached information in the system. Doing so may impact the performance of the system.',
+                    'operationId' => 'deleteAllCacheFrom' . $capitalized,
+                    'responses'   => [
+                        '200' => ['$ref' => '#/components/responses/Success']
+                    ],
                 ],
             ],
             $path . '/{service}' => [
                 'delete' => [
-                    'tags'        => [$serviceName],
-                    'summary'     => 'deleteServiceCache() - Delete cache for one service.',
-                    'operationId' => 'deleteServiceCache',
-                    'consumes'    => ['application/json', 'application/xml'],
-                    'produces'    => ['application/json', 'application/xml'],
+                    'summary'     => 'Delete cache for one service.',
+                    'description' => 'This clears all cached information related to a particular service. Doing so may impact the performance of the service.',
+                    'operationId' => 'deleteServiceCacheFrom' . $capitalized,
                     'parameters'  => [
                         [
                             'name'        => 'service',
                             'description' => 'Identifier of the service whose cache we are to delete.',
-                            'type'        => 'string',
+                            'schema'      => ['type' => 'string'],
                             'in'          => 'path',
                             'required'    => true,
                         ],
                     ],
                     'responses'   => [
-                        '200'     => [
-                            'description' => 'Success',
-                            'schema'      => ['$ref' => '#/definitions/Success']
-                        ],
-                        'default' => [
-                            'description' => 'Error',
-                            'schema'      => ['$ref' => '#/definitions/Error']
-                        ]
+                        '200' => ['$ref' => '#/components/responses/Success']
                     ],
-                    'description' => 'This clears all cached information related to a particular service. Doing so may impact the performance of the service.',
                 ],
             ],
         ];
-
-        return ['paths' => $apis, 'definitions' => []];
     }
 }

@@ -39,6 +39,13 @@ interface SystemResourceTypeInterface
     public function getClassName();
 
     /**
+     * DreamFactory subscription required to use this system resource, null if none required
+     *
+     * @return null|string
+     */
+    public function subscriptionRequired();
+
+    /**
      * Is this System resource type only to be created once?
      *
      * @return boolean

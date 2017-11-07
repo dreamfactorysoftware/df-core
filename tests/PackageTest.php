@@ -33,7 +33,7 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
             $testFile = static::TEST_PACKAGE_SECURED;
         }
         if(file_exists($testFile)) {
-            $file = 'file-' . time() . '.zip';
+            $file = __DIR__ . '/file-' . time() . '.zip';
             copy($testFile, $file);
 
             return $file;
@@ -204,19 +204,18 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
         unlink($testFile);
         $this->setExpectedException(
             \DreamFactory\Core\Exceptions\InternalServerErrorException::class,
-            'Failed to import. File not found ' . basename($testFile)
+            'Failed to import. File not found ' . $testFile
         );
         $this->invokeMethod($package, 'getManifestFromLocalFile', [$testFile]);
     }
 
     public function testGetManifestFromLocalFileException()
     {
-        $testFile = $this->getTestPackage();
-        $file2 = 'file-' . time() . '.pkg';
-        copy($testFile, $file2);
-        unlink($testFile);
-        $this->setExpectedException(\DreamFactory\Core\Exceptions\BadRequestException::class);
-        new Package($file2);
+        $this->setExpectedException(
+            \DreamFactory\Core\Exceptions\BadRequestException::class,
+            'Only package files ending with \'zip\' are allowed for import'
+        );
+        new Package('foobar.pkg');
     }
 
     public function testGetManifestFromUploadedFile()

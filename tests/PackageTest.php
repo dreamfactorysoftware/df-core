@@ -33,7 +33,7 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
             $testFile = static::TEST_PACKAGE_SECURED;
         }
         if(file_exists($testFile)) {
-            $file = __DIR__ . '/file-' . time() . '.zip';
+            $file = $this->getTempDir() . 'file-' . time() . '.zip';
             copy($testFile, $file);
 
             return $file;
@@ -211,11 +211,12 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
 
     public function testGetManifestFromLocalFileException()
     {
+        $tmpFile = $this->getTempFile('foobar.pkg');
         $this->setExpectedException(
             \DreamFactory\Core\Exceptions\BadRequestException::class,
             'Only package files ending with \'zip\' are allowed for import'
         );
-        new Package('foobar.pkg');
+        new Package($tmpFile);
     }
 
     public function testGetManifestFromUploadedFile()
@@ -411,4 +412,31 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
         $package->saveZipFile('bad-files-service', '__EXPORTS');
     }
 
+    public function testGetResourceFromZip()
+    {
+        $testFile = $this->getTestPackage();
+        $package = new Package($testFile);
+        $manifest = $package->getManifest();
+        $manifest2 = $package->getResourceFromZip('package.json');
+
+        $this->assertEquals($manifest, $manifest2);
+    }
+
+    public function testGetFileFromZip()
+    {
+        $testFile = $this->getTestPackage();
+        $package = new Package($testFile);
+        $file = $package->getFileFromZip('files/pictures/' . md5('pictures/') . '.zip');
+
+        $this->assertTrue(file_exists($file));
+    }
+
+    public function testGetZipFromZip()
+    {
+        $testFile = $this->getTestPackage();
+        $package = new Package($testFile);
+        $file = $package->getZipFromZip('files/pictures/' . md5('pictures/') . '.zip');
+
+        $this->assertTrue(($file instanceof ZipArchive));
+    }
 }

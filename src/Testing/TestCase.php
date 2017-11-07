@@ -252,4 +252,28 @@ class TestCase extends LaravelTestCase
     {
         return env('TEST_INSTANCE_URL', 'http://localhost');
     }
+
+    /**
+     * Returns system temp directory
+     *
+     * @return string
+     */
+    public function getTempDir()
+    {
+        return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    }
+
+    /**
+     * Returns temp file
+     *
+     * @param $file
+     *
+     * @return string
+     */
+    public function getTempFile($file, $content = 'Temp File'){
+        $file = $this->getTempDir() . $file;
+        file_put_contents($file, $content);
+
+        return $file;
+    }
 }

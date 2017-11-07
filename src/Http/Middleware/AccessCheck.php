@@ -79,13 +79,13 @@ class AccessCheck
 
             if (!$callFromLocalScript && empty($apiKey) && empty($token)) {
                 $msg = 'No session token (JWT) or API Key detected in request. ' .
-                    'Please send in X-DreamFactory-Session-Token and/or X-Dreamfactory-API-Key request header. ' .
+                    'Please send in X-DreamFactory-Session-Token and/or X-DreamFactory-API-Key request header. ' .
                     'You can also use URL query parameters session_token and/or api_key.';
                 throw new BadRequestException($msg);
             } elseif (empty($roleId)) {
                 if (empty($apiKey)) {
                     throw new BadRequestException(
-                        "No API Key provided. Please provide a valid API Key using X-Dreamfactory-API-Key request header or 'api_key' url query parameter."
+                        "No API Key provided. Please provide a valid API Key using X-DreamFactory-API-Key request header or 'api_key' url query parameter."
                     );
                 } elseif (empty($token)) {
                     throw new BadRequestException(

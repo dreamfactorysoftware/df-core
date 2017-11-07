@@ -13,8 +13,6 @@ use ServiceManager;
 
 class TestCase extends LaravelTestCase
 {
-    protected $baseUrl = 'http://localhost';
-
     /**
      * A flag to make sure that the stage() method gets to run one time only.
      *
@@ -209,5 +207,73 @@ class TestCase extends LaravelTestCase
         }
 
         return $this->service->handleRequest($request, $resource);
+    }
+
+    /**
+     * Call protected/private method of a class.
+     *
+     * @param object &$object    Instantiated object that we will run method on.
+     * @param string $methodName Method name to call
+     * @param array  $parameters Array of parameters to pass into method.
+     *
+     * @return mixed Method return.
+     */
+    public function invokeMethod(&$object, $methodName, array $parameters = array())
+    {
+        $reflection = new \ReflectionClass(get_class($object));
+        $method = $reflection->getMethod($methodName);
+        $method->setAccessible(true);
+
+        return $method->invokeArgs($object, $parameters);
+    }
+
+    /**
+     * Returns non-public class properties
+     *
+     * @param $object
+     * @param $property
+     *
+     * @return mixed
+     */
+    public function getNonPublicProperty(&$object, $property)
+    {
+        $reflection = new \ReflectionProperty(get_class($object), $property);
+        $reflection->setAccessible(true);
+
+        return $reflection->getValue($object);
+    }
+
+    /**
+     * Returns test instance url
+     *
+     * @return mixed
+     */
+    public function getBaseUrl()
+    {
+        return env('TEST_INSTANCE_URL', 'http://localhost');
+    }
+
+    /**
+     * Returns system temp directory
+     *
+     * @return string
+     */
+    public function getTempDir()
+    {
+        return rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+    }
+
+    /**
+     * Returns temp file
+     *
+     * @param $file
+     *
+     * @return string
+     */
+    public function getTempFile($file, $content = 'Temp File'){
+        $file = $this->getTempDir() . $file;
+        file_put_contents($file, $content);
+
+        return $file;
     }
 }

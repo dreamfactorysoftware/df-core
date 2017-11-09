@@ -253,6 +253,8 @@ class ApiOptions extends FactoryEnum
             $found = static::$optionMap[$option];
             $found['name'] = $option;
             $found['in'] = 'query';
+            $found['style'] = 'form';
+            $found['explode'] = false;
             $type = array_get($found, 'type', 'string');
             unset($found['type']);
             switch ($type) {

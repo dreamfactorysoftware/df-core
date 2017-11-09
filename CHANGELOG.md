@@ -3,7 +3,8 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
-
+### Fixed
+- DF-1259 Correct OAS3 handling of comma-delimited URL query parameters
 ## [0.13.0] - 2017-11-03
 ### Added
 - DF-1191 Added attachment support for email services and email templates

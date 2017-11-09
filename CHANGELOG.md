@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Changed
+- DF-1240 Stopped Checking for 'token' as a parameter
 
 ## [0.13.0] - 2017-11-03
 ### Added

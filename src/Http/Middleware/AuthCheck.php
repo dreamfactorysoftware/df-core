@@ -69,9 +69,6 @@ class AuthCheck
         if (empty($token)) {
             $token = $request->input('session_token');
         }
-        if (empty($token)) {
-            $token = $request->input('token');
-        }
 
         return $token;
     }

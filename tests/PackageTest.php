@@ -84,7 +84,8 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
         ]);
 
         $this->assertTrue($this->invokeMethod($validPackage, 'isValid'), 'Testing isValid method');
-        $this->setExpectedException(\DreamFactory\Core\Exceptions\InternalServerErrorException::class, 'Invalid package supplied.');
+        $this->expectException(\DreamFactory\Core\Exceptions\InternalServerErrorException::class);
+        $this->expectExceptionMessage('Invalid package supplied.');
         $this->invokeMethod($invalidPackage1, 'isValid');
     }
 
@@ -111,10 +112,8 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
         $p['secured'] = true;
         $securedPackage = new Package($p);
 
-        $this->setExpectedException(
-            \DreamFactory\Core\Exceptions\BadRequestException::class,
-            'Password is required for secured package.'
-        );
+        $this->expectException(\DreamFactory\Core\Exceptions\BadRequestException::class);
+        $this->expectExceptionMessage('Password is required for secured package.');
         $securedPackage->getPassword();
     }
 
@@ -124,10 +123,8 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
         $p['secured'] = true;
         $securedPackage = new Package($p, true, 'foo');
 
-        $this->setExpectedException(
-            \DreamFactory\Core\Exceptions\BadRequestException::class,
-            'Password must be at least ' . Package::PASSWORD_LENGTH . ' characters long for secured package.'
-        );
+        $this->expectException(\DreamFactory\Core\Exceptions\BadRequestException::class);
+        $this->expectExceptionMessage('Password must be at least ' . Package::PASSWORD_LENGTH . ' characters long for secured package.');
         $securedPackage->getPassword();
     }
 
@@ -178,16 +175,14 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
         $testFile = $this->getTestPackage(true);
         $package3 = new Package($testFile, true, static::SECURED_PASSWORD);
         unlink($testFile);
-        $this->setExpectedException(
-            \DreamFactory\Core\Exceptions\InternalServerErrorException::class,
-            'Failed to open imported zip file.'
-        );
+        $this->expectException(\DreamFactory\Core\Exceptions\InternalServerErrorException::class);
+        $this->expectExceptionMessage('Failed to open imported zip file.');
         $this->invokeMethod($package3, 'getManifestFromZipFile');
     }
 
     public function testGetManifestFromZipFileWithBadPassword()
     {
-        $this->setExpectedException(\DreamFactory\Core\Exceptions\BadRequestException::class);
+        $this->expectException(\DreamFactory\Core\Exceptions\BadRequestException::class);
         new Package($this->getTestPackage(true));
     }
 
@@ -202,20 +197,16 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
         $this->assertEquals(7, count(array_get($manifest, 'service.system.service')), 'Testing manifest system service count');
 
         unlink($testFile);
-        $this->setExpectedException(
-            \DreamFactory\Core\Exceptions\InternalServerErrorException::class,
-            'Failed to import. File not found ' . $testFile
-        );
+        $this->expectException(\DreamFactory\Core\Exceptions\InternalServerErrorException::class);
+        $this->expectExceptionMessage('Failed to import. File not found ' . $testFile);
         $this->invokeMethod($package, 'getManifestFromLocalFile', [$testFile]);
     }
 
     public function testGetManifestFromLocalFileException()
     {
         $tmpFile = $this->getTempFile('foobar.pkg');
-        $this->setExpectedException(
-            \DreamFactory\Core\Exceptions\BadRequestException::class,
-            'Only package files ending with \'zip\' are allowed for import'
-        );
+        $this->expectException(\DreamFactory\Core\Exceptions\BadRequestException::class);
+        $this->expectExceptionMessage('Only package files ending with \'zip\' are allowed for import');
         new Package($tmpFile);
     }
 
@@ -249,14 +240,14 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
     public function testGetManifestFromUrlImportInvalidUrl()
     {
         $url = 'http://example.com/blabla.zip';
-        $this->setExpectedException(\DreamFactory\Core\Exceptions\InternalServerErrorException::class);
+        $this->expectException(\DreamFactory\Core\Exceptions\InternalServerErrorException::class);
         new Package($url);
     }
 
     public function testGetManifestFromUrlImportInvalidFileType()
     {
         $url = 'http://example.com/blabla.pkg';
-        $this->setExpectedException(\DreamFactory\Core\Exceptions\BadRequestException::class);
+        $this->expectException(\DreamFactory\Core\Exceptions\BadRequestException::class);
         new Package($url);
     }
 
@@ -328,10 +319,8 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
     {
         $manifest = $this->getSimpleTestPackageManifest();
         unset($manifest['service']['system']);
-        $this->setExpectedException(
-            \DreamFactory\Core\Exceptions\InternalServerErrorException::class,
-            'No items found in package manifest.'
-        );
+        $this->expectException(\DreamFactory\Core\Exceptions\InternalServerErrorException::class);
+        $this->expectExceptionMessage('No items found in package manifest.');
         new Package($manifest);
     }
 
@@ -408,7 +397,7 @@ class PackageTest extends \DreamFactory\Core\Testing\TestCase
         $package->zipResourceFile('foobar.txt', ['test'=>'resource']);
         $package->zipFile(static::TEST_PACKAGE, 'test.zip');
         $package->zipContent('test.txt', 'hello world');
-        $this->setExpectedException(\DreamFactory\Core\Exceptions\InternalServerErrorException::class);
+        $this->expectException(\DreamFactory\Core\Exceptions\InternalServerErrorException::class);
         $package->saveZipFile('bad-files-service', '__EXPORTS');
     }
 

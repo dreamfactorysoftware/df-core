@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Database\Schema;
 
 /**
@@ -96,45 +97,49 @@ class RelationSchema extends NamedResourceSchema
      */
     public $junctionRefField;
 
-    public static function buildName(
-        $type,
-        $field,
-        $refService,
-        $refTable,
-        $refField,
-        $junctionService = null,
-        $junctionTable = null
-    ) {
-        $table = $refTable;
-        if (!empty($refService)) {
-            $table = $refService . '.' . $table;
+    public static function buildName(array $settings)
+    {
+        if (empty($refTable = array_get($settings, 'ref_table'))) {
+            throw new \Exception('Failed to build relationship. Missing referenced table.');
         }
-        switch ($type) {
+        if (!empty($refService = array_get($settings, 'ref_service'))) {
+            $refTable = $refService . '.' . $refTable;
+        }
+        switch ($type = array_get($settings, 'type')) {
             case static::BELONGS_TO:
-                return $table . '_by_' . $field;
-            case static::HAS_ONE:
-            case static::HAS_MANY:
-                return $table . '_by_' . $refField;
-            case static::MANY_MANY:
-                $junction = $junctionTable;
-                if (!empty($junctionService)) {
-                    $junction = $junctionService . '.' . $junction;
+                if (empty($field = array_get($settings, 'field'))) {
+                    throw new \Exception('Failed to build relationship. Missing referencing fields.');
                 }
 
-                return $table . '_by_' . $junction;
+                return $refTable . '_by_' . $field;
+            case static::HAS_ONE:
+            case static::HAS_MANY:
+                if (empty($refField = array_get($settings, 'ref_field'))) {
+                    throw new \Exception('Failed to build relationship. Missing referenced fields.');
+                }
+
+                return $refTable . '_by_' . $refField;
+            case static::MANY_MANY:
+                if (empty($junctionTable = array_get($settings, 'junction_table'))) {
+                    throw new \Exception('Failed to build relationship. Missing referenced junction table.');
+                }
+                if (!empty($junctionService = array_get($settings, 'junction_service'))) {
+                    $junctionTable = $junctionService . '.' . $junctionTable;
+                }
+
+                return $refTable . '_by_' . $junctionTable;
             default:
-                return null;
+                throw new \Exception('Failed to build relationship. Invalid relationship type: ' . $type);
         }
     }
 
     public function __construct(array $settings)
     {
-        parent::__construct($settings);
-
-        if (empty($this->name)) {
-            $this->name = static::buildName($this->type, $this->field, null, $this->refTable,
-                $this->refField, null, $this->junctionTable);
+        if (empty(array_get($settings, 'name'))) {
+            $settings['name'] = static::buildName($settings);
         }
+
+        parent::__construct($settings);
     }
 
     public function toArray($use_alias = false)

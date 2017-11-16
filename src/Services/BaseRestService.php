@@ -276,8 +276,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
             if (!empty($path)) {
                 $eventPath .= '.' . str_replace('/', '.', $path);
             }
-            $resourcePath = ltrim(strstr($path, '/'), '/');
-            $replacePos = strpos($resourcePath, '{');
+            $replacePos = strpos($path, '{');
 
             foreach ($api as $ixOps => $operation) {
                 if ('parameters' === $ixOps) {
@@ -299,7 +298,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                             $name = array_get($parameter, 'name', '');
                             $options = array_get($parameter, 'enum', array_get($parameter, 'options'));
                             if (empty($options) && !empty($access) && (false !== $replacePos)) {
-                                $checkFirstOption = strstr(substr($resourcePath, $replacePos + 1), '}', true);
+                                $checkFirstOption = strstr(substr($path, $replacePos + 1), '}', true);
                                 if ($name !== $checkFirstOption) {
                                     continue;
                                 }
@@ -308,7 +307,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                                 foreach ($access as $accessPath) {
                                     $accessPath = rtrim($accessPath, '/*');
                                     if (!empty($accessPath) && (strlen($accessPath) > $replacePos)) {
-                                        if (0 === substr_compare($accessPath, $resourcePath, 0, $replacePos)) {
+                                        if (0 === substr_compare($accessPath, $path, 0, $replacePos)) {
                                             $option = substr($accessPath, $replacePos);
                                             if (false !== strpos($option, '/')) {
                                                 $option = strstr($option, '/', true);

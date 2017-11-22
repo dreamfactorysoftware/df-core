@@ -24,6 +24,8 @@ return [
     'file_chunk_size'              => env('DF_FILE_CHUNK_SIZE', 10000000),
     // User attribute to use for authentication (email or username).
     'login_attribute'              => env('DF_LOGIN_ATTRIBUTE', 'email'),
+    // Allows you to use an alternate means (not using DF user table) of authentication.
+    'alternate_auth'               => env('DF_ENABLE_ALTERNATE_AUTH', false),
     // Set true to enable windows authentication.
     'enable_windows_auth'          => env('DF_ENABLE_WINDOWS_AUTH', false),
     // DB configs

@@ -20,11 +20,12 @@ class TestServiceRequest implements ServiceRequestInterface
      */
     protected $requestorType = ServiceRequestorTypes::API;
 
-    public function __construct($method = Verbs::GET, $parameters = [], $headers = [])
+    public function __construct($method = Verbs::GET, $parameters = [], $headers = [], $payload = [])
     {
         $this->setMethod($method);
         $this->setParameters($parameters);
         $this->setHeaders($headers);
+        $this->setPayloadData($payload);
     }
 
     /**

@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- DF-1251 Added alternative means (external db) of authentication.
 ### Fixed
 - DF-1259 Correct OAS3 handling of comma-delimited URL query parameters
 ### Changed

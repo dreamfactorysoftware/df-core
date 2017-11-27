@@ -7,8 +7,8 @@ use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Resources\System\Environment;
 use DreamFactory\Core\Utility\DataFormatter;
+use DreamFactory\Core\Utility\Environment;
 use DreamFactory\Core\Utility\FileUtilities;
 use ServiceManager;
 

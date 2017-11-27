@@ -26,6 +26,9 @@ trait DataValidator
             $data = array_map('trim', explode($str_delimiter, trim($data, $str_delimiter)));
         }
 
+        if (is_int($data)) {
+            $data = [$data]; // make an array of it
+        }
         if (!is_array($data) || empty($data)) {
             if (!is_string($on_fail) || empty($on_fail)) {
                 return false;

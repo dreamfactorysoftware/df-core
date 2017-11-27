@@ -37,8 +37,9 @@ class ServiceResponse implements ServiceResponseInterface
      * @param mixed       $content      Response content
      * @param string|null $content_type Content Type of content
      * @param int         $status       HTTP Status code
+     * @param array|null  $headers      HTTP headers
      */
-    public function __construct($content = null, $content_type = null, $status = self::HTTP_OK)
+    public function __construct($content = null, $content_type = null, $status = self::HTTP_OK, $headers = [])
     {
         $this->content = $content;
         $this->contentType = $content_type;
@@ -52,6 +53,7 @@ class ServiceResponse implements ServiceResponseInterface
             $this->dataFormat = DataFormats::RAW;
         }
         $this->statusCode = $status;
+        $this->headers = (array)$headers;
     }
 
     /**

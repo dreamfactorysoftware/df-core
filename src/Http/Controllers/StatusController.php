@@ -6,29 +6,16 @@ use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
-use DreamFactory\Core\Resources\System\Environment;
+use DreamFactory\Core\Utility\Environment;
 use DreamFactory\Core\Utility\ResponseFactory;
 
 class StatusController extends Controller
 {
-    public static function getURI($s)
-    {
-        $ssl = (!empty($s['HTTPS']) && $s['HTTPS'] == 'on');
-        $sp = strtolower($s['SERVER_PROTOCOL']);
-        $protocol = substr($sp, 0, strpos($sp, '/')) . (($ssl) ? 's' : '');
-        $port = $s['SERVER_PORT'];
-        $port = ((!$ssl && $port == '80') || ($ssl && $port == '443')) ? '' : ':' . $port;
-        $host = (isset($s['HTTP_HOST']) ? $s['HTTP_HOST'] : $s['SERVER_NAME']);
-        $host = (strpos($host, ':') !== false) ? $host : $host . $port;
-
-        return $protocol . '://' . $host;
-    }
-
     public function index()
     {
         \Log::info('[REQUEST] Instance status');
 
-        $uri = static::getURI($_SERVER);
+        $uri = Environment::getURI();
 
         $dist = env('DF_INSTALL', '');
         if (empty($dist) && (false !== stripos(env('DB_DATABASE', ''), 'bitnami'))) {

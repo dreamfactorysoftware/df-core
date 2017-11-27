@@ -25,12 +25,17 @@ class ResponseFactory
      * @param mixed       $content
      * @param string|null $content_type
      * @param int         $status
+     * @param array|null  $headers
      *
      * @return ServiceResponse
      */
-    public static function create($content, $content_type = null, $status = ServiceResponseInterface::HTTP_OK)
-    {
-        return new ServiceResponse($content, $content_type, $status);
+    public static function create(
+        $content,
+        $content_type = null,
+        $status = ServiceResponseInterface::HTTP_OK,
+        $headers = []
+    ) {
+        return new ServiceResponse($content, $content_type, $status, $headers);
     }
 
     public static function createExceptionFromResponse(ServiceResponseInterface $response)
@@ -61,7 +66,7 @@ class ResponseFactory
         $accepts = null,
         $asFile = null,
         $resource = 'resource'
-    ){
+    ) {
         if (empty($accepts)) {
             $accepts = static::getAcceptedTypes();
         }
@@ -202,6 +207,7 @@ class ResponseFactory
         $content = $response->getContent();
         $contentType = $response->getContentType();
         $format = $response->getDataFormat();
+        $headers = $response->getHeaders();
 
         $status = $response->getStatusCode();
         //  In case the status code is not a valid HTTP Status code
@@ -218,7 +224,13 @@ class ResponseFactory
             $format = DataFormats::PHP_ARRAY;
         }
 
-        return ['status_code' => $status, 'content' => $content, 'content_type' => $contentType, 'format' => $format];
+        return [
+            'status_code'  => $status,
+            'content'      => $content,
+            'content_type' => $contentType,
+            'format'       => $format,
+            'headers'      => $headers
+        ];
     }
 
     /**
@@ -231,7 +243,7 @@ class ResponseFactory
         \Exception $e,
         /** @noinspection PhpUnusedParameterInspection */
         $request = null
-    ){
+    ) {
         $response = static::exceptionToServiceResponse($e);
 
         return ResponseFactory::sendResponse($response);

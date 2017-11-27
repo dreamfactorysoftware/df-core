@@ -4,12 +4,14 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 ### Added
-- DF-1251 Added alternative means (external db) of authentication.
+- DF-1251 Added alternative means (external db) of authentication
 ### Fixed
 - DF-1259 Correct OAS3 handling of comma-delimited URL query parameters
 ### Changed
 - DF-1240 Stopped Checking for 'token' as a parameter
 - DF-1186 Add exceptions for missing data when generating relationships
+- DF-1254 Allow headers to be set directly in response creation
+- Environment utilities separated from system/environment resource
 
 ## [0.13.1] - 2017-11-16
 ### Fixed

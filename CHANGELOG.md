@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-1186 Add exceptions for missing data when generating relationships
 - DF-1254 Allow headers to be set directly in response creation
 - Environment utilities separated from system/environment resource
+- Moving the system service and resources to dreamfactory/df-system
 
 ## [0.13.1] - 2017-11-16
 ### Fixed

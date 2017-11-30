@@ -1,6 +1,5 @@
 <?php
 
-
 if (!function_exists('to_bool')) {
     /**
      * Convert any value to boolean value.
@@ -40,6 +39,7 @@ if (!function_exists('array_get_bool')) {
      * @param  \ArrayAccess|array $array
      * @param  string             $key
      * @param  boolean            $default
+     *
      * @return boolean
      */
     function array_get_bool($array, $key, $default = false)
@@ -120,3 +120,32 @@ if (!function_exists('decamelize')) {
     }
 }
 
+if (!function_exists('array_get_or')) {
+    /**
+     * Retrieves array key-value based on multiple keys before returning the default.
+     *
+     * Example: You want to retrieve either 'user' or 'user_id' key from array $data.
+     *          $value = array_get_or($data, ['user', 'user_id']);
+     *
+     * This is equivalent to :
+     *          $value = array_get($data, 'user', array_get($data, 'user_id'));
+     *
+     * @param array $data
+     * @param array $keys
+     * @param null  $default
+     *
+     * @return mixed|null
+     */
+    function array_get_or(array $data, array $keys, $default = null)
+    {
+        $out = null;
+        foreach ($keys as $key) {
+            $out = array_get($data, $key);
+            if ($out !== null) {
+                break;
+            }
+        }
+
+        return ($out === null) ? $default : $out;
+    }
+}

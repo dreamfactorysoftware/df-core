@@ -143,6 +143,9 @@ class AuthCheck
      */
     public function handle(Request $request, \Closure $next)
     {
+        // Not using any stateful session. Therefore, no need to track session
+        // using cookies. Disabling tracking session by browser cookies.
+        ini_set('session.use_cookies', 0);
         if (!in_array($route = $request->getPathInfo(), ['/setup', '/setup_db',])) {
             try {
                 // Get the API key

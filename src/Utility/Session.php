@@ -650,7 +650,7 @@ class Session
      */
     public static function authenticate(array $credentials, $remember = false, $login = true, $appId = null)
     {
-        if (\Auth::attempt($credentials, false, false)) {
+        if (\Auth::attempt($credentials)) {
             $user = \Auth::getLastAttempted();
             /** @noinspection PhpUndefinedFieldInspection */
             static::checkRole($user->id);

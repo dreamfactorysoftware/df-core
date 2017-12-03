@@ -16,5 +16,6 @@ class HelpersTest extends \DreamFactory\Core\Testing\TestCase
         $this->assertEquals(null, array_get_or($data, ['foo', 'bar']));
         $this->assertEquals('John', array_get_or($data, ['foo', 'bar', 'foobar', 'name']));
         $this->assertEquals('Doe', array_get_or($data, ['foo', 'bar', 'foobar', 'last_name', 'first_name'], 'Doe'));
+        $this->assertEquals('', array_get_or($data, ['foo', 'bar', 'foobar', 'last_name', 'first_name'], ''));
     }
 }

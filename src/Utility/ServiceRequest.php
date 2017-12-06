@@ -300,7 +300,7 @@ class ServiceRequest implements ServiceRequestInterface
             return $this->contentType;
         }
 
-        return Request::getContentType();
+        return $this->getHeader('content-type', 'application/json');
     }
 
     /**

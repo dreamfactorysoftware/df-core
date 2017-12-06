@@ -194,14 +194,15 @@ trait InternalServiceRequest
     public function setContent($data, $type = DataFormats::PHP_ARRAY)
     {
         $this->content = $data;
-        $this->contentType = $type;
 
         switch ($type) {
             case DataFormats::PHP_ARRAY:
                 $this->contentAsArray = $data;
+                $this->contentType = (string) DataFormats::PHP_ARRAY;
                 break;
             case DataFormats::JSON:
                 $this->contentAsArray = json_decode($data, true);
+                $this->contentType = "application/json";
                 break;
         }
 

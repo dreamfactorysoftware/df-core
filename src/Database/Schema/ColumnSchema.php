@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Enums\DbSimpleTypes;
+
 /**
  * ColumnSchema class describes the column meta data of a database table.
  */
@@ -192,5 +194,101 @@ class ColumnSchema extends NamedResourceSchema
         ];
 
         return array_merge(parent::toArray($use_alias), $out);
+    }
+
+    public static function getSchema()
+    {
+        return [
+            'name'        => 'db_schema_table_field',
+            'description' => 'The database table field schema.',
+            'type'        => DbSimpleTypes::TYPE_OBJECT,
+            'properties' => [
+                'name'               => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The API name of the field.',
+                ],
+                'label'              => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The displayable label for the field.',
+                ],
+                'type'               => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The DreamFactory abstract data type for this field.',
+                ],
+                'db_type'            => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The native database type used for this field.',
+                ],
+                'length'             => [
+                    'type'        => DbSimpleTypes::TYPE_INTEGER,
+                    'format'      => 'int32',
+                    'description' => 'The maximum length allowed (in characters for string, displayed for numbers).',
+                ],
+                'precision'          => [
+                    'type'        => DbSimpleTypes::TYPE_INTEGER,
+                    'format'      => 'int32',
+                    'description' => 'Total number of places for numbers.',
+                ],
+                'scale'              => [
+                    'type'        => DbSimpleTypes::TYPE_INTEGER,
+                    'format'      => 'int32',
+                    'description' => 'Number of decimal places allowed for numbers.',
+                ],
+                'default_value'      => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Default value for this field.',
+                ],
+                'required'           => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Is a value required for record creation.',
+                ],
+                'allow_null'         => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Is null allowed as a value.',
+                ],
+                'fixed_length'       => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Is the length fixed (not variable).',
+                ],
+                'supports_multibyte' => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Does the data type support multibyte characters.',
+                ],
+                'auto_increment'     => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Does the integer field value increment upon new record creation.',
+                ],
+                'is_primary_key'     => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Is this field used as/part of the primary key.',
+                ],
+                'is_foreign_key'     => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Is this field used as a foreign key.',
+                ],
+                'ref_table'          => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'For foreign keys, the referenced table name.',
+                ],
+                'ref_field'          => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'For foreign keys, the referenced table field name.',
+                ],
+                'validation'         => [
+                    'type'        => DbSimpleTypes::TYPE_ARRAY,
+                    'description' => 'validations to be performed on this field.',
+                    'items'       => [
+                        'type' => DbSimpleTypes::TYPE_STRING,
+                    ],
+                ],
+                'value'              => [
+                    'type'        => DbSimpleTypes::TYPE_ARRAY,
+                    'description' => 'Selectable string values for client menus and picklist validation.',
+                    'items'       => [
+                        'type' => DbSimpleTypes::TYPE_STRING,
+                    ],
+                ],
+            ],
+        ];
     }
 }

@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Contracts\NamedInstanceInterface;
+
 
 /**
  * NamedResourceSchema is the base class for representing the metadata of a database resource.
@@ -13,7 +15,7 @@ namespace DreamFactory\Core\Database\Schema;
  * </ul>
  *
  */
-class NamedResourceSchema
+class NamedResourceSchema implements NamedInstanceInterface
 {
     /**
      * @var mixed Identifier of this resource (vendor specific).
@@ -163,6 +165,11 @@ class NamedResourceSchema
     public function getLabel($use_alias = false)
     {
         return (empty($this->label)) ? camelize($this->getName($use_alias), '_', true) : $this->label;
+    }
+
+    public function getDescription()
+    {
+        return $this->description;
     }
 
     public function toArray($use_alias = false)

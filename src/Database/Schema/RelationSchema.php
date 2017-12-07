@@ -2,6 +2,8 @@
 
 namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Enums\DbSimpleTypes;
+
 /**
  * RelationSchema class describes the relationship meta data of a database table.
  */
@@ -97,6 +99,11 @@ class RelationSchema extends NamedResourceSchema
      */
     public $junctionRefField;
 
+    /**
+     * @param array $settings
+     * @return string
+     * @throws \Exception
+     */
     public static function buildName(array $settings)
     {
         if (empty($refTable = array_get($settings, 'ref_table'))) {
@@ -133,6 +140,11 @@ class RelationSchema extends NamedResourceSchema
         }
     }
 
+    /**
+     * RelationSchema constructor.
+     * @param array $settings
+     * @throws \Exception
+     */
     public function __construct(array $settings)
     {
         if (empty(array_get($settings, 'name'))) {
@@ -163,5 +175,64 @@ class RelationSchema extends NamedResourceSchema
         ];
 
         return array_merge(parent::toArray($use_alias), $out);
+    }
+
+    public static function getSchema()
+    {
+        return [
+            'name'        => 'db_schema_table_relation',
+            'description' => 'The database table relation schema.',
+            'type'        => DbSimpleTypes::TYPE_OBJECT,
+            'properties'  => [
+                'name'               => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Name of the relationship.',
+                ],
+                'alias'              => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Alias to use in the API to override the name the relationship.',
+                ],
+                'label'              => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Label for the relationship.',
+                ],
+                'description'        => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Description of the relationship.',
+                ],
+                'type'               => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Relationship type - belongs_to, has_many, many_many.',
+                ],
+                'field'              => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The current table field that is used in the relationship.',
+                ],
+                'ref_table'          => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The table name that is referenced by the relationship.',
+                ],
+                'ref_field'          => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The field name that is referenced by the relationship.',
+                ],
+                'junction_table'     => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The intermediate junction table used for many_many relationships.',
+                ],
+                'junction_field'     => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The intermediate junction table field used for many_many relationships.',
+                ],
+                'junction_ref_field' => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The intermediate joining table referencing field used for many_many relationships.',
+                ],
+                'always_fetch'       => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Always fetch this relationship when querying the parent table.',
+                ],
+            ]
+        ];
     }
 }

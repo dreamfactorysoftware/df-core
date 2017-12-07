@@ -15,7 +15,11 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Environment utilities separated from system/environment resource
 - Moved the system service and resources to dreamfactory/df-system
 - Made version optional in routing (i.e. api/v2 or api/) and api is customizable
-- Made storage routing check against valid file services so that othe routing works
+- Made storage routing check against valid file services so that other routing works
+- Updated service-related interfaces for better re-usability
+- Split service resources and resource handlers usage for easier use
+- Added schema retrieval to some internal types to aid in automatic document generation
+- Moved service request logging into service handling area so all paths to services are logged
 
 ## [0.13.1] - 2017-11-16
 ### Fixed

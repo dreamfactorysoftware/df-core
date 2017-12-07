@@ -1,6 +1,8 @@
 <?php
 namespace DreamFactory\Core\Contracts;
 
+use Illuminate\Contracts\Support\Arrayable;
+
 /**
  * Interface SystemResourceTypeInterface
  *
@@ -8,29 +10,8 @@ namespace DreamFactory\Core\Contracts;
  *
  * @package DreamFactory\Core\Contracts
  */
-interface SystemResourceTypeInterface
+interface SystemResourceTypeInterface extends NamedInstanceInterface, Arrayable
 {
-    /**
-     * System resource type name - matching registered System resource types
-     *
-     * @return string
-     */
-    public function getName();
-
-    /**
-     * Displayable System resource type label
-     *
-     * @return string
-     */
-    public function getLabel();
-
-    /**
-     * System resource type description
-     *
-     * @return string
-     */
-    public function getDescription();
-
     /**
      * System resource type class handler
      *
@@ -58,11 +39,4 @@ interface SystemResourceTypeInterface
      * @return boolean
      */
     public function isReadOnly();
-
-    /**
-     * Return the System resource type information as an array.
-     *
-     * @return array
-     */
-    public function toArray();
 }

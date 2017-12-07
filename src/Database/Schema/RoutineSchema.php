@@ -2,6 +2,8 @@
 
 namespace DreamFactory\Core\Database\Schema;
 
+use DreamFactory\Core\Enums\DbSimpleTypes;
+
 /**
  * RoutineSchema is the base class for representing the metadata of a database routine.
  *
@@ -124,5 +126,43 @@ class RoutineSchema extends NamedResourceSchema
         }
 
         return $out;
+    }
+
+    public static function getSchema()
+    {
+        return [
+            'name'        => 'db_schema_procedure',
+            'description' => 'The database stored procedure schema.',
+            'type'        => DbSimpleTypes::TYPE_OBJECT,
+            'properties'  => [
+                'name'        => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Identifier/Name for the procedure.',
+                ],
+                'label'       => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Displayable name for the procedure.',
+                ],
+                'description' => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Description of the procedure.',
+                ],
+                'return_schema' => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Layout of the returned data, if any.',
+                ],
+                'return_type'  => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Returned data type, if any.',
+                ],
+                'parameters'       => [
+                    'type'        => DbSimpleTypes::TYPE_ARRAY,
+                    'description' => 'An array of available parameters for this procedure.',
+                    'items'       => [
+                        'type' => 'db_schema_procedure_parameter',//ParameterSchema::class,
+                    ],
+                ],
+            ],
+        ];
     }
 }

@@ -2,6 +2,8 @@
 
 namespace DreamFactory\Core\Contracts;
 
+use Illuminate\Contracts\Support\Arrayable;
+
 /**
  * Interface ServiceTypeInterface
  *
@@ -9,29 +11,8 @@ namespace DreamFactory\Core\Contracts;
  *
  * @package DreamFactory\Core\Contracts
  */
-interface ServiceTypeInterface
+interface ServiceTypeInterface extends NamedInstanceInterface, Arrayable
 {
-    /**
-     * Service type name - matching registered service types
-     *
-     * @return string
-     */
-    public function getName();
-
-    /**
-     * Displayable service type label
-     *
-     * @return string
-     */
-    public function getLabel();
-
-    /**
-     * Service type description
-     *
-     * @return string
-     */
-    public function getDescription();
-
     /**
      * Displayable service type group label
      *
@@ -93,11 +74,4 @@ interface ServiceTypeInterface
      * @return boolean
      */
     public function isAccessException($action, $path = null);
-
-    /**
-     * Return the service type information as an array.
-     *
-     * @return array
-     */
-    public function toArray();
 }

@@ -288,7 +288,7 @@ class ServiceRequest extends InternalServiceRequest implements ServiceRequestInt
             return $this->contentType;
         }
 
-        return Request::getContentType();
+        return $this->getHeader('content-type', 'application/json');
     }
 
     /**

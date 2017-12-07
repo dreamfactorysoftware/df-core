@@ -3,7 +3,6 @@
 namespace DreamFactory\Core\Components\ResourceImport;
 
 use DreamFactory\Core\Enums\ServiceTypeGroups;
-use DreamFactory\Core\Facades\ServiceManager;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Enums\Verbs;
@@ -11,6 +10,7 @@ use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Jobs\DBInsert;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use Log;
+use ServiceManager;
 
 class CSV implements Importable
 {

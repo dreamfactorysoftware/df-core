@@ -9,11 +9,11 @@ use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use DreamFactory\Core\Enums\Verbs;
-use DreamFactory\Core\Facades\ServiceManager;
 use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Components\RestHandler;
 use Log;
+use ServiceManager;
 
 class DBInsert implements ShouldQueue
 {

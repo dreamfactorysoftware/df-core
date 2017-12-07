@@ -5,8 +5,8 @@ return [
     'api_version'                  => '2.0',
     // By default, API calls take the form of http://<server_name>/<api_route_prefix>/v<version_number>
     'api_route_prefix'             => env('DF_API_ROUTE_PREFIX', 'api'),
-    // By default, API calls take the form of http://<server_name>/[<status_route_prefix>/]status
-    'status_route_prefix'          => env('DF_STATUS_ROUTE_PREFIX'),
+    // By default, API calls take the form of http://<server_name>/<status_route_prefix>
+    'status_route_prefix'          => env('DF_STATUS_ROUTE_PREFIX', 'status'),
     // By default, API calls take the form of http://<server_name>/[<storage_route_prefix>/]<storage_service_name>/<file_path>
     'storage_route_prefix'         => env('DF_STORAGE_ROUTE_PREFIX'),
     // XML root tag for http responses.

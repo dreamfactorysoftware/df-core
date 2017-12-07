@@ -46,9 +46,33 @@ class RouteServiceProvider extends ServiceProvider
             //Route::controller('/instance', '\DreamFactory\Managed\Http\Controllers\InstanceController');
         }
 
-        $this->mapApiRoutes();
+        /* Check for verb tunneling by the various method override headers or query params
+         * Tunnelling verb overrides:
+         *      X-Http-Method (Microsoft)
+         *      X-Http-Method-Override (Google/GData)
+         *      X-Method-Override (IBM)
+         * Symfony natively supports X-HTTP-METHOD-OVERRIDE header and "_method" URL parameter
+         * we just need to add our historical support for other options, including "method" URL parameter
+         */
+        Request::enableHttpMethodParameterOverride(); // enables _method URL parameter
+        $method = Request::getMethod();
+        if (('POST' === $method) &&
+            (!empty($dfOverride = Request::header('X-HTTP-Method',
+                Request::header('X-Method-Override', Request::query('method')))))
+        ) {
+            Request::setMethod($method = strtoupper($dfOverride));
+        }
+        // support old MERGE as PATCH
+        if ('MERGE' === strtoupper($method)) {
+            Request::setMethod('PATCH');
+        }
 
-        Route::prefix(config('df.status_route_prefix'))
+        Route::prefix(config('df.api_route_prefix', 'api'))
+            ->middleware('df.api')
+            ->namespace($this->namespace)
+            ->group(__DIR__ . '/../../routes/api.php');
+
+        Route::prefix(config('df.status_route_prefix', 'status'))
             ->namespace($this->namespace)
             // TODO: Investigate a better way to add this middleware since df.cors is defined in CorsServiceProvicer.php
             ->middleware('df.cors')
@@ -80,41 +104,5 @@ class RouteServiceProvider extends ServiceProvider
         }
 
         Route::middlewareGroup('df.api', ['df.auth_check', 'df.access_check']);
-    }
-
-    /**
-     * Define the "api" routes for the application.
-     *
-     * These routes are typically stateless.
-     *
-     * @return void
-     */
-    protected function mapApiRoutes()
-    {
-        /* Check for verb tunneling by the various method override headers or query params
-         * Tunnelling verb overrides:
-         *      X-Http-Method (Microsoft)
-         *      X-Http-Method-Override (Google/GData)
-         *      X-Method-Override (IBM)
-         * Symfony natively supports X-HTTP-METHOD-OVERRIDE header and "_method" URL parameter
-         * we just need to add our historical support for other options, including "method" URL parameter
-         */
-        Request::enableHttpMethodParameterOverride(); // enables _method URL parameter
-        $method = Request::getMethod();
-        if (('POST' === $method) &&
-            (!empty($dfOverride = Request::header('X-HTTP-Method',
-                Request::header('X-Method-Override', Request::query('method')))))
-        ) {
-            Request::setMethod($method = strtoupper($dfOverride));
-        }
-        // support old MERGE as PATCH
-        if ('MERGE' === strtoupper($method)) {
-            Request::setMethod('PATCH');
-        }
-
-        Route::prefix(config('df.api_route_prefix', 'api'))
-            ->middleware('df.api')
-            ->namespace($this->namespace)
-            ->group(__DIR__ . '/../../routes/api.php');
     }
 }

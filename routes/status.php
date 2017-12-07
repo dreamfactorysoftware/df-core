@@ -9,4 +9,4 @@
 |
 */
 
-Route::get('/status', 'StatusController@index');
+Route::get('', 'StatusController@index');

@@ -14,6 +14,17 @@
 $resourcePathPattern = '[0-9a-zA-Z-_@&\#\!=,:;\/\^\$\.\|\{\}\[\]\(\)\*\+\? ]+';
 $servicePattern = '[_0-9a-zA-Z-.]+';
 
-Route::get('{storage}/{path}', 'StorageController@handleGET')->where(
-    ['storage' => $servicePattern, 'path' => $resourcePathPattern]
-);
+if (empty(config('df.storage_route_prefix'))) {
+    // without a route prefix, this needs to use valid service names, otherwise prohibits any additional routes
+    $service = Request::segment(1);
+    $storageServices = DreamFactory\Core\Facades\ServiceManager::getServiceNames(true, DreamFactory\Core\Enums\ServiceTypeGroups::FILE);
+    if (false !== array_search($service, $storageServices)) {
+        Route::get('{storage}/{path}', 'StorageController@handleGET')->where(
+            ['storage' => $servicePattern, 'path' => $resourcePathPattern]
+        );
+    }
+} else {
+    Route::get('{storage}/{path}', 'StorageController@handleGET')->where(
+        ['storage' => $servicePattern, 'path' => $resourcePathPattern]
+    );
+}

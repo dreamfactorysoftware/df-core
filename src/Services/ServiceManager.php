@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Contracts\CacheInterface;
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Enums\VerbsMask;
@@ -60,6 +61,7 @@ class ServiceManager
      * @param  string $name
      *
      * @return \DreamFactory\Core\Contracts\ServiceInterface
+     * @throws NotFoundException
      */
     public function getService($name)
     {
@@ -82,12 +84,12 @@ class ServiceManager
     public function getServiceIdNameMap($only_active = false)
     {
         if ($only_active) {
-            return \Cache::rememberForever('service_mgr:id_name_map_active', function (){
+            return \Cache::rememberForever('service_mgr:id_name_map_active', function () {
                 return Service::whereIsActive(true)->pluck('name', 'id')->toArray();
             });
         }
 
-        return \Cache::rememberForever('service_mgr:id_name_map', function (){
+        return \Cache::rememberForever('service_mgr:id_name_map', function () {
             return Service::pluck('name', 'id')->toArray();
         });
     }
@@ -132,6 +134,7 @@ class ServiceManager
      * @param  int $id
      *
      * @return \DreamFactory\Core\Contracts\ServiceInterface
+     * @throws NotFoundException
      */
     public function getServiceById($id)
     {
@@ -172,6 +175,7 @@ class ServiceManager
      * @param  string $name
      *
      * @return \DreamFactory\Core\Contracts\ServiceInterface
+     * @throws NotFoundException
      */
     protected function makeService($name)
     {
@@ -231,7 +235,7 @@ class ServiceManager
             throw new InvalidArgumentException("Service 'name' can not be empty.");
         }
 
-        return \Cache::rememberForever('service_mgr:' . $name, function () use ($name){
+        return \Cache::rememberForever('service_mgr:' . $name, function () use ($name) {
             /** @var Service $service */
             if (empty($service = Service::whereName($name)->first())) {
                 throw new NotFoundException("Could not find a service for $name");
@@ -300,6 +304,35 @@ class ServiceManager
     }
 
     /**
+     * Return all of the known service type names.
+     *
+     * @param string $group
+     *
+     * @return string[]
+     */
+    public function getServiceTypeNames($group = null)
+    {
+        ksort($this->types, SORT_NATURAL); // sort by name for display
+        if (!empty($group)) {
+            if (!empty($group) && !is_array($group)) {
+                $group = array_map('trim', explode(',', trim($group, ',')));
+            }
+            $group = array_map('strtolower', (array)$group);
+        }
+        $types = [];
+        foreach ($this->types as $type) {
+            if (!empty($group)) {
+                if (!in_array(strtolower($type->getGroup()), $group)) {
+                    continue;
+                }
+            }
+            $types[] = $type->getName();
+        }
+
+        return $types;
+    }
+
+    /**
      * Return all of the created service names.
      *
      * @param bool        $only_active
@@ -309,7 +342,12 @@ class ServiceManager
      */
     public function getServiceNames($only_active = false, $group = null)
     {
-        $results = ($only_active ? Service::whereIsActive(true)->pluck('name') : Service::pluck('name'));
+        if (!empty($group)) {
+            $types = $this->getServiceTypeNames($group);
+            $results = ($only_active ? Service::whereIsActive(true)->whereIn('type', $types)->pluck('name') : Service::whereIn('type', $types)->pluck('name'));
+        } else {
+            $results = ($only_active ? Service::whereIsActive(true)->pluck('name') : Service::pluck('name'));
+        }
 
         return $results->all();
     }
@@ -373,6 +411,8 @@ class ServiceManager
      * @param  int|string $action
      *
      * @return boolean True if this is a routing access exception, false otherwise
+     * @throws NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public function isAccessException($service, $component, $action)
     {
@@ -390,6 +430,33 @@ class ServiceManager
     }
 
     /**
+     * @param ServiceRequestInterface $request
+     * @param string                  $service
+     * @param string|null             $resource
+     * @param bool                    $check_permission
+     * @param bool                    $throw_exception
+     *
+     * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
+     * @throws \Exception
+     */
+    public function handleServiceRequest(
+        ServiceRequestInterface $request,
+        $service,
+        $resource = null,
+        $check_permission = true,
+        $throw_exception = true
+    ) {
+        if ($check_permission) {
+            if (false === Session::checkServicePermission($request->getMethod(), $service, $resource,
+                    $request->getRequestorType(), $throw_exception)) {
+                return new ServiceResponse([]);
+            }
+        }
+
+        return $this->getService($service)->handleRequest($request, $resource);
+    }
+
+    /**
      * @param string      $service
      * @param string      $verb
      * @param string|null $resource
@@ -397,8 +464,8 @@ class ServiceManager
      * @param array       $header
      * @param null        $payload
      * @param string|null $format
-     * @param bool        $checkPermission
-     * @param bool        $expOnPermission
+     * @param bool        $check_permission
+     * @param bool        $throw_exception
      *
      * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
@@ -412,19 +479,12 @@ class ServiceManager
         $header = [],
         $payload = null,
         $format = null,
-        $checkPermission = true,
-        $expOnPermission = false
-    ){
-        if ($checkPermission === true) {
-            $permission = Session::checkServicePermission(
-                $verb,
-                $service,
-                $resource,
-                Session::getRequestor(),
-                $expOnPermission
-            );
-
-            if(false === $permission){
+        $check_permission = true,
+        $throw_exception = false
+    ) {
+        if ($check_permission === true) {
+            if (false === Session::checkServicePermission($verb, $service, $resource, Session::getRequestor(),
+                    $throw_exception)) {
                 return new ServiceResponse([]);
             }
         }

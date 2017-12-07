@@ -8,12 +8,18 @@ use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\Environment;
 use DreamFactory\Core\Utility\ResponseFactory;
+use Log;
 
 class StatusController extends Controller
 {
+    /**
+     * @return \Symfony\Component\HttpFoundation\Response
+     * @throws \DreamFactory\Core\Exceptions\BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
+     */
     public function index()
     {
-        \Log::info('[REQUEST] Instance status');
+        Log::info('[REQUEST] Instance status');
 
         $uri = Environment::getURI();
 
@@ -50,6 +56,9 @@ class StatusController extends Controller
             ]
         ];
 
-        return ResponseFactory::sendResponse(ResponseFactory::create($status));
+        $response = ResponseFactory::sendResponse(ResponseFactory::create($status));
+        Log::info('[RESPONSE]', ['Status Code' => 200, 'Content-Type' => 'application/json']);
+
+        return $response;
     }
 }

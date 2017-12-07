@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-1251 Added alternative means (external db) of authentication
+- New ServiceManager method for retrieving service names by service type group
 ### Fixed
 - DF-1259 Correct OAS3 handling of comma-delimited URL query parameters
 ### Changed
@@ -12,7 +13,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-1186 Add exceptions for missing data when generating relationships
 - DF-1254 Allow headers to be set directly in response creation
 - Environment utilities separated from system/environment resource
-- Moving the system service and resources to dreamfactory/df-system
+- Moved the system service and resources to dreamfactory/df-system
+- Made version optional in routing (i.e. api/v2 or api/) and api is customizable
+- Made storage routing check against valid file services so that othe routing works
 
 ## [0.13.1] - 2017-11-16
 ### Fixed

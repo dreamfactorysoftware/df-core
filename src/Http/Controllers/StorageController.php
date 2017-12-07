@@ -6,6 +6,7 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Components\DfResponse;
 use DreamFactory\Core\Contracts\FileServiceInterface;
+use Log;
 use ServiceManager;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -14,7 +15,7 @@ class StorageController extends Controller
     public function handleGET($storage, $path)
     {
         try {
-            \Log::info('[REQUEST] Storage', [
+            Log::info('[REQUEST] Storage', [
                 'Method'  => 'GET',
                 'Service' => $storage,
                 'Path'    => $path
@@ -55,7 +56,7 @@ class StorageController extends Controller
             }
 
             if ($allowed) {
-                \Log::info('[RESPONSE] File stream');
+                Log::info('[RESPONSE] File stream');
 
                 $response = new StreamedResponse();
                 $response->setCallback(function () use ($service, $path) {
@@ -73,7 +74,7 @@ class StorageController extends Controller
             }
 
             $contentType = 'text/html';
-            \Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
+            Log::info('[RESPONSE]', ['Status Code' => $status, 'Content-Type' => $contentType]);
 
             return DfResponse::create($content, $status, ["Content-Type" => $contentType]);
         }

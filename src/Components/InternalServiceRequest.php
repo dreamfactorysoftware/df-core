@@ -193,6 +193,7 @@ class InternalServiceRequest implements ServiceRequestInterface
      * @param int   $type
      *
      * @return $this
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public function setContent($data, $type = DataFormats::PHP_ARRAY)
     {
@@ -201,13 +202,25 @@ class InternalServiceRequest implements ServiceRequestInterface
         switch ($type) {
             case DataFormats::PHP_ARRAY:
                 $this->contentAsArray = $data;
-                $this->contentType = (string) DataFormats::PHP_ARRAY;
+                $this->contentType = ''; // this could be null, but may cause issues with clients
                 break;
             case DataFormats::JSON:
                 $this->contentAsArray = json_decode($data, true);
-                $this->contentType = "application/json";
+                $this->contentType = DataFormats::fromMimeType($type);
                 break;
         }
+
+        return $this;
+    }
+
+    /**
+     * @param string $type
+     *
+     * @return $this
+     */
+    public function setContentType($type)
+    {
+        $this->contentType = $type;
 
         return $this;
     }
@@ -351,7 +364,15 @@ class InternalServiceRequest implements ServiceRequestInterface
             $this->setPayloadData(array_get($data, 'payload'));
         }
         if (array_key_exists('content', $data)) {
-            $this->setContent(array_get($data, 'content'), array_get($data, 'content_type'));
+            $content = array_get($data, 'content');
+            $format = DataFormats::PHP_ARRAY;
+            if (!is_array($content)) {
+                if (!empty($contentType = array_get($data, 'content_type'))) {
+                    $this->setContentType($contentType);
+                    $format = DataFormats::fromMimeType($contentType);
+                }
+            }
+            $this->setContent($content, $format);
         }
     }
 

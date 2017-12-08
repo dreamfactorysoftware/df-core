@@ -335,21 +335,49 @@ class ServiceManager
     /**
      * Return all of the created service names.
      *
-     * @param bool        $only_active
-     * @param string|null $group
+     * @param bool $only_active
      *
      * @return array
      */
-    public function getServiceNames($only_active = false, $group = null)
+    public function getServiceNames($only_active = false)
     {
-        if (!empty($group)) {
-            $types = $this->getServiceTypeNames($group);
-            $results = ($only_active ? Service::whereIsActive(true)->whereIn('type', $types)->pluck('name') : Service::whereIn('type', $types)->pluck('name'));
-        } else {
-            $results = ($only_active ? Service::whereIsActive(true)->pluck('name') : Service::pluck('name'));
+        if ($only_active) {
+            return Service::whereIsActive(true)->pluck('name')->all();
         }
 
-        return $results->all();
+        return Service::pluck('name')->all();
+    }
+
+    /**
+     * Return all of the created service names by type.
+     *
+     * @param string|array $type
+     * @param bool         $only_active
+     *
+     * @return array
+     */
+    public function getServiceNamesByType($type, $only_active = false)
+    {
+        if ($only_active) {
+            return Service::whereIsActive(true)->whereIn('type', (array)$type)->pluck('name')->all();
+        }
+
+        return Service::whereIn('type', (array)$type)->pluck('name')->all();
+    }
+
+    /**
+     * Return all of the created service names.
+     *
+     * @param string|array $group
+     * @param bool         $only_active
+     *
+     * @return array
+     */
+    public function getServiceNamesByGroup($group, $only_active = false)
+    {
+        $types = $this->getServiceTypeNames($group);
+
+        return $this->getServiceNamesByType($types, $only_active);
     }
 
     /**
@@ -357,11 +385,10 @@ class ServiceManager
      *
      * @param array|string $fields
      * @param bool         $only_active
-     * @param string|null  $group
      *
      * @return array
      */
-    public function getServiceList($fields = null, $only_active = false, $group = null)
+    public function getServiceList($fields = null, $only_active = false)
     {
         $allowed = ['id', 'name', 'label', 'description', 'is_active', 'type'];
         if (empty($fields)) {
@@ -370,23 +397,19 @@ class ServiceManager
         $fields = (is_string($fields) ? array_map('trim', explode(',', trim($fields, ','))) : $fields);
         $includeGroup = in_array('group', $fields);
         $includeTypeLabel = in_array('type_label', $fields);
-        if (($includeGroup || $includeTypeLabel || !empty($group)) && !in_array('type', $fields)) {
+        if (($includeGroup || $includeTypeLabel) && !in_array('type', $fields)) {
             $fields[] = 'type';
         }
         $fields = array_intersect($fields, $allowed);
-        $results =
-            ($only_active ? Service::whereIsActive(true)->get($fields)->toArray() : Service::get($fields)->toArray());
+        if ($only_active) {
+            $results = Service::whereIsActive(true)->get($fields)->toArray();
+        } else {
+            $results = Service::get($fields)->toArray();
+        }
         if ($includeGroup || $includeTypeLabel || !empty($group)) {
-            if (!empty($group) && !is_array($group)) {
-                $group = array_map('trim', explode(',', trim($group, ',')));
-            }
-            $group = array_map('strtolower', (array)$group);
             $services = [];
             foreach ($results as $result) {
                 if ($typeInfo = $this->getServiceType(array_get($result, 'type'))) {
-                    if (!empty($group) && !in_array(strtolower($typeInfo->getGroup()), $group)) {
-                        continue;
-                    }
                     if ($includeGroup) {
                         $result['group'] = $typeInfo->getGroup();
                     }
@@ -401,6 +424,69 @@ class ServiceManager
         }
 
         return $results;
+    }
+
+    /**
+     * Return all of the created service info.
+     *
+     * @param string|array $type
+     * @param array|string $fields
+     * @param bool         $only_active
+     *
+     * @return array
+     */
+    public function getServiceListByType($type, $fields = null, $only_active = false)
+    {
+        $allowed = ['id', 'name', 'label', 'description', 'is_active', 'type'];
+        if (empty($fields)) {
+            $fields = $allowed;
+        }
+        $fields = (is_string($fields) ? array_map('trim', explode(',', trim($fields, ','))) : $fields);
+        $includeGroup = in_array('group', $fields);
+        $includeTypeLabel = in_array('type_label', $fields);
+        if (($includeGroup || $includeTypeLabel || !empty($group)) && !in_array('type', $fields)) {
+            $fields[] = 'type';
+        }
+        $fields = array_intersect($fields, $allowed);
+        if ($only_active) {
+            $results = Service::whereIn('type', (array)$type)->whereIsActive(true)->get($fields)->toArray();
+        } else {
+            $results = Service::whereIn('type', (array)$type)->get($fields)->toArray();
+        }
+        if ($includeGroup || $includeTypeLabel) {
+            $services = [];
+            foreach ($results as $result) {
+                if ($typeInfo = $this->getServiceType(array_get($result, 'type'))) {
+                    if ($includeGroup) {
+                        $result['group'] = $typeInfo->getGroup();
+                    }
+                    if ($includeTypeLabel) {
+                        $result['type_label'] = $typeInfo->getLabel();
+                    }
+                    $services[] = $result;
+                }
+            }
+
+            return $services;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Return all of the created service info.
+     *
+     * @param string|array $group
+     * @param array|string $fields
+     * @param bool         $only_active
+     *
+     * @return array
+     */
+    public function getServiceListByGroup($group, $fields = null, $only_active = false)
+    {
+        $types = $this->getServiceTypeNames($group);
+
+        return $this->getServiceListByType($types, $fields, $only_active);
     }
 
     /**

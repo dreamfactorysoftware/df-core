@@ -5,7 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-1251 Added alternative means (external db) of authentication
-- New ServiceManager method for retrieving service names by service type group
+- New ServiceManager methods for retrieving service names by service type or group
 ### Fixed
 - DF-1259 Correct OAS3 handling of comma-delimited URL query parameters
 ### Changed

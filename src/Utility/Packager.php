@@ -8,7 +8,6 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\App;
-use DreamFactory\Core\Models\BaseModel;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Enums\Verbs;
@@ -197,11 +196,11 @@ class Packager
      */
     private function getDefaultStorageServiceId()
     {
-        /** @type BaseModel $model */
-        $model = Service::whereType('local_file')->first();
-        $storageServiceId = ($model) ? $model->{Service::getPrimaryKeyStatic()} : null;
+        if (!empty($result = ServiceManager::getServiceListByType('local_file', ['id']))) {
+            return array_get(current($result), 'id');
+        }
 
-        return $storageServiceId;
+        return null;
     }
 
     /**

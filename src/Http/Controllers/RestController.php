@@ -48,26 +48,41 @@ class RestController extends Controller
                 'JWT'        => $request->getHeader('X_DREAMFACTORY_SESSION_TOKEN')
             ]);
 
-            $services = [];
             $limitedFields = ['id', 'name', 'label', 'description', 'type'];
-            $group = \Request::query(ApiOptions::GROUP);
             $fields = \Request::query(ApiOptions::FIELDS);
             if (!empty($fields) && !is_array($fields)) {
                 $fields = array_map('trim', explode(',', trim($fields, ',')));
             } elseif (empty($fields)) {
                 $fields = $limitedFields;
             }
-
             $fields = array_intersect($fields, $limitedFields);
-            foreach (ServiceManager::getServiceList($fields, true, $group) as $info) {
+
+            $group = \Request::query('group');
+            $type = \Request::query('type');
+            if (!empty($group)) {
+                $results = ServiceManager::getServiceListByGroup($group, $fields, true);
+            } elseif (!empty($type)) {
+                $results = ServiceManager::getServiceListByType($type, $fields, true);
+            } else {
+                $results = ServiceManager::getServiceList($fields, true);
+            }
+            $services = [];
+            foreach ($results as $info) {
                 // only allowed services by role here
                 if (Session::allowsServiceAccess(array_get($info, 'name'))) {
                     $services[] = $info;
                 }
             }
 
+            if (!empty($group)) {
+                $results = ServiceManager::getServiceTypes($group);
+            } elseif (!empty($type)) {
+                $results = [ServiceManager::getServiceType($type)];
+            } else {
+                $results = ServiceManager::getServiceTypes();
+            }
             $types = [];
-            foreach (ServiceManager::getServiceTypes($group) as $type) {
+            foreach ($results as $type) {
                 $types[] = [
                     'name'        => $type->getName(),
                     'label'       => $type->getLabel(),

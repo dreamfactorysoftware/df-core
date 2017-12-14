@@ -1,8 +1,11 @@
 <?php
+
 namespace DreamFactory\Core\Providers;
 
 use DreamFactory\Core\Http\Middleware\AccessCheck;
 use DreamFactory\Core\Http\Middleware\AuthCheck;
+use DreamFactory\Core\Http\Middleware\FirstUserCheck;
+use DreamFactory\Core\Http\Middleware\VerbOverrides;
 use Illuminate\Foundation\Support\Providers\RouteServiceProvider as ServiceProvider;
 use Request;
 use Route;
@@ -37,35 +40,6 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function map()
     {
-        if (env('DF_MANAGED', false)) {
-            /*
-             * Controller route to allow the Enterprise Console to talk to instances.
-             * If this route is removed or disabled Enterprise functions will break
-             */
-            // todo this needs to be upgraded to work
-            //Route::controller('/instance', '\DreamFactory\Managed\Http\Controllers\InstanceController');
-        }
-
-        /* Check for verb tunneling by the various method override headers or query params
-         * Tunnelling verb overrides:
-         *      X-Http-Method (Microsoft)
-         *      X-Http-Method-Override (Google/GData)
-         *      X-Method-Override (IBM)
-         * Symfony natively supports X-HTTP-METHOD-OVERRIDE header and "_method" URL parameter
-         * we just need to add our historical support for other options, including "method" URL parameter
-         */
-        Request::enableHttpMethodParameterOverride(); // enables _method URL parameter
-        $method = Request::getMethod();
-        if (('POST' === $method) &&
-            (!empty($dfOverride = Request::header('X-HTTP-Method',
-                Request::header('X-Method-Override', Request::query('method')))))
-        ) {
-            Request::setMethod($method = strtoupper($dfOverride));
-        }
-        // support old MERGE as PATCH
-        if ('MERGE' === strtoupper($method)) {
-            Request::setMethod('PATCH');
-        }
 
         Route::prefix(config('df.api_route_prefix', 'api'))
             ->middleware('df.api')
@@ -96,13 +70,22 @@ class RouteServiceProvider extends ServiceProvider
         if (method_exists(\Illuminate\Routing\Router::class, 'aliasMiddleware')) {
             Route::aliasMiddleware('df.auth_check', AuthCheck::class);
             Route::aliasMiddleware('df.access_check', AccessCheck::class);
+            Route::aliasMiddleware('df.verb_override', VerbOverrides::class);
         } else {
             /** @noinspection PhpUndefinedMethodInspection */
             Route::middleware('df.auth_check', AuthCheck::class);
             /** @noinspection PhpUndefinedMethodInspection */
             Route::middleware('df.access_check', AccessCheck::class);
+            Route::middleware('df.verb_override', VerbOverrides::class);
         }
 
-        Route::middlewareGroup('df.api', ['df.auth_check', 'df.access_check']);
+        /** Add the first user check to the web group */
+        Route::prependMiddlewareToGroup('web', FirstUserCheck::class);
+
+        Route::middlewareGroup('df.api', [
+            'df.verb_override',
+            'df.auth_check',
+            'df.access_check'
+        ]);
     }
 }

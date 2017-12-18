@@ -16,14 +16,16 @@ Route::prefix(config('df.api_route_prefix', 'api'))
         $servicePattern = '[_0-9a-zA-Z-.]+';
         $resourcePathPattern = '[0-9a-zA-Z-_@&\#\!=,:;\/\^\$\.\|\{\}\[\]\(\)\*\+\? ]+';
         $controller = 'DreamFactory\Core\Http\Controllers\RestController';
+        // Don't use any() below, or include OPTIONS here, breaks CORS
+        $verbs = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'];
 
         Route::get('', $controller . '@index');
         // Support old versioning in URL, i.e api/v2 and api/v2/service
         Route::get('{version}', $controller . '@index')->where(['version' => $versionPattern]);
-        Route::any('{version}/{service}/{resource?}', $controller . '@handleVersionedService')->where(
+        Route::match($verbs, '{version}/{service}/{resource?}', $controller . '@handleVersionedService')->where(
             ['version' => $versionPattern, 'service' => $servicePattern, 'resource' => $resourcePathPattern]
         );
-        Route::any('{service}/{resource?}', $controller . '@handleService')->where(
+        Route::match($verbs, '{service}/{resource?}', $controller . '@handleService')->where(
             ['service' => $servicePattern, 'resource' => $resourcePathPattern]
         );
     }

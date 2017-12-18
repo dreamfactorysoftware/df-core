@@ -15,15 +15,19 @@ use DreamFactory\Core\Facades\DbSchemaExtensions as DbSchemaExtensionsFacade;
 use DreamFactory\Core\Facades\ServiceManager as ServiceManagerFacade;
 use DreamFactory\Core\Facades\SystemTableModelMapper as SystemTableModelMapperFacade;
 use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
+use DreamFactory\Core\Http\Middleware\AccessCheck;
+use DreamFactory\Core\Http\Middleware\AuthCheck;
+use DreamFactory\Core\Http\Middleware\FirstUserCheck;
+use DreamFactory\Core\Http\Middleware\VerbOverrides;
 use DreamFactory\Core\Models\SystemTableModelMapper;
 use DreamFactory\Core\Providers\CorsServiceProvider;
-use DreamFactory\Core\Providers\RouteServiceProvider;
 use DreamFactory\Core\Services\ServiceManager;
 use Illuminate\Database\DatabaseManager;
 use Illuminate\Database\SQLiteConnection;
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Support\ServiceProvider;
 use Event;
+use Route;
 
 class LaravelServiceProvider extends ServiceProvider
 {
@@ -43,6 +47,14 @@ class LaravelServiceProvider extends ServiceProvider
         $this->publishes([$configPath => $publishPath], 'config');
 
         $this->addAliases();
+
+        $this->addMiddleware();
+
+        // add routes
+        /** @noinspection PhpUndefinedMethodInspection */
+        if (!$this->app->routesAreCached()) {
+            include __DIR__ . '/../routes/routes.php';
+        }
 
         // add commands, https://laravel.com/docs/5.4/packages#commands
         $this->addCommands();
@@ -80,6 +92,37 @@ class LaravelServiceProvider extends ServiceProvider
         $loader->alias('ServiceManager', ServiceManagerFacade::class);
         $loader->alias('SystemTableModelMapper', SystemTableModelMapperFacade::class);
         $loader->alias('DbSchemaExtensions', DbSchemaExtensionsFacade::class);
+    }
+
+    /**
+     * Register any middleware aliases.
+     *
+     * @return void
+     */
+    protected function addMiddleware()
+    {
+        // the method name was changed in Laravel 5.4
+        if (method_exists(\Illuminate\Routing\Router::class, 'aliasMiddleware')) {
+            Route::aliasMiddleware('df.auth_check', AuthCheck::class);
+            Route::aliasMiddleware('df.access_check', AccessCheck::class);
+            Route::aliasMiddleware('df.verb_override', VerbOverrides::class);
+        } else {
+            /** @noinspection PhpUndefinedMethodInspection */
+            Route::middleware('df.auth_check', AuthCheck::class);
+            /** @noinspection PhpUndefinedMethodInspection */
+            Route::middleware('df.access_check', AccessCheck::class);
+            /** @noinspection PhpUndefinedMethodInspection */
+            Route::middleware('df.verb_override', VerbOverrides::class);
+        }
+
+        /** Add the first user check to the web group */
+        Route::prependMiddlewareToGroup('web', FirstUserCheck::class);
+
+        Route::middlewareGroup('df.api', [
+            'df.verb_override',
+            'df.auth_check',
+            'df.access_check'
+        ]);
     }
 
     protected function addCommands()
@@ -131,11 +174,7 @@ class LaravelServiceProvider extends ServiceProvider
 
     protected function registerOtherProviders()
     {
-        // add DreamFactory routes
-        $this->app->register(RouteServiceProvider::class);
         // use CORS
         $this->app->register(CorsServiceProvider::class);
-        // use JWT instead of sessions
-//        $this->app->register(\Tymon\JWTAuth\Providers\LaravelServiceProvider::class);
     }
 }

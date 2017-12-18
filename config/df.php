@@ -7,8 +7,6 @@ return [
     'api_route_prefix'             => env('DF_API_ROUTE_PREFIX', 'api'),
     // By default, API calls take the form of http://<server_name>/<status_route_prefix>
     'status_route_prefix'          => env('DF_STATUS_ROUTE_PREFIX', 'status'),
-    // By default, API calls take the form of http://<server_name>/[<storage_route_prefix>/]<storage_service_name>/<file_path>
-    'storage_route_prefix'         => env('DF_STORAGE_ROUTE_PREFIX'),
     // XML root tag for http responses.
     'xml_root'                     => env('DF_XML_ROOT', 'dfapi'),
     // Most API calls return a resource array or a single resource, if array, do we wrap it?

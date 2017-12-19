@@ -66,6 +66,13 @@ interface ServiceTypeInterface extends NamedInstanceInterface, Arrayable
     public function make($name, array $config = []);
 
     /**
+     * Get any allowed access exceptions for this service, i.e. allow bypass of RBAC
+     *
+     * @return array
+     */
+    public function getAccessExceptions();
+
+    /**
      * Is the path a role access exception for this service type
      *
      * @param string|int  $action

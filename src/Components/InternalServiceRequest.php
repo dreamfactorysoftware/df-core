@@ -206,7 +206,7 @@ class InternalServiceRequest implements ServiceRequestInterface
                 break;
             case DataFormats::JSON:
                 $this->contentAsArray = json_decode($data, true);
-                $this->contentType = DataFormats::fromMimeType($type);
+                $this->contentType = DataFormats::toMimeType($type);
                 break;
         }
 

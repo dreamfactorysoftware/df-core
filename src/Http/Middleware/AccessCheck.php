@@ -4,7 +4,6 @@ namespace DreamFactory\Core\Http\Middleware;
 
 use Closure;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
-use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\RestException;
@@ -15,7 +14,6 @@ use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
-use ServiceManager;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
 class AccessCheck
@@ -57,16 +55,12 @@ class AccessCheck
 
             $component = strtolower($router->input('resource'));
             $requestor = Session::getRequestor();
-            $action = VerbsMask::toNumeric($method);
             $permException = null;
             try {
                 Session::checkServicePermission($method, $service, $component, $requestor);
 
                 return $next($request);
             } catch (RestException $e) {
-                if (ServiceManager::isAccessException($service, $component, $action)) {
-                    return $next($request);
-                }
 
                 $permException = $e;
             }

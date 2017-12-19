@@ -133,6 +133,11 @@ class ServiceType implements ServiceTypeInterface
         return call_user_func($this->factory, $config, $name);
     }
 
+    public function getAccessExceptions()
+    {
+        return $this->accessExceptions;
+    }
+
     public function isAccessException($action, $path = null)
     {
         if (is_string($action)) {

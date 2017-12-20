@@ -458,10 +458,12 @@ class ServiceManager
         if (is_string($action)) {
             $action = VerbsMask::toNumeric($action);
         }
-        $serviceType = $this->getServiceTypeByName($service);
-        $typeObj = $this->getServiceType($serviceType);
-        if ($typeObj->isAccessException($action, $component)) {
-            return true;
+        if ($serviceType = $this->getServiceTypeByName($service)) {
+            if ($typeObj = $this->getServiceType($serviceType)) {
+                if ($typeObj->isAccessException($action, $component)) {
+                    return true;
+                }
+            }
         }
 
         return false;

@@ -1,4 +1,5 @@
 <?php
+
 namespace DreamFactory\Core\Contracts;
 
 interface FileServiceInterface
@@ -31,14 +32,18 @@ interface FileServiceInterface
     public function getPublicPaths();
 
     /**
-     * @param string $container
+     * @param $path
+     * @return boolean
+     */
+    public function isPublicPath($path);
+
+    /**
      * @param string $path
      * @param bool   $download
      */
-    public function streamFile($container, $path, $download = false);
+    public function streamFile($path, $download = false);
 
     /**
-     * @param            $container
      * @param            $path
      * @param            $zip
      * @param bool|false $clean
@@ -46,5 +51,5 @@ interface FileServiceInterface
      *
      * @return array
      */
-    public function extractZipFile($container, $path, $zip, $clean = false, $drop_path = null);
+    public function extractZipFile($path, $zip, $clean = false, $drop_path = null);
 }

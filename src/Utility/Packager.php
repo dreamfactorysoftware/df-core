@@ -459,9 +459,8 @@ class Packager
      * @param array $appInfo
      *
      * @return array
-     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
-     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
-     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws InternalServerErrorException
+     * @throws NotFoundException
      */
     private function storeApplicationFiles($appInfo)
     {
@@ -476,8 +475,12 @@ class Packager
                 throw new InternalServerErrorException(
                     "App record created, but failed to import files due to unknown storage service with id '$storageServiceId'."
                 );
+            } elseif (!($service instanceof FileServiceInterface)) {
+                throw new InternalServerErrorException(
+                    "App record created, but failed to import files due to storage service with id '$storageServiceId' not being a file service."
+                );
             }
-            $info = $service->extractZipFile($storageFolder, '', $this->zip);
+            $info = $service->extractZipFile($storageFolder, $this->zip);
 
             return $info;
         } else {

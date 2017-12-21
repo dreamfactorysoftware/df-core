@@ -917,14 +917,12 @@ class Importer
                         $resourcePath = $service . '/' . ltrim($resource, '/');
                         $file = $this->package->getFileFromZip($resourcePath);
                         if (!empty($file)) {
-                            $storage->driver()
-                                ->moveFile($storage->getContainerId(), ltrim($resource, '/'), $file, true);
+                            $storage->moveFile(ltrim($resource, '/'), $file, true);
                         } else {
                             $resourcePath = $service . '/' . trim($resource, '/') . '/' . md5($resource) . '.zip';
                             $zip = $this->package->getZipFromZip($resourcePath);
                             if (!empty($zip)) {
-                                $storage->driver()->extractZipFile(
-                                    $storage->getContainerId(),
+                                $storage->extractZipFile(
                                     rtrim($resource, '/') . '/',
                                     $zip,
                                     false,

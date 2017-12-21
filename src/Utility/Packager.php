@@ -253,15 +253,10 @@ class Packager
         }
 
         if ($record['type'] === AppTypes::STORAGE_SERVICE) {
-            if (!empty(array_get($record, 'storage_service_id'))) {
-                $serviceRecord = Service::whereId($record['storage_service_id'])->first();
-                if (empty($serviceRecord)) {
-                    throw new BadRequestException('Invalid Storage Service provided.');
-                }
-                if (null === $type = ServiceManager::getServiceType($serviceRecord->type)) {
-                    throw new BadRequestException('Invalid Storage Service provided.');
-                }
-                if (ServiceTypeGroups::FILE !== $type->getGroup()) {
+            if (!empty($serviceId = array_get($record, 'storage_service_id'))) {
+                $fileServiceNames = ServiceManager::getServiceNamesByGroup(ServiceTypeGroups::FILE);
+                $serviceName = ServiceManager::getServiceNameById($serviceId);
+                if (!in_array($serviceName, $fileServiceNames)) {
                     throw new BadRequestException('Invalid Storage Service provided.');
                 }
             } else {
@@ -609,14 +604,8 @@ class Packager
             throw new InternalServerErrorException("Can not find storage service by identifier '$storageServiceId''.");
         }
 
-        if (empty($storageFolder)) {
-            if ($storage->driver()->containerExists($appName)) {
-                $storage->driver()->getFolderAsZip($appName, '', $this->zip, $zipFileName, true);
-            }
-        } else {
-            if ($storage->driver()->folderExists($storageFolder, $appName)) {
-                $storage->driver()->getFolderAsZip($storageFolder, $appName, $this->zip, $zipFileName, true);
-            }
+        if ($storage->folderExists($storageFolder)) {
+            $storage->getFolderAsZip($storageFolder, $this->zip, $zipFileName, true);
         }
 
         return true;

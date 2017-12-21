@@ -459,16 +459,15 @@ class Exporter
                         throw new InternalServerErrorException("Can not find storage service $service.");
                     }
 
-                    $container = $storage->getContainerId();
-                    if ($storage->driver()->folderExists($container, $resource)) {
+                    if ($storage->folderExists($resource)) {
                         $zippedResource = $this->getStorageFolderZip($storage, $resource);
                         if ($zippedResource !== false) {
                             $newFileName = $service . '/' . rtrim($resource, '/') . '/' . md5($resource) . '.zip';
                             $this->package->zipFile($zippedResource, $newFileName);
                             $this->destructible[] = $zippedResource;
                         }
-                    } elseif ($storage->driver()->fileExists($container, $resource)) {
-                        $content = $storage->driver()->getFileContent($container, $resource, null, false);
+                    } elseif ($storage->fileExists($resource)) {
+                        $content = $storage->getFileContent($resource, null, false);
                         $this->package->zipContent($service . '/' . $resource, $content);
                     }
                 }
@@ -497,9 +496,8 @@ class Exporter
             throw new InternalServerErrorException('Could not create zip file for extracting ' . $resource);
         }
 
-        $container = $storage->getContainerId();
-        if ($storage->driver()->folderExists($container, $resource)) {
-            $storage->driver()->getFolderAsZip($container, $resource, $zip, $zipFileName, true);
+        if ($storage->folderExists($resource)) {
+            $storage->getFolderAsZip($resource, $zip, $zipFileName, true);
         } else {
             return false;
         }

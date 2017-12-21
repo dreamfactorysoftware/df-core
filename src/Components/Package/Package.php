@@ -183,8 +183,9 @@ class Package
      */
     public function getExportStorageFolder($default = null)
     {
-        $folder =  array_get($this->manifest, 'storage.folder', array_get($this->manifest, 'storage.path', $default));
-        return (empty($folder))? $default : $folder;
+        $folder = array_get($this->manifest, 'storage.folder', array_get($this->manifest, 'storage.path', $default));
+
+        return (empty($folder)) ? $default : $folder;
     }
 
     /**
@@ -202,7 +203,7 @@ class Package
             array_get($this->manifest, 'storage.file', $default)
         );
 
-        $filename = (empty($filename))? $default : $filename;
+        $filename = (empty($filename)) ? $default : $filename;
 
         if (strpos($filename, static::FILE_EXTENSION) === false) {
             $filename .= '.' . static::FILE_EXTENSION;
@@ -669,16 +670,11 @@ class Package
 
             /** @type FileServiceInterface $storage */
             $storage = ServiceManager::getService($storageService);
-            $container = $storage->getContainerId();
-            if (!$storage->driver()->folderExists($container, $storageFolder)) {
-                $storage->driver()->createFolder($container, $storageFolder);
+            if (!$storage->folderExists($storageFolder)) {
+                $storage->createFolder($storageFolder);
             }
 
-            $storage->driver()->moveFile(
-                $container,
-                $storageFolder . '/' . basename($this->zipFile),
-                $this->zipFile
-            );
+            $storage->moveFile($storageFolder . '/' . basename($this->zipFile), $this->zipFile);
 
             $url = Environment::getURI() .
                 '/api/v2/' .

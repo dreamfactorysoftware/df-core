@@ -171,10 +171,11 @@ interface FileSystemInterface
      * @param string $container
      * @param string $path Folder path relative to the service root directory
      * @param bool   $force
+     * @param bool   $content_only
      *
      * @return void
      */
-    public function deleteFolder($container, $path, $force = false);
+    public function deleteFolder($container, $path, $force = false, $content_only = false);
 
     /**
      * @param string $container

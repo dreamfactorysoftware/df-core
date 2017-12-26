@@ -5,21 +5,39 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Added
 - DF-1251 Added alternative means (external db) of authentication
-- New ServiceManager methods for retrieving service names by service type or group
+- New ServiceManager methods and test cases for retrieving service names by service type or group
+- Added helper function and pub-sub interface
+- Added schema retrieval to some internal types to aid in automatic document generation 
 ### Fixed
 - DF-1259 Correct OAS3 handling of comma-delimited URL query parameters
+- DF-1231 Fix SQL Server migration from older versions
+- ServiceRequest content-type needs to be string
+- Fix CORS reference
+- Corrected checkServicePermission to use access exceptions so that it applies to all checks not just REST
+- Fix possible issue with content_type usage
+- Fix empty header issue in cURL response
+- Setting session.use_cookies to 0 explicitly
+- Fixed service (logstash) to event map caching issue
 ### Changed
 - DF-1240 Stopped Checking for 'token' as a parameter
 - DF-1186 Add exceptions for missing data when generating relationships
 - DF-1254 Allow headers to be set directly in response creation
+- DF-1249 Added verb override check to new middleware, moved existing first user check to df-core
 - Environment utilities separated from system/environment resource
 - Moved the system service and resources to dreamfactory/df-system
-- Made version optional in routing (i.e. api/v2 or api/) and api is customizable
-- Made storage routing check against valid file services so that other routing works
+- Made version optional in routing (i.e. api/v2 or api/) and api and storage routes customizable
 - Updated service-related interfaces for better re-usability
 - Split service resources and resource handlers usage for easier use
 - Added schema retrieval to some internal types to aid in automatic document generation
 - Moved service request logging into service handling area so all paths to services are logged
+- DF-1150 Update copyright and support email
+- Cleanup and simplify routing
+- Updated test cases, .gitignore, dependencies
+- Updated homestead config to support --dev option
+- Cleanup facade usage and documentation
+- Catch invalid service type in access check
+- Changed file extraction and streaming to not use service's container attribute as it is owned by the service itself
+- Remove external use of file service driver and container, opt for enhanced interface
 
 ## [0.13.1] - 2017-11-16
 ### Fixed

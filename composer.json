@@ -29,6 +29,12 @@
       "email": "leehicks@dreamfactory.com"
     }
   ],
+  "support":     {
+    "email":  "dspsupport@dreamfactory.com",
+    "source": "https://github.com/dreamfactorysoftware/df-core",
+    "issues": "https://github.com/dreamfactorysoftware/df-core/issues",
+    "wiki":   "https://wiki.dreamfactory.com"
+  },
   "require":     {
     "php":                    ">=7.0.0",
     "barryvdh/laravel-cors":  "~0.10.0",
@@ -50,7 +56,7 @@
   },
   "extra":       {
     "branch-alias": {
-      "dev-develop": "0.13.x-dev"
+      "dev-develop": "0.14.x-dev"
     },
     "laravel": {
       "providers": [

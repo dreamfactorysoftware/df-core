@@ -3,10 +3,13 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+## [0.14.0] - 2017-12-28
 ### Added
 - DF-1251 Added alternative means (external db) of authentication
 - New ServiceManager methods and test cases for retrieving service names by service type or group
 - Added helper function and pub-sub interface
+- Added package discovery
 - Added schema retrieval to some internal types to aid in automatic document generation 
 ### Fixed
 - DF-1259 Correct OAS3 handling of comma-delimited URL query parameters
@@ -32,7 +35,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Moved service request logging into service handling area so all paths to services are logged
 - DF-1150 Update copyright and support email
 - Cleanup and simplify routing
-- Updated test cases, .gitignore, dependencies
+- Updated test cases, .gitignore, and dependencies
 - Updated homestead config to support --dev option
 - Cleanup facade usage and documentation
 - Catch invalid service type in access check
@@ -57,7 +60,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - Upgraded Swagger to OpenAPI 3.0 specification
 - DF-1233, DF-1246 Tailor system/environment call for various authentication levels
 - Updated homestead configuration
-- Updated unit testcases
+- Updated unit test cases
 - Sort system/service_type by name
 ### Fixed
 - Correcting role access view of api/v2 service listing
@@ -615,7 +618,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.13.1...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.0...HEAD
+[0.14.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.13.1...0.14.0
 [0.13.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.3...0.13.0
 [0.12.3]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.2...0.12.3

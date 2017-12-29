@@ -1,7 +1,7 @@
 <?php
 /**
  * DreamFactory(tm) Core <http://github.com/dreamfactorysoftware/df-core>
- * Copyright 2012-2017 DreamFactory Software, Inc. <dspsupport@dreamfactory.com>
+ * Copyright 2012-2018 DreamFactory Software, Inc. <dspsupport@dreamfactory.com>
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.

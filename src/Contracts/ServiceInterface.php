@@ -2,30 +2,14 @@
 namespace DreamFactory\Core\Contracts;
 
 /**
- * Something that behaves like a service and can handle service requests
- */
-/**
  * Interface ServiceInterface
+ *
+ * Something that behaves like a service and can handle service requests
  *
  * @package DreamFactory\Core\Contracts
  */
-interface ServiceInterface extends RequestHandlerInterface
+interface ServiceInterface extends NamedInstanceInterface, RequestHandlerInterface
 {
-    /**
-     * @return string
-     */
-    public function getName();
-
-    /**
-     * @return string
-     */
-    public function getLabel();
-
-    /**
-     * @return string
-     */
-    public function getDescription();
-
     /**
      * @return string
      */

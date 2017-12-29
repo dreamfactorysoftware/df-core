@@ -3,7 +3,7 @@ namespace DreamFactory\Core\Contracts;
 
 use DreamFactory\Core\Database\Schema\TableSchema;
 
-interface SchemaInterface
+interface DbSchemaInterface
 {
     /**
      * Return an array of supported schema resource types.

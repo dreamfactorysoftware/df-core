@@ -310,6 +310,9 @@ class Curl extends Verbs
                         $_first = true;
 
                         foreach ($_raw as $_line) {
+                            if (empty($_line)) {
+                                continue; // fix for curl returning blank lines in header string
+                            }
                             //	Skip the first line (HTTP/1.x response)
                             if ($_first || preg_match('/^HTTP\/[0-9\.]+ [0-9]+/', $_line)) {
                                 $_first = false;

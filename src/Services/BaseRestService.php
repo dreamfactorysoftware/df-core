@@ -17,7 +17,10 @@ use DreamFactory\Core\Models\ServiceDoc;
 use DreamFactory\Core\Resources\BaseRestResource;
 use DreamFactory\Core\Utility\ResourcesWrapper;
 use DreamFactory\Core\Utility\Session;
+use Log;
 use ServiceManager as ServiceMgr;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Symfony\Component\Yaml\Yaml;
 
 /**
@@ -122,19 +125,48 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
      */
     public function handleRequest(ServiceRequestInterface $request, $resource = null)
     {
+        Log::info('[REQUEST]', [
+            'API Version' => $request->getApiVersion(),
+            'Method'      => $request->getMethod(),
+            'Service'     => $this->name,
+            'Resource'    => $resource,
+            'Requestor'   => $request->getRequestorType(),
+        ]);
+
+        Log::debug('[REQUEST]', [
+            'Parameters' => json_encode($request->getParameters(), JSON_UNESCAPED_SLASHES),
+            'API Key'    => $request->getHeader('X_DREAMFACTORY_API_KEY'),
+            'JWT'        => $request->getHeader('X_DREAMFACTORY_SESSION_TOKEN')
+        ]);
+
         if (!$this->isActive) {
             throw new ForbiddenException("Service {$this->name} is deactivated.");
         }
 
-        return parent::handleRequest($request, $resource);
+        $response = parent::handleRequest($request, $resource);
+        if ($response instanceof RedirectResponse) {
+            Log::info('[RESPONSE] Redirect', ['Status Code' => $response->getStatusCode()]);
+            Log::debug('[RESPONSE]', ['Target URL' => $response->getTargetUrl()]);
+        } elseif ($response instanceof StreamedResponse) {
+            Log::info('[RESPONSE] Stream', ['Status Code' => $response->getStatusCode()]);
+        } else {
+            Log::info('[RESPONSE]', ['Status Code' => $response->getStatusCode(), 'Content-Type' => $response->getContentType()]);
+        }
+
+        return $response;
     }
 
     /**
      * {@inheritdoc}
      */
-    public function getResources($onlyHandlers = false)
+    public function getResources()
     {
-        return ($onlyHandlers) ? static::$resources : array_values(static::$resources);
+        return array_values($this->getResourceHandlers());
+    }
+
+    protected function getResourceHandlers()
+    {
+        return static::$resources;
     }
 
     /**
@@ -200,7 +232,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
         // check children for any extras
         try {
-            foreach ($this->getResources(true) as $resourceInfo) {
+            foreach ($this->getResourceHandlers() as $resourceInfo) {
                 $className = array_get($resourceInfo, 'class_name');
                 if (!class_exists($className)) {
                     throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .
@@ -393,7 +425,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
     public function getApiDocInfo()
     {
         $base = parent::getApiDocInfo();
-        foreach ($this->getResources(true) as $resourceInfo) {
+        foreach ($this->getResourceHandlers() as $resourceInfo) {
             $className = array_get($resourceInfo, 'class_name');
             if (!class_exists($className)) {
                 throw new InternalServerErrorException('Service configuration class name lookup failed for resource ' .

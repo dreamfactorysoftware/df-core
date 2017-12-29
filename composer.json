@@ -7,6 +7,7 @@
     "laravel",
     "rest",
     "api",
+    "automatic-api",
     "mbaas",
     "baas",
     "paas"
@@ -28,10 +29,16 @@
       "email": "leehicks@dreamfactory.com"
     }
   ],
+  "support":     {
+    "email":  "dspsupport@dreamfactory.com",
+    "source": "https://github.com/dreamfactorysoftware/df-core",
+    "issues": "https://github.com/dreamfactorysoftware/df-core/issues",
+    "wiki":   "https://wiki.dreamfactory.com"
+  },
   "require":     {
-    "php":                    ">=5.6.4",
-    "barryvdh/laravel-cors":  "0.8.x",
-    "doctrine/dbal":          "2.5.*",
+    "php":                    ">=7.0.0",
+    "barryvdh/laravel-cors":  "~0.10.0",
+    "doctrine/dbal":          "~2.5.0",
     "guzzlehttp/guzzle":      "~6.0",
     "symfony/yaml":           "~2.8|~3.0",
     "tymon/jwt-auth":         "~1.0.0"
@@ -49,7 +56,12 @@
   },
   "extra":       {
     "branch-alias": {
-      "dev-develop": "0.13.x-dev"
+      "dev-develop": "0.14.x-dev"
+    },
+    "laravel": {
+      "providers": [
+        "DreamFactory\\Core\\LaravelServiceProvider"
+      ]
     }
   }
 }

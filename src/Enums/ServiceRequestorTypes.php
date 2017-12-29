@@ -1,8 +1,6 @@
 <?php
 namespace DreamFactory\Core\Enums;
 
-use DreamFactory\Core\Exceptions\NotImplementedException;
-
 /**
  * Various service requestor types as bitmask-able values
  */
@@ -37,7 +35,6 @@ class ServiceRequestorTypes extends FactoryEnum
     /**
      * @param string $requestorType
      *
-     * @throws NotImplementedException
      * @return string
      */
     public static function toNumeric($requestorType)
@@ -52,7 +49,6 @@ class ServiceRequestorTypes extends FactoryEnum
     /**
      * @param int $numericLevel
      *
-     * @throws NotImplementedException
      * @return string
      */
     public static function toString($numericLevel)

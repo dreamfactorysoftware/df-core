@@ -38,8 +38,7 @@ trait ServiceEventMapper
 
             // Deleting records using model as oppose to chaining with the where clause.
             // This way forcing model to trigger the 'deleted' event which clears necessary cache.
-            // See the boot method above.
-            ServiceEventMap::whereServiceId($id)->delete();
+            // See the boot method in ServiceEventMap::class.
             $models = ServiceEventMap::whereServiceId($id)->get()->all();
             foreach ($models as $model) {
                 $model->delete();
@@ -67,8 +66,7 @@ trait ServiceEventMapper
 
             // Deleting records using model as oppose to chaining with the where clause.
             // This way forcing model to trigger the 'deleted' event which clears necessary cache.
-            // See the boot method above.
-            ServiceEventMap::whereServiceId($id)->delete();
+            // See the boot method in ServiceEventMap::class.
             $models = ServiceEventMap::whereServiceId($id)->get()->all();
             foreach ($models as $model) {
                 $model->delete();

@@ -5,10 +5,8 @@ return [
     'api_version'                  => '2.0',
     // By default, API calls take the form of http://<server_name>/<api_route_prefix>/v<version_number>
     'api_route_prefix'             => env('DF_API_ROUTE_PREFIX', 'api'),
-    // By default, API calls take the form of http://<server_name>/[<status_route_prefix>/]status
-    'status_route_prefix'          => env('DF_STATUS_ROUTE_PREFIX'),
-    // By default, API calls take the form of http://<server_name>/[<storage_route_prefix>/]<storage_service_name>/<file_path>
-    'storage_route_prefix'         => env('DF_STORAGE_ROUTE_PREFIX'),
+    // By default, API calls take the form of http://<server_name>/<status_route_prefix>
+    'status_route_prefix'          => env('DF_STATUS_ROUTE_PREFIX', 'status'),
     // XML root tag for http responses.
     'xml_root'                     => env('DF_XML_ROOT', 'dfapi'),
     // Most API calls return a resource array or a single resource, if array, do we wrap it?
@@ -24,6 +22,8 @@ return [
     'file_chunk_size'              => env('DF_FILE_CHUNK_SIZE', 10000000),
     // User attribute to use for authentication (email or username).
     'login_attribute'              => env('DF_LOGIN_ATTRIBUTE', 'email'),
+    // Allows you to use an alternate means (not using DF user table) of authentication.
+    'alternate_auth'               => env('DF_ENABLE_ALTERNATE_AUTH', false),
     // Set true to enable windows authentication.
     'enable_windows_auth'          => env('DF_ENABLE_WINDOWS_AUTH', false),
     // DB configs

@@ -4,7 +4,6 @@ namespace DreamFactory\Core\Http\Middleware;
 
 use Closure;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
-use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\RestException;
@@ -15,7 +14,6 @@ use DreamFactory\Core\Utility\Session;
 use DreamFactory\Core\Enums\Verbs;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Router;
-use ServiceManager;
 use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
 
 class AccessCheck
@@ -57,16 +55,12 @@ class AccessCheck
 
             $component = strtolower($router->input('resource'));
             $requestor = Session::getRequestor();
-            $action = VerbsMask::toNumeric($method);
             $permException = null;
             try {
                 Session::checkServicePermission($method, $service, $component, $requestor);
 
                 return $next($request);
             } catch (RestException $e) {
-                if (ServiceManager::isAccessException($service, $component, $action)) {
-                    return $next($request);
-                }
 
                 $permException = $e;
             }
@@ -79,13 +73,13 @@ class AccessCheck
 
             if (!$callFromLocalScript && empty($apiKey) && empty($token)) {
                 $msg = 'No session token (JWT) or API Key detected in request. ' .
-                    'Please send in X-DreamFactory-Session-Token and/or X-Dreamfactory-API-Key request header. ' .
+                    'Please send in X-DreamFactory-Session-Token and/or X-DreamFactory-API-Key request header. ' .
                     'You can also use URL query parameters session_token and/or api_key.';
                 throw new BadRequestException($msg);
             } elseif (empty($roleId)) {
                 if (empty($apiKey)) {
                     throw new BadRequestException(
-                        "No API Key provided. Please provide a valid API Key using X-Dreamfactory-API-Key request header or 'api_key' url query parameter."
+                        "No API Key provided. Please provide a valid API Key using X-DreamFactory-API-Key request header or 'api_key' url query parameter."
                     );
                 } elseif (empty($token)) {
                     throw new BadRequestException(

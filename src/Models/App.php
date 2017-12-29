@@ -8,6 +8,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Utility\JWTUtilities;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Database\Query\Builder;
+use ServiceManager;
 
 /**
  * App
@@ -123,10 +124,9 @@ class App extends BaseSystemModel
         switch ($this->type) {
             case AppTypes::STORAGE_SERVICE:
                 if (!empty($this->storage_service_id)) {
-                    /** @var $service Service */
-                    $service = Service::whereId($this->storage_service_id)->first();
+                    $service = ServiceManager::getServiceNameById($this->storage_service_id);
                     if (!empty($service)) {
-                        $launchUrl .= $service->name . '/';
+                        $launchUrl .= $service . '/';
                         if (!empty($this->storage_container)) {
                             $launchUrl .= trim($this->storage_container, '/');
                         }

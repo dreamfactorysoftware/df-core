@@ -8,7 +8,6 @@ use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Models\App;
-use DreamFactory\Core\Models\BaseModel;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Contracts\FileServiceInterface;
 use DreamFactory\Core\Enums\Verbs;
@@ -197,11 +196,11 @@ class Packager
      */
     private function getDefaultStorageServiceId()
     {
-        /** @type BaseModel $model */
-        $model = Service::whereType('local_file')->first();
-        $storageServiceId = ($model) ? $model->{Service::getPrimaryKeyStatic()} : null;
+        if (!empty($result = ServiceManager::getServiceListByType('local_file', ['id']))) {
+            return array_get(current($result), 'id');
+        }
 
-        return $storageServiceId;
+        return null;
     }
 
     /**
@@ -254,15 +253,10 @@ class Packager
         }
 
         if ($record['type'] === AppTypes::STORAGE_SERVICE) {
-            if (!empty(array_get($record, 'storage_service_id'))) {
-                $serviceRecord = Service::whereId($record['storage_service_id'])->first();
-                if (empty($serviceRecord)) {
-                    throw new BadRequestException('Invalid Storage Service provided.');
-                }
-                if (null === $type = ServiceManager::getServiceType($serviceRecord->type)) {
-                    throw new BadRequestException('Invalid Storage Service provided.');
-                }
-                if (ServiceTypeGroups::FILE !== $type->getGroup()) {
+            if (!empty($serviceId = array_get($record, 'storage_service_id'))) {
+                $fileServiceNames = ServiceManager::getServiceNamesByGroup(ServiceTypeGroups::FILE);
+                $serviceName = ServiceManager::getServiceNameById($serviceId);
+                if (!in_array($serviceName, $fileServiceNames)) {
                     throw new BadRequestException('Invalid Storage Service provided.');
                 }
             } else {
@@ -460,9 +454,8 @@ class Packager
      * @param array $appInfo
      *
      * @return array
-     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
-     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
-     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws InternalServerErrorException
+     * @throws NotFoundException
      */
     private function storeApplicationFiles($appInfo)
     {
@@ -477,8 +470,12 @@ class Packager
                 throw new InternalServerErrorException(
                     "App record created, but failed to import files due to unknown storage service with id '$storageServiceId'."
                 );
+            } elseif (!($service instanceof FileServiceInterface)) {
+                throw new InternalServerErrorException(
+                    "App record created, but failed to import files due to storage service with id '$storageServiceId' not being a file service."
+                );
             }
-            $info = $service->extractZipFile($storageFolder, '', $this->zip);
+            $info = $service->extractZipFile($storageFolder, $this->zip);
 
             return $info;
         } else {
@@ -607,14 +604,8 @@ class Packager
             throw new InternalServerErrorException("Can not find storage service by identifier '$storageServiceId''.");
         }
 
-        if (empty($storageFolder)) {
-            if ($storage->driver()->containerExists($appName)) {
-                $storage->driver()->getFolderAsZip($appName, '', $this->zip, $zipFileName, true);
-            }
-        } else {
-            if ($storage->driver()->folderExists($storageFolder, $appName)) {
-                $storage->driver()->getFolderAsZip($storageFolder, $appName, $this->zip, $zipFileName, true);
-            }
+        if ($storage->folderExists($storageFolder)) {
+            $storage->getFolderAsZip($storageFolder, $this->zip, $zipFileName, true);
         }
 
         return true;

@@ -9,22 +9,17 @@ use DreamFactory\Core\Enums\Verbs;
  * Class Service2ServiceRequest
  *
  */
-class Service2ServiceRequest implements ServiceRequestInterface
+class Service2ServiceRequest extends InternalServiceRequest implements ServiceRequestInterface
 {
-    use InternalServiceRequest;
+    /**
+     * @var int, see ServiceRequestorTypes
+     */
+    protected $requestorType = ServiceRequestorTypes::API; // for now, maybe independent type later
 
     public function __construct($method = Verbs::GET, $parameters = [], $headers = [])
     {
         $this->setMethod($method);
         $this->setParameters($parameters);
         $this->setHeaders($headers);
-    }
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getRequestorType()
-    {
-        return ServiceRequestorTypes::API; // for now, maybe independent type later
     }
 }

@@ -99,6 +99,7 @@ class BaseRestResource extends RestHandler implements ResourceInterface
      * @param string $resource
      *
      * @return bool
+     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
      */
     public function checkPermission($operation, $resource = null)
     {

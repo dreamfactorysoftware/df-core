@@ -59,8 +59,12 @@ class MergeLookups extends Migration
 
             foreach ($lookups as $lookup) {
                 $lookup = array_except((array)$lookup, 'id');
-                DB::table('lookup')->insert($lookup);
-                Log::debug('Migrating Lookup: ' . array_get($lookup, 'name'));
+                try {
+                    DB::table('lookup')->insert($lookup);
+                    Log::debug('Migrating Lookup: ' . array_get($lookup, 'name'));
+                } catch (\Exception $ex) {
+                    Log::error('Migrating Lookup Failed for ' . array_get($lookup, 'name') . ': ' . $ex->getMessage());
+                }
             }
         }
     }

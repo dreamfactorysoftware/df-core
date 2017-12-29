@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Components;
 
-use DreamFactory\Core\Contracts\SchemaInterface;
+use DreamFactory\Core\Contracts\DbSchemaInterface;
 use Illuminate\Database\ConnectionInterface;
 
 /**
@@ -55,7 +55,7 @@ class DbSchemaExtensions
      *
      * @param ConnectionInterface $conn
      *
-     * @return SchemaInterface
+     * @return DbSchemaInterface
      */
     public function getSchemaExtension($name, ConnectionInterface $conn)
     {

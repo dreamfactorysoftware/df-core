@@ -9,7 +9,7 @@ use DreamFactory\Core\Components\Encryptable;
 use DreamFactory\Core\Components\Protectable;
 use DreamFactory\Core\Components\SchemaToOpenApiDefinition;
 use DreamFactory\Core\Components\Validatable;
-use DreamFactory\Core\Contracts\SchemaInterface;
+use DreamFactory\Core\Contracts\DbSchemaInterface;
 use DreamFactory\Core\Database\Schema\RelationSchema;
 use DreamFactory\Core\Database\Schema\TableSchema;
 use DreamFactory\Core\Enums\ApiOptions;
@@ -37,7 +37,7 @@ class BaseModel extends Model
     use SchemaToOpenApiDefinition, Protectable, Encryptable, Validatable;
 
     /**
-     * @var SchemaInterface
+     * @var DbSchemaInterface
      */
     protected $schemaExtension;
     /**

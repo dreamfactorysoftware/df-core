@@ -4,7 +4,7 @@ namespace DreamFactory\Core\Providers;
 
 use Barryvdh\Cors\HandleCors;
 use Barryvdh\Cors\HandlePreflight;
-use Barryvdh\Cors\Stack\CorsService;
+use Barryvdh\Cors\CorsService;
 use DreamFactory\Core\Models\CorsConfig;
 use Illuminate\Database\QueryException;
 use Illuminate\Contracts\Http\Kernel;
@@ -32,6 +32,7 @@ class CorsServiceProvider extends ServiceProvider
      *
      * @param Request $request
      * @param Kernel  $kernel
+     * @throws \Exception
      */
     public function boot(Request $request, Kernel $kernel)
     {
@@ -64,6 +65,7 @@ class CorsServiceProvider extends ServiceProvider
      * @param Request $request
      *
      * @return array
+     * @throws \Exception
      */
     protected function getOptions(Request $request)
     {

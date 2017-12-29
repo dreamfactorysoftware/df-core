@@ -1,5 +1,8 @@
 <?php
+
 namespace DreamFactory\Core\Database\Schema;
+
+use DreamFactory\Core\Enums\DbSimpleTypes;
 
 /**
  * RelationSchema class describes the relationship meta data of a database table.
@@ -96,45 +99,59 @@ class RelationSchema extends NamedResourceSchema
      */
     public $junctionRefField;
 
-    public static function buildName(
-        $type,
-        $field,
-        $refService,
-        $refTable,
-        $refField,
-        $junctionService = null,
-        $junctionTable = null
-    ) {
-        $table = $refTable;
-        if (!empty($refService)) {
-            $table = $refService . '.' . $table;
+    /**
+     * @param array $settings
+     * @return string
+     * @throws \Exception
+     */
+    public static function buildName(array $settings)
+    {
+        if (empty($refTable = array_get($settings, 'ref_table'))) {
+            throw new \Exception('Failed to build relationship. Missing referenced table.');
         }
-        switch ($type) {
+        if (!empty($refService = array_get($settings, 'ref_service'))) {
+            $refTable = $refService . '.' . $refTable;
+        }
+        switch ($type = array_get($settings, 'type')) {
             case static::BELONGS_TO:
-                return $table . '_by_' . $field;
-            case static::HAS_ONE:
-            case static::HAS_MANY:
-                return $table . '_by_' . $refField;
-            case static::MANY_MANY:
-                $junction = $junctionTable;
-                if (!empty($junctionService)) {
-                    $junction = $junctionService . '.' . $junction;
+                if (empty($field = array_get($settings, 'field'))) {
+                    throw new \Exception('Failed to build relationship. Missing referencing fields.');
                 }
 
-                return $table . '_by_' . $junction;
+                return $refTable . '_by_' . $field;
+            case static::HAS_ONE:
+            case static::HAS_MANY:
+                if (empty($refField = array_get($settings, 'ref_field'))) {
+                    throw new \Exception('Failed to build relationship. Missing referenced fields.');
+                }
+
+                return $refTable . '_by_' . $refField;
+            case static::MANY_MANY:
+                if (empty($junctionTable = array_get($settings, 'junction_table'))) {
+                    throw new \Exception('Failed to build relationship. Missing referenced junction table.');
+                }
+                if (!empty($junctionService = array_get($settings, 'junction_service'))) {
+                    $junctionTable = $junctionService . '.' . $junctionTable;
+                }
+
+                return $refTable . '_by_' . $junctionTable;
             default:
-                return null;
+                throw new \Exception('Failed to build relationship. Invalid relationship type: ' . $type);
         }
     }
 
+    /**
+     * RelationSchema constructor.
+     * @param array $settings
+     * @throws \Exception
+     */
     public function __construct(array $settings)
     {
-        parent::__construct($settings);
-
-        if (empty($this->name)) {
-            $this->name = static::buildName($this->type, $this->field, null, $this->refTable,
-                $this->refField, null, $this->junctionTable);
+        if (empty(array_get($settings, 'name'))) {
+            $settings['name'] = static::buildName($settings);
         }
+
+        parent::__construct($settings);
     }
 
     public function toArray($use_alias = false)
@@ -158,5 +175,64 @@ class RelationSchema extends NamedResourceSchema
         ];
 
         return array_merge(parent::toArray($use_alias), $out);
+    }
+
+    public static function getSchema()
+    {
+        return [
+            'name'        => 'db_schema_table_relation',
+            'description' => 'The database table relation schema.',
+            'type'        => DbSimpleTypes::TYPE_OBJECT,
+            'properties'  => [
+                'name'               => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Name of the relationship.',
+                ],
+                'alias'              => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Alias to use in the API to override the name the relationship.',
+                ],
+                'label'              => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Label for the relationship.',
+                ],
+                'description'        => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Description of the relationship.',
+                ],
+                'type'               => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Relationship type - belongs_to, has_many, many_many.',
+                ],
+                'field'              => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The current table field that is used in the relationship.',
+                ],
+                'ref_table'          => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The table name that is referenced by the relationship.',
+                ],
+                'ref_field'          => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The field name that is referenced by the relationship.',
+                ],
+                'junction_table'     => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The intermediate junction table used for many_many relationships.',
+                ],
+                'junction_field'     => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The intermediate junction table field used for many_many relationships.',
+                ],
+                'junction_ref_field' => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'The intermediate joining table referencing field used for many_many relationships.',
+                ],
+                'always_fetch'       => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Always fetch this relationship when querying the parent table.',
+                ],
+            ]
+        ];
     }
 }

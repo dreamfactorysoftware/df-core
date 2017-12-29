@@ -1,15 +1,16 @@
 <?php
 namespace DreamFactory\Core\Contracts;
 
-/**
- * Something that behaves like a system resource and can handle service requests
- */
+use Illuminate\Contracts\Support\Arrayable;
+
 /**
  * Interface SystemResourceInterface
  *
+ * Something that behaves like a system resource and can handle service requests
+ *
  * @package DreamFactory\Core\Contracts
  */
-interface SystemResourceInterface extends RequestHandlerInterface
+interface SystemResourceInterface extends NamedInstanceInterface, RequestHandlerInterface, Arrayable
 {
     /**
      * @return SystemResourceTypeInterface

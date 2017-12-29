@@ -158,10 +158,6 @@ abstract class RestHandler implements RequestHandlerInterface
      * @param string|null             $resource
      *
      * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
-     * @throws \DreamFactory\Core\Exceptions\ForbiddenException
-     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
-     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     public function handleRequest(ServiceRequestInterface $request, $resource = null)
     {
@@ -170,7 +166,7 @@ abstract class RestHandler implements RequestHandlerInterface
         $this->setResourceMembers($resource);
         $this->response = null;
 
-        $resources = $this->getResources(true);
+        $resources = $this->getResourceHandlers();
         if (!empty($resources) && !empty($this->resource)) {
             try {
                 if (false === $this->response = $this->handleResource($resources)) {
@@ -231,7 +227,6 @@ abstract class RestHandler implements RequestHandlerInterface
      * @param array $resources
      *
      * @return bool|mixed
-     * @throws BadRequestException
      * @throws InternalServerErrorException
      * @throws NotFoundException
      */
@@ -531,14 +526,20 @@ abstract class RestHandler implements RequestHandlerInterface
     /**
      * Implement to return the resource configuration for this REST handling object
      *
-     * @param boolean $only_handlers
-     *
      * @return array Empty when not implemented, otherwise the array of resource information
      */
-    public function getResources(
-        /** @noinspection PhpUnusedParameterInspection */
-        $only_handlers = false
-    ) {
+    public function getResources()
+    {
+        return [];
+    }
+
+    /**
+     * Implement to return the resource handler configuration for this REST handling object
+     *
+     * @return array Empty when not implemented, otherwise the array of resource handlers
+     */
+    protected function getResourceHandlers()
+    {
         return [];
     }
 
@@ -583,6 +584,7 @@ abstract class RestHandler implements RequestHandlerInterface
      * Handles GET action
      *
      * @return mixed
+     * @throws BadRequestException
      */
     protected function handleGET()
     {

@@ -27,13 +27,13 @@ class RestController extends Controller
      *
      * @return null|ServiceResponseInterface|Response
      */
-    public function index(
-        /** @noinspection PhpUnusedParameterInspection */
-        $version = null
-    ) {
+    public function index($version = null)
+    {
         try {
             $request = new ServiceRequest();
-            $request->setApiVersion($version);
+            if (!empty($version)) {
+                $request->setApiVersion($version);
+            }
 
             Log::info('[REQUEST]', [
                 'API Version' => $request->getApiVersion(),
@@ -48,27 +48,41 @@ class RestController extends Controller
                 'JWT'        => $request->getHeader('X_DREAMFACTORY_SESSION_TOKEN')
             ]);
 
-            $services = [];
             $limitedFields = ['id', 'name', 'label', 'description', 'type'];
-            $group = \Request::query(ApiOptions::GROUP);
             $fields = \Request::query(ApiOptions::FIELDS);
             if (!empty($fields) && !is_array($fields)) {
                 $fields = array_map('trim', explode(',', trim($fields, ',')));
             } elseif (empty($fields)) {
                 $fields = $limitedFields;
             }
-
             $fields = array_intersect($fields, $limitedFields);
-            foreach (ServiceManager::getServiceList($fields, true, $group) as $info) {
-                $name = array_get($info, 'name');
+
+            $group = \Request::query('group');
+            $type = \Request::query('type');
+            if (!empty($group)) {
+                $results = ServiceManager::getServiceListByGroup($group, $fields, true);
+            } elseif (!empty($type)) {
+                $results = ServiceManager::getServiceListByType($type, $fields, true);
+            } else {
+                $results = ServiceManager::getServiceList($fields, true);
+            }
+            $services = [];
+            foreach ($results as $info) {
                 // only allowed services by role here
-                if (Session::allowsServiceAccess($name)) {
+                if (Session::allowsServiceAccess(array_get($info, 'name'))) {
                     $services[] = $info;
                 }
             }
 
+            if (!empty($group)) {
+                $results = ServiceManager::getServiceTypes($group);
+            } elseif (!empty($type)) {
+                $results = [ServiceManager::getServiceType($type)];
+            } else {
+                $results = ServiceManager::getServiceTypes();
+            }
             $types = [];
-            foreach (ServiceManager::getServiceTypes($group) as $type) {
+            foreach ($results as $type) {
                 $types[] = [
                     'name'        => $type->getName(),
                     'label'       => $type->getLabel(),
@@ -77,146 +91,12 @@ class RestController extends Controller
                 ];
             }
             $response = ResponseFactory::create(['services' => $services, 'service_types' => $types]);
+            Log::info('[RESPONSE]', ['Status Code' => $response->getStatusCode(), 'Content-Type' => $response->getContentType()]);
 
             return ResponseFactory::sendResponse($response);
         } catch (\Exception $e) {
             return ResponseFactory::sendException($e);
         }
-    }
-
-    /**
-     * Handles the GET requests
-     *
-     * @param null|string $service
-     * @param null|string $resource
-     *
-     * @return null|ServiceResponseInterface
-     */
-    public function handleV1GET($service = null, $resource = null)
-    {
-        return $this->handleGET('v1', $service, $resource);
-    }
-
-    /**
-     * Handles the POST requests
-     *
-     * @param null|string $service
-     * @param null|string $resource
-     *
-     * @return null|ServiceResponseInterface
-     */
-    public function handleV1POST($service = null, $resource = null)
-    {
-        return $this->handlePOST('v1', $service, $resource);
-    }
-
-    /**
-     * Handles the PUT requests
-     *
-     * @param null|string $service
-     * @param null|string $resource
-     *
-     * @return null|ServiceResponseInterface
-     */
-    public function handleV1PUT($service = null, $resource = null)
-    {
-        return $this->handlePUT('v1', $service, $resource);
-    }
-
-    /**
-     * Handles the PATCH requests
-     *
-     * @param null|string $service
-     * @param null|string $resource
-     *
-     * @return null|ServiceResponseInterface
-     */
-    public function handleV1PATCH($service = null, $resource = null)
-    {
-        return $this->handlePATCH('v1', $service, $resource);
-    }
-
-    /**
-     * Handles DELETE requests
-     *
-     * @param null|string $service
-     * @param null|string $resource
-     *
-     * @return null|ServiceResponseInterface
-     */
-    public function handleV1DELETE($service = null, $resource = null)
-    {
-        return $this->handleDELETE('v1', $service, $resource);
-    }
-
-    /**
-     * Handles the GET requests
-     *
-     * @param null|string $version
-     * @param null|string $service
-     * @param null|string $resource
-     *
-     * @return null|ServiceResponseInterface
-     */
-    public function handleGET($version = null, $service = null, $resource = null)
-    {
-        return $this->handleService($version, $service, $resource);
-    }
-
-    /**
-     * Handles the POST requests
-     *
-     * @param null|string $version
-     * @param null|string $service
-     * @param null|string $resource
-     *
-     * @return null|ServiceResponseInterface
-     */
-    public function handlePOST($version = null, $service = null, $resource = null)
-    {
-        return $this->handleService($version, $service, $resource);
-    }
-
-    /**
-     * Handles the PUT requests
-     *
-     * @param null|string $version
-     * @param null|string $service
-     * @param null|string $resource
-     *
-     * @return null|ServiceResponseInterface
-     */
-    public function handlePUT($version = null, $service = null, $resource = null)
-    {
-        return $this->handleService($version, $service, $resource);
-    }
-
-    /**
-     * Handles the PATCH requests
-     *
-     * @param null|string $version
-     * @param null|string $service
-     * @param null|string $resource
-     *
-     * @return null|ServiceResponseInterface
-     */
-    public function handlePATCH($version = null, $service = null, $resource = null)
-    {
-        return $this->handleService($version, $service, $resource);
-    }
-
-    /**
-     * Handles DELETE requests
-     *
-     * @param null|string $version
-     * @param null|string $service
-     * @param null|string $resource
-     *
-     * @return null|ServiceResponseInterface
-     */
-    public function handleDELETE($version = null, $service = null, $resource = null)
-    {
-        return $this->handleService($version, $service, $resource);
     }
 
     /**
@@ -228,7 +108,30 @@ class RestController extends Controller
      *
      * @return ServiceResponseInterface|Response|null
      */
-    public function handleService($version = null, $service, $resource = null)
+    public function handleVersionedService($version, $service, $resource = null)
+    {
+        $request = new ServiceRequest();
+        $request->setApiVersion($version);
+
+        return $this->handleServiceRequest($request, $service, $resource);
+    }
+
+    /**
+     * Handles all service requests
+     *
+     * @param string      $service
+     * @param null|string $resource
+     *
+     * @return ServiceResponseInterface|Response|null
+     */
+    public function handleService($service, $resource = null)
+    {
+        $request = new ServiceRequest();
+
+        return $this->handleServiceRequest($request, $service, $resource);
+    }
+
+    protected function handleServiceRequest(ServiceRequest $request, $service, $resource = null)
     {
         try {
             $service = strtolower($service);
@@ -243,31 +146,8 @@ class RestController extends Controller
                 }
             }
 
-            $request = new ServiceRequest();
-            $request->setApiVersion($version);
-
-            Log::info('[REQUEST]', [
-                'API Version' => $request->getApiVersion(),
-                'Method'      => $request->getMethod(),
-                'Service'     => $service,
-                'Resource'    => $resource
-            ]);
-
-            Log::debug('[REQUEST]', [
-                'Parameters' => json_encode($request->getParameters(), JSON_UNESCAPED_SLASHES),
-                'API Key'    => $request->getHeader('X_DREAMFACTORY_API_KEY'),
-                'JWT'        => $request->getHeader('X_DREAMFACTORY_SESSION_TOKEN')
-            ]);
-
-            $response = ServiceManager::getService($service)->handleRequest($request, $resource);
-            if ($response instanceof RedirectResponse) {
-                \Log::info('[RESPONSE] Redirect', ['Status Code' => $response->getStatusCode()]);
-                \Log::debug('[RESPONSE]', ['Target URL' => $response->getTargetUrl()]);
-
-                return $response;
-            } elseif ($response instanceof StreamedResponse) {
-                \Log::info('[RESPONSE] Stream', ['Status Code' => $response->getStatusCode()]);
-
+            $response = ServiceManager::handleServiceRequest($request, $service, $resource, false);
+            if (($response instanceof RedirectResponse) || ($response instanceof StreamedResponse)) {
                 return $response;
             }
 

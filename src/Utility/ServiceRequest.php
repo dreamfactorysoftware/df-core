@@ -2,11 +2,10 @@
 
 namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Core\Enums\DataFormats;
 use DreamFactory\Core\Components\InternalServiceRequest;
-use DreamFactory\Core\Enums\ServiceRequestorTypes;
-use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use Illuminate\Support\Str;
 use Request;
 
@@ -15,18 +14,8 @@ use Request;
  *
  * @package DreamFactory\Core\Utility
  */
-class ServiceRequest implements ServiceRequestInterface
+class ServiceRequest extends InternalServiceRequest implements ServiceRequestInterface
 {
-    use InternalServiceRequest;
-
-    /**
-     * {@inheritdoc}
-     */
-    public function getRequestorType()
-    {
-        return ServiceRequestorTypes::API;
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -135,6 +124,7 @@ class ServiceRequest implements ServiceRequestInterface
      *
      * @return array
      * @throws BadRequestException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public function getPayloadData($key = null, $default = null)
     {
@@ -212,7 +202,6 @@ class ServiceRequest implements ServiceRequestInterface
      * @param null $default
      *
      * @return array|mixed|null
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
     protected function csv($key = null, $default = null)
     {
@@ -239,7 +228,6 @@ class ServiceRequest implements ServiceRequestInterface
      * @param null $default
      *
      * @return array|mixed|null
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      */
     protected function xml($key = null, $default = null)
     {
@@ -300,7 +288,7 @@ class ServiceRequest implements ServiceRequestInterface
             return $this->contentType;
         }
 
-        return Request::getContentType();
+        return $this->getHeader('content-type', 'application/json');
     }
 
     /**

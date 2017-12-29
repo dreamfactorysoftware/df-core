@@ -13,6 +13,7 @@ use DreamFactory\Core\Models\BaseSystemLookup;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
+use ServiceManager;
 use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
 
 class Session
@@ -24,8 +25,10 @@ class Session
      * @param int    $requestor - Entity type requesting the service
      * @param bool   $exception - Set false to return false
      *
-     * @throws ForbiddenException
      * @returns boolean
+     * @throws ForbiddenException
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public static function checkServicePermission(
         $action,
@@ -39,6 +42,9 @@ class Session
         $mask = static::getServicePermissions($service, $component, $requestor);
 
         if (!($verb & $mask)) {
+            if (ServiceManager::isAccessException($service, $component, $action)) {
+                return true;
+            }
             if (false === $exception) {
                 return false;
             }
@@ -341,6 +347,7 @@ class Session
      * @param int    $requestor - Entity type requesting the service
      *
      * @returns array
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public static function getServiceFilters(
         $action,
@@ -650,7 +657,7 @@ class Session
      */
     public static function authenticate(array $credentials, $remember = false, $login = true, $appId = null)
     {
-        if (\Auth::attempt($credentials, false, false)) {
+        if (\Auth::attempt($credentials)) {
             $user = \Auth::getLastAttempted();
             /** @noinspection PhpUndefinedFieldInspection */
             static::checkRole($user->id);

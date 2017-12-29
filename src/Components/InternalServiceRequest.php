@@ -2,14 +2,12 @@
 
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
+use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Enums\DataFormats;
 
-/**
- * Trait InternalServiceRequest
- *
- */
-trait InternalServiceRequest
+class InternalServiceRequest implements ServiceRequestInterface
 {
     use ApiVersion;
 
@@ -52,6 +50,11 @@ trait InternalServiceRequest
      * @var null|string
      */
     protected $resource = null;
+
+    /**
+     * @var int, see ServiceRequestorTypes
+     */
+    protected $requestorType = ServiceRequestorTypes::API;
 
     /**
      * @param $verb
@@ -190,20 +193,34 @@ trait InternalServiceRequest
      * @param int   $type
      *
      * @return $this
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public function setContent($data, $type = DataFormats::PHP_ARRAY)
     {
         $this->content = $data;
-        $this->contentType = $type;
 
         switch ($type) {
             case DataFormats::PHP_ARRAY:
                 $this->contentAsArray = $data;
+                $this->contentType = ''; // this could be null, but may cause issues with clients
                 break;
             case DataFormats::JSON:
                 $this->contentAsArray = json_decode($data, true);
+                $this->contentType = DataFormats::toMimeType($type);
                 break;
         }
+
+        return $this;
+    }
+
+    /**
+     * @param string $type
+     *
+     * @return $this
+     */
+    public function setContentType($type)
+    {
+        $this->contentType = $type;
 
         return $this;
     }
@@ -297,7 +314,7 @@ trait InternalServiceRequest
     /**
      * {@inheritdoc}
      */
-    public function getFile($key = null, $default = null)
+    public function getFile(/** @noinspection PhpUnusedParameterInspection */$key = null, $default = null)
     {
         //Todo:Experiment Request::file()...
         return null;
@@ -330,6 +347,7 @@ trait InternalServiceRequest
 
     /**
      * @param array $data Merge some attributes from an array
+     * @throws \Exception
      */
     public function mergeFromArray(array $data)
     {
@@ -346,7 +364,15 @@ trait InternalServiceRequest
             $this->setPayloadData(array_get($data, 'payload'));
         }
         if (array_key_exists('content', $data)) {
-            $this->setContent(array_get($data, 'content'), array_get($data, 'content_type'));
+            $content = array_get($data, 'content');
+            $format = DataFormats::PHP_ARRAY;
+            if (!is_array($content)) {
+                if (!empty($contentType = array_get($data, 'content_type'))) {
+                    $this->setContentType($contentType);
+                    $format = DataFormats::fromMimeType($contentType);
+                }
+            }
+            $this->setContent($content, $format);
         }
     }
 
@@ -384,5 +410,27 @@ trait InternalServiceRequest
     public function input($key = null, $default = null)
     {
         return $this->getParameter($key, $this->getPayloadData($key, $default));
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getRequestorType()
+    {
+        return $this->requestorType;
+    }
+
+    /**
+     * @param integer $type , see ServiceRequestorTypes
+     *
+     * @throws \Exception
+     */
+    public function setRequestorType($type)
+    {
+        if (ServiceRequestorTypes::contains($type)) {
+            $this->requestorType = $type;
+        }
+
+        throw new \Exception('Invalid service requestor type provided.');
     }
 }

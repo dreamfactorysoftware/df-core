@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Contracts\ServiceConfigHandlerInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
+use DreamFactory\Core\Enums\DbSimpleTypes;
 use DreamFactory\Core\Enums\VerbsMask;
 
 /**
@@ -132,6 +133,11 @@ class ServiceType implements ServiceTypeInterface
         return call_user_func($this->factory, $config, $name);
     }
 
+    public function getAccessExceptions()
+    {
+        return $this->accessExceptions;
+    }
+
     public function isAccessException($action, $path = null)
     {
         if (is_string($action)) {
@@ -169,6 +175,78 @@ class ServiceType implements ServiceTypeInterface
             'subscription_required'       => $this->subscriptionRequired,
             'service_definition_editable' => $this->serviceDefinitionEditable,
             'config_schema'               => $configSchema
+        ];
+    }
+
+    public static function getSchema()
+    {
+        return [
+            'name'        => 'service_type',
+            'description' => 'The type definition for a service.',
+            'type'        => DbSimpleTypes::TYPE_OBJECT,
+            'properties'  => [
+                'name'                        => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Identifier for the service type.',
+                ],
+                'label'                       => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Displayable label for the service type.',
+                ],
+                'description'                 => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Description of the service type.',
+                ],
+                'group'                       => [
+                    'type'        => DbSimpleTypes::TYPE_STRING,
+                    'description' => 'Group this type belongs to.',
+                ],
+                'singleton'                   => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Can there only be one service of this type in the system?',
+                ],
+                'dependencies_required'       => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Does this service type have any dependencies?',
+                ],
+                'subscription_required'       => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Does this service type require a paid subscription to use?',
+                ],
+                'service_definition_editable' => [
+                    'type'        => DbSimpleTypes::TYPE_BOOLEAN,
+                    'description' => 'Is the configuration of this service editable?',
+                ],
+                'config_schema'               => [
+                    'type'        => DbSimpleTypes::TYPE_ARRAY,
+                    'description' => 'Configuration options for this service type.',
+                    'items'       => [
+                        'type'       => DbSimpleTypes::TYPE_OBJECT,
+                        'properties' => [
+                            'alias'       => [
+                                'type'        => DbSimpleTypes::TYPE_STRING,
+                                'description' => 'Optional alias of the option.',
+                            ],
+                            'name'        => [
+                                'type'        => DbSimpleTypes::TYPE_STRING,
+                                'description' => 'Name of the option.',
+                            ],
+                            'label'       => [
+                                'type'        => DbSimpleTypes::TYPE_STRING,
+                                'description' => 'Displayed name of the option.',
+                            ],
+                            'description' => [
+                                'type'        => DbSimpleTypes::TYPE_STRING,
+                                'description' => 'Description of the option.',
+                            ],
+                            'type'        => [
+                                'type'        => DbSimpleTypes::TYPE_STRING,
+                                'description' => 'Data type of the option for storage.',
+                            ],
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 }

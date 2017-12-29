@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Services;
 
 use DreamFactory\Core\Contracts\CacheInterface;
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Enums\VerbsMask;
@@ -60,6 +61,7 @@ class ServiceManager
      * @param  string $name
      *
      * @return \DreamFactory\Core\Contracts\ServiceInterface
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     public function getService($name)
     {
@@ -82,12 +84,12 @@ class ServiceManager
     public function getServiceIdNameMap($only_active = false)
     {
         if ($only_active) {
-            return \Cache::rememberForever('service_mgr:id_name_map_active', function (){
+            return \Cache::rememberForever('service_mgr:id_name_map_active', function () {
                 return Service::whereIsActive(true)->pluck('name', 'id')->toArray();
             });
         }
 
-        return \Cache::rememberForever('service_mgr:id_name_map', function (){
+        return \Cache::rememberForever('service_mgr:id_name_map', function () {
             return Service::pluck('name', 'id')->toArray();
         });
     }
@@ -132,6 +134,7 @@ class ServiceManager
      * @param  int $id
      *
      * @return \DreamFactory\Core\Contracts\ServiceInterface
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
      */
     public function getServiceById($id)
     {
@@ -140,6 +143,192 @@ class ServiceManager
         }
 
         return null;
+    }
+
+    public function getServiceNameTypeMap($only_active = false)
+    {
+        if ($only_active) {
+            return \Cache::rememberForever('service_mgr:name_type_map_active', function () {
+                return Service::whereIsActive(true)->pluck('type', 'name')->toArray();
+            });
+        }
+
+        return \Cache::rememberForever('service_mgr:name_type_map', function () {
+            return Service::pluck('type', 'name')->toArray();
+        });
+    }
+
+    /**
+     * Get a service's type by its name.
+     *
+     * @param  string $name
+     *
+     * @return string|null
+     */
+    public function getServiceTypeByName($name)
+    {
+        return array_get($this->getServiceNameTypeMap(), $name);
+    }
+
+    /**
+     * Return all of the created service names.
+     *
+     * @param bool $only_active
+     *
+     * @return array
+     */
+    public function getServiceNames($only_active = false)
+    {
+        return array_values($this->getServiceIdNameMap($only_active));
+    }
+
+    /**
+     * Return all of the created service names by type.
+     *
+     * @param string|array $types
+     * @param bool         $only_active
+     *
+     * @return array
+     */
+    public function getServiceNamesByType($types, $only_active = false)
+    {
+        $names = [];
+        $map = $this->getServiceNameTypeMap($only_active);
+        if (is_string($types)) {
+            $types = array_map('trim', explode(',', trim($types, ',')));
+        }
+        foreach ($map as $name => $type) {
+            if (false !== array_search($type, $types)) {
+                $names[] = $name;
+            }
+        }
+
+        return $names;
+    }
+
+    /**
+     * Return all of the created service names.
+     *
+     * @param string|array $group
+     * @param bool         $only_active
+     *
+     * @return array
+     */
+    public function getServiceNamesByGroup($group, $only_active = false)
+    {
+        $types = $this->getServiceTypeNames($group);
+
+        return $this->getServiceNamesByType($types, $only_active);
+    }
+
+    /**
+     * Return all of the created service info.
+     *
+     * @param array|string $fields
+     * @param bool         $only_active
+     *
+     * @return array
+     */
+    public function getServiceList($fields = null, $only_active = false)
+    {
+        $allowed = ['id', 'name', 'label', 'description', 'is_active', 'type'];
+        if (empty($fields)) {
+            $fields = $allowed;
+        } elseif (is_string($fields)) {
+            $fields = array_map('trim', explode(',', trim($fields, ',')));
+        }
+        $includeGroup = in_array('group', $fields);
+        $includeTypeLabel = in_array('type_label', $fields);
+        if (($includeGroup || $includeTypeLabel) && !in_array('type', $fields)) {
+            $fields[] = 'type';
+        }
+        $fields = array_intersect($fields, $allowed);
+        if ($only_active) {
+            $results = Service::whereIsActive(true)->get($fields)->toArray();
+        } else {
+            $results = Service::get($fields)->toArray();
+        }
+        if ($includeGroup || $includeTypeLabel) {
+            $services = [];
+            foreach ($results as $result) {
+                if ($typeInfo = $this->getServiceType(array_get($result, 'type'))) {
+                    if ($includeGroup) {
+                        $result['group'] = $typeInfo->getGroup();
+                    }
+                    if ($includeTypeLabel) {
+                        $result['type_label'] = $typeInfo->getLabel();
+                    }
+                    $services[] = $result;
+                }
+            }
+
+            return $services;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Return all of the created service info.
+     *
+     * @param string|array $type
+     * @param array|string $fields
+     * @param bool         $only_active
+     *
+     * @return array
+     */
+    public function getServiceListByType($type, $fields = null, $only_active = false)
+    {
+        $allowed = ['id', 'name', 'label', 'description', 'is_active', 'type'];
+        if (empty($fields)) {
+            $fields = $allowed;
+        }
+        $fields = (is_string($fields) ? array_map('trim', explode(',', trim($fields, ','))) : $fields);
+        $includeGroup = in_array('group', $fields);
+        $includeTypeLabel = in_array('type_label', $fields);
+        if (($includeGroup || $includeTypeLabel || !empty($group)) && !in_array('type', $fields)) {
+            $fields[] = 'type';
+        }
+        $fields = array_intersect($fields, $allowed);
+        if ($only_active) {
+            $results = Service::whereIn('type', (array)$type)->whereIsActive(true)->get($fields)->toArray();
+        } else {
+            $results = Service::whereIn('type', (array)$type)->get($fields)->toArray();
+        }
+        if ($includeGroup || $includeTypeLabel) {
+            $services = [];
+            foreach ($results as $result) {
+                if ($typeInfo = $this->getServiceType(array_get($result, 'type'))) {
+                    if ($includeGroup) {
+                        $result['group'] = $typeInfo->getGroup();
+                    }
+                    if ($includeTypeLabel) {
+                        $result['type_label'] = $typeInfo->getLabel();
+                    }
+                    $services[] = $result;
+                }
+            }
+
+            return $services;
+        }
+
+        return $results;
+    }
+
+    /**
+     * Return all of the created service info.
+     *
+     * @param string|array $group
+     * @param array|string $fields
+     * @param bool         $only_active
+     *
+     * @return array
+     */
+    public function getServiceListByGroup($group, $fields = null, $only_active = false)
+    {
+        $types = $this->getServiceTypeNames($group);
+
+        return $this->getServiceListByType($types, $fields, $only_active);
     }
 
     /**
@@ -164,83 +353,8 @@ class ServiceManager
         \Cache::forget('service_mgr:' . $name);
         \Cache::forget('service_mgr:id_name_map_active');
         \Cache::forget('service_mgr:id_name_map');
-    }
-
-    /**
-     * Make the service instance.
-     *
-     * @param  string $name
-     *
-     * @return \DreamFactory\Core\Contracts\ServiceInterface
-     */
-    protected function makeService($name)
-    {
-        $config = $this->getConfig($name);
-
-        // First we will check by the service name to see if an extension has been
-        // registered specifically for that service. If it has we will call the
-        // Closure and pass it the config allowing it to resolve the service.
-        if (isset($this->extensions[$name])) {
-            return call_user_func($this->extensions[$name], $config, $name);
-        }
-
-        $config = $this->getDbConfig($name);
-        $type = $config['type'];
-
-        // Next we will check to see if a type extension has been registered for a service type
-        // and will call the factory Closure if so, which allows us to have a more generic
-        // resolver for the service types themselves which applies to all services.
-        if (isset($this->types[$type])) {
-            return $this->types[$type]->make($name, $config);
-        }
-
-        throw new InvalidArgumentException("Unsupported service type '$type'.");
-    }
-
-    /**
-     * Get the configuration for a service.
-     *
-     * @param  string $name
-     *
-     * @return array
-     *
-     * @throws \InvalidArgumentException
-     */
-    protected function getConfig($name)
-    {
-        if (empty($name)) {
-            throw new InvalidArgumentException("Service 'name' can not be empty.");
-        }
-
-        $services = $this->app['config']['df.service'];
-
-        return array_get($services, $name);
-    }
-
-    /**
-     * Get the configuration for a service.
-     *
-     * @param  string $name
-     *
-     * @return array
-     * @throws NotFoundException
-     */
-    protected function getDbConfig($name)
-    {
-        if (empty($name)) {
-            throw new InvalidArgumentException("Service 'name' can not be empty.");
-        }
-
-        return \Cache::rememberForever('service_mgr:' . $name, function () use ($name){
-            /** @var Service $service */
-            if (empty($service = Service::whereName($name)->first())) {
-                throw new NotFoundException("Could not find a service for $name");
-            }
-
-            $service->protectedView = false;
-
-            return $service->toArray();
-        });
+        \Cache::forget('service_mgr:name_type_map_active');
+        \Cache::forget('service_mgr:name_type_map');
     }
 
     /**
@@ -300,69 +414,32 @@ class ServiceManager
     }
 
     /**
-     * Return all of the created service names.
+     * Return all of the known service type names.
      *
-     * @param bool        $only_active
-     * @param string|null $group
+     * @param string $group
      *
-     * @return array
+     * @return string[]
      */
-    public function getServiceNames($only_active = false, $group = null)
+    public function getServiceTypeNames($group = null)
     {
-        $results = ($only_active ? Service::whereIsActive(true)->pluck('name') : Service::pluck('name'));
-
-        return $results->all();
-    }
-
-    /**
-     * Return all of the created service info.
-     *
-     * @param array|string $fields
-     * @param bool         $only_active
-     * @param string|null  $group
-     *
-     * @return array
-     */
-    public function getServiceList($fields = null, $only_active = false, $group = null)
-    {
-        $allowed = ['id', 'name', 'label', 'description', 'is_active', 'type'];
-        if (empty($fields)) {
-            $fields = $allowed;
-        }
-        $fields = (is_string($fields) ? array_map('trim', explode(',', trim($fields, ','))) : $fields);
-        $includeGroup = in_array('group', $fields);
-        $includeTypeLabel = in_array('type_label', $fields);
-        if (($includeGroup || $includeTypeLabel || !empty($group)) && !in_array('type', $fields)) {
-            $fields[] = 'type';
-        }
-        $fields = array_intersect($fields, $allowed);
-        $results =
-            ($only_active ? Service::whereIsActive(true)->get($fields)->toArray() : Service::get($fields)->toArray());
-        if ($includeGroup || $includeTypeLabel || !empty($group)) {
+        ksort($this->types, SORT_NATURAL); // sort by name for display
+        if (!empty($group)) {
             if (!empty($group) && !is_array($group)) {
                 $group = array_map('trim', explode(',', trim($group, ',')));
             }
             $group = array_map('strtolower', (array)$group);
-            $services = [];
-            foreach ($results as $result) {
-                if ($typeInfo = $this->getServiceType(array_get($result, 'type'))) {
-                    if (!empty($group) && !in_array(strtolower($typeInfo->getGroup()), $group)) {
-                        continue;
-                    }
-                    if ($includeGroup) {
-                        $result['group'] = $typeInfo->getGroup();
-                    }
-                    if ($includeTypeLabel) {
-                        $result['type_label'] = $typeInfo->getLabel();
-                    }
-                    $services[] = $result;
+        }
+        $types = [];
+        foreach ($this->types as $type) {
+            if (!empty($group)) {
+                if (!in_array(strtolower($type->getGroup()), $group)) {
+                    continue;
                 }
             }
-
-            return $services;
+            $types[] = $type->getName();
         }
 
-        return $results;
+        return $types;
     }
 
     /**
@@ -373,20 +450,50 @@ class ServiceManager
      * @param  int|string $action
      *
      * @return boolean True if this is a routing access exception, false otherwise
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public function isAccessException($service, $component, $action)
     {
         if (is_string($action)) {
             $action = VerbsMask::toNumeric($action);
         }
-        $serviceObj = $this->getService($service);
-        $serviceType = $serviceObj->getType();
-        $typeObj = $this->getServiceType($serviceType);
-        if ($typeObj->isAccessException($action, $component)) {
-            return true;
+        if ($serviceType = $this->getServiceTypeByName($service)) {
+            if ($typeObj = $this->getServiceType($serviceType)) {
+                if ($typeObj->isAccessException($action, $component)) {
+                    return true;
+                }
+            }
         }
 
         return false;
+    }
+
+    /**
+     * @param ServiceRequestInterface $request
+     * @param string                  $service
+     * @param string|null             $resource
+     * @param bool                    $check_permission
+     * @param bool                    $throw_exception
+     *
+     * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
+     * @throws \Exception
+     */
+    public function handleServiceRequest(
+        ServiceRequestInterface $request,
+        $service,
+        $resource = null,
+        $check_permission = true,
+        $throw_exception = true
+    ) {
+        if ($check_permission) {
+            if (false === Session::checkServicePermission($request->getMethod(), $service, $resource,
+                    $request->getRequestorType(), $throw_exception)) {
+                return new ServiceResponse([]);
+            }
+        }
+
+        return $this->getService($service)->handleRequest($request, $resource);
     }
 
     /**
@@ -397,8 +504,8 @@ class ServiceManager
      * @param array       $header
      * @param null        $payload
      * @param string|null $format
-     * @param bool        $checkPermission
-     * @param bool        $expOnPermission
+     * @param bool        $check_permission
+     * @param bool        $throw_exception
      *
      * @return \DreamFactory\Core\Contracts\ServiceResponseInterface
      * @throws \DreamFactory\Core\Exceptions\BadRequestException
@@ -412,19 +519,12 @@ class ServiceManager
         $header = [],
         $payload = null,
         $format = null,
-        $checkPermission = true,
-        $expOnPermission = false
-    ){
-        if ($checkPermission === true) {
-            $permission = Session::checkServicePermission(
-                $verb,
-                $service,
-                $resource,
-                Session::getRequestor(),
-                $expOnPermission
-            );
-
-            if(false === $permission){
+        $check_permission = true,
+        $throw_exception = false
+    ) {
+        if ($check_permission === true) {
+            if (false === Session::checkServicePermission($verb, $service, $resource, Session::getRequestor(),
+                    $throw_exception)) {
                 return new ServiceResponse([]);
             }
         }
@@ -445,5 +545,83 @@ class ServiceManager
         }
 
         return $this->getService($service)->handleRequest($request, $resource);
+    }
+
+    /**
+     * Make the service instance.
+     *
+     * @param  string $name
+     *
+     * @return \DreamFactory\Core\Contracts\ServiceInterface
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     */
+    protected function makeService($name)
+    {
+        $config = $this->getConfig($name);
+
+        // First we will check by the service name to see if an extension has been
+        // registered specifically for that service. If it has we will call the
+        // Closure and pass it the config allowing it to resolve the service.
+        if (isset($this->extensions[$name])) {
+            return call_user_func($this->extensions[$name], $config, $name);
+        }
+
+        $config = $this->getDbConfig($name);
+        $type = $config['type'];
+
+        // Next we will check to see if a type extension has been registered for a service type
+        // and will call the factory Closure if so, which allows us to have a more generic
+        // resolver for the service types themselves which applies to all services.
+        if (isset($this->types[$type])) {
+            return $this->types[$type]->make($name, $config);
+        }
+
+        throw new InvalidArgumentException("Unsupported service type '$type'.");
+    }
+
+    /**
+     * Get the configuration for a service.
+     *
+     * @param  string $name
+     *
+     * @return array
+     *
+     * @throws \InvalidArgumentException
+     */
+    protected function getConfig($name)
+    {
+        if (empty($name)) {
+            throw new InvalidArgumentException("Service 'name' can not be empty.");
+        }
+
+        $services = $this->app['config']['df.service'];
+
+        return array_get($services, $name);
+    }
+
+    /**
+     * Get the configuration for a service.
+     *
+     * @param  string $name
+     *
+     * @return array
+     * @throws \DreamFactory\Core\Exceptions\NotFoundException
+     */
+    protected function getDbConfig($name)
+    {
+        if (empty($name)) {
+            throw new InvalidArgumentException("Service 'name' can not be empty.");
+        }
+
+        return \Cache::rememberForever('service_mgr:' . $name, function () use ($name) {
+            /** @var Service $service */
+            if (empty($service = Service::whereName($name)->first())) {
+                throw new NotFoundException("Could not find a service for $name");
+            }
+
+            $service->protectedView = false;
+
+            return $service->toArray();
+        });
     }
 }

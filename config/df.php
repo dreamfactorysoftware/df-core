@@ -26,6 +26,9 @@ return [
     'alternate_auth'               => env('DF_ENABLE_ALTERNATE_AUTH', false),
     // Set true to enable windows authentication.
     'enable_windows_auth'          => env('DF_ENABLE_WINDOWS_AUTH', false),
+    // Characters limit for script to run inline. When limit exceeds script will be written in file and executed.
+    // This applies to NodeJS and Python scripting only. NOTE: This is number of characters in script.
+    'script_inline_char_limit'            => env('DF_SCRIPT_INLINE_CHAR_LIMIT', 25000),
     // DB configs
     'db'                           => [
         //-------------------------------------------------------------------------

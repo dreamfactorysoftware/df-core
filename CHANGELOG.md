@@ -7,6 +7,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - DF-1284 Changed error message to indicate why DynamoDB schema overwrite doesn't work
 ### Fixed
 - DF-1287 Fixed NodeJS (and Python) script execution for large script. Made script size configurable
+- Fixed CORS
 
 ## [0.14.0] - 2017-12-28
 ### Added

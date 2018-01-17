@@ -50,6 +50,8 @@ class LaravelServiceProvider extends ServiceProvider
 
         $this->addMiddleware();
 
+        $this->registerOtherProviders();
+
         // add routes
         /** @noinspection PhpUndefinedMethodInspection */
         if (!$this->app->routesAreCached()) {
@@ -78,7 +80,6 @@ class LaravelServiceProvider extends ServiceProvider
 
         $this->registerServices();
         $this->registerExtensions();
-        $this->registerOtherProviders();
     }
 
     protected function addAliases()
@@ -142,19 +143,19 @@ class LaravelServiceProvider extends ServiceProvider
     {
         // The service manager is used to resolve various services and service types.
         // It also implements the resolver interface which may be used by other components adding service types.
-        $this->app->singleton('df.service', function ($app) {
+        $this->app->singleton('df.service', function ($app){
             return new ServiceManager($app);
         });
 
         // The system table-model mapper is used to resolve various system tables to models.
         // It also implements the resolver interface which may be used by other components adding system table mappings.
-        $this->app->singleton('df.system.table_model_map', function ($app) {
+        $this->app->singleton('df.system.table_model_map', function ($app){
             return new SystemTableModelMapper($app);
         });
 
         // The database schema extension manager is used to resolve various database schema extensions.
         // It also implements the resolver interface which may be used by other components adding schema extensions.
-        $this->app->singleton('db.schema', function ($app) {
+        $this->app->singleton('db.schema', function ($app){
             return new DbSchemaExtensions($app);
         });
     }
@@ -162,8 +163,8 @@ class LaravelServiceProvider extends ServiceProvider
     protected function registerExtensions()
     {
         // Add our database drivers.
-        $this->app->resolving('db', function (DatabaseManager $db) {
-            $db->extend('sqlite', function ($config) {
+        $this->app->resolving('db', function (DatabaseManager $db){
+            $db->extend('sqlite', function ($config){
                 $connector = new SQLiteConnector();
                 $connection = $connector->connect($config);
 

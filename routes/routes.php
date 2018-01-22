@@ -14,7 +14,7 @@ Route::prefix(config('df.api_route_prefix', 'api'))
     ->group(function () {
         $versionPattern = 'v[0-9.]+';
         $servicePattern = '[_0-9a-zA-Z-.]+';
-        $resourcePathPattern = '[0-9a-zA-Z-_@&\#\!=,:;\/\^\$\.\|\{\}\[\]\(\)\*\+\? ]+';
+        $resourcePathPattern = '[0-9a-zA-ZÀ-ÿ-_@&\#\!=,:;\/\^\$\.\|\{\}\[\]\(\)\*\+\? ]+';
         $controller = 'DreamFactory\Core\Http\Controllers\RestController';
         // Don't use any() below, or include OPTIONS here, breaks CORS
         $verbs = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'];

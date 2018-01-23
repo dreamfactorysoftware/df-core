@@ -3,6 +3,8 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+### Added
+- DF-1275 Begin to add support for multi-column constraints
 ### Changed
 - DF-1284 Changed error message to indicate why DynamoDB schema overwrite doesn't work
 ### Fixed

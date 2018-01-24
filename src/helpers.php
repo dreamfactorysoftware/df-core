@@ -158,7 +158,7 @@ if (!function_exists('str_to_utf8')){
      *
      * @return string
      */
-    function ($str)
+    function str_to_utf8($str)
     {
         if (mb_detect_encoding($str, 'UTF-8', true) === false) {
             $str = utf8_encode($str);

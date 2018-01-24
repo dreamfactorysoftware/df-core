@@ -76,13 +76,13 @@ class HomesteadConfig extends Command
                 }
                 if(strpos(file_get_contents('Homestead.yaml'), 'type: "nfs"') === false){
                     file_put_contents('Homestead.yaml',
-                        str_replace("to: /home/vagrant/code\n", "to: /home/vagrant/code\n\ttype: \"nfs\"\n",
+                        str_replace("to: /home/vagrant/code\n", "to: /home/vagrant/code\n        type: \"nfs\"\n",
                             file_get_contents('Homestead.yaml'))
                     );
                 }
                 if(strpos(file_get_contents('Homestead.yaml'), 'php: "7.1"') === false){
                     file_put_contents('Homestead.yaml',
-                        str_replace("to: /home/vagrant/code/public\n", "to: /home/vagrant/code/public\n\tphp: \"7.1\"\n",
+                        str_replace("to: /home/vagrant/code/public\n", "to: /home/vagrant/code/public\n        php: \"7.1\"\n",
                             file_get_contents('Homestead.yaml'))
                     );
                 }

@@ -149,3 +149,21 @@ if (!function_exists('array_get_or')) {
         return ($out === null) ? $default : $out;
     }
 }
+
+if (!function_exists('str_to_utf8')){
+    /**
+     * Converts non utf-8 encoded strings to utf-8 encoded
+     *
+     * @param $str
+     *
+     * @return string
+     */
+    function ($str)
+    {
+        if (mb_detect_encoding($str, 'UTF-8', true) === false) {
+            $str = utf8_encode($str);
+        }
+
+        return $str;
+    }
+}

@@ -3,13 +3,14 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+## [0.14.1] - 2018-01-25
 ### Added
 - DF-1275 Initial support for multi-column constraints
 ### Changed
 - DF-1284 Changed error message to indicate why DynamoDB schema overwrite doesn't work
 ### Fixed
 - DF-1287 Fixed NodeJS (and Python) script execution for large script. Made script size configurable
-- Fixed CORS
+- Fixed CORS issues
 - DF-1229 Added support for accented characters in api route
 
 ## [0.14.0] - 2017-12-28
@@ -626,7 +627,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.0...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.1...HEAD
+[0.14.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.1...0.14.1
 [0.14.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.13.1...0.14.0
 [0.13.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.3...0.13.0

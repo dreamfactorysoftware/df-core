@@ -59,7 +59,7 @@ class RelationSchema extends NamedResourceSchema
      */
     public $isVirtual = false;
     /**
-     * @var string The local table's field that is the foreign key
+     * @var array The local table's fields that make up the foreign key
      */
     public $field;
     /**
@@ -71,7 +71,7 @@ class RelationSchema extends NamedResourceSchema
      */
     public $refTable;
     /**
-     * @var string The referenced fields of the referenced table
+     * @var array The referenced fields of the referenced table
      */
     public $refField;
     /**
@@ -91,11 +91,11 @@ class RelationSchema extends NamedResourceSchema
      */
     public $junctionTable;
     /**
-     * @var string details the pivot or junction table field facing the native
+     * @var array details the pivot or junction table fields facing the native
      */
     public $junctionField;
     /**
-     * @var string details the pivot or junction table field facing the foreign
+     * @var array details the pivot or junction table fields facing the foreign
      */
     public $junctionRefField;
 
@@ -117,12 +117,18 @@ class RelationSchema extends NamedResourceSchema
                 if (empty($field = array_get($settings, 'field'))) {
                     throw new \Exception('Failed to build relationship. Missing referencing fields.');
                 }
+                if (is_array($field)) {
+                    $field = implode('_', $field);
+                }
 
                 return $refTable . '_by_' . $field;
             case static::HAS_ONE:
             case static::HAS_MANY:
                 if (empty($refField = array_get($settings, 'ref_field'))) {
                     throw new \Exception('Failed to build relationship. Missing referenced fields.');
+                }
+                if (is_array($refField)) {
+                    $refField = implode('_', $refField);
                 }
 
                 return $refTable . '_by_' . $refField;
@@ -147,28 +153,47 @@ class RelationSchema extends NamedResourceSchema
      */
     public function __construct(array $settings)
     {
-        if (empty(array_get($settings, 'name'))) {
-            $settings['name'] = static::buildName($settings);
+        parent::__construct($settings);
+
+        if (isset($this->field) && !is_array($this->field)) {
+            /** @noinspection PhpParamsInspection */
+            $this->field = explode(',', $this->field);
+        }
+        if (isset($this->refField) && !is_array($this->refField)) {
+            /** @noinspection PhpParamsInspection */
+            $this->refField = explode(',', $this->refField);
+        }
+        if (isset($this->junctionField) && !is_array($this->junctionField)) {
+            /** @noinspection PhpParamsInspection */
+            $this->junctionField = explode(',', $this->junctionField);
+        }
+        if (isset($this->junctionRefField) && !is_array($this->junctionRefField)) {
+            /** @noinspection PhpParamsInspection */
+            $this->junctionRefField = explode(',', $this->junctionRefField);
         }
 
-        parent::__construct($settings);
+        if (empty($this->name)) {
+            $this->setName(static::buildName($settings));
+        }
     }
 
     public function toArray($use_alias = false)
     {
         $out = [
             'type'                => $this->type,
-            'field'               => $this->field,
+            'field'               => (is_array($this->field) ? implode(',', $this->field) : $this->field),
             'is_virtual'          => $this->isVirtual,
             'ref_service_id'      => $this->refServiceId,
             'ref_table'           => $this->refTable,
-            'ref_field'           => $this->refField,
+            'ref_field'           => (is_array($this->refField) ? implode(',', $this->refField) : $this->refField),
             'ref_on_update'       => $this->refOnUpdate,
             'ref_on_delete'       => $this->refOnDelete,
             'junction_service_id' => $this->junctionServiceId,
             'junction_table'      => $this->junctionTable,
-            'junction_field'      => $this->junctionField,
-            'junction_ref_field'  => $this->junctionRefField,
+            'junction_field'      => (is_array($this->junctionField) ? implode(',',
+                $this->junctionField) : $this->junctionField),
+            'junction_ref_field'  => (is_array($this->junctionRefField) ? implode(',',
+                $this->junctionRefField) : $this->junctionRefField),
             'always_fetch'        => $this->alwaysFetch,
             'flatten'             => $this->flatten,
             'flatten_drop_prefix' => $this->flattenDropPrefix,

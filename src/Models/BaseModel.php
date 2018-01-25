@@ -698,14 +698,14 @@ class BaseModel extends Model
         return $this->getTableSchema()->relations;
     }
 
-    protected function getTableReferences($refresh = false)
+    protected function getTableConstraints($refresh = false)
     {
         $result = null;
-        $cacheKey = 'system_table_refs';
+        $cacheKey = 'system_table_constraints';
         if ($refresh || (is_null($result = \Cache::get($cacheKey)))) {
             $schema = $this->getSchema();
-            if ($schema->supportsResourceType(DbResourceTypes::TYPE_TABLE_RELATIONSHIP)) {
-                $result = $schema->getResourceNames(DbResourceTypes::TYPE_TABLE_RELATIONSHIP);
+            if ($schema->supportsResourceType(DbResourceTypes::TYPE_TABLE_CONSTRAINT)) {
+                $result = $schema->getResourceNames(DbResourceTypes::TYPE_TABLE_CONSTRAINT, $this->getDefaultSchema());
                 \Cache::forever($cacheKey, $result);
             }
         }
@@ -724,113 +724,151 @@ class BaseModel extends Model
         return $this->defaultSchema;
     }
 
-    protected function buildTableRelations(TableSchema $table, $constraints)
+    protected function updateTableWithConstraints(TableSchema $table, $constraints)
     {
         $serviceId = ServiceManager::getServiceIdByName('system');
         $defaultSchema = $this->getDefaultSchema();
-        $constraints2 = $constraints;
 
-        foreach ($constraints as $key => $constraint) {
-            $constraint = array_change_key_case((array)$constraint, CASE_LOWER);
-            $ts = $constraint['table_schema'];
-            $tn = $constraint['table_name'];
-            $cn = $constraint['column_name'];
-            $rts = $constraint['referenced_table_schema'];
-            $rtn = $constraint['referenced_table_name'];
-            $rcn = $constraint['referenced_column_name'];
-            if ((0 == strcasecmp($tn, $table->resourceName)) && (0 == strcasecmp($ts, $table->schemaName))) {
-                $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
-                $column = $table->getColumn($cn);
-                $table->foreignKeys[strtolower($cn)] = [$name, $rcn];
-                if (isset($column)) {
-                    $column->isForeignKey = true;
-                    $column->refTable = $name;
-                    $column->refField = $rcn;
-                    if (DbSimpleTypes::TYPE_INTEGER === $column->type) {
-                        $column->type = DbSimpleTypes::TYPE_REF;
-                    }
-                    $table->addColumn($column);
-                }
-
-                // Add it to our foreign references as well
-                $relation =
-                    new RelationSchema([
-                        'type'           => RelationSchema::BELONGS_TO,
-                        'field'          => $cn,
-                        'ref_service_id' => $serviceId,
-                        'ref_table'      => $name,
-                        'ref_field'      => $rcn,
-                    ]);
-
-                $table->addRelation($relation);
-            } elseif ((0 == strcasecmp($rtn, $table->resourceName)) && (0 == strcasecmp($rts, $table->schemaName))) {
-                $name = ($ts == $defaultSchema) ? $tn : $ts . '.' . $tn;
-                switch (strtolower((string)array_get($constraint, 'constraint_type'))) {
-                    case 'primary key':
-                    case 'unique':
+        // handle local constraints
+        $ts = strtolower($table->schemaName);
+        $tn = strtolower($table->resourceName);
+        if (isset($constraints[$ts][$tn])) {
+            foreach ($constraints[$ts][$tn] as $conName => $constraint) {
+                $table->constraints[strtolower($conName)] = $constraint;
+                $cn = (array)$constraint['column_name'];
+                $type = strtolower(array_get($constraint, 'constraint_type', ''));
+                switch ($type[0]) {
                     case 'p':
-                    case 'u':
-                        $relation = new RelationSchema([
-                            'type'           => RelationSchema::HAS_ONE,
-                            'field'          => $rcn,
-                            'ref_service_id' => $serviceId,
-                            'ref_table'      => $name,
-                            'ref_field'      => $cn,
-                        ]);
-                        break;
-                    default:
-                        $relation = new RelationSchema([
-                            'type'           => RelationSchema::HAS_MANY,
-                            'field'          => $rcn,
-                            'ref_service_id' => $serviceId,
-                            'ref_table'      => $name,
-                            'ref_field'      => $cn,
-                        ]);
-                        break;
-                }
-
-                if ($oldRelation = $table->getRelation($relation->name)) {
-                    if (RelationSchema::HAS_ONE !== $oldRelation->type) {
-                        $table->addRelation($relation); // overrides HAS_MANY
-                    }
-                } else {
-                    $table->addRelation($relation);
-                }
-
-                // if other has foreign keys to other tables, we can say these are related as well
-                foreach ($constraints2 as $key2 => $constraint2) {
-                    if (0 != strcasecmp($key, $key2)) // not same key
-                    {
-                        $constraint2 = array_change_key_case((array)$constraint2, CASE_LOWER);
-                        $ts2 = $constraint2['table_schema'];
-                        $tn2 = $constraint2['table_name'];
-                        $cn2 = $constraint2['column_name'];
-                        if ((0 == strcasecmp($ts2, $ts)) && (0 == strcasecmp($tn2, $tn))
-                        ) {
-                            $rts2 = $constraint2['referenced_table_schema'];
-                            $rtn2 = $constraint2['referenced_table_name'];
-                            $rcn2 = $constraint2['referenced_column_name'];
-                            if ((0 != strcasecmp($rts2, $table->schemaName)) ||
-                                (0 != strcasecmp($rtn2, $table->resourceName))
-                            ) {
-                                $name2 = ($rts2 == $table->schemaName) ? $rtn2 : $rts2 . '.' . $rtn2;
-                                // not same as parent, i.e. via reference back to self
-                                // not the same key
-                                $relation =
-                                    new RelationSchema([
-                                        'type'                => RelationSchema::MANY_MANY,
-                                        'field'               => $rcn,
-                                        'ref_service_id'      => $serviceId,
-                                        'ref_table'           => $name2,
-                                        'ref_field'           => $rcn2,
-                                        'junction_service_id' => $serviceId,
-                                        'junction_table'      => $name,
-                                        'junction_field'      => $cn,
-                                        'junction_ref_field'  => $cn2
-                                    ]);
-
-                                $table->addRelation($relation);
+                        foreach ($cn as $cndx => $colName) {
+                            if ($column = $table->getColumn($colName)) {
+                                $column->isPrimaryKey = true;
+                                if ((1 === count($cn)) && $column->autoIncrement &&
+                                    (DbSimpleTypes::TYPE_INTEGER === $column->type)) {
+                                    $column->type = DbSimpleTypes::TYPE_ID;
+                                }
+                                $table->addColumn($column);
+                                $table->addPrimaryKey($colName);
                             }
+                        }
+                        break;
+                    case 'u':
+                        foreach ($cn as $cndx => $colName) {
+                            if ($column = $table->getColumn($colName)) {
+                                $column->isUnique = true;
+                                $table->addColumn($column);
+                            }
+                        }
+                        break;
+                    case 'f':
+                        // belongs_to
+                        $rts = array_get($constraint, 'referenced_table_schema', '');
+                        $rtn = array_get($constraint, 'referenced_table_name', '');
+                        $rcn = (array)array_get($constraint, 'referenced_column_name');
+                        $name = ($rts == $defaultSchema) ? $rtn : $rts . '.' . $rtn;
+                        foreach ($cn as $cndx => $colName) {
+                            if ($column = $table->getColumn($colName)) {
+                                $column->isForeignKey = true;
+                                $column->refTable = $name;
+                                $column->refField = array_get($rcn, $cndx);
+                                if ((1 === count($rcn)) && (DbSimpleTypes::TYPE_INTEGER === $column->type)) {
+                                    $column->type = DbSimpleTypes::TYPE_REF;
+                                }
+                                $table->addColumn($column);
+                            }
+                        }
+
+                        // Add it to our foreign references as well
+                        $relation = new RelationSchema([
+                            'type'           => RelationSchema::BELONGS_TO,
+                            'field'          => $cn,
+                            'ref_service_id' => $serviceId,
+                            'ref_table'      => $name,
+                            'ref_field'      => $rcn,
+                            'ref_on_update'  => array_get($constraint, 'update_rule'),
+                            'ref_on_delete'  => array_get($constraint, 'delete_rule'),
+                        ]);
+
+                        $table->addRelation($relation);
+                        break;
+                }
+            }
+        }
+
+        foreach ($constraints as $schemaName => $schemas) {
+            foreach ($schemas as $tableName => $tables) {
+                foreach ($tables as $constraintName => $constraint) {
+                    if (0 !== strncasecmp('f', strtolower(array_get($constraint, 'constraint_type', '')), 1)) {
+                        continue;
+                    }
+
+                    $rts = array_get($constraint, 'referenced_table_schema', '');
+                    $rtn = array_get($constraint, 'referenced_table_name');
+                    if ((0 === strcasecmp($rtn, $table->resourceName)) && (0 === strcasecmp($rts,
+                                $table->schemaName))) {
+                        $ts = array_get($constraint, 'table_schema', '');
+                        $tn = array_get($constraint, 'table_name');
+                        $tsk = strtolower($ts);
+                        $tnk = strtolower($tn);
+                        $cn = array_get($constraint, 'column_name');
+                        $rcn = array_get($constraint, 'referenced_column_name');
+                        $name = ($ts == $defaultSchema) ? $tn : $ts . '.' . $tn;
+                        $type = RelationSchema::HAS_MANY;
+                        if (isset($constraints[$tsk][$tnk])) {
+                            foreach ($constraints[$tsk][$tnk] as $constraintName2 => $constraint2) {
+                                $type2 = strtolower(array_get($constraint2, 'constraint_type', ''));
+                                switch ($type2[0]) {
+                                    case 'p':
+                                    case 'u':
+                                        // if this references a primary or unique constraint on the table then it is HAS_ONE
+                                        $cn2 = $constraint2['column_name'];
+                                        if ($cn2 === $cn) {
+                                            $type = RelationSchema::HAS_ONE;
+                                        }
+                                        break;
+                                    case 'f':
+                                        // if other has foreign keys to other tables, we can say these are related as well
+                                        $rts2 = array_get($constraint2, 'referenced_table_schema', '');
+                                        $rtn2 = array_get($constraint2, 'referenced_table_name');
+                                        if (!((0 === strcasecmp($rts2, $table->schemaName)) &&
+                                            (0 === strcasecmp($rtn2, $table->resourceName)))
+                                        ) {
+                                            $name2 = ($rts2 == $defaultSchema) ? $rtn2 : $rts2 . '.' . $rtn2;
+                                            $cn2 = array_get($constraint2, 'column_name');
+                                            $rcn2 = array_get($constraint2, 'referenced_column_name');
+                                            // not same as parent, i.e. via reference back to self
+                                            // not the same key
+                                            $relation =
+                                                new RelationSchema([
+                                                    'type'                => RelationSchema::MANY_MANY,
+                                                    'field'               => $rcn,
+                                                    'ref_service_id'      => $serviceId,
+                                                    'ref_table'           => $name2,
+                                                    'ref_field'           => $rcn2,
+                                                    'ref_on_update'       => array_get($constraint, 'update_rule'),
+                                                    'ref_on_delete'       => array_get($constraint, 'delete_rule'),
+                                                    'junction_service_id' => $serviceId,
+                                                    'junction_table'      => $name,
+                                                    'junction_field'      => $cn,
+                                                    'junction_ref_field'  => $cn2
+                                                ]);
+
+                                            $table->addRelation($relation);
+                                        }
+                                        break;
+                                }
+                            }
+
+                            $relation = new RelationSchema([
+                                'type'           => $type,
+                                'field'          => $rcn,
+                                'ref_service_id' => $serviceId,
+                                'ref_table'      => $name,
+                                'ref_field'      => $cn,
+                                'ref_on_update'  => array_get($constraint, 'update_rule'),
+                                'ref_on_delete'  => array_get($constraint, 'delete_rule'),
+                            ]);
+
+                            $table->addRelation($relation);
                         }
                     }
                 }
@@ -859,8 +897,8 @@ class BaseModel extends Model
             $tableSchema = new TableSchema($settings);
             $tableSchema = $this->getSchema()->getResource(DbResourceTypes::TYPE_TABLE, $tableSchema);
             // merge db relationships
-            if (!empty($references = $this->getTableReferences())) {
-                $this->buildTableRelations($tableSchema, $references);
+            if (!empty($references = $this->getTableConstraints())) {
+                $this->updateTableWithConstraints($tableSchema, $references);
             }
 
             $tableSchema->discoveryCompleted = true;
@@ -1245,8 +1283,8 @@ class BaseModel extends Model
         $references = $this->getReferences();
         $lf = null;
         foreach ($references as $item) {
-            if ($item->refTable === $table && $table . '_by_' . $item->field === $name) {
-                $lf = $item->field;
+            if ($item->refTable === $table && $table . '_by_' . implode('_', $item->field) === $name) {
+                $lf = $item->field[0];
             }
         }
 
@@ -1266,8 +1304,8 @@ class BaseModel extends Model
         $references = $this->getReferences();
         $rf = null;
         foreach ($references as $item) {
-            if ($item->refTable === $table && $table . '_by_' . $item->refField === $name) {
-                $rf = $item->refField;
+            if ($item->refTable === $table && $table . '_by_' . implode('_', $item->refField) === $name) {
+                $rf = $item->refField[0];
                 break;
             }
         }
@@ -1311,8 +1349,8 @@ class BaseModel extends Model
 
         if (array_key_exists($name, $references)) {
             if (!empty($pivotTable = $references[$name]->junctionTable)) {
-                $fk = $references[$name]->junctionField;
-                $rk = $references[$name]->junctionRefField;
+                $fk = $references[$name]->junctionField[0];
+                $rk = $references[$name]->junctionRefField[0];
 
                 return [$pivotTable, $fk, $rk];
             }

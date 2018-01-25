@@ -90,15 +90,7 @@ class NamedResourceSchema implements NamedInstanceInterface
         $this->fill($settings);
 
         // fill out naming options if not present
-        if (empty($this->resourceName)) {
-            $this->resourceName = $this->name;
-        }
-        if (empty($this->internalName)) {
-            $this->internalName = $this->name;
-        }
-        if (empty($this->quotedName)) {
-            $this->quotedName = $this->name;
-        }
+        $this->setName($this->name);
     }
 
     public function fill(array $settings)
@@ -114,6 +106,22 @@ class NamedResourceSchema implements NamedInstanceInterface
             }
             // set real and virtual
             $this->{$key} = $value;
+        }
+    }
+
+    public function setName($name)
+    {
+        $this->name = $name;
+
+        // fill out naming options if not present
+        if (empty($this->resourceName)) {
+            $this->resourceName = $this->name;
+        }
+        if (empty($this->internalName)) {
+            $this->internalName = $this->name;
+        }
+        if (empty($this->quotedName)) {
+            $this->quotedName = $this->name;
         }
     }
 

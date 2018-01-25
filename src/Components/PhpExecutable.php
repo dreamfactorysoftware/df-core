@@ -113,13 +113,16 @@ trait PhpExecutable
         //
         // Also, when script is too big (huge data set in script) it won't run
         // on command line. Solution is to write the script to a file and execute the script file.
-        if (!$this->supportsInlineExecution || (substr(PHP_OS, 0, 3) == 'WIN') || (strlen($payload) > 10000)) {
+        $scriptInlineCharLimit = (integer) config('df.script_inline_char_limit');
+        $scriptSize = strlen($payload);
+        if (!$this->supportsInlineExecution || (substr(PHP_OS, 0, 3) == 'WIN') || ($scriptSize > $scriptInlineCharLimit)) {
             if (!empty($payload)) {
                 if (empty($storage_location)) {
-                    $storage_location = storage_path() . DIRECTORY_SEPARATOR . $this->commandName;
+                    $storage_location = storage_path() . DIRECTORY_SEPARATOR . uniqid($this->commandName . "_", true);
                     if (is_string($this->fileExtension) && !empty($this->fileExtension)) {
                         $storage_location .= '.' . $this->fileExtension;
                     }
+                    $this->scriptFile = $storage_location;
                 }
                 file_put_contents($storage_location, $payload);
                 $runnerShell .= ' ' . $storage_location;

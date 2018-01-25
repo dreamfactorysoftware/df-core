@@ -53,10 +53,11 @@ class TableSchema extends NamedResourceSchema
      */
     public $columnAliases = [];
     /**
-     * @var array Foreign keys of this table. The array is indexed by column name. Each value is an array of foreign
+     * @var array Constraints of this table. The array is indexed by constraint name.
+     *      Each value is an array of constraint information containing things like foreign
      *      table name and foreign column name.
      */
-    public $foreignKeys = [];
+    public $constraints = [];
     /**
      * @var array Relationship metadata of this table. Each array element is a RelationSchema object, indexed by
      *      lowercase relation name.
@@ -311,6 +312,8 @@ class TableSchema extends NamedResourceSchema
                 $relations[] = $relation->toArray($use_alias);
             }
             $out['related'] = $relations;
+
+            $out['constraints'] = $this->constraints;
         }
 
         return $out;

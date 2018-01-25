@@ -404,50 +404,50 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 /** @type RelationSchema $reference */
                 foreach ($references as $reference) {
                     if ((RelationSchema::HAS_ONE === $reference->type) &&
-                        (('created_by_id' === $reference->refField) ||
-                            ('last_modified_by_id' === $reference->refField))
+                        (('created_by_id' === $reference->refField[0]) ||
+                            ('last_modified_by_id' === $reference->refField[0]))
                     ) {
                         $stmt =
                             'update [' .
                             $reference->refTable .
                             '] set [' .
-                            $reference->refField .
+                            $reference->refField[0] .
                             '] = null where [' .
-                            $reference->refField .
+                            $reference->refField[0] .
                             '] = ' .
                             $id;
                         if (0 !== $rows = \DB::update($stmt)) {
                             \Log::debug('found rows: ' . $rows);
                         }
                     } elseif ((RelationSchema::HAS_MANY === $reference->type) &&
-                        (('created_by_id' === $reference->refField) ||
-                            ('last_modified_by_id' === $reference->refField))
+                        (('created_by_id' === $reference->refField[0]) ||
+                            ('last_modified_by_id' === $reference->refField[0]))
                     ) {
                         $stmt =
                             'update [' .
                             $reference->refTable .
                             '] set [' .
-                            $reference->refField .
+                            $reference->refField[0] .
                             '] = null where [' .
-                            $reference->refField .
+                            $reference->refField[0] .
                             '] = ' .
                             $id;
                         if (0 !== $rows = \DB::update($stmt)) {
                             \Log::debug('found rows: ' . $rows);
                         }
                     } elseif ((RelationSchema::BELONGS_TO === $reference->type) &&
-                        (('created_by_id' === $reference->field) ||
-                            ('last_modified_by_id' === $reference->field))
+                        (('created_by_id' === $reference->field[0]) ||
+                            ('last_modified_by_id' === $reference->field[0]))
                     ) {
                         $stmt =
                             'update [' .
                             $reference->refTable .
                             '] set [' .
-                            $reference->field .
+                            $reference->field[0] .
                             '] = null where [' .
-                            $reference->field .
+                            $reference->field[0] .
                             '] = ' .
-                            $id . ' and [' . $reference->refField . '] != ' . $id;
+                            $id . ' and [' . $reference->refField[0] . '] != ' . $id;
                         if (0 !== $rows = \DB::update($stmt)) {
                             \Log::debug('found rows: ' . $rows);
                         }

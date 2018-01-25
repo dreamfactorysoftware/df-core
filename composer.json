@@ -61,7 +61,12 @@
     "laravel": {
       "providers": [
         "DreamFactory\\Core\\LaravelServiceProvider"
-      ]
+      ],
+      "aliases": {
+        "ServiceManager": "DreamFactory\\Core\\Facades\\ServiceManager",
+        "SystemTableModelMapper": "DreamFactory\\Core\\Facades\\SystemTableModelMapper",
+        "DbSchemaExtensions": "DreamFactory\\Core\\Facades\\DbSchemaExtensions"
+      }
     }
   }
 }

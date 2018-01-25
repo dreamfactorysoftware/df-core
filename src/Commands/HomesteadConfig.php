@@ -65,12 +65,26 @@ class HomesteadConfig extends Command
                 if (strpos(file_get_contents('Homestead.yaml'), 'version:') === false) {
                     file_put_contents('Homestead.yaml',
                         str_replace("provider: virtualbox", "provider: virtualbox\nversion: $version",
-                            file_get_contents('Homestead.yaml')));
+                            file_get_contents('Homestead.yaml'))
+                    );
                 }
                 if (strpos(file_get_contents('Homestead.yaml'), 'script:') === false) {
                     file_put_contents('Homestead.yaml',
                         str_replace("provider: virtualbox", "provider: virtualbox\nscript: $script",
-                            file_get_contents('Homestead.yaml')));
+                            file_get_contents('Homestead.yaml'))
+                    );
+                }
+//                if(strpos(file_get_contents('Homestead.yaml'), 'type: "nfs"') === false){
+//                    file_put_contents('Homestead.yaml',
+//                        str_replace("to: /home/vagrant/code\n", "to: /home/vagrant/code\n        type: \"nfs\"\n",
+//                            file_get_contents('Homestead.yaml'))
+//                    );
+//                }
+                if(strpos(file_get_contents('Homestead.yaml'), 'php: "7.1"') === false){
+                    file_put_contents('Homestead.yaml',
+                        str_replace("to: /home/vagrant/code/public\n", "to: /home/vagrant/code/public\n        php: \"7.1\"\n",
+                            file_get_contents('Homestead.yaml'))
+                    );
                 }
             }
 

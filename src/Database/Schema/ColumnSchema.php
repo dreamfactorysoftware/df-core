@@ -41,11 +41,11 @@ class ColumnSchema extends NamedResourceSchema
      */
     public $allowNull = true;
     /**
-     * @var boolean whether this column is a primary key
+     * @var boolean whether this column is part of a primary key constraint
      */
     public $isPrimaryKey = false;
     /**
-     * @var boolean whether this column has a unique constraint
+     * @var boolean whether this column is part of a unique constraint
      */
     public $isUnique = false;
     /**
@@ -53,7 +53,7 @@ class ColumnSchema extends NamedResourceSchema
      */
     public $isIndex = false;
     /**
-     * @var boolean whether this column is a foreign key
+     * @var boolean whether this column is part of a foreign key constraint
      */
     public $isForeignKey = false;
     /**

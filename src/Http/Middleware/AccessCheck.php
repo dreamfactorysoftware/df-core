@@ -104,7 +104,7 @@ class AccessCheck
                 throw new ForbiddenException($msg);
             }
         } catch (\Exception $e) {
-            return ResponseFactory::sendException($e, $request);
+            return ResponseFactory::sendException($e);
         }
     }
 }

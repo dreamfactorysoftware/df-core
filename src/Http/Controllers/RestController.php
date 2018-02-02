@@ -26,6 +26,7 @@ class RestController extends Controller
      * @param null|string $version
      *
      * @return null|ServiceResponseInterface|Response
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public function index($version = null)
     {
@@ -93,9 +94,9 @@ class RestController extends Controller
             $response = ResponseFactory::create(['services' => $services, 'service_types' => $types]);
             Log::info('[RESPONSE]', ['Status Code' => $response->getStatusCode(), 'Content-Type' => $response->getContentType()]);
 
-            return ResponseFactory::sendResponse($response);
+            return ResponseFactory::sendResponse($response, $request);
         } catch (\Exception $e) {
-            return ResponseFactory::sendException($e);
+            return ResponseFactory::sendException($e, (isset($request) ? $request : null));
         }
     }
 
@@ -107,6 +108,7 @@ class RestController extends Controller
      * @param null|string $resource
      *
      * @return ServiceResponseInterface|Response|null
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public function handleVersionedService($version, $service, $resource = null)
     {
@@ -123,6 +125,7 @@ class RestController extends Controller
      * @param null|string $resource
      *
      * @return ServiceResponseInterface|Response|null
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public function handleService($service, $resource = null)
     {
@@ -131,6 +134,13 @@ class RestController extends Controller
         return $this->handleServiceRequest($request, $service, $resource);
     }
 
+    /**
+     * @param ServiceRequest $request
+     * @param                $service
+     * @param null           $resource
+     * @return array|ServiceResponseInterface|mixed|string|Response
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
+     */
     protected function handleServiceRequest(ServiceRequest $request, $service, $resource = null)
     {
         try {
@@ -151,9 +161,9 @@ class RestController extends Controller
                 return $response;
             }
 
-            return ResponseFactory::sendResponse($response, null, null, $resource);
+            return ResponseFactory::sendResponse($response, $request, null, $resource);
         } catch (\Exception $e) {
-            return ResponseFactory::sendException($e);
+            return ResponseFactory::sendException($e, $request);
         }
     }
 }

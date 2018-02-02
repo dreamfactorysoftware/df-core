@@ -88,7 +88,7 @@ class Session
         $service = strval($service);
         $component = ltrim(strval($component), '/');
         if ((false !== $parenStart = strpos($component, '(')) && (false !== $parenEnd = strpos($component, ')'))) {
-            $component = '^' . substr_replace($component, '', $parenStart, $parenEnd - $parenStart + 1);
+            $component = substr_replace($component, '', $parenStart, $parenEnd - $parenStart + 1);
         }
 
         //  If exact match found take it, otherwise follow up the chain as necessary
@@ -192,7 +192,7 @@ class Session
         $service = strval($service);
         $component = ltrim(strval($component), '/');
         if ((false !== $parenStart = strpos($component, '(')) && (false !== $parenEnd = strpos($component, ')'))) {
-            $component = '^' . substr_replace($component, '', $parenStart, $parenEnd - $parenStart + 1);
+            $component = substr_replace($component, '', $parenStart, $parenEnd - $parenStart + 1);
         }
 
         //  If exact match found take it, otherwise follow up the chain as necessary
@@ -371,7 +371,7 @@ class Session
         $service = strval($service);
         $component = strval($component);
         if ((false !== $parenStart = strpos($component, '(')) && (false !== $parenEnd = strpos($component, ')'))) {
-            $component = '^' . substr_replace($component, '', $parenStart, $parenEnd - $parenStart + 1);
+            $component = substr_replace($component, '', $parenStart, $parenEnd - $parenStart + 1);
         }
         $action = VerbsMask::toNumeric(static::cleanAction($action));
 
@@ -413,15 +413,15 @@ class Session
                 } elseif ('*' == $tempComponent) {
                     $serviceAllowed = $svcInfo;
                     $serviceFound = true;
-                    } elseif ((false !== $wildcardStart = strpos($component, '{')) &&
-                        (false !== $wildcardEnd = strpos($component, '}'))) {
-                        $compReg = '^' . substr_replace($component, '[a-zA-Z0-9_]{1,}$', $wildcardStart,
-                                $wildcardEnd - $wildcardStart + 1);
-                        $compReg = str_replace('/', '\/', $compReg);
-                        if ((false !== preg_match("/$compReg/", $tempComponent, $matches)) && !empty($matches)) {
-                    $componentAllowed = $svcInfo;
-                            $componentFound = true;
-                        }
+                } elseif ((false !== $wildcardStart = strpos($component, '{')) &&
+                    (false !== $wildcardEnd = strpos($component, '}'))) {
+                    $compReg = '^' . substr_replace($component, '[a-zA-Z0-9_]{1,}$', $wildcardStart,
+                            $wildcardEnd - $wildcardStart + 1);
+                    $compReg = str_replace('/', '\/', $compReg);
+                    if ((false !== preg_match("/$compReg/", $tempComponent, $matches)) && !empty($matches)) {
+                        $componentAllowed = $svcInfo;
+                        $componentFound = true;
+                    }
                 }
             } else {
                 if (empty($tempComponent)) {

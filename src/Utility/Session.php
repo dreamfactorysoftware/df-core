@@ -86,7 +86,10 @@ class Session
 
         $services = (array)static::get('role.services');
         $service = strval($service);
-        $component = strval($component);
+        $component = ltrim(strval($component), '/');
+        if ((false !== $parenStart = strpos($component, '(')) && (false !== $parenEnd = strpos($component, ')'))) {
+            $component = substr_replace($component, '', $parenStart, $parenEnd - $parenStart + 1);
+        }
 
         //  If exact match found take it, otherwise follow up the chain as necessary
         //  All - Service - Component - Sub-component
@@ -107,7 +110,6 @@ class Session
 
             $tempService = strval(array_get($svcInfo, 'service'));
             $tempComponent = strval(array_get($svcInfo, 'component'));
-            $tempCompStarPos = strpos($tempComponent, '*');
             $tempVerbs = array_get($svcInfo, 'verb_mask');
 
             if (0 == strcasecmp($service, $tempService)) {
@@ -116,20 +118,23 @@ class Session
                         // exact match
                         $exactAllowed |= $tempVerbs;
                         $exactFound = true;
-                    } elseif ($tempCompStarPos &&
+                    } elseif ((false !== $tempCompStarPos = strpos($tempComponent, '*')) &&
                         (0 == strcasecmp(substr($component . '/', 0, $tempCompStarPos) . '*', $tempComponent))
                     ) {
-                        $componentAllowed |= $tempVerbs;
-                        $componentFound = true;
-                    } elseif (($parenPos = strpos($component, '(')) &&
-                        (0 == strcasecmp(substr($component, 0, $parenPos), $tempComponent))
-                    ) {
-                        // for resources called with options like foo() or foo(x, y, z)
                         $componentAllowed |= $tempVerbs;
                         $componentFound = true;
                     } elseif ('*' == $tempComponent) {
                         $serviceAllowed |= $tempVerbs;
                         $serviceFound = true;
+                    } elseif ((false !== $wildcardStart = strpos($component, '{')) &&
+                        (false !== $wildcardEnd = strpos($component, '}'))) {
+                        $compReg = '^' . substr_replace($component, '[a-zA-Z0-9_]{1,}$', $wildcardStart,
+                                $wildcardEnd - $wildcardStart + 1);
+                        $compReg = str_replace('/', '\/', $compReg);
+                        if ((false !== preg_match("/$compReg/", $tempComponent, $matches)) && !empty($matches)) {
+                            $componentAllowed |= $tempVerbs;
+                            $componentFound = true;
+                        }
                     }
                 } else {
                     if (empty($tempComponent)) {
@@ -142,8 +147,7 @@ class Session
                     }
                 }
             } else {
-                if (empty($tempService) && (('*' == $tempComponent) || (empty($tempComponent) && empty($component)))
-                ) {
+                if (empty($tempService) && (('*' == $tempComponent) || (empty($tempComponent) && empty($component)))) {
                     $allAllowed |= $tempVerbs;
                     $allFound = true;
                 }
@@ -186,7 +190,10 @@ class Session
 
         $services = (array)static::get('role.services');
         $service = strval($service);
-        $component = strval($component);
+        $component = ltrim(strval($component), '/');
+        if ((false !== $parenStart = strpos($component, '(')) && (false !== $parenEnd = strpos($component, ')'))) {
+            $component = substr_replace($component, '', $parenStart, $parenEnd - $parenStart + 1);
+        }
 
         //  If exact match found take it, otherwise follow up the chain as necessary
         //  All - Service - Component - Sub-component
@@ -207,7 +214,6 @@ class Session
 
             $tempService = strval(array_get($svcInfo, 'service'));
             $tempComponent = strval(array_get($svcInfo, 'component'));
-            $tempCompStarPos = strpos($tempComponent, '*');
             $tempVerbs = array_get($svcInfo, 'verb_mask');
 
             if (0 == strcasecmp($service, $tempService)) {
@@ -216,20 +222,23 @@ class Session
                         // exact match
                         $exactAllowed |= $tempVerbs;
                         $exactFound = true;
-                    } elseif ($tempCompStarPos &&
+                    } elseif ((false !== $tempCompStarPos = strpos($tempComponent, '*')) &&
                         (0 == strcasecmp(substr($component . '/', 0, $tempCompStarPos) . '*', $tempComponent))
                     ) {
-                        $componentAllowed |= $tempVerbs;
-                        $componentFound = true;
-                    } elseif (($parenPos = strpos($component, '(')) &&
-                        (0 == strcasecmp(substr($component, 0, $parenPos), $tempComponent))
-                    ) {
-                        // for resources called with options like foo() or foo(x, y, z)
                         $componentAllowed |= $tempVerbs;
                         $componentFound = true;
                     } elseif ('*' == $tempComponent) {
                         $serviceAllowed |= $tempVerbs;
                         $serviceFound = true;
+                    } elseif ((false !== $wildcardStart = strpos($component, '{')) &&
+                        (false !== $wildcardEnd = strpos($component, '}'))) {
+                        $compReg = '^' . substr_replace($component, '[a-zA-Z0-9_]{1,}$', $wildcardStart,
+                                $wildcardEnd - $wildcardStart + 1);
+                        $compReg = str_replace('/', '\/', $compReg);
+                        if ((false !== preg_match("/$compReg/", $tempComponent, $matches)) && !empty($matches)) {
+                            $componentAllowed |= $tempVerbs;
+                            $componentFound = true;
+                        }
                     }
                 } else {
                     if (empty($tempComponent)) {
@@ -242,8 +251,7 @@ class Session
                     }
                 }
             } else {
-                if (empty($tempService) && (('*' == $tempComponent) || (empty($tempComponent) && empty($component)))
-                ) {
+                if (empty($tempService) && (('*' == $tempComponent) || (empty($tempComponent) && empty($component)))) {
                     $allAllowed |= $tempVerbs;
                     $allFound = true;
                 }
@@ -362,6 +370,9 @@ class Session
         $services = (array)static::get('role.services');
         $service = strval($service);
         $component = strval($component);
+        if ((false !== $parenStart = strpos($component, '(')) && (false !== $parenEnd = strpos($component, ')'))) {
+            $component = substr_replace($component, '', $parenStart, $parenEnd - $parenStart + 1);
+        }
         $action = VerbsMask::toNumeric(static::cleanAction($action));
 
         $serviceAllowed = null;
@@ -388,35 +399,35 @@ class Session
             }
 
             $tempComponent = strval(array_get($svcInfo, 'component'));
-            $tempCompStarPos = strpos($tempComponent, '*');
 
             if (!empty($component)) {
                 if (0 == strcasecmp($component, $tempComponent)) {
                     // exact match
                     $exactAllowed = $svcInfo;
                     $exactFound = true;
-                    break;
-                } elseif ($tempCompStarPos &&
+                } elseif ((false !== $tempCompStarPos = strpos($tempComponent, '*')) &&
                     (0 == strcasecmp(substr($component . '/', 0, $tempCompStarPos) . '*', $tempComponent))
                 ) {
-                    $componentAllowed = $svcInfo;
-                    $componentFound = true;
-                } elseif (($parenPos = strpos($component, '(')) &&
-                    (0 == strcasecmp(substr($component, 0, $parenPos), $tempComponent))
-                ) {
-                    // for resources called with options like foo() or foo(x, y, z)
                     $componentAllowed = $svcInfo;
                     $componentFound = true;
                 } elseif ('*' == $tempComponent) {
                     $serviceAllowed = $svcInfo;
                     $serviceFound = true;
+                } elseif ((false !== $wildcardStart = strpos($component, '{')) &&
+                    (false !== $wildcardEnd = strpos($component, '}'))) {
+                    $compReg = '^' . substr_replace($component, '[a-zA-Z0-9_]{1,}$', $wildcardStart,
+                            $wildcardEnd - $wildcardStart + 1);
+                    $compReg = str_replace('/', '\/', $compReg);
+                    if ((false !== preg_match("/$compReg/", $tempComponent, $matches)) && !empty($matches)) {
+                        $componentAllowed = $svcInfo;
+                        $componentFound = true;
+                    }
                 }
             } else {
                 if (empty($tempComponent)) {
                     // exact match
                     $exactAllowed = $svcInfo;
                     $exactFound = true;
-                    break;
                 } elseif ('*' == $tempComponent) {
                     $serviceAllowed = $svcInfo;
                     $serviceFound = true;
@@ -801,14 +812,20 @@ class Session
         Session::setUserInfo($userInfo);
         Session::put('app.id', $appId);
 
-        $roleInfo = ($roleId) ? Role::getCachedInfo($roleId) : null;
-        if (!empty($roleInfo)) {
-            Session::put('role.id', $roleId);
-            Session::put('role.name', $roleInfo['name']);
-            Session::put('role.services', $roleInfo['role_service_access_by_role_id']);
+        if ($roleId) {
+            Session::setRoleInfo(Role::getCachedInfo($roleId));
         }
 
         static::setSessionLookups();
+    }
+
+    public static function setRoleInfo($roleInfo)
+    {
+        if (!empty($roleInfo)) {
+            Session::put('role.id', $roleInfo['id']);
+            Session::put('role.name', $roleInfo['name']);
+            Session::put('role.services', $roleInfo['role_service_access_by_role_id']);
+        }
     }
 
     public static function setSessionLookups()

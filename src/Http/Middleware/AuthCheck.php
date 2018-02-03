@@ -231,7 +231,7 @@ class AuthCheck
 
                 return $next($request);
             } catch (\Exception $e) {
-                return ResponseFactory::sendException($e, $request);
+                return ResponseFactory::sendException($e);
             }
         }
 

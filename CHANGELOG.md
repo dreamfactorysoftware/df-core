@@ -5,6 +5,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## [Unreleased]
 ### Fixed
 - DF-1296 Allowed for wildcard handling in session permission checks
+- DF-1270 Use potentially modified request in response format handling
 
 ## [0.14.1] - 2018-01-25
 ### Added

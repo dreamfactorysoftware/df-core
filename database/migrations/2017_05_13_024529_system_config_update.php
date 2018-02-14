@@ -23,6 +23,7 @@ class SystemConfigUpdate extends Migration
         if (Schema::hasColumn('system_config', 'db_version')) {
             Schema::table('system_config', function (Blueprint $t) use ($onDelete) {
                 // delete the old stuff and create the new config
+                $t->dropPrimary('system_config_db_version_primary');
                 $t->dropColumn('db_version');
                 $t->dropColumn('created_date');
                 $t->dropColumn('last_modified_date');

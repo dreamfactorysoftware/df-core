@@ -2,15 +2,15 @@
 
 namespace DreamFactory\Core\Utility;
 
-use DreamFactory\Core\Components\ExceptionResponse;
-use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Components\DfResponse;
+use DreamFactory\Core\Components\ExceptionResponse;
 use DreamFactory\Core\Contracts\HttpStatusCodeInterface;
-use DreamFactory\Core\Enums\HttpStatusCodes;
+use DreamFactory\Core\Contracts\ServiceRequestInterface;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Enums\HttpStatusCodes;
 use DreamFactory\Core\Exceptions\DfException;
+use DreamFactory\Core\Exceptions\RestException;
 
 /**
  * Class ResponseFactory
@@ -52,24 +52,21 @@ class ResponseFactory
     }
 
     /**
-     * @param \DreamFactory\Core\Contracts\ServiceResponseInterface $response
-     * @param null                                                  $accepts
-     * @param null                                                  $asFile
-     * @param string                                                $resource
+     * @param ServiceResponseInterface     $response
+     * @param ServiceRequestInterface|null $request
+     * @param null                         $asFile
+     * @param string                       $resource
      *
      * @return \Symfony\Component\HttpFoundation\Response
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
      * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
     public static function sendResponse(
         ServiceResponseInterface $response,
-        $accepts = null,
+        ServiceRequestInterface $request = null,
         $asFile = null,
         $resource = 'resource'
     ) {
-        if (empty($accepts)) {
-            $accepts = static::getAcceptedTypes();
-        }
+        $accepts = static::getAcceptedTypes($request);
 
         if (empty($asFile)) {
             $asFile = \Request::input('file');
@@ -200,7 +197,6 @@ class ResponseFactory
      * @param ServiceResponseInterface $response
      *
      * @return array|mixed|string
-     * @throws BadRequestException
      */
     public static function sendScriptResponse(ServiceResponseInterface $response)
     {
@@ -234,28 +230,31 @@ class ResponseFactory
     }
 
     /**
-     * @param \Exception               $e
-     * @param \Illuminate\Http\Request $request
+     * @param \Exception              $e
+     * @param ServiceRequestInterface $request
      *
      * @return array|mixed|string
+     * @throws \DreamFactory\Core\Exceptions\NotImplementedException
      */
-    public static function sendException(
-        \Exception $e,
-        /** @noinspection PhpUnusedParameterInspection */
-        $request = null
-    ) {
+    public static function sendException(\Exception $e, ServiceRequestInterface $request = null)
+    {
         $response = static::exceptionToServiceResponse($e);
 
-        return ResponseFactory::sendResponse($response);
+        return ResponseFactory::sendResponse($response, $request);
     }
 
     /**
      *
+     * @param ServiceRequestInterface|null $request
      * @return array
      */
-    public static function getAcceptedTypes()
+    public static function getAcceptedTypes(ServiceRequestInterface $request = null)
     {
-        $accepts = \Request::query('accept', \Request::header('ACCEPT'));
+        if ($request) {
+            $accepts = $request->getParameter('accept', $request->getHeader('accept'));
+        } else {
+            $accepts = \Request::query('accept', \Request::header('accept'));
+        }
         $accepts = array_map('trim', explode(',', $accepts));
 
         return $accepts;

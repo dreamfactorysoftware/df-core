@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+## [0.14.2] - 2018-02-25
 ### Fixed
 - DF-1296 Allowed for wildcard handling in session permission checks
 - DF-1270 Use potentially modified request in response format handling
@@ -631,8 +632,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.1...HEAD
-[0.14.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.1...0.14.1
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.2...HEAD
+[0.14.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.1...0.14.2
+[0.14.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.0...0.14.1
 [0.14.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.13.1...0.14.0
 [0.13.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.13.0...0.13.1
 [0.13.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.12.3...0.13.0

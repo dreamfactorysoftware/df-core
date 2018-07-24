@@ -777,7 +777,6 @@ class Session
             \Session::put('user.id', array_get($user, 'id'));
             \Session::put('user.name', array_get($user, 'name'));
             \Session::put('user.username', array_get($user, 'username'));
-            \Session::put('user.display_name', array_get($user, 'name'));
             \Session::put('user.first_name', array_get($user, 'first_name'));
             \Session::put('user.last_name', array_get($user, 'last_name'));
             \Session::put('user.email', array_get($user, 'email'));
@@ -905,7 +904,7 @@ class Session
             'session_token'   => session('session_token'),
             'session_id'      => session('session_token'), // temp for compatibility with 1.x
             'id'              => session('user.id'),
-            'name'            => session('user.display_name'),
+            'name'            => session('user.name'),
             'first_name'      => session('user.first_name'),
             'last_name'       => session('user.last_name'),
             'email'           => session('user.email'),

@@ -25,7 +25,12 @@ class ApiEvent extends ServiceEvent
     {
         $this->request = $request;
         $this->response = $response;
-        $name = strtolower($path . '.' . $request->getMethod());
+
+        if (empty($resource)) {
+            $name = strtolower($path . '.' . $request->getMethod());
+        } else {
+            $name = strtolower($path . '.' . $resource . '.' . $request->getMethod());
+        }
         parent::__construct($name, $resource);
     }
 

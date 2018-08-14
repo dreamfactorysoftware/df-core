@@ -34,7 +34,7 @@ class Env extends Command
      *
      * @var string
      */
-    protected $description = 'Set Environment for DreamFactory 2.0.';
+    protected $description = 'Set Environment for DreamFactory 2';
 
     /**
      * Create a new command instance.
@@ -64,11 +64,11 @@ class Env extends Command
         }
 
         if ($this->doInteractive()) {
-            $db = $this->choice('Which database would you like to use for system tables?',
+            $db = $this->choice('What type of database will house the DreamFactory system information?',
                 ['sqlite', 'mysql', 'pgsql', 'sqlsrv'], 0);
 
             if ('sqlite' === $db) {
-                $database = $this->ask('Enter your database name');
+                $database = $this->ask('Enter the database name (this database must exist)');
                 $config = [
                     'DB_CONNECTION' => $db,
                     'DB_DATABASE'   => $database,
@@ -76,24 +76,23 @@ class Env extends Command
                 ];
             } else {
                 $driver = $db;
-                $host = $this->ask('Enter your ' . $db . ' Host');
-                $port = $this->ask('Enter your Database Port', config('database.connections.' . $db . '.port'));
-                $database = $this->ask('Enter your database name');
-                $username = $this->ask('Enter your database username');
+                $host = $this->ask('Enter the ' . $db . ' Host');
+                $port = $this->ask('Enter the database port', config('database.connections.' . $db . '.port'));
+                $database = $this->ask('Enter the database name');
+                $username = $this->ask('Enter the database username');
 
                 $password = '';
                 $passwordMatch = false;
                 while (!$passwordMatch) {
-                    $password = $this->secret('Enter your database password');
-                    $password2 = $this->secret('Re-enter your database password');
+                    $password = $this->secret('Enter the database password');
+                    $password2 = $this->secret('Re-enter the database password');
 
                     if ($password === $password2) {
                         $passwordMatch = true;
                     } else {
-                        $this->error('Passwords did not match. Please try again.');
+                        $this->error('The passwords did not match. Please try again.');
                     }
                 }
-
 
                 $config = [
                     'DB_CONNECTION' => $driver,
@@ -147,13 +146,13 @@ class Env extends Command
         }
         FileUtilities::updateEnvSetting($config);
         $this->info('Configuration complete!');
-        $this->warn('*************************************************** WARNING! *********************************************************');
+        $this->warn('******************************************* WARNING! *****************************************************');
         $this->warn('*');
         $this->warn('* Please take a moment to review the .env file. You can make any changes as necessary there. ');
         $this->warn('*');
         $this->warn('* Please run "php artisan df:setup" to complete the setup process.');
         $this->warn('*');
-        $this->warn('**********************************************************************************************************************');
+        $this->warn('**********************************************************************************************************');
     }
 
     /**

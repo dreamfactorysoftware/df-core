@@ -34,7 +34,7 @@ class Env extends Command
      *
      * @var string
      */
-    protected $description = 'Set Environment for DreamFactory 2';
+    protected $description = 'Set Environment for DreamFactory';
 
     /**
      * Create a new command instance.

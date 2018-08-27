@@ -3,6 +3,10 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+
+### Fixed
+- DF-1365 Fixes JWT token refresh issue
+
 ## [0.14.2] - 2018-02-25
 ### Fixed
 - DF-1296 Allowed for wildcard handling in session permission checks

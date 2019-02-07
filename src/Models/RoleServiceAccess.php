@@ -54,4 +54,28 @@ class RoleServiceAccess extends BaseSystemModel
             }
         );
     }
+
+    /**
+     * Save a new model and return the instance in case it hasn't been created yet.
+     *
+     * @param array $attributes
+     *
+     * @return bool|BaseModel
+     * @throws \Exception
+     */
+    public static function createUnique(array $attributes = [])
+    {
+        $roleId = array_get($attributes, "role_id");
+        $serviceId = array_get($attributes, "service_id");
+        $component = array_get($attributes, "component");
+        $requestorMask = array_get($attributes, "requestor_mask");
+
+        $doExist = RoleServiceAccess::whereRoleId($roleId)->whereServiceId($serviceId)->whereComponent($component)->whereRequestorMask($requestorMask)->exists();
+        if (!$doExist) {
+            return RoleServiceAccess::create($attributes);
+        } else {
+            return false;
+        }
+    }
+
 }

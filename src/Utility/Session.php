@@ -70,7 +70,7 @@ class Session
      */
     public static function getServicePermissions($service, $component = null, $requestor = ServiceRequestorTypes::API)
     {
-        if (static::isSysAdmin()) {
+        if (static::isSysAdmin() && !Session::getRoleId()) {
             return
                 VerbsMask::GET_MASK |
                 VerbsMask::POST_MASK |
@@ -179,7 +179,7 @@ class Session
         $component = null,
         $requestor = ServiceRequestorTypes::API
     ) {
-        if (static::isSysAdmin()) {
+        if (static::isSysAdmin() && !Session::getRoleId()) {
             return true;
         }
 
@@ -279,7 +279,7 @@ class Session
      */
     public static function allowsServiceAccess($service, $requestor = ServiceRequestorTypes::API)
     {
-        if (static::isSysAdmin()) {
+        if (static::isSysAdmin() && !UserAppRole::whereUserId(Session::getCurrentUserId())->first()) {
             return true;
         }
 
@@ -363,7 +363,7 @@ class Session
         $component = null,
         $requestor = ServiceRequestorTypes::API
     ) {
-        if (static::isSysAdmin()) {
+        if (static::isSysAdmin() && !Session::getRoleId()) {
             return null;
         }
 
@@ -757,6 +757,8 @@ class Session
 
                 return true;
             } else {
+                static::setSessionData($appId, $id);
+
                 return static::setUserInfo($userInfo);
             }
         }
@@ -915,7 +917,7 @@ class Session
         ];
 
         $role = static::get('role');
-        if (!session('user.is_sys_admin') && !empty($role)) {
+        if (!empty($role)) {
             $sessionData['role'] = array_get($role, 'name');
             $sessionData['role_id'] = array_get($role, 'id');
         }

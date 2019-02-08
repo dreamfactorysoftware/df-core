@@ -68,9 +68,10 @@ class RoleServiceAccess extends BaseSystemModel
         $roleId = array_get($attributes, "role_id");
         $serviceId = array_get($attributes, "service_id");
         $component = array_get($attributes, "component");
+        $verbMask = array_get($attributes, "verb_mask");
         $requestorMask = array_get($attributes, "requestor_mask");
 
-        $doExist = RoleServiceAccess::whereRoleId($roleId)->whereServiceId($serviceId)->whereComponent($component)->whereRequestorMask($requestorMask)->exists();
+        $doExist = RoleServiceAccess::whereRoleId($roleId)->whereServiceId($serviceId)->whereComponent($component)->whereVerbMask($verbMask)->whereRequestorMask($requestorMask)->exists();
         if (!$doExist) {
             return RoleServiceAccess::create($attributes);
         } else {

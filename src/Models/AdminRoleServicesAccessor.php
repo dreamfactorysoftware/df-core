@@ -63,7 +63,7 @@ class AdminRoleServicesAccessor
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "service/*", "verb_mask" => 1, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "role/*", "verb_mask" => 1, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
     }
 
@@ -78,7 +78,7 @@ class AdminRoleServicesAccessor
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "admin/*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "role/*", "verb_mask" => 1, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
     }
 
@@ -94,7 +94,7 @@ class AdminRoleServicesAccessor
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "role/*", "verb_mask" => 1, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "app/*", "verb_mask" => 1, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
     }
 
@@ -124,7 +124,7 @@ class AdminRoleServicesAccessor
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "service_type/", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "service/*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
     }
 
@@ -139,7 +139,7 @@ class AdminRoleServicesAccessor
         try {
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 5, "component" => "*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
 
     }
@@ -155,7 +155,7 @@ class AdminRoleServicesAccessor
         try {
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 2, "component" => "*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
 
     }
@@ -171,7 +171,7 @@ class AdminRoleServicesAccessor
         try {
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 3, "component" => "*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
 
     }
@@ -188,7 +188,7 @@ class AdminRoleServicesAccessor
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "event_script/*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "script_type/*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
     }
 
@@ -200,18 +200,17 @@ class AdminRoleServicesAccessor
     protected function createRoleServiceAccessForConfigTab()
     {
         try {
+            RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "custom/*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "cache/*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "cors/*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "email_template/*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "lookup/*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
-            RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 2, "component" => "*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
-            RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 3, "component" => "*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 4, "component" => "*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 6, "component" => "*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 7, "component" => "*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
     }
 
@@ -225,7 +224,7 @@ class AdminRoleServicesAccessor
         try {
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "package/*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
     }
 
@@ -242,8 +241,9 @@ class AdminRoleServicesAccessor
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "user/", "verb_mask" => 1, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "role/", "verb_mask" => 1, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "service/", "verb_mask" => 1, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
+            RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "", "verb_mask" => 1, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
     }
 
@@ -255,11 +255,12 @@ class AdminRoleServicesAccessor
     protected function createDefaultRoleServiceAccess()
     {
         try {
-            RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "custom/*", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
+            RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "role/*", "verb_mask" => 1, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
+            RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "admin/*", "verb_mask" => 1, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "admin/profile", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
             RoleServiceAccess::createUnique(["role_id" => $this->roleId, "service_id" => 1, "component" => "admin/password", "verb_mask" => 31, "requestor_mask" => 3, "filters" => [], "filter_op" => "AND"]);
         } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
+            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
         }
     }
 

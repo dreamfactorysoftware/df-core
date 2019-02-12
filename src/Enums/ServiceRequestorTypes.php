@@ -33,6 +33,16 @@ class ServiceRequestorTypes extends FactoryEnum
     //*************************************************************************
 
     /**
+     * @return int
+     */
+    public static function getAllRequestorTypesMask()
+    {
+        return
+            self::API |
+            self::SCRIPT;
+    }
+
+    /**
      * @param string $requestorType
      *
      * @return string
@@ -58,15 +68,5 @@ class ServiceRequestorTypes extends FactoryEnum
         }
 
         return static::nameOf($numericLevel);
-    }
-
-    /**
-     * @return int
-     */
-    public static function getFullAccessMask()
-    {
-        return
-            self::API |
-            self::SCRIPT;
     }
 }

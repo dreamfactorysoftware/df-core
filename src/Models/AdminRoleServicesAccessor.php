@@ -27,7 +27,7 @@ class AdminRoleServicesAccessor
     protected $roleId = 0;
 
     /**
-     * Role id to create service access.
+     * Default system service name
      *
      * @type int
      */
@@ -48,228 +48,13 @@ class AdminRoleServicesAccessor
 
     /**
      * Creates role service access for given tabs
-     * @throws InternalServerErrorException
+     * @throws \Exception
      */
     public function createRoleServiceAccess()
     {
-        $this->createDefaultRoleServiceAccess();
-        $tabToMethodMapper = $this->getTabToMethodMapper();
+        $this->createTabServicesAccess($this->getTabsAccessesMap()["default"]);
         foreach ($this->tabs as $tab) {
-            $method = $tabToMethodMapper[$tab];
-            $this->$method();
-        }
-    }
-
-    /**
-     * Creates role services access relation for apps tab
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createRoleServiceAccessForAppsTab()
-    {
-        try {
-            $this->createServiceAccess("app/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("service/*", VerbsMask::GET_MASK);
-            $this->createServiceAccess("role/*", VerbsMask::GET_MASK);
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * Creates role services access relation for Admins tab
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createRoleServiceAccessForAdminsTab()
-    {
-        try {
-            $this->createServiceAccess("admin/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("role/*", VerbsMask::GET_MASK);
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * Creates role services access relation for Users tab
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createRoleServiceAccessForUsersTab()
-    {
-        try {
-            $this->createServiceAccess("user/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("role/*", VerbsMask::GET_MASK);
-            $this->createServiceAccess("app/*", VerbsMask::GET_MASK);
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * Creates role services access relation for Roles tab
-     *
-     * @throws InternalServerErrorException
-     */
-    /*protected function createRoleServiceAccessForRolesTab()
-    {
-        try {
-            $this->createServiceAccess("role/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("app/*", VerbsMask::GET_MASK);
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field . {$ex->getMessage()}");
-        }
-    }*/
-
-    /**
-     * Creates role services access relation for services tab
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createRoleServiceAccessForServicesTab()
-    {
-        try {
-            $this->createServiceAccess("service_type/", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("service/*", VerbsMask::getFullAccessMask());
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * Creates role services access relation for data tab
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createRoleServiceAccessForDataTab()
-    {
-
-        try {
-            $this->createServiceAccess("*", VerbsMask::getFullAccessMask(), 'db');
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-        }
-
-    }
-
-    /**
-     * Creates role services access relation for data tab
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createRoleServiceAccessForApiDocsTab()
-    {
-
-        try {
-            $this->createServiceAccess("*", VerbsMask::getFullAccessMask(), 'api_docs');
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-        }
-
-    }
-
-    /**
-     * Creates role services access relation for data tab
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createRoleServiceAccessForFilesTab()
-    {
-
-        try {
-            $this->createServiceAccess("*", VerbsMask::getFullAccessMask(), 'files');
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-        }
-
-    }
-
-    /**
-     * Creates role services access relation for scripts tab
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createRoleServiceAccessForScriptsTab()
-    {
-        try {
-            $this->createServiceAccess("event/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("event_script/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("script_type/*", VerbsMask::getFullAccessMask());
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * Creates role services access relation for Config tab
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createRoleServiceAccessForConfigTab()
-    {
-        try {
-            $this->createServiceAccess("custom/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("cache/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("cors/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("email_template/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("lookup/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("*", VerbsMask::getFullAccessMask(),'logs');
-            $this->createServiceAccess("*", VerbsMask::getFullAccessMask(), 'email');
-            $this->createServiceAccess("*", VerbsMask::getFullAccessMask(),'user');
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * Creates role services access relation for Packages tab
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createRoleServiceAccessForPackagesTab()
-    {
-        try {
-            $this->createServiceAccess("package/*", VerbsMask::getFullAccessMask());
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * Creates role services access relation for Limits tab
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createRoleServiceAccessForLimitsTab()
-    {
-        try {
-            $this->createServiceAccess("limit/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("limit_cache/*", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("user/", VerbsMask::GET_MASK);
-            $this->createServiceAccess("role/", VerbsMask::GET_MASK);
-            $this->createServiceAccess("service/", VerbsMask::GET_MASK);
-            $this->createServiceAccess("", VerbsMask::GET_MASK);
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-        }
-    }
-
-    /**
-     * Creates default role services access relation
-     *
-     * @throws InternalServerErrorException
-     */
-    protected function createDefaultRoleServiceAccess()
-    {
-        try {
-            $this->createServiceAccess("role/*", VerbsMask::GET_MASK);
-            $this->createServiceAccess("admin/*", VerbsMask::GET_MASK);
-            $this->createServiceAccess("admin/profile", VerbsMask::getFullAccessMask());
-            $this->createServiceAccess("admin/password", VerbsMask::getFullAccessMask());
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
+            $this->createTabServicesAccess($this->getTabsAccessesMap()[$tab]);
         }
     }
 
@@ -290,7 +75,7 @@ class AdminRoleServicesAccessor
         }
 
         try {
-            $role = Role::whereId($roleId);
+            Role::whereId($roleId);
         } catch (\Exception $ex) {
             throw new InternalServerErrorException("Failed to get Role by id of $roleId . {$ex->getMessage()}");
         }
@@ -303,20 +88,72 @@ class AdminRoleServicesAccessor
      *
      * @return array
      */
-    private function getTabToMethodMapper()
+    private function getTabsAccessesMap()
     {
         return array(
-            "apps" => "createRoleServiceAccessForAppsTab",
-            "admins" => "createRoleServiceAccessForAdminsTab",
-            "users" => "createRoleServiceAccessForUsersTab",
-            "services" => "createRoleServiceAccessForServicesTab",
-            "apidocs" => "createRoleServiceAccessForApiDocsTab",
-            "schema/data" => "createRoleServiceAccessForDataTab",
-            "files" => "createRoleServiceAccessForFilesTab",
-            "scripts" => "createRoleServiceAccessForScriptsTab",
-            "config" => "createRoleServiceAccessForConfigTab",
-            "packages" => "createRoleServiceAccessForPackagesTab",
-            "limits" => "createRoleServiceAccessForLimitsTab"
+            "apps" => array(
+                array("component" => "app/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "service/*", "verbMask" => VerbsMask::GET_MASK),
+                array("component" => "role/*", "verbMask" => VerbsMask::GET_MASK)
+            ),
+            "admins" => array(
+                array("component" => "admin/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "role/*", "verbMask" => VerbsMask::GET_MASK)
+            ),
+            "users" => array(
+                array("component" => "user/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "role/*", "verbMask" => VerbsMask::GET_MASK),
+                array("component" => "app/*", "verbMask" => VerbsMask::GET_MASK)
+            ),
+            /*"roles" => array(
+                array("component" => "role/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "app/*", "verbMask" => VerbsMask::GET_MASK)
+            ),*/
+            "services" => array(
+                array("component" => "service_type/", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "service/*", "verbMask" => VerbsMask::getFullAccessMask())
+            ),
+            "apidocs" => array(
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => 'api_docs')
+            ),
+            "schema/data" => array(
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => 'db')
+            ),
+            "files" => array(
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => 'files')
+            ),
+            "scripts" => array(
+                array("component" => "event/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "event_script/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "script_type/*", "verbMask" => VerbsMask::getFullAccessMask())
+            ),
+            "config" => array(
+                array("component" => "custom/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "cache/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "cors/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "email_template/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "lookup/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => 'logs'),
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => 'email')
+            ),
+            "packages" => array(
+                array("component" => "package/*", "verbMask" => VerbsMask::getFullAccessMask())
+            ),
+            "limits" => array(
+                array("component" => "limit/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "limit_cache/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "user/", "verbMask" => VerbsMask::GET_MASK),
+                array("component" => "role/", "verbMask" => VerbsMask::GET_MASK),
+                array("component" => "", "verbMask" => VerbsMask::GET_MASK),
+                array("component" => "service/", "verbMask" => VerbsMask::GET_MASK)
+            ),
+            "default" => array(
+                array("component" => "role/*", "verbMask" => VerbsMask::GET_MASK),
+                array("component" => "admin/*", "verbMask" => VerbsMask::GET_MASK),
+                array("component" => "admin/profile", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "admin/password", "verbMask" => VerbsMask::getFullAccessMask())
+            )
         );
     }
 
@@ -332,22 +169,26 @@ class AdminRoleServicesAccessor
     }
 
     /**
-     * create service accesss
+     * create service accesses
      *
-     * @param string $serviceName
-     * @param string $component
-     * @param int $verbMask
+     * @param array $params
      * @throws \Exception
      */
-    private function createServiceAccess(string $component, int $verbMask, string $serviceName = self::SYSTEM_SERVICE_NAME)
+    private function createTabServicesAccess(array $params)
     {
-        RoleServiceAccess::createUnique([
-            "role_id" => $this->roleId,
-            "service_id" => $this->getServiceIdByName($serviceName),
-            "component" => $component,
-            "verb_mask" => $verbMask,
-            "requestor_mask" => ServiceRequestorTypes::getFullAccessMask(),
-            "filters" => [],
-            "filter_op" => "AND"]);
+        foreach ($params as $access) {
+            try {
+                RoleServiceAccess::createUnique([
+                    "role_id" => $this->roleId,
+                    "service_id" => $this->getServiceIdByName(isset($params[0]["serviceName"]) ? $params[0]["serviceName"] : self::SYSTEM_SERVICE_NAME),
+                    "component" => $access["component"],
+                    "verb_mask" => $access["verbMask"],
+                    "requestor_mask" => ServiceRequestorTypes::getAllRequestorTypesMask(),
+                    "filters" => [],
+                    "filter_op" => "AND"]);
+            } catch (\Exception $ex) {
+                throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
+            }
+        }
     }
 }

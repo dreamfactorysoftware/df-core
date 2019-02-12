@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Components\RestrictedAdminRoleCreator;
 use DreamFactory\Core\Enums\ApiOptions;
 use Illuminate\Support\Arr;
 
@@ -15,67 +16,11 @@ class AdminUser extends User
 
         $params['admin'] = true;
 
-        if (array_get($records[0],"is_sys_admin") && isset($records[0]["access_by_tabs"])) {
-            $tabs = array_get($records[0], "access_by_tabs");
-            $role = self::createAdminRole($records);
-            self::createRoleTabsAccess($role["id"], $tabs);
-            $records = self::linkRoleToAdmin($records, $role["id"]);
+        if (isset($records[0]["access_by_tabs"])) {
+           $records = RestrictedAdminRoleCreator::createAndLinkRestrictedAdminRole($records);
         };
 
         return parent::bulkCreate($records, $params);
-    }
-
-    /**
-     * Creates role for Admin if access by tabs was specified.
-     *
-     * @param       $records
-     *
-     * @return array $role
-     */
-    protected static function createAdminRole($records)
-    {
-        $role = Role::createInternal(["name" => array_get($records[0],'email') . "'s role", "description" => array_get($records[0],'email') . "'s admin role", "is_active" => 1]);
-
-        return $role;
-    }
-
-    /**
-     * Links new role with Admin and App.
-     *
-     * @param       $records
-     * @param       $roleId
-     *
-     * @return array $role
-     */
-    protected static function linkRoleToAdmin($records, $roleId)
-    {
-        $userToAppToRoleByUserId = array(["app_id" => App::whereName("admin")->first()["id"], "role_id" => $roleId]);
-
-        if (in_array("apidocs", $records[0]["access_by_tabs"])) {
-            array_push($userToAppToRoleByUserId, ["app_id" => App::whereName("api_docs")->first()["id"], "role_id" => $roleId]);
-        }
-
-        if (in_array("files", $records[0]["access_by_tabs"])) {
-            array_push($userToAppToRoleByUserId, ["app_id" => App::whereName("file_manager")->first()["id"], "role_id" => $roleId]);
-        }
-        $records[0]["user_to_app_to_role_by_user_id"] = $userToAppToRoleByUserId;
-
-        return $records;
-    }
-
-    /**
-     * Creates role service access for specified tabs (only for restricted admins).
-     *
-     * @param       $roleId
-     * @param array $tabs
-     *
-     * @throws \Exception
-     */
-    protected static function createRoleTabsAccess($roleId, $tabs)
-    {
-        $arsa = new AdminRoleServicesAccessor($roleId, $tabs);
-        $arsa->createRoleServiceAccess();
-
     }
 
     /**

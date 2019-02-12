@@ -1,31 +1,20 @@
 <?php
 
-namespace DreamFactory\Core\Models;
+namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Models\App;
+use DreamFactory\Core\Models\Role;
+use DreamFactory\Core\Models\RoleServiceAccess;
+use DreamFactory\Core\Models\Service;
 
 /**
  * Services access by tabs for admin role
  */
-class AdminRoleServicesAccessor
+class RestrictedAdminRoleCreator
 {
-    /**
-     * Accessible tabs.
-     *
-     * @type array
-     */
-    protected $tabs = [];
-
-    /**
-     * Role id to create service access.
-     *
-     * @type int
-     */
-    protected $roleId = 0;
-
     /**
      * Default system service name
      *
@@ -34,53 +23,69 @@ class AdminRoleServicesAccessor
     const SYSTEM_SERVICE_NAME = "system";
 
     /**
-     * @param int $roleId
-     * @param array $tabs
-     *
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
-     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
+     * @param array $records
+     * @return array
+     * @throws InternalServerErrorException
+     * @throws \Exception
      */
-    public function __construct($roleId, $tabs = [])
+    public static function createAndLinkRestrictedAdminRole(array $records)
     {
-        $this->tabs = $tabs;
-        $this->roleId = $this->verifyRoleId($roleId);
+        $tabs = array_get($records[0], "access_by_tabs");
+        $role = self::createRestrictedAdminRole(array_get($records[0], 'email'));
+        $roleId = $role["id"];
+        self::createRoleServiceAccess($tabs, $roleId);
+        return self::linkRoleToRestrictedAdmin($records, $roleId);
+    }
+
+    /**
+     * Creates role for Admin if access by tabs was specified.
+     *
+     * @param string $email
+     * @return \DreamFactory\Core\Models\BaseModel
+     * @throws \Exception
+     */
+    private static function createRestrictedAdminRole(string $email)
+    {
+        return Role::create(["name" => $email . "'s role", "description" => $email . "'s admin role", "is_active" => 1]);
+    }
+
+    /**
+     * Links new role with Admin and App.
+     *
+     * @param       $records
+     * @param       $roleId
+     *
+     * @return array $role
+     */
+    private static function linkRoleToRestrictedAdmin($records, $roleId)
+    {
+        $userToAppToRoleByUserId = array(["app_id" => App::whereName("admin")->first()["id"], "role_id" => $roleId]);
+
+        if (in_array("apidocs", $records[0]["access_by_tabs"])) {
+            array_push($userToAppToRoleByUserId, ["app_id" => App::whereName("api_docs")->first()["id"], "role_id" => $roleId]);
+        }
+
+        if (in_array("files", $records[0]["access_by_tabs"])) {
+            array_push($userToAppToRoleByUserId, ["app_id" => App::whereName("file_manager")->first()["id"], "role_id" => $roleId]);
+        }
+        $records[0]["user_to_app_to_role_by_user_id"] = $userToAppToRoleByUserId;
+
+        return $records;
     }
 
     /**
      * Creates role service access for given tabs
-     * @throws \Exception
+     * @param array $tabs
+     * @param int $roleId
+     * @throws InternalServerErrorException
      */
-    public function createRoleServiceAccess()
+    private static function createRoleServiceAccess(array $tabs, int $roleId)
     {
-        $this->createTabServicesAccess($this->getTabsAccessesMap()["default"]);
-        foreach ($this->tabs as $tab) {
-            $this->createTabServicesAccess($this->getTabsAccessesMap()[$tab]);
+        self::createTabServicesAccess(self::getTabsAccessesMap()["default"], $roleId);
+
+        foreach ($tabs as $tab) {
+            self::createTabServicesAccess(self::getTabsAccessesMap()[$tab], $roleId);
         }
-    }
-
-
-    /**
-     * Verifies role id.
-     *
-     * @param $roleId
-     *
-     * @return int
-     * @throws \DreamFactory\Core\Exceptions\BadRequestException
-     * @throws \DreamFactory\Core\Exceptions\InternalServerErrorException
-     */
-    private function verifyRoleId($roleId)
-    {
-        if (0 === $roleId) {
-            throw new BadRequestException("Role id can't be zero.");
-        }
-
-        try {
-            Role::whereId($roleId);
-        } catch (\Exception $ex) {
-            throw new InternalServerErrorException("Failed to get Role by id of $roleId . {$ex->getMessage()}");
-        }
-
-        return $roleId;
     }
 
     /**
@@ -88,7 +93,7 @@ class AdminRoleServicesAccessor
      *
      * @return array
      */
-    private function getTabsAccessesMap()
+    public static function getTabsAccessesMap()
     {
         return array(
             "apps" => array(
@@ -105,10 +110,6 @@ class AdminRoleServicesAccessor
                 array("component" => "role/*", "verbMask" => VerbsMask::GET_MASK),
                 array("component" => "app/*", "verbMask" => VerbsMask::GET_MASK)
             ),
-            /*"roles" => array(
-                array("component" => "role/*", "verbMask" => VerbsMask::getFullAccessMask()),
-                array("component" => "app/*", "verbMask" => VerbsMask::GET_MASK)
-            ),*/
             "services" => array(
                 array("component" => "service_type/", "verbMask" => VerbsMask::getFullAccessMask()),
                 array("component" => "service/*", "verbMask" => VerbsMask::getFullAccessMask())
@@ -163,32 +164,39 @@ class AdminRoleServicesAccessor
      * @param string $name
      * @return array
      */
-    private function getServiceIdByName(string $name)
+    private static function getServiceIdByName(string $name)
     {
         return Service::whereName($name)->get(['id'])->first()['id'];
+    }
+
+    /**
+     * @param array $access
+     * @return int
+     */
+    private static function getServiceName(array $access)
+    {
+        return isset($access["serviceName"]) ? $access["serviceName"] : self::SYSTEM_SERVICE_NAME;
     }
 
     /**
      * create service accesses
      *
      * @param array $params
+     * @param int $roleId
+     * @throws InternalServerErrorException
      * @throws \Exception
      */
-    private function createTabServicesAccess(array $params)
+    private static function createTabServicesAccess(array $params, int $roleId)
     {
         foreach ($params as $access) {
-            try {
-                RoleServiceAccess::createUnique([
-                    "role_id" => $this->roleId,
-                    "service_id" => $this->getServiceIdByName(isset($params[0]["serviceName"]) ? $params[0]["serviceName"] : self::SYSTEM_SERVICE_NAME),
-                    "component" => $access["component"],
-                    "verb_mask" => $access["verbMask"],
-                    "requestor_mask" => ServiceRequestorTypes::getAllRequestorTypesMask(),
-                    "filters" => [],
-                    "filter_op" => "AND"]);
-            } catch (\Exception $ex) {
-                throw new InternalServerErrorException("Failed to create role service access field. {$ex->getMessage()}");
-            }
+            RoleServiceAccess::createUnique([
+                "role_id" => $roleId,
+                "service_id" => self::getServiceIdByName(self::getServiceName($access)),
+                "component" => $access["component"],
+                "verb_mask" => $access["verbMask"],
+                "requestor_mask" => ServiceRequestorTypes::getAllRequestorTypes(),
+                "filters" => [],
+                "filter_op" => "AND"]);
         }
     }
 }

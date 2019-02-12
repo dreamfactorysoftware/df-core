@@ -35,7 +35,7 @@ class ServiceRequestorTypes extends FactoryEnum
     /**
      * @return int
      */
-    public static function getAllRequestorTypesMask()
+    public static function getAllRequestorTypes()
     {
         return
             self::API |

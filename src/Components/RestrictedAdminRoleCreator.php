@@ -4,7 +4,6 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\RoleServiceAccess;
@@ -25,13 +24,12 @@ class RestrictedAdminRoleCreator
     /**
      * @param array $records
      * @return array
-     * @throws InternalServerErrorException
      * @throws \Exception
      */
     public static function createAndLinkRestrictedAdminRole(array $records)
     {
         $tabs = array_get($records[0], "access_by_tabs");
-        $role = self::createRestrictedAdminRole(array_get($records[0], 'email'));
+        $role = self::createRestrictedAdminRole(array_get($records[0], "email"));
         $roleId = $role["id"];
         self::createRoleServiceAccess($tabs, $roleId);
         return self::linkRoleToRestrictedAdmin($records, $roleId);
@@ -77,7 +75,7 @@ class RestrictedAdminRoleCreator
      * Creates role service access for given tabs
      * @param array $tabs
      * @param int $roleId
-     * @throws InternalServerErrorException
+     * @throws \Exception
      */
     private static function createRoleServiceAccess(array $tabs, int $roleId)
     {
@@ -115,13 +113,13 @@ class RestrictedAdminRoleCreator
                 array("component" => "service/*", "verbMask" => VerbsMask::getFullAccessMask())
             ),
             "apidocs" => array(
-                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => 'api_docs')
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "api_docs")
             ),
             "schema/data" => array(
-                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => 'db')
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "db")
             ),
             "files" => array(
-                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => 'files')
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "files")
             ),
             "scripts" => array(
                 array("component" => "event/*", "verbMask" => VerbsMask::getFullAccessMask()),
@@ -135,8 +133,8 @@ class RestrictedAdminRoleCreator
                 array("component" => "email_template/*", "verbMask" => VerbsMask::getFullAccessMask()),
                 array("component" => "lookup/*", "verbMask" => VerbsMask::getFullAccessMask()),
                 array("component" => "", "verbMask" => VerbsMask::getFullAccessMask()),
-                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => 'logs'),
-                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => 'email')
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "logs"),
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "email")
             ),
             "packages" => array(
                 array("component" => "package/*", "verbMask" => VerbsMask::getFullAccessMask())
@@ -159,6 +157,30 @@ class RestrictedAdminRoleCreator
     }
 
     /**
+     * Get all tabs links
+     *
+     * @return array
+     */
+    public static function getAllTabsLinks()
+    {
+        return array(
+            "home" => array("name" => "home", "label" => "Home", "path" => "/home"),
+            "apps" => array("name" => "apps", "label" => "Apps", "path" => "/apps"),
+            "admins" => array("name" => "admins", "label" => "Admins", "path" => "/admins"),
+            "users" => array("name" => "users", "label" => "Users", "path" => "/users"),
+            "services" => array("name" => "services", "label" => "Services", "path" => "/services"),
+            "apidocs" => array("name" => "apidocs", "label" => "API Docs", "path" => "/apidocs"),
+            "schema" => array("name" => "schema", "label" => "Schema", "path" => "/schema"),
+            "data" => array("name" => "data", "label" => "Data", "path" => "/data"),
+            "files" => array("name" => "file-manager", "label" => "Files", "path" => "/file-manager"),
+            "scripts" => array("name" => "scripts", "label" => "Scripts", "path" => "/scripts"),
+            "config" => array("name" => "config", "label" => "Config", "path" => "/config"),
+            "packages" => array("name" => "package-manager", "label" => "Packages", "path" => "/package-manager"),
+            "limits" => array("name" => "limit", "label" => "Limits", "path" => "/limits")
+        );
+    }
+
+    /**
      * look for service id by service name
      *
      * @param string $name
@@ -166,7 +188,7 @@ class RestrictedAdminRoleCreator
      */
     private static function getServiceIdByName(string $name)
     {
-        return Service::whereName($name)->get(['id'])->first()['id'];
+        return Service::whereName($name)->get(["id"])->first()["id"];
     }
 
     /**
@@ -183,7 +205,6 @@ class RestrictedAdminRoleCreator
      *
      * @param array $params
      * @param int $roleId
-     * @throws InternalServerErrorException
      * @throws \Exception
      */
     private static function createTabServicesAccess(array $params, int $roleId)
@@ -198,5 +219,82 @@ class RestrictedAdminRoleCreator
                 "filters" => [],
                 "filter_op" => "AND"]);
         }
+    }
+
+    /**
+     * Does role provide access to tab
+     *
+     * @param array $roleServiceAccesses
+     * @param array $tabAccess
+     * @return bool
+     */
+    private static function hasAccessToTab(array $roleServiceAccesses, array $tabAccess)
+    {
+        $hasAccess = true;
+        foreach ($tabAccess as $access) {
+            if (!self::hasAccessToServiceComponent($roleServiceAccesses, $access)) {
+                $hasAccess = false;
+            }
+        }
+
+        return $hasAccess;
+    }
+
+
+    /**
+     * Compare role and tab access
+     *
+     * @param array $roleServiceAccesses
+     * @param array $serviceComponentAccess
+     * @return bool
+     */
+    private static function hasAccessToServiceComponent(array $roleServiceAccesses, array $serviceComponentAccess)
+    {
+        return boolval(array_first($roleServiceAccesses, function ($roleAccess) use ($serviceComponentAccess) {
+            return $roleAccess["component"] === $serviceComponentAccess["component"] &&
+                $roleAccess["verb_mask"] === $serviceComponentAccess["verbMask"] &&
+                $roleAccess["service_id"] === self::getServiceIdByName(self::getServiceName($serviceComponentAccess));
+        }));
+    }
+
+    /**
+     * hide tab
+     *
+     * @param array $tabs
+     * @param string $tabName
+     * @return bool
+     */
+    private static function removeTab(array $tabs, string $tabName)
+    {
+        $tabNames = [$tabName];
+        if ($tabName === "schema/data") {
+            $tabNames = explode("/", $tabName);
+        }
+        return array_except($tabs, $tabNames);
+    }
+
+    /**
+     *
+     * @param array $role
+     * @return string
+     */
+    public static function getAccessibleTabs(array $role)
+    {
+        $tabsAccessesMap = self::getTabsAccessesMap();
+        $links = self::getAllTabsLinks();
+
+        if (isset($role["role_service_access_by_role_id"])) {
+            $roleServiceAccess = $role["role_service_access_by_role_id"];
+        } else {
+            $roleServiceAccess = RoleServiceAccess::whereRoleId($role["id"])->get()->toArray();
+        }
+        foreach ($tabsAccessesMap as $tabName => $tabAccesses) {
+            if (!self::hasAccessToTab($roleServiceAccess, $tabAccesses) && $tabName !== "config") {
+                $links = self::removeTab($links, $tabName);
+            }
+
+        }
+        $links = array_values($links);
+        return $links;
     }
 }

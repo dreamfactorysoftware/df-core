@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Components\RestrictedAdminRoleCreator;
 use DreamFactory\Core\Events\RoleDeletedEvent;
 use DreamFactory\Core\Events\RoleModifiedEvent;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -64,6 +65,19 @@ class Role extends BaseSystemModel
     }
 
     /**
+     * {@inheritdoc}
+     */
+    public static function selectById($id, array $options = [], array $fields = ['*'])
+    {
+        $model = parent::selectById($id, $options, $fields);
+
+        if ($model && self::isAccessibleTabsSpecified($options)) {
+            $model["accessible_tabs"] = RestrictedAdminRoleCreator::getAccessibleTabs($model);//["apidocs" => ["name" => "apidocs", "label" => "API Docs", "path" => "/apidocs"], "apps"=>["name" => "apps", "label" => "Apps", "path" => "/apps"]];
+        }
+        return $model;
+    }
+
+    /**
      * Making sure description is no longer than 255 characters.
      *
      * @param $value
@@ -98,9 +112,9 @@ class Role extends BaseSystemModel
      * Returns role info cached, or reads from db if not present.
      * Pass in a key to return a portion/index of the cached data.
      *
-     * @param int         $id
+     * @param int $id
      * @param null|string $key
-     * @param null        $default
+     * @param null $default
      *
      * @return mixed|null
      */
@@ -108,7 +122,7 @@ class Role extends BaseSystemModel
     {
         $cacheKey = 'role:' . $id;
         try {
-            $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
+            $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id) {
                 $role = Role::with(
                     [
                         'role_service_access_by_role_id',
@@ -159,5 +173,15 @@ class Role extends BaseSystemModel
         }
 
         return parent::getModelFromTable($table);
+    }
+
+    private static function isAccessibleTabsSpecified($options)
+    {
+        return isset($options["accessible_tabs"]) && $options["accessible_tabs"];
+    }
+
+    private static function isIncludeRoleServiceAccess($model)
+    {
+        return $model && isset($model["role_service_access_by_role_id"]);
     }
 }

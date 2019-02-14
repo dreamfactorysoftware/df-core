@@ -28,10 +28,10 @@ class RestrictedAdminRoleCreator
      */
     public static function createAndLinkRestrictedAdminRole(array $records)
     {
-        $tabs = array_get($records[0], "access_by_tabs");
+        $tabs = array_get($records[0], "access_by_tabs", []);
         $role = self::createRestrictedAdminRole(array_get($records[0], "email"));
         $roleId = $role["id"];
-        self::createRoleServiceAccess($tabs, $roleId);
+        self::createRoleServiceAccess($roleId, $tabs);
         return self::linkRoleToRestrictedAdmin($records, $roleId);
     }
 
@@ -59,11 +59,11 @@ class RestrictedAdminRoleCreator
     {
         $userToAppToRoleByUserId = array(["app_id" => App::whereName("admin")->first()["id"], "role_id" => $roleId]);
 
-        if (in_array("apidocs", $records[0]["access_by_tabs"])) {
+        if (isset($records[0]["access_by_tabs"]) && in_array("apidocs", $records[0]["access_by_tabs"])) {
             array_push($userToAppToRoleByUserId, ["app_id" => App::whereName("api_docs")->first()["id"], "role_id" => $roleId]);
         }
 
-        if (in_array("files", $records[0]["access_by_tabs"])) {
+        if (isset($records[0]["access_by_tabs"]) && in_array("files", $records[0]["access_by_tabs"])) {
             array_push($userToAppToRoleByUserId, ["app_id" => App::whereName("file_manager")->first()["id"], "role_id" => $roleId]);
         }
         $records[0]["user_to_app_to_role_by_user_id"] = $userToAppToRoleByUserId;
@@ -77,7 +77,7 @@ class RestrictedAdminRoleCreator
      * @param int $roleId
      * @throws \Exception
      */
-    private static function createRoleServiceAccess(array $tabs, int $roleId)
+    private static function createRoleServiceAccess(int $roleId, array $tabs = [])
     {
         self::createTabServicesAccess(self::getTabsAccessesMap()["default"], $roleId);
 

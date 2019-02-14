@@ -16,7 +16,8 @@ class AdminUser extends User
 
         $params['admin'] = true;
 
-        if (isset($records[0]["access_by_tabs"])) {
+        $isRestrictedAdmin = isset($records[0]["is_restricted_admin"]) && $records[0]["is_restricted_admin"];
+        if ($isRestrictedAdmin) {
            $records = RestrictedAdminRoleCreator::createAndLinkRestrictedAdminRole($records);
         };
 

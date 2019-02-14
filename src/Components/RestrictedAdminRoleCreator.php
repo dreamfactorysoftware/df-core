@@ -14,6 +14,21 @@ use DreamFactory\Core\Models\Service;
  */
 class RestrictedAdminRoleCreator
 {
+
+    /**
+     * Accessible tabs.
+     *
+     * @type array
+     */
+    protected $tabs = [];
+
+    /**
+     * Role id to create service access.
+     *
+     * @type int
+     */
+    protected $roleId = 0;
+
     /**
      * Default system service name
      *
@@ -21,68 +36,64 @@ class RestrictedAdminRoleCreator
      */
     const SYSTEM_SERVICE_NAME = "system";
 
+
     /**
-     * @param array $records
-     * @return array
-     * @throws \Exception
+     * @param array $tabs
+     *
      */
-    public static function createAndLinkRestrictedAdminRole(array $records)
+    public function __construct(array $tabs = [])
     {
-        $tabs = array_get($records[0], "access_by_tabs", []);
-        $role = self::createRestrictedAdminRole(array_get($records[0], "email"));
-        $roleId = $role["id"];
-        self::createRoleServiceAccess($roleId, $tabs);
-        return self::linkRoleToRestrictedAdmin($records, $roleId);
+        $this->tabs = $tabs;
     }
 
     /**
-     * Creates role for Admin if access by tabs was specified.
+     * Creates role and its service accesses.
      *
      * @param string $email
-     * @return \DreamFactory\Core\Models\BaseModel
      * @throws \Exception
      */
-    private static function createRestrictedAdminRole(string $email)
+    public function createRestrictedAdminRole(string $email)
     {
-        return Role::create(["name" => $email . "'s role", "description" => $email . "'s admin role", "is_active" => 1]);
+
+        $role = Role::create(["name" => $email . "'s role", "description" => $email . "'s admin role", "is_active" => 1]);
+        $this->roleId = $role["id"];
+        $this->createRoleServiceAccess();
     }
 
     /**
-     * Links new role with Admin and App.
+     * Returns user_to_app_to_role_by_user_id array to links Admin with new role.
      *
-     * @param       $records
-     * @param       $roleId
-     *
-     * @return array $role
+     * @return array
      */
-    private static function linkRoleToRestrictedAdmin($records, $roleId)
+    public function getUserAppRoleByUserId()
     {
-        $userToAppToRoleByUserId = array(["app_id" => App::whereName("admin")->first()["id"], "role_id" => $roleId]);
+        $userToAppToRoleByUserId = array(["app_id" => App::whereName("admin")->first()["id"], "role_id" => $this->roleId]);
 
-        if (isset($records[0]["access_by_tabs"]) && in_array("apidocs", $records[0]["access_by_tabs"])) {
-            array_push($userToAppToRoleByUserId, ["app_id" => App::whereName("api_docs")->first()["id"], "role_id" => $roleId]);
+        // Links role to api docs and file manager apps if the tabs are specified
+        $isApiDocsTabSpecified = isset($this->tabs) && in_array("apidocs", $this->tabs);
+        if ($isApiDocsTabSpecified) {
+            array_push($userToAppToRoleByUserId, ["app_id" => App::whereName("api_docs")->first()["id"], "role_id" => $this->roleId]);
         }
 
-        if (isset($records[0]["access_by_tabs"]) && in_array("files", $records[0]["access_by_tabs"])) {
-            array_push($userToAppToRoleByUserId, ["app_id" => App::whereName("file_manager")->first()["id"], "role_id" => $roleId]);
+        $isFilesTabSpecified = isset($this->tabs) && in_array("files", $this->tabs);
+        if ($isFilesTabSpecified) {
+            array_push($userToAppToRoleByUserId, ["app_id" => App::whereName("file_manager")->first()["id"], "role_id" => $this->roleId]);
         }
-        $records[0]["user_to_app_to_role_by_user_id"] = $userToAppToRoleByUserId;
 
-        return $records;
+        return $userToAppToRoleByUserId;
     }
 
     /**
      * Creates role service access for given tabs
-     * @param array $tabs
-     * @param int $roleId
      * @throws \Exception
      */
-    private static function createRoleServiceAccess(int $roleId, array $tabs = [])
+    private function createRoleServiceAccess()
     {
-        self::createTabServicesAccess(self::getTabsAccessesMap()["default"], $roleId);
+        $map = $this->getTabsAccessesMap();
+        $this->createTabServicesAccess($map["default"]);
 
-        foreach ($tabs as $tab) {
-            self::createTabServicesAccess(self::getTabsAccessesMap()[$tab], $roleId);
+        foreach ($this->tabs as $tab) {
+            $this->createTabServicesAccess($map[$tab]);
         }
     }
 
@@ -91,7 +102,7 @@ class RestrictedAdminRoleCreator
      *
      * @return array
      */
-    public static function getTabsAccessesMap()
+    private static function getTabsAccessesMap()
     {
         return array(
             "apps" => array(
@@ -157,30 +168,6 @@ class RestrictedAdminRoleCreator
     }
 
     /**
-     * Get all tabs links
-     *
-     * @return array
-     */
-    public static function getAllTabsLinks()
-    {
-        return array(
-            "home" => array("name" => "home", "label" => "Home", "path" => "/home"),
-            "apps" => array("name" => "apps", "label" => "Apps", "path" => "/apps"),
-            "admins" => array("name" => "admins", "label" => "Admins", "path" => "/admins"),
-            "users" => array("name" => "users", "label" => "Users", "path" => "/users"),
-            "services" => array("name" => "services", "label" => "Services", "path" => "/services"),
-            "apidocs" => array("name" => "apidocs", "label" => "API Docs", "path" => "/apidocs"),
-            "schema" => array("name" => "schema", "label" => "Schema", "path" => "/schema"),
-            "data" => array("name" => "data", "label" => "Data", "path" => "/data"),
-            "files" => array("name" => "file-manager", "label" => "Files", "path" => "/file-manager"),
-            "scripts" => array("name" => "scripts", "label" => "Scripts", "path" => "/scripts"),
-            "config" => array("name" => "config", "label" => "Config", "path" => "/config"),
-            "packages" => array("name" => "package-manager", "label" => "Packages", "path" => "/package-manager"),
-            "limits" => array("name" => "limit", "label" => "Limits", "path" => "/limits")
-        );
-    }
-
-    /**
      * look for service id by service name
      *
      * @param string $name
@@ -204,15 +191,14 @@ class RestrictedAdminRoleCreator
      * create service accesses
      *
      * @param array $params
-     * @param int $roleId
      * @throws \Exception
      */
-    private static function createTabServicesAccess(array $params, int $roleId)
+    private function createTabServicesAccess(array $params)
     {
         foreach ($params as $access) {
             RoleServiceAccess::createUnique([
-                "role_id" => $roleId,
-                "service_id" => self::getServiceIdByName(self::getServiceName($access)),
+                "role_id" => $this->roleId,
+                "service_id" => self::getServiceIdByName($this->getServiceName($access)),
                 "component" => $access["component"],
                 "verb_mask" => $access["verbMask"],
                 "requestor_mask" => ServiceRequestorTypes::getAllRequestorTypes(),
@@ -222,7 +208,7 @@ class RestrictedAdminRoleCreator
     }
 
     /**
-     * Does role provide access to tab
+     * Does role provide access to the tab
      *
      * @param array $roleServiceAccesses
      * @param array $tabAccess
@@ -258,43 +244,38 @@ class RestrictedAdminRoleCreator
     }
 
     /**
-     * hide tab
+     * hide a tab by name
      *
      * @param array $tabs
      * @param string $tabName
-     * @return bool
+     * @return array
      */
     private static function removeTab(array $tabs, string $tabName)
     {
-        $tabNames = [$tabName];
-        if ($tabName === "schema/data") {
-            $tabNames = explode("/", $tabName);
-        }
-        return array_except($tabs, $tabNames);
+        return array_except($tabs, $tabName);
     }
 
     /**
      *
-     * @param array $role
+     * @param int $roleId
      * @return string
      */
-    public static function getAccessibleTabs(array $role)
+    public static function getAccessibleTabsByRoleId(int $roleId)
     {
         $tabsAccessesMap = self::getTabsAccessesMap();
-        $links = self::getAllTabsLinks();
+        $roleServiceAccess = RoleServiceAccess::whereRoleId($roleId)->get()->toArray();
 
-        if (isset($role["role_service_access_by_role_id"])) {
-            $roleServiceAccess = $role["role_service_access_by_role_id"];
-        } else {
-            $roleServiceAccess = RoleServiceAccess::whereRoleId($role["id"])->get()->toArray();
-        }
+        //remove default as such tab doesn't exist
+        $tabsAccessesMap = self::removeTab($tabsAccessesMap, "default");
+
         foreach ($tabsAccessesMap as $tabName => $tabAccesses) {
             if (!self::hasAccessToTab($roleServiceAccess, $tabAccesses) && $tabName !== "config") {
-                $links = self::removeTab($links, $tabName);
+                $tabsAccessesMap = self::removeTab($tabsAccessesMap, $tabName);
             }
-
         }
-        $links = array_values($links);
-        return $links;
+
+        $tabs = array_keys($tabsAccessesMap);
+
+        return $tabs;
     }
 }

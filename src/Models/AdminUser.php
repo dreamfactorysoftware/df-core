@@ -18,7 +18,12 @@ class AdminUser extends User
 
         $isRestrictedAdmin = isset($records[0]["is_restricted_admin"]) && $records[0]["is_restricted_admin"];
         if ($isRestrictedAdmin) {
-           $records = RestrictedAdminRoleCreator::createAndLinkRestrictedAdminRole($records);
+            $accessByTabs = isset($records[0]["access_by_tabs"]) ? $records[0]["access_by_tabs"] : [];
+            $creator = new RestrictedAdminRoleCreator($accessByTabs);
+            $creator->createRestrictedAdminRole($records[0]["email"]);
+
+            // Links new role with admin via adding user_to_app_to_role_by_user_id array to request body
+            $records[0]["user_to_app_to_role_by_user_id"] = $creator->getUserAppRoleByUserId();
         };
 
         return parent::bulkCreate($records, $params);

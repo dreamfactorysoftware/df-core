@@ -72,7 +72,7 @@ class Role extends BaseSystemModel
         $model = parent::selectById($id, $options, $fields);
 
         if ($model && self::isAccessibleTabsSpecified($options)) {
-            $model["accessible_tabs"] = RestrictedAdminRoleCreator::getAccessibleTabs($model);//["apidocs" => ["name" => "apidocs", "label" => "API Docs", "path" => "/apidocs"], "apps"=>["name" => "apps", "label" => "Apps", "path" => "/apps"]];
+            $model["accessible_tabs"] = RestrictedAdminRoleCreator::getAccessibleTabsByRoleId($model["id"]);
         }
         return $model;
     }
@@ -178,10 +178,5 @@ class Role extends BaseSystemModel
     private static function isAccessibleTabsSpecified($options)
     {
         return isset($options["accessible_tabs"]) && $options["accessible_tabs"];
-    }
-
-    private static function isIncludeRoleServiceAccess($model)
-    {
-        return $model && isset($model["role_service_access_by_role_id"]);
     }
 }

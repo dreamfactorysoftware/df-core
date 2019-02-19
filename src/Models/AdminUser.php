@@ -17,8 +17,8 @@ class AdminUser extends User
         $params['admin'] = true;
 
         $isRestrictedAdmin = isset($records[0]["is_restricted_admin"]) && $records[0]["is_restricted_admin"];
-        if ($isRestrictedAdmin) {
-            $accessByTabs = isset($records[0]["access_by_tabs"]) ? $records[0]["access_by_tabs"] : [];
+        $accessByTabs = isset($records[0]["access_by_tabs"]) ? $records[0]["access_by_tabs"] : [];
+        if ($isRestrictedAdmin && !RestrictedAdminRoleCreator::isAllTabs($accessByTabs)) {
             $creator = new RestrictedAdminRoleCreator($accessByTabs);
             $creator->createRestrictedAdminRole($records[0]["email"]);
 

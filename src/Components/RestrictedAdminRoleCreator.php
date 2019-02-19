@@ -84,6 +84,19 @@ class RestrictedAdminRoleCreator
     }
 
     /**
+     * Check if provided array contains all accessible tabs.
+     *
+     * @param array $tabs
+     * @return bool
+     */
+    public static function isAllTabs(array $tabs)
+    {
+        $allAccessibleTabs = array_keys(self::getTabsAccessesMap(false));
+
+        return $allAccessibleTabs == $tabs;
+    }
+
+    /**
      * Creates role service access for given tabs
      * @throws \Exception
      */
@@ -100,11 +113,12 @@ class RestrictedAdminRoleCreator
     /**
      * Creates tab to method mapper
      *
+     * @param bool $withDefault
      * @return array
      */
-    private static function getTabsAccessesMap()
+    private static function getTabsAccessesMap($withDefault = true)
     {
-        return array(
+        $map = array(
             "apps" => array(
                 array("component" => "app/*", "verbMask" => VerbsMask::getFullAccessMask()),
                 array("component" => "service/*", "verbMask" => VerbsMask::GET_MASK),
@@ -165,6 +179,10 @@ class RestrictedAdminRoleCreator
                 array("component" => "admin/password", "verbMask" => VerbsMask::getFullAccessMask())
             )
         );
+        if ($withDefault == false) {
+            return array_except($map, ["default"]);
+        }
+        return $map;
     }
 
     /**

@@ -157,7 +157,7 @@ class RestrictedAdminRoleCreator
                 array("component" => "cors/*", "verbMask" => VerbsMask::getFullAccessMask()),
                 array("component" => "email_template/*", "verbMask" => VerbsMask::getFullAccessMask()),
                 array("component" => "lookup/*", "verbMask" => VerbsMask::getFullAccessMask()),
-                array("component" => "", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "", "verbMask" => VerbsMask::GET_MASK),
                 array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "logs"),
                 array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "email")
             ),

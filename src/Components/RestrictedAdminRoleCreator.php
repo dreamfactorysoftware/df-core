@@ -144,7 +144,8 @@ class RestrictedAdminRoleCreator
                 array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "db")
             ),
             "files" => array(
-                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "files")
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "files"),
+                array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "logs"),
             ),
             "scripts" => array(
                 array("component" => "event/*", "verbMask" => VerbsMask::getFullAccessMask()),
@@ -162,7 +163,11 @@ class RestrictedAdminRoleCreator
                 array("component" => "*", "verbMask" => VerbsMask::getFullAccessMask(), "serviceName" => "email")
             ),
             "packages" => array(
-                array("component" => "package/*", "verbMask" => VerbsMask::getFullAccessMask())
+                array("component" => "package/*", "verbMask" => VerbsMask::getFullAccessMask()),
+                array("component" => "app/*", "verbMask" => VerbsMask::GET_MASK),
+                array("component" => "*", "verbMask" => VerbsMask::GET_MASK|VerbsMask::POST_MASK, "serviceName" => "logs"),
+                array("component" => "*", "verbMask" => VerbsMask::GET_MASK|VerbsMask::POST_MASK, "serviceName" => "files"),
+
             ),
             "limits" => array(
                 array("component" => "limit/*", "verbMask" => VerbsMask::getFullAccessMask()),

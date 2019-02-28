@@ -19,11 +19,11 @@ class AdminUser extends User
         $isRestrictedAdmin = isset($records[0]["is_restricted_admin"]) && $records[0]["is_restricted_admin"];
         $accessByTabs = isset($records[0]["access_by_tabs"]) ? $records[0]["access_by_tabs"] : [];
         if ($isRestrictedAdmin && !RestrictedAdminRoleCreator::isAllTabs($accessByTabs)) {
-            $creator = new RestrictedAdminRoleCreator($accessByTabs);
-            $creator->createRestrictedAdminRole($records[0]["email"]);
+            $creator = new RestrictedAdminRoleCreator($records[0]["email"], $accessByTabs);
+            $creator->createRestrictedAdminRole();
 
             // Links new role with admin via adding user_to_app_to_role_by_user_id array to request body
-            $records[0]["user_to_app_to_role_by_user_id"] = $creator->getUserAppRoleByUserId();
+            $records[0]["user_to_app_to_role_by_user_id"] = $creator->getUserAppRoleByUserId($isRestrictedAdmin);
         };
 
         return parent::bulkCreate($records, $params);
@@ -60,8 +60,23 @@ class AdminUser extends User
     {
         $records = static::fixRecords($records);
 
+//        dd($records);
         $params['admin'] = true;
+        $isRestrictedAdmin = isset($records[0]["is_restricted_admin"]) && $records[0]["is_restricted_admin"];
+        $accessByTabs = isset($records[0]["access_by_tabs"]) ? $records[0]["access_by_tabs"] : [];
+//        if ($isRestrictedAdmin && !RestrictedAdminRoleCreator::isAllTabs($accessByTabs)) {
+        $creator = new RestrictedAdminRoleCreator($records[0]["email"], $accessByTabs);
+        if ($isRestrictedAdmin && !RestrictedAdminRoleCreator::isAllTabs($accessByTabs)) {
+            $creator->updateRestrictedAdminRole();
 
+            // Links new role with admin via adding user_to_app_to_role_by_user_id array to request body
+            $records[0]["user_to_app_to_role_by_user_id"] = $creator->getUserAppRoleByUserId($isRestrictedAdmin, $records[0]["id"]);
+        } elseif (!$isRestrictedAdmin) {
+//            $records[0]["user_to_app_to_role_by_user_id"] = $creator->getUserAppRoleByUserId($isRestrictedAdmin, $records[0]["id"]);
+            $creator->deleteRole($records[0]["id"]);
+//            \Cache::forget('role:' . $creator->getRoleByUserId($records[0]["id"]));
+
+        };
         return parent::bulkUpdate($records, $params);
     }
 

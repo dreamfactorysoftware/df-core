@@ -70,7 +70,6 @@ class Role extends BaseSystemModel
     public static function selectById($id, array $options = [], array $fields = ['*'])
     {
         $model = parent::selectById($id, $options, $fields);
-
         if ($model && self::isAccessibleTabsSpecified($options)) {
             $model["accessible_tabs"] = RestrictedAdminRoleCreator::getAccessibleTabsByRoleId($model["id"]);
         }
@@ -120,7 +119,9 @@ class Role extends BaseSystemModel
      */
     public static function getCachedInfo($id, $key = null, $default = null)
     {
+//        dd($id);
         $cacheKey = 'role:' . $id;
+//        dd($cacheKey);
         try {
             $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id) {
                 $role = Role::with(
@@ -131,6 +132,7 @@ class Role extends BaseSystemModel
                 )->whereId($id)->first();
 
                 if (empty($role)) {
+//                    return [];
                     throw new NotFoundException("Role not found.");
                 }
 

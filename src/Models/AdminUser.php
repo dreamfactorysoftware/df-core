@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Models;
 
-use DreamFactory\Core\Components\RestrictedAdminRoleCreator;
+use DreamFactory\Core\Components\RestrictedAdminController;
 use DreamFactory\Core\Enums\ApiOptions;
 use Illuminate\Support\Arr;
 
@@ -18,12 +18,12 @@ class AdminUser extends User
 
         $isRestrictedAdmin = isset($records[0]["is_restricted_admin"]) && $records[0]["is_restricted_admin"];
         $accessByTabs = isset($records[0]["access_by_tabs"]) ? $records[0]["access_by_tabs"] : [];
-        if ($isRestrictedAdmin && !RestrictedAdminRoleCreator::isAllTabs($accessByTabs)) {
-            $creator = new RestrictedAdminRoleCreator($accessByTabs);
-            $creator->createRestrictedAdminRole($records[0]["email"]);
+        if ($isRestrictedAdmin && !RestrictedAdminController::isAllTabs($accessByTabs)) {
+            $restrictedAdminController = new RestrictedAdminController($records[0]["email"], $accessByTabs);
+            $restrictedAdminController->createRestrictedAdminRole();
 
             // Links new role with admin via adding user_to_app_to_role_by_user_id array to request body
-            $records[0]["user_to_app_to_role_by_user_id"] = $creator->getUserAppRoleByUserId();
+            $records[0]["user_to_app_to_role_by_user_id"] = $restrictedAdminController->getUserAppRoleByUserId($isRestrictedAdmin);
         };
 
         return parent::bulkCreate($records, $params);
@@ -61,7 +61,17 @@ class AdminUser extends User
         $records = static::fixRecords($records);
 
         $params['admin'] = true;
+        $isRestrictedAdmin = isset($records[0]["is_restricted_admin"]) && $records[0]["is_restricted_admin"];
+        $accessByTabs = isset($records[0]["access_by_tabs"]) ? $records[0]["access_by_tabs"] : [];
+        $restrictedAdminController = new RestrictedAdminController($records[0]["email"], $accessByTabs);
+        if ($isRestrictedAdmin && !RestrictedAdminController::isAllTabs($accessByTabs)) {
+            $restrictedAdminController->updateRestrictedAdminRole();
 
+            // Links updated role with apps (admin, api_docs, file_manager) via adding user_to_app_to_role_by_user_id array to the request body
+            $records[0]["user_to_app_to_role_by_user_id"] = $restrictedAdminController->getUserAppRoleByUserId($isRestrictedAdmin, $records[0]["id"]);
+        } elseif (!$isRestrictedAdmin) {
+            $restrictedAdminController->deleteRole($records[0]["id"]);
+        };
         return parent::bulkUpdate($records, $params);
     }
 

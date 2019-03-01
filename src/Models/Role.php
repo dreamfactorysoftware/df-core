@@ -1,7 +1,7 @@
 <?php
 namespace DreamFactory\Core\Models;
 
-use DreamFactory\Core\Components\RestrictedAdminRoleCreator;
+use DreamFactory\Core\Components\RestrictedAdminController;
 use DreamFactory\Core\Events\RoleDeletedEvent;
 use DreamFactory\Core\Events\RoleModifiedEvent;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -72,7 +72,7 @@ class Role extends BaseSystemModel
         $model = parent::selectById($id, $options, $fields);
 
         if ($model && self::isAccessibleTabsSpecified($options)) {
-            $model["accessible_tabs"] = RestrictedAdminRoleCreator::getAccessibleTabsByRoleId($model["id"]);
+            $model["accessible_tabs"] = RestrictedAdminController::getAccessibleTabsByRoleId($model["id"]);
         }
         return $model;
     }

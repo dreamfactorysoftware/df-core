@@ -98,6 +98,7 @@ class RestrictedAdminController
         $role = $this->getRole();
         if ($role && $role["id"] > 0) {
             Role::deleteById($role["id"]);
+            \Cache::forget('role:' . $role["id"]);
             \Cache::flush();
         }
     }
@@ -120,6 +121,9 @@ class RestrictedAdminController
         $userToAppToRoleByUserId[] = $this->handleUserAppRoleRelation($isRestrictedAdmin, $userId, "admin");
         $userToAppToRoleByUserId[] = $this->handleUserAppRoleRelation($isApiDocsTabSpecified, $userId, "api_docs");
         $userToAppToRoleByUserId[] = $this->handleUserAppRoleRelation($isFilesTabSpecified, $userId, "file_manager");
+        $userToAppToRoleByUserId = array_filter($userToAppToRoleByUserId, function ($userAppRole){
+            return $userAppRole !== null;
+        });
         return $userToAppToRoleByUserId;
     }
 
@@ -440,7 +444,7 @@ class RestrictedAdminController
             if (count($existingAccessesToDelete) > 0) $accessesToDelete = array_merge($accessesToDelete, $existingAccessesToDelete);
         }
 
-        $this->filterDeleteAccesses($accessesToDelete, $accessibleTabs);
+        $accessesToDelete = $this->filterDeleteAccesses($accessesToDelete, $accessibleTabs);
         return $accessesToDelete;
     }
 
@@ -631,7 +635,5 @@ class RestrictedAdminController
         } elseif (!$isSpecified && $this->doUserAppRoleExist($userId, $this->getUserAppRoleLink($appName))) {
             return $this->deleteUserAppRoleLink($userId, $this->getUserAppRoleLink($appName));
         }
-
-        return null;
     }
 }

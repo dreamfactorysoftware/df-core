@@ -4,11 +4,14 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
+use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\RoleServiceAccess;
 use DreamFactory\Core\Models\Service;
+use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
+use DreamFactory\Core\Utility\Session;
 
 /**
  * Services access by tabs for admin role
@@ -77,6 +80,7 @@ class RestrictedAdminController
     public function updateRestrictedAdminRole()
     {
         $role = $this->getRole();
+        $this->validateCurrentUser();
         if (isset($role["id"])) {
             $this->roleId = $role["id"];
             $roleData = Role::selectById($role["id"], ["related" => "role_service_access_by_role_id"]);
@@ -121,7 +125,7 @@ class RestrictedAdminController
         $userToAppToRoleByUserId[] = $this->handleUserAppRoleRelation($isRestrictedAdmin, $userId, "admin");
         $userToAppToRoleByUserId[] = $this->handleUserAppRoleRelation($isApiDocsTabSpecified, $userId, "api_docs");
         $userToAppToRoleByUserId[] = $this->handleUserAppRoleRelation($isFilesTabSpecified, $userId, "file_manager");
-        $userToAppToRoleByUserId = array_filter($userToAppToRoleByUserId, function ($userAppRole){
+        $userToAppToRoleByUserId = array_filter($userToAppToRoleByUserId, function ($userAppRole) {
             return $userAppRole !== null;
         });
         return $userToAppToRoleByUserId;
@@ -179,6 +183,16 @@ class RestrictedAdminController
         } else {
             return null;
         }
+    }
+
+    /**
+     * Get userId.
+     *
+     * @return bool
+     */
+    public function getAdmin()
+    {
+        return User::whereEmail($this->email)->get()->toArray()[0];
     }
 
     /**
@@ -618,6 +632,24 @@ class RestrictedAdminController
             $userAppRole["user_id"] = null;
         }
         return $userAppRole;
+    }
+
+    /**
+     * Validate current user access
+     *
+     * @return mixed
+     * @throws ForbiddenException
+     */
+    private function validateCurrentUser()
+    {
+        $currentUserId = Session::getCurrentUserId();
+        if ($this->getAdmin()["id"] === $currentUserId) {
+            throw new ForbiddenException('Cannot edit your own Role.');
+        };
+
+        if (UserAppRole::whereUserId($currentUserId)->exists()) {
+            throw new ForbiddenException('RestrictedAdmins are not allowed to edit access by tabs.');
+        };
     }
 
     /**

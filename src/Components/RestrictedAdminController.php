@@ -643,11 +643,12 @@ class RestrictedAdminController
     private function validateCurrentUser()
     {
         $currentUserId = Session::getCurrentUserId();
-        if ($this->getAdmin()["id"] === $currentUserId) {
+        $isCurrentUser = $this->getAdmin()["id"] === $currentUserId;
+        if ($isCurrentUser) {
             throw new ForbiddenException('Cannot edit your own Role.');
         };
-
-        if (UserAppRole::whereUserId($currentUserId)->exists()) {
+        $isRestrictedAdmin = UserAppRole::whereUserId($currentUserId)->exists();
+        if ($isRestrictedAdmin) {
             throw new ForbiddenException('RestrictedAdmins are not allowed to edit access by tabs.');
         };
     }

@@ -16,7 +16,7 @@ use ServiceManager;
 /**
  * Services access by tabs for admin role
  */
-class RestrictedAdminController
+class RestrictedAdmin
 {
 
     /**

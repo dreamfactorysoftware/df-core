@@ -70,7 +70,7 @@ class Session
      */
     public static function getServicePermissions($service, $component = null, $requestor = ServiceRequestorTypes::API)
     {
-        if (static::isSysAdmin() && !Session::getRoleId()) {
+        if (static::isSysAdmin() && !static::isRestrictedAdmin()) {
             return
                 VerbsMask::GET_MASK |
                 VerbsMask::POST_MASK |
@@ -179,7 +179,7 @@ class Session
         $component = null,
         $requestor = ServiceRequestorTypes::API
     ) {
-        if (static::isSysAdmin() && !Session::getRoleId()) {
+        if (static::isSysAdmin() && !static::isRestrictedAdmin()) {
             return true;
         }
 
@@ -279,7 +279,7 @@ class Session
      */
     public static function allowsServiceAccess($service, $requestor = ServiceRequestorTypes::API)
     {
-        if (static::isSysAdmin() && !UserAppRole::whereUserId(Session::getCurrentUserId())->first()) {
+        if (static::isSysAdmin() && !static::isRestrictedAdmin()) {
             return true;
         }
 
@@ -363,7 +363,7 @@ class Session
         $component = null,
         $requestor = ServiceRequestorTypes::API
     ) {
-        if (static::isSysAdmin() && !Session::getRoleId()) {
+        if (static::isSysAdmin() && !static::isRestrictedAdmin()) {
             return null;
         }
 
@@ -1086,5 +1086,13 @@ class Session
     public static function forget($key)
     {
         \Session::forget($key);
+    }
+
+    /**
+     * @return mixed
+     */
+    private static function isRestrictedAdmin()
+    {
+        return UserAppRole::whereUserId(Session::getCurrentUserId())->first();
     }
 }

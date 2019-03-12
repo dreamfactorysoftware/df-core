@@ -5,13 +5,13 @@ namespace DreamFactory\Core\Components;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
 use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\ForbiddenException;
+use DreamFactory\Core\Models\AdminUser;
 use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\RoleServiceAccess;
-use DreamFactory\Core\Models\Service;
-use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
 use DreamFactory\Core\Utility\Session;
+use ServiceManager;
 
 /**
  * Services access by tabs for admin role
@@ -186,16 +186,6 @@ class RestrictedAdminController
     }
 
     /**
-     * Get userId.
-     *
-     * @return bool
-     */
-    public function getAdmin()
-    {
-        return User::whereEmail($this->email)->get()->toArray()[0];
-    }
-
-    /**
      * Creates tab to role service accesses mapper
      *
      * @param bool $withDefault
@@ -282,7 +272,7 @@ class RestrictedAdminController
      */
     private static function getServiceIdByName(string $name)
     {
-        return Service::whereName($name)->get(["id"])->first()["id"];
+        return ServiceManager::getServiceIdByName($name);
     }
 
     /**
@@ -327,7 +317,8 @@ class RestrictedAdminController
         return boolval(array_first($roleServiceAccesses, function ($roleAccess) use ($serviceComponentAccess) {
             return $roleAccess["component"] === $serviceComponentAccess["component"] &&
                 $roleAccess["verb_mask"] === $serviceComponentAccess["verbMask"] &&
-                $roleAccess["service_id"] === self::getServiceIdByName(self::getServiceName($serviceComponentAccess));
+                $roleAccess["service_id"] === ServiceManager::getServiceIdByName(self::getServiceName($serviceComponentAccess));
+
         }));
     }
 
@@ -643,7 +634,7 @@ class RestrictedAdminController
     private function validateCurrentUser()
     {
         $currentUserId = Session::getCurrentUserId();
-        $isCurrentUser = $this->getAdmin()["id"] === $currentUserId;
+        $isCurrentUser = AdminUser::getAdminByEmail($this->email)["id"] === $currentUserId;
         if ($isCurrentUser) {
             throw new ForbiddenException('Cannot edit your own Role.');
         };

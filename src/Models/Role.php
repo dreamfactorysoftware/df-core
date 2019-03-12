@@ -69,12 +69,12 @@ class Role extends BaseSystemModel
      */
     public static function selectById($id, array $options = [], array $fields = ['*'])
     {
-        $model = parent::selectById($id, $options, $fields);
+        $role = parent::selectById($id, $options, $fields);
 
-        if ($model && self::isAccessibleTabsSpecified($options)) {
-            $model["accessible_tabs"] = RestrictedAdminController::getAccessibleTabsByRoleId($model["id"]);
+        if ($role && self::isAccessibleTabsSpecified($options)) {
+            $role["accessible_tabs"] = RestrictedAdminController::getAccessibleTabsByRoleId($role["id"]);
         }
-        return $model;
+        return $role;
     }
 
     /**

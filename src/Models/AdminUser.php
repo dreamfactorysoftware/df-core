@@ -76,6 +76,17 @@ class AdminUser extends User
     }
 
     /**
+     * Get Admin by email.
+     *
+     * @param $email
+     * @return bool
+     */
+    public static function getAdminByEmail($email)
+    {
+        return self::whereEmail($email)->get()->toArray()[0];
+    }
+
+    /**
      * {@inheritdoc}
      */
     public static function deleteById($id, array $params = [])

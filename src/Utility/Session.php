@@ -744,6 +744,7 @@ class Session
         if ($user instanceof User) {
             $userInfo = $user->toArray();
             $userInfo['is_sys_admin'] = $user->is_sys_admin;
+            $userInfo['is_root_admin'] = $user->is_root_admin;
         }
 
         if (!empty($userInfo)) {
@@ -782,6 +783,7 @@ class Session
             \Session::put('user.last_name', array_get($user, 'last_name'));
             \Session::put('user.email', array_get($user, 'email'));
             \Session::put('user.is_sys_admin', array_get($user, 'is_sys_admin'));
+            \Session::put('user.is_root_admin', array_get($user, 'is_root_admin'));
             \Session::put('user.last_login_date', array_get($user, 'last_login_date'));
             \Session::put('user.ldap_username', array_get($user, 'ldap_username'));
 
@@ -910,6 +912,7 @@ class Session
             'last_name'       => session('user.last_name'),
             'email'           => session('user.email'),
             'is_sys_admin'    => session('user.is_sys_admin'),
+            'is_root_admin'   => session('user.is_root_admin'),
             'last_login_date' => session('user.last_login_date'),
             'host'            => gethostname()
         ];

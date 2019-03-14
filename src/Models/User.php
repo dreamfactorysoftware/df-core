@@ -38,6 +38,7 @@ use Validator;
  * @property int     $default_app_id
  * @property boolean $is_active
  * @property boolean $is_sys_admin
+ * @property boolean $is_root_admin
  * @property string  $last_login_date
  * @property string  $created_date
  * @property string  $last_modified_date
@@ -108,14 +109,14 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      *
      * @var array
      */
-    protected $hidden = ['is_sys_admin', 'password', 'remember_token', 'security_answer'];
+    protected $hidden = ['is_sys_admin', 'is_root_admin', 'password', 'remember_token', 'security_answer'];
 
     /**
      * Field type casting
      *
      * @var array
      */
-    protected $casts = ['is_active' => 'boolean', 'is_sys_admin' => 'boolean', 'id' => 'integer'];
+    protected $casts = ['is_active' => 'boolean', 'is_sys_admin' => 'boolean', 'is_root_admin' => 'boolean', 'id' => 'integer'];
 
     /**
      * Gets account confirmation status.
@@ -627,6 +628,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
             $user->password = array_get($data, 'password');
             $user->is_sys_admin = 1;
+            $user->is_root_admin = 1;
             $user->save();
 
             // Register user

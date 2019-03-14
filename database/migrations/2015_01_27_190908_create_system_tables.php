@@ -35,6 +35,7 @@ class CreateSystemTables extends Migration
                 $t->text('password')->nullable();
                 $t->boolean('is_sys_admin')->default(0);
                 $t->boolean('is_active')->default(1);
+                $t->boolean('is_root_admin')->default(0);
                 $t->string('phone', 32)->nullable();
                 $t->string('security_question')->nullable();
                 $t->text('security_answer')->nullable();

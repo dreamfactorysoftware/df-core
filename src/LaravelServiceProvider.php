@@ -186,11 +186,4 @@ class LaravelServiceProvider extends ServiceProvider
         // use CORS
         $this->app->register(CorsServiceProvider::class);
     }
-
-    protected function prependMiddlewareToGroup(array $middlewareArr)
-    {
-        foreach ($middlewareArr as $middleware) {
-            Route::prependMiddlewareToGroup('df.api', $middleware);
-        }
-    }
 }

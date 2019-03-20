@@ -33,16 +33,6 @@ class ServiceRequestorTypes extends FactoryEnum
     //*************************************************************************
 
     /**
-     * @return int
-     */
-    public static function getAllRequestorTypes()
-    {
-        return
-            self::API |
-            self::SCRIPT;
-    }
-
-    /**
      * @param string $requestorType
      *
      * @return string

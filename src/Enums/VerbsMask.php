@@ -84,19 +84,6 @@ class VerbsMask extends Verbs
     //*************************************************************************
 
     /**
-     * @return int
-     */
-    public static function getFullAccessMask()
-    {
-        return
-            self::GET_MASK |
-            self::POST_MASK |
-            self::PUT_MASK |
-            self::PATCH_MASK |
-            self::DELETE_MASK;
-    }
-
-    /**
      * @param string $requestorType
      *
      * @throws NotImplementedException

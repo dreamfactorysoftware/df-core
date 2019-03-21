@@ -70,7 +70,7 @@ class Session
      */
     public static function getServicePermissions($service, $component = null, $requestor = ServiceRequestorTypes::API)
     {
-        if (static::isSysAdmin() && !static::isRestrictedAdmin()) {
+        if (static::isSysAdmin()) {
             return
                 VerbsMask::GET_MASK |
                 VerbsMask::POST_MASK |
@@ -179,7 +179,7 @@ class Session
         $component = null,
         $requestor = ServiceRequestorTypes::API
     ) {
-        if (static::isSysAdmin() && !static::isRestrictedAdmin()) {
+        if (static::isSysAdmin()) {
             return true;
         }
 
@@ -279,7 +279,7 @@ class Session
      */
     public static function allowsServiceAccess($service, $requestor = ServiceRequestorTypes::API)
     {
-        if (static::isSysAdmin() && !static::isRestrictedAdmin()) {
+        if (static::isSysAdmin()) {
             return true;
         }
 
@@ -363,7 +363,7 @@ class Session
         $component = null,
         $requestor = ServiceRequestorTypes::API
     ) {
-        if (static::isSysAdmin() && !static::isRestrictedAdmin()) {
+        if (static::isSysAdmin()) {
             return null;
         }
 
@@ -751,14 +751,11 @@ class Session
             $email = array_get($userInfo, 'email');
             $token = JWTUtilities::makeJWTByUser($id, $email, $forever);
             static::setSessionToken($token);
+            static::setSessionData($appId, $id);
 
             if (!empty($appId) && !$user->is_sys_admin) {
-                static::setSessionData($appId, $id);
-
                 return true;
             } else {
-                static::setSessionData($appId, $id);
-
                 return static::setUserInfo($userInfo);
             }
         }
@@ -1005,7 +1002,7 @@ class Session
      */
     public static function isSysAdmin()
     {
-        return boolval(session('user.is_sys_admin'));
+        return boolval(session('user.is_sys_admin')) && !self::isRestrictedAdmin();
     }
 
     public static function setRequestor($requestor = ServiceRequestorTypes::API)
@@ -1093,6 +1090,6 @@ class Session
      */
     private static function isRestrictedAdmin()
     {
-        return UserAppRole::whereUserId(Session::getCurrentUserId())->first();
+        return UserAppRole::whereUserId(Session::getCurrentUserId())->exists();
     }
 }

@@ -120,7 +120,6 @@ class LaravelServiceProvider extends ServiceProvider
         /** Add the first user check to the web group */
         Route::prependMiddlewareToGroup('web', FirstUserCheck::class);
 
-//        dd(app('router'));
         $middleware = [
             'df.verb_override',
             'df.auth_check',

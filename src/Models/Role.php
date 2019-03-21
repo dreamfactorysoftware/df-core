@@ -1,7 +1,6 @@
 <?php
 namespace DreamFactory\Core\Models;
 
-use DreamFactory\Core\Components\RestrictedAdmin;
 use DreamFactory\Core\Events\RoleDeletedEvent;
 use DreamFactory\Core\Events\RoleModifiedEvent;
 use DreamFactory\Core\Exceptions\NotFoundException;
@@ -65,19 +64,6 @@ class Role extends BaseSystemModel
     }
 
     /**
-     * {@inheritdoc}
-     */
-    public static function selectById($id, array $options = [], array $fields = ['*'])
-    {
-        $role = parent::selectById($id, $options, $fields);
-
-        if ($role && self::isAccessibleTabsSpecified($options)) {
-            $role["accessible_tabs"] = RestrictedAdmin::getAccessibleTabsByRoleId($role["id"]);
-        }
-        return $role;
-    }
-
-    /**
      * Making sure description is no longer than 255 characters.
      *
      * @param $value
@@ -112,9 +98,9 @@ class Role extends BaseSystemModel
      * Returns role info cached, or reads from db if not present.
      * Pass in a key to return a portion/index of the cached data.
      *
-     * @param int $id
+     * @param int         $id
      * @param null|string $key
-     * @param null $default
+     * @param null        $default
      *
      * @return mixed|null
      */
@@ -122,7 +108,7 @@ class Role extends BaseSystemModel
     {
         $cacheKey = 'role:' . $id;
         try {
-            $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id) {
+            $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () use ($id){
                 $role = Role::with(
                     [
                         'role_service_access_by_role_id',
@@ -173,10 +159,5 @@ class Role extends BaseSystemModel
         }
 
         return parent::getModelFromTable($table);
-    }
-
-    private static function isAccessibleTabsSpecified($options)
-    {
-        return isset($options["accessible_tabs"]) && $options["accessible_tabs"];
     }
 }

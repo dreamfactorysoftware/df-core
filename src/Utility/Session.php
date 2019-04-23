@@ -1002,7 +1002,7 @@ class Session
      */
     public static function isSysAdmin()
     {
-        return boolval(session('user.is_sys_admin')) && !self::isRestrictedAdmin();
+        return boolval(session('user.is_sys_admin')) && !self::isRolifiedAdmin();
     }
 
     public static function setRequestor($requestor = ServiceRequestorTypes::API)
@@ -1088,7 +1088,7 @@ class Session
     /**
      * @return mixed
      */
-    private static function isRestrictedAdmin()
+    private static function isRolifiedAdmin()
     {
         return UserAppRole::whereUserId(Session::getCurrentUserId())->exists();
     }

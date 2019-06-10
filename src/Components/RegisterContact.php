@@ -19,6 +19,11 @@ class RegisterContact
      */
     public static function registerUser($user, array $payload = [])
     {
+        if (json_encode(env('DF_REGISTER_CONTACT')) == 'false') {
+            \Log::info('Contact registration halted.');
+            return false;
+        }
+
         $source = 'Product Install DreamFactory';
         if (env('DF_MANAGED', false)) {
             $serverName = isset($_SERVER['SERVER_NAME']) ? $_SERVER['SERVER_NAME'] : '';

@@ -751,10 +751,9 @@ class Session
             $email = array_get($userInfo, 'email');
             $token = JWTUtilities::makeJWTByUser($id, $email, $forever);
             static::setSessionToken($token);
+            static::setSessionData($appId, $id);
 
             if (!empty($appId) && !$user->is_sys_admin) {
-                static::setSessionData($appId, $id);
-
                 return true;
             } else {
                 return static::setUserInfo($userInfo);
@@ -915,7 +914,7 @@ class Session
         ];
 
         $role = static::get('role');
-        if (!session('user.is_sys_admin') && !empty($role)) {
+        if (!empty($role)) {
             $sessionData['role'] = array_get($role, 'name');
             $sessionData['role_id'] = array_get($role, 'id');
         }
@@ -1003,7 +1002,7 @@ class Session
      */
     public static function isSysAdmin()
     {
-        return boolval(session('user.is_sys_admin'));
+        return boolval(session('user.is_sys_admin')) && !self::hasRole();
     }
 
     public static function setRequestor($requestor = ServiceRequestorTypes::API)
@@ -1084,5 +1083,13 @@ class Session
     public static function forget($key)
     {
         \Session::forget($key);
+    }
+
+    /**
+     * @return mixed
+     */
+    private static function hasRole()
+    {
+        return UserAppRole::whereUserId(Session::getCurrentUserId())->exists();
     }
 }

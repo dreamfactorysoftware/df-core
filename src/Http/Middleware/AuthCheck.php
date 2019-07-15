@@ -180,29 +180,37 @@ class AuthCheck
                      * This also allows for auditing API calls that are called by not permitted/processed.
                      * It also allows counting unauthorized API calls against API limits.
                      */
-                    try {
-                        JWTAuth::setToken($token);
-                        /** @type Payload $payload */
-                        $payload = JWTAuth::getPayload();
-                        JWTUtilities::verifyUser($payload);
-                        $userId = $payload->get('user_id');
-                        Session::setSessionData($appId, $userId);
-                    } catch (TokenExpiredException $e) {
-                        JWTUtilities::clearAllExpiredTokenMaps();
-                        Session::put('token_expired', true);
-                        Session::put(
-                            'token_expired_msg', $e->getMessage() .
-                            ': Session expired. Please refresh your token (if still within refresh window) or re-login.'
-                        );
-                    } catch (TokenBlacklistedException $e) {
-                        Session::put('token_blacklisted', true);
-                        Session::put(
-                            'token_blacklisted_msg',
-                            $e->getMessage() . ': Session terminated. Please re-login.'
-                        );
-                    } catch (TokenInvalidException $e) {
-                        Session::put('token_invalid', true);
-                        Session::put('token_invalid_msg', 'Invalid token: ' . $e->getMessage());
+
+                    if (in_array(trim($route, '/'), static::$authApis) && $request->getMethod() === Verbs::PUT) {
+                        /*
+                         * If this is a request for refresh token ignore token validity checking which runs in JWTAuth::getPayload() method.
+                         * Token expired and going to be refreshed.                         *
+                         * */
+                    } else {
+                        try {
+                            JWTAuth::setToken($token);
+                            /** @type Payload $payload */
+                            $payload = JWTAuth::getPayload();
+                            JWTUtilities::verifyUser($payload);
+                            $userId = $payload->get('user_id');
+                            Session::setSessionData($appId, $userId);
+                        } catch (TokenExpiredException $e) {
+                            JWTUtilities::clearAllExpiredTokenMaps();
+                            Session::put('token_expired', true);
+                            Session::put(
+                                'token_expired_msg', $e->getMessage() .
+                                ': Session expired. Please refresh your token (if still within refresh window) or re-login.'
+                            );
+                        } catch (TokenBlacklistedException $e) {
+                            Session::put('token_blacklisted', true);
+                            Session::put(
+                                'token_blacklisted_msg',
+                                $e->getMessage() . ': Session terminated. Please re-login.'
+                            );
+                        } catch (TokenInvalidException $e) {
+                            Session::put('token_invalid', true);
+                            Session::put('token_invalid_msg', 'Invalid token: ' . $e->getMessage());
+                        }
                     }
                 } elseif (!empty($basicAuthUser = $request->getUser()) ||
                     !empty($basicAuthPassword = $request->getPassword())) {

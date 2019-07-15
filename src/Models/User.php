@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\RegisterContact;
 use DreamFactory\Core\Database\Schema\RelationSchema;
+use DreamFactory\Core\Events\UserCreatingEvent;
 use DreamFactory\Core\Events\UserDeletedEvent;
 use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
@@ -516,6 +517,11 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     {
         parent::boot();
 
+        static::creating(
+            function (User $user){
+                event(new UserCreatingEvent($user));
+            }
+        );
         static::saved(
             function (User $user){
                 if (!$user->is_active) {

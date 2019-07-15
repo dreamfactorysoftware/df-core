@@ -4,8 +4,9 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
-### Fixed
+## [0.15.0] - 2019-07-25
 - DF-1365 Fixes JWT token refresh issue
+- Incorporates restricted administrator logic
 
 ## [0.14.2] - 2018-02-25
 ### Fixed
@@ -636,7 +637,8 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 ## 0.1.0 - 2015-10-24
 First official release working with the new [dreamfactory](https://github.com/dreamfactorysoftware/dreamfactory) project.
 
-[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.2...HEAD
+[Unreleased]: https://github.com/dreamfactorysoftware/df-core/compare/0.15.0...HEAD
+[0.15.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.2...0.15.0
 [0.14.2]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.1...0.14.2
 [0.14.1]: https://github.com/dreamfactorysoftware/df-core/compare/0.14.0...0.14.1
 [0.14.0]: https://github.com/dreamfactorysoftware/df-core/compare/0.13.1...0.14.0

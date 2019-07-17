@@ -186,12 +186,16 @@ class Exporter
         $this->data['system']['cors'] = $this->getAllResources('system', 'cors', ['fields' => 'id,path']);
         $this->data['system']['email_template'] = $this->getAllResources('system', 'email_template',
             ['fields' => 'id,name']);
-        $this->data['system']['event_script'] = $this->getAllResources('system', 'event_script', ['fields' => 'name']);
         $this->data['system']['lookup'] = $this->getAllResources('system', 'lookup', ['fields' => 'id,name']);
 
         /* Check for paid limits class */
         if (class_exists(\DreamFactory\Core\Limit\ServiceProvider::class)) {
             $this->data['system']['limit'] = $this->getAllResources('system', 'limit', ['fields' => 'id,name']);
+        }
+
+        /* Check for paid event_script class */
+        if (class_exists(\DreamFactory\Core\Script\ServiceProvider::class)) {
+            $this->data['system']['event_script'] = $this->getAllResources('system', 'event_script', ['fields' => 'name']);
         }
 
         $manifest = $this->package->getManifestHeader();

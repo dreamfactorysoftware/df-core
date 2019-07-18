@@ -767,14 +767,17 @@ class Importer
      */
     protected function insertEventScripts()
     {
-        if (empty($data = $this->package->getResourceFromZip('system/event_script.json'))) {
-            // pre-2.3.0 version
-            $data = $this->package->getResourceFromZip('system/event.json');
-        }
-        $scripts = $this->cleanDuplicates($data, 'system', 'event_script');
+        try {
 
-        if (!empty($scripts)) {
-            try {
+            if (class_exists(\DreamFactory\Core\Script\ServiceProvider::class)) throw new ForbiddenException('Upgrade to a paid license to import event scripts.');
+
+            if (empty($data = $this->package->getResourceFromZip('system/event_script.json'))) {
+                // pre-2.3.0 version
+                $data = $this->package->getResourceFromZip('system/event.json');
+            }
+            $scripts = $this->cleanDuplicates($data, 'system', 'event_script');
+
+            if (!empty($scripts)) {
                 foreach ($scripts as $script) {
                     $name = array_get($script, 'name');
                     $this->fixCommonFields($script);
@@ -786,9 +789,9 @@ class Importer
                         throw ResponseFactory::createExceptionFromResponse($result);
                     }
                 }
-
                 return true;
-            } catch (\Exception $e) {
+            }
+        } catch (\Exception $e) {
 //                if ($e->getCode() === HttpStatusCodes::HTTP_FORBIDDEN) {
 //                    $this->log('error', 'Failed to insert event_script. ' . $this->getErrorDetails($e));
 //                } else {
@@ -797,8 +800,7 @@ class Importer
 //                        $this->getErrorDetails($e)
 //                    );
 //                }
-                $this->throwExceptions($e, 'Failed to insert event_script');
-            }
+            $this->throwExceptions($e, 'Failed to insert event_script');
         }
 
         return false;

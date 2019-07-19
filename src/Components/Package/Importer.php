@@ -769,7 +769,7 @@ class Importer
     {
         try {
 
-            if (class_exists(\DreamFactory\Core\Script\ServiceProvider::class)) throw new ForbiddenException('Upgrade to a paid license to import event scripts.');
+            if (!class_exists(\DreamFactory\Core\Script\ServiceProvider::class)) throw new ForbiddenException('Upgrade to a paid license to import event scripts.');
 
             if (empty($data = $this->package->getResourceFromZip('system/event_script.json'))) {
                 // pre-2.3.0 version

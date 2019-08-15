@@ -38,7 +38,7 @@
   "require":     {
     "php":                    ">=7.0.0",
     "barryvdh/laravel-cors":  "~0.10.0",
-    "doctrine/dbal":          "~2.5.0",
+    "doctrine/dbal":          "~2.9.2",
     "guzzlehttp/guzzle":      "~6.0",
     "symfony/yaml":           "~2.8|~3.0",
     "tymon/jwt-auth":         "~1.0.0-rc.4.1"

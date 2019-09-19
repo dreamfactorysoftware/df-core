@@ -18,6 +18,7 @@ use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Hash;
 use Validator;
 
 /**
@@ -475,7 +476,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      */
     public function setSecurityAnswerAttribute($value)
     {
-        $this->attributes['security_answer'] = bcrypt($value);
+        $this->attributes['security_answer'] = Hash::make($value);
     }
 
     /**
@@ -486,7 +487,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     public function setPasswordAttribute($password)
     {
         if (!empty($password)) {
-            $password = bcrypt($password);
+            $password = Hash::make($password);
             JWTUtilities::invalidateTokenByUserId($this->id);
             // When password is set user account must be confirmed. Confirming user
             // account here with confirm_code = null.

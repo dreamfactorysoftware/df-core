@@ -35,13 +35,15 @@
     "issues": "https://github.com/dreamfactorysoftware/df-core/issues",
     "wiki":   "https://wiki.dreamfactory.com"
   },
+  "minimum-stability": "dev",
+  "prefer-stable": true,
   "require":     {
     "php":                    ">=7.0.0",
     "barryvdh/laravel-cors":  "~0.10.0",
     "doctrine/dbal":          "~2.5.0",
     "guzzlehttp/guzzle":      "~6.0",
     "symfony/yaml":           "~2.8|~3.0",
-    "tymon/jwt-auth":         "~1.0.0-rc.4.1"
+    "tymon/jwt-auth":         "~1.0.0"
   },
   "require-dev": {
     "phpunit/phpunit": "@stable"

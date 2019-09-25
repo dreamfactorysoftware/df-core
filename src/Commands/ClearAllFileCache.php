@@ -26,9 +26,9 @@ class ClearAllFileCache extends Command
      */
     public function handle()
     {
-        $this->laravel['events']->fire('cache:clearing', ['file']);
+        $this->laravel['events']->dispatch('cache:clearing', ['file']);
         $this->removeDirectory($this->cacheRoot);
-        $this->laravel['events']->fire('cache:cleared', ['file']);
+        $this->laravel['events']->dispatch('cache:cleared', ['file']);
         $this->info('Cleared DreamFactory cache for all instances!');
     }
 

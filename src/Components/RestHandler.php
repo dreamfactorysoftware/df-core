@@ -288,7 +288,7 @@ abstract class RestHandler implements RequestHandlerInterface
         }
         $event = new PreProcessApiEvent($name, $this->request, $this->response, $resource);
         /** @noinspection PhpUnusedLocalVariableInspection */
-        $results = \Event::fire($event);
+        $results = \Event::dispatch($event);
         $this->response = $event->response;
     }
 
@@ -363,7 +363,7 @@ abstract class RestHandler implements RequestHandlerInterface
             $resource = $this->getEventResource();
         }
         /** @noinspection PhpUnusedLocalVariableInspection */
-        $results = \Event::fire(new PostProcessApiEvent($name, $this->request, $this->response, $resource));
+        $results = \Event::dispatch(new PostProcessApiEvent($name, $this->request, $this->response, $resource));
     }
 
     /**
@@ -388,7 +388,7 @@ abstract class RestHandler implements RequestHandlerInterface
             $resource = $this->getEventResource();
         }
         /** @noinspection PhpUnusedLocalVariableInspection */
-        $results = \Event::fire(new ApiEvent($name, $this->request, $this->response, $resource));
+        $results = \Event::dispatch(new ApiEvent($name, $this->request, $this->response, $resource));
     }
 
     /**

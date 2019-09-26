@@ -1365,7 +1365,7 @@ class FileUtilities
                  * Using a new instance of dotenv to get the
                  * most update to .env file content for reading.
                  */
-                $dotenv = new Dotenv(base_path());
+                $dotenv = Dotenv::create(base_path());
                 $dotenv->load();
 
                 $search = $key . '=' . getenv($key);

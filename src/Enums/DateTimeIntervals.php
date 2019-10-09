@@ -44,6 +44,14 @@ class DateTimeIntervals extends FactoryEnum
      */
     const SECONDS_PER_DAY = 86400;
     /**
+     * @var int
+     */
+    const SECONDS_PER_WEEK = 604800;
+    /**
+     * @var int
+     */
+    const SECONDS_PER_MONTH = 18144000;
+    /**
      * @var int Stupid, I know, but at least it's a constant
      */
     const MINUTES_PER_MINUTE = 1;

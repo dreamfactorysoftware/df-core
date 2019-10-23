@@ -62,8 +62,8 @@ return [
         ],
         'query_log_enabled' => env('DB_QUERY_LOG_ENABLED', false),
     ],
-    // Cache config, in minutes
-    'default_cache_ttl'            => env('CACHE_DEFAULT_TTL', env('DF_CACHE_TTL', 300)),
+    // Cache config, in seconds
+    'default_cache_ttl'            => env('CACHE_DEFAULT_TTL', env('DF_CACHE_TTL', 18000)),
     // Session config
     'allow_forever_sessions'       => env('DF_ALLOW_FOREVER_SESSIONS', false),
     // System URLs
@@ -71,7 +71,7 @@ return [
     'confirm_invite_url'           => env('DF_CONFIRM_INVITE_URL', '/dreamfactory/dist/#/user-invite'),
     'confirm_register_url'         => env('DF_CONFIRM_REGISTER_URL', '/dreamfactory/dist/#/register-confirm'),
     'confirm_code_length'          => env('DF_CONFIRM_CODE_LENGTH', 32),
-    'confirm_code_ttl'             => env('DF_CONFIRM_CODE_TTL', 1440), // 1440 minutes (24 hours).
+    'confirm_code_ttl'             => env('DF_CONFIRM_CODE_TTL', 86400), // 86400 seconds (24 hours).
     'landing_page'                 => env('DF_LANDING_PAGE', '/dreamfactory/dist/index.html'),
     // Enable/disable detailed CORS logging
     'log_cors_info'                => false,

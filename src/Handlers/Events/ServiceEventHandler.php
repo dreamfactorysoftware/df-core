@@ -77,7 +77,7 @@ class ServiceEventHandler
             Log::debug('Service event handled: ' . $eventName);
             /** @var BaseRestService $service */
             $service = \ServiceManager::getServiceById($record->service_id);
-            Event::fire(new ServiceAssignedEvent($service, $event, $record->toArray()));
+            Event::dispatch(new ServiceAssignedEvent($service, $event, $record->toArray()));
         }
     }
 

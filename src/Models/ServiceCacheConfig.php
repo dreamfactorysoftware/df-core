@@ -38,7 +38,7 @@ class ServiceCacheConfig extends BaseServiceConfigModel
                     ' Only GET requests without payload are cached.';
                 break;
             case 'cache_ttl':
-                $schema['label'] = 'Cache Time To Live (minutes)';
+                $schema['label'] = 'Cache Time To Live (seconds)';
                 $schema['description'] =
                     'The amount of time each cached response is allowed to last.' .
                     ' Once expired, a new request to the service is made.';

@@ -152,6 +152,8 @@ class App extends BaseSystemModel
 
     public static function boot()
     {
+        parent::boot();
+
         static::saved(
             function (App $app){
                 if (!$app->is_active) {

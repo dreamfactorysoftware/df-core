@@ -520,7 +520,7 @@ class ServiceManager
         $payload = null,
         $format = null,
         $check_permission = true,
-        $throw_exception = false
+        $throw_exception = true
     ) {
         if ($check_permission === true) {
             if (false === Session::checkServicePermission($verb, $service, $resource, Session::getRequestor(),

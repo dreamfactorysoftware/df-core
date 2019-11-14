@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Commands;
 
 use DreamFactory\Core\Enums\DataFormats;
+use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Utility\FileUtilities;
 use Illuminate\Console\Command;
 use ServiceManager;
@@ -59,6 +60,7 @@ class Request extends Command
             $result = ServiceManager::handleRequest($service, $verb, $resource, [], [], $data, $format, false);
             if ($result->getStatusCode() >= 300) {
                 $this->error(print_r($result, true));
+                throw new InternalServerErrorException($result->getContent()['error']['message'], $result->getStatusCode());
             } else {
                 $this->info(print_r($result, true));
             }
@@ -66,6 +68,7 @@ class Request extends Command
             $this->info('Request complete!');
         } catch (\Exception $e) {
             $this->error($e->getMessage());
+            throw new InternalServerErrorException($e->getMessage());
         }
     }
 }

@@ -47,7 +47,7 @@ class TestCase extends LaravelTestCase
     /**
      * Runs before every test.
      */
-    public function setUp()
+    public function setUp() :void
     {
         parent::setUp();
 

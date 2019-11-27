@@ -121,7 +121,7 @@ class ColumnSchema extends NamedResourceSchema
                     case 'dbFunction':
                     case 'validation':
                         // don't let extras override these
-                        continue;
+                        continue 2;
                         break;
                 }
             }

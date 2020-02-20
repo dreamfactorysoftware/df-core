@@ -330,30 +330,28 @@ class CreateSystemTables extends Migration
         Schema::dropIfExists('system_custom');
         // System Configuration
         Schema::dropIfExists('system_config');
-        // File storage, public path designation
-        Schema::dropIfExists('file_service_config');
         // Cache-able service configuration
         Schema::dropIfExists('service_cache_config');
+        // File storage, public path designation
+        Schema::dropIfExists('file_service_config');
         // JSON Web Token to system resources map
         Schema::dropIfExists('token_map');
         // App relationship for user
         Schema::dropIfExists('user_to_app_to_role');
-        // Service Docs
-        Schema::dropIfExists('service_doc');
+        // Applications
+        Schema::dropIfExists('app');
+        //Cors config table
+        Schema::dropIfExists('cors_config');
+        // Email Templates
+        Schema::dropIfExists('email_template');
         // Role Service Accesses
         Schema::dropIfExists('role_service_access');
         // Roles
         Schema::dropIfExists('role');
-        // Email Templates
-        Schema::dropIfExists('email_template');
+        // Service Docs
+        Schema::dropIfExists('service_doc');
         // Services
         Schema::dropIfExists('service');
-        //Cors config table
-        Schema::dropIfExists('cors_config');
-        // App relationship for user
-        Schema::dropIfExists('user_to_app_role');
-        // Applications
-        Schema::dropIfExists('app');
         //Password reset
         Schema::dropIfExists('password_resets');
         // User table

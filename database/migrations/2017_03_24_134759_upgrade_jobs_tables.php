@@ -33,7 +33,7 @@ class UpgradeJobsTables extends Migration
      */
     public function down()
     {
-        if (!Schema::hasColumn('jobs', 'reserved')) {
+        if (DB::getDriverName() !== 'sqlite' && !Schema::hasColumn('jobs', 'reserved')) {
             Schema::table('jobs', function (Blueprint $table) {
                 $table->tinyInteger('reserved')->unsigned();
             });

@@ -2,6 +2,7 @@
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\DsnToConnectionConfig;
+use DreamFactory\Core\Components\UpdatesSender;
 use DreamFactory\Core\Events\ServiceDeletedEvent;
 use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -91,6 +92,8 @@ class Service extends BaseSystemModel
                         $serviceCfg::storeConfig($service->getKey(), $service->config);
                     }
                 }
+
+                UpdatesSender::sendServiceData($service -> getAttribute('type'));
 
                 return true;
             }

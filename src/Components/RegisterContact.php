@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Components;
 
+use DreamFactory\Core\Models\InstanceId;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Utility\Curl;
 
@@ -12,7 +13,7 @@ class RegisterContact
     const ENDPOINT = 'https://www.dreamfactory.com/in_product_v2/registration.php';
 
     /**
-     * @param User  $user
+     * @param User $user
      * @param array $payload
      *
      * @return bool
@@ -36,6 +37,7 @@ class RegisterContact
         if (empty($partner) && (false !== stripos(env('DB_DATABASE', ''), 'bitnami'))) {
             $partner = 'Bitnami';
         }
+
         $payload = array_merge(
             [
                 'email'       => $user->email,
@@ -49,6 +51,8 @@ class RegisterContact
                 'product'     => 'DreamFactory',
                 'version'     => config('app.version', 'unknown'),
                 'host_os'     => PHP_OS,
+                'instance_id' => InstanceId::getInstanceIdOrGenerate(),
+                'ip_address'  => getHostByName(getHostName()),
             ],
             $payload
         );

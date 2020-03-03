@@ -628,13 +628,15 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             return false;
         } else {
             /** @type User $user */
-            $attributes = array_only($data, ['name', 'first_name', 'last_name', 'email', 'username']);
+            $attributes = array_only($data, ['name', 'first_name', 'last_name', 'email', 'username', 'phone']);
             $attributes['is_active'] = 1;
             $user = static::create($attributes);
 
             $user->password = array_get($data, 'password');
             $user->is_sys_admin = 1;
             $user->save();
+
+            InstanceId::getInstanceIdOrGenerate();
 
             // Register user
             RegisterContact::registerUser($user);

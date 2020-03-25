@@ -167,6 +167,46 @@ class Environment
     }
 
     /**
+     * Retrieve product code from AWS Metadata Server if server available
+     *
+     * See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
+     *
+     * @return string|null
+     */
+    public static function getProductCode() {
+        return \Cache::remember('aws-product-code', \Config::get('df.default_cache_ttl'),
+            function () {
+                $response = Curl::get('http://169.254.169.254/latest/meta-data/product-codes', null, [
+                    CURLOPT_CONNECTTIMEOUT => 1,
+                ]);
+                if (Curl::getLastHttpCode() !== 200) {
+                    return null;
+                }
+                return $response;
+            });
+    }
+
+    /**
+     * Retrieve instance id from AWS Metadata Server if server available
+     *
+     * See https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html
+     *
+     * @return string|null
+     */
+    public static function getInstanceId() {
+        return \Cache::remember('aws-instance-id', \Config::get('df.default_cache_ttl'),
+            function () {
+                $response = Curl::get('http://169.254.169.254/latest/meta-data/instance-id', null, [
+                    CURLOPT_CONNECTTIMEOUT => 1,
+                ]);
+                if (Curl::getLastHttpCode() !== 200) {
+                    return null;
+                }
+                return $response;
+            });
+    }
+
+    /**
      * @param array $info
      *
      * @param bool  $recursive

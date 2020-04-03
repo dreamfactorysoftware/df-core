@@ -10,7 +10,7 @@ class RoleServiceAccessTest extends \DreamFactory\Core\Testing\TestCase
 
     protected $rsa = [];
 
-    public function tearDown()
+    public function tearDown(): void
     {
         \DreamFactory\Core\Models\User::whereEmail('jdoe@dreamfactory.com')->delete();
 

@@ -9,7 +9,7 @@ use Illuminate\Support\Arr;
 
 class AccessCheckMiddlewareTest extends \DreamFactory\Core\Testing\TestCase
 {
-    public function tearDown()
+    public function tearDown(): void
     {
         User::whereEmail('jdoe@dreamfactory.com')->delete();
         Role::whereName('test_role')->delete();

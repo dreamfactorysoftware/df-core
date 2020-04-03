@@ -14,7 +14,7 @@ class LookupKeysTest extends \DreamFactory\Core\Testing\TestCase
         ['name' => 'password', 'value' => '1234', 'private' => true]
     ];
 
-    public function tearDown()
+    public function tearDown(): void
     {
         foreach ($this->systemLookup as $sl) {
             Lookup::whereName($sl['name'])->delete();

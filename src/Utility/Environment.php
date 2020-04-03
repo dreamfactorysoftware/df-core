@@ -176,13 +176,11 @@ class Environment
     public static function getProductCode() {
         return \Cache::remember('aws-product-code', \Config::get('df.default_cache_ttl'),
             function () {
-                $response = Curl::get('http://169.254.169.254/latest/meta-data/product-codes', null, [
-                    CURLOPT_CONNECTTIMEOUT => 1,
-                ]);
-                if (Curl::getLastHttpCode() !== 200) {
-                    return null;
+                $metaDataParser = new AWSMetaDataParser();
+                if ($metaDataParser->getToken()) {
+                    return $metaDataParser->getProductCode();
                 }
-                return $response;
+                return null; // we are not on AWS instance
             });
     }
 
@@ -196,13 +194,11 @@ class Environment
     public static function getInstanceId() {
         return \Cache::remember('aws-instance-id', \Config::get('df.default_cache_ttl'),
             function () {
-                $response = Curl::get('http://169.254.169.254/latest/meta-data/instance-id', null, [
-                    CURLOPT_CONNECTTIMEOUT => 1,
-                ]);
-                if (Curl::getLastHttpCode() !== 200) {
-                    return null;
+                $metaDataParser = new AWSMetaDataParser();
+                if ($metaDataParser->getToken()) {
+                    return $metaDataParser->getInstanceId();
                 }
-                return $response;
+                return null; // we are not on AWS instance
             });
     }
 

@@ -616,7 +616,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             'last_name'  => 'required|max:255',
             'email'      => 'required|email|max:255|unique:user',
             'password'   => 'required|confirmed|min:6',
-            'username'   => 'min:6|unique:user,username|regex:/^\S*$/u|required'
+            'username'   => 'min:6|unique:user,username|regex:/^\S*$/u|required',
+            'phone'      => 'required|max:32',
         ];
 
         $validator = Validator::make($data, $validationRules);

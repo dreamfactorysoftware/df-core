@@ -18,7 +18,8 @@ class Setup extends Command
                             {--admin_first_name= : Admin user first name}
                             {--admin_last_name= : Admin user last name}
                             {--admin_email= : Admin user email}
-                            {--admin_password= : Admin user password}';
+                            {--admin_password= : Admin user password}
+                            {--admin_phone= : Admin phone number}';
 
     /**
      * The console command description.
@@ -94,6 +95,7 @@ class Setup extends Command
                 $lastName = $this->option('admin_last_name');
                 $email = $this->option('admin_email');
                 $password = $this->option('admin_password');
+                $phone = $this->option('admin_phone');
                 $prompt = true;
                 if (!empty($email) && !empty($password)) {
                     $prompt = false;
@@ -106,7 +108,10 @@ class Setup extends Command
                     $lastName = ($prompt) ? $this->ask('Enter your last name') : 'LastName';
                 }
                 if (empty($email)) {
-                    $email = $this->ask('Enter your email address?');
+                    $email = $this->ask('Enter your email address');
+                }
+                if (empty($phone)) {
+                    $phone = $this->ask('Enter your phone number');
                 }
                 if (empty($password)) {
                     $password = $this->secret('Choose a password');
@@ -121,7 +126,8 @@ class Setup extends Command
                     'email'                 => $email,
                     'password'              => $password,
                     'password_confirmation' => $passwordConfirm,
-                    'name'                  => $displayName
+                    'name'                  => $displayName,
+                    'phone'                 => $phone,
                 ];
 
                 $user = User::createFirstAdmin($data);

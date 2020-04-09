@@ -29,7 +29,7 @@ class Environment
     public static function getExternalIP()
     {
         $ip = \Cache::rememberForever('external-ip-address', function () {
-            $response = Curl::get('http://ipinfo.io/ip');
+            $response = env('EXTERNAL_IP', Curl::get('http://ipinfo.io/ip'));
             $ip = trim($response, "\t\r\n");
             try {
                 $validator = Validator::make(['ip' => $ip], ['ip' => 'ip']);

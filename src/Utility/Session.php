@@ -1086,10 +1086,14 @@ class Session
     }
 
     /**
-     * @return mixed
+     * @return boolean
      */
     private static function hasRole()
     {
-        return UserAppRole::whereUserId(Session::getCurrentUserId())->exists();
+        if(is_null(\Session::get('has_role'))){
+            \Session::put('has_role', UserAppRole::whereUserId(Session::getCurrentUserId())->exists());
+        }
+
+        return \Session::get('has_role');
     }
 }

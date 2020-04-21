@@ -31,7 +31,11 @@ vSeDCOUMYQR7R9LINYwouHIziqQYMAkGByqGSM44BAMDLwAwLAIUWXBlk40xTwSw
 TXT;
     }
 
-    public function getToken(): string {
+    /**
+     * @return string|null
+     */
+    public function getToken()
+    {
         $this->token = Curl::put($this->metadataServer . '/latest/api/token', null, [
             CURLOPT_CONNECTTIMEOUT => 1,
             CURLOPT_HTTPHEADER => [
@@ -44,7 +48,8 @@ TXT;
         return $this->token;
     }
 
-    public function getInstanceIdentity() {
+    public function getInstanceIdentity()
+    {
         $token = $this->getToken();
         if ($token) {
             $instanceIdentity = Curl::get($this->metadataServer . '/latest/dynamic/instance-identity/document', null, [
@@ -81,7 +86,8 @@ TXT;
     }
 
 
-    public function getVerifiedInstanceIdentity() {
+    public function getVerifiedInstanceIdentity()
+    {
         $document = $this->getInstanceIdentity();
         $signature = $this->getInstanceIdentitySignature();
         if ($this->isVerifiedInstanceIdentity($document, $signature, $this->awsPublicCertificate)) {
@@ -113,7 +119,11 @@ TXT;
         }
     }
 
-    public function getProductCode(): string {
+    /**
+     * @return string|null
+     */
+    public function getProductCode()
+    {
         $instanceIdentity = $this->getVerifiedInstanceIdentity();
         if ($instanceIdentity) {
             $instanceIdentity = json_decode($instanceIdentity);
@@ -122,7 +132,11 @@ TXT;
         return null;
     }
 
-    public function getInstanceId(): string {
+    /**
+     * @return string|null
+     */
+    public function getInstanceId()
+    {
         $instanceIdentity = $this->getVerifiedInstanceIdentity();
         if ($instanceIdentity) {
             $instanceIdentity = json_decode($instanceIdentity);
@@ -131,7 +145,11 @@ TXT;
         return null;
     }
 
-    public function getAWSPublicKey(): string {
+    /**
+     * @return string
+     */
+    public function getAWSPublicKey()
+    {
         return $this->awsPublicCertificate;
     }
 }

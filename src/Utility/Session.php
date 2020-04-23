@@ -1088,7 +1088,7 @@ class Session
     /**
      * @return boolean
      */
-    private static function hasRole()
+    public static function hasRole()
     {
         if(is_null(\Session::get('has_role'))){
             \Session::put('has_role', UserAppRole::whereUserId(Session::getCurrentUserId())->exists());

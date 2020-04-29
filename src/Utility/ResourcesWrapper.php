@@ -90,7 +90,19 @@ class ResourcesWrapper
 
     public static function wrapResources($resources, $force = false)
     {
-        if ($force || Config::get('df.always_wrap_resources', false)) {
+        $wrapParameter = request()->wrap;
+        $wrapHeader = request()->header('wrap');
+        $wrappingOnDemandEnabled = !is_null($wrapParameter) || !is_null($wrapHeader);
+
+        if ($wrappingOnDemandEnabled) {
+            return static::wrapOnCondition(to_bool($wrapParameter) || to_bool($wrapHeader), $resources);
+        }
+
+        return static::wrapOnCondition($force || Config::get('df.always_wrap_resources', false), $resources);
+    }
+
+    public static function wrapOnCondition($condition, $resources){
+        if ($condition) {
             return [static::getWrapper() => $resources];
         }
 

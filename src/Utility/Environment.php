@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Utility;
 
+use DreamFactory\Core\Models\InstanceId;
 use DreamFactory\Core\Enums\LicenseLevel;
 use Illuminate\Validation\ValidationException;
 use ServiceManager;
@@ -42,6 +43,22 @@ class Environment
         });
 
         return $ip;
+    }
+
+    /**
+     * Returns the instance ID
+     * 
+     * @return string
+     */
+    public static function getDreamFactoryInstanceId()
+    {
+        $instanceID = '';
+        try {
+            $instanceID = InstanceId::first()->instance_id;
+        } catch (\Exception $e) {
+            $instanceID = "Not Found";
+        }
+        return $instanceID;
     }
 
     /**

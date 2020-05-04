@@ -31,6 +31,7 @@ class AWSMetaDataParser {
     {
         $this->token = Curl::put($this->metadataServer . '/latest/api/token', null, [
             CURLOPT_CONNECTTIMEOUT => 1,
+            CURLOPT_TIMEOUT => 1,
             CURLOPT_HTTPHEADER => [
                 'X-aws-ec2-metadata-token-ttl-seconds: ' . $this->tokenTimeToLive,
             ],
@@ -50,6 +51,7 @@ class AWSMetaDataParser {
         if ($token) {
             $instanceIdentity = Curl::get($this->metadataServer . '/latest/dynamic/instance-identity/document', null, [
                 CURLOPT_CONNECTTIMEOUT => 1,
+                CURLOPT_TIMEOUT => 1,
                 CURLOPT_HTTPHEADER => [ 'X-aws-ec2-metadata-token: ' . $token, ],
             ]);
             if (Curl::getLastHttpCode() != 200) {
@@ -69,6 +71,7 @@ class AWSMetaDataParser {
         if ($token) {
             $pkcs7 = Curl::get($this->metadataServer . '/latest/dynamic/instance-identity/pkcs7', null, [
                 CURLOPT_CONNECTTIMEOUT => 1,
+                CURLOPT_TIMEOUT => 1,
                 CURLOPT_HTTPHEADER => ['X-aws-ec2-metadata-token: ' . $token,],
             ]);
             if (Curl::getLastHttpCode() != 200) {

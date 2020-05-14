@@ -24,7 +24,7 @@ For more information, see the [full platform repository](https://github.com/drea
 Edit your project’s composer.json to require the following package.
 
 	“require”:{
-		"dreamfactory/df-core": "~0.14.0"
+		"dreamfactory/df-core": "~0.21.1"
 	}
 
 Save your composer.json and do a "composer update" to install the package.

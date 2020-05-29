@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Core\Enums\LicenseLevel;
+use DreamFactory\Core\Models\InstanceId;
 use Illuminate\Validation\ValidationException;
 use ServiceManager;
 use Validator;
@@ -65,6 +66,15 @@ class Environment
         }
 
         return LicenseLevel::OPEN_SOURCE;
+    }
+
+    /**
+     * Retrieve id of this DF instance
+     *
+     * @return string|null
+     */
+    public static function getDfInstanceId() {
+        return InstanceId::getCachedInstanceId();
     }
 
     public static function getInstalledPackagesInfo()

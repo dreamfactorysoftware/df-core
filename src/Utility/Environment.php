@@ -118,6 +118,11 @@ class Environment
     public static function getURI()
     {
         $s = $_SERVER;
+
+        if (self::isUnderProxy($s)) {
+            return self::getProxyURI($s);
+        }
+
         $ssl = (!empty($s['HTTPS']) && $s['HTTPS'] == 'on');
         $sp = strtolower(array_get($s, 'SERVER_PROTOCOL', 'http://'));
         $protocol = substr($sp, 0, strpos($sp, '/')) . (($ssl) ? 's' : '');
@@ -127,6 +132,35 @@ class Environment
         $host = (strpos($host, ':') !== false) ? $host : $host . $port;
 
         return $protocol . '://' . $host;
+    }
+
+    /**
+     * Determines whether the server is behind a proxy
+     *
+     * @param null|array $server
+     * @return bool
+     */
+    public static function isUnderProxy($server = null) {
+        if (empty($server)) {
+            $server = $_SERVER;
+        }
+        return !empty($server['HTTP_X_FORWARDED_PROTO']) && !empty($server['HTTP_X_FORWARDED_PORT']) && !empty($server['HTTP_X_FORWARDED_HOST']);
+    }
+
+    /**
+     * Return server URI provided by the proxy or null if not supported
+     *
+     * @param null|array $server
+     * @return string|false
+     */
+    public static function getProxyURI($server = null) {
+        if (empty($server)) {
+            $server = $_SERVER;
+        }
+        if (!self::isUnderProxy($server)) {
+            return false;
+        }
+        return $server['HTTP_X_FORWARDED_PROTO'] . '://' . $server['HTTP_X_FORWARDED_HOST'] . ':' . $server['HTTP_X_FORWARDED_PORT'];
     }
 
     /**

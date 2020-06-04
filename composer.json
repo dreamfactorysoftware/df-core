@@ -17,16 +17,8 @@
   ],
   "authors":     [
     {
-      "name":  "Arif Islam",
-      "email": "arifislam@dreamfactory.com"
-    },
-    {
-      "name": "Charles Harmon",
-      "email": "charlesharmon@dreamfactory.com"
-    },
-    {
-      "name":  "Lee Hicks",
-      "email": "leehicks@dreamfactory.com"
+      "name":  "DreamFactory Development Team",
+      "email": "code@dreamfactory.com"
     }
   ],
   "support":     {

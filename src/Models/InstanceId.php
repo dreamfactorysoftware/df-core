@@ -32,4 +32,21 @@ class InstanceId extends BaseSystemModel
 
         return $model;
     }
+
+    /**
+     * Returns InstanceId info cached, or reads from db if not present.
+     * Pass in an id.
+     *
+     * @return string|null
+     */
+    public static function getCachedInstanceId()
+    {
+        $cacheKey = 'instance:id';
+        $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () {
+            return self::getInstanceIdOrGenerate();
+        });
+
+        return is_null($result) ? null : $result;
+    }
+
 }

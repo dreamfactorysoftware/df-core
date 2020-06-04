@@ -54,7 +54,7 @@ class Environment
     {
         $instanceID = '';
         try {
-            $instanceID = InstanceId::first()->instance_id;
+            $instanceID = InstanceId::getCachedInstanceId();
         } catch (\Exception $e) {
             $instanceID = "Not Found";
         }

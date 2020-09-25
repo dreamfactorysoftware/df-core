@@ -120,6 +120,14 @@ class Setup extends Command
                 $passwordConfirm = ($prompt) ? $this->secret('Re-enter password') : $password;
                 $displayName = empty($displayName) ? $firstName . ' ' . $lastName : $displayName;
 
+                $gdpr = $this->choice(
+                  'I consent to receiving occasional marketing messages from DreamFactory',
+                  ['No', 'Yes'],
+                  1,
+                  $maxAttempts = null,
+                  $allowMultipleSelections = false
+                ) === 'Yes' ? 'On' : false;
+
                 $data = [
                     'first_name'            => $firstName,
                     'last_name'             => $lastName,
@@ -128,6 +136,7 @@ class Setup extends Command
                     'password_confirmation' => $passwordConfirm,
                     'name'                  => $displayName,
                     'phone'                 => $phone,
+                    'gdpr'                  => $gdpr,
                 ];
 
                 $user = User::createFirstAdmin($data);

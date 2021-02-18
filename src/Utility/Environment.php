@@ -224,7 +224,7 @@ class Environment
      *
      * @return string|null
      */
-    public static function getProductCode() {
+    /*public static function getProductCode() {
         return \Cache::remember('aws-product-code', \Config::get('df.default_cache_ttl'),
             function () {
                 $metaDataParser = new AWSMetaDataParser();
@@ -233,7 +233,7 @@ class Environment
                 }
                 return null; // we are not on AWS instance
             });
-    }
+    }*/
 
     /**
      * Retrieve instance id from AWS Metadata Server if server available

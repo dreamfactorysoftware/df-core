@@ -27,7 +27,7 @@ class AWSMetaDataParser {
     /**
      * @return string|bool
      */
-    public function getToken()
+    /*public function getToken()
     {
         $this->token = Curl::put($this->metadataServer . '/latest/api/token', null, [
             CURLOPT_CONNECTTIMEOUT => 1,
@@ -40,12 +40,12 @@ class AWSMetaDataParser {
             return false;
         }
         return $this->token;
-    }
+    }*/
 
     /**
      * @return string|bool
      */
-    public function getInstanceIdentity()
+    /*public function getInstanceIdentity()
     {
         $token = $this->getToken();
         if ($token) {
@@ -60,12 +60,12 @@ class AWSMetaDataParser {
             return $instanceIdentity;
         }
         return false;
-    }
+    }*/
 
     /**
      * @return bool|string
      */
-    protected function getInstanceIdentityPKCS7()
+    /*protected function getInstanceIdentityPKCS7()
     {
         $token = $this->getToken();
         if ($token) {
@@ -80,20 +80,20 @@ class AWSMetaDataParser {
             return $pkcs7;
         }
         return false;
-    }
+    }*/
 
     /**
      * @return string
      */
-    private function getInstanceIdentitySignature()
+    /*private function getInstanceIdentitySignature()
     {
         return "-----BEGIN PKCS7-----\n" . $this->getInstanceIdentityPKCS7() . "\n-----END PKCS7-----";
-    }
+    }*/
 
     /**
      * @return bool|string
      */
-    public function getVerifiedInstanceIdentity()
+    /*public function getVerifiedInstanceIdentity()
     {
         $document = $this->getInstanceIdentity();
         $signature = $this->getInstanceIdentitySignature();
@@ -101,7 +101,7 @@ class AWSMetaDataParser {
             return $document;
         }
         return false;
-    }
+    }*/
 
     /**
      * @param string $document
@@ -109,7 +109,7 @@ class AWSMetaDataParser {
      * @param string $awsPublicCertificate
      * @return bool
      */
-    public function isVerifiedInstanceIdentity($document, string $signature, string $awsPublicCertificate)
+    /*public function isVerifiedInstanceIdentity($document, string $signature, string $awsPublicCertificate)
     {
         try {
             $documentFile = tmpfile();
@@ -130,12 +130,12 @@ class AWSMetaDataParser {
         } catch (\Exception $e) {
             return false;
         }
-    }
+    }*/
 
     /**
      * @return string|bool
      */
-    public function getProductCode()
+    /*public function getProductCode()
     {
         $instanceIdentity = $this->getVerifiedInstanceIdentity();
         if ($instanceIdentity) {
@@ -143,12 +143,12 @@ class AWSMetaDataParser {
             return $instanceIdentity->marketplaceProductCodes[0];
         }
         return false;
-    }
+    }*/
 
     /**
      * @return string|bool
      */
-    public function getInstanceId()
+    /*public function getInstanceId()
     {
         $instanceIdentity = $this->getVerifiedInstanceIdentity();
         if ($instanceIdentity) {
@@ -156,14 +156,14 @@ class AWSMetaDataParser {
             return $instanceIdentity->instanceId;
         }
         return false;
-    }
+    }*/
 
     /**
      * @return string
      */
-    public function getAWSPublicKey()
+    /*public function getAWSPublicKey()
     {
         return $this->awsPublicCertificate;
-    }
+    }*/
 }
 

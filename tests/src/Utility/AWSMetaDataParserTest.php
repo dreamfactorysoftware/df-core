@@ -110,9 +110,9 @@ class AWSMetaDataParserTest extends TestCase
      *
      * @var string $metadataServer
      */
-    public $metadataServer = '';
+    /*public $metadataServer = '';*/
 
-    public function setUp()
+    /*public function setUp()
     {
         $this->instanceIdentity = <<<TEXT
 <place here real instance identity>
@@ -191,6 +191,5 @@ TEXT;
 
         $instanceId = $metaDataParser->getInstanceId();
         $this->assertEquals($this->instanceId, $instanceId);
-    }
-
+    }*/
 }

@@ -23,29 +23,6 @@ class Environment
     }
 
     /**
-     * Returns instance's external IP address.
-     *
-     * @return mixed
-     */
-    public static function getExternalIP()
-    {
-        $ip = \Cache::rememberForever('external-ip-address', function () {
-            $response = env('EXTERNAL_IP', Curl::get('http://ipinfo.io/ip'));
-            $ip = trim($response, "\t\r\n");
-            try {
-                $validator = Validator::make(['ip' => $ip], ['ip' => 'ip']);
-                $validator->validate();
-            } catch (ValidationException $e) {
-                $ip = null;
-            }
-
-            return $ip;
-        });
-
-        return $ip;
-    }
-
-    /**
      * Returns the instance ID
      * 
      * @return string

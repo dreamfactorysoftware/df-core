@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Components;
 
 use DreamFactory\Core\Models\InstanceId;
 use DreamFactory\Core\Utility\Session;
+use Exception;
 use GuzzleHttp\Exception\RequestException;
 use Psr\Http\Message\ResponseInterface;
 
@@ -31,7 +32,7 @@ class UpdatesSender {
             ])
                 ->then(
                     function (ResponseInterface $_ignore) {},
-                    function (RequestException $ex) {
+                    function (Exception $ex) {
                         \Log::debug($ex->getMessage());
                     }
                 )

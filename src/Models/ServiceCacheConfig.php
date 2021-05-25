@@ -36,12 +36,14 @@ class ServiceCacheConfig extends BaseServiceConfigModel
                 $schema['description'] =
                     'Enable caching of GET requests particularly for this service.' .
                     ' Only GET requests without payload are cached.';
+                $schema['is_caching'] = true;
                 break;
             case 'cache_ttl':
                 $schema['label'] = 'Cache Time To Live (seconds)';
                 $schema['description'] =
                     'The amount of time each cached response is allowed to last.' .
                     ' Once expired, a new request to the service is made.';
+                    $schema['is_caching'] = true;
                 break;
         }
     }

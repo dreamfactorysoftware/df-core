@@ -39,6 +39,30 @@ class Environment
     }
 
     /**
+     * Returns the saved user license
+     *
+     * @return associative_array
+     */
+    public static function getUserLicense()
+    {
+        $filePath = base_path() . DIRECTORY_SEPARATOR . 'user-license.enc.json';
+
+        if (file_exists($filePath)) {
+            $encryptedUserLicenseFile = file_get_contents($filePath);
+            $decryptedUserLicense = static::decryptUserLicense($encryptedUserLicenseFile);
+
+            // Convert our returned string to an associative array and give it back to our
+            // handleGET function in DF-System\Environment.
+            $userLicense = json_decode($decryptedUserLicense, true);
+            return $userLicense;
+        } else {
+            // If the file can't be found / doesn't exist:
+            \Log::error('Failed to load user license file. Please check the location of the file (should be /opt/dreamfactory)');
+            return false;
+        }
+    }
+
+    /**
      * @return string
      */
     public static function getLicenseLevel()
@@ -288,5 +312,19 @@ class Environment
         }
 
         return $clean;
+    }
+
+     /**
+     * Takes a file and decrypts it
+     * @return string
+     */
+    private static function decryptUserLicense($encryptedUserLicense)
+    {
+        $key = hex2bin('11018B5586565CA6C309D3CF31970750A7BC28D16CACF59367A1B815A493B427');
+        $iv = hex2bin('756ACA329230ED5E2F14ABCA5DBD4CA5');
+
+        $decryptedUserLicense = openssl_decrypt($encryptedUserLicense, 'AES-256-CBC', $key, 0, $iv);
+
+        return $decryptedUserLicense;
     }
 }

@@ -27,8 +27,8 @@ use Illuminate\Database\SQLiteConnection;
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Arr;
-use Event;
-use Route;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Route;
 
 class LaravelServiceProvider extends ServiceProvider
 {

@@ -64,7 +64,7 @@ class DbSimpleTypes extends FactoryEnum
         static $map = [
             DbSimpleTypes::TYPE_ARRAY               => 'array',
             DbSimpleTypes::TYPE_BIG_ID              => 'string', // due to php support issues
-            DbSimpleTypes::TYPE_BIG_INT             => 'string', // due to php support issues
+            DbSimpleTypes::TYPE_BIG_INT             => PHP_INT_SIZE === 8 ? "integer" : "string", // Assign integer if 64bit OS, string if 32bit
             DbSimpleTypes::TYPE_BINARY              => 'string',
             DbSimpleTypes::TYPE_BOOLEAN             => 'boolean',
             DbSimpleTypes::TYPE_DATE                => 'string',

@@ -4,7 +4,7 @@ namespace DreamFactory\Core\Providers;
 
 use Barryvdh\Cors\HandleCors;
 use Barryvdh\Cors\HandlePreflight;
-use Barryvdh\Cors\CorsService;
+use Asm89\Stack\CorsService;
 use DreamFactory\Core\Models\CorsConfig;
 use Illuminate\Database\QueryException;
 use Illuminate\Contracts\Http\Kernel;
@@ -38,6 +38,14 @@ class CorsServiceProvider extends ServiceProvider
     {
         $config = $this->getOptions($request);
         $this->app->singleton(CorsService::class, function () use ($config){
+
+            if (isset($config['allowedOrigins'])) {
+                foreach ($config['allowedOrigins'] as $origin) {
+                    if (strpos($origin, '*') !== false) {
+                        $config['allowedOriginsPatterns'][] = $this->convertWildcardToPattern($origin);
+                    }
+                }
+            }
             return new CorsService($config);
         });
 
@@ -57,6 +65,25 @@ class CorsServiceProvider extends ServiceProvider
             /** @noinspection PhpUndefinedMethodInspection */
             $kernel->prependMiddleware(HandlePreflight::class);
         }
+    }
+
+    /**
+     * Create a pattern for a wildcard, based on Str::is() from Laravel
+     *
+     * @see https://github.com/laravel/framework/blob/5.5/src/Illuminate/Support/Str.php
+     * @param $pattern
+     * @return string
+     */
+    protected function convertWildcardToPattern($pattern)
+    {
+        $pattern = preg_quote($pattern, '#');
+
+        // Asterisks are translated into zero-or-more regular expression wildcards
+        // to make it convenient to check if the strings starts with the given
+        // pattern such as "library/*", making any string check convenient.
+        $pattern = str_replace('\*', '.*', $pattern);
+
+        return '#^'.$pattern.'\z#u';
     }
 
     /**
@@ -91,6 +118,7 @@ class CorsServiceProvider extends ServiceProvider
         if ($bestMatch) {
             return [
                 "allowedOrigins"      => explode(',', $bestMatch->origin),
+                "allowedOriginsPatterns" => [],
                 "allowedHeaders"      => explode(',', $bestMatch->header),
                 "exposedHeaders"      => explode(',', $bestMatch->exposed_header),
                 "allowedMethods"      => $bestMatch->method,

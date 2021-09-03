@@ -64,7 +64,10 @@ class DbSimpleTypes extends FactoryEnum
         static $map = [
             DbSimpleTypes::TYPE_ARRAY               => 'array',
             DbSimpleTypes::TYPE_BIG_ID              => 'string', // due to php support issues
-            DbSimpleTypes::TYPE_BIG_INT             => PHP_INT_SIZE === 8 ? "integer" : "string", // Assign integer if 64bit OS, string if 32bit
+            // The "Big Integer" type is a 64bit data type. If for some crazy reason someone is still using a 32bit operating system, we cannot
+            // convert this to an integer, as it would be too large for php to handle. So we need to check what the maximum integer size php can handle is.
+            // If it is "8", that is 8 bytes, i.e 64 bits and so we can do a straight conversion from big int to int. if not, reassign as a string.
+            DbSimpleTypes::TYPE_BIG_INT             => PHP_INT_SIZE === 8 ? "integer" : "string",
             DbSimpleTypes::TYPE_BINARY              => 'string',
             DbSimpleTypes::TYPE_BOOLEAN             => 'boolean',
             DbSimpleTypes::TYPE_DATE                => 'string',

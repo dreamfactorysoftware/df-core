@@ -25,7 +25,7 @@ class BatchException extends RestException
      */
     public function __construct($responses, $message = null, $code = null, $previous = null)
     {
-        parent::__construct(Response::HTTP_INTERNAL_SERVER_ERROR, $message,
+        parent::__construct(Response::HTTP_BAD_REQUEST, $message,
             $code ?: ErrorCodes::BATCH_ERROR, $previous, $responses);
     }
 

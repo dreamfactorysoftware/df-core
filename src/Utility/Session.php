@@ -668,6 +668,25 @@ class Session
      */
     public static function authenticate(array $credentials, $remember = false, $login = true, $appId = null)
     {
+
+        if (isset($credentials['integrateio_id'])) {
+            $userid = User::where('integrateio_id', $credentials['integrateio_id']) -> first() ->id;
+            $user = \Auth::loginUsingId($userid);
+            static::checkRole($user->id);
+            if ($login) {
+                /** @noinspection PhpUndefinedFieldInspection */
+                $user->last_login_date = Carbon::now()->toDateTimeString();
+                /** @noinspection PhpUndefinedFieldInspection */
+                $user->confirm_code = 'y';
+                /** @noinspection PhpUndefinedMethodInspection */
+                $user->save();
+                /** @noinspection PhpParamsInspection */
+                Session::setUserInfoWithJWT($user, $remember, $appId);
+            }
+
+            return true;
+        }
+
         if (\Auth::attempt($credentials)) {
             $user = \Auth::getLastAttempted();
             /** @noinspection PhpUndefinedFieldInspection */

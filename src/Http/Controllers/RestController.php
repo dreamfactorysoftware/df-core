@@ -9,8 +9,7 @@ use DreamFactory\Core\Utility\ServiceRequest;
 use DreamFactory\Core\Utility\Session;
 use Log;
 use ServiceManager;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Http\RedirectResponse;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**

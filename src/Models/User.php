@@ -110,7 +110,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      *
      * @var array
      */
-    protected $hidden = ['is_sys_admin', 'password', 'remember_token', 'security_answer'];
+    protected $hidden = ['is_sys_admin', 'password', 'remember_token', 'security_answer', 'confirm_code'];
 
     /**
      * Field type casting

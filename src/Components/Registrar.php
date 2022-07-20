@@ -122,12 +122,12 @@ class Registrar
                     'link'           => url(\Config::get('df.confirm_register_url')) .
                         '?code=' . $user->confirm_code .
                         '&email=' . $email .
-                        '&username=' . $user->username,
-                    'first_name'     => $user->first_name,
-                    'last_name'      => $user->last_name,
-                    'name'           => $user->name,
+                        '&username=' . strip_tags($user->username),
+                    'first_name'     => strip_tags($user->first_name),
+                    'last_name'      => strip_tags($user->last_name),
+                    'name'           => strip_tags($user->name),
                     'email'          => $user->email,
-                    'phone'          => $user->phone,
+                    'phone'          => strip_tags($user->phone),
                     'content_header' => array_get($templateData, 'subject', 'Confirm your DreamFactory account.'),
                     'app_name'       => \Config::get('app.name'),
                     'instance_name'  => \Config::get('app.name'), // older templates

@@ -3,6 +3,7 @@ All notable changes to this project will be documented in this file.
 This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
+- To be updated
 
 ### Fixed
 - DF-1365 Fixes JWT token refresh issue

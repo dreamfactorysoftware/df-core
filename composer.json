@@ -30,12 +30,12 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "require":     {
-    "php":                    ">=7.0.0",
-    "barryvdh/laravel-cors":  "~0.11.0",
-    "doctrine/dbal":          "~2.5.0",
-    "guzzlehttp/guzzle":      "~6.0",
-    "symfony/yaml":           "~2.8|~3.0",
-    "tymon/jwt-auth":         "~1.0.0"
+    "php":                    "^8.0",
+    "fruitcake/laravel-cors": "~3.0.0",
+    "doctrine/dbal":          "^3.1.4",
+    "guzzlehttp/guzzle":      "~7.4.5",
+    "symfony/yaml":           "^6.0",
+    "tymon/jwt-auth":         "dev-develop"
   },
   "require-dev": {
     "phpunit/phpunit": "@stable"

@@ -82,7 +82,7 @@ class Curl extends Verbs
      */
     public static function get($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest(static::GET, $url, $payload, $curlOptions);
+        return static::_httpRequest($url, static::GET, $payload, $curlOptions);
     }
 
     /**
@@ -94,7 +94,7 @@ class Curl extends Verbs
      */
     public static function put($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest(static::PUT, $url, $payload, $curlOptions);
+        return static::_httpRequest($url, static::PUT, $payload, $curlOptions);
     }
 
     /**
@@ -106,7 +106,7 @@ class Curl extends Verbs
      */
     public static function post($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest(static::POST, $url, $payload, $curlOptions);
+        return static::_httpRequest($url, static::POST, $payload, $curlOptions);
     }
 
     /**
@@ -118,7 +118,7 @@ class Curl extends Verbs
      */
     public static function delete($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest(static::DELETE, $url, $payload, $curlOptions);
+        return static::_httpRequest($url, static::DELETE, $payload, $curlOptions);
     }
 
     /**
@@ -130,7 +130,7 @@ class Curl extends Verbs
      */
     public static function head($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest(static::HEAD, $url, $payload, $curlOptions);
+        return static::_httpRequest($url, static::HEAD, $payload, $curlOptions);
     }
 
     /**
@@ -142,7 +142,7 @@ class Curl extends Verbs
      */
     public static function options($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest(static::OPTIONS, $url, $payload, $curlOptions);
+        return static::_httpRequest($url, static::OPTIONS, $payload, $curlOptions);
     }
 
     /**
@@ -154,7 +154,7 @@ class Curl extends Verbs
      */
     public static function copy($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest(static::COPY, $url, $payload, $curlOptions);
+        return static::_httpRequest($url, static::COPY, $payload, $curlOptions);
     }
 
     /**
@@ -166,7 +166,7 @@ class Curl extends Verbs
      */
     public static function patch($url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest(static::PATCH, $url, $payload, $curlOptions);
+        return static::_httpRequest($url, static::PATCH, $payload, $curlOptions);
     }
 
     /**
@@ -179,7 +179,7 @@ class Curl extends Verbs
      */
     public static function request($method, $url, $payload = [], $curlOptions = [])
     {
-        return static::_httpRequest($method, $url, $payload, $curlOptions);
+        return static::_httpRequest($url, $method, $payload, $curlOptions);
     }
 
     /**
@@ -191,7 +191,7 @@ class Curl extends Verbs
      * @throws \InvalidArgumentException
      * @return bool|mixed|\stdClass
      */
-    protected static function _httpRequest($method = self::GET, $url, $payload = [], $curlOptions = [])
+    protected static function _httpRequest($url, $method = self::GET, $payload = [], $curlOptions = [])
     {
         if (!static::contains($method)) {
             throw new \InvalidArgumentException('Invalid method "' . $method . '" specified.');
@@ -209,6 +209,7 @@ class Curl extends Verbs
             CURLOPT_HEADER         => true,
             CURLINFO_HEADER_OUT    => true,
             CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_TIMEOUT => 30
         ];
 
         //	Merge in the global options if any

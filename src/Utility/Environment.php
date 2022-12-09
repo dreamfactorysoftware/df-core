@@ -270,7 +270,7 @@ class Environment
                 $v1 = array_get($value, 0);
 
                 if ($v1 == '<i>no value</i>') {
-                    $v1 = null;
+                    $v1 = '';
                 }
 
                 if (in_array(strtolower($v1), ['on', 'off', '0', '1'])) {

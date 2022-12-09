@@ -64,7 +64,7 @@ class DfException extends \Exception implements Arrayable
     {
         $errorInfo['code'] = $this->getCode();
         $errorInfo['context'] = $this->getContext();
-        $errorInfo['message'] = htmlentities($this->getMessage());
+        $errorInfo['message'] = htmlentities($this->getMessage(), ENT_COMPAT);
 
         if (config('app.debug', false)) {
             $trace = $this->getTraceAsString();

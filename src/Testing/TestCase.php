@@ -37,7 +37,7 @@ class TestCase extends LaravelTestCase
     /**
      * Runs before every test class.
      */
-    public static function setupBeforeClass()
+    public static function setupBeforeClass(): void
     {
         echo "\n------------------------------------------------------------------------------\n";
         echo "Running test: " . get_called_class() . "\n";
@@ -114,7 +114,7 @@ class TestCase extends LaravelTestCase
      */
     public function createApplication()
     {
-        $app = require '/opt/dreamfactory/bootstrap/app.php';
+        $app = require './bootstrap/app.php';
 
         $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
 

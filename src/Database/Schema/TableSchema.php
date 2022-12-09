@@ -212,10 +212,9 @@ class TableSchema extends NamedResourceSchema
 
         // re-index for alias usage, easier to find requested fields from client
         $columns = [];
-        $this->columns = null;
 
-        /** @var ColumnSchema $column */
         try {
+            /** @var ColumnSchema $column */
             foreach ($this->columns as $column) {
                 $columns[strtolower($column->getName(true))] = $column;
             }

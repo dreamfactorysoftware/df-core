@@ -87,7 +87,7 @@ class LaravelServiceProvider extends ServiceProvider
     {
         $this->app->alias('df.service', ServiceManager::class);
         $this->app->alias('df.system.table_model_map', SystemTableModelMapper::class);
-        $this->app->alias('db.schema', DbSchemaExtensions::class);
+        $this->app->alias('df.db.schema', DbSchemaExtensions::class);
 
         // DreamFactory Specific Facades...
         $loader = AliasLoader::getInstance();
@@ -162,7 +162,7 @@ class LaravelServiceProvider extends ServiceProvider
 
         // The database schema extension manager is used to resolve various database schema extensions.
         // It also implements the resolver interface which may be used by other components adding schema extensions.
-        $this->app->singleton('db.schema', function ($app) {
+        $this->app->singleton('df.db.schema', function ($app) {
             return new DbSchemaExtensions($app);
         });
     }
@@ -171,7 +171,8 @@ class LaravelServiceProvider extends ServiceProvider
     {
         // Add our database drivers.
         $this->app->resolving('db', function (DatabaseManager $db) {
-            $db->extend('sqlite', function ($config) {
+            $db->extend('sqlite', function ($config, $name) {
+                $config = Arr::add($config, 'name', $name);
                 $connector = new SQLiteConnector();
                 $connection = $connector->connect($config);
 

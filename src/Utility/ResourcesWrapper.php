@@ -90,8 +90,9 @@ class ResourcesWrapper
 
     public static function wrapResources($resources, $force = false)
     {
-        $wrapParameter = request()->wrap;
-        $wrapHeader = request()->header('wrap');
+        $request = request();
+        $wrapParameter = $request->input('wrap');
+        $wrapHeader = $request->header('wrap');
         $wrappingOnDemandEnabled = !is_null($wrapParameter) || !is_null($wrapHeader);
 
         if ($wrappingOnDemandEnabled) {

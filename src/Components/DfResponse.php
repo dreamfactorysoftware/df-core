@@ -22,4 +22,8 @@ class DfResponse extends Response
 
         return json_encode($content, JSON_UNESCAPED_SLASHES);
     }
+
+    static function create($content = '', $status = 200, array $headers = []) {
+        return new DfResponse($content, $status, $headers);
+    }
 }

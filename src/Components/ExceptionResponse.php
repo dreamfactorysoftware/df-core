@@ -51,7 +51,7 @@ trait ExceptionResponse
         }
 
         $errorInfo['code'] = ($exception->getCode()) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-        $errorInfo['message'] = htmlentities($exception->getMessage());
+        $errorInfo['message'] = htmlentities($exception->getMessage(), ENT_COMPAT);
 
         if (config('app.debug', false)) {
             $trace = $exception->getTraceAsString();

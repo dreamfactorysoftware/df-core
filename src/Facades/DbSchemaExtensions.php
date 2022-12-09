@@ -16,6 +16,6 @@ class DbSchemaExtensions extends Facade
      */
     protected static function getFacadeAccessor()
     {
-        return 'db.schema';
+        return 'df.db.schema';
     }
 }

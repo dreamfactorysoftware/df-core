@@ -3,6 +3,7 @@
 namespace DreamFactory\Core\Database\Schema;
 
 use DreamFactory\Core\Enums\DbSimpleTypes;
+use Illuminate\Support\Facades\Log;
 
 
 /**
@@ -203,20 +204,28 @@ class TableSchema extends NamedResourceSchema
      *
      * @return ColumnSchema[]
      */
-    public function getColumns($use_alias = false)
+    public function getColumns(bool $use_alias = false): array
     {
-        if ($use_alias) {
-            // re-index for alias usage, easier to find requested fields from client
-            $columns = [];
-            /** @var ColumnSchema $column */
+        if (!$use_alias) {
+            return !is_array($this->columns) ? [] : $this->columns;
+        }
+
+        // re-index for alias usage, easier to find requested fields from client
+        $columns = [];
+        $this->columns = null;
+
+        /** @var ColumnSchema $column */
+        try {
             foreach ($this->columns as $column) {
                 $columns[strtolower($column->getName(true))] = $column;
             }
-
-            return $columns;
+        } catch (\Exception $exception) {
+            Log::info("Columns field type: " . gettype($this->columns));
+            Log::error($exception->getMessage());
+            Log::error($exception->getTraceAsString());
         }
 
-        return $this->columns;
+        return $columns;
     }
 
     public function addRelation(RelationSchema $relation)
@@ -301,9 +310,16 @@ class TableSchema extends NamedResourceSchema
 
             $fields = [];
             /** @var ColumnSchema $column */
-            foreach ($this->columns as $column) {
-                $fields[] = $column->toArray($use_alias);
+            try {
+                foreach ($this->columns as $column) {
+                    $fields[] = $column->toArray($use_alias);
+                }
+            } catch (\Exception $exception) {
+                Log::info("Columns field type: " . gettype($this->columns));
+                Log::error($exception->getMessage());
+                Log::error($exception->getTraceAsString());
             }
+
             $out['field'] = $fields;
 
             $relations = [];

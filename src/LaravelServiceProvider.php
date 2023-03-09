@@ -103,19 +103,9 @@ class LaravelServiceProvider extends ServiceProvider
      */
     protected function addMiddleware()
     {
-        // the method name was changed in Laravel 5.4
-        if (method_exists(\Illuminate\Routing\Router::class, 'aliasMiddleware')) {
-            Route::aliasMiddleware('df.auth_check', AuthCheck::class);
-            Route::aliasMiddleware('df.access_check', AccessCheck::class);
-            Route::aliasMiddleware('df.verb_override', VerbOverrides::class);
-        } else {
-            /** @noinspection PhpUndefinedMethodInspection */
-            Route::middleware('df.auth_check', AuthCheck::class);
-            /** @noinspection PhpUndefinedMethodInspection */
-            Route::middleware('df.access_check', AccessCheck::class);
-            /** @noinspection PhpUndefinedMethodInspection */
-            Route::middleware('df.verb_override', VerbOverrides::class);
-        }
+        Route::aliasMiddleware('df.auth_check', AuthCheck::class);
+        Route::aliasMiddleware('df.access_check', AccessCheck::class);
+        Route::aliasMiddleware('df.verb_override', VerbOverrides::class);
 
         /** Add the first user check to the web group */
         Route::prependMiddlewareToGroup('web', FirstUserCheck::class);

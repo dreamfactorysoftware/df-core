@@ -17,7 +17,7 @@ Route::prefix(config('df.api_route_prefix', 'api'))
         $resourcePathPattern = '[0-9a-zA-ZÀ-ÿ-_@&\#\!=,:;\/\^\$\.\|\{\}\[\]\(\)\*\+\?\' ]+';
         $controller = 'DreamFactory\Core\Http\Controllers\RestController';
         // Don't use any() below, or include OPTIONS here, breaks CORS
-        $verbs = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE'];
+        $verbs = ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'];
 
         Route::get('', $controller . '@index');
         // Support old versioning in URL, i.e api/v2 and api/v2/service

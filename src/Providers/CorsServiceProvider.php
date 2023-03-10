@@ -2,9 +2,10 @@
 
 namespace DreamFactory\Core\Providers;
 
-use Fruitcake\Cors\HandleCors;
-use Fruitcake\Cors\CorsService;
+use DreamFactory\Core\Services\DfCorsService;
 use DreamFactory\Core\Models\CorsConfig;
+use Fruitcake\Cors\CorsService;
+use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Database\QueryException;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
@@ -35,21 +36,15 @@ class CorsServiceProvider extends ServiceProvider
      */
     public function boot(Request $request, Kernel $kernel)
     {
+        $api_prefix = config('df.api_route_prefix', 'api');
+        config(['cors.paths' => [$api_prefix . '/*']]);
+        
         $config = $this->getOptions($request);
         $this->app->singleton(CorsService::class, function () use ($config){
-            return new CorsService($config);
+            return new DfCorsService($config);
         });
 
-        /** @noinspection PhpUndefinedMethodInspection */
-        //$this->app['router']->middleware('cors', HandleCors::class);
-
-        if (method_exists(\Illuminate\Routing\Router::class, 'aliasMiddleware')) {
-            Route::aliasMiddleware('df.cors', HandleCors::class);
-        } else {
-            /** @noinspection PhpUndefinedMethodInspection */
-            Route::middleware('df.cors', HandleCors::class);
-        }
-
+        Route::aliasMiddleware('df.cors', HandleCors::class);
         Route::prependMiddlewareToGroup('df.api', 'df.cors');
     }
 

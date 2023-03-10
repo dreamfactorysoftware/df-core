@@ -668,25 +668,51 @@ class Session
      */
     public static function authenticate(array $credentials, $remember = false, $login = true, $appId = null)
     {
-        if (\Auth::attempt($credentials)) {
+
+        if (isset($credentials['integrateio_id'])) {
+            $user = static::loginIntegrateUser($credentials);
+            /** @noinspection PhpUndefinedFieldInspection */
+            static::checkRole($user->id);
+            if ($login) {
+                static::confirmUserLogin($user, $remember, $appId);
+            }
+
+            return true;
+        } else if (\Auth::attempt($credentials)) {
             $user = \Auth::getLastAttempted();
             /** @noinspection PhpUndefinedFieldInspection */
             static::checkRole($user->id);
             if ($login) {
-                /** @noinspection PhpUndefinedFieldInspection */
-                $user->last_login_date = Carbon::now()->toDateTimeString();
-                /** @noinspection PhpUndefinedFieldInspection */
-                $user->confirm_code = 'y';
-                /** @noinspection PhpUndefinedMethodInspection */
-                $user->save();
-                /** @noinspection PhpParamsInspection */
-                Session::setUserInfoWithJWT($user, $remember, $appId);
+                static::confirmUserLogin($user, $remember, $appId);
             }
 
             return true;
         } else {
             return false;
         }
+    }
+
+    /**
+     * @param array   $credentials
+     * @return User
+     * @throws \Exception
+     */
+    protected static function loginIntegrateUser(array $credentials) {
+        $userid = User::where('integrateio_id', $credentials['integrateio_id']) -> first() ->id;
+        $user = \Auth::loginUsingId($userid);
+
+        return $user;
+    }
+
+    protected static function confirmUserLogin($user, $remember, $appId) {
+        /** @noinspection PhpUndefinedFieldInspection */
+        $user->last_login_date = Carbon::now()->toDateTimeString();
+        /** @noinspection PhpUndefinedFieldInspection */
+        $user->confirm_code = 'y';
+        /** @noinspection PhpUndefinedMethodInspection */
+        $user->save();
+        /** @noinspection PhpParamsInspection */
+        Session::setUserInfoWithJWT($user, $remember, $appId);
     }
 
     /**

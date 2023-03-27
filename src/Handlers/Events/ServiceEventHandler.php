@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Handlers\Events;
 
 use DreamFactory\Core\Events\ApiEvent;
 use DreamFactory\Core\Events\BaseServiceEvent;
+use DreamFactory\Core\Events\GenerateReportEvent;
 use DreamFactory\Core\Events\ServiceDeletedEvent;
 use DreamFactory\Core\Events\ServiceAssignedEvent;
 use DreamFactory\Core\Events\ServiceModifiedEvent;
@@ -46,6 +47,12 @@ class ServiceEventHandler
                     QueryExecuted::class,
                 ],
                 static::class . '@handleQueryExecutedEvent'
+            );
+        }
+        if (config('df.generate_report')) {
+            $events->listen(
+                [GenerateReportEvent::class],
+                GenerateReportHandler::class
             );
         }
     }

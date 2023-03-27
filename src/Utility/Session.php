@@ -13,8 +13,10 @@ use DreamFactory\Core\Models\BaseSystemLookup;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\User;
 use DreamFactory\Core\Models\UserAppRole;
+use Illuminate\Support\Facades\Auth;
 use ServiceManager;
 use Tymon\JWTAuth\Exceptions\TokenBlacklistedException;
+use JWTAuth;
 
 class Session
 {
@@ -668,8 +670,8 @@ class Session
      */
     public static function authenticate(array $credentials, $remember = false, $login = true, $appId = null)
     {
-        if (\Auth::attempt($credentials)) {
-            $user = \Auth::getLastAttempted();
+        if (Auth::attempt($credentials)) {
+            $user = Auth::getLastAttempted();
             /** @noinspection PhpUndefinedFieldInspection */
             static::checkRole($user->id);
             if ($login) {
@@ -910,9 +912,13 @@ class Session
             'email'           => session('user.email'),
             'is_sys_admin'    => session('user.is_sys_admin'),
             'last_login_date' => session('user.last_login_date'),
-            'host'            => gethostname()
+            'host'            => gethostname(),
         ];
-
+        // Get the TTL in minutes and then convert it to seconds
+        $ttl = JWTAuth::manager()->getPayloadFactory()->getTTL() * 60;
+        // Convert the TTL to date format
+        $formattedTTL = Carbon::now()->addSeconds($ttl)->format('Y-m-d H:i:s');
+        $sessionData['token_expiry_date'] = $formattedTTL;
         $role = static::get('role');
         if (!empty($role)) {
             $sessionData['role'] = array_get($role, 'name');

@@ -12,6 +12,8 @@
 Route::prefix(config('df.api_route_prefix', 'api'))
     ->middleware('df.api')
     ->group(function () {
+        Route::post('report', [\DreamFactory\Core\Http\Controllers\ReportController::class, 'generate'])->name('report:generate');
+
         $versionPattern = 'v[0-9.]+';
         $servicePattern = '[_0-9a-zA-Z-.]+';
         $resourcePathPattern = '[0-9a-zA-ZÀ-ÿ-_@&\#\!=,:;\/\^\$\.\|\{\}\[\]\(\)\*\+\?\' ]+';
@@ -29,7 +31,7 @@ Route::prefix(config('df.api_route_prefix', 'api'))
             ['service' => $servicePattern, 'resource' => $resourcePathPattern]
         );
     }
-);
+    );
 
 /*
 |--------------------------------------------------------------------------

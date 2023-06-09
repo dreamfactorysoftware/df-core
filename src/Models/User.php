@@ -43,6 +43,7 @@ use Validator;
  * @property string  $last_login_date
  * @property string  $created_date
  * @property string  $last_modified_date
+ * @property int confirmed_initial_login
  * @method static \Illuminate\Database\Query\Builder|User whereId($value)
  * @method static \Illuminate\Database\Query\Builder|User whereName($value)
  * @method static \Illuminate\Database\Query\Builder|User whereFirstName($value)
@@ -118,6 +119,12 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      * @var array
      */
     protected $casts = ['is_active' => 'boolean', 'is_sys_admin' => 'boolean', 'id' => 'integer'];
+
+    public function confirmInitialLogin(): void
+    {
+        $this->confirmed_initial_login++;
+        $this->save();
+    }
 
     /**
      * Gets account confirmation status.

@@ -665,30 +665,26 @@ class Session
      * @param bool    $login
      * @param integer $appId
      *
-     * @return bool
+     * @return User|null
      * @throws \Exception
      */
     public static function authenticate(array $credentials, $remember = false, $login = true, $appId = null)
     {
-        if (Auth::attempt($credentials)) {
-            $user = Auth::getLastAttempted();
-            /** @noinspection PhpUndefinedFieldInspection */
-            static::checkRole($user->id);
-            if ($login) {
-                /** @noinspection PhpUndefinedFieldInspection */
-                $user->last_login_date = Carbon::now()->toDateTimeString();
-                /** @noinspection PhpUndefinedFieldInspection */
-                $user->confirm_code = 'y';
-                /** @noinspection PhpUndefinedMethodInspection */
-                $user->save();
-                /** @noinspection PhpParamsInspection */
-                Session::setUserInfoWithJWT($user, $remember, $appId);
-            }
-
-            return true;
-        } else {
-            return false;
+        if (!Auth::attempt($credentials)) {
+            return null;
         }
+
+        $user = Auth::getLastAttempted();
+        static::checkRole($user->id);
+
+        if ($login) {
+            $user->last_login_date = Carbon::now()->toDateTimeString();
+            $user->confirm_code = 'y';
+            $user->save();
+            Session::setUserInfoWithJWT($user, $remember, $appId);
+        }
+
+        return $user;
     }
 
     /**

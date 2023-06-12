@@ -909,6 +909,7 @@ class Session
             'is_sys_admin'    => session('user.is_sys_admin'),
             'last_login_date' => session('user.last_login_date'),
             'host'            => gethostname(),
+            'intercomId'      => session('user.intercomId'),
         ];
         // Get the TTL in minutes and then convert it to seconds
         $ttl = JWTAuth::manager()->getPayloadFactory()->getTTL() * 60;

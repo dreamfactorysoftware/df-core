@@ -120,12 +120,6 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      */
     protected $casts = ['is_active' => 'boolean', 'is_sys_admin' => 'boolean', 'id' => 'integer'];
 
-    public function confirmInitialLogin(): void
-    {
-        $this->confirmed_initial_login++;
-        $this->save();
-    }
-
     /**
      * Gets account confirmation status.
      *

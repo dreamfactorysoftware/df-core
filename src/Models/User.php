@@ -684,7 +684,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
                 'phone' => $data['phone'],
             ]);
 
-            if ($response->status() !== 200) {
+            if ($response->status() !== 200 || $response->status() !== 201) {
+                Log::error("Error creating customer in DF updates: " . $response->body());
                 throw new \Exception();
             }
 

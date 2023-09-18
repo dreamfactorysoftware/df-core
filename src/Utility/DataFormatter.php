@@ -917,6 +917,9 @@ class DataFormatter
                 $cfgFormat = static::getDateTimeFormat($type);
 
                 return static::formatDateTime($cfgFormat, $value);
+
+            case 'json':
+                return json_decode($value, true);
         }
 
         return $value;

@@ -611,12 +611,12 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         }
 
         $validationRules = [
-            'name'       => 'required|max:255',
+            'name'       => 'max:255',
             'first_name' => 'required|max:255',
             'last_name'  => 'required|max:255',
             'email'      => 'required|email|max:255|unique:user',
             'password'   => 'required|confirmed|min:6',
-            'username'   => 'min:6|unique:user,username|regex:/^\S*$/u|required',
+            'username'   => 'min:6|unique:user,username|regex:/^\S*$/u',
             'phone'      => 'required|max:32',
         ];
 
@@ -629,6 +629,10 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             return false;
         } else {
             /** @type User $user */
+            if (empty($data['name'])) {
+              $data['name'] = $data['email'];
+            }
+
             $attributes = array_only($data, ['name', 'first_name', 'last_name', 'email', 'username', 'phone']);
             $attributes['is_active'] = 1;
             $user = static::create($attributes);
@@ -640,7 +644,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             InstanceId::getInstanceIdOrGenerate();
 
             // Register user
-            RegisterContact::registerUser($user);
+            RegisterContact::registerUser($user, ['gdpr' => isset($data['gdpr']) && $data['gdpr'] === 'Yes']);
             // Reset admin_exists flag in cache.
             \Cache::forever('admin_exists', true);
 

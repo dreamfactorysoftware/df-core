@@ -1,4 +1,8 @@
-<?php namespace DreamFactory\Core\Utility;
+<?php
+
+namespace DreamFactory\Core\Utility;
+
+use Illuminate\Support\Facades\Http;
 
 class AWSMetaDataParser {
 
@@ -17,11 +21,17 @@ class AWSMetaDataParser {
      *
      * @var string $metadataServer
      */
-    public $metadataServer = 'http://169.254.169.254';
+    public static $metadataServer = 'http://169.254.169.254';
 
     public function __construct()
     {
         $this->awsPublicCertificate = \File::get(__DIR__ . '/AWSMarketplace.pub');
+    }
+
+    public static function isDFRunningOnAWSEC2() {
+        $response = Http::get(self::$metadataServer . '/latest/meta-data/instance-id');
+
+        return $response->status() === 200;
     }
 
     /**

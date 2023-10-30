@@ -10,6 +10,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Utility\AWSMetaDataParser;
 use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\Session;
@@ -632,20 +633,25 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
             return false;
         } else {
-            // Send request to create the customer in updates.dreamfactory.com and get the customer key
-            $res = self::createCustomer($data);
+            // Only run this portion of code if DF is running inside an EC2 instance
+            // This part is responsible for creating a customer in updates.dreamfactory.com and saving the customer key
+            if (AWSMetaDataParser::isDFRunningOnAWSEC2()) {
+                // Send request to create the customer in updates.dreamfactory.com and get the customer key
+                $res = self::createCustomer($data);
 
-            // Extract the key from the response and save it in the config file and .env file
-            $customerKey = $res['data'];
-            $path = base_path('.env');
-            $app = app();
-            $key = $app['config']['app.license_key'];
-            if (file_exists($path)) {
-                file_put_contents($path, str_replace(
-                    'DF_LICENSE_KEY='.$key, 'DF_LICENSE_KEY='.$customerKey, file_get_contents($path)
-                ));
+                // Extract the key from the response and save it in the config file and .env file
+                $customerKey = $res['data'];
+                $path = base_path('.env');
+                $app = app();
+                $key = $app['config']['app.license_key'];
+                if (file_exists($path)) {
+                    file_put_contents($path, str_replace(
+                        'DF_LICENSE_KEY='.$key, 'DF_LICENSE_KEY='.$customerKey, file_get_contents($path)
+                    ));
+                }
+                $app['config']['app.license_key'] = $customerKey;
             }
-            $app['config']['app.license_key'] = $customerKey;
+
 
             /** @type User $user */
             $attributes = array_only($data, ['name', 'first_name', 'last_name', 'email', 'username', 'phone']);

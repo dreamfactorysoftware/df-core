@@ -141,6 +141,19 @@ class FileUtilities
         }
     }
 
+    /**
+     * @param string $fileName
+     * @return string
+     */
+    public static function sanitizeFileName($fileName)
+    {
+        // Remove any characters that are not alphanumeric, underscores, dots, or dashes
+        $fileName = preg_replace('/[^a-zA-Z0-9_\.-]/', '', $fileName);
+
+        // Replace multiple consecutive dots with a single dot (in order to avoid directory traversal issues)
+        return preg_replace('/\.+/', '.', $fileName);
+    }
+
     public static function sendFile($file, $download = false, $chunk = null)
     {
         if (is_file($file)) {
@@ -1335,6 +1348,33 @@ class FileUtilities
         }
 
         return $new;
+    }
+
+    public static function validateFileSignature($filePath, $contentType)
+    {
+        $handle = fopen($filePath, 'rb');
+        if (!$handle) {
+            return false;
+        }
+
+        $bytes = fread($handle, 8); // 8 bytes should be sufficient for most file types
+        fclose($handle);
+
+        $fileSignatures = [
+            'jpg' => ["\xFF\xD8\xFF", 'image/jpeg'],
+            'png' => ["\x89\x50\x4E\x47\x0D\x0A\x1A\x0A", 'image/png'],
+            'pdf' => ["\x25\x50\x44\x46\x2D", 'application/pdf'],
+        ];
+
+        foreach ($fileSignatures as $signature) {
+            [$magicBytes, $expectedContentType] = $signature;
+
+            if (strpos($bytes, $magicBytes) === 0 && $contentType === $expectedContentType) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

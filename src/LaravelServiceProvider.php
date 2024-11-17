@@ -29,6 +29,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
+use Jenssegers\Mongodb\MongodbServiceProvider;
 
 class LaravelServiceProvider extends ServiceProvider
 {
@@ -76,6 +77,9 @@ class LaravelServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        // Register MongoDB provider first
+        $this->app->register(MongodbServiceProvider::class);
+
         // merge in df config, https://laravel.com/docs/5.4/packages#resources
         $this->mergeConfigFrom(__DIR__ . '/../config/df.php', 'df');
 

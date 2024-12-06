@@ -1,10 +1,11 @@
 <?php
 
-namespace App\Utility;
+namespace DreamFactory\Core\Utility;
 
 use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Session;
 use DreamFactory\Core\Utility\Environment\Platform;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Session;
 
 class UpdatesSender
 {
@@ -18,12 +19,12 @@ class UpdatesSender
     public static function sendFreshInstanceData($userData, $skipAuthCheck = false)
     {
         try {
-            \Log::debug('Attempting to send fresh instance data');
-            \Log::debug('User data received:', $userData);
+            Log::debug('Attempting to send fresh instance data');
+            Log::debug('User data received:', $userData);
             
             // Only check authentication if not creating first admin
             if (!$skipAuthCheck && !Session::isAuthenticated()) {
-                \Log::debug('Auth check failed - skipping fresh instance data send');
+                Log::debug('Auth check failed - skipping fresh instance data send');
                 return;
             }
 
@@ -36,7 +37,7 @@ class UpdatesSender
                 'license_key' => env('DF_LICENSE_KEY', '')
             ];
 
-            \Log::debug('Preparing to send data to updates server:', $data);
+            Log::debug('Preparing to send data to updates server:', $data);
 
             $client = new Client([
                 'timeout' => 2,
@@ -47,14 +48,14 @@ class UpdatesSender
                 'json' => $data
             ]);
 
-            \Log::debug('Request initiated');
+            Log::debug('Request initiated');
 
             $promise->then(
                 function ($response) {
-                    \Log::debug('Fresh instance data sent successfully. Response: ' . $response->getBody());
+                    Log::debug('Fresh instance data sent successfully. Response: ' . $response->getBody());
                 },
                 function ($exception) {
-                    \Log::debug('Failed to send fresh instance data: ' . $exception->getMessage());
+                    Log::debug('Failed to send fresh instance data: ' . $exception->getMessage());
                 }
             );
 
@@ -62,8 +63,9 @@ class UpdatesSender
             $promise->wait();
 
         } catch (\Exception $e) {
-            \Log::debug('Error in sendFreshInstanceData: ' . $e->getMessage());
-            \Log::debug($e->getTraceAsString());
+            // Fail silently but log the error
+            Log::debug('Error in sendFreshInstanceData: ' . $e->getMessage());
+            Log::debug($e->getTraceAsString());
         }
     }
 } 

@@ -20,6 +20,7 @@ use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Hash;
 use Validator;
+use DreamFactory\Core\Utility\UpdatesSender;
 
 /**
  * User
@@ -604,7 +605,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      *
      * @return User|boolean
      */
-    public static function createFirstAdmin(array &$data)
+    public static function createFirstAdmin(array $data)
     {
         if (empty($data['username'])) {
             $data['username'] = $data['email'];
@@ -643,6 +644,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             RegisterContact::registerUser($user);
             // Reset admin_exists flag in cache.
             \Cache::forever('admin_exists', true);
+
+            UpdatesSender::sendFreshInstanceData($data);
 
             return $user;
         }

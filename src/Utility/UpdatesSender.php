@@ -12,11 +12,7 @@ class UpdatesSender
     public static function sendFreshInstanceData($userData, $skipAuthCheck = false)
     {
         try {
-            Log::debug('Attempting to send fresh instance data');
-            Log::debug('User data received:', $userData);
-            
             if (!$skipAuthCheck && !Session::isAuthenticated()) {
-                Log::debug('Auth check failed - skipping fresh instance data send');
                 return;
             }
 
@@ -28,10 +24,8 @@ class UpdatesSender
                 'license_level' => Config::get('df.license.level', 'community'),
                 'license_key' => env('DF_LICENSE_KEY', 'unknown'),
                 'version' => Config::get('app.version'),
-                'server_os' => strtolower(php_uname('s')) . ' ' . php_uname('v')
+                'server_os' => strtolower(php_uname('a'))
             ];
-
-            Log::debug('Preparing to send data to updates server:', $data);
 
             $client = new Client([
                 'timeout' => 2,
@@ -42,24 +36,10 @@ class UpdatesSender
                 'json' => $data
             ]);
 
-            Log::debug('Request initiated');
-
-            $promise->then(
-                function ($response) {
-                    Log::debug('Fresh instance data sent successfully. Response: ' . $response->getBody());
-                },
-                function ($exception) {
-                    Log::debug('Failed to send fresh instance data: ' . $exception->getMessage());
-                }
-            );
-
-            // Force the promise to complete
             $promise->wait();
 
         } catch (\Exception $e) {
-            // Fail silently but log the error
-            Log::debug('Error in sendFreshInstanceData: ' . $e->getMessage());
-            Log::debug($e->getTraceAsString());
+            // Fail silently
         }
     }
 } 

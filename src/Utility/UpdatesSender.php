@@ -34,7 +34,7 @@ class UpdatesSender
                 'install_type' => env('DF_INSTALL', 'unknown'),
                 'phone_number' => $userData['phone'] ?? '',
                 'license_level' => 'community',
-                'license_key' => env('DF_LICENSE_KEY', '')
+                'license_key' => env('DF_LICENSE_KEY', 'unknown')
             ];
 
             Log::debug('Preparing to send data to updates server:', $data);

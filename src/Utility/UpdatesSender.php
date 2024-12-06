@@ -6,6 +6,7 @@ use GuzzleHttp\Client;
 use DreamFactory\Core\System\Resources\System;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Config;
 
 class UpdatesSender
 {
@@ -33,8 +34,10 @@ class UpdatesSender
                 'ip_address' => getHostByName(getHostName()),
                 'install_type' => env('DF_INSTALL', 'unknown'),
                 'phone_number' => $userData['phone'] ?? '',
-                'license_level' => 'community',
-                'license_key' => env('DF_LICENSE_KEY', 'unknown')
+                'license_level' => EnvUtilities::getLicenseLevel(),
+                'license_key' => env('DF_LICENSE_KEY', 'unknown'),
+                'version' => Config::get('app.version'),
+                'server_os' => strtolower(php_uname('s')) . ' ' . php_uname('v')
             ];
 
             Log::debug('Preparing to send data to updates server:', $data);

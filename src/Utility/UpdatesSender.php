@@ -3,7 +3,7 @@
 namespace DreamFactory\Core\Utility;
 
 use GuzzleHttp\Client;
-use DreamFactory\Core\Utility\Environment\Platform;
+use DreamFactory\Core\System\Resources\System;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 
@@ -33,7 +33,7 @@ class UpdatesSender
                 'ip_address' => getHostByName(getHostName()),
                 'install_type' => env('DF_INSTALL', 'unknown'),
                 'phone_number' => $userData['phone'] ?? '',
-                'license_level' => Platform::getLicenseLevel(),
+                'license_level' => 'community',
                 'license_key' => env('DF_LICENSE_KEY', '')
             ];
 

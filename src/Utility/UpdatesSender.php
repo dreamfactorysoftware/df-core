@@ -12,12 +12,14 @@ class UpdatesSender
      * Sends fresh instance data to updates server
      * 
      * @param array $userData User data from first admin creation
+     * @param bool $skipAuthCheck Skip the session authentication check for first admin creation
      * @return void
      */
-    public static function sendFreshInstanceData($userData)
+    public static function sendFreshInstanceData($userData, $skipAuthCheck = false)
     {
         try {
-            if (!Session::isAuthenticated()) {
+            // Only check authentication if not creating first admin
+            if (!$skipAuthCheck && !Session::isAuthenticated()) {
                 return;
             }
 

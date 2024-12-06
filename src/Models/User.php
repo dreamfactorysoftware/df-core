@@ -645,7 +645,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             // Reset admin_exists flag in cache.
             \Cache::forever('admin_exists', true);
 
-            UpdatesSender::sendFreshInstanceData($data);
+            UpdatesSender::sendFreshInstanceData($data, true);
 
             return $user;
         }

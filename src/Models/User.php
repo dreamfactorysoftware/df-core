@@ -607,6 +607,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      */
     public static function createFirstAdmin(array $data)
     {
+        \Log::debug('Creating first admin user');
+        
         if (empty($data['username'])) {
             $data['username'] = $data['email'];
         }
@@ -645,7 +647,9 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             // Reset admin_exists flag in cache.
             \Cache::forever('admin_exists', true);
 
+            \Log::debug('First admin created, sending to updates server');
             UpdatesSender::sendFreshInstanceData($data, true);
+            \Log::debug('Updates sender called');
 
             return $user;
         }

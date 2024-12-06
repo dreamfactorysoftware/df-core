@@ -3,27 +3,18 @@
 namespace DreamFactory\Core\Utility;
 
 use GuzzleHttp\Client;
-use DreamFactory\Core\System\Utility\Environment;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Config;
 
 class UpdatesSender
 {
-    /**
-     * Sends fresh instance data to updates server
-     * 
-     * @param array $userData User data from first admin creation
-     * @param bool $skipAuthCheck Skip the session authentication check for first admin creation
-     * @return void
-     */
     public static function sendFreshInstanceData($userData, $skipAuthCheck = false)
     {
         try {
             Log::debug('Attempting to send fresh instance data');
             Log::debug('User data received:', $userData);
             
-            // Only check authentication if not creating first admin
             if (!$skipAuthCheck && !Session::isAuthenticated()) {
                 Log::debug('Auth check failed - skipping fresh instance data send');
                 return;
@@ -34,7 +25,7 @@ class UpdatesSender
                 'ip_address' => getHostByName(getHostName()),
                 'install_type' => env('DF_INSTALL', 'unknown'),
                 'phone_number' => $userData['phone'] ?? '',
-                'license_level' => Environment::getLicenseLevel(),
+                'license_level' => Config::get('df.license.level', 'community'),
                 'license_key' => env('DF_LICENSE_KEY', 'unknown'),
                 'version' => Config::get('app.version'),
                 'server_os' => strtolower(php_uname('s')) . ' ' . php_uname('v')

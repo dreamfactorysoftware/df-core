@@ -34,7 +34,8 @@
     "doctrine/dbal":          "^3.1.4",
     "guzzlehttp/guzzle":      "^7.8",
     "symfony/yaml":           "^6.0",
-    "tymon/jwt-auth":         "^2.1.0"
+    "tymon/jwt-auth":         "^2.1.0",
+    "dreamfactory/df-system": "~1.0"
   },
   "require-dev": {
     "phpunit/phpunit": "@stable"

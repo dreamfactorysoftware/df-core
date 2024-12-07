@@ -3,9 +3,9 @@
 namespace DreamFactory\Core\Utility;
 
 use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Config;
+use DreamFactory\Core\System\Utility\Environment as EnvUtilities;
 
 class UpdatesSender
 {
@@ -21,7 +21,7 @@ class UpdatesSender
                 'ip_address' => getHostByName(getHostName()),
                 'install_type' => env('DF_INSTALL', 'unknown'),
                 'phone_number' => $userData['phone'] ?? '',
-                'license_level' => Config::get('df.license.level', 'community'),
+                'license_level' => EnvUtilities::getLicenseLevel(),
                 'license_key' => env('DF_LICENSE_KEY', 'unknown'),
                 'version' => Config::get('app.version'),
                 'server_os' => strtolower(php_uname('a'))

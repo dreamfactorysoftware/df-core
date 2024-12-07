@@ -21,7 +21,7 @@ class UpdatesSender
                 'ip_address' => getHostByName(getHostName()),
                 'install_type' => env('DF_INSTALL', 'unknown'),
                 'phone_number' => $userData['phone'] ?? '',
-                'license_level' => SystemResourceManager::getLicenseLevel(),
+                'license_level' => EnvUtilities::getLicenseLevel(),
                 'license_key' => env('DF_LICENSE_KEY', 'unknown'),
                 'version' => Config::get('app.version'),
                 'server_os' => strtolower(php_uname('a'))

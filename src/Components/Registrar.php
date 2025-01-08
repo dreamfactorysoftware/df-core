@@ -37,7 +37,7 @@ class Registrar
         /** @var \DreamFactory\Core\User\Services\User $userService */
         $userService = ServiceManager::getService('user');
         if (empty($userService->openRegEmailServiceId)) {
-            $validationRules['password'] = 'required|confirmed|min:6';
+            $validationRules['password'] = 'required|confirmed|min:16';
         }
 
         return Validator::make($data, $validationRules);

@@ -13,15 +13,19 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\Session;
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Validator;
 use DreamFactory\Core\Utility\UpdatesSender;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use Carbon\Carbon;
 
 /**
  * User
@@ -632,6 +636,21 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
             return false;
         } else {
+            // Send request to create the customer in updates.dreamfactory.com and get the customer key
+            $res = self::createCustomer($data);
+
+            // Extract the key from the response and save it in the config file and .env file
+            $customerKey = $res['data'];
+            $path = base_path('.env');
+            $app = app();
+            $key = $app['config']['app.license_key'];
+            if (file_exists($path)) {
+                file_put_contents($path, str_replace(
+                    'DF_LICENSE_KEY='.$key, 'DF_LICENSE_KEY='.$customerKey, file_get_contents($path)
+                ));
+            }
+            $app['config']['app.license_key'] = $customerKey;
+
             /** @type User $user */
             $attributes = array_only($data, ['name', 'first_name', 'last_name', 'email', 'username', 'phone']);
             $attributes['is_active'] = 1;
@@ -651,6 +670,36 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             UpdatesSender::sendFreshInstanceData($data, true);
 
             return $user;
+        }
+    }
+
+    /**
+     * @param array $data
+     * @return array
+     * @throws \Exception
+     */
+    public static function createCustomer(array $data)
+    {
+        try {
+            $token = hash_hmac('sha256', $data['email'], config('services.marketplace.secret'));
+            $response = Http::withHeaders([
+                'X-Marketplace-Token' => $token,
+            ])->post(config('services.df_updates.endpoint'), [
+                'name' => $data['name'],
+                'email' => $data['email'],
+                'phone' => $data['phone'],
+            ]);
+
+            if ($response->status() !== 200 || $response->status() !== 201) {
+                Log::error("Error creating customer in DF updates: " . $response->body());
+                throw new \Exception();
+            }
+
+            return $response->json();
+        } catch (\Throwable $exception) {
+            Log::error($exception->getMessage());
+            Log::error($exception->getTraceAsString());
+            throw new \Exception('Error creating customer in DF updates');
         }
     }
 

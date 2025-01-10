@@ -141,6 +141,19 @@ class FileUtilities
         }
     }
 
+    /**
+     * @param string $fileName
+     * @return string
+     */
+    public static function sanitizeFileName($fileName)
+    {
+        // Remove any characters that are not alphanumeric, underscores, dots, or dashes
+        $fileName = preg_replace('/[^a-zA-Z0-9_\.-]/', '', $fileName);
+
+        // Replace multiple consecutive dots with a single dot (in order to avoid directory traversal issues)
+        return preg_replace('/\.+/', '.', $fileName);
+    }
+
     public static function sendFile($file, $download = false, $chunk = null)
     {
         if (is_file($file)) {
@@ -1335,6 +1348,54 @@ class FileUtilities
         }
 
         return $new;
+    }
+
+    public static function validateFileSignature($filePath, $contentType)
+    {
+        $handle = fopen($filePath, 'rb');
+        if (!$handle) {
+            return false;
+        }
+
+        $bytes = fread($handle, 8); // 8 bytes should be sufficient for most file types
+        fclose($handle);
+
+        $fileSignatures = [
+            // Images
+            'jpg'   => ["\xFF\xD8\xFF", 'image/jpeg'],
+            'jpeg'  => ["\xFF\xD8\xFF", 'image/jpeg'],
+            'png'   => ["\x89\x50\x4E\x47\x0D\x0A\x1A\x0A", 'image/png'],
+            'svg'   => ["\x3C\x73\x76\x67", 'image/svg+xml'],
+            'gif'   => ["\x47\x49\x46\x38", 'image/gif'],
+            'bmp'   => ["\x42\x4D", 'image/bmp'],
+            'webp'  => ["\x52\x49\x46\x46", 'image/webp'],
+            'tiff'  => ["\x49\x49\x2A\x00", 'image/tiff'],
+            'tiff_big' => ["\x4D\x4D\x00\x2A", 'image/tiff'],
+
+            // Videos
+            'mp4'   => ["\x00\x00\x00\x18\x66\x74\x79\x70", 'video/mp4'],
+            'mov'   => ["\x00\x00\x00\x14\x66\x74\x79\x70\x71\x74", 'video/quicktime'],
+            'avi'   => ["\x52\x49\x46\x46", 'video/x-msvideo'],
+            'webm'  => ["\x1A\x45\xDF\xA3", 'video/webm'],
+            'mkv'   => ["\x1A\x45\xDF\xA3", 'video/x-matroska'],
+
+            // Documents
+            'pdf'   => ["\x25\x50\x44\x46\x2D", 'application/pdf'],
+            'docx'  => ["\x50\x4B\x03\x04", 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+            'xlsx'  => ["\x50\x4B\x03\x04", 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+            'txt'   => ["\xEF\xBB\xBF", 'text/plain'],
+            'csv'   => ["\xEF\xBB\xBF", 'text/csv'],
+        ];
+
+        foreach ($fileSignatures as $signature) {
+            [$magicBytes, $expectedContentType] = $signature;
+
+            if (strpos($bytes, $magicBytes) === 0 && $contentType === $expectedContentType) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

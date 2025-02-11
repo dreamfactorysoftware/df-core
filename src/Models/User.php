@@ -23,8 +23,10 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Validator;
+use DreamFactory\Core\Utility\UpdatesSender;
 use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
+
 /**
  * User
  *
@@ -608,8 +610,10 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      *
      * @return User|boolean
      */
-    public static function createFirstAdmin(array &$data)
+    public static function createFirstAdmin(array $data)
     {
+        Log::debug('Creating first admin user');
+        
         if (empty($data['username'])) {
             $data['username'] = $data['email'];
         }
@@ -662,6 +666,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             RegisterContact::registerUser($user);
             // Reset admin_exists flag in cache.
             \Cache::forever('admin_exists', true);
+
+            UpdatesSender::sendFreshInstanceData($data, true);
 
             return $user;
         }

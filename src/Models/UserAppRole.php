@@ -83,7 +83,14 @@ class UserAppRole extends BaseModel
         $result = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'),
             function () use ($app_id, $user_id) {
                 try {
-                    return static::whereAppId($app_id)->whereUserId($user_id)->value('role_id');
+                    $roleId = static::whereAppId($app_id)
+                        ->whereUserId($user_id)
+                        ->value('role_id');
+                    // try to get at least some role if it wasn't found by an app id
+                    if (empty($roleId)) {
+                        $roleId = static::whereUserId($user_id)->value('role_id');
+                    }
+                    return $roleId ?? null;
                 } catch (ModelNotFoundException $ex) {
                     return null;
                 }

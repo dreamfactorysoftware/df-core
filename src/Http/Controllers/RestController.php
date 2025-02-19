@@ -148,6 +148,7 @@ class RestController extends Controller
 
             // fix removal of trailing slashes from resource
             if (!empty($resource)) {
+                $resource = str_replace(['..'], '', $resource);
                 $uri = \Request::getRequestUri();
                 if ((false === strpos($uri, '?') && '/' === substr($uri, strlen($uri) - 1, 1)) ||
                     ('/' === substr($uri, strpos($uri, '?') - 1, 1))

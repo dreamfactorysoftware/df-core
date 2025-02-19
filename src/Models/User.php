@@ -13,13 +13,19 @@ use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Utility\DataFormatter;
 use DreamFactory\Core\Utility\JWTUtilities;
 use DreamFactory\Core\Utility\Session;
+use GuzzleHttp\Exception\GuzzleException;
 use Illuminate\Auth\Authenticatable;
 use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Validator;
+use DreamFactory\Core\Utility\UpdatesSender;
+use Illuminate\Support\Facades\Http;
+use Carbon\Carbon;
 
 /**
  * User
@@ -242,7 +248,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         ];
 
         $rule = [
-            'password' => 'min:6'
+            'password' => 'min:16'
         ];
 
         $validator = Validator::make($data, $rule);
@@ -604,8 +610,10 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
      *
      * @return User|boolean
      */
-    public static function createFirstAdmin(array &$data)
+    public static function createFirstAdmin(array $data)
     {
+        Log::debug('Creating first admin user');
+        
         if (empty($data['username'])) {
             $data['username'] = $data['email'];
         }
@@ -615,7 +623,7 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             'first_name' => 'required|max:255',
             'last_name'  => 'required|max:255',
             'email'      => 'required|email|max:255|unique:user',
-            'password'   => 'required|confirmed|min:6',
+            'password'   => 'required|confirmed|min:16',
             'username'   => 'min:6|unique:user,username|regex:/^\S*$/u|required',
             'phone'      => 'required|max:32',
         ];
@@ -643,6 +651,8 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             RegisterContact::registerUser($user);
             // Reset admin_exists flag in cache.
             \Cache::forever('admin_exists', true);
+
+            UpdatesSender::sendFreshInstanceData($data, true);
 
             return $user;
         }

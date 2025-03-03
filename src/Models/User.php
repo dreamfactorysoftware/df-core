@@ -26,7 +26,8 @@ use Validator;
 use DreamFactory\Core\Utility\UpdatesSender;
 use Illuminate\Support\Facades\Http;
 use Carbon\Carbon;
-
+use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Arr;
 /**
  * User
  *
@@ -613,49 +614,45 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
     public static function createFirstAdmin(array $data)
     {
         Log::debug('Creating first admin user');
-        
-        if (empty($data['username'])) {
-            $data['username'] = $data['email'];
-        }
 
-        $validationRules = [
+        // Default username to email if not provided
+        $data['username'] = $data['username'] ?? $data['email'];
+
+        $validator = Validator::make($data, [
             'name'       => 'required|max:255',
             'first_name' => 'required|max:255',
             'last_name'  => 'required|max:255',
             'email'      => 'required|email|max:255|unique:user',
             'password'   => 'required|confirmed|min:16',
-            'username'   => 'min:6|unique:user,username|regex:/^\S*$/u|required',
+            'username'   => 'required|min:6|unique:user,username|regex:/^\S*$/u',
             'phone'      => 'required|max:32',
-        ];
-
-        $validator = Validator::make($data, $validationRules);
+        ]);
 
         if ($validator->fails()) {
-            $errors = $validator->getMessageBag()->all();
-            $data = array_merge($data, ['errors' => $errors, 'version' => \Config::get('app.version')]);
-
-            return false;
-        } else {
-            /** @type User $user */
-            $attributes = array_only($data, ['name', 'first_name', 'last_name', 'email', 'username', 'phone']);
-            $attributes['is_active'] = 1;
-            $user = static::create($attributes);
-
-            $user->password = array_get($data, 'password');
-            $user->is_sys_admin = 1;
-            $user->save();
-
-            InstanceId::getInstanceIdOrGenerate();
-
-            // Register user
-            RegisterContact::registerUser($user);
-            // Reset admin_exists flag in cache.
-            \Cache::forever('admin_exists', true);
-
-            UpdatesSender::sendFreshInstanceData($data, true);
-
-            return $user;
+            Log::debug('Validation failed', ['errors' => $validator->errors()->all()]);
+            throw new ValidationException($validator);
         }
+
+        $attributes = Arr::only($data, ['name', 'first_name', 'last_name', 'email', 'username', 'phone']);
+        $attributes['is_active'] = 1;
+
+        /** @var User $user */
+        $user = static::create($attributes);
+        $user->password = Arr::get($data, 'password');
+        $user->is_sys_admin = 1;
+        $user->save();
+
+        InstanceId::getInstanceIdOrGenerate();
+
+        // Register user
+        RegisterContact::registerUser($user);
+
+        // Reset admin_exists flag in cache
+        \Cache::forever('admin_exists', true);
+
+        UpdatesSender::sendFreshInstanceData($data, true);
+
+        return $user;
     }
 
     public function save(array $options = [])

@@ -19,14 +19,14 @@ class Env extends Command
                             {--db_database= : Database name}
                             {--db_username= : Database username}
                             {--db_password= : Database password}
-                            {--cache_driver= : System cache driver [file, redis, memcached]}
-                            {--redis_host= : Cache driver redis host}
-                            {--redis_port= : Cache driver redis port}
-                            {--redis_database= : Cache driver redis database}
-                            {--redis_password= : Cache driver redis password}
-                            {--memcached_host= : Cache driver memcached host}
-                            {--memcached_port= : Cache driver memcached port}
-                            {--memcached_weight= : Cache driver memcached weight}
+                            {--cache_store= : System cache store [file, redis, memcached]}
+                            {--redis_host= : Cache store redis host}
+                            {--redis_port= : Cache store redis port}
+                            {--redis_database= : Cache store redis database}
+                            {--redis_password= : Cache store redis password}
+                            {--memcached_host= : Cache store memcached host}
+                            {--memcached_port= : Cache store memcached port}
+                            {--memcached_weight= : Cache store memcached weight}
                             {--df_install=GitHub : Installation source/environment}';
 
     /**
@@ -126,20 +126,20 @@ class Env extends Command
             }
         }
 
-        $cacheDriver = $this->option('cache_driver');
-        if (!in_array($cacheDriver, ['file', 'redis', 'memcached'])) {
-            $this->warn('CACHE DRIVER ' . $cacheDriver . ' is not supported. Using default driver file.');
-            $cacheDriver = 'file';
+        $cacheStore = $this->option('cache_store');
+        if (!in_array($cacheStore, ['file', 'redis', 'memcached'])) {
+            $this->warn('CACHE STORE ' . $cacheStore . ' is not supported. Using default store file.');
+            $cacheStore = 'file';
         }
 
-        static::setIfValid($config, 'CACHE_DRIVER', $cacheDriver);
+        static::setIfValid($config, 'CACHE_STORE', $cacheStore);
 
-        if ('redis' === strtolower($cacheDriver)) {
+        if ('redis' === strtolower($cacheStore)) {
             static::setIfValid($config, 'REDIS_HOST', $this->option('redis_host'));
             static::setIfValid($config, 'REDIS_PORT', $this->option('redis_port'));
             static::setIfValid($config, 'REDIS_DATABASE', $this->option('redis_database'));
             static::setIfValid($config, 'REDIS_PASSWORD', $this->option('redis_password'));
-        } elseif ('memcached' === strtolower($cacheDriver)) {
+        } elseif ('memcached' === strtolower($cacheStore)) {
             static::setIfValid($config, 'MEMCACHED_HOST', $this->option('memcached_host'));
             static::setIfValid($config, 'MEMCACHED_PORT', $this->option('memcached_port'));
             static::setIfValid($config, 'MEMCACHED_WEIGHT', $this->option('memcached_weight'));

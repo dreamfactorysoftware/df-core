@@ -1,0 +1,126 @@
+repo_name: dreamfactorysoftware/df-core
+report_id: 4a1aa150e5fd3d303647dbf65d7d7cc7
+repo_type: Public
+timestamp: '2023-12-06T22:38:36+00:00'
+requested_by: anas-srikou
+provider: github
+branch: master
+detected_tools_count: 10
+tools:
+- name: PHP
+  description: A popular general-purpose scripting language that is especially suited
+    to web development
+  website_url: http://www.php.net/
+  open_source: true
+  hosted_saas: false
+  category: Languages & Frameworks
+  sub_category: Languages
+  image_url: https://img.stackshare.io/service/991/hwUcGZ41_400x400.jpg
+  detection_source: Repo Metadata
+- name: Guzzle
+  description: PHP HTTP client that makes it easy to send HTTP requests and trivial
+    to integrate with web services
+  website_url: http://guzzlephp.org/
+  license: MIT
+  open_source: true
+  hosted_saas: false
+  category: Languages & Frameworks
+  sub_category: Microframeworks (Backend)
+  image_url: https://img.stackshare.io/service/2350/638632.png
+  detection_source: composer.json
+  last_updated_by: Danil Lytvyn
+  last_updated_on: 2022-12-09 15:07:54.000000000 Z
+- name: Symfony
+  description: A PHP full-stack web framework
+  website_url: http://symfony.com/
+  license: MIT
+  open_source: true
+  hosted_saas: false
+  category: Languages & Frameworks
+  sub_category: Frameworks (Full Stack)
+  image_url: https://img.stackshare.io/service/1197/logosf_positif_03_icon.png
+  detection_source: composer.json
+  last_updated_by: Danil Lytvyn
+  last_updated_on: 2022-12-09 15:07:54.000000000 Z
+- name: Git
+  description: Fast, scalable, distributed revision control system
+  website_url: http://git-scm.com/
+  open_source: true
+  hosted_saas: false
+  category: Build, Test, Deploy
+  sub_category: Version Control System
+  image_url: https://img.stackshare.io/service/1046/git.png
+  detection_source: Repo Metadata
+- name: PHPUnit
+  description: Testing framework for PHP
+  website_url: https://phpunit.de/
+  license: BSD-3-Clause
+  open_source: true
+  hosted_saas: false
+  category: Build, Test, Deploy
+  sub_category: Testing Frameworks
+  image_url: https://img.stackshare.io/service/1616/1_WsEnddd5Y4EgEHsT054kUQ.jpeg
+  detection_source: composer.json
+  last_updated_by: Arif Islam
+  last_updated_on: 2015-03-19 20:43:26.000000000 Z
+- name: doctrine/dbal
+  description: Powerful PHP database abstraction layer
+  package_url: https://packagist.org/doctrine/dbal
+  version: 3.1.4
+  open_source: false
+  hosted_saas: false
+  category: Build, Test, Deploy
+  sub_category: Package Managers
+  image_url: https://img.stackshare.io/package/packagist/image.png
+  detection_source_url: github.com/dreamfactorysoftware/df-core/blob/master/composer.json
+  detection_source: composer.json
+  last_updated_by: Danil Lytvyn
+  last_updated_on: 2022-12-09 15:07:54.000000000 Z
+- name: guzzlehttp/guzzle
+  description: Guzzle is a PHP HTTP client library
+  package_url: https://packagist.org/guzzlehttp/guzzle
+  version: 7.4.5
+  open_source: false
+  hosted_saas: false
+  category: Build, Test, Deploy
+  sub_category: Package Managers
+  image_url: https://img.stackshare.io/package/packagist/image.png
+  detection_source_url: github.com/dreamfactorysoftware/df-core/blob/master/composer.json
+  detection_source: composer.json
+  last_updated_by: Danil Lytvyn
+  last_updated_on: 2022-12-09 15:07:54.000000000 Z
+- name: phpunit/phpunit
+  description: The PHP Unit Testing framework
+  package_url: https://packagist.org/phpunit/phpunit
+  open_source: false
+  hosted_saas: false
+  category: Build, Test, Deploy
+  sub_category: Package Managers
+  image_url: https://img.stackshare.io/package/packagist/image.png
+  detection_source: composer.json
+  last_updated_by: Lee Hicks
+  last_updated_on: 2015-05-15 17:09:56.000000000 Z
+- name: symfony/yaml
+  description: Loads and dumps YAML files
+  package_url: https://packagist.org/symfony/yaml
+  version: '6.0'
+  open_source: false
+  hosted_saas: false
+  category: Build, Test, Deploy
+  sub_category: Package Managers
+  image_url: https://img.stackshare.io/package/packagist/image.png
+  detection_source_url: github.com/dreamfactorysoftware/df-core/blob/master/composer.json
+  detection_source: composer.json
+  last_updated_by: Danil Lytvyn
+  last_updated_on: 2022-12-09 15:07:54.000000000 Z
+- name: tymon/jwt-auth
+  description: JSON Web Token Authentication for Laravel and Lumen
+  package_url: https://packagist.org/tymon/jwt-auth
+  open_source: false
+  hosted_saas: false
+  category: Build, Test, Deploy
+  sub_category: Package Managers
+  image_url: https://img.stackshare.io/package/packagist/image.png
+  detection_source: composer.json
+  last_updated_by: Danil Lytvyn
+  last_updated_on: 2022-12-09 15:07:54.000000000 Z

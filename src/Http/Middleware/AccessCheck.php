@@ -57,6 +57,9 @@ class AccessCheck
             $requestor = Session::getRequestor();
             $permException = null;
             try {
+                if ($this->isOAuthService($service)){
+                    return $next($request);
+                }
                 Session::checkServicePermission($method, $service, $component, $requestor);
 
                 return $next($request);
@@ -106,5 +109,10 @@ class AccessCheck
         } catch (\Exception $e) {
             return ResponseFactory::sendException($e);
         }
+    }
+
+    private function isOAuthService($service)
+    {
+        return str_ends_with($service, '_oauth');
     }
 }

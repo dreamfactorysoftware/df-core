@@ -114,11 +114,18 @@ class Setup extends Command
                     $phone = $this->ask('Enter your phone number');
                 }
                 if (empty($password)) {
+                    $this->info('Note: Password must be at least 16 characters long.');
                     $password = $this->secret('Choose a password:');
                 }
 
                 $passwordConfirm = ($prompt) ? $this->secret('Re-enter password:') : $password;
                 $displayName = empty($displayName) ? $firstName . ' ' . $lastName : $displayName;
+
+                // Validate password length
+                if (strlen($password) < 16) {
+                    $this->error('Password must be at least 16 characters long. Please try again.');
+                    continue;
+                }
 
                 $data = [
                     'first_name'            => $firstName,

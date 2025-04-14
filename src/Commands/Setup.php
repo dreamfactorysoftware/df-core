@@ -131,6 +131,13 @@ class Setup extends Command
                         continue;
                     }
                     
+                    // Validate password confirmation
+                    if ($password !== $passwordConfirm) {
+                        $this->error('Passwords do not match. Please try again.');
+                        $password = null; // Reset password to trigger re-prompt
+                        continue;
+                    }
+                    
                     $validPassword = true;
                 }
                 

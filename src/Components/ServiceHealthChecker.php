@@ -5,7 +5,6 @@ namespace DreamFactory\Core\Components;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
-use DreamFactory\Core\Exceptions\InternalServerErrorException;
 use ServiceManager; // Facade
 use Log;          // Facade
 
@@ -57,7 +56,6 @@ class ServiceHealthChecker
                 return true;
             }
         } catch (\Exception $e) {
-            // Catches exceptions from ServiceManager::handleRequest itself (e.g., service not found, connection issues)
             $summary = 'Exception during API health check: ' . $e->getMessage();
             $this->logFailure($summary, $e, $logContext);
             return false;

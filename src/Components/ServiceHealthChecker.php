@@ -5,8 +5,8 @@ namespace DreamFactory\Core\Components;
 use DreamFactory\Core\Models\Service;
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Enums\ServiceTypeGroups;
-use ServiceManager; // Facade
-use Log;          // Facade
+use ServiceManager;
+use Log;
 
 class ServiceHealthChecker
 {

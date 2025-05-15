@@ -12,7 +12,6 @@ class ServiceHealthChecker
 {
     /**
      * Performs a post-creation health check on the given service.
-     * Deactivates the service if the check fails.
      *
      * @param Service $service The service to check.
      * @return bool True if the health check is successful, false otherwise.

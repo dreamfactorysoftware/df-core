@@ -1,8 +1,10 @@
 <?php
+
 namespace DreamFactory\Core\Models;
 
 use DreamFactory\Core\Components\DsnToConnectionConfig;
 use DreamFactory\Core\Components\UpdatesSender;
+use DreamFactory\Core\Components\ServiceHealthChecker;
 use DreamFactory\Core\Events\ServiceDeletedEvent;
 use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Exceptions\BadRequestException;
@@ -85,15 +87,17 @@ class Service extends BaseSystemModel
         static::created(
             function (Service $service) {
                 if (!empty($service->config)) {
-                    // take the type information and get the config_handler class
-                    // set the config giving the service id and new config
                     $serviceCfg = $service->getConfigHandler();
                     if (!empty($serviceCfg) && $serviceCfg::handlesStorage()) {
                         $serviceCfg::storeConfig($service->getKey(), $service->config);
                     }
                 }
+                $healthChecker = new ServiceHealthChecker();
+                $healthCheckPassed = $healthChecker->check($service);
 
-                UpdatesSender::sendServiceData($service -> getAttribute('type'));
+                if ($healthCheckPassed) {
+                    UpdatesSender::sendServiceData($service->getAttribute('type'));
+                }
 
                 return true;
             }
@@ -185,7 +189,6 @@ class Service extends BaseSystemModel
                 $localConfig = $this->castAttributeAsJson('config', $localConfig);
             }
             $this->attributes['config'] = $localConfig;
-
         } else {
             if (null !== $typeInfo = ServiceManager::getServiceType($this->type)) {
                 if ($subscription = $typeInfo->subscriptionRequired()) {

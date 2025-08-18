@@ -29,6 +29,7 @@ use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\URL;
 use MongoDB\Laravel\MongoDBServiceProvider;
 
 class LaravelServiceProvider extends ServiceProvider
@@ -39,6 +40,11 @@ class LaravelServiceProvider extends ServiceProvider
      */
     public function boot()
     {
+        // Force HTTPS if configured in environment
+        if (env('FORCE_HTTPS', false)) {
+            URL::forceScheme('https');
+        }
+
         // add our df config
         $configPath = __DIR__ . '/../config/df.php';
         if (function_exists('config_path')) {

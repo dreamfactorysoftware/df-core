@@ -64,8 +64,18 @@ class AccessCheck
 
                 return $next($request);
             } catch (RestException $e) {
-
-                $permException = $e;
+                // Try schema access fallback for GET requests to _schema
+                if ($method === Verbs::GET && $component === '_schema') {
+                    \Log::info('Attempting schema access fallback for _schema request');
+                    $fallbackResponse = $this->handleSchemaAccessFallback($service, $method, $component, $requestor);
+                    if ($fallbackResponse !== null) {
+                        return $next($request);
+                    } else {
+                        $permException = $e;
+                    }
+                } else {
+                    $permException = $e;
+                }
             }
 
             // No access allowed, figure out the best error response
@@ -114,5 +124,30 @@ class AccessCheck
     private function isOAuthService($service)
     {
         return str_ends_with($service, '_oauth');
+    }
+
+    /**
+     * Handle schema access fallback for GET requests to _schema endpoints
+     * 
+     * @param string $service Service name
+     * @param string $method HTTP method
+     * @param string $component Component name
+     * @param int $requestor Requestor type
+     * @return mixed Response or null if fallback not possible
+     */
+    private function handleSchemaAccessFallback($service, $method, $component, $requestor)
+    {
+        // Only handle GET requests to _schema endpoints
+        if ($method !== Verbs::GET || $component !== '_schema') {
+            return null;
+        }
+        
+        $allowedComponents = Session::getAllowedComponentsForGet($service, $requestor);
+        
+        if (empty($allowedComponents)) {
+            return null;
+        }
+
+        return $allowedComponents;
     }
 }

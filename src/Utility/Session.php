@@ -1102,4 +1102,56 @@ class Session
 
         return \Session::get('has_role');
     }
+
+    /**
+     * Get allowed components for GET operations on a specific service
+     * 
+     * @param string $service Service name
+     * @param int $requestor Requestor type
+     * @return array Array of allowed component names/patterns
+     */
+    public static function getAllowedComponentsForGet($service, $requestor = ServiceRequestorTypes::API)
+    {
+        if (static::isSysAdmin()) {
+            return ['*']; // Admin has access to everything
+        }
+        
+        $roleId = Session::getRoleId();
+        if ($roleId && !Role::getCachedInfo($roleId, 'is_active')) {
+            return [];
+        }
+        
+        $services = (array)static::get('role.services');
+        $service = strval($service);
+        $allowedComponents = [];
+        
+        foreach ($services as $svcInfo) {
+            $tempRequestors = array_get($svcInfo, 'requestor_mask', ServiceRequestorTypes::API);
+            if (!($requestor & $tempRequestors)) {
+                continue;
+            }
+            
+            $tempService = strval(array_get($svcInfo, 'service'));
+            $tempComponent = strval(array_get($svcInfo, 'component'));
+            $tempVerbs = array_get($svcInfo, 'verb_mask');
+            
+            // Check if this service entry allows GET operations
+            if (0 == strcasecmp($service, $tempService) && ($tempVerbs & VerbsMask::GET_MASK)) {
+                if (empty($tempComponent)) {
+                    $allowedComponents[] = '*';
+                } elseif ($tempComponent === '*') {
+                    $allowedComponents[] = '*';
+                } elseif (strpos($tempComponent, '*') !== false) {
+                    $allowedComponents[] = $tempComponent;
+                } elseif (strpos($tempComponent, '{') !== false) {
+                    $allowedComponents[] = $tempComponent;
+                } else {
+                    $allowedComponents[] = $tempComponent;
+                }
+            }
+        }
+        
+        $result = array_unique($allowedComponents);
+        return $result;
+    }
 }

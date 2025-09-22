@@ -525,6 +525,10 @@ class ServiceManager
         if ($check_permission === true) {
             if (false === Session::checkServicePermission($verb, $service, $resource, Session::getRequestor(),
                     $throw_exception)) {
+                // For schema requests, try to get filtered results
+                if ($verb === Verbs::GET && $resource === '_schema') {
+                    return $this->getFilteredSchemaResponse($service, $query);
+                }
                 return new ServiceResponse([]);
             }
         }
@@ -545,6 +549,141 @@ class ServiceManager
         }
 
         return $this->getService($service)->handleRequest($request, $resource);
+    }
+
+    /**
+     * Get filtered schema response based on user permissions
+     * 
+     * @param string $service Service name
+     * @param array $query Query parameters
+     * @return ServiceResponse Filtered schema response
+     */
+    private function getFilteredSchemaResponse($service, $query)
+    {
+        try {
+            $serviceInstance = $this->getService($service);
+            
+            // Create a request with as_list parameter
+            $request = new ServiceRequest();
+            $request->setMethod(Verbs::GET);
+            $request->setParameters(array_merge($query, ['as_list' => true]));
+            
+            // Handle the request without permission checks
+            $response = $serviceInstance->handleRequest($request, '_schema');
+            
+            // Filter the response based on user permissions
+            $content = $response->getContent();
+            $allowedComponents = Session::getAllowedComponentsForGet($service);
+            
+            if (!empty($allowedComponents) && !in_array('*', $allowedComponents)) {
+                $content = $this->filterSchemaContent($content, $allowedComponents);
+                $response->setContent($content);
+            }
+            
+            return $response;
+            
+        } catch (\Exception $e) {
+            return new ServiceResponse([], 'application/json', 500);
+        }
+    }
+
+    /**
+     * Filter schema content based on allowed components
+     * 
+     * @param mixed $content Schema content to filter
+     * @param array $allowedComponents Array of allowed component patterns
+     * @return mixed Filtered content
+     */
+    private function filterSchemaContent($content, $allowedComponents)
+    {
+        // Handle different content structures
+        if (is_array($content)) {
+            // Check if content is wrapped in resources wrapper
+            $wrapper = config('df.resources_wrapper', 'resource');
+            if (isset($content[$wrapper]) && is_array($content[$wrapper])) {
+                $resources = $content[$wrapper];
+                $filteredResources = $this->filterResourcesByAccess($resources, $allowedComponents);
+                $content[$wrapper] = $filteredResources;
+                return $content;
+            } else {
+                return $this->filterResourcesByAccess($content, $allowedComponents);
+            }
+        }
+        
+        return $content;
+    }
+
+    /**
+     * Filter resources based on access patterns
+     * 
+     * @param array $resources Array of resources to filter
+     * @param array $allowedComponents Array of allowed component patterns
+     * @return array Filtered resources
+     */
+    private function filterResourcesByAccess($resources, $allowedComponents)
+    {
+        if (in_array('*', $allowedComponents)) {
+            return $resources; // Full access
+        }
+        
+        $filtered = [];
+        
+        foreach ($resources as $resource) {
+            if (is_array($resource) && isset($resource['name'])) {
+                $resourceName = $resource['name'];
+            } elseif (is_string($resource)) {
+                $resourceName = $resource;
+            } else {
+                continue;
+            }
+            
+            // Check if this resource is allowed
+            if ($this->isResourceAllowed($resourceName, $allowedComponents)) {
+                $filtered[] = $resource;
+            }
+        }
+        
+        return $filtered;
+    }
+
+    /**
+     * Check if a resource is allowed based on component patterns
+     * 
+     * @param string $resourceName Name of the resource to check
+     * @param array $allowedComponents Array of allowed component patterns
+     * @return bool True if resource is allowed
+     */
+    private function isResourceAllowed($resourceName, $allowedComponents)
+    {
+        foreach ($allowedComponents as $pattern) {
+            if ($pattern === '*') {
+                return true;
+            }
+            
+            if ($pattern === $resourceName) {
+                return true;
+            }
+            
+            // Handle wildcard patterns like "table/*"
+            if (strpos($pattern, '*') !== false) {
+                $pattern = str_replace('*', '.*', $pattern);
+                $pattern = '/^' . $pattern . '$/';
+                if (preg_match($pattern, $resourceName)) {
+                    return true;
+                }
+            }
+            
+            // Handle dynamic parameters like "table/{id}"
+            if (strpos($pattern, '{') !== false) {
+                $regexPattern = preg_replace('/\{[^}]+\}/', '[^/]+', $pattern);
+                $regexPattern = '/^' . $regexPattern . '$/';
+                if (preg_match($regexPattern, $resourceName)) {
+                    return true;
+                }
+            }
+        }
+        
+        return false;
     }
 
     /**

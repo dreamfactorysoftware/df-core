@@ -8,6 +8,7 @@ use DreamFactory\Core\Components\ServiceHealthChecker;
 use DreamFactory\Core\Events\ServiceDeletedEvent;
 use DreamFactory\Core\Events\ServiceModifiedEvent;
 use DreamFactory\Core\Exceptions\BadRequestException;
+use DreamFactory\Core\Utility\Session;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Arr;
 use ServiceManager;
@@ -279,5 +280,91 @@ class Service extends BaseSystemModel
         }
 
         return $response;
+    }
+
+    /**
+     * Override selectByRequest to apply RBAC filtering for API docs
+     *
+     * @param array $criteria
+     * @param array $options
+     * @return mixed
+     */
+    public static function selectByRequest(array $criteria = [], array $options = [])
+    {
+        $condition = array_get($criteria, 'condition', '');
+        $params = array_get($criteria, 'params', []);
+
+        // Detect different types of service listing requests that should be filtered by RBAC
+
+        // 1. API Docs Request: filtering for non-swagger services
+        $isApiDocsRequest = (
+            (strpos(strtolower($condition), 'type') !== false && strpos(strtolower($condition), 'not like') !== false) ||
+            (strpos($condition, '`type`') !== false && strpos($condition, 'NOT LIKE') !== false)
+        ) && (
+            !empty($params) && is_array($params) &&
+            count(array_filter($params, function($p) { return strpos($p, 'swagger') !== false; })) > 0
+        );
+
+        // 2. Services Management Request: general service listing (no specific type filter or type IN filter)
+        $isServicesManagementRequest = (
+            empty($condition) || // No filter condition
+            (strpos($condition, 'type in') !== false) || // Type IN filter (service type filtering)
+            (strpos($condition, '`type` IN') !== false) // SQL formatted type IN filter
+        );
+
+        // 3. Database Services Request: filtering for database-related service types
+        $isDatabaseServicesRequest = !empty($params) && is_array($params) &&
+            count(array_filter($params, function($p) {
+                return in_array($p, ['mysql', 'sqlite', 'postgres', 'sqlserver', 'mongodb', 'cassandra', 'oracle', 'firebird']);
+            })) > 0;
+
+        // 4. Role Configuration Request: when configuring service access for roles
+        // This can be detected by checking if we're in a role management context
+        $isRoleConfigRequest = strpos($condition, 'is_active') !== false && empty($params);
+
+        // Apply RBAC filtering for non-admin users on any of these request types
+        $shouldApplyFiltering = ($isApiDocsRequest || $isServicesManagementRequest || $isDatabaseServicesRequest || $isRoleConfigRequest);
+
+        if ($shouldApplyFiltering && !Session::isSysAdmin()) {
+            // Get the current user's accessible services
+            $userServices = static::getUserAccessibleServices();
+
+            if (empty($userServices)) {
+                // User has no service access, return empty result
+                return [];
+            }
+
+            // Add service ID filter to criteria
+            $serviceIds = implode(',', $userServices);
+            $existingCondition = array_get($criteria, 'condition', '');
+
+            if (!empty($existingCondition)) {
+                $criteria['condition'] = $existingCondition . " and id in ($serviceIds)";
+            } else {
+                $criteria['condition'] = "id in ($serviceIds)";
+            }
+        }
+
+        return parent::selectByRequest($criteria, $options);
+    }
+
+    /**
+     * Get service IDs that the current user has access to based on their role
+     *
+     * @return array
+     */
+    protected static function getUserAccessibleServices()
+    {
+        $roleServices = (array)Session::get('role.services');
+        $accessibleServiceIds = [];
+
+        foreach ($roleServices as $serviceAccess) {
+            $serviceId = array_get($serviceAccess, 'service_id');
+            if (!empty($serviceId) && !in_array($serviceId, $accessibleServiceIds)) {
+                $accessibleServiceIds[] = $serviceId;
+            }
+        }
+
+        return $accessibleServiceIds;
     }
 }

@@ -334,15 +334,19 @@ class Service extends BaseSystemModel
                 return [];
             }
 
-            // Add service ID filter to criteria
-            $serviceIds = implode(',', $userServices);
+            // Add service ID filter to criteria using parameterized queries
+            $placeholders = str_repeat('?,', count($userServices) - 1) . '?';
             $existingCondition = array_get($criteria, 'condition', '');
+            $existingParams = array_get($criteria, 'params', []);
 
             if (!empty($existingCondition)) {
-                $criteria['condition'] = $existingCondition . " and id in ($serviceIds)";
+                $criteria['condition'] = $existingCondition . " and id in ($placeholders)";
             } else {
-                $criteria['condition'] = "id in ($serviceIds)";
+                $criteria['condition'] = "id in ($placeholders)";
             }
+
+            // Merge the service IDs with existing parameters
+            $criteria['params'] = array_merge($existingParams, $userServices);
         }
 
         return parent::selectByRequest($criteria, $options);
@@ -360,8 +364,9 @@ class Service extends BaseSystemModel
 
         foreach ($roleServices as $serviceAccess) {
             $serviceId = array_get($serviceAccess, 'service_id');
-            if (!empty($serviceId) && !in_array($serviceId, $accessibleServiceIds)) {
-                $accessibleServiceIds[] = $serviceId;
+            // Validate that service_id is a positive integer
+            if (!empty($serviceId) && is_numeric($serviceId) && $serviceId > 0 && !in_array($serviceId, $accessibleServiceIds)) {
+                $accessibleServiceIds[] = (int)$serviceId;
             }
         }
 

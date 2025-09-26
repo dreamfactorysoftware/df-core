@@ -14,12 +14,14 @@ use Illuminate\Database\Query\Builder;
  * @property integer $id
  * @property string  $name
  * @property string  $description
+ * @property string  $redirect_uri
  * @property boolean $is_active
  * @property string  $created_date
  * @property string  $last_modified_date
  * @method static Builder|Role whereId($value)
  * @method static Builder|Role whereName($value)
  * @method static Builder|Role whereDescription($value)
+ * @method static Builder|Role whereRedirectUri($value)
  * @method static Builder|Role whereIsActive($value)
  * @method static Builder|Role whereCreatedDate($value)
  * @method static Builder|Role whereLastModifiedDate($value)
@@ -29,13 +31,49 @@ class Role extends BaseSystemModel
     protected $table = 'role';
 
     protected $rules = [
-        'name' => 'required'
+        'name' => 'required',
+        'redirect_uri' => 'nullable|string|max:255'
+    ];
+
+    /**
+     * Whitelisted routes for redirect URIs
+     */
+    private static $allowedRedirectRoutes = [
+        '/home',
+        '/api-connections/api-docs',
+        '/api-connections/api-types',
+        '/api-connections/api-types/database',
+        '/api-connections/api-types/scripting',
+        '/api-connections/api-types/network',
+        '/api-connections/api-types/file',
+        '/api-connections/api-types/utility',
+        '/api-connections/role-based-access',
+        '/api-connections/api-keys',
+        '/api-connections/event-scripts',
+        '/api-security/rate-limiting',
+        '/api-security/authentication',
+        '/system-settings/config',
+        '/system-settings/config/system-info',
+        '/system-settings/config/cors',
+        '/system-settings/config/cache',
+        '/system-settings/config/email-templates',
+        '/system-settings/config/global-lookup-keys',
+        '/system-settings/scheduler',
+        '/system-settings/logs',
+        '/system-settings/reporting',
+        '/system-settings/df-platform-apis',
+        '/admin-settings/users',
+        '/admin-settings/schema',
+        '/admin-settings/admins',
+        '/admin-settings/files',
+        '/profile'
     ];
 
     protected $fillable = [
         'name',
         'description',
         'is_active',
+        'redirect_uri',
     ];
 
     protected $casts = ['is_active' => 'boolean', 'id' => 'integer'];
@@ -75,6 +113,40 @@ class Role extends BaseSystemModel
         }
 
         $this->attributes['description'] = $value;
+    }
+
+    /**
+     * Validate and set redirect_uri attribute
+     *
+     * @param $value
+     */
+    public function setRedirectUriAttribute($value)
+    {
+        if (empty($value)) {
+            $this->attributes['redirect_uri'] = null;
+            return;
+        }
+
+        $value = trim($value);
+
+        // Security validation: Only allow whitelisted routes
+        if (!in_array($value, self::$allowedRedirectRoutes)) {
+            throw new \InvalidArgumentException(
+                'Invalid redirect URI. Must be one of: ' . implode(', ', self::$allowedRedirectRoutes)
+            );
+        }
+
+        $this->attributes['redirect_uri'] = $value;
+    }
+
+    /**
+     * Get the list of allowed redirect routes
+     *
+     * @return array
+     */
+    public static function getAllowedRedirectRoutes()
+    {
+        return self::$allowedRedirectRoutes;
     }
 
     /**

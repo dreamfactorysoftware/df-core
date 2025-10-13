@@ -699,6 +699,7 @@ class Package
                 throw new InternalServerErrorException('Failed to replace original zip with encrypted version.');
             }
 
+            \Log::info('Encrypting zip file with a password using native PHP ZipArchive.');
             return true;
         } catch (\Exception $e) {
             \Log::error('Native zip encryption failed: ' . $e->getMessage());
@@ -786,9 +787,7 @@ class Package
 
                 // SECURITY FIX: Use native PHP ZipArchive encryption instead of shell exec
                 // This eliminates command injection vulnerability (ZDI-CAN-26589)
-                if ($this->encryptZipWithNativeMethod($password)) {
-                    \Log::info('Encrypting zip file with a password using native PHP ZipArchive.');
-                } else {
+                if (!$this->encryptZipWithNativeMethod($password)) {
                     // Fallback to shell command with PROPER escaping (secure)
                     $this->encryptZipWithShellCommand($password);
                 }

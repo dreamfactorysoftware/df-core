@@ -636,6 +636,139 @@ class Package
     }
 
     /**
+     * Encrypts zip file using native PHP ZipArchive encryption (PHP 7.2+).
+     * This is the preferred method as it avoids shell execution entirely.
+     *
+     * @param string $password The password to encrypt the zip with
+     * @return bool True if encryption succeeded, false otherwise
+     */
+    protected function encryptZipWithNativeMethod($password)
+    {
+        // Check if native encryption is available (PHP 7.2+)
+        if (!method_exists('\ZipArchive', 'setEncryptionName')) {
+            return false;
+        }
+
+        try {
+            $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $encryptedZipFile = $tmpDir . 'encrypted_' . basename($this->zipFile);
+
+            // Create new encrypted zip
+            $encryptedZip = new \ZipArchive();
+            if (true !== $encryptedZip->open($encryptedZipFile, \ZipArchive::CREATE | \ZipArchive::OVERWRITE)) {
+                return false;
+            }
+
+            // Open original zip to read files
+            $originalZip = new \ZipArchive();
+            if (true !== $originalZip->open($this->zipFile)) {
+                $encryptedZip->close();
+                @unlink($encryptedZipFile);
+                return false;
+            }
+
+            // Copy all files from original to encrypted zip with password protection
+            for ($i = 0; $i < $originalZip->numFiles; $i++) {
+                $filename = $originalZip->getNameIndex($i);
+                $fileContent = $originalZip->getFromIndex($i);
+
+                if ($fileContent === false) {
+                    // Skip directories
+                    continue;
+                }
+
+                // Add file to encrypted zip
+                $encryptedZip->addFromString($filename, $fileContent);
+
+                // Set encryption for this file using AES-256
+                if (defined('ZipArchive::EM_AES_256')) {
+                    $encryptedZip->setEncryptionName($filename, \ZipArchive::EM_AES_256, $password);
+                } else {
+                    // Fallback to AES-128 if AES-256 not available
+                    $encryptedZip->setEncryptionName($filename, \ZipArchive::EM_AES_128, $password);
+                }
+            }
+
+            $originalZip->close();
+            $encryptedZip->close();
+
+            // Replace original with encrypted version
+            @unlink($this->zipFile);
+            if (!rename($encryptedZipFile, $this->zipFile)) {
+                @unlink($encryptedZipFile);
+                throw new InternalServerErrorException('Failed to replace original zip with encrypted version.');
+            }
+
+            \Log::info('Encrypting zip file with a password using native PHP ZipArchive.');
+            return true;
+        } catch (\Exception $e) {
+            \Log::error('Native zip encryption failed: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Encrypts zip file using system zip command with PROPER shell escaping.
+     * This is a secure fallback when native encryption is not available.
+     *
+     * SECURITY: All variables are properly escaped using escapeshellarg()
+     * to prevent command injection (CVE-ZDI-CAN-26589).
+     *
+     * @param string $password The password to encrypt the zip with
+     * @return void
+     * @throws InternalServerErrorException
+     */
+    protected function encryptZipWithShellCommand($password)
+    {
+        $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+        $extractDir = $tmpDir . substr(basename($this->zipFile), 0, strlen(basename($this->zipFile)) - 4);
+
+        try {
+            // Extract the zip file
+            $tmpZip = new \ZipArchive();
+            if (true !== $tmpZip->open($this->zipFile)) {
+                throw new InternalServerErrorException('Failed to open zip file for encryption.');
+            }
+            $tmpZip->extractTo($extractDir);
+            $tmpZip->close();
+            @unlink($this->zipFile);
+
+            // SECURITY FIX: Properly escape ALL shell arguments
+            $escapedExtractDir = escapeshellarg($extractDir);
+            $escapedPassword = escapeshellarg($password);
+            $escapedZipFile = escapeshellarg($this->zipFile);
+
+            // Build secure command
+            $server = strtolower(php_uname('s'));
+            if (strpos($server, 'windows') !== false) {
+                // Windows command
+                $command = "cd $escapedExtractDir && zip -r -P $escapedPassword $escapedZipFile .";
+            } else {
+                // Unix/Linux command
+                $command = "cd $escapedExtractDir && zip -r -P $escapedPassword $escapedZipFile .";
+            }
+
+            // Execute with proper escaping - command injection is now prevented
+            $output = [];
+            $returnCode = 0;
+            @exec($command, $output, $returnCode);
+
+            if ($returnCode !== 0) {
+                throw new InternalServerErrorException('Failed to encrypt zip file using system command. Return code: ' . $returnCode);
+            }
+
+            \Log::info('Encrypting zip file with a password using system zip command.', $output);
+
+            // Clean up extraction directory
+            @FileUtilities::deleteTree($extractDir, true);
+        } catch (\Exception $e) {
+            // Clean up on failure
+            @FileUtilities::deleteTree($extractDir, true);
+            throw new InternalServerErrorException('Failed to encrypt zip file: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Saves ZipArchive.
      *
      * @param $storageService
@@ -651,21 +784,13 @@ class Package
 
             if ($this->isSecured()) {
                 $password = $this->getPassword();
-                $tmpDir = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-                $extractDir = $tmpDir . substr(basename($this->zipFile), 0, strlen(basename($this->zipFile)) - 4);
-                $tmpZip = new \ZipArchive();
-                $tmpZip->open($this->zipFile);
-                $tmpZip->extractTo($extractDir);
-                $tmpZip->close();
-                @unlink($this->zipFile);
-                $server = strtolower(php_uname('s'));
-                $commandSeparator = ';';
-                if (strpos($server, 'windows') !== false) {
-                    $commandSeparator = '&';
+
+                // SECURITY FIX: Use native PHP ZipArchive encryption instead of shell exec
+                // This eliminates command injection vulnerability (ZDI-CAN-26589)
+                if (!$this->encryptZipWithNativeMethod($password)) {
+                    // Fallback to shell command with PROPER escaping (secure)
+                    $this->encryptZipWithShellCommand($password);
                 }
-                @exec("cd $extractDir $commandSeparator zip -r -P $password $this->zipFile .", $output);
-                \Log::info('Encrypting zip file with a password.', $output);
-                @FileUtilities::deleteTree($extractDir, true);
             }
 
             /** @type FileServiceInterface $storage */

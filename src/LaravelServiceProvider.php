@@ -18,6 +18,7 @@ use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
 use DreamFactory\Core\Http\Middleware\AccessCheck;
 use DreamFactory\Core\Http\Middleware\AuthCheck;
 use DreamFactory\Core\Http\Middleware\FirstUserCheck;
+use DreamFactory\Core\Http\Middleware\SnowflakeMarketplaceLimiter;
 use DreamFactory\Core\Http\Middleware\VerbOverrides;
 use DreamFactory\Core\Models\SystemTableModelMapper;
 use DreamFactory\Core\Providers\CorsServiceProvider;
@@ -116,12 +117,14 @@ class LaravelServiceProvider extends ServiceProvider
         Route::aliasMiddleware('df.auth_check', AuthCheck::class);
         Route::aliasMiddleware('df.access_check', AccessCheck::class);
         Route::aliasMiddleware('df.verb_override', VerbOverrides::class);
+        Route::aliasMiddleware('df.snowflake_marketplace_limiter', SnowflakeMarketplaceLimiter::class);
 
         /** Add the first user check to the web group */
         Route::prependMiddlewareToGroup('web', FirstUserCheck::class);
 
         $middleware = [
             'df.verb_override',
+            'df.snowflake_marketplace_limiter',
             'df.auth_check',
             'df.access_check'
         ];

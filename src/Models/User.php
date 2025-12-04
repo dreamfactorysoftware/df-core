@@ -498,9 +498,9 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             JWTUtilities::invalidateTokenByUserId($this->id);
             // When password is set user account must be confirmed. Confirming user
             // account here with confirm_code = null.
-            // confirm_code = 'y' indicates cases where account is confirmed by user
-            // using confirmation email.
-            if (isset($this->attributes['confirm_code']) && $this->attributes['confirm_code'] !== 'y') {
+            // confirm_code = null indicates a confirmed account (either by email or admin)
+            // Note: Legacy 'y' values are also treated as confirmed for backward compatibility
+            if (isset($this->attributes['confirm_code']) && $this->attributes['confirm_code'] !== 'y' && !is_null($this->attributes['confirm_code'])) {
                 $this->attributes['confirm_code'] = null;
             }
         }

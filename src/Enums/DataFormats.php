@@ -83,10 +83,6 @@ class DataFormats extends FactoryEnum
      * @var int application/soap+xml, for SOAP1.2 interfaces
      */
     const SOAP = 15;
-    /**
-     * @var int Apache Arrow IPC Stream - application/vnd.apache.arrow.stream
-     */
-    const ARROW = 16;
 
     // Client-side Only Content Types
 
@@ -141,7 +137,6 @@ class DataFormats extends FactoryEnum
         self::RDF           => 'rdf',
         self::WWW           => 'www',
         self::SOAP          => 'soap',
-        self::ARROW         => 'arrow',
         self::JS            => 'js',
         self::CSS           => 'css',
         self::PHP           => 'php',
@@ -170,7 +165,6 @@ class DataFormats extends FactoryEnum
         self::RDF           => 'application/rdf+xml',
         self::WWW           => 'application/x-www-form-urlencoded',
         self::SOAP          => 'application/soap+xml',
-        self::ARROW         => 'application/vnd.apache.arrow.stream',
         self::JS            => 'application/javascript',
         self::CSS           => 'text/css',
         self::PHP           => null,
@@ -200,8 +194,6 @@ class DataFormats extends FactoryEnum
         'application/rdf+xml'               => self::RDF,
         'application/soap+xml'              => self::SOAP,
         'application/x-www-form-urlencoded' => self::WWW,
-        'application/vnd.apache.arrow.stream' => self::ARROW,
-        'application/vnd.apache.arrow.file' => self::ARROW,
         'application/javascript'            => self::JS,
         'text/javascript'                   => self::JS, // older type
         'text/css'                          => self::CSS,

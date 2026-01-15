@@ -209,13 +209,15 @@ class Curl extends Verbs
             CURLOPT_HEADER         => true,
             CURLINFO_HEADER_OUT    => true,
             CURLOPT_SSL_VERIFYPEER => false,
-            CURLOPT_TIMEOUT => 30
+            CURLOPT_TIMEOUT => 300  // 5 minutes default (can be overridden via service options)
         ];
 
         //	Merge in the global options if any
+        //  Note: Using array union (+) instead of array_merge to preserve integer keys.
+        //  cURL option constants are integers (e.g., CURLOPT_HTTPHEADER = 10023),
+        //  and array_merge re-indexes numeric keys, corrupting the options.
         if (!empty(static::$_curlOptions)) {
-            $curlOptions = array_merge($curlOptions,
-                static::$_curlOptions);
+            $curlOptions = static::$_curlOptions + $curlOptions;
         }
 
         //	Add/override user options
@@ -295,10 +297,35 @@ class Curl extends Verbs
         } else {
             //      Split up the body and headers if requested
             if ($_curlOptions[CURLOPT_HEADER]) {
-                if (false === strpos($_result, "\r\n\r\n") || empty(static::$_responseHeadersSize)) {
+                $_headers = null;
+                $_body = null;
+
+                // Find the actual end of headers by looking for the last HTTP response's header/body separator.
+                // With redirects or 100 Continue, there may be multiple header blocks.
+                // We need to find the final \r\n\r\n that separates the last headers from the body.
+                $_headerEnd = false;
+                $_searchPos = 0;
+
+                // Look for the last occurrence of HTTP/ followed by \r\n\r\n
+                // This handles redirects and 100 Continue responses
+                while (($_httpPos = strpos($_result, "HTTP/", $_searchPos)) !== false) {
+                    $_nextSeparator = strpos($_result, "\r\n\r\n", $_httpPos);
+                    if ($_nextSeparator !== false) {
+                        $_headerEnd = $_nextSeparator + 4; // +4 for \r\n\r\n
+                        $_searchPos = $_headerEnd;
+                    } else {
+                        break;
+                    }
+                }
+
+                if ($_headerEnd !== false && $_headerEnd < strlen($_result)) {
+                    $_headers = substr($_result, 0, $_headerEnd);
+                    $_body = substr($_result, $_headerEnd);
+                } elseif (false === strpos($_result, "\r\n\r\n")) {
                     $_headers = $_result;
                     $_body = null;
                 } else {
+                    // Fallback to CURLINFO_HEADER_SIZE if our detection didn't work
                     $_headers = substr($_result, 0, static::$_responseHeadersSize);
                     $_body = substr($_result, static::$_responseHeadersSize);
                 }
@@ -334,12 +361,19 @@ class Curl extends Verbs
             }
 
             //	Attempt to auto-decode inbound JSON
-            if (!empty($_result) && false !== stripos(array_get(static::$_info, 'content_type'),
+            //  Note: Only decode if $_autoDecodeJson is true (default). This can be disabled
+            //  to pass raw JSON responses through without decode/re-encode cycle, which
+            //  avoids potential encoding issues with some responses.
+            if (static::$_autoDecodeJson && !empty($_result) && false !== stripos(array_get(static::$_info, 'content_type'),
                     'application/json',
                     0)
             ) {
                 try {
-                    if (false !== ($_json = @json_decode($_result, static::$_decodeToArray))) {
+                    $_json = @json_decode($_result, static::$_decodeToArray);
+                    // Use json_last_error() to properly check if decode succeeded
+                    // json_decode returns null on error, but also for valid JSON "null"
+                    // The old check (false !== $_json) incorrectly treated parse errors as success
+                    if (json_last_error() === JSON_ERROR_NONE) {
                         $_result = $_json;
                     }
                 } catch (\Exception $_ex) {

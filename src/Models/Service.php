@@ -46,7 +46,9 @@ class Service extends BaseSystemModel
     protected $fillable = ['name', 'label', 'description', 'is_active', 'type', 'config'];
 
     protected $rules = [
-        'name' => 'regex:/(^[A-Za-z0-9_\-]+$)+/'
+        'name' => 'regex:/(^[A-Za-z0-9_\-]+$)+/',
+        'label' => 'string|max:80',
+        'description' => 'string|max:255'
     ];
 
     protected $validationMessages = [
@@ -79,6 +81,28 @@ class Service extends BaseSystemModel
     public function disableRelated()
     {
         // allow config
+    }
+
+    /**
+     * Sanitize the label attribute to prevent XSS attacks
+     * Strips all HTML tags before storing
+     *
+     * @param string $value
+     */
+    public function setLabelAttribute($value)
+    {
+        $this->attributes['label'] = strip_tags($value);
+    }
+
+    /**
+     * Sanitize the description attribute to prevent XSS attacks
+     * Strips all HTML tags before storing
+     *
+     * @param string $value
+     */
+    public function setDescriptionAttribute($value)
+    {
+        $this->attributes['description'] = strip_tags($value);
     }
 
     public static function boot()

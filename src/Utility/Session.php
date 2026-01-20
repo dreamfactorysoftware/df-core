@@ -678,7 +678,8 @@ class Session
                 /** @noinspection PhpUndefinedFieldInspection */
                 $user->last_login_date = Carbon::now()->toDateTimeString();
                 /** @noinspection PhpUndefinedFieldInspection */
-                $user->confirm_code = 'y';
+                // Set confirm_code to null instead of 'y' to prevent bypass attacks
+                $user->confirm_code = null;
                 /** @noinspection PhpUndefinedMethodInspection */
                 $user->save();
                 /** @noinspection PhpParamsInspection */

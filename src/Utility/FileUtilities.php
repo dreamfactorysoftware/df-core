@@ -1352,13 +1352,77 @@ class FileUtilities
 
     public static function validateFileSignature($filePath, $contentType)
     {
+        // Add debug logging at the beginning of the function
+        Log::debug('FILE VALIDATION ATTEMPT', [
+            'file_path' => $filePath,
+            'content_type' => $contentType,
+            'extension' => pathinfo($filePath, PATHINFO_EXTENSION)
+        ]);
+        
+        // REMOVING THIS SPECIAL CASE BYPASS:
+        // Special case for p8 files - they are text files but might not have a standard signature
+        // Check file extension first for p8 files
+        // if (strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === 'p8') {
+        //     // Enhanced logging for p8 files
+        //     Log::debug('P8 FILE DETECTED - BYPASSING SIGNATURE VALIDATION', [
+        //         'file' => $filePath,
+        //         'content_type' => $contentType
+        //     ]);
+        //     return true;
+        // }
+        
         $handle = fopen($filePath, 'rb');
         if (!$handle) {
+            Log::error('VALIDATION FAILED: Could not open file', ['file' => $filePath]);
             return false;
         }
 
-        $bytes = fread($handle, 8); // 8 bytes should be sufficient for most file types
+        // Read more bytes for content validation
+        $bytes = fread($handle, 64); // Increased from 8 to 64 bytes for better content inspection
         fclose($handle);
+
+        // Log the first few bytes for debugging
+        $bytesHex = bin2hex(substr($bytes, 0, 8));
+        Log::debug('FILE SIGNATURE CHECK', [
+            'file' => $filePath,
+            'bytes_hex' => $bytesHex,
+            'content_type' => $contentType
+        ]);
+
+        // Special validation for p8 files (PKCS#8)
+        if (strtolower(pathinfo($filePath, PATHINFO_EXTENSION)) === 'p8') {
+            // We should do basic content validation first
+            $isValidP8 = false;
+            
+            // Check for PEM format (text-based)
+            if (strpos($bytes, '-----BEGIN PRIVATE KEY-----') !== false || 
+                strpos($bytes, '-----BEGIN ENCRYPTED PRIVATE KEY-----') !== false ||
+                strpos($bytes, '-----BEGIN PUBLIC KEY-----') !== false) {
+                $isValidP8 = true;
+            } 
+            // For DER format (binary), check content type and first few bytes for ASN.1 structure
+            else if (in_array($contentType, ['application/octet-stream', 'application/pkcs8'])) {
+                // Basic check for ASN.1 structure - SEQUENCE (0x30) followed by a length byte
+                if (substr($bytes, 0, 1) === "\x30") {
+                    $isValidP8 = true;
+                }
+            }
+            
+            if ($isValidP8) {
+                Log::info('P8 FILE VALIDATED (content check)', [
+                    'file' => $filePath,
+                    'content_type' => $contentType
+                ]);
+                return true;
+            } else {
+                Log::warning('P8 FILE VALIDATION FAILED (invalid content)', [
+                    'file' => $filePath,
+                    'content_type' => $contentType,
+                    'bytes_hex' => $bytesHex
+                ]);
+                return false;
+            }
+        }
 
         $fileSignatures = [
             // Images
@@ -1385,16 +1449,47 @@ class FileUtilities
             'xlsx'  => ["\x50\x4B\x03\x04", 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
             'txt'   => ["\xEF\xBB\xBF", 'text/plain'],
             'csv'   => ["\xEF\xBB\xBF", 'text/csv'],
+            
+            // Certificate and Key Files - Accept various content types
+            'p8'    => ["", ['application/octet-stream', 'application/pkcs8', 'text/plain']],   // P8 files can have varied content types
+            'pem'   => ["", ['application/x-pem-file', 'application/octet-stream', 'text/plain']], // PEM files can have varied content types
+            'key'   => ["", ['application/octet-stream', 'text/plain']], // KEY files can have varied content types
         ];
 
-        foreach ($fileSignatures as $signature) {
-            [$magicBytes, $expectedContentType] = $signature;
-
-            if (strpos($bytes, $magicBytes) === 0 && $contentType === $expectedContentType) {
+        foreach ($fileSignatures as $ext => $signature) {
+            $magicBytes = $signature[0];
+            $expectedContentTypes = is_array($signature[1]) ? $signature[1] : [$signature[1]];
+            
+            // For empty signatures (like p8, pem, key), check if content type matches any of the acceptable types
+            if (empty($magicBytes)) {
+                if (in_array($contentType, $expectedContentTypes)) {
+                    Log::info('FILE VALIDATED (empty signature match)', [
+                        'extension' => $ext,
+                        'content_type' => $contentType,
+                        'file' => $filePath
+                    ]);
+                    return true;
+                }
+            } 
+            // For normal signatures, check both the magic bytes and content type
+            else if (strpos($bytes, $magicBytes) === 0 && in_array($contentType, $expectedContentTypes)) {
+                Log::info('FILE VALIDATED (signature match)', [
+                    'extension' => $ext,
+                    'content_type' => $contentType,
+                    'file' => $filePath
+                ]);
                 return true;
             }
         }
 
+        // Log the failed validation attempt with details
+        Log::warning('FILE SIGNATURE VALIDATION FAILED', [
+            'file' => $filePath,
+            'content_type' => $contentType,
+            'bytes_hex' => $bytesHex,
+            'file_size' => file_exists($filePath) ? filesize($filePath) : 'unknown'
+        ]);
+        
         return false;
     }
 

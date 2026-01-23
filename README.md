@@ -9,7 +9,7 @@
 
 ## Overview
 
-DreamFactory(™) Core is a package built on top of the Laravel framework, and as such retains the requirements of the [Laravel v5.4 framework](https://github.com/laravel/framework). 
+DreamFactory is a secure, self-hosted enterprise data access platform that provides governed API access to any data source, connecting enterprise applications and on-prem LLMs with role-based access and identity passthrough.
 
 ## Documentation
 

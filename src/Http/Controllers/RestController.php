@@ -71,6 +71,10 @@ class RestController extends Controller
             foreach ($results as $info) {
                 // only allowed services by role here
                 if (Session::allowsServiceAccess(array_get($info, 'name'))) {
+                    // Add spec_url for LLM/API discoverability
+                    if (!empty($info['name'])) {
+                        $info['spec_url'] = '/api/v2/' . $info['name'] . '/_spec';
+                    }
                     $services[] = $info;
                 }
             }

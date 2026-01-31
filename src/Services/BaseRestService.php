@@ -586,10 +586,11 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
         $resourceFilter = $request->getParameter('resource_name', '');
         $includeTables = $request->getParameterAsBool('tables');
         $modelMode = $request->getParameterAsBool('model');
+        $stockMode = $request->getParameterAsBool('stock');
 
         // --- Feature: ?model=true — LLM-optimized condensed data model ---
         if ($modelMode) {
-            return $this->handleModelResponse($request, $refresh);
+            return $this->handleModelResponse($request, $refresh, $stockMode);
         }
 
         // Build full OpenAPI 3.0 envelope
@@ -803,9 +804,9 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
      * Returns table names, columns (name + type + FK refs), row counts, and
      * relationship patterns — all in ~10-20KB instead of the full 282KB spec.
      */
-    protected function handleModelResponse(ServiceRequestInterface $request, bool $refresh)
+    protected function handleModelResponse(ServiceRequestInterface $request, bool $refresh, bool $stockMode = false)
     {
-        $model = $this->buildDataModel($refresh);
+        $model = $this->buildDataModel($refresh, $stockMode);
 
         $jsonStr = json_encode($model, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         return new StreamedResponse(function () use ($jsonStr) {
@@ -819,11 +820,13 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
     /**
      * Build a condensed data model: tables → columns → types → FKs + patterns.
      */
-    private function buildDataModel(bool $refresh): array
+    private function buildDataModel(bool $refresh, bool $stockMode = false): array
     {
         $model = [
             'service' => $this->name,
-            'description' => 'Condensed data model for LLM consumption. Shows all tables, their columns with types, foreign key references, and structural patterns.',
+            'description' => $stockMode
+                ? 'Condensed data model. Shows all tables, their columns with types, and foreign key references.'
+                : 'Condensed data model for LLM consumption. Shows all tables, their columns with types, foreign key references, structural patterns, sample data, and enum values.',
             'tables' => [],
             'relationships' => [],
             'patterns' => [],
@@ -847,6 +850,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                     }
 
                     $columns = [];
+                    $stringColumns = [];
                     $fields = $schema->getColumns(true);
                     foreach ($fields as $field) {
                         $col = $field->toArray();
@@ -864,14 +868,22 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                             $colDef['fk'] = $col['ref_table'] . '.' . ($col['ref_field'] ?? $col['ref_table'] . '_id');
                         }
                         $columns[] = $colDef;
+
+                        // Track string/varchar columns for enum detection
+                        $colType = strtolower($col['type'] ?? '');
+                        if (in_array($colType, ['string', 'text', 'varchar', 'char', 'enum'])) {
+                            $stringColumns[] = $col['name'] ?? '';
+                        }
                     }
 
-                    // Get row count if possible
+                    // Get DB connection for direct queries (row count, samples, enums)
+                    $dbConnection = method_exists($this, 'getConnection') ? $this->getConnection() : null;
+
+                    // Get row count
                     $rowCount = null;
                     try {
-                        if (method_exists($this, 'getTable')) {
-                            $countResult = $this->getTable($tableName, ['count_only' => true]);
-                            $rowCount = $countResult['count'] ?? null;
+                        if ($dbConnection) {
+                            $rowCount = $dbConnection->table($tableName)->count();
                         }
                     } catch (\Exception $e) {
                         // Skip count on error
@@ -883,6 +895,29 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                     if ($rowCount !== null) {
                         $tableEntry['row_count'] = $rowCount;
                     }
+
+                    if (!$stockMode) {
+                        // --- Enhancement #1: Sample rows ---
+                        try {
+                            if ($dbConnection) {
+                                $sampleRows = $dbConnection->table($tableName)->limit(3)->get();
+                                if ($sampleRows->isNotEmpty()) {
+                                    $tableEntry['sample_data'] = $sampleRows->map(fn($r) => (array)$r)->values()->toArray();
+                                }
+                            }
+                        } catch (\Exception $e) {
+                            // Skip sample data on error
+                        }
+
+                        // --- Enhancement #2: Distinct values for enum-like columns ---
+                        if (!empty($stringColumns) && $dbConnection && $rowCount !== null && $rowCount > 0) {
+                            $enumValues = $this->detectEnumValues($tableName, $stringColumns, $dbConnection);
+                            if (!empty($enumValues)) {
+                                $tableEntry['enum_values'] = $enumValues;
+                            }
+                        }
+                    }
+
                     $model['tables'][$tableName] = $tableEntry;
 
                     // Collect relationships
@@ -891,7 +926,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                         $tableRels = [];
                         foreach ($rels as $rel) {
                             $relArray = $rel->toArray();
-                            $tableRels[] = [
+                            $relEntry = [
                                 'name' => $relArray['name'] ?? '',
                                 'type' => $relArray['type'] ?? '',
                                 'field' => $relArray['field'] ?? '',
@@ -899,6 +934,14 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                                 'ref_field' => $relArray['ref_field'] ?? '',
                                 'junction_table' => $relArray['junction_table'] ?? null,
                             ];
+                            if (!$stockMode) {
+                                // --- Enhancement #6: Related record usage hint ---
+                                $relName = $relArray['name'] ?? '';
+                                if (!empty($relName)) {
+                                    $relEntry['usage'] = "related={$relName}";
+                                }
+                            }
+                            $tableRels[] = $relEntry;
                         }
                         if (!empty($tableRels)) {
                             $allRelationships[$tableName] = $tableRels;
@@ -912,11 +955,273 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
             $model['relationships'] = $allRelationships;
             $model['patterns'] = $this->detectRelationshipPatterns($allRelationships);
 
+            if (!$stockMode) {
+                // --- Enhancement #3: Field-level semantic hints ---
+                $this->injectFieldSemanticHints($model);
+
+                // --- Enhancement #5: Auto-generated query templates ---
+                $templates = $this->generateQueryTemplates($model);
+                if (!empty($templates)) {
+                    $model['query_templates'] = $templates;
+                }
+            }
+
         } catch (\Exception $e) {
             $model['error'] = 'Could not build data model: ' . $e->getMessage();
         }
 
         return $model;
+    }
+
+    /**
+     * Enhancement #2: Detect enum-like columns (low cardinality string columns).
+     * For columns with <= 20 distinct values, return the distinct value list.
+     */
+    private function detectEnumValues(string $tableName, array $stringColumns, $dbConnection): array
+    {
+        $enumValues = [];
+
+        foreach ($stringColumns as $colName) {
+            try {
+                // Count distinct values first
+                $distinctCount = $dbConnection->table($tableName)
+                    ->distinct()
+                    ->whereNotNull($colName)
+                    ->where($colName, '!=', '')
+                    ->count($colName);
+
+                // Only include if low cardinality (≤ 20 distinct values)
+                if ($distinctCount > 0 && $distinctCount <= 20) {
+                    $values = $dbConnection->table($tableName)
+                        ->distinct()
+                        ->whereNotNull($colName)
+                        ->where($colName, '!=', '')
+                        ->orderBy($colName)
+                        ->pluck($colName)
+                        ->toArray();
+
+                    if (!empty($values)) {
+                        $enumValues[$colName] = $values;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Skip column on error
+                continue;
+            }
+        }
+
+        return $enumValues;
+    }
+
+    /**
+     * Enhancement #3: Auto-detect common field patterns and inject semantic hints.
+     * Detects: amount/paid_amount pairs, soft delete flags, audit timestamps, status fields.
+     */
+    private function injectFieldSemanticHints(array &$model): void
+    {
+        foreach ($model['tables'] as $tableName => &$tableEntry) {
+            $colNames = array_map(fn($c) => $c['name'] ?? '', $tableEntry['columns'] ?? []);
+            $colNameSet = array_flip($colNames);
+            $hints = [];
+
+            // Detect amount + paid_amount → outstanding balance pattern
+            foreach ($colNames as $name) {
+                if (preg_match('/^(.*?)amount$/i', $name, $m)) {
+                    $prefix = $m[1];
+                    $paidCol = $prefix . 'paid_amount';
+                    $pdCol = $prefix . 'pd_amount';
+                    if (isset($colNameSet[$paidCol])) {
+                        $hints[] = "outstanding = {$name} - {$paidCol}";
+                    } elseif (isset($colNameSet[$pdCol])) {
+                        $hints[] = "outstanding = {$name} - {$pdCol}";
+                    }
+                }
+            }
+
+            // Detect soft delete pattern
+            $softDeleteCols = ['is_deleted', 'is_active', 'deleted_at', 'deleted'];
+            foreach ($softDeleteCols as $sdc) {
+                if (isset($colNameSet[$sdc])) {
+                    if ($sdc === 'is_active') {
+                        $hints[] = "Soft delete: filter by {$sdc}=true for active records";
+                    } elseif ($sdc === 'deleted_at') {
+                        $hints[] = "Soft delete: filter by {$sdc} IS NULL for non-deleted records";
+                    } else {
+                        $hints[] = "Soft delete: filter by {$sdc}=false for non-deleted records";
+                    }
+                    break; // one hint is enough
+                }
+            }
+
+            // Detect audit timestamps
+            $hasCreated = isset($colNameSet['created_at']) || isset($colNameSet['created_date']) || isset($colNameSet['create_date']);
+            $hasUpdated = isset($colNameSet['updated_at']) || isset($colNameSet['updated_date']) || isset($colNameSet['last_modified_date']);
+            if ($hasCreated && $hasUpdated) {
+                $hints[] = 'Has audit timestamps (created/updated)';
+            }
+
+            if (!empty($hints)) {
+                $tableEntry['hints'] = $hints;
+            }
+        }
+    }
+
+    /**
+     * Enhancement #5: Auto-generate query templates from schema structure.
+     * Teaches the agent optimal query patterns for this specific database.
+     */
+    private function generateQueryTemplates(array $model): array
+    {
+        $templates = [];
+        $tables = $model['tables'] ?? [];
+        $relationships = $model['relationships'] ?? [];
+
+        foreach ($tables as $tableName => $tableEntry) {
+            $columns = $tableEntry['columns'] ?? [];
+            $rowCount = $tableEntry['row_count'] ?? 0;
+            $colNames = array_map(fn($c) => $c['name'] ?? '', $columns);
+            $colNameSet = array_flip($colNames);
+            $colTypes = [];
+            $fkColumns = [];
+            $pkCol = null;
+            foreach ($columns as $col) {
+                $name = $col['name'] ?? '';
+                $colTypes[$name] = $col['type'] ?? 'string';
+                if (!empty($col['pk'])) {
+                    $pkCol = $name;
+                }
+                if (!empty($col['fk'])) {
+                    $fkColumns[$name] = $col['fk'];
+                }
+            }
+
+            // Template: Count records in large tables (> 1000 rows)
+            if ($rowCount > 1000) {
+                $templates["count_{$tableName}"] = [
+                    'description' => "Get total count of {$tableName} without fetching data ({$rowCount} rows)",
+                    'tool' => 'get_table_data',
+                    'params' => [
+                        'tableName' => $tableName,
+                        'countOnly' => true,
+                    ],
+                ];
+            }
+
+            // Template: Count by group for tables with FK or enum columns
+            $enumCols = array_keys($tableEntry['enum_values'] ?? []);
+            $groupableCols = array_merge($enumCols, array_keys($fkColumns));
+            if (!empty($groupableCols) && $rowCount > 0) {
+                $groupCol = $groupableCols[0]; // Pick the first groupable column
+                $templates["count_{$tableName}_by_{$groupCol}"] = [
+                    'description' => "Get {$tableName} count grouped by {$groupCol}",
+                    'tool' => 'get_table_data',
+                    'params' => [
+                        'tableName' => $tableName,
+                        'fields' => [$groupCol],
+                        'group' => $groupCol,
+                        'includeCount' => true,
+                    ],
+                ];
+            }
+
+            // Template: Top N by numeric column (for tables with sales/amount/total columns)
+            $numericRankCols = [];
+            foreach ($columns as $col) {
+                $name = $col['name'] ?? '';
+                $type = strtolower($col['type'] ?? '');
+                if (in_array($type, ['integer', 'decimal', 'float', 'double', 'numeric', 'money'])
+                    && !(!empty($col['pk'])) && empty($col['fk'])
+                    && preg_match('/(sales|amount|total|revenue|quantity|count|score|rating|balance|price)/i', $name)) {
+                    $numericRankCols[] = $name;
+                }
+            }
+            foreach ($numericRankCols as $rankCol) {
+                $templates["top_{$tableName}_by_{$rankCol}"] = [
+                    'description' => "Get top records from {$tableName} ordered by {$rankCol} descending",
+                    'tool' => 'get_table_data',
+                    'params' => [
+                        'tableName' => $tableName,
+                        'order' => "{$rankCol} DESC",
+                        'limit' => 10,
+                    ],
+                ];
+            }
+
+            // Template: Paginate large tables
+            if ($rowCount > 1000) {
+                $templates["paginate_{$tableName}"] = [
+                    'description' => "Paginate through {$tableName} ({$rowCount} rows, max 1000 per page)",
+                    'tool' => 'get_table_data',
+                    'params' => [
+                        'tableName' => $tableName,
+                        'limit' => 1000,
+                        'offset' => 0,
+                        'includeCount' => true,
+                    ],
+                    'note' => 'Increment offset by limit for each page. Use filter to reduce dataset when possible.',
+                ];
+            }
+
+            // Template: Join with related tables via FK
+            $tableRels = $relationships[$tableName] ?? [];
+            $belongsToRels = array_filter($tableRels, fn($r) => ($r['type'] ?? '') === 'belongs_to');
+            if (!empty($belongsToRels)) {
+                $relNames = array_map(fn($r) => $r['name'] ?? '', $belongsToRels);
+                $relNames = array_filter($relNames);
+                if (!empty($relNames)) {
+                    $relParam = implode(',', array_slice($relNames, 0, 3)); // max 3
+                    $templates["join_{$tableName}"] = [
+                        'description' => "Fetch {$tableName} with related parent records included in one call",
+                        'tool' => 'get_table_data',
+                        'params' => [
+                            'tableName' => $tableName,
+                            'related' => $relParam,
+                            'limit' => 10,
+                        ],
+                    ];
+                }
+            }
+
+            // Template: Filter by date range for tables with date columns
+            $dateCols = [];
+            foreach ($columns as $col) {
+                $type = strtolower($col['type'] ?? '');
+                if (in_array($type, ['date', 'datetime', 'timestamp', 'timestamptz'])) {
+                    $dateCols[] = $col['name'] ?? '';
+                }
+            }
+            if (!empty($dateCols) && $rowCount > 100) {
+                $dateCol = $dateCols[0];
+                $templates["filter_{$tableName}_by_date"] = [
+                    'description' => "Filter {$tableName} by date range on {$dateCol}",
+                    'tool' => 'get_table_data',
+                    'params' => [
+                        'tableName' => $tableName,
+                        'filter' => "{$dateCol} BETWEEN 2004-01-01 AND 2004-12-31",
+                    ],
+                    'note' => 'Adjust date range as needed. Combine with other filters using AND.',
+                ];
+            }
+        }
+
+        // Template: Hierarchy traversal (from detected patterns)
+        $patterns = $model['patterns'] ?? [];
+        foreach ($patterns as $pattern) {
+            if (($pattern['type'] ?? '') === 'hierarchy') {
+                $tbl = $pattern['table'] ?? '';
+                $templates["traverse_hierarchy_{$tbl}"] = [
+                    'description' => "Traverse {$tbl} hierarchy: fetch ALL records, build tree client-side, then aggregate recursively",
+                    'steps' => [
+                        "1. Fetch all {$tbl} records (use pagination if > 1000)",
+                        '2. Build parent-child map from self-referencing FK',
+                        '3. Recursively aggregate from leaves to root',
+                        '4. Do NOT query level-by-level — fetch all at once',
+                    ],
+                ];
+            }
+        }
+
+        return $templates;
     }
 
     /**

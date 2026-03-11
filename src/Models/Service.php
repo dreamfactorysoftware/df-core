@@ -351,26 +351,30 @@ class Service extends BaseSystemModel
 
         if ($shouldApplyFiltering && !Session::isSysAdmin()) {
             // Get the current user's accessible services
+            // Returns null if user has wildcard (all) access, empty array if no access,
+            // or array of service IDs for specific access
             $userServices = static::getUserAccessibleServices();
 
-            if (empty($userServices)) {
+            if (is_null($userServices)) {
+                // User has wildcard access to all services, no filtering needed
+            } elseif (empty($userServices)) {
                 // User has no service access, return empty result
                 return [];
-            }
-
-            // Add service ID filter to criteria using parameterized queries
-            $placeholders = str_repeat('?,', count($userServices) - 1) . '?';
-            $existingCondition = array_get($criteria, 'condition', '');
-            $existingParams = array_get($criteria, 'params', []);
-
-            if (!empty($existingCondition)) {
-                $criteria['condition'] = $existingCondition . " and id in ($placeholders)";
             } else {
-                $criteria['condition'] = "id in ($placeholders)";
-            }
+                // Add service ID filter to criteria using parameterized queries
+                $placeholders = str_repeat('?,', count($userServices) - 1) . '?';
+                $existingCondition = array_get($criteria, 'condition', '');
+                $existingParams = array_get($criteria, 'params', []);
 
-            // Merge the service IDs with existing parameters
-            $criteria['params'] = array_merge($existingParams, $userServices);
+                if (!empty($existingCondition)) {
+                    $criteria['condition'] = $existingCondition . " and id in ($placeholders)";
+                } else {
+                    $criteria['condition'] = "id in ($placeholders)";
+                }
+
+                // Merge the service IDs with existing parameters
+                $criteria['params'] = array_merge($existingParams, $userServices);
+            }
         }
 
         return parent::selectByRequest($criteria, $options);
@@ -379,7 +383,8 @@ class Service extends BaseSystemModel
     /**
      * Get service IDs that the current user has access to based on their role
      *
-     * @return array
+     * @return array|null Returns null if user has wildcard (all) access,
+     *                    empty array if no access, or array of service IDs
      */
     protected static function getUserAccessibleServices()
     {
@@ -388,6 +393,10 @@ class Service extends BaseSystemModel
 
         foreach ($roleServices as $serviceAccess) {
             $serviceId = array_get($serviceAccess, 'service_id');
+            // A null service_id means wildcard access to all services
+            if (is_null($serviceId)) {
+                return null;
+            }
             // Validate that service_id is a positive integer
             if (!empty($serviceId) && is_numeric($serviceId) && $serviceId > 0 && !in_array($serviceId, $accessibleServiceIds)) {
                 $accessibleServiceIds[] = (int)$serviceId;

@@ -167,7 +167,7 @@ class ApiOptions extends FactoryEnum
         ],
         self::GROUP                => [
             'type'        => 'string',
-            'description' => 'Comma-delimited list of the fields used for grouping of filter results.'
+            'description' => 'Comma-delimited list of the fields used for grouping of filter results. When set, the "fields" parameter supports aggregate expressions: SUM(field), COUNT(*), AVG(field), MIN(field), MAX(field).'
         ],
         self::HAVING               => [
             'type'        => 'string',
@@ -179,7 +179,7 @@ class ApiOptions extends FactoryEnum
         ],
         self::FIELDS               => [
             'type'        => 'string[]',
-            'description' => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier.'
+            'description' => 'Comma-delimited list of properties to be returned for each resource, "*" returns all properties. If as_list, use this to override the default identifier. When used with the "group" parameter, aggregate expressions are supported: SUM(field), COUNT(*), AVG(field), MIN(field), MAX(field).'
         ],
         self::CONTINUES            => [
             'type'        => 'boolean',

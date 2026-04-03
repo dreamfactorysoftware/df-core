@@ -170,23 +170,35 @@ class RegistrarTokenSecurityTest extends TestCase
 
     public function testFunctionSourceDoesNotUseRand()
     {
-        // Read the source of Registrar.php and assert that the function body
-        // uses random_int rather than rand(), which is the Mersenne Twister PRNG
-        // and is predictable given a known seed.
-        $source = file_get_contents(
-            __DIR__ . '/../src/Components/Registrar.php'
-        );
+        // Read the source of Registrar.php and strip comments so that
+        // documentation references to rand() don't trigger a false positive.
+        $path = __DIR__ . '/../src/Components/Registrar.php';
+        $tokens = token_get_all(file_get_contents($path));
+        $codeOnly = '';
+        foreach ($tokens as $token) {
+            if (is_array($token)) {
+                // Skip comments (T_COMMENT = // and #, T_DOC_COMMENT = /** */)
+                if ($token[0] === T_COMMENT || $token[0] === T_DOC_COMMENT) {
+                    continue;
+                }
+                $codeOnly .= $token[1];
+            } else {
+                $codeOnly .= $token;
+            }
+        }
 
-        // The old vulnerable call: rand(0, ...)
-        $this->assertStringNotContainsString(
-            'rand(',
-            $source,
+        // The old vulnerable call: rand(0, ...) — must not appear in executable code.
+        // Negative lookbehind avoids matching random_int( which contains the
+        // substring rand(.
+        $this->assertDoesNotMatchRegularExpression(
+            '/(?<!random_)rand\(/',
+            $codeOnly,
             'Registrar.php must not use rand() — it is not cryptographically secure. Use random_int().'
         );
 
         $this->assertStringContainsString(
             'random_int(',
-            $source,
+            $codeOnly,
             'Registrar.php must use random_int() for CSPRNG-based confirmation codes.'
         );
     }

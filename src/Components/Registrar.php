@@ -158,6 +158,9 @@ class Registrar
     /**
      * Generates a user confirmation code. (min 5 char)
      *
+     * Uses random_int() (CSPRNG) instead of rand() (Mersenne Twister) to
+     * ensure the confirmation code is cryptographically unpredictable.
+     *
      * @param int $length
      *
      * @return string
@@ -166,10 +169,11 @@ class Registrar
     {
         $length = ($length < 5) ? 5 : (($length > 32) ? 32 : $length);
         $range = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        $max = strlen($range) - 1;
         $code = '';
 
         for ($i = 0; $i < $length; $i++) {
-            $code .= $range[rand(0, strlen($range) - 1)];
+            $code .= $range[random_int(0, $max)];
         }
 
         return $code;

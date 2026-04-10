@@ -57,7 +57,7 @@ class AccessCheck
             $requestor = Session::getRequestor();
             $permException = null;
             try {
-                if ($this->isOAuthService($service)){
+                if ($this->isOAuthCallback($service, $method, $component)){
                     return $next($request);
                 }
                 Session::checkServicePermission($method, $service, $component, $requestor);
@@ -121,9 +121,24 @@ class AccessCheck
         }
     }
 
-    private function isOAuthService($service)
+    /**
+     * Check if this is a legitimate OAuth callback request that should bypass access checks.
+     * Only allows GET requests to OAuth services on the SSO callback resource path.
+     */
+    private function isOAuthCallback($service, $method, $component)
     {
-        return str_ends_with($service, '_oauth');
+        if (!str_ends_with($service, '_oauth')) {
+            return false;
+        }
+
+        // Only GET requests for OAuth callbacks (redirect back from provider)
+        if ($method !== Verbs::GET) {
+            return false;
+        }
+
+        // Only allow the SSO callback resource path through without auth
+        $allowedResources = ['sso', 'callback', ''];
+        return in_array(strtolower($component), $allowedResources);
     }
 
     /**

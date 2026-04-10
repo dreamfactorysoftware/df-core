@@ -358,8 +358,12 @@ trait DbRequestCriteria
             ) {
                 $value = substr($value, 1, -1);
             } elseif ((0 === strpos($value, '(')) && ((strlen($value) - 1) === strrpos($value, ')'))) {
-                // function call
-                return $value;
+                // Only allow known safe SQL functions, not arbitrary parenthesized expressions
+                $allowedFunctions = '/^\(?(NOW|CURDATE|CURTIME|UUID|CURRENT_TIMESTAMP|CURRENT_DATE|CURRENT_TIME|GETDATE|GETUTCDATE|NEWID|SYSDATE|SYSDATETIME)\(\)\)?$/i';
+                if (preg_match($allowedFunctions, $value)) {
+                    return $value;
+                }
+                // Fall through to parameterized binding for anything else
             }
         }
         // if not already a replacement parameter, evaluate it

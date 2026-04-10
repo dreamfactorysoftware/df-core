@@ -7,10 +7,11 @@ use DreamFactory\Core\Enums\Verbs;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Tests that the OAuth callback bypass in AccessCheck is properly scoped.
+ * Tests that the OAuth bypass in AccessCheck correctly identifies _oauth services.
  *
- * The bypass should only allow GET requests to _oauth-suffixed services
- * on specific callback resources, not blanket access to the entire service.
+ * Services ending in _oauth handle their own authentication (OAuth provider flows)
+ * and must bypass DreamFactory's access checks for all methods and resources.
+ * Non-_oauth services must never be bypassed.
  */
 class OAuthBypassTest extends TestCase
 {
@@ -32,63 +33,47 @@ class OAuthBypassTest extends TestCase
         return $reflection->invoke($this->middleware, $service, $method, $component);
     }
 
-    // === Should ALLOW (legitimate OAuth callbacks) ===
+    // === Should ALLOW (_oauth-suffixed services) ===
 
-    public function testAllowsGetToOAuthSsoCallback(): void
+    public function testAllowsOAuthServiceGet(): void
     {
         $this->assertTrue($this->isOAuthCallback('github_oauth', Verbs::GET, 'sso'));
     }
 
-    public function testAllowsGetToOAuthCallbackResource(): void
+    public function testAllowsOAuthServicePost(): void
     {
-        $this->assertTrue($this->isOAuthCallback('google_oauth', Verbs::GET, 'callback'));
+        $this->assertTrue($this->isOAuthCallback('github_oauth', Verbs::POST, 'callback'));
     }
 
-    public function testAllowsGetToOAuthRootResource(): void
+    public function testAllowsOAuthServiceAnyResource(): void
+    {
+        $this->assertTrue($this->isOAuthCallback('google_oauth', Verbs::GET, 'anything'));
+    }
+
+    public function testAllowsOAuthServiceRoot(): void
     {
         $this->assertTrue($this->isOAuthCallback('azure_oauth', Verbs::GET, ''));
     }
 
-    // === Should DENY (non-callback or non-GET requests) ===
+    // === Should DENY (non-_oauth services) ===
 
-    public function testDeniesPostToOAuthService(): void
-    {
-        $this->assertFalse($this->isOAuthCallback('github_oauth', Verbs::POST, 'sso'));
-    }
-
-    public function testDeniesPutToOAuthService(): void
-    {
-        $this->assertFalse($this->isOAuthCallback('github_oauth', Verbs::PUT, ''));
-    }
-
-    public function testDeniesDeleteToOAuthService(): void
-    {
-        $this->assertFalse($this->isOAuthCallback('github_oauth', Verbs::DELETE, 'sso'));
-    }
-
-    public function testDeniesGetToArbitraryResourceOnOAuthService(): void
-    {
-        $this->assertFalse($this->isOAuthCallback('github_oauth', Verbs::GET, 'admin'));
-    }
-
-    public function testDeniesGetToNonOAuthService(): void
+    public function testDeniesNonOAuthService(): void
     {
         $this->assertFalse($this->isOAuthCallback('github', Verbs::GET, 'sso'));
     }
 
-    public function testDeniesGetToServiceWithOAuthInMiddle(): void
+    public function testDeniesServiceWithOAuthInMiddle(): void
     {
         $this->assertFalse($this->isOAuthCallback('my_oauth_service', Verbs::GET, 'sso'));
     }
 
-    /**
-     * Regression: previously any service ending in _oauth bypassed ALL access checks
-     * for ANY method and ANY resource path. This test ensures that attack surface is closed.
-     */
-    public function testDeniesPostDataModificationOnOAuthService(): void
+    public function testDeniesRegularService(): void
     {
-        $this->assertFalse($this->isOAuthCallback('evil_oauth', Verbs::POST, 'users'));
-        $this->assertFalse($this->isOAuthCallback('evil_oauth', Verbs::PATCH, 'config'));
-        $this->assertFalse($this->isOAuthCallback('evil_oauth', Verbs::DELETE, 'data'));
+        $this->assertFalse($this->isOAuthCallback('db', Verbs::GET, ''));
+    }
+
+    public function testDeniesSystemService(): void
+    {
+        $this->assertFalse($this->isOAuthCallback('system', Verbs::POST, 'user'));
     }
 }

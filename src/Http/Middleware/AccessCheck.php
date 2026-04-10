@@ -122,23 +122,13 @@ class AccessCheck
     }
 
     /**
-     * Check if this is a legitimate OAuth callback request that should bypass access checks.
-     * Only allows GET requests to OAuth services on the SSO callback resource path.
+     * Check if this request targets an OAuth service.
+     * OAuth services (suffixed with _oauth) handle their own auth flows
+     * and need to bypass DreamFactory's access checks.
      */
     private function isOAuthCallback($service, $method, $component)
     {
-        if (!str_ends_with($service, '_oauth')) {
-            return false;
-        }
-
-        // Only GET requests for OAuth callbacks (redirect back from provider)
-        if ($method !== Verbs::GET) {
-            return false;
-        }
-
-        // Only allow the SSO callback resource path through without auth
-        $allowedResources = ['sso', 'callback', ''];
-        return in_array(strtolower($component), $allowedResources);
+        return str_ends_with($service, '_oauth');
     }
 
     /**

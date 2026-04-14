@@ -46,4 +46,6 @@ class ServiceTypeGroups extends FactoryEnum
     const SSO = 'SSO';
 
     const MCP = 'MCP';
+
+    const AI = 'AI';
 }

@@ -57,7 +57,7 @@ class AccessCheck
             $requestor = Session::getRequestor();
             $permException = null;
             try {
-                if ($this->isOAuthService($service)){
+                if ($this->isOAuthCallback($service, $method, $component)){
                     return $next($request);
                 }
                 Session::checkServicePermission($method, $service, $component, $requestor);
@@ -121,7 +121,12 @@ class AccessCheck
         }
     }
 
-    private function isOAuthService($service)
+    /**
+     * Check if this request targets an OAuth service.
+     * OAuth services (suffixed with _oauth) handle their own auth flows
+     * and need to bypass DreamFactory's access checks.
+     */
+    private function isOAuthCallback($service, $method, $component)
     {
         return str_ends_with($service, '_oauth');
     }

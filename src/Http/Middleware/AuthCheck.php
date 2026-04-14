@@ -228,8 +228,6 @@ class AuthCheck
                     // keep this separate from basic auth and jwt handling,
                     // as this is the fall back when those are not provided from scripting (see node.js and python)
                     if ($temp = Cache::get('script-token:' . $scriptToken)) {
-                        \Log::debug('script token: ' . $scriptToken);
-                        \Log::debug('script token cache: ' . print_r($temp, true));
                         Session::setSessionData(array_get($temp, 'app_id'), array_get($temp, 'user_id'));
                     }
                 } elseif (!empty($appId)) {

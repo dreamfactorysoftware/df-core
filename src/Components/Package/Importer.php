@@ -526,25 +526,23 @@ class Importer
         $verbMask = array_get($rsa, 'verb_mask');
         $requestorMask = array_get($rsa, 'requestor_mask');
 
+        $query = RoleServiceAccess::where('role_id', $roleId)
+            ->where('verb_mask', $verbMask)
+            ->where('requestor_mask', $requestorMask);
+
         if (is_null($serviceId)) {
-            $servicePhrase = "service_id is NULL";
+            $query->whereNull('service_id');
         } else {
-            $servicePhrase = "service_id = '$serviceId'";
+            $query->where('service_id', $serviceId);
         }
 
         if (is_null($component)) {
-            $componentPhrase = "component is NULL";
+            $query->whereNull('component');
         } else {
-            $componentPhrase = "component = '$component'";
+            $query->where('component', $component);
         }
 
-        return RoleServiceAccess::whereRaw(
-            "role_id = '$roleId' AND 
-            $servicePhrase AND 
-            $componentPhrase AND 
-            verb_mask = '$verbMask' AND 
-            requestor_mask = '$requestorMask'"
-        )->exists();
+        return $query->exists();
     }
 
     /**
@@ -560,11 +558,10 @@ class Importer
         $appId = $uar['app_id'];
         $roleId = $uar['role_id'];
 
-        return UserAppRole::whereRaw(
-            "user_id = '$userId' AND 
-            role_id = '$roleId' AND 
-            app_id = '$appId'"
-        )->exists();
+        return UserAppRole::where('user_id', $userId)
+            ->where('role_id', $roleId)
+            ->where('app_id', $appId)
+            ->exists();
     }
 
     /**

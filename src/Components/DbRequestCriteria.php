@@ -358,8 +358,12 @@ trait DbRequestCriteria
             ) {
                 $value = substr($value, 1, -1);
             } elseif ((0 === strpos($value, '(')) && ((strlen($value) - 1) === strrpos($value, ')'))) {
-                // function call
-                return $value;
+                // Allow SQL functions but block subqueries and dangerous expressions
+                $blocked = '/\b(SELECT|INSERT|UPDATE|DELETE|DROP|ALTER|CREATE|EXEC|EXECUTE|TRUNCATE|GRANT|REVOKE|UNION|INTO|SLEEP|BENCHMARK|LOAD_FILE|OUTFILE|DUMPFILE)\b/i';
+                if (!preg_match($blocked, $value)) {
+                    return $value;
+                }
+                // Fall through to parameterized binding for anything else
             }
         }
         // if not already a replacement parameter, evaluate it

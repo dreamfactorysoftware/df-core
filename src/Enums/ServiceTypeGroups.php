@@ -48,4 +48,6 @@ class ServiceTypeGroups extends FactoryEnum
     const MCP = 'MCP';
 
     const AI = 'AI';
+
+    const AI_CHAT = 'AI Chat';
 }

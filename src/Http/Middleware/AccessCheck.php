@@ -148,11 +148,27 @@ class AccessCheck
         }
         
         $allowedComponents = Session::getAllowedComponentsForGet($service, $requestor);
-        
+
         if (empty($allowedComponents)) {
             return null;
         }
 
-        return $allowedComponents;
+        // The previous behaviour granted _schema access whenever the role had
+        // ANY GET grant on the service. A role with `GET _table/users/` could
+        // read the full schema. Require that the role actually authorizes
+        // _schema (the resource itself, the wildcard `*`, or a sub-path like
+        // `_schema/users`).
+        foreach ($allowedComponents as $allowed) {
+            $allowed = strval($allowed);
+            if ($allowed === '*'
+                || $allowed === '_schema'
+                || $allowed === '_schema/'
+                || strpos($allowed, '_schema/') === 0
+            ) {
+                return $allowedComponents;
+            }
+        }
+
+        return null;
     }
 }

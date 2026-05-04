@@ -389,6 +389,11 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
             throw new BadRequestException('Identifying field "id" can not be empty for update request . ');
         }
 
+        // Normalize to int — the sqlsrv cleanup branch below interpolates
+        // $id directly into raw UPDATE statements. Without this cast a
+        // payload like "1; DROP TABLE user--" would be concatenated raw.
+        $id = (int) $id;
+
         /** @type User $model */
         $model = static::find($id);
 

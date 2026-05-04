@@ -118,14 +118,21 @@ trait PhpExecutable
         if (!$this->supportsInlineExecution || (substr(PHP_OS, 0, 3) == 'WIN') || ($scriptSize > $scriptInlineCharLimit)) {
             if (!empty($payload)) {
                 if (empty($storage_location)) {
-                    $storage_location = storage_path() . DIRECTORY_SEPARATOR . uniqid($this->commandName . "_", true);
+                    // Cryptographically random filename — uniqid() is
+                    // microtime-derived and lets a co-tenant race the
+                    // file open between write and exec.
+                    $randomTag = bin2hex(random_bytes(16));
+                    $storage_location = storage_path() . DIRECTORY_SEPARATOR
+                        . $this->commandName . '_' . $randomTag;
                     if (is_string($this->fileExtension) && !empty($this->fileExtension)) {
                         $storage_location .= '.' . $this->fileExtension;
                     }
                     $this->scriptFile = $storage_location;
                 }
                 file_put_contents($storage_location, $payload);
-                $runnerShell .= ' ' . $storage_location;
+                // escapeshellarg defends against unusual storage_path()
+                // values (whitespace, shell metacharacters, Windows paths).
+                $runnerShell .= ' ' . escapeshellarg($storage_location);
             }
         } else {
             if (is_array($this->inlineArguments)) {

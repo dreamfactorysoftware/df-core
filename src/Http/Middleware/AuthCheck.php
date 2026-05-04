@@ -121,18 +121,11 @@ class AuthCheck
      */
     public static function getScriptToken($request)
     {
-        // Check for script authorizing token in request parameters.
-        $token = $request->query('script_token');
-        if (empty($token)) {
-            // Check for script token in request HEADER.
-            $token = $request->header('X_DREAMFACTORY_SCRIPT_TOKEN');
-        }
-        if (empty($token)) {
-            // Check for script token in request payload.
-            $token = $request->input('script_token');
-        }
-
-        return $token;
+        // Header-only: query string and body sources were removed because the
+        // token leaks into logs, browser history, Referer, and CDN caches when
+        // accepted from the URL, and creates a CSRF amplification surface when
+        // accepted from the body.
+        return $request->header('X_DREAMFACTORY_SCRIPT_TOKEN');
     }
 
     /**

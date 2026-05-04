@@ -7,7 +7,6 @@ use DreamFactory\Core\Models\CorsConfig;
 use Fruitcake\Cors\CorsService;
 use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Database\QueryException;
-use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Http\Request;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
@@ -31,10 +30,9 @@ class CorsServiceProvider extends ServiceProvider
      * Add the Cors middleware to the router.
      *
      * @param Request $request
-     * @param Kernel  $kernel
      * @throws \Exception
      */
-    public function boot(Request $request, Kernel $kernel)
+    public function boot(Request $request)
     {
         $api_prefix = config('df.api_route_prefix', 'api');
         config(['cors.paths' => [$api_prefix . '/*']]);

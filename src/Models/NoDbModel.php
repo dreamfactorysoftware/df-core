@@ -74,15 +74,25 @@ class NoDbModel implements Arrayable, Jsonable, JsonSerializable
         return $casts;
     }
 
-    // not sure why Laravel has these are in the HasAttributes trait instead of the model, but they need simplification
+    // The HasAttributes trait calls $this->getDates() and $this->getDateFormat() internally
+    // during attributesToArray(). The trait's own getDates() implementation depends on
+    // usesTimestamps() / $dates, neither of which NoDbModel inherits (it doesn't extend
+    // Model and doesn't use HasTimestamps). We provide stub overrides that short-circuit
+    // the date handling so attributesToArray() works for this Model-less use case.
+    //
+    // Historical note: Eloquent's Model::getDates() was removed in Laravel 10, but the
+    // method still lives in HasAttributes and is invoked from inside the trait, so the
+    // override remains necessary as long as NoDbModel uses HasAttributes directly.
     public function getDates()
     {
-        return $this->dates;
+        return property_exists($this, 'dates') ? (array) $this->dates : [];
     }
 
     protected function getDateFormat()
     {
-        return $this->dateFormat;
+        return property_exists($this, 'dateFormat') && $this->dateFormat
+            ? $this->dateFormat
+            : 'Y-m-d H:i:s';
     }
 
     /**

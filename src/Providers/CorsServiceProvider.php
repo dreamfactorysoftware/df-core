@@ -96,10 +96,27 @@ class CorsServiceProvider extends ServiceProvider
      */
     protected function getCorsConfigs()
     {
+        // Force-load Eloquent's Collection class before reading from the cache.
+        // CorsServiceProvider::boot() runs early enough that, if the cache
+        // backend (Redis, file, etc.) returns a serialized Collection, PHP's
+        // unserialize() can fire before the class has been autoloaded — in
+        // which case it returns __PHP_Incomplete_Class, which is unusable.
+        // Touching the class name here triggers PSR-4 autoload up front.
+        class_exists(\Illuminate\Database\Eloquent\Collection::class);
+
         try {
             $cors = Cache::remember(CorsConfig::CACHE_KEY, \Config::get('df.default_cache_ttl'), function (){
                 return CorsConfig::whereEnabled(true)->get();
             });
+
+            // Defensive: if the cached value still came back as something
+            // other than a Collection (cache cross-contamination across
+            // backends, persisted __PHP_Incomplete_Class, etc.), drop the
+            // entry and re-fetch fresh.
+            if (!$cors instanceof \Illuminate\Support\Collection) {
+                Cache::forget(CorsConfig::CACHE_KEY);
+                $cors = CorsConfig::whereEnabled(true)->get();
+            }
 
             return $cors;
         } catch (\Exception $e) {

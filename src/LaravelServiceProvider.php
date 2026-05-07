@@ -80,6 +80,35 @@ class LaravelServiceProvider extends ServiceProvider
      */
     public function register()
     {
+        // PHP 8.5 + Laravel 13 unserialize-time autoload race fix.
+        //
+        // Many df-core / df-database / df-* code paths cache typed objects
+        // (TableSchema, ColumnSchema, RelationSchema, Eloquent\Collection,
+        // CorsConfig models, etc.) via Cache::remember*. On a cache hit the
+        // backing store calls unserialize() to rehydrate the payload — and on
+        // PHP 8.5 there's a class-load race where the schema/model classes
+        // aren't yet known to the autoloader at that exact moment, so PHP
+        // returns __PHP_Incomplete_Class. Subsequent property/method access
+        // on those instances fatals with errors like:
+        //
+        //   "tried to access a property on an incomplete object — please
+        //   ensure that the class definition X was loaded before
+        //   unserialize() gets called"
+        //
+        // We force-load the classes most commonly cached as objects up front,
+        // before any other ServiceProvider can read from the cache. This is a
+        // no-op on PHP 8.3 / Laravel 11 where the same class-load order
+        // happened to be safe.
+        class_exists(\Illuminate\Database\Eloquent\Collection::class);
+        class_exists(\DreamFactory\Core\Database\Schema\TableSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\ColumnSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\RelationSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\NamedResourceSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\FunctionSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\ProcedureSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\ParameterSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\RoutineSchema::class);
+
         // Register MongoDB provider first (gated — package is optional)
         if (class_exists(MongoDBServiceProvider::class)) {
             $this->app->register(MongoDBServiceProvider::class);

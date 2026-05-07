@@ -30,15 +30,19 @@
   "minimum-stability": "dev",
   "prefer-stable": true,
   "require":     {
-    "php":                    "^8.0",
-    "doctrine/dbal":          "^3.1.4",
+    "php":                    "^8.3",
     "guzzlehttp/guzzle":      "^7.8",
-    "symfony/yaml":           "^6.0",
+    "laravel/helpers":        "^1.8",
+    "symfony/yaml":           "^6.0|^7.0",
     "tymon/jwt-auth":         "^2.1.0",
     "dreamfactory/df-system": "~0.6.2"
   },
   "require-dev": {
-    "phpunit/phpunit": "@stable"
+    "laravel/framework":      "^13.7",
+    "mockery/mockery":        "^1.6",
+    "nunomaduro/collision":   "^8.6",
+    "orchestra/testbench":    "^11.0",
+    "phpunit/phpunit":        "^11.5.3"
   },
   "autoload":    {
     "files": [

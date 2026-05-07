@@ -60,11 +60,8 @@ class LaravelServiceProvider extends ServiceProvider
 
         $this->registerOtherProviders();
 
-        // add routes
-        /** @noinspection PhpUndefinedMethodInspection */
-        if (!$this->app->routesAreCached()) {
-            include __DIR__ . '/../routes/routes.php';
-        }
+        // add routes (loadRoutesFrom handles the route-cache check internally)
+        $this->loadRoutesFrom(__DIR__ . '/../routes/routes.php');
 
         // add commands, https://laravel.com/docs/5.4/packages#commands
         $this->addCommands();
@@ -83,8 +80,10 @@ class LaravelServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        // Register MongoDB provider first
-        $this->app->register(MongoDBServiceProvider::class);
+        // Register MongoDB provider first (gated — package is optional)
+        if (class_exists(MongoDBServiceProvider::class)) {
+            $this->app->register(MongoDBServiceProvider::class);
+        }
 
         // merge in df config, https://laravel.com/docs/5.4/packages#resources
         $this->mergeConfigFrom(__DIR__ . '/../config/df.php', 'df');
@@ -117,8 +116,10 @@ class LaravelServiceProvider extends ServiceProvider
         Route::aliasMiddleware('df.access_check', AccessCheck::class);
         Route::aliasMiddleware('df.verb_override', VerbOverrides::class);
 
-        /** Add the first user check to the web group */
-        Route::prependMiddlewareToGroup('web', FirstUserCheck::class);
+        /** Add the first user check to the web group (gated — `web` may not be defined in API-only apps) */
+        if (Route::hasMiddlewareGroup('web')) {
+            Route::prependMiddlewareToGroup('web', FirstUserCheck::class);
+        }
 
         $middleware = [
             'df.verb_override',
@@ -183,7 +184,10 @@ class LaravelServiceProvider extends ServiceProvider
 
     protected function registerOtherProviders()
     {
-        // use CORS
-        $this->app->register(CorsServiceProvider::class);
+        // use CORS (gated — Laravel HandleCors middleware ships in framework so the
+        // provider class is always available, but keep the gate symmetric/defensive)
+        if (class_exists(CorsServiceProvider::class)) {
+            $this->app->register(CorsServiceProvider::class);
+        }
     }
 }

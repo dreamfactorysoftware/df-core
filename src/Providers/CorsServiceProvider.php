@@ -37,15 +37,49 @@ class CorsServiceProvider extends ServiceProvider
     public function boot(Request $request, Kernel $kernel)
     {
         $api_prefix = config('df.api_route_prefix', 'api');
-        config(['cors.paths' => [$api_prefix . '/*']]);
         
         $config = $this->getOptions($request);
+        $this->setLaravelCorsConfig($api_prefix, $config);
+
         $this->app->singleton(CorsService::class, function () use ($config){
             return new DfCorsService($config);
         });
 
         Route::aliasMiddleware('df.cors', HandleCors::class);
         Route::prependMiddlewareToGroup('df.api', 'df.cors');
+    }
+
+    /**
+     * Keep Laravel's CORS middleware aligned with DreamFactory's DB-backed CORS config.
+     *
+     * Laravel's HandleCors middleware calls setOptions(config('cors')) on every
+     * request. Without this, Laravel's framework defaults can replace the
+     * DreamFactory CORS row selected above.
+     *
+     * @param string $apiPrefix
+     * @param array  $options
+     */
+    protected function setLaravelCorsConfig(string $apiPrefix, array $options): void
+    {
+        $corsConfig = array_merge(config('cors', []), [
+            'paths'                    => [$apiPrefix . '/*'],
+            'allowedOrigins'           => $options['allowedOrigins'] ?? [],
+            'allowedOriginsPatterns'   => $options['allowedOriginsPatterns'] ?? [],
+            'allowedHeaders'           => $options['allowedHeaders'] ?? [],
+            'allowedMethods'           => $options['allowedMethods'] ?? [],
+            'exposedHeaders'           => $options['exposedHeaders'] ?? [],
+            'maxAge'                   => $options['maxAge'] ?? 0,
+            'supportsCredentials'      => $options['supportsCredentials'] ?? false,
+            'allowed_origins'          => $options['allowedOrigins'] ?? [],
+            'allowed_origins_patterns' => $options['allowedOriginsPatterns'] ?? [],
+            'allowed_headers'          => $options['allowedHeaders'] ?? [],
+            'allowed_methods'          => $options['allowedMethods'] ?? [],
+            'exposed_headers'          => $options['exposedHeaders'] ?? [],
+            'max_age'                  => $options['maxAge'] ?? 0,
+            'supports_credentials'     => $options['supportsCredentials'] ?? false,
+        ]);
+
+        config(['cors' => $corsConfig]);
     }
 
     /**

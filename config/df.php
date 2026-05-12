@@ -91,5 +91,6 @@ return [
         // list of allowed lookup modifying functions like urlencode, trim, etc.
         'allowed_modifiers' => explode(',', env('DF_LOOKUP_MODIFIERS',
             'strtoupper,strtolower,ucfirst,lcfirst,ucwords,urlencode,urldecode,rawurlencode,rawurldecode,base64_encode,base64_decode,trim')),
-    ]
+    ],
+    'generate_report' => env('DF_GENERATE_REPORT', false),
 ];

@@ -327,6 +327,14 @@ class InternalServiceRequest implements ServiceRequestInterface
     {
         try {
             $payload = $this->getPayloadData();
+            // setPayloadData() is strict-typed array, but getPayloadData() can
+            // return a string when the request body is text/plain (or any
+            // non-array content). Normalize here so toArray()'s output is
+            // always safe to feed back through mergeFromArray() / setPayloadData().
+            // The raw body is still available via the 'content' key below.
+            if (!is_array($payload)) {
+                $payload = [];
+            }
         } catch (\Exception $ex) {
             $payload = null;
         }
@@ -361,7 +369,15 @@ class InternalServiceRequest implements ServiceRequestInterface
             $this->setHeaders(array_get($data, 'headers'));
         }
         if (array_key_exists('payload', $data)) {
-            $this->setPayloadData(array_get($data, 'payload'));
+            $payload = array_get($data, 'payload');
+            // Defense in depth: only forward array-shaped payloads. Non-array
+            // values can arrive when an event script's modified result is
+            // round-tripped back, or when an upstream caller hasn't normalized
+            // its input. Skipping silently here matches the prior loose-typed
+            // behavior that worked before setPayloadData was strict-typed.
+            if (is_array($payload)) {
+                $this->setPayloadData($payload);
+            }
         }
         if (array_key_exists('content', $data)) {
             $content = array_get($data, 'content');

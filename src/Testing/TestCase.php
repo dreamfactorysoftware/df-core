@@ -37,7 +37,7 @@ class TestCase extends LaravelTestCase
     /**
      * Runs before every test class.
      */
-    public static function setupBeforeClass(): void
+    public static function setUpBeforeClass(): void
     {
         echo "\n------------------------------------------------------------------------------\n";
         echo "Running test: " . get_called_class() . "\n";
@@ -110,15 +110,67 @@ class TestCase extends LaravelTestCase
     /**
      * Creates the application.
      *
+     * Consuming applications should override this if the Laravel-style
+     * bootstrap path differs from the conventional `bootstrap/app.php`
+     * relative to the host project root. The base path is resolved from
+     * the consumer's working tree (parent of the running phpunit binary)
+     * rather than the current working directory, so tests can be invoked
+     * from any cwd.
+     *
      * @return \Illuminate\Foundation\Application
      */
     public function createApplication()
     {
-        $app = require './bootstrap/app.php';
+        $bootstrap = $this->resolveBootstrapPath();
 
-        $app->make('Illuminate\Contracts\Console\Kernel')->bootstrap();
+        /** @var \Illuminate\Foundation\Application $app */
+        $app = require $bootstrap;
+
+        $app->make(\Illuminate\Contracts\Console\Kernel::class)->bootstrap();
 
         return $app;
+    }
+
+    /**
+     * Resolve the path to the Laravel application bootstrap file.
+     *
+     * Order of resolution:
+     *   1. DF_TEST_BOOTSTRAP env var (explicit override)
+     *   2. df-core's own ./bootstrap/app.php (when df-core has its own)
+     *   3. Walk up from this file looking for a vendor/.. host project root
+     *
+     * @return string
+     */
+    protected function resolveBootstrapPath(): string
+    {
+        if ($override = getenv('DF_TEST_BOOTSTRAP')) {
+            return $override;
+        }
+
+        // df-core itself: __DIR__ = src/Testing, so root is two levels up.
+        $localCandidate = dirname(__DIR__, 2) . '/bootstrap/app.php';
+        if (file_exists($localCandidate)) {
+            return $localCandidate;
+        }
+
+        // Installed under a host project's vendor/dreamfactory/df-core/src/Testing
+        // → walk up to the host project root (parent of vendor/).
+        $dir = __DIR__;
+        for ($i = 0; $i < 10; $i++) {
+            $candidate = $dir . '/bootstrap/app.php';
+            if (file_exists($candidate) && is_file($dir . '/artisan')) {
+                return $candidate;
+            }
+            $parent = dirname($dir);
+            if ($parent === $dir) {
+                break;
+            }
+            $dir = $parent;
+        }
+
+        throw new \RuntimeException(
+            'Unable to locate bootstrap/app.php. Set DF_TEST_BOOTSTRAP env var to its absolute path.'
+        );
     }
 
     /**

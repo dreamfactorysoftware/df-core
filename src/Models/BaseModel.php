@@ -883,7 +883,17 @@ class BaseModel extends Model
      */
     public function getTableSchema()
     {
-        return \Cache::rememberForever('model:' . $this->table, function () {
+        // PHP 8.5 + Laravel 13 autoload race fix: force-load the schema
+        // classes that may live inside the cached payload. Without this,
+        // unserialize() during Cache::rememberForever can rehydrate them as
+        // __PHP_Incomplete_Class, and downstream property access throws
+        // "tried to access a property on an incomplete object".
+        class_exists(\DreamFactory\Core\Database\Schema\TableSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\ColumnSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\RelationSchema::class);
+
+        $cacheKey = 'model:' . $this->table;
+        $tableSchema = \Cache::rememberForever($cacheKey, function () {
             $resourceName = $this->table;
             $name = $resourceName;
             if (empty($schemaName = $this->getDefaultSchema())) {
@@ -905,6 +915,16 @@ class BaseModel extends Model
 
             return $tableSchema;
         });
+
+        // Defensive: if the cached value still came back as a non-TableSchema
+        // (cache cross-contamination, persisted incomplete class), drop and
+        // recompute fresh.
+        if (!$tableSchema instanceof TableSchema) {
+            \Cache::forget($cacheKey);
+            return $this->getTableSchema();
+        }
+
+        return $tableSchema;
     }
 
     public function getSchema()

@@ -60,11 +60,8 @@ class LaravelServiceProvider extends ServiceProvider
 
         $this->registerOtherProviders();
 
-        // add routes
-        /** @noinspection PhpUndefinedMethodInspection */
-        if (!$this->app->routesAreCached()) {
-            include __DIR__ . '/../routes/routes.php';
-        }
+        // add routes (loadRoutesFrom handles the route-cache check internally)
+        $this->loadRoutesFrom(__DIR__ . '/../routes/routes.php');
 
         // add commands, https://laravel.com/docs/5.4/packages#commands
         $this->addCommands();
@@ -83,8 +80,39 @@ class LaravelServiceProvider extends ServiceProvider
      */
     public function register()
     {
-        // Register MongoDB provider first
-        $this->app->register(MongoDBServiceProvider::class);
+        // PHP 8.5 + Laravel 13 unserialize-time autoload race fix.
+        //
+        // Many df-core / df-database / df-* code paths cache typed objects
+        // (TableSchema, ColumnSchema, RelationSchema, Eloquent\Collection,
+        // CorsConfig models, etc.) via Cache::remember*. On a cache hit the
+        // backing store calls unserialize() to rehydrate the payload — and on
+        // PHP 8.5 there's a class-load race where the schema/model classes
+        // aren't yet known to the autoloader at that exact moment, so PHP
+        // returns __PHP_Incomplete_Class. Subsequent property/method access
+        // on those instances fatals with errors like:
+        //
+        //   "tried to access a property on an incomplete object — please
+        //   ensure that the class definition X was loaded before
+        //   unserialize() gets called"
+        //
+        // We force-load the classes most commonly cached as objects up front,
+        // before any other ServiceProvider can read from the cache. This is a
+        // no-op on PHP 8.3 / Laravel 11 where the same class-load order
+        // happened to be safe.
+        class_exists(\Illuminate\Database\Eloquent\Collection::class);
+        class_exists(\DreamFactory\Core\Database\Schema\TableSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\ColumnSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\RelationSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\NamedResourceSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\FunctionSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\ProcedureSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\ParameterSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\RoutineSchema::class);
+
+        // Register MongoDB provider first (gated — package is optional)
+        if (class_exists(MongoDBServiceProvider::class)) {
+            $this->app->register(MongoDBServiceProvider::class);
+        }
 
         // merge in df config, https://laravel.com/docs/5.4/packages#resources
         $this->mergeConfigFrom(__DIR__ . '/../config/df.php', 'df');
@@ -117,8 +145,10 @@ class LaravelServiceProvider extends ServiceProvider
         Route::aliasMiddleware('df.access_check', AccessCheck::class);
         Route::aliasMiddleware('df.verb_override', VerbOverrides::class);
 
-        /** Add the first user check to the web group */
-        Route::prependMiddlewareToGroup('web', FirstUserCheck::class);
+        /** Add the first user check to the web group (gated — `web` may not be defined in API-only apps) */
+        if (Route::hasMiddlewareGroup('web')) {
+            Route::prependMiddlewareToGroup('web', FirstUserCheck::class);
+        }
 
         $middleware = [
             'df.verb_override',
@@ -183,7 +213,10 @@ class LaravelServiceProvider extends ServiceProvider
 
     protected function registerOtherProviders()
     {
-        // use CORS
-        $this->app->register(CorsServiceProvider::class);
+        // use CORS (gated — Laravel HandleCors middleware ships in framework so the
+        // provider class is always available, but keep the gate symmetric/defensive)
+        if (class_exists(CorsServiceProvider::class)) {
+            $this->app->register(CorsServiceProvider::class);
+        }
     }
 }

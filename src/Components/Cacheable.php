@@ -94,9 +94,53 @@ trait Cacheable
      */
     public function getFromCache($key, $default = null)
     {
-        $fullKey = $this->makeCacheKey($key);
+        // PHP 8.5 + Laravel 13 unserialize-time autoload race fix.
+        // Many service caches store typed objects (TableSchema, ColumnSchema,
+        // RelationSchema, NamedResourceSchema, FunctionSchema, ProcedureSchema,
+        // ParameterSchema, RoutineSchema, Eloquent\Collection). On PHP 8.5
+        // the cache backend's unserialize() can fire before the autoloader
+        // has loaded those classes, returning __PHP_Incomplete_Class. Force
+        // PSR-4 autoload up front so the rehydrated objects are real.
+        class_exists(\DreamFactory\Core\Database\Schema\NamedResourceSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\TableSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\ColumnSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\RelationSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\FunctionSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\ProcedureSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\ParameterSchema::class);
+        class_exists(\DreamFactory\Core\Database\Schema\RoutineSchema::class);
 
-        return Cache::get($fullKey, $default);
+        $fullKey = $this->makeCacheKey($key);
+        $value = Cache::get($fullKey, $default);
+
+        // Defensive: detect __PHP_Incomplete_Class anywhere in the result and
+        // drop the cache entry so the next caller will recompute. Walks one
+        // level deep into arrays (the typical shape — `tables` map etc.).
+        if ($this->cacheValueIsIncomplete($value)) {
+            Cache::forget($fullKey);
+            return $default;
+        }
+
+        return $value;
+    }
+
+    /**
+     * @param mixed $value
+     * @return bool true if value is or contains a PHP_Incomplete_Class
+     */
+    protected function cacheValueIsIncomplete($value)
+    {
+        if ($value instanceof \__PHP_Incomplete_Class) {
+            return true;
+        }
+        if (is_array($value)) {
+            foreach ($value as $entry) {
+                if ($entry instanceof \__PHP_Incomplete_Class) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /**

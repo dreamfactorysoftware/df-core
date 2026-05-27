@@ -1,5 +1,7 @@
 <?php
 
+use Illuminate\Support\Arr;
+
 if (!function_exists('to_bool')) {
     /**
      * Convert any value to boolean value.
@@ -44,7 +46,7 @@ if (!function_exists('array_get_bool')) {
      */
     function array_get_bool($array, $key, $default = false)
     {
-        return to_bool(array_get($array, $key, $default));
+        return to_bool(Arr::get($array, $key, $default));
     }
 }
 
@@ -65,9 +67,9 @@ if (!function_exists('array_by_key_value')) {
     {
         if (is_array($array)) {
             foreach ($array as $item) {
-                if ($value === array_get($item, $key)) {
+                if ($value === Arr::get($item, $key)) {
                     if ($returnKey) {
-                        return array_get($item, $returnKey);
+                        return Arr::get($item, $returnKey);
                     } else {
                         return $item;
                     }
@@ -140,7 +142,7 @@ if (!function_exists('array_get_or')) {
     {
         $out = null;
         foreach ($keys as $key) {
-            $out = array_get($data, $key);
+            $out = Arr::get($data, $key);
             if ($out !== null) {
                 break;
             }

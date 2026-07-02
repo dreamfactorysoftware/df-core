@@ -139,7 +139,12 @@ class App extends BaseSystemModel
                 break;
 
             case AppTypes::PATH:
-                $launchUrl = url($this->path);
+                // Guard a null/empty path: Laravel's url() with no argument
+                // returns the UrlGenerator object, not a string. That object
+                // holds closures, so it breaks App::getCachedInfo() the moment
+                // a serializing cache store (file/database) tries to cache the
+                // app — every request under a headless, path-less app 500s.
+                $launchUrl = !empty($this->path) ? url($this->path) : '';
                 break;
 
             case AppTypes::URL:

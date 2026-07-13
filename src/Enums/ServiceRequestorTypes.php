@@ -27,6 +27,10 @@ class ServiceRequestorTypes extends FactoryEnum
      * @var int Service is being called from the scripting environment
      */
     const SCRIPT = 2; // 0b0010
+    /**
+     * @var int Service is being called by a registered agent identity (df-agents)
+     */
+    const AGENT = 4; // 0b0100
 
     //*************************************************************************
     //* Methods

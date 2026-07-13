@@ -88,7 +88,17 @@ class ServiceEventHandler
      */
     public function handleServiceChangeEvent($event)
     {
-        ServiceManager::purge($event->service->name); // clear out any old config
+        try {
+            ServiceManager::purge($event->service->name); // clear out any old config
+            // On rename, also clear the per-name config cached under the old name.
+            if (!empty($event->originalName) && $event->originalName !== $event->service->name) {
+                Cache::forget('service_mgr:' . $event->originalName);
+            }
+        } catch (\Exception $ex) {
+            // Cache invalidation must never fail the request; TTL on the
+            // service_mgr keys self-heals any entries missed here.
+            Log::error('Failed to purge service cache: ' . $ex->getMessage());
+        }
     }
 
     public function handleQueryExecutedEvent($event)

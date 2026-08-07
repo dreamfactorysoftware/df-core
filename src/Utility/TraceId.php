@@ -19,7 +19,11 @@ class TraceId
     public static function get(): string
     {
         if (self::$id === null) {
-            $inbound = request()?->header(self::HEADER);
+            // request() throws outside an HTTP context (artisan, queue workers,
+            // bare unit-test containers) — those hops mint a fresh id instead.
+            $inbound = app()->bound('request')
+                ? request()?->header(self::HEADER)
+                : null;
             self::$id = self::isValid($inbound) ? $inbound : (string) Str::uuid();
         }
 

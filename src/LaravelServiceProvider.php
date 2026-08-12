@@ -18,11 +18,14 @@ use DreamFactory\Core\Handlers\Events\ServiceEventHandler;
 use DreamFactory\Core\Http\Middleware\AccessCheck;
 use DreamFactory\Core\Http\Middleware\AuthCheck;
 use DreamFactory\Core\Http\Middleware\FirstUserCheck;
+use DreamFactory\Core\Http\Middleware\TraceResponse;
 use DreamFactory\Core\Http\Middleware\VerbOverrides;
+use DreamFactory\Core\Models\BaseModel;
 use DreamFactory\Core\Models\SystemTableModelMapper;
 use DreamFactory\Core\Providers\CorsServiceProvider;
 use DreamFactory\Core\Services\ServiceManager;
 use Illuminate\Database\DatabaseManager;
+use Illuminate\Database\Events\MigrationsEnded;
 use Illuminate\Database\SQLiteConnection;
 use Illuminate\Foundation\AliasLoader;
 use Illuminate\Support\ServiceProvider;
@@ -71,6 +74,21 @@ class LaravelServiceProvider extends ServiceProvider
 
         // subscribe to all listened to events
         Event::subscribe(new ServiceEventHandler());
+
+        // Invalidate cached system table schemas whenever migrations actually
+        // run (package upgrades adding config-table columns). MigrationsEnded
+        // only fires when pending migrations executed; NoPendingMigrations
+        // fires otherwise. Keeps GET system/service_type config_schema fresh
+        // after a deploy without any cache:clear.
+        Event::listen(MigrationsEnded::class, function () {
+            try {
+                BaseModel::bumpSchemaVersion();
+            } catch (\Throwable $e) {
+                // Cache invalidation failure must never fail the migration run;
+                // the TTL backstop on the schema caches covers us.
+                \Log::warning('Failed to bump schema cache version after migrations: ' . $e->getMessage());
+            }
+        });
     }
 
     /**
@@ -141,6 +159,7 @@ class LaravelServiceProvider extends ServiceProvider
      */
     protected function addMiddleware()
     {
+        Route::aliasMiddleware('df.trace', TraceResponse::class);
         Route::aliasMiddleware('df.auth_check', AuthCheck::class);
         Route::aliasMiddleware('df.access_check', AccessCheck::class);
         Route::aliasMiddleware('df.verb_override', VerbOverrides::class);
@@ -151,6 +170,7 @@ class LaravelServiceProvider extends ServiceProvider
         }
 
         $middleware = [
+            'df.trace',
             'df.verb_override',
             'df.auth_check',
             'df.access_check'

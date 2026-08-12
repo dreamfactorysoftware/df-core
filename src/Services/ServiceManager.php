@@ -84,12 +84,13 @@ class ServiceManager
     public function getServiceIdNameMap($only_active = false)
     {
         if ($only_active) {
-            return \Cache::rememberForever('service_mgr:id_name_map_active', function () {
-                return Service::whereIsActive(true)->pluck('name', 'id')->toArray();
-            });
+            return \Cache::remember('service_mgr:id_name_map_active', \Config::get('df.default_cache_ttl'),
+                function () {
+                    return Service::whereIsActive(true)->pluck('name', 'id')->toArray();
+                });
         }
 
-        return \Cache::rememberForever('service_mgr:id_name_map', function () {
+        return \Cache::remember('service_mgr:id_name_map', \Config::get('df.default_cache_ttl'), function () {
             return Service::pluck('name', 'id')->toArray();
         });
     }
@@ -148,12 +149,13 @@ class ServiceManager
     public function getServiceNameTypeMap($only_active = false)
     {
         if ($only_active) {
-            return \Cache::rememberForever('service_mgr:name_type_map_active', function () {
-                return Service::whereIsActive(true)->pluck('type', 'name')->toArray();
-            });
+            return \Cache::remember('service_mgr:name_type_map_active', \Config::get('df.default_cache_ttl'),
+                function () {
+                    return Service::whereIsActive(true)->pluck('type', 'name')->toArray();
+                });
         }
 
-        return \Cache::rememberForever('service_mgr:name_type_map', function () {
+        return \Cache::remember('service_mgr:name_type_map', \Config::get('df.default_cache_ttl'), function () {
             return Service::pluck('type', 'name')->toArray();
         });
     }
@@ -752,7 +754,7 @@ class ServiceManager
             throw new InvalidArgumentException("Service 'name' can not be empty.");
         }
 
-        return \Cache::rememberForever('service_mgr:' . $name, function () use ($name) {
+        return \Cache::remember('service_mgr:' . $name, \Config::get('df.default_cache_ttl'), function () use ($name) {
             /** @var Service $service */
             if (empty($service = Service::whereName($name)->first())) {
                 throw new NotFoundException("Could not find a service for $name");

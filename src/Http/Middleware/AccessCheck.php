@@ -4,6 +4,7 @@ namespace DreamFactory\Core\Http\Middleware;
 
 use Closure;
 use DreamFactory\Core\Enums\ServiceRequestorTypes;
+use DreamFactory\Core\Enums\ServiceTypeGroups;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Exceptions\RestException;
@@ -128,7 +129,28 @@ class AccessCheck
      */
     private function isOAuthCallback($service, $method, $component)
     {
-        return str_ends_with($service, '_oauth');
+        // An OAuth/SSO callback service handles its own auth flow, so it is
+        // exempt from the access check. Matching the "_oauth" name suffix ALONE
+        // let ANY service (e.g. an API Builder API whose URL segment ends in
+        // "_oauth") bypass authentication entirely — so also require the service
+        // to genuinely be an OAuth/SSO service type.
+        if (!str_ends_with((string)$service, '_oauth')) {
+            return false;
+        }
+
+        try {
+            $typeName = \ServiceManager::getServiceTypeByName($service);
+            $typeInfo = $typeName ? \ServiceManager::getServiceType($typeName) : null;
+            $group = $typeInfo ? $typeInfo->getGroup() : null;
+
+            return in_array(
+                $group,
+                [ServiceTypeGroups::OAUTH, ServiceTypeGroups::SSO],
+                true
+            );
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
 
     /**

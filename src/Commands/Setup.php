@@ -125,15 +125,25 @@ class Setup extends Command
                     $passwordConfirm = ($prompt) ? $this->secret('Re-enter password:') : $password;
                     
                     // Validate password length
-                    if (strlen($password) < 16) {
+                    if (strlen((string) $password) < 16) {
                         $this->error('Password must be at least 16 characters long. Please try again.');
+                        if (!$this->input->isInteractive()) {
+                            // Without a terminal, secret() returns null immediately and
+                            // this loop would spin forever at full CPU.
+                            $this->error('Non-interactive setup cannot prompt for a new password. Re-run df:setup with an --admin_password of at least 16 characters.');
+
+                            return 1;
+                        }
                         $password = null; // Reset password to trigger re-prompt
                         continue;
                     }
-                    
+
                     // Validate password confirmation
                     if ($password !== $passwordConfirm) {
                         $this->error('Passwords do not match. Please try again.');
+                        if (!$this->input->isInteractive()) {
+                            return 1;
+                        }
                         $password = null; // Reset password to trigger re-prompt
                         continue;
                     }
@@ -157,6 +167,10 @@ class Setup extends Command
 
                 if (!$user) {
                     $this->error('Failed to create first admin user.' . print_r($data['errors'], true));
+                    if (!$this->input->isInteractive()) {
+                        // Same options would fail identically on every retry.
+                        return 1;
+                    }
                     $this->info('Please try again...');
                 }
             }

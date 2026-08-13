@@ -44,6 +44,12 @@ class BaseModel extends Model
      * @var string
      */
     protected $defaultSchema;
+    /**
+     * Per-request memo of the schema cache version suffix.
+     *
+     * @var string|null
+     */
+    protected static $schemaVersion;
 
     public function save(array $options = [])
     {
@@ -706,7 +712,10 @@ class BaseModel extends Model
             $schema = $this->getSchema();
             if ($schema->supportsResourceType(DbResourceTypes::TYPE_TABLE_CONSTRAINT)) {
                 $result = $schema->getResourceNames(DbResourceTypes::TYPE_TABLE_CONSTRAINT, $this->getDefaultSchema());
-                \Cache::forever($cacheKey, $result);
+                // TTL (not forever) so out-of-band schema changes (other
+                // nodes, manual ALTERs) age out; migrations on this node
+                // invalidate instantly via bumpSchemaVersion().
+                \Cache::put($cacheKey, $result, \Config::get('df.default_cache_ttl'));
             }
         }
 
@@ -716,12 +725,51 @@ class BaseModel extends Model
     protected function getDefaultSchema()
     {
         if (!$this->defaultSchema) {
-            $this->defaultSchema = \Cache::rememberForever('default_schema', function () {
+            $this->defaultSchema = \Cache::remember('default_schema', \Config::get('df.default_cache_ttl'), function () {
                 return $this->getSchema()->getDefaultSchema();
             });
         }
 
         return $this->defaultSchema;
+    }
+
+    /**
+     * Version suffix for the per-table 'model:<table>' schema cache keys.
+     * Bumped by bumpSchemaVersion() whenever migrations actually run, so
+     * every cached table schema is lazily recomputed after a package
+     * upgrade — no cache:clear required. Memoized per request (one extra
+     * Cache::get at most).
+     *
+     * @return string
+     */
+    public static function getSchemaVersion()
+    {
+        if (null === self::$schemaVersion) {
+            self::$schemaVersion = \Cache::remember('df:schema_version', \Config::get('df.default_cache_ttl'), function () {
+                return (string)time();
+            });
+        }
+
+        return self::$schemaVersion;
+    }
+
+    /**
+     * Invalidate all cached system table schemas. Called after migrations
+     * run (see LaravelServiceProvider::boot()). The file cache store has no
+     * tags and 'model:<table>:v<N>' keys cannot be enumerated, so instead of
+     * forgetting each one we rotate the version suffix.
+     *
+     * ponytail: orphaned 'model:<table>:v<N>' entries from old versions
+     * linger on disk until the file cache is pruned — harmless garbage.
+     * Upgrade path: scheduled prune, or CACHE_STORE=redis with a SCAN-based
+     * delete here.
+     */
+    public static function bumpSchemaVersion()
+    {
+        \Cache::forget('df:schema_version');
+        \Cache::forget('system_table_constraints');
+        \Cache::forget('default_schema');
+        self::$schemaVersion = null;
     }
 
     protected function updateTableWithConstraints(TableSchema $table, $constraints)
@@ -892,8 +940,11 @@ class BaseModel extends Model
         class_exists(\DreamFactory\Core\Database\Schema\ColumnSchema::class);
         class_exists(\DreamFactory\Core\Database\Schema\RelationSchema::class);
 
-        $cacheKey = 'model:' . $this->table;
-        $tableSchema = \Cache::rememberForever($cacheKey, function () {
+        // Version-suffixed key: bumpSchemaVersion() after migrations rotates
+        // the suffix, so upgraded config tables recompute lazily without a
+        // cache:clear. TTL is the backstop for out-of-band schema changes.
+        $cacheKey = 'model:' . $this->table . ':v' . static::getSchemaVersion();
+        $tableSchema = \Cache::remember($cacheKey, \Config::get('df.default_cache_ttl'), function () {
             $resourceName = $this->table;
             $name = $resourceName;
             if (empty($schemaName = $this->getDefaultSchema())) {

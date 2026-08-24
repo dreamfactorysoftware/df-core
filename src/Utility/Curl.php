@@ -1,6 +1,7 @@
 <?php namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\System\Components\SsrfValidator;
 
 /**
  * Curl
@@ -199,16 +200,18 @@ class Curl extends Verbs
         //	Reset!
         static::$_lastResponseHeaders = static::$_lastHttpCode = static::$_error = static::$_info = $_tmpFile = null;
 
-        //	Build a curl request...
-        $_curl = curl_init($url);
-
         //	Default CURL options for this method
+        //  Redirects are not followed automatically. Each hop is checked and
+        //  followed manually below so a redirect cannot reach an internal host.
+        //  SSL peer/host verification is on by default.
         $_curlOptions = [
-            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_MAXREDIRS      => 0,
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_HEADER         => true,
             CURLINFO_HEADER_OUT    => true,
-            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
             CURLOPT_TIMEOUT => 300  // 5 minutes default (can be overridden via service options)
         ];
 
@@ -275,16 +278,46 @@ class Curl extends Verbs
             $_curlOptions[CURLOPT_PORT] = static::$_hostPort;
         }
 
-        //	Set our collected options
-        curl_setopt_array($_curl, $_curlOptions);
+        //  Capture the caller's redirect preference, then always disable cURL's
+        //  automatic following so each hop is validated before it is requested.
+        $_followRedirects = true;
+        if (array_key_exists(CURLOPT_FOLLOWLOCATION, $_curlOptions)) {
+            $_followRedirects = (bool)$_curlOptions[CURLOPT_FOLLOWLOCATION];
+        }
+        $_curlOptions[CURLOPT_FOLLOWLOCATION] = false;
+        $_curlOptions[CURLOPT_MAXREDIRS] = 0;
 
-        //	Make the call!
-        $_result = curl_exec($_curl);
+        //	Make the call, following any redirects manually.
+        $_redirectCount = 0;
+        $_maxRedirects = 10;
 
-        static::$_info = curl_getinfo($_curl);
-        static::$_lastHttpCode = array_get(static::$_info, 'http_code');
-        static::$_responseHeaders = curl_getinfo($_curl, CURLINFO_HEADER_OUT);
-        static::$_responseHeadersSize = curl_getinfo($_curl, CURLINFO_HEADER_SIZE);
+        while (true) {
+            //	Build a curl request...
+            $_curl = curl_init($url);
+
+            //	Set our collected options
+            curl_setopt_array($_curl, $_curlOptions);
+
+            $_result = curl_exec($_curl);
+
+            static::$_info = curl_getinfo($_curl);
+            static::$_lastHttpCode = array_get(static::$_info, 'http_code');
+            static::$_responseHeaders = curl_getinfo($_curl, CURLINFO_HEADER_OUT);
+            static::$_responseHeadersSize = curl_getinfo($_curl, CURLINFO_HEADER_SIZE);
+
+            //  Follow a redirect only after confirming the target is not a
+            //  private, loopback, or link-local address.
+            $_redirectUrl = array_get(static::$_info, 'redirect_url');
+            if ($_followRedirects && !empty($_redirectUrl) && $_redirectCount < $_maxRedirects) {
+                SsrfValidator::validateExternalUrl($_redirectUrl);
+                $url = $_redirectUrl;
+                $_redirectCount++;
+                @curl_close($_curl);
+                continue;
+            }
+
+            break;
+        }
 
         if (false === $_result) {
             static::$_error = [

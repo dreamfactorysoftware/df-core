@@ -1,6 +1,7 @@
 <?php namespace DreamFactory\Core\Utility;
 
 use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\System\Components\SsrfValidator;
 
 /**
@@ -203,7 +204,11 @@ class Curl extends Verbs
         //	Default CURL options for this method
         //  Redirects are not followed automatically. Each hop is checked and
         //  followed manually below so a redirect cannot reach an internal host.
-        //  SSL peer/host verification is on by default.
+        //  SSL peer/host verification is on by default. Callers that must talk
+        //  to a self-signed or internal endpoint can opt out per request by
+        //  passing CURLOPT_SSL_VERIFYPEER => false (and CURLOPT_SSL_VERIFYHOST
+        //  => 0) in $curlOptions; the merge below lets those values win. For a
+        //  remote web service, set the same keys in the service "options" list.
         $_curlOptions = [
             CURLOPT_FOLLOWLOCATION => false,
             CURLOPT_MAXREDIRS      => 0,
@@ -306,10 +311,13 @@ class Curl extends Verbs
             static::$_responseHeadersSize = curl_getinfo($_curl, CURLINFO_HEADER_SIZE);
 
             //  Follow a redirect only after confirming the target is not a
-            //  private, loopback, or link-local address.
+            //  private, loopback, or link-local address. The hop is validated
+            //  and curl is pinned to the exact IP that was checked, so DNS
+            //  cannot be re-pointed at an internal host between the check and
+            //  the connection.
             $_redirectUrl = array_get(static::$_info, 'redirect_url');
             if ($_followRedirects && !empty($_redirectUrl) && $_redirectCount < $_maxRedirects) {
-                SsrfValidator::validateExternalUrl($_redirectUrl);
+                static::validateAndPinRedirect($_redirectUrl, $_curlOptions);
                 $url = $_redirectUrl;
                 $_redirectCount++;
                 @curl_close($_curl);
@@ -428,6 +436,64 @@ class Curl extends Verbs
         }
 
         return $_result;
+    }
+
+    /**
+     * Validate a redirect target and pin curl to the exact IP that was
+     * checked. Resolving once and pinning with CURLOPT_RESOLVE means the IP
+     * curl connects to is the same one that passed the address checks, closing
+     * the DNS-rebind window between validation and connection. The hostname is
+     * kept for SNI and certificate verification.
+     *
+     * Only IPv4 targets are pinned. Other targets still pass through the full
+     * validateExternalUrl() check; they just are not pinned here.
+     *
+     * @param string $url         The redirect target URL.
+     * @param array  $curlOptions Current curl options, updated in place with a
+     *                            CURLOPT_RESOLVE pin when an IPv4 address is found.
+     *
+     * @throws BadRequestException When the target fails the address checks.
+     * @return void
+     */
+    protected static function validateAndPinRedirect($url, array &$curlOptions)
+    {
+        //  Full URL safety check: scheme, host encoding, IPv6, resolved range.
+        SsrfValidator::validateExternalUrl($url);
+
+        $_parts = parse_url($url);
+        $_host = array_get($_parts, 'host');
+        if (empty($_host)) {
+            return;
+        }
+        //  Strip IPv6 brackets.
+        $_host = ltrim(rtrim($_host, ']'), '[');
+
+        //  Resolve to an IPv4 address. Only IPv4 can be pinned here; for any
+        //  other case leave DNS to curl (the check above already validated it).
+        if (filter_var($_host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+            $_ip = $_host;
+        } else {
+            $_ip = gethostbyname($_host);
+            if (!filter_var($_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
+                return;
+            }
+        }
+
+        //  The exact IP we will connect to must itself pass the range check.
+        //  This catches a rebind between the check above and this resolve.
+        if (SsrfValidator::isPrivateOrReservedIp($_ip)) {
+            throw new BadRequestException(
+                'Invalid redirect: the target resolves to a private or reserved address.'
+            );
+        }
+
+        $_scheme = strtolower((string)array_get($_parts, 'scheme'));
+        $_port = array_get($_parts, 'port');
+        if (empty($_port)) {
+            $_port = ($_scheme === 'https') ? 443 : 80;
+        }
+
+        $curlOptions[CURLOPT_RESOLVE] = [$_host . ':' . $_port . ':' . $_ip];
     }
 
     /**

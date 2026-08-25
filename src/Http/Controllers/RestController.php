@@ -79,21 +79,26 @@ class RestController extends Controller
                 }
             }
 
-            if (!empty($group)) {
-                $results = ServiceManager::getServiceTypes($group);
-            } elseif (!empty($type)) {
-                $results = [ServiceManager::getServiceType($type)];
-            } else {
-                $results = ServiceManager::getServiceTypes();
-            }
+            // The list of installed service types is only exposed to
+            // authenticated callers. It is not needed by anonymous callers and
+            // reveals which connectors are installed on the instance.
             $types = [];
-            foreach ($results as $type) {
-                $types[] = [
-                    'name'        => $type->getName(),
-                    'label'       => $type->getLabel(),
-                    'group'       => $type->getGroup(),
-                    'description' => $type->getDescription()
-                ];
+            if (Session::isAuthenticated()) {
+                if (!empty($group)) {
+                    $results = ServiceManager::getServiceTypes($group);
+                } elseif (!empty($type)) {
+                    $results = [ServiceManager::getServiceType($type)];
+                } else {
+                    $results = ServiceManager::getServiceTypes();
+                }
+                foreach ($results as $type) {
+                    $types[] = [
+                        'name'        => $type->getName(),
+                        'label'       => $type->getLabel(),
+                        'group'       => $type->getGroup(),
+                        'description' => $type->getDescription()
+                    ];
+                }
             }
             $response = ResponseFactory::create(['services' => $services, 'service_types' => $types]);
             Log::info('[RESPONSE]', ['Status Code' => $response->getStatusCode(), 'Content-Type' => $response->getContentType()]);

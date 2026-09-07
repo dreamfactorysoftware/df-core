@@ -35,7 +35,7 @@
     "laravel/helpers":        "^1.8",
     "symfony/yaml":           "^6.0|^7.0",
     "tymon/jwt-auth":         "^2.1.0",
-    "dreamfactory/df-system": "~0.6.2"
+    "dreamfactory/df-system": "~0.6.3"
   },
   "require-dev": {
     "laravel/framework":      "^13.7",

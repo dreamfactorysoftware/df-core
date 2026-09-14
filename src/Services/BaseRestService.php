@@ -205,7 +205,8 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
     public function getAccessList()
     {
         if (!empty($this->getPermissions())) {
-            return ['', '*'];
+            // '_spec' is permission-checked in handleSpecRequest(), so it must be grantable.
+            return ['', '*', '_spec'];
         }
 
         return [];

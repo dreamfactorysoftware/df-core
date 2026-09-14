@@ -1051,7 +1051,10 @@ class Importer
         }
 
         if (!empty($serviceName)) {
-            if (!empty($id = ServiceManager::getServiceIdByName($serviceName))) {
+            // Query the table directly. ServiceManager's id/name map is cached and only
+            // purged after the import transaction commits, so services created earlier
+            // in this same import are invisible through it (#174).
+            if (!empty($id = Service::whereName($serviceName)->value('id'))) {
                 return $id;
             }
         } else {

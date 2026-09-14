@@ -212,7 +212,7 @@ trait DbRequestCriteria
             return null;
         }
 
-        $filter = trim($filter);
+        $filter = DbLogicalOperators::wrapBareConditions(trim($filter));
         // todo use smarter regex
         // handle logical operators first
         $logicalOperators = DbLogicalOperators::getDefinedConstants();

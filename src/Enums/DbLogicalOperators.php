@@ -35,6 +35,29 @@ class DbLogicalOperators extends FactoryEnum
      */
     const NOT_STR = 'NOT';
     /**
+     * Rewrite BETWEEN into the two range comparisons the filter parsers understand:
+     *   f BETWEEN a AND b       becomes   (f >= a) AND (f <= b)
+     *   f NOT BETWEEN a AND b   becomes   (f < a) OR (f > b)
+     * BETWEEN was documented (and offered in MCP query hints) but never parsed;
+     * it also has to run before wrapBareConditions() splits on its inner AND.
+     * Bounds may be quoted strings or bare tokens (numbers, unquoted dates).
+     */
+    public static function expandBetween(string $filter): string
+    {
+        if (false === stripos($filter, 'between')) {
+            return $filter;
+        }
+        $bound = "('(?:[^']|'')*'|\"[^\"]*\"|[^\\s()]+)";
+        $re = '/([A-Za-z_][\\w.]*)\\s+(NOT\\s+)?BETWEEN\\s+' . $bound . '\\s+AND\\s+' . $bound . '/i';
+
+        return preg_replace_callback($re, function ($m) {
+            return empty($m[2])
+                ? "({$m[1]} >= {$m[3]}) AND ({$m[1]} <= {$m[4]})"
+                : "({$m[1]} < {$m[3]}) OR ({$m[1]} > {$m[4]})";
+        }, $filter);
+    }
+
+    /**
      * Wrap bare comparison conditions in parentheses so that
      *   a='x' OR b='y'      becomes   (a='x') OR (b='y')
      * and parses exactly like the parenthesized form the filter parsers expect.
@@ -46,6 +69,7 @@ class DbLogicalOperators extends FactoryEnum
      */
     public static function wrapBareConditions(string $filter): string
     {
+        $filter = static::expandBetween($filter);
         $ops = [self::AND_SYM, self::AND_STR, self::OR_SYM, self::OR_STR, self::NOR_STR, self::XOR_STR];
         $pieces = [];
         $joins = [];

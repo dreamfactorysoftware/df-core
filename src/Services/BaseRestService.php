@@ -9,6 +9,7 @@ use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Enums\ApiDocFormatTypes;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Components\RestHandler;
 use DreamFactory\Core\Contracts\ServiceInterface;
@@ -205,7 +206,8 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
     public function getAccessList()
     {
         if (!empty($this->getPermissions())) {
-            return ['', '*'];
+            // '_spec' is permission-checked in handleSpecRequest(), so it must be grantable.
+            return ['', '*', '_spec'];
         }
 
         return [];
@@ -843,6 +845,12 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
             foreach ($tables as $table) {
                 $tableName = is_object($table) ? $table->name : (string)$table;
+                // Same table list the caller gets from GET _table.
+                if (!(VerbsMask::GET_MASK & (int)$this->getPermissions('_table/' . $tableName))) {
+                    continue;
+                }
+                // Record-filtered tables: schema only, no counts or row-derived values.
+                $rowScoped = !empty(Session::getServiceFilters(Verbs::GET, $this->name, '_table/' . $tableName));
                 try {
                     $schema = $this->getTableSchema($tableName);
                     if (!$schema) {
@@ -877,7 +885,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                     }
 
                     // Get DB connection for direct queries (row count, samples, enums)
-                    $dbConnection = method_exists($this, 'getConnection') ? $this->getConnection() : null;
+                    $dbConnection = (!$rowScoped && method_exists($this, 'getConnection')) ? $this->getConnection() : null;
 
                     // Get row count
                     $rowCount = null;
@@ -1101,8 +1109,8 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                     'description' => "Get total count of {$tableName} without fetching data ({$rowCount} rows)",
                     'tool' => 'get_table_data',
                     'params' => [
-                        'tableName' => $tableName,
-                        'countOnly' => true,
+                        'table_name' => $tableName,
+                        'count_only' => true,
                     ],
                 ];
             }
@@ -1114,12 +1122,11 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                 $groupCol = $groupableCols[0]; // Pick the first groupable column
                 $templates["count_{$tableName}_by_{$groupCol}"] = [
                     'description' => "Get {$tableName} count grouped by {$groupCol}",
-                    'tool' => 'get_table_data',
+                    'tool' => 'aggregate_data',
                     'params' => [
-                        'tableName' => $tableName,
-                        'fields' => [$groupCol],
-                        'group' => $groupCol,
-                        'includeCount' => true,
+                        'table_name' => $tableName,
+                        'aggregates' => [['function' => 'COUNT', 'field' => '*']],
+                        'group_by' => [$groupCol],
                     ],
                 ];
             }
@@ -1140,7 +1147,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                     'description' => "Get top records from {$tableName} ordered by {$rankCol} descending",
                     'tool' => 'get_table_data',
                     'params' => [
-                        'tableName' => $tableName,
+                        'table_name' => $tableName,
                         'order' => "{$rankCol} DESC",
                         'limit' => 10,
                     ],
@@ -1153,10 +1160,10 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                     'description' => "Paginate through {$tableName} ({$rowCount} rows, max 1000 per page)",
                     'tool' => 'get_table_data',
                     'params' => [
-                        'tableName' => $tableName,
+                        'table_name' => $tableName,
                         'limit' => 1000,
                         'offset' => 0,
-                        'includeCount' => true,
+                        'include_count' => true,
                     ],
                     'note' => 'Increment offset by limit for each page. Use filter to reduce dataset when possible.',
                 ];
@@ -1174,7 +1181,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                         'description' => "Fetch {$tableName} with related parent records included in one call",
                         'tool' => 'get_table_data',
                         'params' => [
-                            'tableName' => $tableName,
+                            'table_name' => $tableName,
                             'related' => $relParam,
                             'limit' => 10,
                         ],
@@ -1196,7 +1203,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                     'description' => "Filter {$tableName} by date range on {$dateCol}",
                     'tool' => 'get_table_data',
                     'params' => [
-                        'tableName' => $tableName,
+                        'table_name' => $tableName,
                         'filter' => "{$dateCol} BETWEEN 2004-01-01 AND 2004-12-31",
                     ],
                     'note' => 'Adjust date range as needed. Combine with other filters using AND.',

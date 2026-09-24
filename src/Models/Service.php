@@ -48,7 +48,7 @@ class Service extends BaseSystemModel
     protected $rules = [
         'name' => 'regex:/(^[A-Za-z0-9_\-]+$)+/',
         'label' => 'string|max:80',
-        'description' => 'string|max:255'
+        'description' => 'nullable|string|max:255'
     ];
 
     protected $validationMessages = [
@@ -102,7 +102,7 @@ class Service extends BaseSystemModel
      */
     public function setDescriptionAttribute($value)
     {
-        $this->attributes['description'] = strip_tags($value);
+        $this->attributes['description'] = null === $value ? null : strip_tags($value);
     }
 
     public static function boot()

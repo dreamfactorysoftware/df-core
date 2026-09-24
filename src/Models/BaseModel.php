@@ -20,6 +20,7 @@ use DreamFactory\Core\Exceptions\NotFoundException;
 use DreamFactory\Core\Exceptions\NotImplementedException;
 use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\InternalServerErrorException;
+use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Utility\Session as SessionUtility;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -517,6 +518,9 @@ class BaseModel extends Model
             $model->update($record);
 
             return static::buildResult($model, $params);
+        } catch (RestException $ex) {
+            // Already carries the right status (e.g. 400 for validation).
+            throw $ex;
         } catch (\Exception $ex) {
             throw new InternalServerErrorException('Failed to update resource: ' . $ex->getMessage());
         }

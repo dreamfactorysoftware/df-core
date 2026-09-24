@@ -9,6 +9,7 @@ use DreamFactory\Core\Contracts\ServiceTypeInterface;
 use DreamFactory\Core\Enums\ApiDocFormatTypes;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Enums\Verbs;
+use DreamFactory\Core\Enums\VerbsMask;
 use DreamFactory\Core\Exceptions\ForbiddenException;
 use DreamFactory\Core\Components\RestHandler;
 use DreamFactory\Core\Contracts\ServiceInterface;
@@ -844,6 +845,12 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
             foreach ($tables as $table) {
                 $tableName = is_object($table) ? $table->name : (string)$table;
+                // Same table list the caller gets from GET _table.
+                if (!(VerbsMask::GET_MASK & (int)$this->getPermissions('_table/' . $tableName))) {
+                    continue;
+                }
+                // Record-filtered tables: schema only, no counts or row-derived values.
+                $rowScoped = !empty(Session::getServiceFilters(Verbs::GET, $this->name, '_table/' . $tableName));
                 try {
                     $schema = $this->getTableSchema($tableName);
                     if (!$schema) {
@@ -878,7 +885,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                     }
 
                     // Get DB connection for direct queries (row count, samples, enums)
-                    $dbConnection = method_exists($this, 'getConnection') ? $this->getConnection() : null;
+                    $dbConnection = (!$rowScoped && method_exists($this, 'getConnection')) ? $this->getConnection() : null;
 
                     // Get row count
                     $rowCount = null;

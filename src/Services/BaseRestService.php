@@ -828,7 +828,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
             'service' => $this->name,
             'description' => $stockMode
                 ? 'Condensed data model. Shows all tables, their columns with types, and foreign key references.'
-                : 'Condensed data model for LLM consumption. Shows all tables, their columns with types, foreign key references, structural patterns, sample data, and enum values.',
+                : 'Condensed data model for LLM consumption. Shows all tables, their columns with types, foreign key references, structural patterns, sample data, and enum values, plus any description, label and allowed_values an administrator recorded for a table or column.',
             'tables' => [],
             'relationships' => [],
             'patterns' => [],
@@ -875,6 +875,10 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                         if (!empty($col['ref_table'])) {
                             $colDef['fk'] = $col['ref_table'] . '.' . ($col['ref_field'] ?? $col['ref_table'] . '_id');
                         }
+                        if (!$stockMode) {
+                            // Meaning an admin recorded in the schema extras (or the DB comment).
+                            $colDef += self::fieldSemantics($field);
+                        }
                         $columns[] = $colDef;
 
                         // Track string/varchar columns for enum detection
@@ -900,6 +904,9 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                     $tableEntry = [
                         'columns' => $columns,
                     ];
+                    if (!$stockMode) {
+                        $tableEntry = self::fieldSemantics($schema) + $tableEntry;
+                    }
                     if ($rowCount !== null) {
                         $tableEntry['row_count'] = $rowCount;
                     }
@@ -964,6 +971,8 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
             $model['patterns'] = $this->detectRelationshipPatterns($allRelationships);
 
             if (!$stockMode) {
+                $model = $this->applyDataModelEnrichers($model);
+
                 // --- Enhancement #3: Field-level semantic hints ---
                 $this->injectFieldSemanticHints($model);
 
@@ -976,6 +985,68 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
         } catch (\Exception $e) {
             $model['error'] = 'Could not build data model: ' . $e->getMessage();
+        }
+
+        return $model;
+    }
+
+    /**
+     * Label, description and picklist an admin recorded for a table or field
+     * (schema extras, or the database comment). Only values that were actually
+     * set: getLabel() would invent one from the name, so read the raw property.
+     *
+     * @return array<string, mixed>
+     */
+    protected static function fieldSemantics(object $schema): array
+    {
+        $out = [];
+        $name = (string) ($schema->name ?? '');
+        $label = trim((string) ($schema->label ?? ''));
+        if ($label !== '' && strcasecmp($label, $name) !== 0) {
+            $out['label'] = $label;
+        }
+        $description = trim((string) ($schema->description ?? ''));
+        if ($description !== '') {
+            $out['description'] = $description;
+        }
+        $picklist = property_exists($schema, 'picklist') ? $schema->picklist : null;
+        if (is_string($picklist)) {
+            $picklist = preg_split('/\r\n|\r|\n/', $picklist);
+        }
+        if (is_array($picklist) && ($picklist = array_values(array_filter(array_map('trim', $picklist), 'strlen'))) !== []) {
+            $out['allowed_values'] = $picklist;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Run the packages tagged as data model enrichers (see
+     * DataModelEnricherInterface). One that throws or returns a non-array is
+     * skipped so an extension can never take get_data_model down.
+     *
+     * @param array<string, mixed> $model
+     * @return array<string, mixed>
+     */
+    protected function applyDataModelEnrichers(array $model): array
+    {
+        try {
+            $enrichers = app()->tagged(\DreamFactory\Core\Contracts\DataModelEnricherInterface::TAG);
+        } catch (\Throwable $e) {
+            return $model;
+        }
+        foreach ($enrichers as $enricher) {
+            if (!$enricher instanceof \DreamFactory\Core\Contracts\DataModelEnricherInterface) {
+                continue;
+            }
+            try {
+                $enriched = $enricher->enrich($model, $this);
+                if (is_array($enriched) && isset($enriched['tables'])) {
+                    $model = $enriched;
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Data model enricher failed; skipped', ['enricher' => get_class($enricher), 'error' => $e->getMessage()]);
+            }
         }
 
         return $model;

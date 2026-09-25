@@ -590,6 +590,14 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
         $modelMode = $request->getParameterAsBool('model');
         $stockMode = $request->getParameterAsBool('stock');
 
+        // --- ?model=semantics — only what data model enrichers add (e.g. an approved
+        // semantic catalog), without row counts, samples or enum scans: cheap and small,
+        // so MCP clients that cap tool results (Claude Code keeps ~2 KB of a large one)
+        // still receive it.
+        if ($request->getParameter('model') === 'semantics') {
+            return $this->handleSemanticsResponse();
+        }
+
         // --- Feature: ?model=true — LLM-optimized condensed data model ---
         if ($modelMode) {
             return $this->handleModelResponse($request, $refresh, $stockMode);
@@ -820,6 +828,46 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
     }
 
     /**
+     * ?model=semantics: run the data model enrichers over a skeleton of the tables
+     * the caller can read (API column names only) and return just what they add.
+     */
+    protected function handleSemanticsResponse()
+    {
+        $model = ['service' => $this->name, 'tables' => []];
+        if (method_exists($this, 'getTableNames') && method_exists($this, 'getTableSchema')) {
+            foreach ($this->getTableNames() as $table) {
+                $tableName = is_object($table) ? $table->name : (string)$table;
+                if (!(VerbsMask::GET_MASK & (int)$this->getPermissions('_table/' . $tableName))) {
+                    continue;
+                }
+                try {
+                    $schema = $this->getTableSchema($tableName);
+                } catch (\Exception $e) {
+                    continue;
+                }
+                if (!$schema) {
+                    continue;
+                }
+                $columns = [];
+                foreach ($schema->getColumns(true) as $field) {
+                    $api = (string)$field->getName(true);
+                    $columns[] = $api !== $field->name ? ['name' => $api, 'column' => $field->name] : ['name' => $api];
+                }
+                $model['tables'][$tableName] = ['columns' => $columns];
+            }
+        }
+        $model = $this->applyDataModelEnrichers($model);
+        $out = ['service' => $this->name, 'semantics' => $model['semantics'] ?? null];
+
+        return new StreamedResponse(function () use ($out) {
+            echo json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        }, 200, [
+            'Content-Type'  => 'application/json; charset=utf-8',
+            'Cache-Control' => 'no-store',
+        ]);
+    }
+
+    /**
      * Build a condensed data model: tables → columns → types → FKs + patterns.
      */
     private function buildDataModel(bool $refresh, bool $stockMode = false): array
@@ -981,6 +1029,11 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
             if (!$stockMode) {
                 $model = $this->applyDataModelEnrichers($model);
+                // Enricher additions a client must not miss go first: large models get
+                // truncated from the end by clients that cap tool results.
+                if (isset($model['semantics'])) {
+                    $model = ['service' => $model['service'], 'description' => $model['description'], 'semantics' => $model['semantics']] + $model;
+                }
 
                 // --- Enhancement #3: Field-level semantic hints ---
                 $this->injectFieldSemanticHints($model);

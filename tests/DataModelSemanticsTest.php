@@ -99,6 +99,32 @@ class DataModelSemanticsTest extends \DreamFactory\Core\Testing\TestCase
         ServiceManager::getService('db')->flush();
     }
 
+    public function testSemanticsOnlyModeReturnsJustEnricherAdditions()
+    {
+        $this->app->bind('test.enricher.sem', fn () => new class implements DataModelEnricherInterface {
+            public function enrich(array $model, BaseRestService $service): array
+            {
+                $model['semantics'] = ['tables_seen' => array_keys($model['tables'])];
+                return $model;
+            }
+        });
+        $this->app->tag(['test.enricher.sem'], DataModelEnricherInterface::TAG);
+
+        $svc = ServiceManager::getService('db');
+        $m = new ReflectionMethod(BaseRestService::class, 'handleSemanticsResponse');
+        $m->setAccessible(true);
+        $response = $m->invoke($svc);
+        ob_start();
+        $response->sendContent();
+        $out = json_decode(ob_get_clean(), true);
+        $this->assertSame(['service', 'semantics'], array_keys($out));
+        $this->assertContains('customers', $out['semantics']['tables_seen']);
+
+        // In the full model the enricher's block comes right after the description.
+        $full = $this->model();
+        $this->assertSame(['service', 'description', 'semantics'], array_slice(array_keys($full), 0, 3));
+    }
+
     public function testStockModeIsUnchanged()
     {
         DbFieldExtras::updateOrCreate(

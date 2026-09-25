@@ -859,6 +859,10 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
                     $columns = [];
                     $stringColumns = [];
+                    // Database column -> the key the API uses. The API reads and returns an aliased
+                    // field only under its alias (fields, filter, order and records all use it, and
+                    // reject the column name), so the model must name it that way too.
+                    $toApi = [];
                     $fields = $schema->getColumns(true);
                     foreach ($fields as $field) {
                         $col = $field->toArray();
@@ -866,6 +870,11 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                             'name' => $col['name'] ?? '',
                             'type' => $col['type'] ?? 'string',
                         ];
+                        $apiName = (string) $field->getName(true);
+                        if (!$stockMode && $apiName !== '' && $apiName !== $colDef['name']) {
+                            $toApi[$colDef['name']] = $apiName;
+                            $colDef = ['name' => $apiName, 'column' => $colDef['name']] + $colDef;
+                        }
                         if (!empty($col['is_primary_key'])) {
                             $colDef['pk'] = true;
                         }
@@ -917,7 +926,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                             if ($dbConnection) {
                                 $sampleRows = $dbConnection->table($tableName)->limit(3)->get();
                                 if ($sampleRows->isNotEmpty()) {
-                                    $tableEntry['sample_data'] = $sampleRows->map(fn($r) => (array)$r)->values()->toArray();
+                                    $tableEntry['sample_data'] = $sampleRows->map(fn($r) => self::keysToApi((array)$r, $toApi))->values()->toArray();
                                 }
                             }
                         } catch (\Exception $e) {
@@ -928,7 +937,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                         if (!empty($stringColumns) && $dbConnection && $rowCount !== null && $rowCount > 0) {
                             $enumValues = $this->detectEnumValues($tableName, $stringColumns, $dbConnection);
                             if (!empty($enumValues)) {
-                                $tableEntry['enum_values'] = $enumValues;
+                                $tableEntry['enum_values'] = self::keysToApi($enumValues, $toApi);
                             }
                         }
                     }
@@ -988,6 +997,27 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
         }
 
         return $model;
+    }
+
+    /**
+     * Re-key a row read straight from the connection (database column names) to
+     * the names the API uses, i.e. aliases where a field has one.
+     *
+     * @param array<string, mixed>  $row
+     * @param array<string, string> $toApi column => api name
+     * @return array<string, mixed>
+     */
+    protected static function keysToApi(array $row, array $toApi): array
+    {
+        if ($toApi === []) {
+            return $row;
+        }
+        $out = [];
+        foreach ($row as $k => $v) {
+            $out[$toApi[$k] ?? $k] = $v;
+        }
+
+        return $out;
     }
 
     /**

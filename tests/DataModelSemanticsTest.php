@@ -29,6 +29,7 @@ class DataModelSemanticsTest extends \DreamFactory\Core\Testing\TestCase
     public function tearDown(): void
     {
         DbFieldExtras::where('service_id', $this->dbServiceId)->where('table', 'customers')->where('field', 'email')->delete();
+        DbFieldExtras::where('service_id', $this->dbServiceId)->where('table', 'orders')->where('field', 'status')->whereNotNull('alias')->delete();
         DbTableExtras::where('service_id', $this->dbServiceId)->where('table', 'customers')->update(['description' => null]);
         ServiceManager::getService('db')->flush();
         parent::tearDown();
@@ -73,6 +74,29 @@ class DataModelSemanticsTest extends \DreamFactory\Core\Testing\TestCase
 
         // No invented labels: an unset label stays absent rather than a humanised name.
         $this->assertArrayNotHasKey('label', self::column($model, 'customers', 'id'));
+    }
+
+    public function testAliasedFieldsAreNamedAsTheApiReturnsThem()
+    {
+        DbFieldExtras::updateOrCreate(
+            ['service_id' => $this->dbServiceId, 'table' => 'orders', 'field' => 'status'],
+            ['alias' => 'order_status']
+        );
+        ServiceManager::getService('db')->flush();
+
+        $model = $this->model();
+        $col = self::column($model, 'orders', 'order_status');
+        $this->assertSame('status', $col['column'], 'the database column is still reported');
+        foreach ($model['tables']['orders']['sample_data'] ?? [] as $row) {
+            $this->assertArrayHasKey('order_status', $row, 'samples use the API key');
+            $this->assertArrayNotHasKey('status', $row);
+        }
+        if (isset($model['tables']['orders']['enum_values'])) {
+            $this->assertArrayHasKey('order_status', $model['tables']['orders']['enum_values']);
+        }
+
+        DbFieldExtras::where('service_id', $this->dbServiceId)->where('table', 'orders')->where('field', 'status')->delete();
+        ServiceManager::getService('db')->flush();
     }
 
     public function testStockModeIsUnchanged()

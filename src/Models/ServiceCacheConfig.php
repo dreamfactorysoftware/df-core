@@ -24,17 +24,6 @@ class ServiceCacheConfig extends BaseServiceConfigModel
     protected $casts = ['cache_enabled' => 'boolean', 'cache_ttl' => 'integer', 'service_id' => 'integer'];
 
     /**
-     * The column is NOT NULL. The admin UI sends null when the caching toggle is
-     * never touched, and SQL Server rejects it.
-     *
-     * @param mixed $value
-     */
-    public function setCacheEnabledAttribute($value)
-    {
-        $this->attributes['cache_enabled'] = (bool)$value;
-    }
-
-    /**
      * @param array $schema
      */
     protected static function prepareConfigSchemaField(array &$schema)

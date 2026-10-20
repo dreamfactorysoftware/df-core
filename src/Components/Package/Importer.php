@@ -971,7 +971,7 @@ class Importer
         $roles = $this->package->getResourceFromZip('system/role.json');
         $roleName = null;
         foreach ($roles as $role) {
-            if ($oldRoleId === $role['id']) {
+            if ((int)$oldRoleId === (int)$role['id']) {
                 $roleName = $role['name'];
                 break;
             }
@@ -1003,7 +1003,7 @@ class Importer
         $apps = $this->package->getResourceFromZip('system/app.json');
         $appName = null;
         foreach ($apps as $app) {
-            if ($oldAppId === $app['id']) {
+            if ((int)$oldAppId === (int)$app['id']) {
                 $appName = $app['name'];
                 break;
             }
@@ -1015,7 +1015,7 @@ class Importer
                 return $newApp->id;
             }
         } else {
-            $existingApp = App::find($oldAppId);
+            $existingApp = $this->isSameMajorVersion() ? App::find($oldAppId) : null;
             if (!empty($existingApp)) {
                 $appName = $existingApp->name;
 
@@ -1046,7 +1046,7 @@ class Importer
         $services = $this->package->getResourceFromZip('system/service.json');
         $serviceName = null;
         foreach ($services as $service) {
-            if ($oldServiceId === $service['id']) {
+            if ((int)$oldServiceId === (int)$service['id']) {
                 $serviceName = $service['name'];
                 break;
             }
@@ -1061,22 +1061,90 @@ class Importer
             }
         }
 
-        // The service is not in the package, so its name is unknown. Do not reuse the old id:
-        // built-in service ids differ between versions (7.7 adds api_builder and agents first),
-        // so the old id points at an unrelated service. Callers skip the grant with a warning.
+        // The service is not in the package, so its name is unknown. Built-in service ids only
+        // line up between instances of the same major version (7.x adds api_builder and agents
+        // first, shifting the rest), so only guess within one major version. Otherwise callers
+        // skip the reference with a warning rather than point it at an unrelated service.
+        if (empty($serviceName) && $this->isSameMajorVersion() &&
+            !empty($existingName = ServiceManager::getServiceNameById($oldServiceId)) &&
+            in_array($existingName, ['system', 'api_docs', 'files', 'db', 'email', 'user'])) {
+            return $oldServiceId;
+        }
+
         return null;
+    }
+
+    /**
+     * True when the package was exported from the same major DF version as this instance.
+     * Only then do built-in record ids (system services, admin apps) match.
+     *
+     * @return bool
+     */
+    protected function isSameMajorVersion()
+    {
+        $source = (string)$this->package->getManifest('df_version', '');
+        $target = (string)config('app.version', '');
+
+        return $source !== '' && $target !== '' &&
+            (int)explode('.', $source)[0] === (int)explode('.', $target)[0];
+    }
+
+    /**
+     * Source-instance ids in scalar fields of a record about to overwrite an existing one.
+     * Map them by name; drop any that do not resolve so the existing value is kept.
+     *
+     * @param string $api
+     * @param array  $record
+     */
+    protected function remapOverwriteRecord($api, array &$record)
+    {
+        unset($record['created_by_id'], $record['last_modified_by_id']);
+        $map = [];
+        switch ($api) {
+            case 'system/app':
+                $map = ['role_id' => 'getNewRoleId', 'storage_service_id' => 'getNewServiceId'];
+                break;
+            case 'system/admin':
+            case 'system/user':
+                $map = ['default_app_id' => 'getNewAppId'];
+                break;
+            case 'system/service':
+                $this->remapServiceConfigIds($record, true);
+                if (!empty($oldRole = array_get($record, 'config.default_role'))) {
+                    if (empty($newRole = $this->getNewRoleId($oldRole))) {
+                        unset($record['config']['default_role']);
+                    } else {
+                        $record['config']['default_role'] = $newRole;
+                    }
+                }
+                break;
+        }
+        foreach ($map as $field => $lookup) {
+            if (!empty($record[$field])) {
+                if (empty($newId = $this->$lookup($record[$field]))) {
+                    unset($record[$field]);
+                } else {
+                    $record[$field] = $newId;
+                }
+            }
+        }
     }
 
     /**
      * Service configs reference other records by the source instance's ids (e.g. the
      * system and user services' invite/password email service and template). Map them
-     * to this instance by name. An id that cannot be mapped is dropped from the record,
-     * so the target keeps its current value instead of pointing at an unrelated record.
+     * to this instance by name. An id that cannot be mapped is dropped when overwriting
+     * (the existing config keeps its value) and kept as-is on insert: it may reference a
+     * record created later in this import, and some configs require the field.
      * The config's own service_id and default_role (handled separately) are left alone.
      *
+     * ponytail: references to services/apps/templates created later in the same import keep
+     * the source id, as before. A post-insert pass that re-maps them is the upgrade path.
+     *
      * @param array $service
+     * @param bool  $overwrite
      */
-    protected function remapServiceConfigIds(array &$service)
+    protected function remapServiceConfigIds(array &$service, $overwrite = false)
     {
         $config = array_get($service, 'config');
         if (!is_array($config)) {
@@ -1098,10 +1166,13 @@ class Importer
                 continue;
             }
             if (empty($newId)) {
-                unset($config[$field]);
+                if ($overwrite) {
+                    unset($config[$field]);
+                }
                 $this->log(
                     'notice',
-                    'Kept existing ' . $field . ' for service ' . array_get($service, 'name') .
+                    ($overwrite ? 'Kept the existing ' : 'Kept the package value of ') . $field .
+                    ' for service ' . array_get($service, 'name') .
                     '. No match in this instance for id ' . $oldId . '.'
                 );
             } else {
@@ -1122,7 +1193,7 @@ class Importer
     {
         $templates = $this->package->getResourceFromZip('system/email_template.json') ?: [];
         foreach ($templates as $template) {
-            if ($oldTemplateId === $template['id']) {
+            if ((int)$oldTemplateId === (int)$template['id']) {
                 return EmailTemplate::whereName($template['name'])->value('id');
             }
         }
@@ -1225,9 +1296,7 @@ class Importer
                     if (!$this->isDuplicate($service, $resource, array_get($rec, $key), $key)) {
                         $cleaned[] = $rec;
                     } elseif ($this->overwriteExisting === true) {
-                        if ($api === 'system/service') {
-                            $this->remapServiceConfigIds($rec);
-                        }
+                        $this->remapOverwriteRecord($api, $rec);
                         try {
                             if (true === static::patchExisting($service, $resource, $rec, $key)) {
                                 $this->overwrote = true;
@@ -1367,14 +1436,10 @@ class Importer
                     if (in_array($api, ['system/admin', 'system/user'])) {
                         unset($payload['password']);
                     }
-                    // Nested relations still carry the source instance's ids (service_id,
-                    // role_id, access row ids). PATCHing them rewrites the existing rows to
-                    // point at the wrong services, so drop them; the remap steps handle them.
-                    foreach ($payload as $field => $fieldValue) {
-                        if (is_array($fieldValue) && str_contains($field, '_by_')) {
-                            unset($payload[$field]);
-                        }
-                    }
+                    // These relations carry the source instance's service/app/role ids, and
+                    // PATCHing them rewrote existing rows to point at unrelated records.
+                    // insertRoleServiceAccess and insertUserAppRole re-add them mapped by name.
+                    unset($payload['role_service_access_by_role_id'], $payload['user_to_app_to_role_by_user_id']);
                     $result = ServiceManager::handleRequest(
                         $service,
                         Verbs::PATCH,

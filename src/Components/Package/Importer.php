@@ -14,6 +14,7 @@ use DreamFactory\Core\Exceptions\RestException;
 use DreamFactory\Core\Exceptions\UnauthorizedException;
 use DreamFactory\Core\Models\App;
 use DreamFactory\Core\Models\BaseModel;
+use DreamFactory\Core\Models\EmailTemplate;
 use DreamFactory\Core\Models\Role;
 use DreamFactory\Core\Models\RoleServiceAccess;
 use DreamFactory\Core\Models\Service;
@@ -363,6 +364,7 @@ class Importer
                             unset($service['config']);
                         }
                     }
+                    $this->remapServiceConfigIds($service);
                     if (!empty($oldDoc = array_get($service, 'doc'))) {
                         $service['service_doc_by_service_id'] = $oldDoc;
                         unset($service['doc']);
@@ -1066,6 +1068,69 @@ class Importer
     }
 
     /**
+     * Service configs reference other records by the source instance's ids (e.g. the
+     * system and user services' invite/password email service and template). Map them
+     * to this instance by name. An id that cannot be mapped is dropped from the record,
+     * so the target keeps its current value instead of pointing at an unrelated record.
+     * The config's own service_id and default_role (handled separately) are left alone.
+     *
+     * @param array $service
+     */
+    protected function remapServiceConfigIds(array &$service)
+    {
+        $config = array_get($service, 'config');
+        if (!is_array($config)) {
+            return;
+        }
+        foreach ($config as $field => $oldId) {
+            if (empty($oldId) || !is_numeric($oldId) || $field === 'service_id') {
+                continue;
+            }
+            if (str_ends_with($field, '_service_id')) {
+                $newId = $this->getNewServiceId($oldId);
+            } elseif (str_ends_with($field, '_template_id')) {
+                $newId = $this->getNewEmailTemplateId($oldId);
+            } elseif (str_ends_with($field, '_role_id')) {
+                $newId = $this->getNewRoleId($oldId);
+            } elseif (str_ends_with($field, '_app_id')) {
+                $newId = $this->getNewAppId($oldId);
+            } else {
+                continue;
+            }
+            if (empty($newId)) {
+                unset($config[$field]);
+                $this->log(
+                    'notice',
+                    'Kept existing ' . $field . ' for service ' . array_get($service, 'name') .
+                    '. No match in this instance for id ' . $oldId . '.'
+                );
+            } else {
+                $config[$field] = $newId;
+            }
+        }
+        $service['config'] = $config;
+    }
+
+    /**
+     * Finds the new email template id by the old id's name in the package.
+     *
+     * @param $oldTemplateId
+     *
+     * @return int|null
+     */
+    protected function getNewEmailTemplateId($oldTemplateId)
+    {
+        $templates = $this->package->getResourceFromZip('system/email_template.json') ?: [];
+        foreach ($templates as $template) {
+            if ($oldTemplateId === $template['id']) {
+                return EmailTemplate::whereName($template['name'])->value('id');
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Stores internal log and write to system log.
      *
      * @param string $level
@@ -1160,6 +1225,9 @@ class Importer
                     if (!$this->isDuplicate($service, $resource, array_get($rec, $key), $key)) {
                         $cleaned[] = $rec;
                     } elseif ($this->overwriteExisting === true) {
+                        if ($api === 'system/service') {
+                            $this->remapServiceConfigIds($rec);
+                        }
                         try {
                             if (true === static::patchExisting($service, $resource, $rec, $key)) {
                                 $this->overwrote = true;
@@ -1328,9 +1396,8 @@ class Importer
                         throw ResponseFactory::createExceptionFromResponse($result);
                     }
 
-                    if (in_array($api, ['system/admin', 'system/user'])) {
-                        static::updateUserPassword([$record]);
-                    }
+                    // Do not copy the package's password hash onto an existing account:
+                    // overwrite would lock out the target's own admins (e.g. the install admin).
 
                     return true;
                 } else {

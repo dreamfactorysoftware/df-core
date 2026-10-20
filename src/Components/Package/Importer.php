@@ -1057,16 +1057,11 @@ class Importer
             if (!empty($id = Service::whereName($serviceName)->value('id'))) {
                 return $id;
             }
-        } else {
-            if (!empty($serviceName = ServiceManager::getServiceNameById($oldServiceId))) {
-                if (in_array($serviceName, ['system', 'api_docs', 'files', 'db', 'email', 'user'])) {
-                    // If service is one of the pre-defined system services
-                    // then new id is most likely the same as the old id.
-                    return $oldServiceId;
-                }
-            }
         }
 
+        // The service is not in the package, so its name is unknown. Do not reuse the old id:
+        // built-in service ids differ between versions (7.7 adds api_builder and agents first),
+        // so the old id points at an unrelated service. Callers skip the grant with a warning.
         return null;
     }
 
@@ -1303,6 +1298,14 @@ class Importer
                     $payload = $record;
                     if (in_array($api, ['system/admin', 'system/user'])) {
                         unset($payload['password']);
+                    }
+                    // Nested relations still carry the source instance's ids (service_id,
+                    // role_id, access row ids). PATCHing them rewrites the existing rows to
+                    // point at the wrong services, so drop them; the remap steps handle them.
+                    foreach (array_keys($payload) as $field) {
+                        if (str_contains($field, '_by_')) {
+                            unset($payload[$field]);
+                        }
                     }
                     $result = ServiceManager::handleRequest(
                         $service,

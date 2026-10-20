@@ -54,7 +54,9 @@ class ServiceHealthChecker
             } else {
                 return true;
             }
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // Throwable, not Exception: a driver TypeError (e.g. oci8 given a null password
+            // from a masked package import) must fail the check, not the whole import.
             $summary = 'Exception during API health check: ' . $e->getMessage();
             $this->logFailure($summary, $e, $logContext);
             return false;
@@ -66,10 +68,10 @@ class ServiceHealthChecker
      *
      * @param Service $service
      * @param string $failureSummary
-     * @param \Exception|null $rootCauseException
+     * @param \Throwable|null $rootCauseException
      * @param array $logContext Base context for logging.
      */
-    protected function logFailure(string $failureSummary, ?\Exception $rootCauseException = null, array $logContext = []): void
+    protected function logFailure(string $failureSummary, ?\Throwable $rootCauseException = null, array $logContext = []): void
     {
         $fullLogContext = array_merge($logContext, ['summary' => $failureSummary]);
         if ($rootCauseException) {

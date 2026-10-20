@@ -1370,8 +1370,8 @@ class Importer
                     // Nested relations still carry the source instance's ids (service_id,
                     // role_id, access row ids). PATCHing them rewrites the existing rows to
                     // point at the wrong services, so drop them; the remap steps handle them.
-                    foreach (array_keys($payload) as $field) {
-                        if (str_contains($field, '_by_')) {
+                    foreach ($payload as $field => $fieldValue) {
+                        if (is_array($fieldValue) && str_contains($field, '_by_')) {
                             unset($payload[$field]);
                         }
                     }

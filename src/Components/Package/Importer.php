@@ -1390,7 +1390,7 @@ class Importer
                     $service,
                     Verbs::GET,
                     $resource,
-                    array_filter(['filter' => "$key='$value'", 'related' => static::nestedRelations($record)]),
+                    ['filter' => "$key='$value'"],
                     [],
                     null,
                     null,
@@ -1420,7 +1420,9 @@ class Importer
                     // PATCHing them rewrote existing rows to point at unrelated records.
                     // insertRoleServiceAccess and insertUserAppRole re-add them mapped by name.
                     unset($payload['role_service_access_by_role_id'], $payload['user_to_app_to_role_by_user_id']);
-                    static::retargetNestedRows($payload, $existingId, $existing);
+                    if ('system' === $service) {
+                        static::retargetNestedRows($payload, $existingId);
+                    }
                     $result = ServiceManager::handleRequest(
                         $service,
                         Verbs::PATCH,
@@ -1458,56 +1460,39 @@ class Importer
     }
 
     /**
-     * Names of the record's nested relations (X_by_<fk>), for the GET of the existing record.
-     */
-    protected static function nestedRelations(array $record)
-    {
-        return implode(',', array_filter(array_keys($record), function ($k) use ($record) {
-            return is_array($record[$k]) && preg_match('/_by_\w+_id$/', $k);
-        }));
-    }
-
-    /**
      * Nested rows in the package carry the source instance's ids, which can match another
-     * record's rows on the target (e.g. another role's lookup or AD group). Point each row at
-     * the existing parent and reuse the existing row id only when it is that parent's row with
-     * the same name; otherwise drop the id so the row is added.
+     * record's rows on the target (e.g. another role's lookup or AD group). Point the known
+     * relations at the existing parent and drop their row ids: lookups are then matched by
+     * parent and name (Lookup's composite finder), has-one rows by parent. Other nested
+     * relations are dropped; empty ones too, since an empty has-one deletes the target's row.
      */
-    protected static function retargetNestedRows(array &$payload, $parentId, $existing)
+    protected static function retargetNestedRows(array &$payload, $parentId)
     {
-        $pk = BaseModel::getPrimaryKeyStatic();
-        foreach ($payload as $rel => &$rows) {
-            if (!is_array($rows) || !preg_match('/_by_(\w+_id)$/', $rel, $m)) {
+        foreach ($payload as $rel => $rows) {
+            if ((!is_array($rows) && !is_null($rows)) || !preg_match('/_by_\w+_id$/', $rel)) {
                 continue;
             }
-            $fk = $m[1];
-            $current = (array)array_get($existing, $rel, []);
-            if (!empty($rows) && !isset($rows[0])) {
+            if (empty($rows) || !preg_match('/^(\w*lookup_by_|role_adldap_by_|service_doc_by_)(\w+_id)$/', $rel, $m)) {
+                unset($payload[$rel]);
+                continue;
+            }
+            $fk = $m[2];
+            if (!isset($rows[0])) {
                 // Has-one (an object), keyed by the parent.
-                $rows[$fk] = $parentId;
-                unset($rows[$pk]);
-                continue;
-            }
-            $byName = [];
-            foreach ($current as $c) {
-                if (is_array($c) && isset($c['name'], $c[$pk])) {
-                    $byName[$c['name']] = $c[$pk];
-                }
+                $rows = [$rows];
+                $hasOne = true;
+            } else {
+                $hasOne = false;
             }
             foreach ($rows as &$row) {
-                if (!is_array($row)) {
-                    continue;
-                }
-                $row[$fk] = $parentId;
-                if (isset($row['name'], $byName[$row['name']])) {
-                    $row[$pk] = $byName[$row['name']];
-                } else {
-                    unset($row[$pk]);
+                if (is_array($row)) {
+                    $row[$fk] = $parentId;
+                    unset($row[BaseModel::getPrimaryKeyStatic()]);
                 }
             }
             unset($row);
+            $payload[$rel] = $hasOne ? $rows[0] : $rows;
         }
-        unset($rows);
     }
 
     /**

@@ -202,6 +202,40 @@ class PackageImportOverwriteTest extends AzionImportTestCase
             "other role's AD group was rewritten");
     }
 
+    public function testOverwriteRoleWithRelationUnknownToTargetSucceeds()
+    {
+        // A source with an extra package (e.g. df-adldap) exports a relation the target lacks.
+        $role = static::PREFIX . 'ow_unknown_rel';
+        $created = $this->createRole($role);
+        $zip = $this->buildPackage([
+            'system/role.json' => [$this->role(9506, $role, [], [
+                'description'           => 'unknown rel',
+                'role_nope_by_role_id'  => ['role_id' => 9506, 'x' => 'y'],
+            ])],
+        ]);
+
+        $this->import($zip, true);
+
+        $this->assertEquals('unknown rel', \DB::table('role')->where('id', $created->id)->value('description'));
+    }
+
+    public function testOverwriteRoleWithNullAdldapKeepsTargetGroup()
+    {
+        if (!\Schema::hasTable('role_adldap')) {
+            $this->markTestSkipped('df-adldap not installed');
+        }
+        $role = static::PREFIX . 'ow_ldap_null';
+        $created = $this->createRole($role);
+        \DB::table('role_adldap')->insert(['role_id' => $created->id, 'dn' => 'CN=keep,DC=azion']);
+        $zip = $this->buildPackage([
+            'system/role.json' => [$this->role(9507, $role, [], ['role_adldap_by_role_id' => null])],
+        ]);
+
+        $this->import($zip, true);
+
+        $this->assertEquals('CN=keep,DC=azion', \DB::table('role_adldap')->where('role_id', $created->id)->value('dn'));
+    }
+
     public function testOverwriteRoleWithSourceAuditIdsDoesNotFail()
     {
         $role = static::PREFIX . 'ow_audit_role';

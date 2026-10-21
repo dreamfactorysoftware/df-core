@@ -1015,7 +1015,8 @@ class Importer
                 return $newApp->id;
             }
         } else {
-            $existingApp = $this->isSameMajorVersion() ? App::find($oldAppId) : null;
+            // The seeded admin apps keep their ids across 4.x and 7.x, unlike services.
+            $existingApp = App::find($oldAppId);
             if (!empty($existingApp)) {
                 $appName = $existingApp->name;
 
@@ -1061,32 +1062,11 @@ class Importer
             }
         }
 
-        // The service is not in the package, so its name is unknown. Built-in service ids only
-        // line up between instances of the same major version (7.x adds api_builder and agents
-        // first, shifting the rest), so only guess within one major version. Otherwise callers
-        // skip the reference with a warning rather than point it at an unrelated service.
-        if (empty($serviceName) && $this->isSameMajorVersion() &&
-            !empty($existingName = ServiceManager::getServiceNameById($oldServiceId)) &&
-            in_array($existingName, ['system', 'api_docs', 'files', 'db', 'email', 'user'])) {
-            return $oldServiceId;
-        }
-
+        // The service is not in the package, so its name is unknown. Built-in service ids differ
+        // between installs (7.x seeds api_builder and agents first; upgraded installs keep the old
+        // ids), so any guess can point a grant at the wrong service. Callers skip it with a warning.
+        // ponytail: export the service name with each grant to map built-ins by name when needed.
         return null;
-    }
-
-    /**
-     * True when the package was exported from the same major DF version as this instance.
-     * Only then do built-in record ids (system services, admin apps) match.
-     *
-     * @return bool
-     */
-    protected function isSameMajorVersion()
-    {
-        $source = (string)$this->package->getManifest('df_version', '');
-        $target = (string)config('app.version', '');
-
-        return $source !== '' && $target !== '' &&
-            (int)explode('.', $source)[0] === (int)explode('.', $target)[0];
     }
 
     /**
@@ -1410,7 +1390,7 @@ class Importer
                     $service,
                     Verbs::GET,
                     $resource,
-                    ['filter' => "$key='$value'"],
+                    array_filter(['filter' => "$key='$value'", 'related' => static::nestedRelations($record)]),
                     [],
                     null,
                     null,
@@ -1440,6 +1420,7 @@ class Importer
                     // PATCHing them rewrote existing rows to point at unrelated records.
                     // insertRoleServiceAccess and insertUserAppRole re-add them mapped by name.
                     unset($payload['role_service_access_by_role_id'], $payload['user_to_app_to_role_by_user_id']);
+                    static::retargetNestedRows($payload, $existingId, $existing);
                     $result = ServiceManager::handleRequest(
                         $service,
                         Verbs::PATCH,
@@ -1474,6 +1455,59 @@ class Importer
                 }
                 break;
         }
+    }
+
+    /**
+     * Names of the record's nested relations (X_by_<fk>), for the GET of the existing record.
+     */
+    protected static function nestedRelations(array $record)
+    {
+        return implode(',', array_filter(array_keys($record), function ($k) use ($record) {
+            return is_array($record[$k]) && preg_match('/_by_\w+_id$/', $k);
+        }));
+    }
+
+    /**
+     * Nested rows in the package carry the source instance's ids, which can match another
+     * record's rows on the target (e.g. another role's lookup or AD group). Point each row at
+     * the existing parent and reuse the existing row id only when it is that parent's row with
+     * the same name; otherwise drop the id so the row is added.
+     */
+    protected static function retargetNestedRows(array &$payload, $parentId, $existing)
+    {
+        $pk = BaseModel::getPrimaryKeyStatic();
+        foreach ($payload as $rel => &$rows) {
+            if (!is_array($rows) || !preg_match('/_by_(\w+_id)$/', $rel, $m)) {
+                continue;
+            }
+            $fk = $m[1];
+            $current = (array)array_get($existing, $rel, []);
+            if (!empty($rows) && !isset($rows[0])) {
+                // Has-one (an object), keyed by the parent.
+                $rows[$fk] = $parentId;
+                unset($rows[$pk]);
+                continue;
+            }
+            $byName = [];
+            foreach ($current as $c) {
+                if (is_array($c) && isset($c['name'], $c[$pk])) {
+                    $byName[$c['name']] = $c[$pk];
+                }
+            }
+            foreach ($rows as &$row) {
+                if (!is_array($row)) {
+                    continue;
+                }
+                $row[$fk] = $parentId;
+                if (isset($row['name'], $byName[$row['name']])) {
+                    $row[$pk] = $byName[$row['name']];
+                } else {
+                    unset($row[$pk]);
+                }
+            }
+            unset($row);
+        }
+        unset($rows);
     }
 
     /**

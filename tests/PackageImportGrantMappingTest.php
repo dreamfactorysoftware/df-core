@@ -64,9 +64,10 @@ class PackageImportGrantMappingTest extends AzionImportTestCase
         $this->assertNull(\DB::table('role_service_access')->where('role_id', $roleId)->value('service_id'));
     }
 
-    public function testSameMajorPackageOmittingBuiltInsKeepsGrants()
+    public function testPackageOmittingBuiltInsSkipsGrantsWithWarning()
     {
-        // 7.7 -> 7.7 (both fresh installs): built-in ids match, so the old id is still right.
+        // Even 7.7 -> 7.7: an upgraded source keeps older built-in ids, so a guess is unsafe.
+        // A missing grant fails closed; a grant on the wrong service does not.
         $userId = Service::whereName('user')->value('id');
         $systemId = Service::whereName('system')->value('id');
         $zip = $this->buildPackage([
@@ -76,9 +77,10 @@ class PackageImportGrantMappingTest extends AzionImportTestCase
             ])],
         ], '7.7.0');
 
-        $this->import($zip);
+        $importer = $this->import($zip);
 
-        $this->assertSame(['user:session', 'system:environment'], $this->grantServices(static::ROLE));
+        $this->assertSame([], $this->grantServices(static::ROLE));
+        $this->assertTrue($this->logged($importer, 'warning', 'Skipping relation role_service_access_by_role_id'));
     }
 
     public function testManifestWithoutDfVersionSkipsBuiltInGrant()
@@ -94,11 +96,9 @@ class PackageImportGrantMappingTest extends AzionImportTestCase
     }
 
     /**
-     * Known gap, not fixed by the same-major check: a 7.0-7.6 export (or one from an
+     * Fixed by never guessing built-in ids: a 7.0-7.6 export (or one from an
      * instance upgraded to 7.7) has user = 7. On a fresh 7.7 install id 7 is db, which is
-     * also a built-in name, so the same-major guess maps a 'user' grant onto 'db'.
-     *
-     * @group known-gap
+     * also a built-in name, so a guess would map a 'user' grant onto 'db'.
      */
     public function testPre77SameMajorGrantDoesNotLandOnWrongBuiltIn()
     {
@@ -144,8 +144,6 @@ class PackageImportGrantMappingTest extends AzionImportTestCase
      * The built-in apps (admin, api_docs, file_manager) are seeded by AppSeeder, not by a
      * migration, so their ids (1, 2, 3) did not shift in 7.7. Base kept a 4.x user's role on
      * the admin app; gating getNewAppId on the same major version drops it.
-     *
-     * @group behavior-change
      */
     public function testFourXUserAppRoleOnBuiltInAppIsKept()
     {

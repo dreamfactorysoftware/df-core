@@ -124,8 +124,6 @@ class PackageImportOverwriteTest extends AzionImportTestCase
     /**
      * A source lookup id that matches another role's lookup row on the target.
      * Pre-existing behavior (base and fix both PATCH lookups with their ids).
-     *
-     * @group known-gap
      */
     public function testOverwriteRoleLookupWithCollidingIdDoesNotTouchOtherRole()
     {
@@ -178,8 +176,6 @@ class PackageImportOverwriteTest extends AzionImportTestCase
     /**
      * The exported role_adldap row's role_id (its primary key) is the source role id. When
      * it matches another role on the target, the PATCH must not rewrite that role's group.
-     *
-     * @group known-gap
      */
     public function testOverwriteRoleAdldapWithCollidingRoleIdDoesNotTouchOtherRole()
     {
@@ -371,8 +367,6 @@ class PackageImportOverwriteTest extends AzionImportTestCase
     /**
      * Pre-existing: when the target service already has a doc, the has-one PATCH inserts
      * instead of updating and the whole import fails on the service_doc primary key.
-     *
-     * @group known-gap
      */
     public function testOverwriteServiceUpdatesExistingServiceDoc()
     {

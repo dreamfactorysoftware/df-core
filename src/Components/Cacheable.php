@@ -3,6 +3,8 @@
 namespace DreamFactory\Core\Components;
 
 use Cache;
+use Illuminate\Contracts\Cache\LockProvider;
+use Illuminate\Contracts\Cache\LockTimeoutException;
 
 /**
  * Class Cacheable
@@ -45,11 +47,14 @@ trait Cacheable
      */
     protected function addKeys($keys)
     {
-        $this->cacheKeys =
-            array_unique(array_merge((array)$this->getCacheKeys(), (array)$keys));
+        $keys = (array)$keys;
+        if (empty(array_diff($keys, $this->getCacheKeys()))) {
+            return;
+        }
 
-        // Save the keys to cache
-        Cache::forever($this->getCachePrefix() . 'cache_keys', $this->cacheKeys);
+        $this->updateKeys(function ($current) use ($keys) {
+            return array_unique(array_merge($current, $keys));
+        });
     }
 
     /**
@@ -57,10 +62,34 @@ trait Cacheable
      */
     protected function removeKeys($keys)
     {
-        $this->cacheKeys = array_diff((array)$this->getCacheKeys(), (array)$keys);
+        $this->updateKeys(function ($current) use ($keys) {
+            return array_diff($current, (array)$keys);
+        });
+    }
 
-        // Save the map to cache
-        Cache::forever($this->getCachePrefix() . 'cache_keys', $this->cacheKeys);
+    /**
+     * Read-modify-write of the key index, under a lock when the store supports one.
+     *
+     * @param callable $fn receives the fresh key list, returns the new one
+     */
+    private function updateKeys(callable $fn)
+    {
+        $write = function () use ($fn) {
+            $this->cacheKeys = array_values($fn($this->getCacheKeys()));
+            Cache::forever($this->getCachePrefix() . 'cache_keys', $this->cacheKeys);
+        };
+
+        if (Cache::getStore() instanceof LockProvider) {
+            try {
+                Cache::lock($this->getCachePrefix() . 'cache_keys_lock', 10)->block(5, $write);
+
+                return;
+            } catch (LockTimeoutException $e) {
+                // fall through to the unlocked write
+            }
+        }
+        // ponytail: unlocked fallback = old race, only on lockless stores / lock timeout
+        $write();
     }
 
     /**
@@ -69,9 +98,7 @@ trait Cacheable
      */
     protected function getCacheKeys()
     {
-        if (empty($this->cacheKeys)) {
-            $this->cacheKeys = Cache::get($this->getCachePrefix() . 'cache_keys', []);
-        }
+        $this->cacheKeys = Cache::get($this->getCachePrefix() . 'cache_keys', []);
 
         return (array)$this->cacheKeys;
     }

@@ -240,9 +240,10 @@ trait Cacheable
     public function flush()
     {
         $keys = $this->getCacheKeys();
+        // clear the index first so a key re-cached mid-flush gets re-indexed
+        $this->removeKeys($keys);
         foreach ($keys as $key) {
             Cache::forget($this->makeCacheKey($key));
         }
-        $this->removeKeys($keys);
     }
 }

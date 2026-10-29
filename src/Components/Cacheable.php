@@ -88,7 +88,7 @@ trait Cacheable
                 // fall through to the unlocked write
             }
         }
-        // ponytail: unlocked fallback = old race, only on lockless stores / lock timeout
+        // No lock support (e.g. APC) or lock timeout: unlocked write, a concurrent add can still be lost.
         $write();
     }
 

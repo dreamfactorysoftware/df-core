@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Services;
 
+use DreamFactory\Core\Utility\Redact;
 use DreamFactory\Core\Components\ServiceCacheable;
 use DreamFactory\Core\Contracts\CacheInterface;
 use DreamFactory\Core\Contracts\ServiceRequestInterface;
@@ -136,9 +137,9 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
         ]);
 
         Log::debug('[REQUEST]', [
-            'Parameters' => json_encode($request->getParameters(), JSON_UNESCAPED_SLASHES),
-            'API Key'    => $request->getHeader('X_DREAMFACTORY_API_KEY'),
-            'JWT'        => $request->getHeader('X_DREAMFACTORY_SESSION_TOKEN')
+            'Parameters' => json_encode(Redact::params($request->getParameters()), JSON_UNESCAPED_SLASHES),
+            'API Key'    => Redact::credential($request->getHeader('X_DREAMFACTORY_API_KEY')),
+            'JWT'        => Redact::credential($request->getHeader('X_DREAMFACTORY_SESSION_TOKEN'))
         ]);
 
         if (!$this->isActive) {

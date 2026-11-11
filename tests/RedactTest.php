@@ -1,9 +1,8 @@
 <?php
 
 use DreamFactory\Core\Utility\Redact;
-use PHPUnit\Framework\TestCase;
 
-class RedactTest extends TestCase
+class RedactTest extends \DreamFactory\Core\Testing\TestCase
 {
     public function testCredentialBecomesAFingerprintThatDoesNotContainIt()
     {
@@ -13,6 +12,7 @@ class RedactTest extends TestCase
         $this->assertStringNotContainsString(substr($key, 0, 6), $out);
         $this->assertSame($out, Redact::credential($key), 'same credential, same fingerprint');
         $this->assertNotSame($out, Redact::credential($key . 'x'));
+        $this->assertNotSame('sha256:' . substr(hash('sha256', 'Summer2026!'), 0, 8), Redact::credential('Summer2026!'), 'unkeyed hash is a dictionary oracle');
     }
 
     public function testNoCredentialStaysEmpty()

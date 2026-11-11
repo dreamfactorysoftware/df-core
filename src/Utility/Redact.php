@@ -31,7 +31,10 @@ class Redact
             return $value;
         }
 
-        return 'sha256:' . substr(hash('sha256', is_scalar($value) ? (string)$value : json_encode($value)), 0, 8);
+        // keyed, so a low-entropy password cannot be recovered from the log by hashing a word list
+        $raw = is_scalar($value) ? (string)$value : json_encode($value);
+
+        return 'sha256:' . substr(hash_hmac('sha256', $raw, (string)config('app.key')), 0, 8);
     }
 
     /**

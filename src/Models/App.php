@@ -165,6 +165,10 @@ class App extends BaseSystemModel
                     JWTUtilities::invalidateTokenByAppId($app->id);
                 }
                 \Cache::forget('app:' . $app->id);
+                // A refreshed key must stop working at once, not when the cache expires.
+                if ($app->wasChanged('api_key')) {
+                    \Cache::forget('apikey2appid:' . $app->getOriginal('api_key'));
+                }
             }
         );
 

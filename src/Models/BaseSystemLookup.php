@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Models;
 
+use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Utility\Session;
 use Illuminate\Database\Query\Builder;
 
@@ -48,6 +49,20 @@ class BaseSystemLookup extends BaseSystemModel
     public static function boot()
     {
         parent::boot();
+
+        // A private value is never readable again. Making the key public
+        // therefore needs a new value; otherwise the stored secret would be
+        // returned in clear text from then on.
+        static::saving(
+            function (BaseSystemLookup $lookup) {
+                if ($lookup->exists && (bool)$lookup->getOriginal('private') && !$lookup->private &&
+                    !$lookup->isDirty('value')) {
+                    throw new BadRequestException(
+                        "Lookup key '{$lookup->name}' is private. Enter a new value to make it public."
+                    );
+                }
+            }
+        );
 
         /** @noinspection PhpUnusedParameterInspection */
         static::saved(

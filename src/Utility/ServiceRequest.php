@@ -385,19 +385,22 @@ class ServiceRequest extends InternalServiceRequest implements ServiceRequestInt
      */
     public function getApiKey()
     {
+        // Only a non-empty string is used as an API key. Other values (for
+        // example an array from ?api_key[]=x or from a JSON body) are treated
+        // as absent and the next source is checked.
         if (!empty($this->parameters) && !empty($this->headers)) {
             $apiKey = $this->getParameter('api_key');
-            if (empty($apiKey)) {
+            if (!is_string($apiKey) || empty($apiKey)) {
                 $apiKey = $this->getHeader('X_DREAMFACTORY_API_KEY');
             }
         } else {
             $apiKey = Request::input('api_key');
-            if (empty($apiKey)) {
+            if (!is_string($apiKey) || empty($apiKey)) {
                 $apiKey = Request::header('X_DREAMFACTORY_API_KEY');
             }
         }
 
-        if (empty($apiKey)) {
+        if (!is_string($apiKey) || empty($apiKey)) {
             $apiKey = null;
         }
 

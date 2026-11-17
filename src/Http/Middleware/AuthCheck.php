@@ -115,24 +115,34 @@ class AuthCheck
     }
 
     /**
+     * Returns the script token from the request query, header or payload (in
+     * that order of precedence), or null if none is present. Only non-empty
+     * string values are accepted; arrays or other types (e.g. ?script_token[]=x
+     * or a JSON body array) are ignored so they can never reach the cache key.
+     *
      * @param Request $request
      *
-     * @return mixed
+     * @return string|null
      */
     public static function getScriptToken($request)
     {
-        // Check for script authorizing token in request parameters.
-        $token = $request->query('script_token');
-        if (empty($token)) {
+        $candidates = [
+            // Check for script authorizing token in request parameters.
+            function () use ($request) { return $request->query('script_token'); },
             // Check for script token in request HEADER.
-            $token = $request->header('X_DREAMFACTORY_SCRIPT_TOKEN');
-        }
-        if (empty($token)) {
+            function () use ($request) { return $request->header('X_DREAMFACTORY_SCRIPT_TOKEN'); },
             // Check for script token in request payload.
-            $token = $request->input('script_token');
+            function () use ($request) { return $request->input('script_token'); },
+        ];
+
+        foreach ($candidates as $candidate) {
+            $token = $candidate();
+            if (is_string($token) && '' !== $token) {
+                return $token;
+            }
         }
 
-        return $token;
+        return null;
     }
 
     /**

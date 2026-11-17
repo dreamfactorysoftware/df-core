@@ -95,4 +95,90 @@ class AuthCheckScriptTokenTest extends \DreamFactory\Core\Testing\TestCase
 
         $this->assertEquals(ServiceRequestorTypes::API, Session::getRequestor());
     }
+
+    /**
+     * An array script_token in the query string (?script_token[]=x) must be
+     * ignored rather than reaching the 'script-token:' cache-key concatenation
+     * ("Array to string conversion" -> HTTP 500).
+     */
+    public function testArrayScriptTokenInQueryIsIgnored()
+    {
+        $request = Request::create('/api/v2/system/environment?script_token[]=x', 'GET');
+
+        $this->assertNull(AuthCheck::getScriptToken($request));
+    }
+
+    /**
+     * An array script_token in a JSON body must also be ignored.
+     */
+    public function testArrayScriptTokenInJsonBodyIsIgnored()
+    {
+        $request = Request::create(
+            '/api/v2/system/environment',
+            'POST',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['script_token' => ['a' => 'b']])
+        );
+
+        $this->assertNull(AuthCheck::getScriptToken($request));
+    }
+
+    /**
+     * Non-string values must not shadow a valid string token from a
+     * lower-precedence source, and precedence stays query > header > body.
+     */
+    public function testScriptTokenPrecedenceSkipsNonStringValues()
+    {
+        $request = Request::create(
+            '/api/v2/system/environment?script_token[]=x',
+            'POST',
+            [],
+            [],
+            [],
+            ['HTTP_X_DREAMFACTORY_SCRIPT_TOKEN' => 'fromheader', 'CONTENT_TYPE' => 'application/json'],
+            json_encode(['script_token' => 'frombody'])
+        );
+        $this->assertSame('fromheader', AuthCheck::getScriptToken($request));
+
+        $request = Request::create(
+            '/api/v2/system/environment',
+            'POST',
+            [],
+            [],
+            [],
+            ['CONTENT_TYPE' => 'application/json'],
+            json_encode(['script_token' => 'frombody'])
+        );
+        $this->assertSame('frombody', AuthCheck::getScriptToken($request));
+
+        $request = Request::create(
+            '/api/v2/system/environment?script_token=fromquery',
+            'GET',
+            [],
+            [],
+            [],
+            ['HTTP_X_DREAMFACTORY_SCRIPT_TOKEN' => 'fromheader']
+        );
+        $this->assertSame('fromquery', AuthCheck::getScriptToken($request));
+    }
+
+    /**
+     * End to end through the middleware: an array script_token with a JWT
+     * must not throw and must leave the requestor at API.
+     */
+    public function testArrayScriptTokenDoesNotThrowOrElevate()
+    {
+        $this->resetRequestor();
+
+        $request = Request::create(
+            '/api/v2/samples_mysql/_table/products?script_token[]=x&session_token=a.bogus.jwt',
+            'GET'
+        );
+
+        $this->assertEquals('passthrough', $this->runMiddleware($request));
+        $this->assertEquals(ServiceRequestorTypes::API, Session::getRequestor());
+    }
 }

@@ -31,58 +31,88 @@ class AuthCheck
     ];
 
     /**
-     * @param Request $request
+     * Returns the first candidate value that is a non-empty string, or null.
      *
-     * @return mixed
+     * Candidates are closures evaluated lazily and in order, so the first
+     * source that yields a usable string wins and later sources are only read
+     * when needed. Values that are not strings (for example an array from
+     * ?name[]=x or from a JSON body) are skipped like an absent value. Empty
+     * strings and '0' are skipped too, matching the empty() checks these
+     * sources have always been chained with.
+     *
+     * @param \Closure[] $candidates
+     *
+     * @return string|null
      */
-    public static function getApiKey($request)
+    protected static function firstStringValue(array $candidates)
     {
-        // Check for API key in request parameters.
-        $apiKey = $request->query('api_key');
-        if (empty($apiKey)) {
-            // Check for API key in request HEADER.
-            $apiKey = $request->header('X_DREAMFACTORY_API_KEY');
-        }
-        if (empty($apiKey)) {
-            // Check for API key in request payload.
-            // Skip if this is a call for system/app
-            $route = $request->getPathInfo();
-            if (strpos($route, 'system/app') === false) {
-                $apiKey = $request->input('api_key');
+        foreach ($candidates as $candidate) {
+            $value = $candidate();
+            if (is_string($value) && !empty($value)) {
+                return $value;
             }
         }
 
-        return $apiKey;
+        return null;
     }
 
     /**
+     * Returns the API key from the request query, header or payload (in that
+     * order of precedence), or null if none is present. Only non-empty string
+     * values are accepted; see firstStringValue().
+     *
      * @param Request $request
      *
-     * @return mixed
+     * @return string|null
+     */
+    public static function getApiKey($request)
+    {
+        return static::firstStringValue([
+            // Check for API key in request parameters.
+            function () use ($request) { return $request->query('api_key'); },
+            // Check for API key in request HEADER.
+            function () use ($request) { return $request->header('X_DREAMFACTORY_API_KEY'); },
+            // Check for API key in request payload.
+            // Skip if this is a call for system/app, whose payload carries app records.
+            function () use ($request) {
+                if (false !== strpos($request->getPathInfo(), 'system/app')) {
+                    return null;
+                }
+
+                return $request->input('api_key');
+            },
+        ]);
+    }
+
+    /**
+     * Returns the session token (JWT) from the Authorization (Bearer) header,
+     * the session token header or the request input (in that order of
+     * precedence), or null if none is present. Only non-empty string values
+     * are accepted; see firstStringValue().
+     *
+     * @param Request $request
+     *
+     * @return string|null
      */
     public static function getJwt($request)
     {
-        $token = static::getJWTFromAuthHeader();
-        if (empty($token)) {
-            $token = $request->header('X_DREAMFACTORY_SESSION_TOKEN');
-        }
-        if (empty($token)) {
-            $token = $request->input('session_token');
-        }
-
-        return $token;
+        return static::firstStringValue([
+            function () { return static::getJWTFromAuthHeader(); },
+            function () use ($request) { return $request->header('X_DREAMFACTORY_SESSION_TOKEN'); },
+            function () use ($request) { return $request->input('session_token'); },
+        ]);
     }
 
     /**
      * Gets the token from Authorization header.
      *
-     * @return string
+     * @return string|null
      */
     protected static function getJWTFromAuthHeader()
     {
         if ('testing' === env('APP_ENV')) {
             // getallheaders method is not available in unit test mode.
-            return [];
+            return null;
         }
 
         if (!function_exists('getallheaders')) {
@@ -107,7 +137,7 @@ class AuthCheck
         $token = null;
         $headers = getallheaders();
         $authHeader = array_get($headers, 'Authorization');
-        if (strpos($authHeader, 'Bearer') !== false) {
+        if (is_string($authHeader) && strpos($authHeader, 'Bearer') !== false) {
             $token = substr($authHeader, 7);
         }
 
@@ -126,23 +156,14 @@ class AuthCheck
      */
     public static function getScriptToken($request)
     {
-        $candidates = [
+        return static::firstStringValue([
             // Check for script authorizing token in request parameters.
             function () use ($request) { return $request->query('script_token'); },
             // Check for script token in request HEADER.
             function () use ($request) { return $request->header('X_DREAMFACTORY_SCRIPT_TOKEN'); },
             // Check for script token in request payload.
             function () use ($request) { return $request->input('script_token'); },
-        ];
-
-        foreach ($candidates as $candidate) {
-            $token = $candidate();
-            if (is_string($token) && '' !== $token) {
-                return $token;
-            }
-        }
-
-        return null;
+        ]);
     }
 
     /**

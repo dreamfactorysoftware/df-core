@@ -244,7 +244,8 @@ class App extends BaseSystemModel
      */
     public static function getAppIdByApiKey($api_key)
     {
-        if (empty($api_key)) {
+        // API keys are strings; any other value is treated as no key.
+        if (!is_string($api_key) || empty($api_key)) {
             return null;
         }
         $cacheKey = 'apikey2appid:' . $api_key;

@@ -405,14 +405,14 @@ class InternalServiceRequest implements ServiceRequestInterface
      */
     public function getApiKey()
     {
-        //Check for API key in request parameters.
+        // Check for API key in request parameters, then in the request HEADER.
+        // Only a non-empty string is used; other values are treated as absent.
         $apiKey = $this->getParameter('api_key');
-        if (empty($apiKey)) {
-            //Check for API key in request HEADER.
+        if (!is_string($apiKey) || empty($apiKey)) {
             $apiKey = $this->getHeader('X_DREAMFACTORY_API_KEY');
         }
 
-        return $apiKey;
+        return (is_string($apiKey) && !empty($apiKey)) ? $apiKey : null;
     }
 
     /**

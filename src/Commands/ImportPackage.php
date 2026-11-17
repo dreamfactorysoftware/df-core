@@ -56,8 +56,25 @@ class ImportPackage extends Command
     {
         $path = $this->getPath();
 
-        if (is_file($path) || FileUtilities::url_exist($path)) {
+        if (is_file($path)) {
             $this->importPackage($path);
+            $this->printResult();
+        } elseif (static::isRemoteUrl($path)) {
+            // The path comes from the operator, so the package may live on any host it can reach. Download it
+            // here and import the local copy.
+            try {
+                $file = FileUtilities::importUrlFileToTemp($path, '', true);
+            } catch (\Exception $e) {
+                $this->error('Could not download package from ' . $path . ': ' . $e->getMessage());
+
+                return 1;
+            }
+
+            try {
+                $this->importPackage($file, $path, true);
+            } finally {
+                @unlink($file);
+            }
             $this->printResult();
         } elseif (is_dir($path)) {
             $files = static::getFilesFromPath($path);
@@ -109,23 +126,25 @@ class ImportPackage extends Command
     /**
      * Imports package.
      *
-     * @param $file
+     * @param string      $file       Local package file.
+     * @param string|null $source     Where the package came from, for the import log. Defaults to $file.
+     * @param bool        $downloaded True when $file is a temporary copy downloaded by this command.
      *
      * @throws \Exception
      */
-    protected function importPackage($file)
+    protected function importPackage($file, $source = null, $downloaded = false)
     {
         $extension = strtolower(pathinfo($file, PATHINFO_EXTENSION));
 
         if ($extension === Packager::FILE_EXTENSION) {
-            $this->importOldPackage($file);
+            $this->importOldPackage($file, $downloaded);
         } else {
-            $package = new Package($file, $this->option('delete'), $this->option('password'));
+            $package = new Package($file, $downloaded || $this->option('delete'), $this->option('password'));
             $importer = new Importer($package);
             $importer->import();
             $log = $importer->getLog();
             $this->importLog[] = [
-                'file' => $file,
+                'file' => $source ?: $file,
                 'log'  => $log
             ];
         }
@@ -182,14 +201,31 @@ class ImportPackage extends Command
     /**
      * Imports old .dfpkg files.
      *
-     * @param $file
+     * @param string $file
+     * @param bool   $downloaded True when $file is a temporary copy downloaded by this command.
      *
      * @throws \Exception
      */
-    protected function importOldPackage($file)
+    protected function importOldPackage($file, $downloaded = false)
     {
+        if ($downloaded) {
+            // Hand the downloaded copy over as a local file; Packager removes it when it is done.
+            $file = ['name' => basename($file), 'tmp_name' => $file, 'error' => UPLOAD_ERR_OK];
+        }
         $packager = new Packager($file);
         $packager->importAppFromPackage();
+    }
+
+    /**
+     * @param string $path
+     *
+     * @return bool
+     */
+    protected static function isRemoteUrl($path)
+    {
+        $scheme = strtolower((string)parse_url((string)$path, PHP_URL_SCHEME));
+
+        return in_array($scheme, ['http', 'https'], true);
     }
 
     /**

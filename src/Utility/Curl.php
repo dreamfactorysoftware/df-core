@@ -2,7 +2,6 @@
 
 use DreamFactory\Core\Enums\Verbs;
 use DreamFactory\Core\Exceptions\BadRequestException;
-use DreamFactory\Core\System\Components\SsrfValidator;
 
 /**
  * Curl
@@ -509,52 +508,38 @@ class Curl extends Verbs
     }
 
     /**
-     * Validate a redirect target and pin curl to the exact IP that was
-     * checked. Resolving once and pinning with CURLOPT_RESOLVE means the IP
-     * curl connects to is the same one that passed the address checks, closing
-     * the DNS-rebind window between validation and connection. The hostname is
-     * kept for SNI and certificate verification.
+     * Checks a redirect target and sends the next request to the address that
+     * was checked (CURLOPT_RESOLVE). The hostname is kept for SNI and
+     * certificate verification.
      *
-     * Only IPv4 targets are pinned. Other targets still pass through the full
-     * validateExternalUrl() check; they just are not pinned here.
+     * The target must be accepted by OutboundAddress::resolve(), which uses the
+     * same remote URL settings as URL imports, including the hosts listed in
+     * DF_OUTBOUND_ALLOWED_HOSTS.
      *
      * @param string $url         The redirect target URL.
      * @param array  $curlOptions Current curl options, updated in place with a
-     *                            CURLOPT_RESOLVE pin when an IPv4 address is found.
+     *                            CURLOPT_RESOLVE entry for a named host.
      *
-     * @throws BadRequestException When the target fails the address checks.
+     * @throws BadRequestException When the target is not accepted.
      * @return void
      */
     protected static function validateAndPinRedirect($url, array &$curlOptions)
     {
-        //  Full URL safety check: scheme, host encoding, IPv6, resolved range.
-        SsrfValidator::validateExternalUrl($url);
+        try {
+            $_ip = OutboundAddress::resolve($url);
+        } catch (BadRequestException $ex) {
+            try {
+                \Log::debug('Redirect target not accepted: ' . $ex->getMessage());
+            } catch (\Throwable $ignored) {
+            }
+            throw new BadRequestException('The requested URL redirects to a location that is not allowed.');
+        }
 
         $_parts = parse_url($url);
-        $_host = array_get($_parts, 'host');
-        if (empty($_host)) {
+        $_host = OutboundAddress::hostOf($url);
+        if (filter_var($_host, FILTER_VALIDATE_IP)) {
+            //  An IP literal needs no name resolution.
             return;
-        }
-        //  Strip IPv6 brackets.
-        $_host = ltrim(rtrim($_host, ']'), '[');
-
-        //  Resolve to an IPv4 address. Only IPv4 can be pinned here; for any
-        //  other case leave DNS to curl (the check above already validated it).
-        if (filter_var($_host, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-            $_ip = $_host;
-        } else {
-            $_ip = gethostbyname($_host);
-            if (!filter_var($_ip, FILTER_VALIDATE_IP, FILTER_FLAG_IPV4)) {
-                return;
-            }
-        }
-
-        //  The exact IP we will connect to must itself pass the range check.
-        //  This catches a rebind between the check above and this resolve.
-        if (SsrfValidator::isPrivateOrReservedIp($_ip)) {
-            throw new BadRequestException(
-                'Invalid redirect: the target resolves to a private or reserved address.'
-            );
         }
 
         $_scheme = strtolower((string)array_get($_parts, 'scheme'));

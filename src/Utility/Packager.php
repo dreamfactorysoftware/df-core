@@ -166,6 +166,8 @@ class Packager
         try {
             // need to download and extract zip file and move contents to storage
             $file = FileUtilities::importUrlFileToTemp($url);
+        } catch (BadRequestException $ex) {
+            throw $ex;
         } catch (\Exception $ex) {
             throw new InternalServerErrorException("Failed to import package from $url. {$ex->getMessage()}");
         }

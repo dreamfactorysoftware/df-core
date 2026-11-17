@@ -521,6 +521,27 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
         $this->save();
     }
 
+    /**
+     * Laravel's rehash_on_login writes the new hash to the auth password attribute. Pointing that at
+     * a virtual attribute keeps it from going through setPasswordAttribute(), which would hash it again.
+     *
+     * @return string
+     */
+    public function getAuthPasswordName()
+    {
+        return 'password_hash';
+    }
+
+    public function getPasswordHashAttribute()
+    {
+        return $this->attributes['password'] ?? null;
+    }
+
+    public function setPasswordHashAttribute($hash)
+    {
+        $this->updatePasswordHash($hash);
+    }
+
     public static function boot()
     {
         parent::boot();
@@ -657,19 +678,25 @@ class User extends BaseSystemModel implements AuthenticatableContract, CanResetP
 
     public function save(array $options = [])
     {
-        if ($this->exists) {
-            // Check uniqueness of username excluding this user that is being updated.
-            $usernameRules = explode('|', $this->rules['username']);
-            $usernameRules[1] .= ',' . $this->id;
-            $this->rules['username'] = implode('|', $usernameRules);
-        }
-        $loginAttribute = strtolower(config('df.login_attribute', 'email'));
-        $username = array_get($this->attributes, 'username');
-        if ($loginAttribute !== 'username' && empty($username)) {
-            $this->attributes['username'] = $this->attributes['email'];
-        }
+        // Rules are restored afterwards so repeated saves do not keep appending the id exclusion.
+        $rules = $this->rules;
+        try {
+            if ($this->exists) {
+                // Check uniqueness of username excluding this user that is being updated.
+                $usernameRules = explode('|', $this->rules['username']);
+                $usernameRules[1] .= ',' . $this->id;
+                $this->rules['username'] = implode('|', $usernameRules);
+            }
+            $loginAttribute = strtolower(config('df.login_attribute', 'email'));
+            $username = array_get($this->attributes, 'username');
+            if ($loginAttribute !== 'username' && empty($username)) {
+                $this->attributes['username'] = $this->attributes['email'];
+            }
 
-        return parent::save($options);
+            return parent::save($options);
+        } finally {
+            $this->rules = $rules;
+        }
     }
 
     protected static function getModelFromTable($table)

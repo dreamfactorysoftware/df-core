@@ -161,9 +161,20 @@ class AuthCheck
                 }
                 Session::setSessionToken($token);
 
-                // Get the script token
-                if (!empty($scriptToken = static::getScriptToken($request))) {
-                    Session::setRequestor(ServiceRequestorTypes::SCRIPT);
+                // Get the script token.
+                // Only switch the requestor to SCRIPT after the token is
+                // validated against the cache, and do this regardless of
+                // whether a JWT is present. An unvalidated script_token must
+                // never grant SCRIPT requestor access. Otherwise a normal JWT
+                // user could append &script_token=anything and elevate to the
+                // SCRIPT requestor, gaining role grants scoped to SCRIPT.
+                $scriptToken = static::getScriptToken($request);
+                $scriptTokenData = null;
+                if (!empty($scriptToken)) {
+                    $scriptTokenData = Cache::get('script-token:' . $scriptToken);
+                    if (!empty($scriptTokenData)) {
+                        Session::setRequestor(ServiceRequestorTypes::SCRIPT);
+                    }
                 }
 
                 // Check for basic auth attempt and valid JWT
@@ -227,8 +238,10 @@ class AuthCheck
                 } elseif (!empty($scriptToken)) {
                     // keep this separate from basic auth and jwt handling,
                     // as this is the fall back when those are not provided from scripting (see node.js and python)
-                    if ($temp = Cache::get('script-token:' . $scriptToken)) {
-                        Session::setSessionData(array_get($temp, 'app_id'), array_get($temp, 'user_id'));
+                    // Reuse the cache lookup already performed above so a valid
+                    // script token still establishes the script session exactly as before.
+                    if (!empty($scriptTokenData)) {
+                        Session::setSessionData(array_get($scriptTokenData, 'app_id'), array_get($scriptTokenData, 'user_id'));
                     }
                 } elseif (!empty($appId)) {
                     //Just Api Key is supplied. No authenticated session

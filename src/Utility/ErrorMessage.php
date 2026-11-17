@@ -12,13 +12,17 @@ use Illuminate\Support\Facades\Log;
  * database driver's message ("<driver message> (Connection: x, ..., SQL: ...)"),
  * and services often wrap that text in their own ("Failed to retrieve records from
  * 'orders'.\n<driver message> (Connection: ...)"). Responses carry the message up
- * to the end of the driver's text; the full message goes to the application log at
- * error level. With app.debug on, responses keep the full message.
+ * to the end of the driver's text, without the statement lines PostgreSQL adds
+ * to its message; the full message goes to the application log at error level,
+ * once per exception. With app.debug on, responses keep the full message.
  */
 class ErrorMessage
 {
     /** Start of what Laravel's QueryException appends to the driver's message. */
     const QUERY_DETAILS = ' (Connection: ';
+
+    /** @var \WeakMap|null exceptions whose full message is already in the log */
+    protected static $logged;
 
     /**
      * @param \Throwable $exception
@@ -39,10 +43,62 @@ class ErrorMessage
         }
 
         if ($short !== $message) {
+            // a database error: the statement lines go to the log with the rest
+            $short = static::withoutStatementLines($short);
             static::log($message, $exception);
         }
 
         return $short;
+    }
+
+    /**
+     * The message without the statement lines PostgreSQL adds after its error text:
+     * the statement line and position marker ("LINE 1: ..." and the "^" line
+     * below it) and the QUERY and CONTEXT sections. DETAIL and HINT lines are
+     * kept. A message without such lines is returned unchanged.
+     *
+     * @param string $message
+     *
+     * @return string
+     */
+    public static function withoutStatementLines($message)
+    {
+        $message = (string)$message;
+        if (!preg_match('/\n(LINE \d+: |QUERY:  |CONTEXT:  )/', $message)) {
+            return $message;
+        }
+
+        $kept = [];
+        $skip = false;
+        $marker = false;
+        foreach (explode("\n", $message) as $i => $line) {
+            if ($marker) {
+                // the position marker directly below a statement line
+                $marker = false;
+                if (preg_match('/^\s*\^\s*$/', $line)) {
+                    continue;
+                }
+            }
+            if ($i > 0) {
+                if (preg_match('/^LINE \d+: /', $line)) {
+                    $marker = true;
+                    continue;
+                }
+                if (preg_match('/^(QUERY|CONTEXT):  /', $line)) {
+                    // multi-line sections: skip up to the next labelled line
+                    $skip = true;
+                    continue;
+                }
+                if (preg_match('/^[A-Z][A-Z ]*:  /', $line)) {
+                    $skip = false;
+                }
+            }
+            if (!$skip) {
+                $kept[] = $line;
+            }
+        }
+
+        return rtrim(implode("\n", $kept));
     }
 
     /**
@@ -77,6 +133,13 @@ class ErrorMessage
 
     protected static function log($message, \Throwable $exception)
     {
+        // a response can be built from the same exception more than once
+        static::$logged ??= new \WeakMap();
+        if (isset(static::$logged[$exception])) {
+            return;
+        }
+        static::$logged[$exception] = true;
+
         try {
             Log::error($message, ['exception_class' => get_class($exception), 'code' => $exception->getCode()]);
         } catch (\Throwable $e) {

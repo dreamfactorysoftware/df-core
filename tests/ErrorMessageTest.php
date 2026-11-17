@@ -71,14 +71,14 @@ class ErrorMessageTest extends TestCase
         }
     }
 
-    private function queryException(): QueryException
+    private function queryException(string $driverMessage = self::DRIVER, string $sqlState = '23505'): QueryException
     {
         // PDO reports the SQLSTATE as a string code
-        $driver = new class(self::DRIVER) extends \PDOException {
-            public function __construct(string $message)
+        $driver = new class($driverMessage, $sqlState) extends \PDOException {
+            public function __construct(string $message, string $sqlState)
             {
                 parent::__construct($message);
-                $this->code = '23505';
+                $this->code = $sqlState;
             }
         };
 
@@ -176,6 +176,93 @@ class ErrorMessageTest extends TestCase
             $this->assertSame($message, ErrorMessage::forResponse(new \RuntimeException($message)));
         }
         $this->assertSame([], $this->logged);
+    }
+
+    public function testPostgresStatementLinesAreLeftOut(): void
+    {
+        $cases = [
+            // statement line and position marker, then a hint
+            [
+                "SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"nosuch\" does not exist\n"
+                . "LINE 1: select * from \"orders\" where \"nosuch\" = \$1\n"
+                . "                                       ^\n"
+                . "HINT:  Perhaps you meant to reference the column \"orders.note\".",
+                '42703',
+                "SQLSTATE[42703]: Undefined column: 7 ERROR:  column \"nosuch\" does not exist\n"
+                . "HINT:  Perhaps you meant to reference the column \"orders.note\".",
+            ],
+            // position marker as the last line
+            [
+                "SQLSTATE[42601]: Syntax error: 7 ERROR:  syntax error at or near \"(\"\n"
+                . "LINE 1: ...regate\" from \"public\".\"orders\" where (\"born\" < \$1())\n"
+                . "                                                         ^",
+                '42601',
+                "SQLSTATE[42601]: Syntax error: 7 ERROR:  syntax error at or near \"(\"",
+            ],
+            // parameter context
+            [
+                "SQLSTATE[22P02]: Invalid text representation: 7 ERROR:  invalid input syntax for type integer: \"abc\"\n"
+                . "CONTEXT:  unnamed portal parameter \$1 = '...'",
+                '22P02',
+                "SQLSTATE[22P02]: Invalid text representation: 7 ERROR:  invalid input syntax for type integer: \"abc\"",
+            ],
+        ];
+        foreach ($cases as [$driver, $state, $expected]) {
+            $this->logged = [];
+            $qe = $this->queryException($driver, $state);
+
+            $error = ResponseFactory::exceptionToArray($qe);
+            $this->assertSame(htmlentities($expected, ENT_COMPAT), $error['message']);
+            $this->assertSame($state, $error['code']);
+            $this->assertNoDetails($error['message']);
+            $this->assertSame([['error', $qe->getMessage()]], $this->logged);
+
+            $wrapped = new InternalServerErrorException("Failed to retrieve records from 'orders'.\n" . $qe->getMessage());
+            $this->assertSame(
+                htmlentities("Failed to retrieve records from 'orders'.\n" . $expected, ENT_COMPAT),
+                $wrapped->toArray()['message']
+            );
+        }
+    }
+
+    public function testDebugKeepsTheStatementLines(): void
+    {
+        $this->boot(true);
+        $driver = "SQLSTATE[42601]: Syntax error: 7 ERROR:  syntax error at or near \"(\"\nLINE 1: select (\n               ^";
+        $qe = $this->queryException($driver, '42601');
+
+        $this->assertSame(htmlentities($qe->getMessage(), ENT_COMPAT), ResponseFactory::exceptionToArray($qe)['message']);
+        $this->assertStringContainsString('LINE 1: ', ResponseFactory::exceptionToArray($qe)['message']);
+    }
+
+    public function testWithoutStatementLines(): void
+    {
+        // nothing to leave out
+        $this->assertSame(self::DRIVER, ErrorMessage::withoutStatementLines(self::DRIVER));
+        $this->assertSame('LINE 1: abc', ErrorMessage::withoutStatementLines('LINE 1: abc'));
+        // multi-line context up to the end, details and hints kept
+        $this->assertSame(
+            "ERROR:  boom\nDETAIL:  first\nsecond\nHINT:  try",
+            ErrorMessage::withoutStatementLines("ERROR:  boom\nDETAIL:  first\nsecond\nHINT:  try\nQUERY:  select 1\nCONTEXT:  PL/pgSQL function f() line 3 at SQL statement\nSQL statement \"select 1\"")
+        );
+        // a line below a statement line that is not a position marker stays
+        $this->assertSame("ERROR:  x\nDETAIL:  y", ErrorMessage::withoutStatementLines("ERROR:  x\nLINE 2: z\nDETAIL:  y"));
+    }
+
+    public function testFullMessageIsLoggedOncePerException(): void
+    {
+        $qe = $this->queryException();
+        ResponseFactory::exceptionToArray($qe);
+        ResponseFactory::exceptionToArray($qe);
+        $this->assertCount(1, $this->logged);
+
+        $wrapped = new InternalServerErrorException("Failed to retrieve records from 'orders'.\n" . $qe->getMessage());
+        $wrapped->toArray();
+        $wrapped->toArray();
+        $this->assertCount(2, $this->logged);
+
+        ResponseFactory::exceptionToArray($this->queryException());
+        $this->assertCount(3, $this->logged);
     }
 
     public function testWithoutQueryDetails(): void

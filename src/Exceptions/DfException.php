@@ -1,6 +1,7 @@
 <?php
 namespace DreamFactory\Core\Exceptions;
 
+use DreamFactory\Core\Utility\ErrorMessage;
 use Illuminate\Contracts\Support\Arrayable;
 
 /**
@@ -64,7 +65,7 @@ class DfException extends \Exception implements Arrayable
     {
         $errorInfo['code'] = $this->getCode();
         $errorInfo['context'] = $this->getContext();
-        $errorInfo['message'] = htmlentities($this->getMessage(), ENT_COMPAT);
+        $errorInfo['message'] = htmlentities(ErrorMessage::forResponse($this), ENT_COMPAT);
 
         if (config('app.debug', false)) {
             $trace = $this->getTraceAsString();

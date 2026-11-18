@@ -9,7 +9,7 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 - `FileUtilities::url_exist()` uses the same download code and now returns true only when the final response is a 2xx (before, anything other than `HTTP/1.1 404 Not Found` counted).
 - Both methods take an optional third argument, `$allowPrivateHosts`, for URLs supplied by the operator. The `df:import`, `df:request` and `df:import-pkg` console commands use it.
 - `df:import-pkg` downloads a remote package before importing it, removes the temporary copy afterwards and exits with status 1 when the download fails.
-- Upgrade note: URL-based file uploads (`?url=`) use the same remote URL settings as package imports. List on-premises hosts in `DF_OUTBOUND_ALLOWED_HOSTS` (df-system).
+- Remote file downloads (imports, URL uploads, attachments) use the remote URL settings from df-system, including `DF_OUTBOUND_ALLOWED_HOSTS`.
 
 ### Fixed
 - DF-1365 Fixes JWT token refresh issue

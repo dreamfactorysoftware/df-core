@@ -4,6 +4,13 @@ This project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+### Changed
+- `FileUtilities::importUrlFileToTemp()` downloads with cURL in a single request, follows up to five redirects itself and gives up after 10 minutes. Each download is written to its own temporary directory under the requested file name, and nothing is left behind when a download fails. URLs that cannot be used return a 400 with a short message.
+- `FileUtilities::url_exist()` uses the same download code and now returns true only when the final response is a 2xx (before, anything other than `HTTP/1.1 404 Not Found` counted).
+- Both methods take an optional third argument, `$allowPrivateHosts`, for URLs supplied by the operator. The `df:import`, `df:request` and `df:import-pkg` console commands use it.
+- `df:import-pkg` downloads a remote package before importing it, removes the temporary copy afterwards and exits with status 1 when the download fails.
+- Remote file downloads (imports, URL uploads, attachments) use the remote URL settings from df-system, including `DF_OUTBOUND_ALLOWED_HOSTS`.
+
 ### Fixed
 - DF-1365 Fixes JWT token refresh issue
 

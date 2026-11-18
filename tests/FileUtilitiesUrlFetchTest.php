@@ -234,7 +234,7 @@ PHP
         }
     }
 
-    public function testRedirectTargetIsCheckedLikeTheOriginalUrl()
+    public function testRedirectTargetUsesRemoteUrlSettings()
     {
         $requestsBefore = count(static::requestsReceivedBy(static::$other));
         $targets = [
@@ -271,7 +271,7 @@ PHP
         );
     }
 
-    public function testRedirectToOtherSchemeIsRefused()
+    public function testRedirectToNonHttpSchemeEndsDownload()
     {
         foreach (['file:///tmp/file.json', 'ftp://example.com/file.json', 'data:text/plain,hello'] as $target) {
             $name = $this->uniqueName();
@@ -294,7 +294,7 @@ PHP
         }
     }
 
-    public function testOriginalUrlIsCheckedToo()
+    public function testInitialUrlUsesRemoteUrlSettings()
     {
         $requestsBefore = count(static::requestsReceivedBy(static::$other));
         $urls = [
@@ -373,7 +373,7 @@ PHP
         $this->assertEquals(['ok' => true], is_string($result) ? json_decode($result, true) : (array)$result);
     }
 
-    public function testResolveReturnsTheCheckedAddress()
+    public function testResolveReturnsResolvedAddress()
     {
         $this->assertSame('8.8.8.8', OutboundAddress::resolve('http://8.8.8.8/file.json'));
         $this->assertSame('2606:4700:4700::1111', OutboundAddress::resolve('https://[2606:4700:4700::1111]/'));
@@ -448,7 +448,7 @@ PHP
         FileUtilities::importUrlFileToTemp(static::$origin . '/hop/6', $this->uniqueName(), true);
     }
 
-    public function testRequestGoesToTheCheckedAddress()
+    public function testRequestUsesResolvedAddress()
     {
         $method = new \ReflectionMethod(FileUtilities::class, 'checkUrlTarget');
         $cases = [

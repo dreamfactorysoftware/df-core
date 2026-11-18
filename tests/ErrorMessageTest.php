@@ -265,6 +265,123 @@ class ErrorMessageTest extends TestCase
         $this->assertCount(3, $this->logged);
     }
 
+    public function testBatchResponseEntriesHaveTheDriverMessageOnly(): void
+    {
+        $mysql = "SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry 'A1' for key 'code'";
+        $first = $this->queryException();
+        $second = $this->queryException($mysql, '23000');
+        $cases = [
+            // rollback: the first failing record ends the batch
+            'Batch Error: Not all requested records could be created. All changes rolled back.' => [0 => ['id' => 1], 1 => $first],
+            // continue: every record is attempted
+            'Batch Error: Not all requested records could be created.' => [
+                0 => $first,
+                1 => ['id' => 2],
+                2 => $second,
+                3 => new BadRequestException("Failed to create records in 'orders'.\n" . $second->getMessage()),
+            ],
+        ];
+        foreach ($cases as $message => $entries) {
+            $response = ResponseFactory::exceptionToServiceResponse(new BatchException($entries, $message));
+            $this->assertSame(400, $response->getStatusCode());
+            $error = $response->getContent()['error'];
+            $this->assertSame($message, $error['message']);
+            $this->assertNoDetails(json_encode($error));
+            foreach ($entries as $index => $entry) {
+                $resource = $error['context']['resource'][$index];
+                if (is_array($entry)) {
+                    $this->assertSame($entry, $resource);
+                } elseif ($entry === $first) {
+                    $this->assertSame(htmlentities(self::DRIVER, ENT_COMPAT), $resource['message']);
+                } elseif ($entry === $second) {
+                    $this->assertSame(htmlentities($mysql, ENT_COMPAT), $resource['message']);
+                    $this->assertSame('23000', $resource['code']);
+                } else {
+                    $this->assertSame(htmlentities("Failed to create records in 'orders'.\n" . $mysql, ENT_COMPAT), $resource['message']);
+                    $this->assertSame(400, $resource['code']);
+                }
+            }
+        }
+    }
+
+    private const ORACLE_STATEMENT = "insert into \"ORDERS\" (\"ID\", \"CARD\")\nvalues (:p0, :p1)";
+
+    private function oracleDriverMessage(string $bindings = "1,4111111111111111"): string
+    {
+        // the error text yajra/laravel-pdo-via-oci8 builds for a failed statement
+        return 'Error Code    : 1' . PHP_EOL
+            . 'Error Message : ORA-00001: unique constraint (SHOP.ORDERS_PK) violated' . PHP_EOL
+            . 'Position      : 0' . PHP_EOL
+            . 'Statement     : ' . self::ORACLE_STATEMENT . PHP_EOL
+            . 'Bindings      : [' . $bindings . ']' . PHP_EOL;
+    }
+
+    private function assertNoOracleStatementLines(string $text): void
+    {
+        foreach (['Position', 'Statement', 'Bindings', 'ORDERS"', ':p0', '4111111111111111', 'multi'] as $part) {
+            $this->assertStringNotContainsString($part, $text);
+        }
+    }
+
+    public function testOracleStatementLinesAreLeftOut(): void
+    {
+        $expected = "Error Code    : 1\nError Message : ORA-00001: unique constraint (SHOP.ORDERS_PK) violated";
+        $driver = $this->oracleDriverMessage("1,\"multi\nline\"");
+
+        // through Laravel's QueryException
+        $qe = $this->queryException($driver, '1');
+        $error = ResponseFactory::exceptionToArray($qe);
+        $this->assertSame(htmlentities($expected, ENT_COMPAT), $error['message']);
+        $this->assertNoDetails($error['message']);
+        $this->assertNoOracleStatementLines($error['message']);
+        $this->assertSame([['error', $qe->getMessage()]], $this->logged);
+
+        // wrapped in a service message
+        $wrapped = new InternalServerErrorException("Failed to create records in 'orders'.\n" . $qe->getMessage());
+        $message = $wrapped->toArray()['message'];
+        $this->assertSame(htmlentities("Failed to create records in 'orders'.\n" . $expected, ENT_COMPAT), $message);
+        $this->assertNoOracleStatementLines($message);
+
+        // the driver's exception on its own
+        $this->logged = [];
+        $direct = new \PDOException($this->oracleDriverMessage());
+        $this->assertSame(htmlentities($expected, ENT_COMPAT), ResponseFactory::exceptionToArray($direct)['message']);
+        $this->assertSame([['error', $direct->getMessage()]], $this->logged);
+
+        // in a batch entry
+        $batch = (new BatchException([0 => $this->queryException($this->oracleDriverMessage(), '1')], 'Batch Error'))->toArray();
+        $this->assertSame(htmlentities($expected, ENT_COMPAT), $batch['context']['resource'][0]['message']);
+        $this->assertNoOracleStatementLines(json_encode($batch));
+    }
+
+    public function testDebugKeepsTheOracleStatementLines(): void
+    {
+        $this->boot(true);
+        $direct = new \PDOException($this->oracleDriverMessage());
+        $this->assertSame(htmlentities($direct->getMessage(), ENT_COMPAT), ResponseFactory::exceptionToArray($direct)['message']);
+        $this->assertSame([], $this->logged);
+    }
+
+    public function testWithoutOracleDriverLines(): void
+    {
+        $this->assertSame(
+            "Error Code    : 942\nError Message : ORA-00942: table or view does not exist",
+            ErrorMessage::withoutOracleDriverLines("Error Code    : 942\nError Message : ORA-00942: table or view does not exist\nPosition      : 14\nStatement     : select * from \"NOPE\"\nBindings      : []\n")
+        );
+        // a message stack in the error text stays
+        $this->assertSame(
+            "Error Code    : 20001\nError Message : ORA-20001: x\nORA-06512: at line 1",
+            ErrorMessage::withoutOracleDriverLines("Error Code    : 20001\nError Message : ORA-20001: x\nORA-06512: at line 1\nPosition      : 0\nStatement     : begin p; end;\nBindings      : []")
+        );
+        // without a position line, from the first later line on
+        $this->assertSame('Error Code    : 1', ErrorMessage::withoutOracleDriverLines("Error Code    : 1\nBindings      : [x]\nStatement     : y"));
+        // nothing to leave out
+        $this->assertSame('Error Code    : 1', ErrorMessage::withoutOracleDriverLines('Error Code    : 1'));
+        $this->assertSame("Statement     : x\nBindings      : y", ErrorMessage::withoutOracleDriverLines("Statement     : x\nBindings      : y"));
+        $this->assertSame('Position      : 3', ErrorMessage::forResponse(new \RuntimeException('Position      : 3')));
+        $this->assertSame([], $this->logged);
+    }
+
     public function testWithoutQueryDetails(): void
     {
         // the shorter form older Laravel releases and socket connections produce

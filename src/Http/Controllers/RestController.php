@@ -2,6 +2,7 @@
 
 namespace DreamFactory\Core\Http\Controllers;
 
+use DreamFactory\Core\Utility\Redact;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Enums\ApiOptions;
 use DreamFactory\Core\Utility\ResponseFactory;
@@ -44,9 +45,9 @@ class RestController extends Controller
             ]);
 
             Log::debug('[REQUEST]', [
-                'Parameters' => json_encode($request->getParameters(), JSON_UNESCAPED_SLASHES),
-                'API Key'    => $request->getHeader('X_DREAMFACTORY_API_KEY'),
-                'JWT'        => $request->getHeader('X_DREAMFACTORY_SESSION_TOKEN')
+                'Parameters' => json_encode(Redact::params($request->getParameters()), JSON_UNESCAPED_SLASHES),
+                'API Key'    => Redact::credential($request->getHeader('X_DREAMFACTORY_API_KEY')),
+                'JWT'        => Redact::credential($request->getHeader('X_DREAMFACTORY_SESSION_TOKEN'))
             ]);
 
             $limitedFields = ['id', 'name', 'label', 'description', 'type'];

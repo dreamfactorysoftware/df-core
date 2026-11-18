@@ -5,6 +5,7 @@ namespace DreamFactory\Core\Components;
 use DreamFactory\Core\Contracts\ServiceResponseInterface;
 use DreamFactory\Core\Exceptions\DfException;
 use DreamFactory\Core\Exceptions\RestException;
+use DreamFactory\Core\Utility\ErrorMessage;
 use DreamFactory\Core\Utility\ServiceResponse;
 
 /**
@@ -51,7 +52,7 @@ trait ExceptionResponse
         }
 
         $errorInfo['code'] = ($exception->getCode()) ?: ServiceResponseInterface::HTTP_INTERNAL_SERVER_ERROR;
-        $errorInfo['message'] = htmlentities($exception->getMessage(), ENT_COMPAT);
+        $errorInfo['message'] = htmlentities(ErrorMessage::forResponse($exception), ENT_COMPAT);
 
         if (config('app.debug', false)) {
             $trace = $exception->getTraceAsString();

@@ -391,6 +391,8 @@ class Package
 
         try {
             $this->zipFile = FileUtilities::importUrlFileToTemp($url);
+        } catch (BadRequestException $ex) {
+            throw $ex;
         } catch (\Exception $ex) {
             throw new InternalServerErrorException("Failed to import package from $url. " . $ex->getMessage());
         }

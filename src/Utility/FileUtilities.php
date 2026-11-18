@@ -3,6 +3,7 @@ namespace DreamFactory\Core\Utility;
 
 use Log;
 use Dotenv\Dotenv;
+use DreamFactory\Core\Exceptions\BadRequestException;
 use DreamFactory\Core\Exceptions\NotFoundException;
 
 /**
@@ -10,6 +11,16 @@ use DreamFactory\Core\Exceptions\NotFoundException;
  */
 class FileUtilities
 {
+    /**
+     * Maximum number of redirects followed when fetching a remote file.
+     */
+    const MAX_URL_REDIRECTS = 5;
+
+    /**
+     * Longest time, in seconds, a single remote file download may take.
+     */
+    const URL_FETCH_TIMEOUT = 600;
+
     //*************************************************************************
     //	Methods
     //*************************************************************************
@@ -77,68 +88,280 @@ class FileUtilities
     }
 
     /**
+     * Checks whether a remote http(s) URL answers with a success status.
+     *
+     * Redirects are followed the same way as importUrlFileToTemp() follows them.
+     *
      * @param string $url
+     * @param bool   $allowPrivateHosts Accept any host. Only for URLs supplied by the operator, such as console
+     *                                  command arguments.
      *
      * @return bool
      */
-    public static function url_exist($url)
+    public static function url_exist($url, $allowPrivateHosts = false)
     {
-        $headers = @get_headers($url);
-
-        if (empty($headers) || 'HTTP/1.1 404 Not Found' == $headers[0]) {
+        try {
+            $result = static::fetchUrl((string)$url, null, (bool)$allowPrivateHosts);
+        } catch (\Exception $ex) {
             return false;
         }
 
-        return true;
+        return $result['status'] >= 200 && $result['status'] < 300;
     }
 
     /**
-     * @param string $url
-     * @param string $name name of the temporary file to create
+     * Downloads a remote http(s) file into a new directory under the system temp directory.
      *
+     * Up to MAX_URL_REDIRECTS redirects are followed, and every URL in the chain uses the remote URL settings
+     * (see OutboundAddress). Each download gets its own directory, so the file keeps the requested name; the
+     * directory is removed at the end of the request once the caller has deleted the file.
+     *
+     * @param string $url
+     * @param string $name              name of the temporary file to create
+     * @param bool   $allowPrivateHosts Accept any host. Only for URLs supplied by the operator, such as console
+     *                                  command arguments.
+     *
+     * @throws BadRequestException
      * @throws NotFoundException
      * @throws \Exception
      * @return string temporary file path
      */
-    public static function importUrlFileToTemp($url, $name = '')
+    public static function importUrlFileToTemp($url, $name = '', $allowPrivateHosts = false)
     {
-        if (static::url_exist($url)) {
-            $readFrom = @fopen($url, 'rb');
-            if ($readFrom) {
-                $directory = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-//				$ext = FileUtilities::getFileExtension( basename( $url ) );
-//              $validTypes = array( 'zip', 'dfpkg' ); // default zip and package extensions
-//              if ( !in_array( $ext, $validTypes ) )
-//				{
-//                  throw new Exception( 'Invalid file type. Currently only URLs to repository zip files are accepted.' );
-//              }
-                if (empty($name)) {
-                    $name = basename($url);
-                }
-                $newFile = $directory . $name;
-                $writeTo = fopen($newFile, 'wb'); // creating new file on local server
-                if ($writeTo) {
-                    while (!feof($readFrom)) {
-                        // Write the url file to the directory.
-                        fwrite(
-                            $writeTo,
-                            fread($readFrom, 1024 * 8),
-                            1024 * 8
-                        ); // write the file to the new directory at a rate of 8kb/sec. until we reach the end.
-                    }
-                    fclose($readFrom);
-                    fclose($writeTo);
+        $url = (string)$url;
+        $name = basename((string)(empty($name) ? $url : $name));
+        if ('' === $name || '.' === $name || '..' === $name) {
+            $name = 'download';
+        }
 
-                    return $newFile;
-                } else {
-                    throw new \Exception("Could not establish new file ($directory$name) on local server.");
-                }
+        $directory = static::makeUrlFetchDirectory();
+        $newFile = $directory . $name;
+
+        // Download into a working file; it takes the requested name only once the download is complete.
+        $workFile = @tempnam($directory, 'part');
+        $writeTo = (false !== $workFile) ? @fopen($workFile, 'wb') : false;
+        if (false === $writeTo) {
+            static::removeUrlFetchFiles($directory, $workFile);
+            throw new \Exception("Could not establish new file ($name) on local server.");
+        }
+
+        try {
+            $result = static::fetchUrl($url, $writeTo, (bool)$allowPrivateHosts);
+        } catch (\Exception $ex) {
+            fclose($writeTo);
+            static::removeUrlFetchFiles($directory, $workFile);
+            throw $ex;
+        }
+        fclose($writeTo);
+
+        $status = $result['status'];
+        if ($status < 200 || $status >= 300 || 0 !== $result['error']) {
+            static::removeUrlFetchFiles($directory, $workFile);
+            if (0 === $status || 404 === $status || 410 === $status) {
+                throw new NotFoundException('Invalid URL entered. File not found.');
+            }
+            throw new \Exception("Could not read the file: $url");
+        }
+
+        if (!@rename($workFile, $newFile)) {
+            static::removeUrlFetchFiles($directory, $workFile);
+            throw new \Exception("Could not establish new file ($name) on local server.");
+        }
+        @chmod($newFile, 0666 & ~umask());
+
+        return $newFile;
+    }
+
+    /**
+     * Creates the directory a single importUrlFileToTemp() download is written to.
+     *
+     * @throws \Exception
+     * @return string The directory path, with a trailing separator.
+     */
+    protected static function makeUrlFetchDirectory()
+    {
+        $base = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+
+        for ($attempt = 0; $attempt < 5; $attempt++) {
+            $directory = $base . 'dfurl-' . bin2hex(random_bytes(8));
+            if (@mkdir($directory, 0755)) {
+                // rmdir() only removes an empty directory, so a file the caller still uses is left alone.
+                register_shutdown_function(function () use ($directory) {
+                    @rmdir($directory);
+                });
+
+                return $directory . DIRECTORY_SEPARATOR;
+            }
+        }
+
+        throw new \Exception('Could not establish a temporary directory on local server.');
+    }
+
+    /**
+     * Removes the working file and directory of a download that did not complete.
+     *
+     * @param string       $directory
+     * @param string|false $workFile
+     */
+    protected static function removeUrlFetchFiles($directory, $workFile)
+    {
+        if (false !== $workFile && null !== $workFile) {
+            @unlink($workFile);
+        }
+        @rmdir($directory);
+    }
+
+    /**
+     * Requests a remote http(s) URL with GET, following up to MAX_URL_REDIRECTS redirects.
+     *
+     * cURL does not follow redirects on its own here; each URL in the chain goes through checkUrlTarget()
+     * before it is requested.
+     *
+     * @param string        $url
+     * @param resource|null $sink              Stream that receives the body of a successful response. When null,
+     *                                         the transfer stops as soon as the status is known.
+     * @param bool          $allowPrivateHosts See importUrlFileToTemp().
+     *
+     * @throws BadRequestException When a URL in the chain is not accepted, or there are too many redirects.
+     * @throws \Exception
+     * @return array ['status' => final HTTP status, 0 when there was no response; 'error' => cURL error number]
+     */
+    protected static function fetchUrl($url, $sink, $allowPrivateHosts)
+    {
+        $redirects = 0;
+
+        while (true) {
+            $options = static::getUrlFetchOptions();
+
+            if (0 === $redirects) {
+                static::checkUrlTarget($url, $options, $allowPrivateHosts);
             } else {
+                try {
+                    static::checkUrlTarget($url, $options, $allowPrivateHosts);
+                } catch (BadRequestException $ex) {
+                    throw new BadRequestException('The requested URL redirects to a location that is not allowed.');
+                }
+            }
+
+            $options[CURLOPT_URL] = $url;
+            $skipped = 0;
+            $options[CURLOPT_WRITEFUNCTION] = function ($handle, $data) use ($sink, &$skipped) {
+                $code = (int)curl_getinfo($handle, CURLINFO_RESPONSE_CODE);
+                if ($code >= 300 && $code < 400) {
+                    // A redirect body is read and dropped so that cURL completes the response and reports the
+                    // redirect target. Stop reading if it is unreasonably large.
+                    $skipped += strlen($data);
+
+                    return ($skipped > 1048576) ? 0 : strlen($data);
+                }
+                if (null === $sink || $code < 200 || $code >= 300) {
+                    // Only a successful response body is kept; anything else ends the transfer here.
+                    return 0;
+                }
+                $written = fwrite($sink, $data);
+
+                return (false === $written) ? 0 : $written;
+            };
+
+            $curl = curl_init();
+            if (!curl_setopt_array($curl, $options)) {
                 throw new \Exception("Could not read the file: $url");
             }
-        } else {
-            throw new NotFoundException('Invalid URL entered. File not found.');
+            curl_exec($curl);
+
+            $status = (int)curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
+            $location = (string)curl_getinfo($curl, CURLINFO_REDIRECT_URL);
+            $error = curl_errno($curl);
+            unset($curl);
+
+            if ($status >= 300 && $status < 400 && '' !== $location) {
+                if ($redirects >= static::MAX_URL_REDIRECTS) {
+                    throw new BadRequestException('The requested URL redirected too many times.');
+                }
+                $url = $location;
+                $redirects++;
+                continue;
+            }
+
+            return ['status' => $status, 'error' => $error];
         }
+    }
+
+    /**
+     * Base cURL options for a single request made by fetchUrl().
+     *
+     * @return array
+     */
+    protected static function getUrlFetchOptions()
+    {
+        $options = [
+            CURLOPT_HTTPGET         => true,
+            CURLOPT_FOLLOWLOCATION  => false,
+            CURLOPT_MAXREDIRS       => 0,
+            CURLOPT_HEADER          => false,
+            CURLOPT_CONNECTTIMEOUT  => 30,
+            // Give up when the server stalls (no data for 60 seconds) or the whole download takes too long.
+            CURLOPT_LOW_SPEED_LIMIT => 1,
+            CURLOPT_LOW_SPEED_TIME  => 60,
+            CURLOPT_TIMEOUT         => static::URL_FETCH_TIMEOUT,
+            CURLOPT_SSL_VERIFYPEER  => true,
+            CURLOPT_SSL_VERIFYHOST  => 2,
+            CURLOPT_USERAGENT       => 'DreamFactory',
+        ];
+
+        if (defined('CURLOPT_PROTOCOLS_STR')) {
+            $options[CURLOPT_PROTOCOLS_STR] = 'http,https';
+        } else {
+            $options[CURLOPT_PROTOCOLS] = CURLPROTO_HTTP | CURLPROTO_HTTPS;
+        }
+
+        return $options;
+    }
+
+    /**
+     * Checks a URL before fetchUrl() requests it.
+     *
+     * Only http and https are accepted. Unless private hosts are allowed, the URL must also be accepted by
+     * OutboundAddress::resolve(), and the request is sent to the address that was checked. The URL host is still
+     * used for the Host header and TLS verification.
+     *
+     * @param string $url
+     * @param array  $options           cURL options for the request, updated in place.
+     * @param bool   $allowPrivateHosts
+     *
+     * @throws BadRequestException
+     * @return void
+     */
+    protected static function checkUrlTarget($url, array &$options, $allowPrivateHosts)
+    {
+        $parts = parse_url($url);
+        $scheme = strtolower((string)(is_array($parts) && isset($parts['scheme']) ? $parts['scheme'] : ''));
+        if (!in_array($scheme, ['http', 'https'], true) || empty($parts['host'])) {
+            throw new BadRequestException('Invalid URL. Only http and https URLs are supported.');
+        }
+
+        if ($allowPrivateHosts) {
+            return;
+        }
+
+        try {
+            $address = OutboundAddress::resolve($url);
+        } catch (BadRequestException $ex) {
+            // The detailed reason goes to the log; the caller gets a general message.
+            try {
+                Log::debug('Remote URL not accepted: ' . $ex->getMessage());
+            } catch (\Throwable $ignored) {
+            }
+            throw new BadRequestException(OutboundAddress::NOT_ALLOWED);
+        }
+        if (filter_var($address, FILTER_VALIDATE_IP, FILTER_FLAG_IPV6)) {
+            $address = '[' . $address . ']';
+        }
+
+        // An empty host and port apply to the host and port in the URL, so the request is sent to the address
+        // that was checked.
+        $port = !empty($parts['port']) ? (int)$parts['port'] : (('https' === $scheme) ? 443 : 80);
+        $options[CURLOPT_CONNECT_TO] = ['::' . $address . ':' . $port];
     }
 
     /**

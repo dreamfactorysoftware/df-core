@@ -43,8 +43,8 @@ class Import extends Command
         try {
             $data = $this->argument('data');
             if (filter_var($data, FILTER_VALIDATE_URL)) {
-                // need to download file
-                $data = FileUtilities::importUrlFileToTemp($data);
+                // need to download file; the URL comes from the operator, so any host it names is accepted
+                $data = FileUtilities::importUrlFileToTemp($data, '', true);
             }
 
             if (is_file($data)) {

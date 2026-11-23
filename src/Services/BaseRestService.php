@@ -591,9 +591,17 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
         $modelMode = $request->getParameterAsBool('model');
         $stockMode = $request->getParameterAsBool('stock');
 
+        // --- ?model=semantics — only what data model enrichers add (e.g. an approved
+        // semantic catalog), without row counts, samples or enum scans: cheap and small,
+        // so MCP clients that cap tool results (Claude Code keeps ~2 KB of a large one)
+        // still receive it.
+        if ($request->getParameter('model') === 'semantics') {
+            return $this->handleSemanticsResponse();
+        }
+
         // --- Feature: ?model=true — LLM-optimized condensed data model ---
         if ($modelMode) {
-            return $this->handleModelResponse($request, $refresh, $stockMode);
+            return $this->handleModelResponse($request, $refresh, $stockMode, $request->getParameterAsBool('enrich'));
         }
 
         // Build full OpenAPI 3.0 envelope
@@ -807,9 +815,9 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
      * Returns table names, columns (name + type + FK refs), row counts, and
      * relationship patterns — all in ~10-20KB instead of the full 282KB spec.
      */
-    protected function handleModelResponse(ServiceRequestInterface $request, bool $refresh, bool $stockMode = false)
+    protected function handleModelResponse(ServiceRequestInterface $request, bool $refresh, bool $stockMode = false, bool $enrich = false)
     {
-        $model = $this->buildDataModel($refresh, $stockMode);
+        $model = $this->buildDataModel($refresh, $stockMode, null, $enrich);
 
         $jsonStr = json_encode($model, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
         return new StreamedResponse(function () use ($jsonStr) {
@@ -821,15 +829,95 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
     }
 
     /**
-     * Build a condensed data model: tables → columns → types → FKs + patterns.
+     * ?model=semantics: run the data model enrichers over a skeleton of the tables
+     * the caller can read (API column names only) and return just what they add.
      */
-    private function buildDataModel(bool $refresh, bool $stockMode = false): array
+    protected function handleSemanticsResponse()
     {
+        $out = $this->getDataModelSemantics();
+
+        return new StreamedResponse(function () use ($out) {
+            echo json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+        }, 200, [
+            'Content-Type'  => 'application/json; charset=utf-8',
+            'Cache-Control' => 'no-store',
+        ]);
+    }
+
+    /**
+     * What ?model=semantics serves, in-process: {service, semantics}. The data
+     * model enrichers run over a skeleton of the tables the current session can
+     * read (API column names only), so the result is exactly what an agent with
+     * that session's access receives. The caller is responsible for its own
+     * access checks (the HTTP handler checks GET on _spec).
+     *
+     * @return array{service: string, semantics: mixed}
+     */
+    public function getDataModelSemantics(): array
+    {
+        $model = ['service' => $this->name, 'tables' => []];
+        if (method_exists($this, 'getTableNames') && method_exists($this, 'getTableSchema')) {
+            foreach ($this->getTableNames() as $table) {
+                $tableName = is_object($table) ? $table->name : (string)$table;
+                if (!(VerbsMask::GET_MASK & (int)$this->getPermissions('_table/' . $tableName))) {
+                    continue;
+                }
+                try {
+                    $schema = $this->getTableSchema($tableName);
+                } catch (\Exception $e) {
+                    continue;
+                }
+                if (!$schema) {
+                    continue;
+                }
+                $columns = [];
+                foreach ($schema->getColumns(true) as $field) {
+                    $api = (string)$field->getName(true);
+                    $columns[] = $api !== $field->name ? ['name' => $api, 'column' => $field->name] : ['name' => $api];
+                }
+                $model['tables'][$tableName] = ['columns' => $columns];
+            }
+        }
+        $model = $this->applyDataModelEnrichers($model);
+
+        return ['service' => $this->name, 'semantics' => $model['semantics'] ?? null];
+    }
+
+    /**
+     * The condensed data model exactly as GET _spec?model=true serves it, for
+     * packages that need it in-process (a catalog drafter, for instance): the
+     * HTTP handler streams its JSON, so the model cannot be read back through
+     * ServiceManager::handleRequest. The caller is responsible for access
+     * checks; the model itself is scoped to what the current session can read.
+     * $tables limits the scan to those tables (row counts, samples and enums are
+     * per-table queries, so a 300-table catalog takes minutes without it).
+     * $enrich is what ?enrich=true turns on over HTTP (see buildDataModel).
+     *
+     * @param string[]|null $tables
+     */
+    public function getDataModel(bool $refresh = false, bool $stockMode = false, ?array $tables = null, bool $enrich = true): array
+    {
+        return $this->buildDataModel($refresh, $stockMode, $tables, $enrich);
+    }
+
+    /**
+     * Build a condensed data model: tables → columns → types → FKs + patterns.
+     *
+     * $enrich (opt-in, ?enrich=true over HTTP; ignored in stock mode) adds what
+     * 1.0.19 did not have: aliased fields named as the API returns them (with the
+     * database `column`), recorded meaning (label, description, allowed_values),
+     * the data model enrichers and their `semantics` block first. Without it the
+     * model is exactly the 1.0.19 one.
+     */
+    private function buildDataModel(bool $refresh, bool $stockMode = false, ?array $only = null, bool $enrich = false): array
+    {
+        $enrich = $enrich && !$stockMode;
+        $only = $only === null ? null : array_flip(array_map('strval', $only));
         $model = [
             'service' => $this->name,
             'description' => $stockMode
                 ? 'Condensed data model. Shows all tables, their columns with types, and foreign key references.'
-                : 'Condensed data model for LLM consumption. Shows all tables, their columns with types, foreign key references, structural patterns, sample data, and enum values.',
+                : (!$enrich ? 'Condensed data model for LLM consumption. Shows all tables, their columns with types, foreign key references, structural patterns, sample data, and enum values.' : 'Condensed data model for LLM consumption. Shows all tables, their columns with types, foreign key references, structural patterns, sample data, and enum values, plus any description, label and allowed_values an administrator recorded for a table or column.'),
             'tables' => [],
             'relationships' => [],
             'patterns' => [],
@@ -846,6 +934,9 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
             foreach ($tables as $table) {
                 $tableName = is_object($table) ? $table->name : (string)$table;
+                if ($only !== null && !isset($only[$tableName])) {
+                    continue;
+                }
                 // Same table list the caller gets from GET _table.
                 if (!(VerbsMask::GET_MASK & (int)$this->getPermissions('_table/' . $tableName))) {
                     continue;
@@ -860,6 +951,10 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
 
                     $columns = [];
                     $stringColumns = [];
+                    // Database column -> the key the API uses. The API reads and returns an aliased
+                    // field only under its alias (fields, filter, order and records all use it, and
+                    // reject the column name), so the model must name it that way too.
+                    $toApi = [];
                     $fields = $schema->getColumns(true);
                     foreach ($fields as $field) {
                         $col = $field->toArray();
@@ -867,6 +962,11 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                             'name' => $col['name'] ?? '',
                             'type' => $col['type'] ?? 'string',
                         ];
+                        $apiName = (string) $field->getName(true);
+                        if ($enrich && $apiName !== '' && $apiName !== $colDef['name']) {
+                            $toApi[$colDef['name']] = $apiName;
+                            $colDef = ['name' => $apiName, 'column' => $colDef['name']] + $colDef;
+                        }
                         if (!empty($col['is_primary_key'])) {
                             $colDef['pk'] = true;
                         }
@@ -875,6 +975,10 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                         }
                         if (!empty($col['ref_table'])) {
                             $colDef['fk'] = $col['ref_table'] . '.' . ($col['ref_field'] ?? $col['ref_table'] . '_id');
+                        }
+                        if ($enrich) {
+                            // Meaning an admin recorded in the schema extras (or the DB comment).
+                            $colDef += self::fieldSemantics($field);
                         }
                         $columns[] = $colDef;
 
@@ -901,6 +1005,9 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                     $tableEntry = [
                         'columns' => $columns,
                     ];
+                    if ($enrich) {
+                        $tableEntry = self::fieldSemantics($schema) + $tableEntry;
+                    }
                     if ($rowCount !== null) {
                         $tableEntry['row_count'] = $rowCount;
                     }
@@ -911,7 +1018,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                             if ($dbConnection) {
                                 $sampleRows = $dbConnection->table($tableName)->limit(3)->get();
                                 if ($sampleRows->isNotEmpty()) {
-                                    $tableEntry['sample_data'] = $sampleRows->map(fn($r) => (array)$r)->values()->toArray();
+                                    $tableEntry['sample_data'] = $sampleRows->map(fn($r) => self::keysToApi((array)$r, $toApi))->values()->toArray();
                                 }
                             }
                         } catch (\Exception $e) {
@@ -922,7 +1029,7 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
                         if (!empty($stringColumns) && $dbConnection && $rowCount !== null && $rowCount > 0) {
                             $enumValues = $this->detectEnumValues($tableName, $stringColumns, $dbConnection);
                             if (!empty($enumValues)) {
-                                $tableEntry['enum_values'] = $enumValues;
+                                $tableEntry['enum_values'] = self::keysToApi($enumValues, $toApi);
                             }
                         }
                     }
@@ -965,6 +1072,15 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
             $model['patterns'] = $this->detectRelationshipPatterns($allRelationships);
 
             if (!$stockMode) {
+                if ($enrich) {
+                    $model = $this->applyDataModelEnrichers($model);
+                    // Enricher additions a client must not miss go first: large models get
+                    // truncated from the end by clients that cap tool results.
+                    if (isset($model['semantics'])) {
+                        $model = ['service' => $model['service'], 'description' => $model['description'], 'semantics' => $model['semantics']] + $model;
+                    }
+                }
+
                 // --- Enhancement #3: Field-level semantic hints ---
                 $this->injectFieldSemanticHints($model);
 
@@ -980,6 +1096,116 @@ class BaseRestService extends RestHandler implements ServiceInterface, CacheInte
         }
 
         return $model;
+    }
+
+    /**
+     * Re-key a row read straight from the connection (database column names) to
+     * the names the API uses, i.e. aliases where a field has one.
+     *
+     * @param array<string, mixed>  $row
+     * @param array<string, string> $toApi column => api name
+     * @return array<string, mixed>
+     */
+    protected static function keysToApi(array $row, array $toApi): array
+    {
+        if ($toApi === []) {
+            return $row;
+        }
+        $out = [];
+        foreach ($row as $k => $v) {
+            $out[$toApi[$k] ?? $k] = $v;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Label, description and picklist an admin recorded for a table or field
+     * (schema extras, or the database comment). Only values that were actually
+     * set: getLabel() would invent one from the name, so read the raw property.
+     *
+     * @return array<string, mixed>
+     */
+    protected static function fieldSemantics(object $schema): array
+    {
+        $out = [];
+        $name = (string) ($schema->name ?? '');
+        $label = trim((string) ($schema->label ?? ''));
+        if ($label !== '' && strcasecmp($label, $name) !== 0) {
+            $out['label'] = $label;
+        }
+        $description = trim((string) ($schema->description ?? ''));
+        if ($description !== '') {
+            $out['description'] = $description;
+        }
+        $picklist = property_exists($schema, 'picklist') ? $schema->picklist : null;
+        if (is_string($picklist)) {
+            $picklist = preg_split('/\r\n|\r|\n/', $picklist);
+        }
+        if (is_array($picklist) && ($picklist = array_values(array_filter(array_map('trim', $picklist), 'strlen'))) !== []) {
+            $out['allowed_values'] = $picklist;
+        }
+
+        return $out;
+    }
+
+    /**
+     * Run the packages tagged as data model enrichers (see
+     * DataModelEnricherInterface), lowest priority() first. One that throws or
+     * returns a non-array is skipped so an extension can never take
+     * get_data_model down.
+     *
+     * @param array<string, mixed> $model
+     * @return array<string, mixed>
+     */
+    protected function applyDataModelEnrichers(array $model): array
+    {
+        try {
+            $enrichers = self::orderEnrichers(app()->tagged(\DreamFactory\Core\Contracts\DataModelEnricherInterface::TAG));
+        } catch (\Throwable $e) {
+            return $model;
+        }
+        foreach ($enrichers as $enricher) {
+            if (!$enricher instanceof \DreamFactory\Core\Contracts\DataModelEnricherInterface) {
+                continue;
+            }
+            try {
+                $enriched = $enricher->enrich($model, $this);
+                if (is_array($enriched) && isset($enriched['tables'])) {
+                    $model = $enriched;
+                }
+            } catch (\Throwable $e) {
+                \Log::warning('Data model enricher failed; skipped', ['enricher' => get_class($enricher), 'error' => $e->getMessage()]);
+            }
+        }
+
+        return $model;
+    }
+
+    /**
+     * Enrichers in run order: by their optional priority() (lower first, absent
+     * = 0), keeping tag order among equals.
+     *
+     * @param iterable<object> $enrichers
+     * @return array<int, object>
+     */
+    protected static function orderEnrichers(iterable $enrichers): array
+    {
+        $list = [];
+        foreach ($enrichers as $i => $enricher) {
+            $priority = 0;
+            if (is_object($enricher) && method_exists($enricher, 'priority')) {
+                try {
+                    $priority = (int) $enricher->priority();
+                } catch (\Throwable $e) {
+                    $priority = 0;
+                }
+            }
+            $list[] = [$priority, count($list), $enricher];
+        }
+        usort($list, static fn ($a, $b) => [$a[0], $a[1]] <=> [$b[0], $b[1]]);
+
+        return array_map(static fn ($e) => $e[2], $list);
     }
 
     /**
